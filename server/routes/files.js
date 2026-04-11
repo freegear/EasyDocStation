@@ -62,6 +62,31 @@ router.post('/get-upload-url', requireAuth, async (req, res, next) => {
 })
 
 /**
+ * 파일 인라인 보기 (이미지 썸네일, 일반 다운로드)
+ * GET /api/files/view/:id?auth_token=...
+ */
+router.get('/view/:id', requireAuth, async (req, res, next) => {
+  try {
+    const { id } = req.params
+    const result = await db.query('SELECT * FROM attachments WHERE id = $1', [id])
+    if (result.rowCount === 0) return res.status(404).send('파일을 찾을 수 없습니다.')
+
+    const file = result.rows[0]
+    const fullPath = path.join(STORAGE_BASE, file.storage_path)
+    if (!fs.existsSync(fullPath)) return res.status(404).send('파일을 찾을 수 없습니다.')
+
+    const contentType = file.content_type || 'application/octet-stream'
+    res.setHeader('Content-Type', contentType)
+    if (!contentType.startsWith('image/') && !contentType.startsWith('video/')) {
+      res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(file.filename)}"`)
+    }
+    fs.createReadStream(fullPath).pipe(res)
+  } catch (err) {
+    next(err)
+  }
+})
+
+/**
  * 단계 1 & 2: Mock Presigned URL 생성 (Download)
  * GET /api/files/:id/get-download-url
  */

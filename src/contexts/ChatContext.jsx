@@ -67,38 +67,33 @@ export function ChatProvider({ children }) {
     }
   }
 
-  // Create post via API
+  // Create post via API, then refetch so attachments are fully enriched
   async function addPost(channelId, { content, attachmentIds = [] }) {
     try {
-      const newPost = await apiFetch('/posts', {
+      await apiFetch('/posts', {
         method: 'POST',
-        body: JSON.stringify({ channelId, content, attachmentIds })
+        body: JSON.stringify({ channelId, content, attachmentIds }),
       })
-
-      // Update local state by appending or refetching
-      setPosts(prev => ({
-        ...prev,
-        [channelId]: [newPost, ...(prev[channelId] || [])]
-      }))
-
-      return newPost
+      const data = await apiFetch(`/posts?channelId=${channelId}`)
+      setPosts(prev => ({ ...prev, [channelId]: data }))
     } catch (err) {
       alert('게시글 저장에 실패했습니다: ' + err.message)
       throw err
     }
   }
 
-  function addComment(channelId, postId, text, user) {
+  function addComment(channelId, postId, text, user, attachments = []) {
     const comment = {
       id: `c-${Date.now()}`,
       author: { name: user.name, avatar: user.avatar },
       text,
+      attachments,
       createdAt: new Date().toISOString(),
     }
     setPosts(prev => ({
       ...prev,
       [channelId]: (prev[channelId] || []).map(p =>
-        p.id === postId ? { ...p, comments: [...p.comments, comment] } : p
+        p.id === postId ? { ...p, comments: [...(p.comments || []), comment] } : p
       ),
     }))
   }
@@ -107,7 +102,7 @@ export function ChatProvider({ children }) {
     setPosts(prev => ({
       ...prev,
       [channelId]: (prev[channelId] || []).map(p =>
-        p.id === postId ? { ...p, views: p.views + 1 } : p
+        p.id === postId ? { ...p, views: (p.views || 0) + 1 } : p
       ),
     }))
   }
@@ -130,7 +125,7 @@ export function ChatProvider({ children }) {
       selectChannel,
       addPost,
       addComment,
-      decrementViews: incrementViews, // Placeholder if needed
+      incrementViews,
       deletePost,
       refreshTeams
     }}>
