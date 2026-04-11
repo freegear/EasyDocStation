@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react'
-import { apiFetch } from '../lib/api'
+import { useAuth } from '../contexts/AuthContext'
 
 export default function TeamManageModal({ team = null, onClose, onSave }) {
+  const { currentUser } = useAuth()
   const [name, setName] = useState(team?.name || '')
   const [searchQuery, setSearchQuery] = useState('')
   const [searchTarget, setSearchTarget] = useState('admin') // 'admin' or 'member'
@@ -10,6 +10,10 @@ export default function TeamManageModal({ team = null, onClose, onSave }) {
   const [searchResults, setSearchResults] = useState([])
   const [isSearching, setIsSearching] = useState(false)
   const [loading, setLoading] = useState(false)
+
+  const isSiteAdmin = currentUser?.role === 'site_admin'
+  const isTeamAdmin = isSiteAdmin || selectedAdmins.some(a => a.id === currentUser?.id)
+  const canManage = isTeamAdmin
 
   useEffect(() => {
     if (team) {
@@ -157,13 +161,13 @@ export default function TeamManageModal({ team = null, onClose, onSave }) {
             <div>
               <div className="flex justify-between items-center mb-1.5">
                 <label className="text-white/50 text-xs font-medium">관리자</label>
-                <button onClick={() => { setSearchTarget('admin'); setSearchQuery('') }} className="text-indigo-400 text-[10px]">+ 추가</button>
+                {canManage && <button onClick={() => { setSearchTarget('admin'); setSearchQuery('') }} className="text-indigo-400 text-[10px] hover:underline">+ 추가</button>}
               </div>
               <div className="min-h-[50px] p-2 bg-white/5 rounded-xl border border-white/10 flex flex-wrap gap-1">
                 {selectedAdmins.map(a => (
                   <div key={a.id} className="px-2 py-0.5 rounded-lg bg-indigo-500/20 text-indigo-300 text-[10px] flex items-center gap-1">
                     <span>{a.name}</span>
-                    <button onClick={() => handleRemoveUser(a.id, 'admin')}>×</button>
+                    {canManage && <button onClick={() => handleRemoveUser(a.id, 'admin')}>×</button>}
                   </div>
                 ))}
               </div>

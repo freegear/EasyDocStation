@@ -23,11 +23,15 @@ function RoleBadge({ role }) {
   )
 }
 
-function Avatar({ name, size = 8 }) {
+function Avatar({ name, imageUrl, size = 8 }) {
   const letters = name?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) ?? '?'
   return (
-    <div className={`w-${size} h-${size} rounded-full bg-indigo-500 flex items-center justify-center text-white text-xs font-bold flex-shrink-0`}>
-      {letters}
+    <div className={`w-${size} h-${size} rounded-full bg-indigo-500 overflow-hidden flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0 border border-white/10`}>
+      {imageUrl ? (
+        <img src={imageUrl} alt={name} className="w-full h-full object-cover" />
+      ) : (
+        letters
+      )}
     </div>
   )
 }
@@ -44,6 +48,7 @@ function UserFormModal({ user, onClose, onSave }) {
     password: '',
     confirmPassword: '',
     is_active: user?.is_active ?? true,
+    image_url: user?.image_url ?? '',
   })
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -74,13 +79,16 @@ function UserFormModal({ user, onClose, onSave }) {
     try {
       let result
       if (isEdit) {
-        const body = { name: form.name, email: form.email, role: form.role, is_active: form.is_active }
+        const body = { name: form.name, email: form.email, role: form.role, is_active: form.is_active, image_url: form.image_url }
         if (form.password) body.password = form.password
         result = await apiFetch(`/users/${user.id}`, { method: 'PUT', body: JSON.stringify(body) })
       } else {
         result = await apiFetch('/users', {
           method: 'POST',
-          body: JSON.stringify({ username: form.username, name: form.name, email: form.email, password: form.password, role: form.role }),
+          body: JSON.stringify({ 
+            username: form.username, name: form.name, email: form.email, 
+            password: form.password, role: form.role, image_url: form.image_url 
+          }),
         })
       }
       onSave(result)
@@ -106,6 +114,21 @@ function UserFormModal({ user, onClose, onSave }) {
 
         <form onSubmit={handleSubmit} className="px-6 py-5 flex flex-col gap-4">
           {error && <div className="px-4 py-2.5 rounded-xl bg-red-500/10 border border-red-500/25 text-red-400 text-sm">{error}</div>}
+
+          {/* Image Upload / Preview */}
+          <div className="flex items-center gap-4 py-2 border-b border-white/5 mb-2">
+            <Avatar name={form.name} imageUrl={form.image_url} size={16} />
+            <div className="flex-1">
+              <label className="text-white/50 text-xs font-medium block mb-1">사용자 이미지 (100x100 권장)</label>
+              <input
+                type="text"
+                value={form.image_url}
+                onChange={e => set('image_url', e.target.value)}
+                placeholder="이미지 URL"
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-white text-xs placeholder-white/20 focus:outline-none focus:ring-1 focus:ring-indigo-500/40"
+              />
+            </div>
+          </div>
 
           {!isEdit && (
             <FormField label="아이디" value={form.username} onChange={v => set('username', v)} placeholder="username" required />
@@ -470,9 +493,7 @@ export default function SiteAdminPage({ onClose }) {
                       className={`flex items-center gap-4 px-5 py-3.5 hover:bg-white/3 transition-colors ${!user.is_active ? 'opacity-50' : ''}`}
                     >
                       <div className="flex items-center gap-3 flex-1 min-w-0">
-                        <div className="w-9 h-9 rounded-full bg-indigo-500 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
-                          {user.avatar}
-                        </div>
+                        <Avatar name={user.name} imageUrl={user.image_url} size={9} />
                         <div className="min-w-0">
                           <div className="flex items-center gap-2">
                             <p className="text-white text-sm font-medium truncate">{user.name}</p>

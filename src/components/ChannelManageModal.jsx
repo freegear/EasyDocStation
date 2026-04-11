@@ -2,7 +2,10 @@ import { useState, useEffect } from 'react'
 import { useChat } from '../contexts/ChatContext'
 import { apiFetch } from '../lib/api'
 
+import { useAuth } from '../contexts/AuthContext'
+
 export default function ChannelManageModal({ mode = 'manage', channel = null, onClose, onSave = () => {} }) {
+  const { currentUser } = useAuth()
   const { selectedTeam, selectedChannel } = useChat()
   const targetChannel = channel || selectedChannel
   
@@ -14,6 +17,14 @@ export default function ChannelManageModal({ mode = 'manage', channel = null, on
   
   const [loading, setLoading] = useState(mode === 'manage')
   const [saving, setSaving] = useState(false)
+
+  const isSiteAdmin = currentUser?.role === 'site_admin'
+  const isTeamAdmin = isSiteAdmin || currentUser?.role === 'team_admin'
+  // Check if current user is an admin of this channel
+  const isChannelAdmin = isTeamAdmin || admins.some(a => a.id === currentUser?.id)
+  
+  const canManageAdmins = isTeamAdmin
+  const canManageMembers = isChannelAdmin
   
   const [userSearch, setUserSearch] = useState('')
   const [searchResults, setSearchResults] = useState([])
@@ -69,9 +80,9 @@ export default function ChannelManageModal({ mode = 'manage', channel = null, on
   }
 
   const handleAddUser = (user) => {
-    if (searchTarget === 'admin') {
+    if (searchTarget === 'admin' && canManageAdmins) {
       setAdmins([...admins, user])
-    } else {
+    } else if (searchTarget === 'member' && canManageMembers) {
       setMembers([...members, user])
     }
     setUserSearch('')
@@ -79,9 +90,9 @@ export default function ChannelManageModal({ mode = 'manage', channel = null, on
   }
 
   const handleRemoveUser = (id, target) => {
-    if (target === 'admin') {
+    if (target === 'admin' && canManageAdmins) {
       setAdmins(admins.filter(a => a.id !== id))
-    } else {
+    } else if (target === 'member' && canManageMembers) {
       setMembers(members.filter(m => m.id !== id))
     }
   }
@@ -104,9 +115,6 @@ export default function ChannelManageModal({ mode = 'manage', channel = null, on
         body: JSON.stringify(payload)
       })
 
-      // Sync admins and members if needed (In a real app, the PUT would handle this or separate calls)
-      // For now we'll assume the backend handles it via the payload or we could add calls here.
-      
       onSave(result)
       onClose()
     } catch (err) {
@@ -192,13 +200,13 @@ export default function ChannelManageModal({ mode = 'manage', channel = null, on
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <label className="text-white/50 text-xs font-medium">채널 관리자</label>
-                <button onClick={() => { setSearchTarget('admin'); setUserSearch('') }} className="text-indigo-400 text-[10px] hover:underline">+ 추가</button>
+                {canManageAdmins && <button onClick={() => { setSearchTarget('admin'); setUserSearch('') }} className="text-indigo-400 text-[10px] hover:underline">+ 추가</button>}
               </div>
               <div className="min-h-[60px] p-2 bg-white/5 rounded-xl border border-white/10 flex flex-wrap gap-1.5">
                 {admins.map(a => (
                   <div key={a.id} className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-500 text-[10px]">
                     <span>{a.name}</span>
-                    <button onClick={() => handleRemoveUser(a.id, 'admin')}>×</button>
+                    {canManageAdmins && <button onClick={() => handleRemoveUser(a.id, 'admin')}>×</button>}
                   </div>
                 ))}
                 {admins.length === 0 && <span className="text-white/10 text-[10px] py-1">미지정</span>}
@@ -209,13 +217,13 @@ export default function ChannelManageModal({ mode = 'manage', channel = null, on
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <label className="text-white/50 text-xs font-medium">채널 멤버</label>
-                <button onClick={() => { setSearchTarget('member'); setUserSearch('') }} className="text-indigo-400 text-[10px] hover:underline">+ 추가</button>
+                {canManageMembers && <button onClick={() => { setSearchTarget('member'); setUserSearch('') }} className="text-indigo-400 text-[10px] hover:underline">+ 추가</button>}
               </div>
               <div className="min-h-[60px] p-2 bg-white/5 rounded-xl border border-white/10 flex flex-wrap gap-1.5">
                 {members.map(m => (
                   <div key={m.id} className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 text-[10px]">
                     <span>{m.name}</span>
-                    <button onClick={() => handleRemoveUser(m.id, 'member')}>×</button>
+                    {canManageMembers && <button onClick={() => handleRemoveUser(m.id, 'member')}>×</button>}
                   </div>
                 ))}
                 {members.length === 0 && <span className="text-white/10 text-[10px] py-1">미지정</span>}

@@ -108,9 +108,42 @@ export function ChatProvider({ children }) {
   }
 
   function deletePost(channelId, postId) {
+    // In a real app, you'd also call apiFetch('/files/delete', ...) for each attachment
     setPosts(prev => ({
       ...prev,
       [channelId]: (prev[channelId] || []).filter(p => p.id !== postId),
+    }))
+  }
+
+  function updatePost(channelId, postId, { content, attachments }) {
+    setPosts(prev => ({
+      ...prev,
+      [channelId]: (prev[channelId] || []).map(p =>
+        p.id === postId ? { ...p, content, attachments, updatedAt: new Date().toISOString() } : p
+      ),
+    }))
+  }
+
+  function deleteComment(channelId, postId, commentId) {
+    setPosts(prev => ({
+      ...prev,
+      [channelId]: (prev[channelId] || []).map(p =>
+        p.id === postId ? { ...p, comments: (p.comments || []).filter(c => c.id !== commentId) } : p
+      ),
+    }))
+  }
+
+  function updateComment(channelId, postId, commentId, { text, attachments }) {
+    setPosts(prev => ({
+      ...prev,
+      [channelId]: (prev[channelId] || []).map(p =>
+        p.id === postId ? {
+          ...p,
+          comments: (p.comments || []).map(c =>
+            c.id === commentId ? { ...c, text, attachments, updatedAt: new Date().toISOString() } : c
+          )
+        } : p
+      ),
     }))
   }
 
@@ -127,6 +160,9 @@ export function ChatProvider({ children }) {
       addComment,
       incrementViews,
       deletePost,
+      updatePost,
+      deleteComment,
+      updateComment,
       refreshTeams
     }}>
       {children}

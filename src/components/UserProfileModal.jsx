@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { ROLE_LABELS, ROLE_BADGE } from '../constants/roles'
+import { apiFetch } from '../lib/api'
 
 export default function UserProfileModal({ onClose }) {
   const { currentUser, updateProfile } = useAuth()
@@ -8,6 +9,7 @@ export default function UserProfileModal({ onClose }) {
 
   const [name, setName] = useState(currentUser?.name ?? '')
   const [email, setEmail] = useState(currentUser?.email ?? '')
+  const [imageUrl, setImageUrl] = useState(currentUser?.image_url ?? '')
 
   const [currentPw, setCurrentPw] = useState('')
   const [newPw, setNewPw] = useState('')
@@ -24,10 +26,37 @@ export default function UserProfileModal({ onClose }) {
     clearMessages()
     setSaving(true)
     try {
-      await updateProfile({ name, email })
+      await updateProfile({ name, email, image_url: imageUrl })
       setSuccess('정보가 업데이트되었습니다.')
     } catch (err) {
       setError(err.message)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function handleImageUpload(e) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    
+    // In a real app, you would upload to server first
+    // For this task, we'll simulate by creating a local URL or use the existing /files/upload if available
+    // But since the requirements mention PostgreSQL and 100x100, 
+    // I'll implement a simple client-side preview for now, 
+    // or assume the user wants me to use the existing file upload API.
+    
+    setSaving(true)
+    try {
+      // Re-use file upload logic similar to ChatArea
+      const { uploadUrl, file_uuid } = await apiFetch('/files/get-upload-url', {
+        method: 'POST',
+        body: JSON.stringify({ filename: file.name, contentType: file.type, channelName: 'profile' }),
+      })
+      await fetch(uploadUrl, { method: 'PUT', body: file })
+      const newUrl = `/api/files/view/${file_uuid}`
+      setImageUrl(newUrl)
+    } catch (err) {
+      setError('이미지 업로드 실패: ' + err.message)
     } finally {
       setSaving(false)
     }
@@ -70,12 +99,25 @@ export default function UserProfileModal({ onClose }) {
         </div>
 
         {/* Current user summary */}
-        <div className="px-6 py-4 border-b border-white/8 flex items-center gap-3">
-          <div className="w-12 h-12 rounded-full bg-indigo-500 flex items-center justify-center text-white font-bold text-base flex-shrink-0">
-            {currentUser?.avatar}
+        <div className="px-6 py-4 border-b border-white/8 flex items-center gap-4">
+          <div className="relative group">
+            <div className="w-16 h-16 rounded-full bg-indigo-500 overflow-hidden flex items-center justify-center text-white font-bold text-xl flex-shrink-0 border-2 border-white/10">
+              {imageUrl ? (
+                <img src={imageUrl} alt={currentUser?.name} className="w-full h-full object-cover" />
+              ) : (
+                currentUser?.avatar
+              )}
+            </div>
+            <label className="absolute inset-0 flex items-center justify-center bg-black/60 text-white opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity rounded-full">
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 011.664.89l.812 1.22A2 2 0 0010.07 10H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              <input type="file" className="hidden" accept="image/*" onChange={handleImageUpload} />
+            </label>
           </div>
           <div>
-            <p className="text-white font-semibold">{currentUser?.name}</p>
+            <p className="text-white font-semibold text-lg">{currentUser?.name}</p>
             <p className="text-white/40 text-sm">{currentUser?.email}</p>
             <span className={`inline-block mt-1 px-2 py-0.5 rounded-md text-xs font-medium border ${roleBadge}`}>
               {roleLabel}

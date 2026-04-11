@@ -15,6 +15,7 @@ function toPublicUser(u) {
     role: u.role,
     is_active: u.is_active,
     avatar: u.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2),
+    image_url: u.image_url,
     last_login_at: u.last_login_at,
     created_at: u.created_at,
   }
@@ -73,7 +74,7 @@ router.get('/me', requireAuth, async (req, res) => {
 
 // PUT /api/auth/me — update own profile
 router.put('/me', requireAuth, async (req, res) => {
-  const { name, email, currentPassword, newPassword } = req.body
+  const { name, email, image_url, currentPassword, newPassword } = req.body
   try {
     const { rows } = await pool.query('SELECT * FROM users WHERE id = $1', [req.user.id])
     const user = rows[0]
@@ -84,6 +85,7 @@ router.put('/me', requireAuth, async (req, res) => {
 
     if (name?.trim()) { sets.push(`name = $${i++}`); vals.push(name.trim()) }
     if (email?.trim()) { sets.push(`email = $${i++}`); vals.push(email.trim().toLowerCase()) }
+    if (image_url !== undefined) { sets.push(`image_url = $${i++}`); vals.push(image_url) }
 
     if (newPassword) {
       if (!currentPassword) return res.status(400).json({ error: '현재 비밀번호를 입력하세요.' })
@@ -102,8 +104,9 @@ router.put('/me', requireAuth, async (req, res) => {
     )
     res.json(toPublicUser(updated[0]))
   } catch (err) {
+    console.error('Profile update error:', err)
     if (err.code === '23505') return res.status(400).json({ error: '이미 사용 중인 이메일입니다.' })
-    res.status(500).json({ error: '서버 오류가 발생했습니다.' })
+    res.status(500).json({ error: '서버 오류가 발생했습니다: ' + err.message })
   }
 })
 
