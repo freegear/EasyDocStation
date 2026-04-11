@@ -497,7 +497,7 @@ function ComposeBar({ onSubmit }) {
 // ─── Post List ────────────────────────────────────────────────
 
 function PostList({ posts, onSelect, onSubmit }) {
-  const { selectedChannel, selectedTeam } = useChat()
+  const { selectedChannel, selectedTeam, refreshTeams } = useChat()
   const pinnedPosts = posts.filter(p => p.pinned)
   const normalPosts = posts.filter(p => !p.pinned)
   const bottomRef = useRef(null)
@@ -542,7 +542,12 @@ function PostList({ posts, onSelect, onSubmit }) {
         )}
       </div>
 
-      {showManageModal && <ChannelManageModal onClose={() => setShowManageModal(false)} />}
+      {showManageModal && (
+        <ChannelManageModal 
+          onClose={() => setShowManageModal(false)} 
+          onSave={() => refreshTeams()}
+        />
+      )}
 
       {/* Feed */}
       <div className="flex-1 overflow-y-auto px-6 py-4">
@@ -620,7 +625,7 @@ function PostCard({ post, onSelect, pinned }) {
 // ─── Post Detail ──────────────────────────────────────────────
 
 function PostDetail({ post, channelId, onBack }) {
-  const { addComment, incrementViews, deletePost, posts } = useChat()
+  const { addComment, incrementViews, deletePost, posts, refreshTeams } = useChat()
   const { currentUser } = useAuth()
   const [comment, setComment] = useState('')
   const [viewed, setViewed] = useState(false)
@@ -675,7 +680,12 @@ function PostDetail({ post, channelId, onBack }) {
         )}
       </div>
 
-      {showManageModal && <ChannelManageModal onClose={() => setShowManageModal(false)} />}
+      {showManageModal && (
+        <ChannelManageModal 
+          onClose={() => setShowManageModal(false)} 
+          onSave={() => refreshTeams()}
+        />
+      )}
 
       <div className="flex-1 overflow-y-auto px-6 py-6">
         {/* Meta */}

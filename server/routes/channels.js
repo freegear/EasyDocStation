@@ -19,45 +19,110 @@ router.get('/:id', requireAuth, async (req, res, next) => {
   }
 })
 
-// Update channel (name, type) — use UPSERT to handle first-time saves
+// Update channel (name, type, admins, members)
 router.put('/:id', requireAuth, async (req, res, next) => {
   try {
     const { id } = req.params
-    const { name, type } = req.body
+    const { name, type, team_id, adminIds, memberIds } = req.body
+
+    // Ensure team exists or use a default existing team
+    let finalTeamId = team_id
+    const teamCheck = await db.query('SELECT id FROM teams WHERE id = $1', [finalTeamId])
+    if (teamCheck.rowCount === 0) {
+      const firstTeam = await db.query('SELECT id FROM teams LIMIT 1')
+      if (firstTeam.rowCount > 0) finalTeamId = firstTeam.rows[0].id
+      else return res.status(400).json({ error: '유효한 팀이 존재하지 않습니다. 먼저 팀을 생성해주세요.' })
+    }
+
+    await db.query('BEGIN')
 
     const result = await db.query(
-      `INSERT INTO channels (id, name, type, updated_at)
-       VALUES ($1, $2, $3, NOW())
+      `INSERT INTO channels (id, team_id, name, type, updated_at)
+       VALUES ($1, $2, $3, $4, NOW())
        ON CONFLICT (id) DO UPDATE
        SET name = EXCLUDED.name, 
            type = EXCLUDED.type, 
            updated_at = NOW()
        RETURNING *`,
-      [id, name, type]
+      [id, finalTeamId, name, type]
     )
 
+    // Sync Admins
+    if (adminIds && Array.isArray(adminIds)) {
+      await db.query('DELETE FROM channel_admins WHERE channel_id = $1', [id])
+      for (const uid of adminIds) {
+        await db.query(
+          'INSERT INTO channel_admins (channel_id, user_id, assigned_by) VALUES ($1, $2, $3)',
+          [id, uid, req.user.id]
+        )
+      }
+    }
+
+    // Sync Members
+    if (memberIds && Array.isArray(memberIds)) {
+      await db.query('DELETE FROM channel_members WHERE channel_id = $1', [id])
+      for (const uid of memberIds) {
+        await db.query(
+          'INSERT INTO channel_members (channel_id, user_id, added_by) VALUES ($1, $2, $3)',
+          [id, uid, req.user.id]
+        )
+      }
+    }
+
+    await db.query('COMMIT')
     res.json(result.rows[0])
   } catch (err) {
+    await db.query('ROLLBACK')
     next(err)
   }
 })
 
-// Archive channel
-router.patch('/:id/archive', requireAuth, async (req, res, next) => {
+// Delete channel
+router.delete('/:id', requireAuth, async (req, res, next) => {
   try {
     const { id } = req.params
-    const result = await db.query(
-      'UPDATE channels SET is_archived = true, updated_at = NOW() WHERE id = $1 RETURNING *',
-      [id]
-    )
-    if (result.rows.length === 0) return res.status(404).json({ error: '채널을 찾을 수 없습니다.' })
-    res.json(result.rows[0])
+    const result = await db.query('DELETE FROM channels WHERE id = $1 RETURNING *', [id])
+    if (result.rowCount === 0) return res.status(404).json({ error: '채널을 찾을 수 없습니다.' })
+    res.json({ success: true })
   } catch (err) {
     next(err)
   }
 })
 
-// ─── Members ─────────────────────────────────────────────────
+// Get channel stats (messages, files, size)
+router.get('/:id/stats', requireAuth, async (req, res, next) => {
+  try {
+    const { id } = req.params
+    const stats = await db.query(`
+      SELECT 
+        (SELECT COUNT(*) FROM posts WHERE channel_id = $1) as message_count,
+        (SELECT COUNT(*) FROM attachments a JOIN posts p ON a.post_id = p.id WHERE p.channel_id = $1) as file_count,
+        (SELECT COALESCE(SUM(size), 0) FROM attachments a JOIN posts p ON a.post_id = p.id WHERE p.channel_id = $1) as total_size
+    `, [id])
+    
+    res.json(stats.rows[0])
+  } catch (err) {
+    next(err)
+  }
+})
+
+// ─── Admins & Members ─────────────────────────────────────────
+
+// Get channel admins
+router.get('/:id/admins', requireAuth, async (req, res, next) => {
+  try {
+    const { id } = req.params
+    const result = await db.query(`
+      SELECT u.id, u.username, u.name, u.email
+      FROM users u
+      JOIN channel_admins ca ON u.id = ca.user_id
+      WHERE ca.channel_id = $1
+    `, [id])
+    res.json(result.rows)
+  } catch (err) {
+    next(err)
+  }
+})
 
 // Get channel members
 router.get('/:id/members', requireAuth, async (req, res, next) => {
