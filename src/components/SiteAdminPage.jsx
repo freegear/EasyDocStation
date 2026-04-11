@@ -573,6 +573,38 @@ export default function SiteAdminPage({ onClose }) {
                   </div>
                 </div>
 
+                {/* Cassandra Stats */}
+                <div className="bg-white/5 border border-white/10 rounded-2xl p-6 shadow-xl">
+                  <div className="flex items-start justify-between mb-6">
+                    <div>
+                      <h3 className="text-white font-bold text-base mb-1">Cassandra Database (Posts)</h3>
+                      <p className="text-white/40 text-xs">게시글 및 메시지 저장을 위한 분산 데이터베이스 정보입니다.</p>
+                    </div>
+                    <div className="px-3 py-1 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-400 text-[10px] font-bold uppercase tracking-wider">
+                      Distributed Storage
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-8">
+                    <div className="space-y-4">
+                      <div>
+                        <p className="text-white/30 text-xs font-semibold uppercase tracking-wider mb-1.5">DB 위치 (Data Directory)</p>
+                        <div className="bg-black/30 rounded-xl px-4 py-3 border border-white/5 font-mono text-xs text-indigo-300 break-all leading-relaxed">
+                          {dbStats.cassandra?.location}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="space-y-10 flex flex-col justify-center">
+                      <div className="text-center p-6 bg-white/3 rounded-3xl border border-white/5 relative overflow-hidden group">
+                        <div className="absolute inset-0 bg-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                        <p className="text-white/40 text-xs font-semibold uppercase tracking-wider mb-2">현재 데이터 크기</p>
+                        <p className="text-4xl font-black text-white tracking-tight">{dbStats.cassandra?.size}</p>
+                        <div className="w-12 h-1 bg-purple-500 mx-auto mt-4 rounded-full" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
                 {/* Object Files Stats */}
                 <div className="bg-white/5 border border-white/10 rounded-2xl p-6 shadow-xl">
                   <div className="flex items-start justify-between mb-6">

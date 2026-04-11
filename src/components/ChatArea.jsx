@@ -248,6 +248,7 @@ function TableRow({ line }) {
 
 function ComposeBar({ onSubmit }) {
   const { currentUser } = useAuth()
+  const { selectedChannel } = useChat()
   const [title, setTitle] = useState('')
   const [content, setContent] = useState('')
   const [tagInput, setTagInput] = useState('')
@@ -327,13 +328,52 @@ function ComposeBar({ onSubmit }) {
     }
   }
 
-  function handleSend() {
+  const [sending, setSending] = useState(false)
+
+  async function handleSend() {
     if (!title.trim()) { titleRef.current?.focus(); return }
-    onSubmit({ title: title.trim(), content: content.trim(), tags, attachments: files })
-    // cleanup object URLs on send
-    files.forEach(f => URL.revokeObjectURL(f.url))
-    setTitle(''); setContent(''); setTags([]); setTagInput(''); setFiles([])
-    setExpanded(false)
+    setSending(true)
+    try {
+      const attachmentIds = []
+      
+      // Upload files to Mock S3
+      for (const fObj of files) {
+        // Step 1: Get Upload URL
+        const { uploadUrl, file_uuid } = await apiFetch('/files/get-upload-url', {
+          method: 'POST',
+          body: JSON.stringify({
+            filename: fObj.name,
+            contentType: fObj.type,
+            channelName: selectedChannel.name
+          })
+        })
+
+        // Step 2: Actually upload binary
+        await fetch(uploadUrl, {
+          method: 'PUT',
+          body: fObj.file
+        })
+
+        attachmentIds.push(file_uuid)
+      }
+
+      // Final Step: Submit Post with Attachment IDs
+      await onSubmit({ 
+        title: title.trim(), 
+        content: content.trim(), 
+        tags, 
+        attachmentIds 
+      })
+
+      // Cleanup
+      files.forEach(f => URL.revokeObjectURL(f.url))
+      setTitle(''); setContent(''); setTags([]); setTagInput(''); setFiles([])
+      setExpanded(false)
+    } catch (err) {
+      alert('전송 중 오류가 발생했습니다: ' + err.message)
+    } finally {
+      setSending(false)
+    }
   }
 
   function handleCancel() {

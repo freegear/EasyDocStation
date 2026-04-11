@@ -4,5 +4,6 @@
     "height": 378
   },
   "PostgreSQL Database Path": "/Users/kevinim/Desktop/EasyDocStation/Database/PoseSQLDB",
+  "Cassandra Database Path": "/Users/kevinim/Desktop/EasyDocStation/Database/CassandraDB",
   "ObjectFile Path": "/Users/kevinim/Desktop/EasyDocStation/Database/ObjectFile"
 }

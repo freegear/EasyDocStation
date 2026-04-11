@@ -55,31 +55,37 @@ export function ChatProvider({ children }) {
     setSelectedChannel(team.channels[0])
   }
 
-  function selectChannel(channel) {
+  // Select channel and fetch its posts from Cassandra
+  async function selectChannel(channel) {
     setSelectedChannel(channel)
-    if (!posts[channel.id]) {
+    try {
+      const data = await apiFetch(`/posts?channelId=${channel.id}`)
+      setPosts(prev => ({ ...prev, [channel.id]: data }))
+    } catch (err) {
+      console.error('Failed to fetch posts:', err)
       setPosts(prev => ({ ...prev, [channel.id]: [] }))
     }
   }
 
-  function addPost(channelId, { title, content, tags, attachments = [] }, user) {
-    const newPost = {
-      id: `post-${Date.now()}`,
-      title,
-      content,
-      tags: tags.filter(Boolean),
-      attachments,
-      author: { name: user.name, avatar: user.avatar },
-      pinned: false,
-      views: 0,
-      createdAt: new Date().toISOString(),
-      comments: [],
+  // Create post via API
+  async function addPost(channelId, { content, attachmentIds = [] }) {
+    try {
+      const newPost = await apiFetch('/posts', {
+        method: 'POST',
+        body: JSON.stringify({ channelId, content, attachmentIds })
+      })
+
+      // Update local state by appending or refetching
+      setPosts(prev => ({
+        ...prev,
+        [channelId]: [newPost, ...(prev[channelId] || [])]
+      }))
+
+      return newPost
+    } catch (err) {
+      alert('게시글 저장에 실패했습니다: ' + err.message)
+      throw err
     }
-    setPosts(prev => ({
-      ...prev,
-      [channelId]: [...(prev[channelId] || []), newPost],
-    }))
-    return newPost
   }
 
   function addComment(channelId, postId, text, user) {

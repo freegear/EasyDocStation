@@ -8,9 +8,14 @@ const channelsRouter = require('./routes/channels')
 const adminRouter = require('./routes/admin')
 const teamsRouter = require('./routes/teams')
 const filesRouter = require('./routes/files')
+const postsRouter = require('./routes/posts')
+const { initCassandra } = require('./cassandra')
 
 const app = express()
 const PORT = process.env.PORT || 3001
+
+// Initialize Cassandra
+initCassandra()
 
 app.use(cors({
   origin: process.env.CLIENT_ORIGIN || 'http://localhost:5173',
@@ -24,6 +29,7 @@ app.use('/api/channels', channelsRouter)
 app.use('/api/admin', adminRouter)
 app.use('/api/teams', teamsRouter)
 app.use('/api/files', filesRouter)
+app.use('/api/posts', postsRouter)
 
 app.use((err, req, res, next) => {
   console.error(err)
