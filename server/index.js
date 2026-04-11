@@ -6,6 +6,8 @@ const authRouter = require('./routes/auth')
 const usersRouter = require('./routes/users')
 const channelsRouter = require('./routes/channels')
 const adminRouter = require('./routes/admin')
+const teamsRouter = require('./routes/teams')
+const filesRouter = require('./routes/files')
 
 const app = express()
 const PORT = process.env.PORT || 3001
@@ -20,6 +22,8 @@ app.use('/api/auth', authRouter)
 app.use('/api/users', usersRouter)
 app.use('/api/channels', channelsRouter)
 app.use('/api/admin', adminRouter)
+app.use('/api/teams', teamsRouter)
+app.use('/api/files', filesRouter)
 
 app.use((err, req, res, next) => {
   console.error(err)

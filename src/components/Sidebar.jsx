@@ -1,5 +1,7 @@
 import { useState } from 'react'
 import { useChat } from '../contexts/ChatContext'
+import TeamManageModal from './TeamManageModal'
+import ChannelManageModal from './ChannelManageModal'
 
 function HashIcon() {
   return (
@@ -18,9 +20,14 @@ function LockIcon() {
 }
 
 export default function Sidebar() {
-  const { teams, selectedTeam, selectedChannel, selectTeam, selectChannel } = useChat()
+  const { teams, setTeams, selectedTeam, selectedChannel, selectTeam, selectChannel, refreshTeams } = useChat()
   const [dmCollapsed, setDmCollapsed] = useState(false)
   const [channelsCollapsed, setChannelsCollapsed] = useState(false)
+  const [showTeamModal, setShowTeamModal] = useState(false)
+  const [editingTeam, setEditingTeam] = useState(null)
+  const [showChannelModal, setShowChannelModal] = useState(false)
+  const [channelModalMode, setChannelModalMode] = useState('add')
+  const [editingChannel, setEditingChannel] = useState(null)
 
   const totalUnread = selectedTeam.channels.reduce((sum, ch) => sum + ch.unread, 0)
 
@@ -37,6 +44,7 @@ export default function Sidebar() {
               <button
                 key={team.id}
                 onClick={() => selectTeam(team)}
+                onDoubleClick={() => { setEditingTeam(team); setShowTeamModal(true) }}
                 className={`flex items-center gap-2.5 w-full px-2 py-2 rounded-lg text-sm text-left transition-all ${
                   isActive
                     ? 'bg-indigo-600 text-white shadow-lg'
@@ -53,6 +61,15 @@ export default function Sidebar() {
               </button>
             )
           })}
+          
+          {/* Add Team Button at the bottom of the list */}
+          <button
+            onClick={() => { setEditingTeam(null); setShowTeamModal(true) }}
+            className="flex items-center gap-2 w-full px-3 py-2 rounded-lg text-white/30 hover:text-white/60 hover:bg-white/5 text-sm transition-all mt-1"
+          >
+            <span className="text-lg leading-none">+</span>
+            <span>팀 추가</span>
+          </button>
         </div>
       </div>
 
@@ -70,12 +87,17 @@ export default function Sidebar() {
 
           {!channelsCollapsed && (
             <div className="flex flex-col gap-0.5 px-2">
-              {selectedTeam.channels.map(ch => {
+              {[...selectedTeam.channels].sort((a, b) => a.name.localeCompare(b.name)).map(ch => {
                 const isActive = ch.id === selectedChannel?.id
                 return (
                   <button
                     key={ch.id}
                     onClick={() => selectChannel(ch)}
+                    onDoubleClick={() => {
+                      setEditingChannel(ch)
+                      setChannelModalMode('manage')
+                      setShowChannelModal(true)
+                    }}
                     className={`flex items-center gap-2 w-full px-2 py-1.5 rounded-md text-sm text-left transition-all ${
                       isActive
                         ? 'bg-indigo-500/30 text-white'
@@ -98,7 +120,14 @@ export default function Sidebar() {
               })}
 
               {/* Add channel */}
-              <button className="flex items-center gap-2 w-full px-2 py-1.5 rounded-md text-white/30 hover:text-white/60 text-sm transition-colors hover:bg-white/5">
+              <button
+                onClick={() => {
+                  setEditingChannel(null)
+                  setChannelModalMode('add')
+                  setShowChannelModal(true)
+                }}
+                className="flex items-center gap-2 w-full px-2 py-1.5 rounded-md text-white/30 hover:text-white/60 text-sm transition-colors hover:bg-white/5"
+              >
                 <span className="text-lg leading-none">+</span>
                 <span>채널 추가</span>
               </button>
@@ -137,13 +166,29 @@ export default function Sidebar() {
         </div>
       </div>
 
-      {/* Bottom user status */}
-      <div className="px-3 py-3 border-t border-white/10">
-        <div className="flex items-center gap-2 text-white/40 text-xs">
-          <div className="w-2 h-2 rounded-full bg-green-400" />
-          <span>온라인</span>
-        </div>
-      </div>
+      {showTeamModal && (
+        <TeamManageModal
+          team={editingTeam}
+          onClose={() => setShowTeamModal(false)}
+          onSave={(data, deletedId) => {
+            refreshTeams()
+            if (deletedId && selectedTeam.id === deletedId) {
+              // select first available if current deleted
+            }
+          }}
+        />
+      )}
+
+      {showChannelModal && (
+        <ChannelManageModal
+          mode={channelModalMode}
+          channel={editingChannel}
+          onClose={() => setShowChannelModal(false)}
+          onSave={() => {
+            refreshTeams() // Sync entire UI with DB
+          }}
+        />
+      )}
     </aside>
   )
 }

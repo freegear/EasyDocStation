@@ -1,6 +1,6 @@
 Description.MD
 
-#1 
+#1 화면 구성
 
 Slack과 같은 서비스를 구축할 것이다.
 화면은 크게 나누면 3개로 나눌 수 있다.
@@ -9,6 +9,15 @@ Slack과 같은 서비스를 구축할 것이다.
 2) 가운데는 선택된 채널의 대화 내용을 보여주는 화면
 3) 오른쪽은 GROQ 서비스를 연동하는 것이다.
 4) 제일 위에는 타이틀 바와 함께 로그인 한 사람의 정보가 표시된다.
+
+#1.1  왼쪽은 Team 및 채널 목록을 보여주는 화면
+- Team 목록
+  PostSQL에 있는 team 목록을 보여줌 
+- 팀에 해당하는 채널 목록
+  PostSQL에 있는 해당 팀의 채널 목록을 보여줌 
+- DIRECT MESSAGE 
+  PostSQL에 있는 같은 팀의 멤버 목록을 보여 줌
+
 
 #2 GROQ 서비스
 GROQ 서비스의 Key값은 
@@ -38,9 +47,21 @@ PostgreSQL Database Path : /Users/kevinim/Desktop/EasyDocStation/Database/PoseSQ
 ObjectFile Path : /Users/kevinim/Desktop/EasyDocStation/Database/ObjectFile
 로 둔다.
 
+# 4.4 Cassandra 
+
+채널의 글을 올릴 떄 글 자체는 Cassandra에 저장한다.
+저장할 때 글을 올린 사람과, 글의 시간을 같이 저장한다.
+게시글에 이미지 혹은 객체 파일이 있을 경우, 그 파일은 ObjectFile 폴더에 저장하고, 그 파일의 경로를 Cassandra에 저장한다.
+ObjectFile에 저장하는 규칙은 
+~ObjectFile/ChannelName/YYYYMMDDHHMMSS/filename1.ext
+~ObjectFile/ChannelName/YYYYMMDDHHMMSS/filename2.ext
+~ObjectFile/ChannelName/YYYYMMDDHHMMSS/filename2.ext
+....
+으로 저장된다.
 
 
-#5 채널
+
+# 5. 채널
 Channel은 Chatting으로 하는 것보다는 계시판 형태로 하는 것이 좋다 
 문서 관리가 편하기 때문이다. 
 
@@ -150,6 +171,19 @@ npm run dev
 계속 글자를 입력하면 그만큼 일치하는 멤버들의 아이디만 남게 되고 
 그 중에 선택하면 그 멤버가 추가된다.
 
+# 7.2 채널 메시지 추가 
+
+채널에 게시글을 추가한다.
+글은 다음과 같다.
+
+게시글이 별도로 제목은 두지 않는다. 
+그냥 markup 편집을 지원하고, 
+
+파일 추가를 지원한다.
+파일은 이미지파일 , PDF 파일등등 모든 파일을 지원한다.
+
+
+
 
 ##################################################################################################
 # 8 사이트 관리
@@ -181,6 +215,159 @@ image preview :
 그리고 값을 설정할 수 있도록 한다.
 
 Display 설정 섹션의 제일 위에 "저장" 버튼을 두고 버튼이 눌려지면 config.json에 해당 값이 들어간다.
+
+############################################################
+# 9 Team 관리
+
+# 9.1 Team 추가
+
+EasyDocStation 메인 창에서
+Teams 칸 제일 밑에 "팀 추가" 버튼을 추가한다.
+
+해당 버튼을 누르면 Team 추가 창이 나타난다.
+
+창 이름은 "Team 추가" 
+항목은
+
+Team 이름   : 
+Team 관리자 :
+버튼으로 저장 , 취소 
+가 나타난다.
+
+추가 되면 Team 이름이 추가되어서 Team 목록에 나타난다.
+
+팀 이름과 관리자는 PostgreSQL에 저장한다.
+
+# 9.2 Team 삭제
+
+팀 이름을 두번 클릭하면, Team 정보 창이 나타난다.
+
+Team 이름   : 
+Team 관리자 : 
+- 팀 관리자는 최소 1명 이상이 지정된다.
+
+버튼으로 삭제, 저장 , 취소 
+
+삭제는 팀을 삭제한다. 
+삭제하면 해당 팀에 속한 채널들도 함께 삭제된다.
+채널에 저장된 값들도 모두 삭제된다.
+
+저장는 팀의 이름과 관리자를 PostgreSQL에 저장한다.
+
+취소는 아무것도 하지 않는다. 그냥 창만 닫는다.
+
+# 9.3 팀 정보 관리
+팀 정보 창이 나타나면, DB에 물어봐서 해당 팀의 관리자가 정보 창에 모두 나타나도록 표시한다.
+
+###################################################################################
+# 10 Channel 관리
+# 10.1 Channel 추가
+Channels 밑에 Channel 추가 버튼이 있고, 이 버튼을 누르면, 채널 추가 창이 나타난다
+
+"채널 추가"
+채널 이름   : 
+채널 종류   : 공개 채널, 비공개 채널
+채널 관리자 : 
+채널 멤버   :  멤버 추가 버튼
+
+저장 , 취소 버튼이 나타난다.
+
+저장 버튼을 누르면 채널 이름이 Channels 목록에 나타난다.
+추가된 채널은 CHNNAELS와 + 채널 추가 사이에 나타난다.
+여러 채널일 경우 오름차순으로 정리해서 나타나도록 한다.
+
+# 10.2 채널 관리
+
+채널 이름을 더블 클릭하면, 
+채널 관리 창이 나타난다.
+
+"채널 관리"
+채널 이름
+채널 종류 : 공개 채널, 비공개 채널
+채널 관리자 :
+채널 멤버 : 
+채널 메시지 수 :
+채널 파일 수 :
+채널 데이터 크기 :
+
+삭제 , 저장 , 취소  버튼을 둔다.
+
+삭제는 채널을 삭제하는 것이다 이 버튼을 누르면 채널이 삭제된다. 
+단 그전에 메시지 창을 띄워서 다시 무물어본다.
+"정말 이 채널을 삭제하시겠습니까?  삭제 되면 복구할 수 없습니다."
+[ 채널 이름 ]을 입력하고 확인 버튼을 누르면 입력한 채널 이름과 채널 이름이 동일하면 채널이 삭제된다.
+
+저장 버튼은 채널의 이름이 이전과 다른 이름이면 채널 이름을 변경한다. 
+관리자는 PostgreSQL에 저장한다.
+
+
+
+# 11. Local-S3 Mocking 서비스 아키텍처 설계
+
+이 서비스는 AWS S3의 역할을 자체 API 서버(Local File Service)와 로컬 디렉토리가 분담하여 수행합니다.
+이와 같은 서비스를 지원하는 서버를 만들어주고, EasyDoc이 실행할 때에 자동으로 실행되도록 한다.
+Local File을 저장하는 폴더는 
+
+config.json 파일에서 "Object File 폴더" 정보를 기반으로 한다.
+
+
+1. 주요 구성 요소
+클라이언트 (Web/Mobile): 파일을 선택하고 업로드/다운로드하는 사용자 인터페이스. S3 SDK 대신 표준 HTTP 클라이언트(Axios, Fetch 등)를 사용합니다.
+API 서버 (Gateway & File Service): S3의 Presigned URL 생성 기능과 Object Storage 기능을 모두 모방하는 중앙 서버입니다.
+로컬 파일 시스템 (Storage): 실제 파일이 저장되는 서버의 하드 디스크 내 특정 폴더입니다.
+
+2. 핵심 구현 매커니즘: Mock Presigned URL
+AWS는 자체 비밀키로 URL을 서명합니다. 우리는 자체 JWT(JSON Web Token) 또는 HMAC(Hash-based Message Authentication Code)를 사용하여 이를 모방합니다.
+
+서버가 생성할 Mock Presigned URL 예시:
+https://localhost:5173/files/download/mock-file-key?token=eyJhbGciOiJIUzI1NiJ9...&expires=1678888888
+
+mock-file-key: 파일이 저장된 로컬 경로를 유추할 수 있는 고유 키.
+token: 서버만 아는 비밀키로 서명된 JWT. 이 안에 file_id, user_id, allowed_action(READ/WRITE), expires_at 정보를 담습니다.
+expires: URL의 만료 시간 (보안성 확보).
+
+3. 파일 업로드 흐름 (S3 Mocking)
+사용자가 파일을 업로드하는 전체 프로세스입니다.
+
+단계 1: Mock Presigned URL 요청 (Client -> Server)
+사용자가 클라이언트에서 파일을 선택합니다. (예: image.png)
+클라이언트는 서버의 API(POST /api/files/get-upload-url)에 파일 메타데이터(파일명, 타입)를 보냅니다.
+
+단계 2: Mock Presigned URL 생성 및 레코드 생성 (Server)
+서버는 PostgreSQL의 attachments 테이블에 상태를 'PENDING'으로 하여 파일 레코드를 생성하고 unique ID(file_uuid)를 발급합니다.
+서버는 file_uuid, action='WRITE', expires=15m 정보를 담은 임시 토큰을 비밀키로 생성합니다.
+서버는 이 토큰을 포함한 Mock Presigned URL을 구성하여 클라이언트에 반환합니다.
+
+단계 3: 로컬로 파일 업로드 (Client -> Server)
+클라이언트는 전달받은 Mock Presigned URL로 실제 파일 데이터를 PUT 또는 POST 요청으로 보냅니다. 이 요청은 여전히 S3가 아닌 우리 서버로 옵니다.
+
+단계 4: 토큰 검증 및 로컬 저장 (Server)
+서버의 파일 업로드 핸들러는 URL의 토큰을 먼저 해독하고 검증합니다.
+서명이 유효한가?
+만료되지 않았는가?
+이 토큰이 'WRITE' 권한을 가지고 있는가?
+검증이 성공하면, 서버는 요청 스트림에서 파일 데이터를 읽어 로컬 디렉토리 (예: /var/www/easydoc/uploads/file_uuid.png)에 직접 저장합니다.
+저장이 완료되면 PostgreSQL의 해당 파일 레코드 상태를 'COMPLETED'로 업데이트합니다.
+
+4. 파일 다운로드 흐름 (S3 Mocking)
+파일을 안전하게 다운로드하거나 웹 페이지에 표시할 때의 프로세스입니다.
+
+단계 1: Mock Presigned URL 요청 (Client -> Server)
+클라이언트가 특정 파일의 다운로드 URL을 요청합니다. (GET /api/files/{file_uuid}/get-download-url)
+
+단계 2: Mock Presigned URL 생성 (Server)
+서버는 현재 사용자의 권한을 체크한 뒤, 다운로드용 Mock Presigned URL을 생성합니다.
+토큰 내용: file_uuid, action='READ', expires=30m
+
+단계 3: 파일 요청 (Client -> Server)
+클라이언트는 전달받은 URL을 <a> 태그의 href로 사용하거나 <img> 태그의 src로 사용하여 파일을 요청합니다.
+
+단계 4: 토큰 검증 및 파일 스트리밍 (Server)
+서버는 토큰을 검증합니다 (action='READ').
+검증 성공 시, 로컬 파일 시스템에서 해당 파일을 찾아 읽습니다.
+
+서버는 HTTP 응답 헤더(Content-Type, Content-Disposition)를 설정하고, 파일 데이터를 클라이언트로 스트리밍(streaming)하여 보냅니다.
+
 
 
 
