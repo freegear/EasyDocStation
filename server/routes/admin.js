@@ -60,20 +60,30 @@ router.get('/stats', async (req, res) => {
       console.warn('Failed to resolve DB symlink:', e)
     }
     
-    // 2. Object File Stats (Use path from config.json)
     const configPath = path.resolve(__dirname, '../../config.json')
     const config = JSON.parse(fs.readFileSync(configPath, 'utf8'))
     const uploadPath = config['ObjectFile Path'] || path.resolve(__dirname, '../uploads')
+    const cassandraPath = config['Cassandra Database Path'] || '/Users/kevinim/Desktop/EasyDocStation/Database/CassandraDB'
     
     if (!fs.existsSync(uploadPath)) {
       fs.mkdirSync(uploadPath, { recursive: true })
     }
+
+    if (!fs.existsSync(cassandraPath)) {
+      fs.mkdirSync(cassandraPath, { recursive: true })
+    }
+
     const uploadSizeBytes = getDirSize(uploadPath)
+    const cassandraSizeBytes = getDirSize(cassandraPath)
     
     res.json({
       db: {
         location: dbLocation,
         size: dbSizeResult.rows[0].size,
+      },
+      cassandra: {
+        location: cassandraPath,
+        size: formatBytes(cassandraSizeBytes),
       },
       objects: {
         location: uploadPath,
