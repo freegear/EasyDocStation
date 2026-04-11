@@ -19,7 +19,28 @@ GROQ 서비스의 Key값은
 #3 타이틀바
 EasyDocStation  Login User Name , 언어 설정, Logout 버튼으로 구성한다.
 
-#4 채널
+# 4 Database
+# 4.1  PostgreSQL Database
+/Users/kevinim/Desktop/EasyDocStation/Database/PoseSQLDB
+에 데이터 베이스 파일을 둔다.
+
+
+# 4.2 Object File 폴더
+/Users/kevinim/Desktop/EasyDocStation/Database/ObjectFile
+에 ObjectFile 폴더를 둔다.
+
+# 4.3 config.json 파일
+그리고 config.json 파일에
+PostgreSQL Database Path : /Users/kevinim/Desktop/EasyDocStation/Database/PoseSQLDB
+로 설정한다.
+
+그리고 config.json 파일에
+ObjectFile Path : /Users/kevinim/Desktop/EasyDocStation/Database/ObjectFile
+로 둔다.
+
+
+
+#5 채널
 Channel은 Chatting으로 하는 것보다는 계시판 형태로 하는 것이 좋다 
 문서 관리가 편하기 때문이다. 
 
@@ -42,8 +63,9 @@ image preview :
     - height : 512
 
 
+
 ##################################################################################################
-#5 사용자 관리
+#6 사용자 관리
 
 사용자 관리를 위해서 PostgreSQL을 사용한다.
 
@@ -72,7 +94,7 @@ Password
 사이트 관리 메뉴를 클릭하면 사이트 관리 페이지로 이동한다.
 사용자 관리는 사이트 관리자가 할 수 있다.
 
-5.1 사이트 관리 페이지
+6.1 사이트 관리 페이지
 사이트 관리 페이지는 
 1) 사이트 이름 수정
 2) 사용자 추가 / 삭제 
@@ -90,7 +112,7 @@ Password
 
 
 
-5.2 앞으로 서버 실행 방법
+6.2 앞으로 서버 실행 방법
 서버는 항상 새 터미널을 열어서 실행해야 합니다.
 
 # 포트 3001을 사용 중인 프로세스 종료
@@ -106,7 +128,7 @@ npm run dev
 
 
 #################################################################################################
-# 6 채널 정보 관리 페이지
+# 7 채널 정보 관리 페이지
 채널 정보 바에서  채널 관리 버튼을 추가한다.
 채널 관리 버튼은 채널 관리자만 보인다.
 채널 관리 버튼을 누르면 다음과 같은 채널 관리 창이 나타난다.
@@ -120,7 +142,7 @@ npm run dev
 
 해당 정보를 postgresql에 저장한다.
 
-# 6.1 채널 멤버 추가
+# 7.1 채널 멤버 추가
 채널 정보 관리 페이지에서 
 채널 멤버 테이블 영역에서
 채널 멤버 추가 버튼을 누르면 채널 멤버 아이디를 입력할 수 있는 창이나타난다. 
@@ -129,10 +151,37 @@ npm run dev
 그 중에 선택하면 그 멤버가 추가된다.
 
 
-
-
 ##################################################################################################
-# 6 사이트 관리
+# 8 사이트 관리
+# 8.1 사이트 정보 / DB 관리 탭
+
+사이트 관리 페이지에 
+왼쪽에 버튼 Plane을 둔다.
+오른쪽에는 GROQ 창이 나타난다.
+
+# 8.1 사용자 관리 탭
+해당 버튼 Plane에 
+제일 위애 "전체 사용자 관리" 버튼을 두고 
+그 밑에 "DB 관리" 버튼을 둔다.
+"Display 설정" 버튼을 둔다.
+
+# 8.2 DB 관리 탭
+DB 관리 탭은 
+-1. 현재 POSTSQL DB의 위치와 크기
+-2. Object File 폴더의 위치가 크기
+를 알려준다
+
+# 8.3 Display 설정 
+Display 설정 섹션을 두고
+config.json에 설정된 
+image preview :
+    - width : 512
+    - height : 512
+값을 표시한다.
+그리고 값을 설정할 수 있도록 한다.
+
+Display 설정 섹션의 제일 위에 "저장" 버튼을 두고 버튼이 눌려지면 config.json에 해당 값이 들어간다.
+
 
 
 

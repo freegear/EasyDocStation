@@ -77,6 +77,15 @@ export default function ChannelManageModal({ onClose }) {
     }
 
     try {
+      // Ensure channel exists in the database first (Foreign Key constraint requirement)
+      await apiFetch(`/channels/${selectedChannel.id}`, {
+        method: 'PUT',
+        body: JSON.stringify({ 
+          name: channelName || selectedChannel.name, 
+          type: channelType 
+        })
+      })
+
       await apiFetch(`/channels/${selectedChannel.id}/members`, {
         method: 'POST',
         body: JSON.stringify({ userId: targetUser.id })
