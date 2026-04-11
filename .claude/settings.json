@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(brew list:*)",
+      "Bash(psql -d easydocstation -c \"\\\\d attachments\")",
+      "Bash(psql -d easydocstation -c \"ALTER TABLE attachments DROP CONSTRAINT attachments_post_id_fkey;\")"
+    ]
+  }
+}

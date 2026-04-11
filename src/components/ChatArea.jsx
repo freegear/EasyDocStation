@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useChat } from '../contexts/ChatContext'
 import { useAuth } from '../contexts/AuthContext'
+import { apiFetch, getToken } from '../lib/api'
 import config from '../config.json'
 import ChannelManageModal from './ChannelManageModal'
 
@@ -80,13 +81,6 @@ function Avatar({ letters, size = 'md' }) {
   )
 }
 
-function Tag({ label }) {
-  return (
-    <span className="px-2 py-0.5 rounded-md bg-indigo-500/20 text-indigo-300 text-xs font-medium border border-indigo-500/20">
-      {label}
-    </span>
-  )
-}
 
 function PinIcon() {
   return (
@@ -126,11 +120,89 @@ function FileChip({ file, onRemove }) {
 
 // ─── Attachment list in post detail ──────────────────────────
 
+// ─── PDF first-page preview ───────────────────────────────────
+
+function PdfPagePreview({ fileId, width = 400 }) {
+  const canvasRef = useRef(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(false)
+
+  useEffect(() => {
+    if (!fileId) return
+    let cancelled = false
+    setLoading(true)
+    setError(false)
+
+    ;(async () => {
+      try {
+        const url = `/api/files/view/${fileId}?auth_token=${getToken()}`
+        const resp = await fetch(url)
+        if (!resp.ok) throw new Error('fetch failed')
+        const arrayBuffer = await resp.arrayBuffer()
+        if (cancelled) return
+
+        const pdfjsLib = await import('pdfjs-dist')
+        pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
+          'pdfjs-dist/build/pdf.worker.min.mjs', import.meta.url
+        ).href
+
+        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise
+        if (cancelled) return
+
+        const page = await pdf.getPage(1)
+        if (cancelled) return
+
+        const naturalW = page.getViewport({ scale: 1 }).width
+        const viewport = page.getViewport({ scale: width / naturalW })
+
+        const canvas = canvasRef.current
+        if (!canvas) return
+        canvas.width = viewport.width
+        canvas.height = viewport.height
+        await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise
+
+        if (!cancelled) setLoading(false)
+      } catch {
+        if (!cancelled) { setLoading(false); setError(true) }
+      }
+    })()
+
+    return () => { cancelled = true }
+  }, [fileId, width])
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-24 bg-white/5 rounded-xl text-white/30 text-sm">
+        PDF 미리보기 불가
+      </div>
+    )
+  }
+  return (
+    <div className="relative">
+      {loading && (
+        <div className="absolute inset-0 flex items-center justify-center bg-white/5 rounded-xl">
+          <div className="w-5 h-5 border-2 border-white/20 border-t-red-400 rounded-full animate-spin" />
+        </div>
+      )}
+      <canvas
+        ref={canvasRef}
+        className={`rounded-xl w-full ${loading ? 'opacity-0' : 'opacity-100'} transition-opacity`}
+      />
+    </div>
+  )
+}
+
+// ─── Attachment list in post detail ──────────────────────────
+
 function AttachmentList({ attachments }) {
   if (!attachments || attachments.length === 0) return null
 
-  const images = attachments.filter(a => getFileCategory(a.type, a.name) === 'image')
-  const others = attachments.filter(a => getFileCategory(a.type, a.name) !== 'image')
+  function fileUrl(f) {
+    if (!f.url) return null
+    if (f.url.startsWith('blob:')) return f.url
+    const token = getToken()
+    return token ? `${f.url}?auth_token=${token}` : f.url
+  }
 
   return (
     <div className="mt-6 border-t border-white/8 pt-5">
@@ -141,66 +213,81 @@ function AttachmentList({ attachments }) {
         첨부파일 {attachments.length}개
       </h4>
 
-      {/* Image thumbnails — 512×512 */}
-      {images.length > 0 && (
-        <div className="flex flex-col gap-3 mb-3">
-          {images.map(f => (
-            <a
-              key={f.id}
-              href={f.url}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-block rounded-2xl overflow-hidden border border-white/10 hover:border-indigo-500/50 transition-colors group"
-              style={{ width: IMG_W, maxWidth: '100%' }}
-            >
-              <img
-                src={f.url}
-                alt={f.name}
-                className="block object-cover group-hover:opacity-90 transition-opacity"
-                style={{ width: IMG_W, height: IMG_H, maxWidth: '100%', objectFit: 'cover' }}
-              />
-              <div className="px-3 py-2 flex items-center justify-between bg-white/4">
-                <span className="text-white/60 text-xs font-medium truncate">{f.name}</span>
-                <span className="text-white/30 text-xs ml-3 flex-shrink-0">{formatSize(f.size)}</span>
-              </div>
-            </a>
-          ))}
-        </div>
-      )}
+      <div className="flex flex-col gap-3">
+        {attachments.map(f => {
+          const category = getFileCategory(f.type || '', f.name || '')
 
-      {/* Non-image files */}
-      {others.length > 0 && (
-        <div className="flex flex-col gap-1.5">
-          {others.map(f => {
-            const category = getFileCategory(f.type, f.name)
+          // ── Image ──────────────────────────────────────────
+          if (category === 'image') {
             return (
-              <a
-                key={f.id}
-                href={f.url}
-                download={f.name}
-                className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl bg-white/4 border border-white/8 hover:bg-white/7 hover:border-white/15 transition-all group"
+              <a key={f.id} href={fileUrl(f)} target="_blank" rel="noreferrer"
+                className="inline-block rounded-2xl overflow-hidden border border-white/10 hover:border-indigo-500/50 transition-colors group"
+                style={{ width: IMG_W, maxWidth: '100%' }}
               >
-                <FileTypeIcon category={category} className="w-5 h-5" />
-                <div className="flex-1 min-w-0">
-                  <p className="text-white/80 text-sm font-medium truncate group-hover:text-white transition-colors">{f.name}</p>
-                  <p className="text-white/30 text-xs">{formatSize(f.size)}</p>
+                <img src={fileUrl(f)} alt={f.name}
+                  className="block object-cover group-hover:opacity-90 transition-opacity"
+                  style={{ width: IMG_W, height: IMG_H, maxWidth: '100%', objectFit: 'cover' }}
+                />
+                <div className="px-3 py-2 flex items-center justify-between bg-white/4">
+                  <span className="text-white/60 text-xs font-medium truncate">{f.name}</span>
+                  <span className="text-white/30 text-xs ml-3 flex-shrink-0">{formatSize(f.size)}</span>
                 </div>
-                <svg className="w-4 h-4 text-white/20 group-hover:text-white/60 transition-colors flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                </svg>
               </a>
             )
-          })}
-        </div>
-      )}
+          }
+
+          // ── PDF — first page preview ───────────────────────
+          if (category === 'pdf') {
+            return (
+              <div key={f.id} className="rounded-2xl overflow-hidden border border-white/10" style={{ maxWidth: IMG_W }}>
+                <PdfPagePreview fileId={f.id} width={IMG_W} />
+                <div className="px-3 py-2 flex items-center justify-between bg-white/4">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <FileTypeIcon category="pdf" className="w-4 h-4 flex-shrink-0" />
+                    <span className="text-white/60 text-xs truncate">{f.name}</span>
+                    <span className="text-white/30 text-xs flex-shrink-0">{formatSize(f.size)}</span>
+                  </div>
+                  <a href={fileUrl(f)} download={f.name}
+                    className="ml-3 flex-shrink-0 p-1.5 rounded-lg text-white/40 hover:text-white/80 hover:bg-white/10 transition-colors"
+                    title="다운로드"
+                  >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                    </svg>
+                  </a>
+                </div>
+              </div>
+            )
+          }
+
+          // ── Other files — name + download button ──────────
+          return (
+            <div key={f.id} className="flex items-center gap-3 px-3.5 py-3 rounded-xl bg-white/4 border border-white/8">
+              <FileTypeIcon category={category} className="w-5 h-5" />
+              <div className="flex-1 min-w-0">
+                <p className="text-white/80 text-sm font-medium truncate">{f.name}</p>
+                <p className="text-white/30 text-xs">{formatSize(f.size)}</p>
+              </div>
+              <a href={fileUrl(f)} download={f.name}
+                className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600/25 hover:bg-indigo-600/40 text-indigo-300 text-xs font-semibold border border-indigo-500/25 transition-colors"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+                다운로드
+              </a>
+            </div>
+          )
+        })}
+      </div>
     </div>
   )
 }
 
 // ─── Content renderer ─────────────────────────────────────────
 
-function ContentRenderer({ text }) {
-  const lines = text.split('\n')
+function ContentRenderer({ text = '' }) {
+  const lines = (text || '').split('\n')
   return (
     <div className="space-y-1.5">
       {lines.map((line, i) => {
@@ -249,15 +336,12 @@ function TableRow({ line }) {
 function ComposeBar({ onSubmit }) {
   const { currentUser } = useAuth()
   const { selectedChannel } = useChat()
-  const [title, setTitle] = useState('')
   const [content, setContent] = useState('')
-  const [tagInput, setTagInput] = useState('')
-  const [tags, setTags] = useState([])
   const [files, setFiles] = useState([])
-  const [expanded, setExpanded] = useState(false)
   const [dragOver, setDragOver] = useState(false)
+  const [sending, setSending] = useState(false)
+  const [focused, setFocused] = useState(false)
 
-  const titleRef = useRef(null)
   const contentRef = useRef(null)
   const fileInputRef = useRef(null)
   const dragCounter = useRef(0)
@@ -272,7 +356,6 @@ function ComposeBar({ onSubmit }) {
       file: f,
     }))
     setFiles(prev => [...prev, ...mapped])
-    if (!expanded) setExpanded(true)
   }
 
   function removeFile(id) {
@@ -288,7 +371,6 @@ function ComposeBar({ onSubmit }) {
     e.target.value = ''
   }
 
-  // Drag & drop handlers
   function handleDragEnter(e) {
     e.preventDefault()
     dragCounter.current++
@@ -299,76 +381,43 @@ function ComposeBar({ onSubmit }) {
     dragCounter.current--
     if (dragCounter.current === 0) setDragOver(false)
   }
-  function handleDragOver(e) {
-    e.preventDefault()
-  }
+  function handleDragOver(e) { e.preventDefault() }
   function handleDrop(e) {
     e.preventDefault()
     dragCounter.current = 0
     setDragOver(false)
-    if (e.dataTransfer.files?.length) {
-      addFiles(e.dataTransfer.files)
-    }
+    if (e.dataTransfer.files?.length) addFiles(e.dataTransfer.files)
   }
-
-  function handleTagKey(e) {
-    if ((e.key === 'Enter' || e.key === ',') && tagInput.trim()) {
-      e.preventDefault()
-      const t = tagInput.trim().replace(',', '')
-      if (t && !tags.includes(t)) setTags(prev => [...prev, t])
-      setTagInput('')
-    }
-  }
-
-  function handleTitleKey(e) {
-    if (e.key === 'Enter') {
-      e.preventDefault()
-      setExpanded(true)
-      setTimeout(() => contentRef.current?.focus(), 50)
-    }
-  }
-
-  const [sending, setSending] = useState(false)
 
   async function handleSend() {
-    if (!title.trim()) { titleRef.current?.focus(); return }
+    if (!content.trim()) { contentRef.current?.focus(); return }
     setSending(true)
     try {
       const attachmentIds = []
-      
-      // Upload files to Mock S3
+
+      // Upload each file to Mock S3 first
       for (const fObj of files) {
-        // Step 1: Get Upload URL
         const { uploadUrl, file_uuid } = await apiFetch('/files/get-upload-url', {
           method: 'POST',
           body: JSON.stringify({
             filename: fObj.name,
             contentType: fObj.type,
-            channelName: selectedChannel.name
-          })
+            channelName: selectedChannel.name,
+          }),
         })
-
-        // Step 2: Actually upload binary
-        await fetch(uploadUrl, {
-          method: 'PUT',
-          body: fObj.file
-        })
-
+        await fetch(uploadUrl, { method: 'PUT', body: fObj.file })
         attachmentIds.push(file_uuid)
       }
 
-      // Final Step: Submit Post with Attachment IDs
-      await onSubmit({ 
-        title: title.trim(), 
-        content: content.trim(), 
-        tags, 
-        attachmentIds 
-      })
+      await onSubmit({ content: content.trim(), attachmentIds })
 
-      // Cleanup
       files.forEach(f => URL.revokeObjectURL(f.url))
-      setTitle(''); setContent(''); setTags([]); setTagInput(''); setFiles([])
-      setExpanded(false)
+      setContent('')
+      setFiles([])
+      setFocused(false)
+      if (contentRef.current) {
+        contentRef.current.style.height = 'auto'
+      }
     } catch (err) {
       alert('전송 중 오류가 발생했습니다: ' + err.message)
     } finally {
@@ -376,24 +425,27 @@ function ComposeBar({ onSubmit }) {
     }
   }
 
-  function handleCancel() {
-    files.forEach(f => URL.revokeObjectURL(f.url))
-    setContent(''); setTags([]); setTagInput(''); setFiles([])
-    setExpanded(false)
+  function handleKeyDown(e) {
+    if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
+      e.preventDefault()
+      handleSend()
+    }
   }
 
-  const canSend = title.trim().length > 0
+  function handleCancel() {
+    files.forEach(f => URL.revokeObjectURL(f.url))
+    setContent('')
+    setFiles([])
+    setFocused(false)
+    if (contentRef.current) contentRef.current.style.height = 'auto'
+  }
+
+  const hasContent = content.trim().length > 0 || files.length > 0
+  const showActions = focused || hasContent
 
   return (
     <div className="flex-shrink-0 px-4 py-3 border-t border-white/10">
-      {/* Hidden file input */}
-      <input
-        ref={fileInputRef}
-        type="file"
-        multiple
-        className="hidden"
-        onChange={handleFileSelect}
-      />
+      <input ref={fileInputRef} type="file" multiple className="hidden" onChange={handleFileSelect} />
 
       <div
         onDragEnter={handleDragEnter}
@@ -403,7 +455,7 @@ function ComposeBar({ onSubmit }) {
         className={`flex flex-col rounded-2xl border transition-all duration-150 relative overflow-hidden ${
           dragOver
             ? 'border-indigo-400/70 bg-indigo-500/10 shadow-lg shadow-indigo-500/20'
-            : expanded
+            : showActions
             ? 'bg-white/6 border-indigo-500/40'
             : 'bg-white/5 border-white/10 hover:border-white/20'
         }`}
@@ -418,117 +470,79 @@ function ComposeBar({ onSubmit }) {
           </div>
         )}
 
-        {/* Title row */}
-        <div className="flex items-center gap-3 px-4 pt-3 pb-2">
+        {/* Content textarea row */}
+        <div className="flex items-start gap-3 px-4 pt-3 pb-2">
           {currentUser && <Avatar letters={currentUser.avatar} size="sm" />}
-          <input
-            ref={titleRef}
-            value={title}
-            onChange={e => setTitle(e.target.value)}
-            onFocus={() => setExpanded(true)}
-            onKeyDown={handleTitleKey}
-            placeholder="제목을 입력하세요..."
-            className="flex-1 bg-transparent text-white placeholder-white/25 text-sm font-semibold focus:outline-none"
+          <textarea
+            ref={contentRef}
+            value={content}
+            onChange={e => setContent(e.target.value)}
+            onFocus={() => setFocused(true)}
+            onKeyDown={handleKeyDown}
+            placeholder="메시지를 입력하세요... (Shift+Enter 줄바꿈)"
+            rows={1}
+            className="flex-1 bg-transparent text-white/90 placeholder-white/25 text-sm leading-relaxed resize-none focus:outline-none pt-0.5"
+            onInput={e => {
+              e.target.style.height = 'auto'
+              e.target.style.height = Math.min(e.target.scrollHeight, 160) + 'px'
+            }}
           />
         </div>
 
-        {/* Expanded: content area */}
-        {expanded && (
-          <>
-            <div className="px-4 pb-2 pl-[52px]">
-              <textarea
-                ref={contentRef}
-                value={content}
-                onChange={e => setContent(e.target.value)}
-                placeholder="내용을 입력하세요... (마크다운 지원: ## 제목, **굵기**, `코드`)"
-                rows={3}
-                className="w-full bg-transparent text-white/70 placeholder-white/20 text-sm leading-relaxed resize-none focus:outline-none"
-                onInput={e => {
-                  e.target.style.height = 'auto'
-                  e.target.style.height = Math.min(e.target.scrollHeight, 160) + 'px'
-                }}
-              />
+        {/* Attached files preview */}
+        {files.length > 0 && (
+          <div className="px-4 pb-2 pl-[52px]">
+            <div className="flex flex-wrap gap-2">
+              {files.map(f => <FileChip key={f.id} file={f} onRemove={removeFile} />)}
             </div>
-
-            {/* Attached files preview */}
-            {files.length > 0 && (
-              <div className="px-4 pb-2 pl-[52px]">
-                <div className="flex flex-wrap gap-2">
-                  {files.map(f => <FileChip key={f.id} file={f} onRemove={removeFile} />)}
-                </div>
-              </div>
-            )}
-
-            {/* Tags + actions row */}
-            <div className="flex items-center gap-2 px-3 pb-3 pl-[52px]">
-              {/* Clip button */}
-              <button
-                type="button"
-                title="파일 첨부"
-                onClick={() => fileInputRef.current.click()}
-                className="p-1.5 rounded-lg text-white/30 hover:text-white/70 hover:bg-white/8 transition-colors flex-shrink-0"
-              >
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
-                </svg>
-              </button>
-
-              {/* Tags */}
-              <div className="flex flex-wrap items-center gap-1.5 flex-1 min-w-0">
-                {tags.map(tag => (
-                  <span key={tag} className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-indigo-500/20 text-indigo-300 text-xs border border-indigo-500/20">
-                    {tag}
-                    <button type="button" onClick={() => setTags(p => p.filter(t => t !== tag))} className="text-indigo-400/60 hover:text-indigo-200 transition-colors leading-none">×</button>
-                  </span>
-                ))}
-                <input
-                  value={tagInput}
-                  onChange={e => setTagInput(e.target.value)}
-                  onKeyDown={handleTagKey}
-                  placeholder={tags.length === 0 ? '태그 (Enter로 추가)' : '+태그'}
-                  className="bg-transparent text-white/40 placeholder-white/20 text-xs focus:outline-none w-28 focus:text-white/70 transition-colors"
-                />
-              </div>
-
-              {/* Cancel + Send */}
-              <div className="flex items-center gap-1.5 flex-shrink-0">
-                <button type="button" onClick={handleCancel} className="px-2.5 py-1.5 rounded-lg text-white/30 hover:text-white/60 text-xs transition-colors hover:bg-white/5">
-                  취소
-                </button>
-                <button
-                  type="button"
-                  onClick={handleSend}
-                  disabled={!canSend}
-                  className="w-9 h-9 rounded-xl flex items-center justify-center transition-all disabled:opacity-30 disabled:cursor-not-allowed enabled:bg-indigo-600 enabled:hover:bg-indigo-500 enabled:shadow-lg enabled:shadow-indigo-500/25 enabled:active:scale-95"
-                >
-                  <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-                  </svg>
-                </button>
-              </div>
-            </div>
-          </>
+          </div>
         )}
 
-        {/* Collapsed: show send button if title exists */}
-        {!expanded && title.trim() && (
-          <div className="flex items-center justify-between px-4 pb-3 pl-[52px]">
-            <button type="button" onClick={() => fileInputRef.current.click()} className="p-1.5 rounded-lg text-white/30 hover:text-white/60 hover:bg-white/8 transition-colors">
+        {/* Action row — shown when focused or has content */}
+        {showActions && (
+          <div className="flex items-center gap-2 px-3 pb-3 pl-[52px]">
+            {/* Clip button */}
+            <button
+              type="button"
+              title="파일 첨부"
+              onClick={() => fileInputRef.current.click()}
+              className="p-1.5 rounded-lg text-white/30 hover:text-white/70 hover:bg-white/8 transition-colors flex-shrink-0"
+            >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
               </svg>
             </button>
-            <button type="button" onClick={handleSend} className="w-9 h-9 rounded-xl bg-indigo-600 hover:bg-indigo-500 flex items-center justify-center shadow-lg shadow-indigo-500/25 active:scale-95 transition-all">
-              <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-              </svg>
+
+            <div className="flex-1" />
+
+            {/* Cancel + Send */}
+            <button
+              type="button"
+              onClick={handleCancel}
+              className="px-2.5 py-1.5 rounded-lg text-white/30 hover:text-white/60 text-xs transition-colors hover:bg-white/5"
+            >
+              취소
+            </button>
+            <button
+              type="button"
+              onClick={handleSend}
+              disabled={!hasContent || sending}
+              className="w-9 h-9 rounded-xl flex items-center justify-center transition-all disabled:opacity-30 disabled:cursor-not-allowed enabled:bg-indigo-600 enabled:hover:bg-indigo-500 enabled:shadow-lg enabled:shadow-indigo-500/25 enabled:active:scale-95"
+            >
+              {sending ? (
+                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              ) : (
+                <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                </svg>
+              )}
             </button>
           </div>
         )}
       </div>
 
       <p className="text-white/15 text-xs mt-1.5 px-1">
-        Enter로 내용 입력 전환 · 클립으로 첨부 또는 파일 드래그 앤 드롭
+        Enter로 전송 · Shift+Enter 줄바꿈 · 클립 또는 드래그 앤 드롭으로 파일 첨부
       </p>
     </div>
   )
@@ -536,7 +550,7 @@ function ComposeBar({ onSubmit }) {
 
 // ─── Post List ────────────────────────────────────────────────
 
-function PostList({ posts, onSelect, onSubmit }) {
+function PostList({ posts, onSelect, onSubmit, selectedPostId }) {
   const { selectedChannel, selectedTeam, refreshTeams } = useChat()
   const pinnedPosts = posts.filter(p => p.pinned)
   const normalPosts = posts.filter(p => !p.pinned)
@@ -595,7 +609,7 @@ function PostList({ posts, onSelect, onSubmit }) {
           <div className="flex flex-col items-center justify-center h-full text-center py-16">
             <div className="w-16 h-16 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-3xl mb-4">📄</div>
             <h3 className="text-white font-semibold mb-1">아직 게시글이 없습니다</h3>
-            <p className="text-white/40 text-sm">아래 입력창에 제목을 입력하고 게시글을 작성해보세요!</p>
+            <p className="text-white/40 text-sm">아래 입력창에 메시지를 입력해보세요!</p>
           </div>
         ) : (
           <div className="flex flex-col gap-3">
@@ -604,11 +618,11 @@ function PostList({ posts, onSelect, onSubmit }) {
                 <div className="flex items-center gap-2 text-amber-400/60 text-xs font-medium uppercase tracking-widest mb-1">
                   <PinIcon /><span>고정된 게시글</span>
                 </div>
-                {pinnedPosts.map(p => <PostCard key={p.id} post={p} onSelect={onSelect} pinned />)}
+                {pinnedPosts.map(p => <PostCard key={p.id} post={p} onSelect={onSelect} pinned isSelected={p.id === selectedPostId} />)}
                 {normalPosts.length > 0 && <div className="border-t border-white/5 my-1" />}
               </>
             )}
-            {normalPosts.map(p => <PostCard key={p.id} post={p} onSelect={onSelect} />)}
+            {normalPosts.map(p => <PostCard key={p.id} post={p} onSelect={onSelect} isSelected={p.id === selectedPostId} />)}
             <div ref={bottomRef} />
           </div>
         )}
@@ -619,43 +633,62 @@ function PostList({ posts, onSelect, onSubmit }) {
   )
 }
 
-function PostCard({ post, onSelect, pinned }) {
-  const excerpt = post.content
+function PostCard({ post, onSelect, pinned, isSelected }) {
+  const plain = (post.content || '')
     .replace(/#{1,3} /g, '').replace(/\*\*/g, '').replace(/`/g, '')
     .split('\n').filter(l => l.trim() && !l.startsWith('|') && !l.startsWith('-'))
-    .slice(0, 2).join(' ').slice(0, 140)
+  const leadLine = plain[0]?.slice(0, 100) || ''
+  const bodyPreview = plain.slice(1).join(' ').slice(0, 120)
   const attachCount = post.attachments?.length || 0
+  const commentCount = post.comments?.length || 0
 
   return (
     <button
       onClick={() => onSelect(post)}
       className={`w-full text-left px-5 py-4 rounded-2xl border transition-all group ${
-        pinned
+        isSelected
+          ? 'bg-indigo-500/10 border-indigo-500/40'
+          : pinned
           ? 'bg-amber-500/5 border-amber-500/15 hover:bg-amber-500/10 hover:border-amber-500/30'
           : 'bg-white/4 border-white/8 hover:bg-white/7 hover:border-white/15'
       }`}
     >
       <div className="flex items-start gap-3">
-        <Avatar letters={post.author.avatar} />
+        <Avatar letters={post.author?.avatar || '?'} />
         <div className="flex-1 min-w-0">
+          {/* Lead line */}
           <div className="flex items-center gap-2 mb-1">
             {pinned && <PinIcon />}
-            <h3 className="text-white font-semibold text-sm leading-tight group-hover:text-indigo-300 transition-colors truncate">{post.title}</h3>
+            {leadLine && (
+              <p className="text-white/90 font-semibold text-sm leading-tight group-hover:text-indigo-300 transition-colors truncate">{leadLine}</p>
+            )}
           </div>
+          {/* Meta */}
           <div className="flex items-center gap-2 text-white/35 text-xs mb-2">
-            <span className="font-medium text-white/50">{post.author.name}</span>
+            <span className="font-medium text-white/50">{post.author?.name}</span>
             <span>·</span>
             <span>{formatDate(post.createdAt)}</span>
-            <span>·</span>
-            <span className="flex items-center gap-1">
-              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0zM2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
-              {post.views}
-            </span>
-            {post.comments.length > 0 && (<><span>·</span><span className="flex items-center gap-1"><svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>{post.comments.length}</span></>)}
-            {attachCount > 0 && (<><span>·</span><span className="flex items-center gap-1"><svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" /></svg>{attachCount}</span></>)}
+            {attachCount > 0 && (
+              <>
+                <span>·</span>
+                <span className="flex items-center gap-1">
+                  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" /></svg>
+                  {attachCount}
+                </span>
+              </>
+            )}
+            {commentCount > 0 && (
+              <>
+                <span>·</span>
+                <span className="flex items-center gap-1">
+                  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
+                  {commentCount}
+                </span>
+              </>
+            )}
           </div>
-          {excerpt && <p className="text-white/45 text-xs leading-relaxed line-clamp-2 mb-2.5">{excerpt}</p>}
-          {post.tags.length > 0 && <div className="flex flex-wrap gap-1.5">{post.tags.map(t => <Tag key={t} label={t} />)}</div>}
+          {/* Body preview (second line onward) */}
+          {bodyPreview && <p className="text-white/40 text-xs leading-relaxed line-clamp-2">{bodyPreview}</p>}
         </div>
       </div>
     </button>
@@ -664,41 +697,91 @@ function PostCard({ post, onSelect, pinned }) {
 
 // ─── Post Detail ──────────────────────────────────────────────
 
-function PostDetail({ post, channelId, onBack }) {
-  const { addComment, incrementViews, deletePost, posts, refreshTeams } = useChat()
+function PostDetail({ post, channelId, onClose }) {
+  const { addComment, incrementViews, deletePost, posts, refreshTeams, selectedChannel } = useChat()
   const { currentUser } = useAuth()
   const [comment, setComment] = useState('')
   const [viewed, setViewed] = useState(false)
   const [showManageModal, setShowManageModal] = useState(false)
+  const [files, setFiles] = useState([])
+  const [uploading, setUploading] = useState(false)
   const commentsEndRef = useRef(null)
+  const fileInputRef = useRef(null)
   const isAdmin = ['Admin', 'site_admin', 'channel_admin', 'team_admin'].includes(currentUser?.role)
+
+  function addFiles(newFiles) {
+    const mapped = Array.from(newFiles).map(f => ({
+      id: `f-${Date.now()}-${Math.random()}`,
+      name: f.name,
+      size: f.size,
+      type: f.type,
+      url: URL.createObjectURL(f),
+      file: f,
+    }))
+    setFiles(prev => [...prev, ...mapped])
+  }
+
+  function removeFile(id) {
+    setFiles(prev => {
+      const target = prev.find(f => f.id === id)
+      if (target) URL.revokeObjectURL(target.url)
+      return prev.filter(f => f.id !== id)
+    })
+  }
 
   useEffect(() => {
     if (!viewed) { incrementViews(channelId, post.id); setViewed(true) }
   }, [])
 
   const freshPost = posts[channelId]?.find(p => p.id === post.id) || post
-  const isOwn = freshPost.author.name === currentUser?.name
+  const isOwn = freshPost.author?.name === currentUser?.name
 
-  function handleComment(e) {
+  async function handleComment(e) {
     e.preventDefault()
-    if (!comment.trim() || !currentUser) return
-    addComment(channelId, post.id, comment.trim(), currentUser)
-    setComment('')
-    setTimeout(() => commentsEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 50)
+    if ((!comment.trim() && files.length === 0) || !currentUser) return
+    
+    setUploading(true)
+    try {
+      const attachments = []
+      for (const fObj of files) {
+        const { uploadUrl, file_uuid } = await apiFetch('/files/get-upload-url', {
+          method: 'POST',
+          body: JSON.stringify({
+            filename: fObj.name,
+            contentType: fObj.type,
+            channelName: selectedChannel?.name || 'general',
+          }),
+        })
+        await fetch(uploadUrl, { method: 'PUT', body: fObj.file })
+        attachments.push({
+          id: file_uuid,
+          name: fObj.name,
+          size: fObj.size,
+          type: fObj.type,
+          url: `/api/files/view/${file_uuid}`
+        })
+      }
+
+      addComment(channelId, post.id, comment.trim(), currentUser, attachments)
+      
+      files.forEach(f => URL.revokeObjectURL(f.url))
+      setComment('')
+      setFiles([])
+      setTimeout(() => commentsEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 50)
+    } catch (err) {
+      alert('댓글 전송 중 오류가 발생했습니다: ' + err.message)
+    } finally {
+      setUploading(false)
+    }
   }
 
   function handleDelete() {
-    if (window.confirm('이 게시글을 삭제하시겠습니까?')) { deletePost(channelId, post.id); onBack() }
+    if (window.confirm('이 게시글을 삭제하시겠습니까?')) { deletePost(channelId, post.id); onClose() }
   }
 
   return (
     <div className="flex-1 flex flex-col min-h-0">
       <div className="flex items-center gap-3 px-6 py-3 border-b border-white/10 flex-shrink-0">
-        <button onClick={onBack} className="flex items-center gap-1.5 text-white/40 hover:text-white/80 text-sm transition-colors">
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
-          목록으로
-        </button>
         <div className="flex-1" />
         {isOwn && (
           <button onClick={handleDelete} className="flex items-center gap-1 text-red-400/60 hover:text-red-400 text-xs transition-colors">
@@ -718,6 +801,15 @@ function PostDetail({ post, channelId, onBack }) {
             채널 관리
           </button>
         )}
+        {/* Close right panel */}
+        <button
+          onClick={onClose}
+          className="w-7 h-7 rounded-lg text-white/30 hover:text-white hover:bg-white/10 flex items-center justify-center transition-colors"
+        >
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
       </div>
 
       {showManageModal && (
@@ -731,15 +823,13 @@ function PostDetail({ post, channelId, onBack }) {
         {/* Meta */}
         <div className="mb-6">
           {freshPost.pinned && <div className="flex items-center gap-1.5 text-amber-400 text-xs font-medium mb-3"><PinIcon /><span>고정된 게시글</span></div>}
-          <h1 className="text-white font-bold text-xl leading-tight mb-3">{freshPost.title}</h1>
           <div className="flex items-center gap-3 mb-3">
-            <Avatar letters={freshPost.author.avatar} />
+            <Avatar letters={freshPost.author?.avatar || '?'} />
             <div>
-              <p className="text-white/80 text-sm font-medium">{freshPost.author.name}</p>
-              <p className="text-white/30 text-xs" title={formatFull(freshPost.createdAt)}>{formatDate(freshPost.createdAt)} · 조회 {freshPost.views}회</p>
+              <p className="text-white/80 text-sm font-medium">{freshPost.author?.name}</p>
+              <p className="text-white/30 text-xs" title={formatFull(freshPost.createdAt)}>{formatDate(freshPost.createdAt)}</p>
             </div>
           </div>
-          {freshPost.tags.length > 0 && <div className="flex flex-wrap gap-1.5">{freshPost.tags.map(t => <Tag key={t} label={t} />)}</div>}
         </div>
 
         <div className="border-t border-white/8 mb-6" />
@@ -754,20 +844,27 @@ function PostDetail({ post, channelId, onBack }) {
 
         {/* Comments */}
         <div className="border-t border-white/8 pt-6 mt-6">
-          <h3 className="text-white font-semibold text-sm mb-4">댓글 {freshPost.comments.length}개</h3>
-          {freshPost.comments.length === 0 ? (
+          <h3 className="text-white font-semibold text-sm mb-4">댓글 {(freshPost.comments || []).length}개</h3>
+          {(freshPost.comments || []).length === 0 ? (
             <p className="text-white/30 text-sm mb-6">첫 번째 댓글을 남겨보세요.</p>
           ) : (
             <div className="flex flex-col gap-4 mb-6">
-              {freshPost.comments.map(c => (
+              {(freshPost.comments || []).map(c => (
                 <div key={c.id} className="flex items-start gap-3">
-                  <Avatar letters={c.author.avatar} size="sm" />
+                  <Avatar letters={c.author?.avatar || '?'} size="sm" />
                   <div className="flex-1 bg-white/5 rounded-xl px-4 py-3 border border-white/8">
                     <div className="flex items-baseline gap-2 mb-1.5">
-                      <span className="text-white/80 text-xs font-semibold">{c.author.name}</span>
+                      <span className="text-white/80 text-xs font-semibold">{c.author?.name}</span>
                       <span className="text-white/25 text-xs">{formatDate(c.createdAt)}</span>
                     </div>
-                    <p className="text-white/70 text-sm leading-relaxed">{c.text}</p>
+                    <div className="text-white/70 overflow-hidden">
+                      <ContentRenderer text={c.text} />
+                    </div>
+                    {c.attachments && c.attachments.length > 0 && (
+                      <div className="mt-3 scale-[0.85] origin-top-left">
+                        <AttachmentList attachments={c.attachments} />
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}
@@ -775,6 +872,7 @@ function PostDetail({ post, channelId, onBack }) {
             </div>
           )}
           <form onSubmit={handleComment} className="flex items-start gap-3">
+            <input ref={fileInputRef} type="file" multiple className="hidden" onChange={e => { if(e.target.files?.length) addFiles(e.target.files); e.target.value = '' }} />
             {currentUser && <Avatar letters={currentUser.avatar} size="sm" />}
             <div className="flex-1 bg-white/5 rounded-xl border border-white/10 focus-within:border-indigo-500/40 transition-colors overflow-hidden">
               <textarea
@@ -785,9 +883,28 @@ function PostDetail({ post, channelId, onBack }) {
                 className="w-full bg-transparent text-white/80 placeholder-white/20 text-sm px-4 pt-3 pb-2 resize-none focus:outline-none leading-relaxed"
                 onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleComment(e) } }}
               />
-              <div className="flex justify-end px-3 pb-2">
-                <button type="submit" disabled={!comment.trim()} className="px-3 py-1.5 rounded-lg bg-indigo-600 disabled:bg-white/10 enabled:hover:bg-indigo-500 text-white text-xs font-semibold transition-colors">
-                  댓글 달기
+              {files.length > 0 && (
+                <div className="px-4 pb-2">
+                  <div className="flex flex-wrap gap-2">
+                    {files.map(f => <FileChip key={f.id} file={f} onRemove={removeFile} />)}
+                  </div>
+                </div>
+              )}
+              <div className="flex items-center px-3 pb-2">
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="p-1.5 rounded-lg text-white/30 hover:text-white/70 hover:bg-white/8 transition-colors"
+                  title="파일 첨부"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                  </svg>
+                </button>
+                <div className="flex-1" />
+                <button type="submit" disabled={(!comment.trim() && files.length === 0) || uploading} className="px-3 py-1.5 rounded-lg bg-indigo-600 disabled:bg-white/10 enabled:hover:bg-indigo-500 text-white text-xs font-semibold transition-colors flex items-center gap-2">
+                  {uploading && <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
+                  {uploading ? '전송 중...' : '댓글 달기'}
                 </button>
               </div>
             </div>
@@ -802,20 +919,52 @@ function PostDetail({ post, channelId, onBack }) {
 
 export default function ChatArea() {
   const { selectedChannel, posts, addPost } = useChat()
-  const { currentUser } = useAuth()
-  const [view, setView] = useState('list')
   const [selectedPost, setSelectedPost] = useState(null)
+  const [leftWidth, setLeftWidth] = useState(42) // percent
+  const [resizing, setResizing] = useState(false)
+  const containerRef = useRef(null)
+
+  const startResizing = useCallback((e) => {
+    setResizing(true)
+  }, [])
+
+  const stopResizing = useCallback(() => {
+    setResizing(false)
+  }, [])
+
+  const onMouseMove = useCallback((e) => {
+    if (!resizing || !containerRef.current) return
+    const containerRect = containerRef.current.getBoundingClientRect()
+    const newWidth = ((e.clientX - containerRect.left) / containerRect.width) * 100
+    if (newWidth > 20 && newWidth < 80) setLeftWidth(newWidth)
+  }, [resizing])
+
+  useEffect(() => {
+    if (resizing) {
+      window.addEventListener('mousemove', onMouseMove)
+      window.addEventListener('mouseup', stopResizing)
+      document.body.style.cursor = 'col-resize'
+      document.body.style.userSelect = 'none'
+    } else {
+      window.removeEventListener('mousemove', onMouseMove)
+      window.removeEventListener('mouseup', stopResizing)
+      document.body.style.cursor = ''
+      document.body.style.userSelect = ''
+    }
+    return () => {
+      window.removeEventListener('mousemove', onMouseMove)
+      window.removeEventListener('mouseup', stopResizing)
+      document.body.style.cursor = ''
+      document.body.style.userSelect = ''
+    }
+  }, [resizing, onMouseMove, stopResizing])
 
   const channelPosts = posts[selectedChannel?.id] || []
 
-  useEffect(() => { setView('list'); setSelectedPost(null) }, [selectedChannel?.id])
+  useEffect(() => { setSelectedPost(null) }, [selectedChannel?.id])
 
-  function handleSelectPost(post) { setSelectedPost(post); setView('detail') }
-
-  function handleNewPost(data) {
-    const post = addPost(selectedChannel.id, data, currentUser)
-    setSelectedPost(post)
-    setView('detail')
+  async function handleNewPost(data) {
+    await addPost(selectedChannel.id, data)
   }
 
   if (!selectedChannel) {
@@ -823,9 +972,40 @@ export default function ChatArea() {
   }
 
   return (
-    <div className="flex-1 flex flex-col min-w-0 bg-[#1e1c30]">
-      {view === 'list' && <PostList posts={channelPosts} onSelect={handleSelectPost} onSubmit={handleNewPost} />}
-      {view === 'detail' && selectedPost && <PostDetail post={selectedPost} channelId={selectedChannel.id} onBack={() => setView('list')} />}
+    <div ref={containerRef} className="flex-1 flex min-w-0 bg-[#1e1c30]">
+      {/* Left panel — post list (narrows when detail is open) */}
+      <div 
+        className={`flex flex-col min-h-0 bg-[#1e1c30] ${selectedPost ? 'border-r border-white/10' : 'flex-1'} ${resizing ? '' : 'transition-[width] duration-200'}`}
+        style={{ width: selectedPost ? `${leftWidth}%` : '100%' }}
+      >
+        <PostList
+          posts={channelPosts}
+          selectedPostId={selectedPost?.id}
+          onSelect={setSelectedPost}
+          onSubmit={handleNewPost}
+        />
+      </div>
+
+      {/* Resize handle */}
+      {selectedPost && (
+        <div
+          onMouseDown={startResizing}
+          className="group relative w-1 flex-shrink-0 cursor-col-resize z-10"
+        >
+          <div className={`absolute inset-y-0 -left-1 -right-1 group-hover:bg-indigo-500/30 transition-colors ${resizing ? 'bg-indigo-500/50' : ''}`} />
+        </div>
+      )}
+
+      {/* Right panel — post detail */}
+      {selectedPost && (
+        <div className="flex-1 flex flex-col min-h-0">
+          <PostDetail
+            post={selectedPost}
+            channelId={selectedChannel.id}
+            onClose={() => setSelectedPost(null)}
+          />
+        </div>
+      )}
     </div>
   )
 }

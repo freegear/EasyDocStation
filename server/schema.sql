@@ -110,7 +110,7 @@ CREATE TABLE IF NOT EXISTS posts (
 CREATE TABLE IF NOT EXISTS attachments (
   id            VARCHAR(50) PRIMARY KEY,
   channel_id    VARCHAR(50) REFERENCES channels(id) ON DELETE CASCADE,
-  post_id       VARCHAR(50) REFERENCES posts(id) ON DELETE CASCADE,
+  post_id       VARCHAR(50),  -- no FK: post may live in Cassandra or PostgreSQL
   filename      VARCHAR(255) NOT NULL,
   content_type  VARCHAR(100),
   size          BIGINT      DEFAULT 0,
