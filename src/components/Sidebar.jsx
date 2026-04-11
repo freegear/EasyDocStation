@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useChat } from '../contexts/ChatContext'
+import { useAuth } from '../contexts/AuthContext'
 import TeamManageModal from './TeamManageModal'
 import ChannelManageModal from './ChannelManageModal'
 
@@ -21,6 +22,7 @@ function LockIcon() {
 
 export default function Sidebar() {
   const { teams, setTeams, selectedTeam, selectedChannel, selectTeam, selectChannel, refreshTeams } = useChat()
+  const { currentUser } = useAuth()
   const [dmCollapsed, setDmCollapsed] = useState(false)
   const [channelsCollapsed, setChannelsCollapsed] = useState(false)
   const [showTeamModal, setShowTeamModal] = useState(false)
@@ -28,6 +30,40 @@ export default function Sidebar() {
   const [showChannelModal, setShowChannelModal] = useState(false)
   const [channelModalMode, setChannelModalMode] = useState('add')
   const [editingChannel, setEditingChannel] = useState(null)
+
+  // 채널 관리 권한 체크
+  // - site_admin: 모든 채널 관리 가능
+  // - team_admin: 해당 팀의 모든 채널 관리 가능 (team admin_ids에 포함 여부 확인)
+  // - channel_admin: 해당 채널의 admin_ids에 포함된 경우만 가능
+  // - user: 불가
+  function canManageChannel(ch) {
+    if (!currentUser) return false
+    const role = currentUser.role
+    if (role === 'site_admin') return true
+    if (role === 'team_admin') {
+      // 현재 팀의 관리자인지 확인
+      const teamAdminIds = selectedTeam?.admin_ids || []
+      return teamAdminIds.includes(currentUser.id)
+    }
+    if (role === 'channel_admin' || role === 'user') {
+      // 해당 채널의 관리자 목록에 포함되어 있는지 확인
+      const channelAdminIds = ch.admin_ids || []
+      return channelAdminIds.includes(currentUser.id)
+    }
+    return false
+  }
+
+  // 팀 관리 권한 체크
+  function canManageTeam() {
+    if (!currentUser) return false
+    const role = currentUser.role
+    if (role === 'site_admin') return true
+    if (role === 'team_admin') {
+      const teamAdminIds = selectedTeam?.admin_ids || []
+      return teamAdminIds.includes(currentUser.id)
+    }
+    return false
+  }
 
   const totalUnread = selectedTeam.channels.reduce((sum, ch) => sum + ch.unread, 0)
 
@@ -44,12 +80,15 @@ export default function Sidebar() {
               <button
                 key={team.id}
                 onClick={() => selectTeam(team)}
-                onDoubleClick={() => { setEditingTeam(team); setShowTeamModal(true) }}
-                className={`flex items-center gap-2.5 w-full px-2 py-2 rounded-lg text-sm text-left transition-all ${
-                  isActive
+                onDoubleClick={() => {
+                  if (!canManageTeam()) return
+                  setEditingTeam(team)
+                  setShowTeamModal(true)
+                }}
+                className={`flex items-center gap-2.5 w-full px-2 py-2 rounded-lg text-sm text-left transition-all ${isActive
                     ? 'bg-indigo-600 text-white shadow-lg'
                     : 'text-white/60 hover:bg-white/8 hover:text-white'
-                }`}
+                  }`}
               >
                 <span className="text-base">{team.icon}</span>
                 <span className="flex-1 font-medium truncate">{team.name}</span>
@@ -61,7 +100,7 @@ export default function Sidebar() {
               </button>
             )
           })}
-          
+
           {/* Add Team Button at the bottom of the list */}
           <button
             onClick={() => { setEditingTeam(null); setShowTeamModal(true) }}
@@ -94,17 +133,18 @@ export default function Sidebar() {
                     key={ch.id}
                     onClick={() => selectChannel(ch)}
                     onDoubleClick={() => {
+                      if (!canManageChannel(ch)) return  // 권한 없으면 아무 동작 없음
                       setEditingChannel(ch)
                       setChannelModalMode('manage')
                       setShowChannelModal(true)
                     }}
-                    className={`flex items-center gap-2 w-full px-2 py-1.5 rounded-md text-sm text-left transition-all ${
-                      isActive
+                    title={canManageChannel(ch) ? '더블클릭하면 채널 관리' : undefined}
+                    className={`flex items-center gap-2 w-full px-2 py-1.5 rounded-md text-sm text-left transition-all ${isActive
                         ? 'bg-indigo-500/30 text-white'
                         : ch.unread > 0
-                        ? 'text-white hover:bg-white/8'
-                        : 'text-white/50 hover:bg-white/5 hover:text-white/80'
-                    }`}
+                          ? 'text-white hover:bg-white/8'
+                          : 'text-white/50 hover:bg-white/5 hover:text-white/80'
+                      }`}
                   >
                     <span className={`flex-shrink-0 ${isActive ? 'text-indigo-300' : 'text-white/40'}`}>
                       {ch.type === 'private' ? <LockIcon /> : <HashIcon />}
@@ -153,8 +193,12 @@ export default function Sidebar() {
                   className="flex items-center gap-2.5 w-full px-2 py-1.5 rounded-md text-white/50 hover:bg-white/5 hover:text-white/80 text-sm text-left transition-all"
                 >
                   <div className="relative flex-shrink-0">
-                    <div className="w-6 h-6 rounded-md bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center text-white text-xs font-bold">
-                      {dm.avatar}
+                    <div className="w-6 h-6 rounded-md bg-indigo-500 overflow-hidden flex items-center justify-center text-white text-[10px] font-bold">
+                      {dm.image_url ? (
+                        <img src={dm.image_url} alt={dm.name} className="w-full h-full object-cover" />
+                      ) : (
+                        dm.avatar
+                      )}
                     </div>
                     <div className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-[#19172d] ${dm.online ? 'bg-green-400' : 'bg-white/20'}`} />
                   </div>

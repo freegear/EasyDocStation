@@ -658,7 +658,7 @@ function PostCard({ post, onSelect, pinned, isSelected }) {
       }`}
     >
       <div className="flex items-start gap-3">
-        <Avatar letters={post.author?.avatar || '?'} />
+        <Avatar letters={post.author?.avatar || '?'} imageUrl={post.author?.image_url} />
         <div className="flex-1 min-w-0">
           {/* Lead line */}
           <div className="flex items-center gap-2 mb-1">
@@ -669,7 +669,10 @@ function PostCard({ post, onSelect, pinned, isSelected }) {
           </div>
           {/* Meta */}
           <div className="flex items-center gap-2 text-white/35 text-xs mb-2">
-            <span className="font-medium text-white/50">{post.author?.name}</span>
+            <span className="font-medium text-white/60">{post.author?.name}</span>
+            {post.author?.username && (
+              <span className="text-white/25">@{post.author.username}</span>
+            )}
             <span>·</span>
             <span>{formatDate(post.createdAt)}</span>
             {attachCount > 0 && (
@@ -884,11 +887,16 @@ function PostDetail({ post, channelId, onClose }) {
         {/* Meta */}
         <div className="mb-6">
           {freshPost.pinned && <div className="flex items-center gap-1.5 text-amber-400 text-xs font-medium mb-3"><PinIcon /><span>고정된 게시글</span></div>}
-          <div className="flex items-center gap-3 mb-3">
-            <Avatar letters={freshPost.author?.avatar || '?'} />
-            <div>
-              <p className="text-white/80 text-sm font-medium">{freshPost.author?.name}</p>
-              <p className="text-white/30 text-xs" title={formatFull(freshPost.createdAt)}>{formatDate(freshPost.createdAt)}</p>
+          <div className="flex items-center gap-4 mb-6 p-4 rounded-2xl bg-white/4 border border-white/8">
+            <Avatar letters={freshPost.author?.avatar || '?'} imageUrl={freshPost.author?.image_url} size="lg" />
+            <div className="min-w-0 flex-1">
+              <p className="text-white font-semibold text-base leading-tight">{freshPost.author?.name}</p>
+              {freshPost.author?.username && (
+                <p className="text-indigo-400/70 text-xs mt-0.5">@{freshPost.author.username}</p>
+              )}
+              <p className="text-white/30 text-xs mt-1" title={formatFull(freshPost.createdAt)}>
+                작성: {formatFull(freshPost.createdAt)}
+              </p>
             </div>
           </div>
         </div>
@@ -936,6 +944,9 @@ function PostDetail({ post, channelId, onClose }) {
                   <div className="flex-1 bg-white/5 rounded-xl px-4 py-3 border border-white/8">
                     <div className="flex items-baseline gap-2 mb-1.5">
                       <span className="text-white/80 text-xs font-semibold">{c.author?.name}</span>
+                      {c.author?.username && (
+                        <span className="text-indigo-400/50 text-[10px]">@{c.author.username}</span>
+                      )}
                       <span className="text-white/25 text-xs">{formatDate(c.createdAt)}</span>
                       {c.author?.name === currentUser?.name && editingCommentId !== c.id && (
                         <div className="ml-auto flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">

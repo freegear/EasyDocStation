@@ -43,15 +43,25 @@ router.get('/', requireAuth, async (req, res, next) => {
       )
 
       const posts = await Promise.all(result.rows.map(async row => {
-        const authorRes = await db.query('SELECT name, username FROM users WHERE id = $1', [row.author_id])
-        const author = authorRes.rows[0] || { name: '알 수 없음', username: 'unknown' }
+        const authorRes = await db.query(
+          'SELECT id, name, username, image_url FROM users WHERE id = $1',
+          [row.author_id]
+        )
+        const author = authorRes.rows[0] || { id: null, name: '알 수 없음', username: 'unknown', image_url: null }
+        const avatarLetters = author.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
         const attachments = await enrichAttachments(row.attachments || [])
         return {
           id: row.id.toString(),
           channel_id: row.channel_id,
           content: row.content,
           attachments,
-          author: { id: row.author_id, name: author.name, username: author.username, avatar: author.name[0] },
+          author: {
+            id: author.id,
+            name: author.name,
+            username: author.username,
+            avatar: avatarLetters,
+            image_url: author.image_url,
+          },
           createdAt: row.authored_at,
           comments: [], tags: [], pinned: false, views: 0,
         }
@@ -62,7 +72,7 @@ router.get('/', requireAuth, async (req, res, next) => {
 
     // ── PostgreSQL fallback ───────────────────────────────────
     const result = await db.query(`
-      SELECT p.*, u.name AS author_name, u.username
+      SELECT p.*, u.id AS u_id, u.name AS author_name, u.username, u.image_url
       FROM posts p
       JOIN users u ON p.author_id = u.id
       WHERE p.channel_id = $1
@@ -78,12 +88,19 @@ router.get('/', requireAuth, async (req, res, next) => {
         id: a.id, name: a.filename, type: a.content_type, size: a.size,
         url: `/api/files/view/${a.id}`,
       }))
+      const avatarLetters = row.author_name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
       return {
         id: row.id,
         channel_id: row.channel_id,
         content: row.content,
         attachments,
-        author: { id: row.author_id, name: row.author_name, username: row.username, avatar: row.author_name[0] },
+        author: {
+          id: row.author_id,
+          name: row.author_name,
+          username: row.username,
+          avatar: avatarLetters,
+          image_url: row.image_url,
+        },
         createdAt: row.created_at,
         comments: [], tags: [], pinned: false, views: row.views || 0,
       }
