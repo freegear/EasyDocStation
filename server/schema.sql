@@ -7,6 +7,16 @@
 -- Enable extensions
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
+-- ─── Channels ────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS channels (
+  id          VARCHAR(50) PRIMARY KEY,
+  name        VARCHAR(100) NOT NULL,
+  type        VARCHAR(20)  NOT NULL DEFAULT 'public' CHECK (type IN ('public', 'private')),
+  is_archived BOOLEAN      NOT NULL DEFAULT false,
+  created_at  TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+  updated_at  TIMESTAMPTZ  NOT NULL DEFAULT NOW()
+);
+
 -- ─── Users ───────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS users (
   id            SERIAL PRIMARY KEY,
@@ -44,7 +54,7 @@ CREATE TABLE IF NOT EXISTS team_admins (
 -- ─── Channel admin assignments ────────────────────────────────
 CREATE TABLE IF NOT EXISTS channel_admins (
   id          SERIAL PRIMARY KEY,
-  channel_id  VARCHAR(50) NOT NULL,
+  channel_id  VARCHAR(50) NOT NULL REFERENCES channels(id) ON DELETE CASCADE,
   user_id     INTEGER     NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   assigned_by INTEGER     REFERENCES users(id) ON DELETE SET NULL,
   assigned_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -54,7 +64,7 @@ CREATE TABLE IF NOT EXISTS channel_admins (
 -- ─── Channel members ─────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS channel_members (
   id         SERIAL PRIMARY KEY,
-  channel_id VARCHAR(50) NOT NULL,
+  channel_id VARCHAR(50) NOT NULL REFERENCES channels(id) ON DELETE CASCADE,
   user_id    INTEGER     NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   added_by   INTEGER     REFERENCES users(id) ON DELETE SET NULL,
   added_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),

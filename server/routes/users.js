@@ -36,6 +36,26 @@ function canAssignRole(requesterRole, targetRole) {
   return false
 }
 
+// GET /api/users/search — search users by username prefix
+router.get('/search', async (req, res) => {
+  const { q } = req.query
+  if (!q) return res.json([])
+
+  try {
+    const { rows } = await pool.query(
+      `SELECT id, username, name, email, role, is_active FROM users
+       WHERE username ILIKE $1
+       AND is_active = true
+       LIMIT 10`,
+      [`${q}%`]
+    )
+    res.json(rows.map(toPublicUser))
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ error: '서버 오류가 발생했습니다.' })
+  }
+})
+
 // GET /api/users — site admin only
 router.get('/', requireSiteAdmin, async (req, res) => {
   try {
