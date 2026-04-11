@@ -65,8 +65,12 @@ export default function TitleBar({ onOpenProfile, onOpenSiteAdmin }) {
               onClick={() => setMenuOpen(v => !v)}
               className="flex items-center gap-2.5 px-2 py-1.5 rounded-xl hover:bg-white/8 transition-colors group"
             >
-              <div className="w-8 h-8 rounded-full bg-indigo-500 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
-                {currentUser.avatar}
+              <div className="w-8 h-8 rounded-full bg-indigo-500 overflow-hidden flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+                {currentUser.image_url ? (
+                  <img src={currentUser.image_url} alt={currentUser.name} className="w-full h-full object-cover" />
+                ) : (
+                  currentUser.avatar
+                )}
               </div>
               <div className="hidden sm:block text-left">
                 <p className="text-white text-sm font-medium leading-none">{currentUser.name}</p>
@@ -83,8 +87,12 @@ export default function TitleBar({ onOpenProfile, onOpenSiteAdmin }) {
                 {/* User summary */}
                 <div className="px-4 py-3 border-b border-white/8">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-indigo-500 flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
-                      {currentUser.avatar}
+                    <div className="w-10 h-10 rounded-full bg-indigo-500 overflow-hidden flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
+                      {currentUser.image_url ? (
+                        <img src={currentUser.image_url} alt={currentUser.name} className="w-full h-full object-cover" />
+                      ) : (
+                        currentUser.avatar
+                      )}
                     </div>
                     <div className="min-w-0">
                       <p className="text-white font-semibold text-sm truncate">{currentUser.name}</p>

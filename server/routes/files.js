@@ -53,10 +53,13 @@ router.post('/get-upload-url', requireAuth, async (req, res, next) => {
       user_id: req.user.id
     }, JWT_SECRET, { expiresIn: '15m' })
 
-    const uploadUrl = `http://localhost:${process.env.PORT || 3001}/api/files/gateway/upload?token=${token}`
+    const host = req.get('host')
+    const protocol = req.protocol
+    const uploadUrl = `${protocol}://${host}/api/files/gateway/upload?token=${token}`
     
     res.json({ uploadUrl, file_uuid, key })
   } catch (err) {
+    console.error('get-upload-url error:', err)
     next(err)
   }
 })

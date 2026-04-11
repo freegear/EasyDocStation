@@ -38,6 +38,7 @@ CREATE TABLE IF NOT EXISTS users (
   email         VARCHAR(255) UNIQUE NOT NULL,
   role          VARCHAR(20)  NOT NULL DEFAULT 'user'
                   CHECK (role IN ('site_admin', 'team_admin', 'channel_admin', 'user')),
+  image_url     TEXT,
   is_active     BOOLEAN      NOT NULL DEFAULT true,
   created_at    TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
   updated_at    TIMESTAMPTZ  NOT NULL DEFAULT NOW(),

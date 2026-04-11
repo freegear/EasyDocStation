@@ -72,11 +72,15 @@ function FileTypeIcon({ category, className = 'w-5 h-5' }) {
 
 // ─── Shared UI ────────────────────────────────────────────────
 
-function Avatar({ letters, size = 'md' }) {
+function Avatar({ letters, imageUrl, size = 'md' }) {
   const cls = size === 'sm' ? 'w-6 h-6 text-xs' : size === 'lg' ? 'w-10 h-10 text-base' : 'w-8 h-8 text-sm'
   return (
-    <div className={`${cls} rounded-full bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center text-white font-bold flex-shrink-0`}>
-      {letters}
+    <div className={`${cls} rounded-full bg-indigo-500 overflow-hidden flex items-center justify-center text-white font-bold flex-shrink-0 border border-white/10 shadow-inner`}>
+      {imageUrl ? (
+        <img src={imageUrl} alt={letters} className="w-full h-full object-cover" />
+      ) : (
+        letters
+      )}
     </div>
   )
 }
@@ -698,15 +702,28 @@ function PostCard({ post, onSelect, pinned, isSelected }) {
 // ─── Post Detail ──────────────────────────────────────────────
 
 function PostDetail({ post, channelId, onClose }) {
-  const { addComment, incrementViews, deletePost, posts, refreshTeams, selectedChannel } = useChat()
+  const { addComment, incrementViews, deletePost, updatePost, deleteComment, updateComment, posts, refreshTeams, selectedChannel } = useChat()
   const { currentUser } = useAuth()
   const [comment, setComment] = useState('')
   const [viewed, setViewed] = useState(false)
   const [showManageModal, setShowManageModal] = useState(false)
+  
+  // Post Edit State
+  const [isEditingPost, setIsEditingPost] = useState(false)
+  const [postContent, setPostContent] = useState('')
+  const [postFiles, setPostFiles] = useState([])
+  
+  // Comment Edit State
+  const [editingCommentId, setEditingCommentId] = useState(null)
+  const [commentEditContent, setCommentEditContent] = useState('')
+  const [commentEditFiles, setCommentEditFiles] = useState([])
+
   const [files, setFiles] = useState([])
   const [uploading, setUploading] = useState(false)
   const commentsEndRef = useRef(null)
   const fileInputRef = useRef(null)
+  const postEditFileInputRef = useRef(null)
+  const commentEditFileInputRef = useRef(null)
   const isAdmin = ['Admin', 'site_admin', 'channel_admin', 'team_admin'].includes(currentUser?.role)
 
   function addFiles(newFiles) {
@@ -775,19 +792,63 @@ function PostDetail({ post, channelId, onClose }) {
     }
   }
 
+  // Handlers for Post Edit
+  function startPostEdit() {
+    setPostContent(freshPost.content)
+    setPostFiles(freshPost.attachments || [])
+    setIsEditingPost(true)
+  }
+
+  async function handlePostUpdate() {
+    setUploading(true)
+    try {
+      const attachments = [...postFiles]
+      updatePost(channelId, post.id, { content: postContent, attachments })
+      setIsEditingPost(false)
+    } catch (err) {
+      alert('저장 중 오류가 발생했습니다: ' + err.message)
+    } finally {
+      setUploading(false)
+    }
+  }
+
   function handleDelete() {
     if (window.confirm('이 게시글을 삭제하시겠습니까?')) { deletePost(channelId, post.id); onClose() }
+  }
+
+  // Handlers for Comment Edit/Delete
+  function startCommentEdit(c) {
+    setEditingCommentId(c.id)
+    setCommentEditContent(c.text)
+    setCommentEditFiles(c.attachments || [])
+  }
+
+  function handleCommentDelete(cId) {
+    if (window.confirm('이 댓글을 삭제하시겠습니까?')) {
+      deleteComment(channelId, post.id, cId)
+    }
+  }
+
+  function handleCommentUpdate(cId) {
+    updateComment(channelId, post.id, cId, { text: commentEditContent, attachments: commentEditFiles })
+    setEditingCommentId(null)
   }
 
   return (
     <div className="flex-1 flex flex-col min-h-0">
       <div className="flex items-center gap-3 px-6 py-3 border-b border-white/10 flex-shrink-0">
         <div className="flex-1" />
-        {isOwn && (
-          <button onClick={handleDelete} className="flex items-center gap-1 text-red-400/60 hover:text-red-400 text-xs transition-colors">
-            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-            삭제
-          </button>
+        {isOwn && !isEditingPost && (
+          <div className="flex items-center gap-2">
+            <button onClick={startPostEdit} className="flex items-center gap-1 text-white/40 hover:text-white text-xs transition-colors">
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+              수정
+            </button>
+            <button onClick={handleDelete} className="flex items-center gap-1 text-red-400/60 hover:text-red-400 text-xs transition-colors">
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+              삭제
+            </button>
+          </div>
         )}
         {isAdmin && (
           <button
@@ -834,13 +895,33 @@ function PostDetail({ post, channelId, onClose }) {
 
         <div className="border-t border-white/8 mb-6" />
 
-        {/* Body */}
-        <div className="mb-4">
-          <ContentRenderer text={freshPost.content} />
-        </div>
-
-        {/* Attachments */}
-        <AttachmentList attachments={freshPost.attachments} />
+        {/* Body & Attachments */}
+        {isEditingPost ? (
+          <div className="bg-white/5 rounded-2xl border border-indigo-500/40 p-4 mb-6">
+            <textarea
+              value={postContent}
+              onChange={e => setPostContent(e.target.value)}
+              className="w-full bg-transparent text-white/90 placeholder-white/25 text-sm leading-relaxed resize-none focus:outline-none mb-4"
+              rows={8}
+            />
+            {postFiles.length > 0 && (
+              <div className="flex flex-wrap gap-2 mb-4">
+                {postFiles.map(f => <FileChip key={f.id} file={f} onRemove={(id) => setPostFiles(prev => prev.filter(x => x.id !== id))} />)}
+              </div>
+            )}
+            <div className="flex justify-end gap-2">
+              <button onClick={() => setIsEditingPost(false)} className="px-3 py-1.5 rounded-lg text-white/40 hover:text-white text-xs transition-colors">취소</button>
+              <button onClick={handlePostUpdate} className="px-4 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold transition-colors">저장하기</button>
+            </div>
+          </div>
+        ) : (
+          <>
+            <div className="mb-4">
+              <ContentRenderer text={freshPost.content} />
+            </div>
+            <AttachmentList attachments={freshPost.attachments} />
+          </>
+        )}
 
         {/* Comments */}
         <div className="border-t border-white/8 pt-6 mt-6">
@@ -850,20 +931,49 @@ function PostDetail({ post, channelId, onClose }) {
           ) : (
             <div className="flex flex-col gap-4 mb-6">
               {(freshPost.comments || []).map(c => (
-                <div key={c.id} className="flex items-start gap-3">
-                  <Avatar letters={c.author?.avatar || '?'} size="sm" />
+                <div key={c.id} className="flex items-start gap-3 group">
+                  <Avatar letters={c.author?.avatar || '?'} imageUrl={c.author?.image_url} size="sm" />
                   <div className="flex-1 bg-white/5 rounded-xl px-4 py-3 border border-white/8">
                     <div className="flex items-baseline gap-2 mb-1.5">
                       <span className="text-white/80 text-xs font-semibold">{c.author?.name}</span>
                       <span className="text-white/25 text-xs">{formatDate(c.createdAt)}</span>
+                      {c.author?.name === currentUser?.name && editingCommentId !== c.id && (
+                        <div className="ml-auto flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button onClick={() => startCommentEdit(c)} className="text-white/30 hover:text-white text-[10px] font-medium uppercase tracking-tight">수정</button>
+                          <button onClick={() => handleCommentDelete(c.id)} className="text-red-400/40 hover:text-red-400 text-[10px] font-medium uppercase tracking-tight">삭제</button>
+                        </div>
+                      )}
                     </div>
-                    <div className="text-white/70 overflow-hidden">
-                      <ContentRenderer text={c.text} />
-                    </div>
-                    {c.attachments && c.attachments.length > 0 && (
-                      <div className="mt-3 scale-[0.85] origin-top-left">
-                        <AttachmentList attachments={c.attachments} />
+
+                    {editingCommentId === c.id ? (
+                      <div className="mt-1">
+                        <textarea
+                          value={commentEditContent}
+                          onChange={e => setCommentEditContent(e.target.value)}
+                          className="w-full bg-white/5 border border-white/10 rounded-lg p-2 text-white/80 text-sm focus:outline-none focus:border-indigo-500/40 resize-none"
+                          rows={2}
+                        />
+                        {commentEditFiles.length > 0 && (
+                          <div className="flex flex-wrap gap-1.5 mt-2">
+                            {commentEditFiles.map(f => <FileChip key={f.id} file={f} onRemove={(id) => setCommentEditFiles(prev => prev.filter(x => x.id !== id))} />)}
+                          </div>
+                        )}
+                        <div className="flex justify-end gap-2 mt-2">
+                          <button onClick={() => setEditingCommentId(null)} className="text-white/40 hover:text-white text-xs">취소</button>
+                          <button onClick={() => handleCommentUpdate(c.id)} className="text-indigo-400 hover:text-indigo-300 text-xs font-semibold">저장</button>
+                        </div>
                       </div>
+                    ) : (
+                      <>
+                        <div className="text-white/70 overflow-hidden">
+                          <ContentRenderer text={c.text} />
+                        </div>
+                        {c.attachments && c.attachments.length > 0 && (
+                          <div className="mt-3 scale-[0.85] origin-top-left">
+                            <AttachmentList attachments={c.attachments} />
+                          </div>
+                        )}
+                      </>
                     )}
                   </div>
                 </div>
