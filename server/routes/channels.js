@@ -19,21 +19,22 @@ router.get('/:id', requireAuth, async (req, res, next) => {
   }
 })
 
-// Update channel (name, type)
+// Update channel (name, type) — use UPSERT to handle first-time saves
 router.put('/:id', requireAuth, async (req, res, next) => {
   try {
     const { id } = req.params
     const { name, type } = req.body
 
     const result = await db.query(
-      'UPDATE channels SET name = $1, type = $2, updated_at = NOW() WHERE id = $3 RETURNING *',
-      [name, type, id]
+      `INSERT INTO channels (id, name, type, updated_at)
+       VALUES ($1, $2, $3, NOW())
+       ON CONFLICT (id) DO UPDATE
+       SET name = EXCLUDED.name, 
+           type = EXCLUDED.type, 
+           updated_at = NOW()
+       RETURNING *`,
+      [id, name, type]
     )
-
-    if (result.rows.length === 0) {
-      // If not exists, maybe create it? For now just return 404
-      return res.status(404).json({ error: '채널을 찾을 수 없습니다.' })
-    }
 
     res.json(result.rows[0])
   } catch (err) {
@@ -82,7 +83,7 @@ router.post('/:id/members', requireAuth, async (req, res, next) => {
 
     await db.query(
       'INSERT INTO channel_members (channel_id, user_id, added_by) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING',
-      [id, userId, req.user.id]
+      [id, parseInt(userId), req.user.id]
     )
 
     res.status(201).json({ success: true })
@@ -97,7 +98,7 @@ router.delete('/:id/members/:userId', requireAuth, async (req, res, next) => {
     const { id, userId } = req.params
     await db.query(
       'DELETE FROM channel_members WHERE channel_id = $1 AND user_id = $2',
-      [id, userId]
+      [id, parseInt(userId)]
     )
     res.json({ success: true })
   } catch (err) {
