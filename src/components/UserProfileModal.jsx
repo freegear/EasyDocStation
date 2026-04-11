@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { ROLE_LABELS, ROLE_BADGE } from '../constants/roles'
-import { apiFetch } from '../lib/api'
 
 export default function UserProfileModal({ onClose }) {
   const { currentUser, updateProfile } = useAuth()
@@ -38,28 +37,49 @@ export default function UserProfileModal({ onClose }) {
   async function handleImageUpload(e) {
     const file = e.target.files?.[0]
     if (!file) return
-    
-    // In a real app, you would upload to server first
-    // For this task, we'll simulate by creating a local URL or use the existing /files/upload if available
-    // But since the requirements mention PostgreSQL and 100x100, 
-    // I'll implement a simple client-side preview for now, 
-    // or assume the user wants me to use the existing file upload API.
-    
+    if (!file.type.startsWith('image/')) {
+      setError('이미지 파일만 업로드 가능합니다.')
+      return
+    }
+
     setSaving(true)
+    clearMessages()
     try {
-      // Re-use file upload logic similar to ChatArea
-      const { uploadUrl, file_uuid } = await apiFetch('/files/get-upload-url', {
-        method: 'POST',
-        body: JSON.stringify({ filename: file.name, contentType: file.type, channelName: 'profile' }),
-      })
-      await fetch(uploadUrl, { method: 'PUT', body: file })
-      const newUrl = `/api/files/view/${file_uuid}`
-      setImageUrl(newUrl)
+      // Canvas를 사용하여 100x100으로 리사이즈 후 Base64로 변환
+      const base64 = await resizeImageToBase64(file, 100, 100)
+      setImageUrl(base64)
+      // 즉시 DB에 저장 (저장 버튼 찾을 필요 없음)
+      await updateProfile({ image_url: base64 })
+      setSuccess('프로필 사진이 업데이트되었습니다.')
     } catch (err) {
       setError('이미지 업로드 실패: ' + err.message)
     } finally {
       setSaving(false)
     }
+  }
+
+  function resizeImageToBase64(file, maxW, maxH) {
+    return new Promise((resolve, reject) => {
+      const img = new Image()
+      const url = URL.createObjectURL(file)
+      img.onload = () => {
+        URL.revokeObjectURL(url)
+        const canvas = document.createElement('canvas')
+        canvas.width = maxW
+        canvas.height = maxH
+        const ctx = canvas.getContext('2d')
+        // 비율 유지하면서 켨래 스케일 (cover 방식)
+        const scale = Math.max(maxW / img.width, maxH / img.height)
+        const sw = maxW / scale
+        const sh = maxH / scale
+        const sx = (img.width - sw) / 2
+        const sy = (img.height - sh) / 2
+        ctx.drawImage(img, sx, sy, sw, sh, 0, 0, maxW, maxH)
+        resolve(canvas.toDataURL('image/jpeg', 0.85))
+      }
+      img.onerror = reject
+      img.src = url
+    })
   }
 
   async function handleChangePassword(e) {

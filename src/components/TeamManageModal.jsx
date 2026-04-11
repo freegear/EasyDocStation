@@ -1,3 +1,5 @@
+import { useState, useEffect } from 'react'
+import { apiFetch } from '../lib/api'
 import { useAuth } from '../contexts/AuthContext'
 
 export default function TeamManageModal({ team = null, onClose, onSave }) {

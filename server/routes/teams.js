@@ -8,11 +8,26 @@ router.get('/', requireAuth, async (req, res, next) => {
   try {
     const result = await db.query(`
       SELECT t.*, 
-        (SELECT json_agg(c.* ORDER BY c.name ASC) 
+        (SELECT json_agg(
+          json_build_object(
+            'id', c.id,
+            'name', c.name,
+            'type', c.type,
+            'is_archived', c.is_archived,
+            'unread', 0,
+            'admin_ids', (
+              SELECT json_agg(ca.user_id)
+              FROM channel_admins ca
+              WHERE ca.channel_id = c.id
+            )
+          ) ORDER BY c.name ASC
+        ) 
          FROM channels c WHERE c.team_id = t.id) as channels,
         (SELECT json_agg(u.username) 
          FROM users u JOIN team_admins ta ON u.id = ta.user_id 
-         WHERE ta.team_id = t.id) as admins
+         WHERE ta.team_id = t.id) as admins,
+        (SELECT json_agg(ta2.user_id)
+         FROM team_admins ta2 WHERE ta2.team_id = t.id) as admin_ids
       FROM teams t
       ORDER BY t.created_at ASC
     `)
