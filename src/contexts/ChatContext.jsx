@@ -91,11 +91,11 @@ export function ChatProvider({ children }) {
   }
 
   // ─── 댓글 추가 — DB에 저장 후 최신 목록 재조회 ──────────────
-  async function addComment(channelId, postId, text, user, attachments = []) {
+  async function addComment(channelId, postId, text, user, attachmentIds = []) {
     try {
       await apiFetch(`/posts/${postId}/comments`, {
         method: 'POST',
-        body: JSON.stringify({ channelId, content: text, attachments }),
+        body: JSON.stringify({ channelId, content: text, attachmentIds }),
       })
       const data = await apiFetch(`/posts?channelId=${channelId}`)
       setPosts(prev => ({ ...prev, [channelId]: data }))

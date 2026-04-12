@@ -30,6 +30,7 @@ export default function ChannelManageModal({ mode = 'manage', channel = null, on
 
   const [name, setName] = useState(targetChannel?.name || '')
   const [type, setType] = useState(targetChannel?.type || 'public')
+  const [isArchived, setIsArchived] = useState(targetChannel?.is_archived || false)
   const [description, setDescription] = useState(targetChannel?.description || '')
   const [descTab, setDescTab] = useState('preview')
 
@@ -50,6 +51,14 @@ export default function ChannelManageModal({ mode = 'manage', channel = null, on
   
   // 권한 설정: 팀 관리자면 모든 관리 가능, 아니면 채널 관리자만 가능
   const canManage = isTeamAdmin || admins.some(a => a.id === currentUser?.id)
+
+  useEffect(() => {
+    const handleEsc = (e) => {
+      if (e.key === 'Escape') onClose()
+    }
+    window.addEventListener('keydown', handleEsc)
+    return () => window.removeEventListener('keydown', handleEsc)
+  }, [onClose])
 
   useEffect(() => {
     if (isEdit) {
@@ -134,6 +143,7 @@ export default function ChannelManageModal({ mode = 'manage', channel = null, on
       const payload = {
         name: name.trim(),
         type,
+        is_archived: isArchived,
         description: description.trim(),
         team_id: selectedTeam.id,
         adminIds: admins.map(a => a.id),
@@ -141,11 +151,38 @@ export default function ChannelManageModal({ mode = 'manage', channel = null, on
       }
 
       const result = await apiFetch(`/channels/${channelId}`, {
-        method: 'PUT',
+        method: isEdit ? 'PUT' : 'POST', // Use POST for new channel if supported, or just keep PUT logic if it's upsert
         body: JSON.stringify(payload)
       })
 
       onSave(result)
+      onClose()
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleArchive = async () => {
+    if (!window.confirm('이 채널을 보관하시겠습니까? 보관 후에는 사이드바에서 사라지며 읽기 전용이 됩니다.')) return
+    
+    setLoading(true)
+    try {
+      const payload = {
+        name: name.trim(),
+        type,
+        is_archived: true,
+        description: description.trim(),
+        team_id: selectedTeam.id,
+        adminIds: admins.map(a => a.id),
+        memberIds: members.map(m => m.id)
+      }
+      await apiFetch(`/channels/${targetChannel.id}`, {
+        method: 'PUT',
+        body: JSON.stringify(payload)
+      })
+      onSave()
       onClose()
     } catch (err) {
       setError(err.message)
@@ -347,21 +384,35 @@ export default function ChannelManageModal({ mode = 'manage', channel = null, on
                 {description.trim() ? <SimpleMDPreview text={description} /> : <p className="text-white/20 text-sm">미리볼 내용이 없습니다.</p>}
               </div>
             )}
-            <p className="text-white/20 text-[10px] mt-1.5 px-1">Markdown 형식 지원: **굵게**, *기울임*, `코드`, # 제목</p>
           </div>
+
         </div>
 
         {/* Footer */}
         <div className="px-6 py-4 bg-white/5 border-t border-white/10 flex items-center justify-end gap-3 flex-shrink-0">
           {isEdit && (
-            <button
-              onClick={() => setShowDeleteConfirm(true)}
-              disabled={loading}
-              className="mr-auto px-4 py-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 text-xs font-bold transition-all"
-            >
-              채널 삭제
-            </button>
+            <>
+              <button
+                onClick={() => setShowDeleteConfirm(true)}
+                disabled={loading}
+                className="px-4 py-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 text-xs font-bold transition-all"
+              >
+                삭제
+              </button>
+              <button
+                onClick={handleArchive}
+                disabled={loading || isArchived}
+                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                  isArchived 
+                    ? 'bg-amber-500/20 text-amber-500 cursor-not-allowed'
+                    : 'bg-amber-500/10 hover:bg-amber-500/20 text-amber-500'
+                }`}
+              >
+                {isArchived ? '보관됨' : '보관'}
+              </button>
+            </>
           )}
+          <div className="flex-1" />
           <button onClick={onClose} className="px-4 py-2 text-white/40 text-xs font-bold hover:text-white transition-colors">취소</button>
           <button
             onClick={handleSave}
@@ -375,25 +426,26 @@ export default function ChannelManageModal({ mode = 'manage', channel = null, on
         {/* Delete Confirmation */}
         {showDeleteConfirm && (
           <div className="absolute inset-0 z-30 bg-[#1e1c30]/95 flex flex-col items-center justify-center p-8 space-y-5">
-            <div className="text-4xl">⚠️</div>
-            <h3 className="text-white font-bold text-center text-lg">채널을 정말 삭제하시겠습니까?</h3>
-            <p className="text-white/40 text-sm text-center">확인을 위해 채널 이름 <strong className="text-white">[{targetChannel.name}]</strong>을(를) 입력하세요.</p>
+            <div className="w-16 h-16 rounded-full bg-red-500/10 flex items-center justify-center text-red-500 text-3xl mb-2">⚠️</div>
+            <h3 className="text-white font-bold text-center text-lg">정말 이 채널을 삭제하시겠습니까?</h3>
+            <p className="text-red-400/80 text-sm text-center">삭제 되면 복구할 수 없습니다.</p>
+            <p className="text-white/40 text-[11px] text-center mt-2">확인을 위해 채널 이름 <strong className="text-white">[{targetChannel.name}]</strong>을(를) 아래에 입력하세요.</p>
             <input
               type="text"
               value={deleteConfirmName}
               onChange={e => setDeleteConfirmName(e.target.value)}
               placeholder="채널 이름 입력"
-              className="w-full max-w-sm bg-white/5 border border-red-500/30 rounded-xl px-4 py-2.5 text-white text-sm focus:ring-1 focus:ring-red-500 outline-none text-center"
+              className="w-full max-w-sm bg-black/40 border border-red-500/30 rounded-xl px-4 py-3 text-white text-sm focus:ring-1 focus:ring-red-500 outline-none text-center font-bold"
             />
             {error && <p className="text-red-400 text-xs">{error}</p>}
-            <div className="flex gap-3">
-              <button onClick={() => { setShowDeleteConfirm(false); setDeleteConfirmName(''); setError('') }} className="px-6 py-2 text-white/40 text-sm font-bold hover:text-white">취소</button>
+            <div className="flex gap-4 mt-4">
+              <button onClick={() => { setShowDeleteConfirm(false); setDeleteConfirmName(''); setError('') }} className="px-6 py-2 text-white/40 text-sm font-bold hover:text-white transition-colors">취소</button>
               <button
                 onClick={handleDelete}
                 disabled={deleteConfirmName !== targetChannel.name || loading}
-                className="px-8 py-2.5 rounded-xl bg-red-600 hover:bg-red-500 disabled:opacity-30 text-white text-sm font-bold shadow-lg shadow-red-500/20 transition-all"
+                className="px-10 py-3 rounded-xl bg-red-600 hover:bg-red-500 disabled:opacity-30 text-white text-sm font-black shadow-xl shadow-red-600/20 active:scale-95 transition-all"
               >
-                {loading ? '삭제 중...' : '영구 삭제'}
+                {loading ? '삭제 중...' : '확인'}
               </button>
             </div>
           </div>

@@ -408,7 +408,7 @@ function TableRow({ line }) {
 
 // ─── Compose bar with file attach ────────────────────────────
 
-function ComposeBar({ onSubmit }) {
+function ComposeBar({ onSubmit, isArchived }) {
   const { currentUser } = useAuth()
   const { selectedChannel } = useChat()
   const [content, setContent] = useState('')
@@ -520,6 +520,20 @@ function ComposeBar({ onSubmit }) {
 
   const hasContent = content.trim().length > 0 || files.length > 0
   const showActions = focused || hasContent
+
+  if (isArchived) {
+    return (
+      <div className="flex-shrink-0 px-4 py-8 border-t border-white/10 flex flex-col items-center justify-center bg-white/2">
+        <div className="w-12 h-12 rounded-full bg-amber-500/10 flex items-center justify-center text-amber-500 mb-3">
+          <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+          </svg>
+        </div>
+        <p className="text-white font-bold text-sm mb-1">보관된 채널입니다</p>
+        <p className="text-white/30 text-[11px]">이 채널은 현재 읽기 전용 상태이며, 새로운 메시지를 전송하거나 편집할 수 없습니다.</p>
+      </div>
+    )
+  }
 
   return (
     <div className="flex-shrink-0 px-4 py-3 border-t border-white/10">
@@ -706,7 +720,7 @@ function PostList({ posts, onSelect, onSubmit, selectedPostId }) {
         )}
       </div>
 
-      <ComposeBar onSubmit={onSubmit} />
+      <ComposeBar onSubmit={onSubmit} isArchived={selectedChannel?.is_archived} />
     </div>
   )
 }
@@ -839,7 +853,7 @@ function PostDetail({ post, channelId, onClose }) {
     
     setUploading(true)
     try {
-      const attachments = []
+      const attachmentIds = []
       for (const fObj of files) {
         const { uploadUrl, file_uuid } = await apiFetch('/files/get-upload-url', {
           method: 'POST',
@@ -850,16 +864,10 @@ function PostDetail({ post, channelId, onClose }) {
           }),
         })
         await fetch(uploadUrl, { method: 'PUT', body: fObj.file })
-        attachments.push({
-          id: file_uuid,
-          name: fObj.name,
-          size: fObj.size,
-          type: fObj.type,
-          url: `/api/files/view/${file_uuid}`
-        })
+        attachmentIds.push(file_uuid)
       }
 
-      addComment(channelId, post.id, comment.trim(), currentUser, attachments)
+      await addComment(channelId, post.id, comment.trim(), currentUser, attachmentIds)
       
       files.forEach(f => URL.revokeObjectURL(f.url))
       setComment('')
@@ -918,7 +926,7 @@ function PostDetail({ post, channelId, onClose }) {
     <div className="flex-1 flex flex-col min-h-0">
       <div className="flex items-center gap-3 px-6 py-3 border-b border-white/10 flex-shrink-0">
         <div className="flex-1" />
-        {isOwn && !isEditingPost && (
+        {isOwn && !isEditingPost && !selectedChannel?.is_archived && (
           <div className="flex items-center gap-2">
             <button onClick={startPostEdit} className="flex items-center gap-1 text-white/40 hover:text-white text-xs transition-colors">
               <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
@@ -1025,7 +1033,7 @@ function PostDetail({ post, channelId, onClose }) {
                         <span className="text-indigo-400/50 text-[10px]">@{c.author.username}</span>
                       )}
                       <span className="text-white/25 text-xs">{formatDate(c.createdAt)}</span>
-                      {c.author?.name === currentUser?.name && editingCommentId !== c.id && (
+                      {c.author?.name === currentUser?.name && editingCommentId !== c.id && !selectedChannel?.is_archived && (
                         <div className="ml-auto flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                           <button onClick={() => startCommentEdit(c)} className="text-white/30 hover:text-white text-[10px] font-medium uppercase tracking-tight">수정</button>
                           <button onClick={() => handleCommentDelete(c.id)} className="text-red-400/40 hover:text-red-400 text-[10px] font-medium uppercase tracking-tight">삭제</button>
@@ -1069,44 +1077,53 @@ function PostDetail({ post, channelId, onClose }) {
               <div ref={commentsEndRef} />
             </div>
           )}
-          <form onSubmit={handleComment} className="flex items-start gap-3">
-            <input ref={fileInputRef} type="file" multiple className="hidden" onChange={e => { if(e.target.files?.length) addFiles(e.target.files); e.target.value = '' }} />
-            {currentUser && <Avatar letters={currentUser.avatar} size="sm" />}
-            <div className="flex-1 bg-white/5 rounded-xl border border-white/10 focus-within:border-indigo-500/40 transition-colors overflow-hidden">
-              <textarea
-                value={comment}
-                onChange={e => setComment(e.target.value)}
-                placeholder="댓글을 입력하세요..."
-                rows={2}
-                className="w-full bg-transparent text-white/80 placeholder-white/20 text-sm px-4 pt-3 pb-2 resize-none focus:outline-none leading-relaxed"
-                onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleComment(e) } }}
-              />
-              {files.length > 0 && (
-                <div className="px-4 pb-2">
-                  <div className="flex flex-wrap gap-2">
-                    {files.map(f => <FileChip key={f.id} file={f} onRemove={removeFile} />)}
+          {!selectedChannel?.is_archived ? (
+            <form onSubmit={handleComment} className="flex items-start gap-3">
+              <input ref={fileInputRef} type="file" multiple className="hidden" onChange={e => { if(e.target.files?.length) addFiles(e.target.files); e.target.value = '' }} />
+              {currentUser && <Avatar letters={currentUser.avatar} size="sm" />}
+              <div className="flex-1 bg-white/5 rounded-xl border border-white/10 focus-within:border-indigo-500/40 transition-colors overflow-hidden">
+                <textarea
+                  value={comment}
+                  onChange={e => setComment(e.target.value)}
+                  placeholder="댓글을 입력하세요..."
+                  rows={2}
+                  className="w-full bg-transparent text-white/80 placeholder-white/20 text-sm px-4 pt-3 pb-2 resize-none focus:outline-none leading-relaxed"
+                  onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleComment(e) } }}
+                />
+                {files.length > 0 && (
+                  <div className="px-4 pb-2">
+                    <div className="flex flex-wrap gap-2">
+                      {files.map(f => <FileChip key={f.id} file={f} onRemove={removeFile} />)}
+                    </div>
                   </div>
+                )}
+                <div className="flex items-center px-3 pb-2">
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="p-1.5 rounded-lg text-white/30 hover:text-white/70 hover:bg-white/8 transition-colors"
+                    title="파일 첨부"
+                  >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                    </svg>
+                  </button>
+                  <div className="flex-1" />
+                  <button type="submit" disabled={(!comment.trim() && files.length === 0) || uploading} className="px-3 py-1.5 rounded-lg bg-indigo-600 disabled:bg-white/10 enabled:hover:bg-indigo-500 text-white text-xs font-semibold transition-colors flex items-center gap-2">
+                    {uploading && <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
+                    {uploading ? '전송 중...' : '댓글 달기'}
+                  </button>
                 </div>
-              )}
-              <div className="flex items-center px-3 pb-2">
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="p-1.5 rounded-lg text-white/30 hover:text-white/70 hover:bg-white/8 transition-colors"
-                  title="파일 첨부"
-                >
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
-                  </svg>
-                </button>
-                <div className="flex-1" />
-                <button type="submit" disabled={(!comment.trim() && files.length === 0) || uploading} className="px-3 py-1.5 rounded-lg bg-indigo-600 disabled:bg-white/10 enabled:hover:bg-indigo-500 text-white text-xs font-semibold transition-colors flex items-center gap-2">
-                  {uploading && <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
-                  {uploading ? '전송 중...' : '댓글 달기'}
-                </button>
               </div>
+            </form>
+          ) : (
+            <div className="flex flex-col items-center justify-center py-6 bg-white/2 rounded-xl border border-dashed border-white/10 w-full">
+              <svg className="w-8 h-8 text-white/20 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+              </svg>
+              <p className="text-white/30 text-xs italic">보관된 채널에서는 댓글을 작성할 수 없습니다.</p>
             </div>
-          </form>
+          )}
         </div>
       </div>
     </div>

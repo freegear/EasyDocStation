@@ -126,7 +126,10 @@ export default function Sidebar() {
 
           {!channelsCollapsed && (
             <div className="flex flex-col gap-0.5 px-2">
-              {[...selectedTeam.channels].sort((a, b) => a.name.localeCompare(b.name)).map(ch => {
+              {[...selectedTeam.channels]
+                .filter(ch => !ch.is_archived) // 보관된 채널은 숨김 처리
+                .sort((a, b) => a.name.localeCompare(b.name))
+                .map(ch => {
                 const isActive = ch.id === selectedChannel?.id
                 return (
                   <button

@@ -179,14 +179,13 @@ async function runDailyTraining() {
   }
 }
 
-// ─── 게시글 1건 즉시 학습 (immediate 모드) ────────────────────
+// ─── 게시글 1건 즉시 임베딩 (업로드 시 항상 실행) ────────────
 async function trainPostImmediate(post) {
-  if (state.trainingType !== 'immediate') return
   try {
     await runTraining([post])
     state.lastTrained = new Date()
   } catch (e) {
-    console.error('[RAG] 즉시 학습 오류:', e.message)
+    console.error('[RAG] 게시글 임베딩 오류:', e.message)
   }
 }
 
@@ -221,32 +220,40 @@ async function runCommentTraining(comments) {
   console.log('[RAG] 댓글 학습 완료')
 }
 
-// ─── 댓글 1건 즉시 학습 (immediate 모드) ─────────────────────
+// ─── 댓글 1건 즉시 임베딩 (업로드 시 항상 실행) ─────────────
 async function trainCommentImmediate(comment) {
-  if (state.trainingType !== 'immediate') return
   try {
     await runCommentTraining([comment])
     state.lastTrained = new Date()
   } catch (e) {
-    console.error('[RAG] 댓글 즉시 학습 오류:', e.message)
+    console.error('[RAG] 댓글 임베딩 오류:', e.message)
   }
 }
 
-// ─── 댓글 조회 (PostgreSQL, 시간 범위 필터) ──────────────────
+// ─── 댓글 조회 (Cassandra, 시간 범위 필터) ───────────────────
 async function queryComments(since, until) {
-  let sql, params
+  if (!isConnected()) return []
+
+  let cql, params
   if (since && until) {
-    sql    = 'SELECT id, post_id, channel_id, author_id, content, created_at FROM comments WHERE created_at >= $1 AND created_at < $2 ORDER BY created_at ASC'
+    cql    = 'SELECT id, post_id, author_id, content, created_at FROM comments WHERE created_at >= ? AND created_at <= ? ALLOW FILTERING'
     params = [since, until]
   } else if (since) {
-    sql    = 'SELECT id, post_id, channel_id, author_id, content, created_at FROM comments WHERE created_at > $1 ORDER BY created_at ASC'
+    cql    = 'SELECT id, post_id, author_id, content, created_at FROM comments WHERE created_at > ? ALLOW FILTERING'
     params = [since]
   } else {
-    sql    = 'SELECT id, post_id, channel_id, author_id, content, created_at FROM comments ORDER BY created_at ASC'
+    cql    = 'SELECT id, post_id, author_id, content, created_at FROM comments ALLOW FILTERING'
     params = []
   }
-  const result = await db.query(sql, params)
-  return result.rows
+  const result = await client.execute(cql, params, { prepare: true })
+  return result.rows.map(r => ({
+    id:         r.id,
+    post_id:    r.post_id ? r.post_id.toString() : '',
+    channel_id: '',   // Cassandra comments 테이블에 channel_id 없음, RAG에서 빈값 허용
+    author_id:  r.author_id,
+    content:    r.content,
+    created_at: r.created_at,
+  }))
 }
 
 // ─── 마지막 학습 이후 게시글 학습 (manual 모드) ───────────────

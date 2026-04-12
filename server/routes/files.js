@@ -163,54 +163,52 @@ router.put('/gateway/upload', async (req, res) => {
     fileStream.on('finish', async () => {
       // Update record to COMPLETED
       await db.query(`
-        UPDATE attachments 
-        SET status = 'COMPLETED', size = $1, created_at = NOW() 
+        UPDATE attachments
+        SET status = 'COMPLETED', size = $1, created_at = NOW()
         WHERE id = $2
       `, [totalSize, decoded.file_uuid])
-      
-      // ─── 썸네일 생성 로직 추가 (영상이거나 문서인 경우) ──────────
+
+      // ─── 썸네일 생성 (응답 전에 완료 대기) ───────────────────
       const isThumbTarget = /\.(pdf|pptx|ppt|docx|doc|xlsx|xls|mp4|mov|avi|mkv|webm)$/i.test(decoded.key)
-      
+
       if (isThumbTarget) {
-        try {
-            // qlmanage -t -s 512 -o <THUMBNAIL_BASE> <fullPath>
-            // qlmanage는 <파일명>.png 형태로 파일을 만듦
-            const cmd = `qlmanage -t -s 512 -o "${THUMBNAIL_BASE}" "${fullPath}"`
-            
-            // 디버그 로그용
-            const logFile = path.join(STORAGE_BASE, 'thumbnail_debug.log')
-            fs.appendFileSync(logFile, `[${new Date().toISOString()}] Generating for ${decoded.file_uuid}: ${cmd}\n`)
+        const logFile = path.join(STORAGE_BASE, 'thumbnail_debug.log')
+        const cmd = `qlmanage -t -s 512 -o "${THUMBNAIL_BASE}" "${fullPath}"`
+        fs.appendFileSync(logFile, `[${new Date().toISOString()}] Generating for ${decoded.file_uuid}: ${cmd}\n`)
 
-            exec(cmd, async (err, stdout, stderr) => {
-              if (err) {
-                fs.appendFileSync(logFile, `[${new Date().toISOString()}] Error: ${err.message}\nStderr: ${stderr}\n`)
-                console.error('[Thumbnail] Generation failed:', err)
-                return
-              }
-              
-              const originalBase = path.basename(fullPath)
-              const generatedPath = path.join(THUMBNAIL_BASE, originalBase + '.png')
-              const uniqueThumbName = `${decoded.file_uuid}.png`
-              const finalThumbPath = path.join(THUMBNAIL_BASE, uniqueThumbName)
+        await new Promise((resolve) => {
+          exec(cmd, async (err, _stdout, stderr) => {
+            if (err) {
+              fs.appendFileSync(logFile, `[${new Date().toISOString()}] Error: ${err.message}\nStderr: ${stderr}\n`)
+              console.error('[Thumbnail] Generation failed:', err)
+              return resolve()  // 실패해도 업로드는 성공 처리
+            }
 
-              // qlmanage가 생성한 파일을 UUID 기반의 고유 이름으로 변경
-              if (fs.existsSync(generatedPath)) {
+            const originalBase = path.basename(fullPath)
+            const generatedPath = path.join(THUMBNAIL_BASE, originalBase + '.png')
+            const uniqueThumbName = `${decoded.file_uuid}.png`
+            const finalThumbPath = path.join(THUMBNAIL_BASE, uniqueThumbName)
+
+            if (fs.existsSync(generatedPath)) {
+              try {
                 fs.renameSync(generatedPath, finalThumbPath)
                 const thumbRelPath = path.join('thumbnails', uniqueThumbName)
-                
-                await db.query(`
-                  UPDATE attachments SET thumbnail_path = $1 WHERE id = $2
-                `, [thumbRelPath, decoded.file_uuid])
+                await db.query(
+                  'UPDATE attachments SET thumbnail_path = $1 WHERE id = $2',
+                  [thumbRelPath, decoded.file_uuid]
+                )
                 fs.appendFileSync(logFile, `[${new Date().toISOString()}] Success: ${thumbRelPath}\n`)
-              } else {
-                fs.appendFileSync(logFile, `[${new Date().toISOString()}] Generated file not found: ${generatedPath}\n`)
+              } catch (e) {
+                console.error('[Thumbnail] DB update failed:', e)
               }
-            })
-        } catch (e) {
-          console.error('[Thumbnail] Error:', e)
-        }
+            } else {
+              fs.appendFileSync(logFile, `[${new Date().toISOString()}] Generated file not found: ${generatedPath}\n`)
+            }
+            resolve()
+          })
+        })
       }
-      
+
       res.status(200).send('Upload successful')
     })
 

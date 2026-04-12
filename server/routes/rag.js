@@ -38,13 +38,6 @@ async function enrichReferences(results) {
   const refs = []
   const seen = new Set()
 
-  // Cassandra 클라이언트 (필요 시)
-  let cassandraClient = null
-  try {
-    const cass = require('../cassandra')
-    if (cass.isConnected()) cassandraClient = cass.client
-  } catch (e) { }
-
   for (const r of results) {
     let { post_id, type, channel_id: metaChannelId, attachment_id, comment_id } = r.metadata
     if (!post_id || post_id === '') continue
@@ -54,13 +47,20 @@ async function enrichReferences(results) {
     seen.add(key)
 
     try {
-      // ── channel_id가 메타데이터에 없으면 DB에서 찾기 (fallback) ──
+      // ── channel_id가 메타데이터에 없으면 Cassandra에서 찾기 ──
       if (!metaChannelId) {
-        // ... (existing fallback logic)
-        const pRes = await db.query('SELECT channel_id FROM posts WHERE id = $1 LIMIT 1', [post_id])
-        if (pRes.rowCount > 0) {
-          metaChannelId = pRes.rows[0].channel_id
-        } else {
+        try {
+          const cass = require('../cassandra')
+          if (cass.isConnected()) {
+            const pRes = await cass.client.execute(
+              'SELECT channel_id FROM posts WHERE id = ? ALLOW FILTERING',
+              [post_id], { prepare: true }
+            )
+            if (pRes.rows.length > 0) metaChannelId = pRes.rows[0].channel_id
+          }
+        } catch (_) {}
+        // 첨부파일 테이블은 여전히 PostgreSQL
+        if (!metaChannelId) {
           const aRes = await db.query('SELECT channel_id FROM attachments WHERE post_id = $1 LIMIT 1', [post_id])
           if (aRes.rowCount > 0) metaChannelId = aRes.rows[0].channel_id
         }
