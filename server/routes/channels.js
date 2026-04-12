@@ -23,7 +23,7 @@ router.get('/:id', requireAuth, async (req, res, next) => {
 router.put('/:id', requireAuth, async (req, res, next) => {
   try {
     const { id } = req.params
-    const { name, type, description, team_id, adminIds, memberIds } = req.body
+    const { name, type, description, team_id, adminIds, memberIds, is_archived } = req.body
     
     // Ensure team exists or use a default existing team
     let finalTeamId = team_id
@@ -37,15 +37,16 @@ router.put('/:id', requireAuth, async (req, res, next) => {
     await db.query('BEGIN')
 
     const result = await db.query(
-      `INSERT INTO channels (id, team_id, name, type, description, updated_at)
-       VALUES ($1, $2, $3, $4, $5, NOW())
+      `INSERT INTO channels (id, team_id, name, type, description, is_archived, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6, NOW())
        ON CONFLICT (id) DO UPDATE
        SET name = EXCLUDED.name, 
            type = EXCLUDED.type, 
            description = EXCLUDED.description,
+           is_archived = EXCLUDED.is_archived,
            updated_at = NOW()
        RETURNING *`,
-      [id, finalTeamId, name, type, description || null]
+      [id, finalTeamId, name, type, description || null, is_archived ?? false]
     )
 
     // Sync Admins

@@ -44,6 +44,22 @@ export default function TeamManageModal({ team = null, onClose, onSave }) {
   const isTeamAdmin = isSiteAdmin || selectedAdmins.some(a => a.id === currentUser?.id)
   const canManage = !isEdit || isTeamAdmin
 
+  // ESC 키로 창 닫기
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key !== 'Escape') return
+      if (showDeleteConfirm) {
+        setShowDeleteConfirm(false)
+        setDeleteConfirmName('')
+        setError('')
+      } else {
+        onClose()
+      }
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [showDeleteConfirm, onClose])
+
   // 팀 편집 시 기존 데이터 로드
   useEffect(() => {
     if (team) loadTeamData()

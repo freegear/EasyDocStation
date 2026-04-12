@@ -18,3 +18,19 @@
 [2026-04-12T03:10:45.184Z] Success: thumbnails/ed26aa01-d4e1-41fd-9df1-8bc5f0c44585.png
 [2026-04-12T03:13:10.563Z] Generating for febe25c5-3dd0-40f8-b01d-36cce4dc6b08: qlmanage -t -s 512 -o "/Users/kevinim/Desktop/EasyDocStation/Database/ObjectFile/thumbnails" "/Users/kevinim/Desktop/EasyDocStation/Database/ObjectFile/StoryForge/20260412031310/블루탑 국책과제 컨설팅 계약_260407.docx"
 [2026-04-12T03:13:10.811Z] Success: thumbnails/febe25c5-3dd0-40f8-b01d-36cce4dc6b08.png
+[2026-04-12T04:55:53.649Z] Generating for 82c2ac50-fbd0-4c67-afa8-f23be31846f2: qlmanage -t -s 512 -o "/Users/kevinim/Desktop/EasyDocStation/Database/ObjectFile/thumbnails" "/Users/kevinim/Desktop/EasyDocStation/Database/ObjectFile/StoryForge/20260412045553/260327_STORYFORGE_3자_MOU_v2.4.docx"
+[2026-04-12T04:55:53.923Z] Success: thumbnails/82c2ac50-fbd0-4c67-afa8-f23be31846f2.png
+[2026-04-12T04:56:21.426Z] Generating for 9e2c0708-2c34-4c44-9b78-b35bfddde1bb: qlmanage -t -s 512 -o "/Users/kevinim/Desktop/EasyDocStation/Database/ObjectFile/thumbnails" "/Users/kevinim/Desktop/EasyDocStation/Database/ObjectFile/StoryForge/20260412045621/webtoon_animation_automation_strategy_20260124094123 (1) (2).pptx"
+[2026-04-12T04:56:21.641Z] Success: thumbnails/9e2c0708-2c34-4c44-9b78-b35bfddde1bb.png
+[2026-04-12T04:59:50.929Z] Generating for 47c8596b-168e-4608-8247-18d08ff3cf35: qlmanage -t -s 512 -o "/Users/kevinim/Desktop/EasyDocStation/Database/ObjectFile/thumbnails" "/Users/kevinim/Desktop/EasyDocStation/Database/ObjectFile/StoryForge/20260412045950/webtoon_animation_automation_strategy_20260124094123 (1) (2).pptx"
+[2026-04-12T04:59:51.139Z] Success: thumbnails/47c8596b-168e-4608-8247-18d08ff3cf35.png
+[2026-04-12T05:00:01.522Z] Generating for 7dc03b9c-1923-4001-9b75-70ec709e1de1: qlmanage -t -s 512 -o "/Users/kevinim/Desktop/EasyDocStation/Database/ObjectFile/thumbnails" "/Users/kevinim/Desktop/EasyDocStation/Database/ObjectFile/StoryForge/20260412050001/webtoon_animation_automation_strategy_20260124094123 (1) (2).pptx"
+[2026-04-12T05:00:01.694Z] Success: thumbnails/7dc03b9c-1923-4001-9b75-70ec709e1de1.png
+[2026-04-12T05:01:12.144Z] Generating for fdb1443a-a4f1-4101-8af1-fea6df2ef6ed: qlmanage -t -s 512 -o "/Users/kevinim/Desktop/EasyDocStation/Database/ObjectFile/thumbnails" "/Users/kevinim/Desktop/EasyDocStation/Database/ObjectFile/StoryForge/20260412050112/현대건설통합특허_1.01.docx"
+[2026-04-12T05:01:12.627Z] Success: thumbnails/fdb1443a-a4f1-4101-8af1-fea6df2ef6ed.png
+[2026-04-12T05:02:32.442Z] Generating for af9004d3-8e69-4749-971d-27216ecbb725: qlmanage -t -s 512 -o "/Users/kevinim/Desktop/EasyDocStation/Database/ObjectFile/thumbnails" "/Users/kevinim/Desktop/EasyDocStation/Database/ObjectFile/StoryForge/20260412050232/webtoon_animation_automation_strategy_20260124094123 (1) (2).pptx"
+[2026-04-12T05:02:32.662Z] Success: thumbnails/af9004d3-8e69-4749-971d-27216ecbb725.png
+[2026-04-12T05:06:11.275Z] Generating for f84415e4-41ab-499b-9072-5ce13d33034a: qlmanage -t -s 512 -o "/Users/kevinim/Desktop/EasyDocStation/Database/ObjectFile/thumbnails" "/Users/kevinim/Desktop/EasyDocStation/Database/ObjectFile/StoryForge/20260412050611/pcb_monitoring_platform_proposal_20260405080717.pptx"
+[2026-04-12T05:06:11.528Z] Success: thumbnails/f84415e4-41ab-499b-9072-5ce13d33034a.png
+[2026-04-12T05:09:01.997Z] Generating for 6e0d97da-6d6b-458a-810b-cc2f08fb803f: qlmanage -t -s 512 -o "/Users/kevinim/Desktop/EasyDocStation/Database/ObjectFile/thumbnails" "/Users/kevinim/Desktop/EasyDocStation/Database/ObjectFile/StoryForge/20260412050901/1_견적서_셀콘_Zynq 펌웨어_250425.docx"
+[2026-04-12T05:09:02.193Z] Success: thumbnails/6e0d97da-6d6b-458a-810b-cc2f08fb803f.png
