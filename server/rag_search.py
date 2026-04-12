@@ -55,10 +55,11 @@ results   = table.search(query_vec).limit(limit).to_list()
 
 output = []
 for r in results:
-    meta = r["metadata"]
+    meta = r.get("metadata") or {}
     output.append({
-        "text":     r["text"],
-        "score":    float(r.get("_distance", 0)),
+        "text":  r["text"],
+        "score": float(r.get("_distance", 0)),
+        "metadata": {
             "post_id":       meta.get("post_id", ""),
             "chunk_id":      meta.get("chunk_id", 0),
             "type":          meta.get("type", ""),

@@ -48,6 +48,7 @@ if not posts and not comments:
 
 # ─── 라이브러리 로드 ──────────────────────────────────────────
 from pypdf import PdfReader
+from langchain_community.document_loaders import Docx2txtLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from sentence_transformers import SentenceTransformer
 import lancedb
@@ -130,6 +131,17 @@ def load_pdf(file_path):
         print(f"[RAG] PDF 읽기 실패 ({file_path}): {e}", file=sys.stderr)
         return ""
 
+# ─── Word 텍스트 추출 (Docx2txtLoader) ───────────────────────
+def load_word(file_path):
+    try:
+        loader = Docx2txtLoader(file_path)
+        docs = loader.load()
+        text = "\n".join(doc.page_content for doc in docs if doc.page_content)
+        return text.strip()
+    except Exception as e:
+        print(f"[RAG] Word 읽기 실패 ({file_path}): {e}", file=sys.stderr)
+        return ""
+
 # ─── 학습 실행 ───────────────────────────────────────────────
 total_chunks = 0
 records = []
@@ -171,6 +183,34 @@ for post in posts:
                 print(f"[RAG] PDF 추출/학습 완료: {os.path.basename(pdf_path)} ({len(pdf_text)}자)")
         elif pdf_path:
             print(f"[RAG] PDF 파일 없음: {pdf_path}", file=sys.stderr)
+
+    # Word 첨부파일 학습 (.docx / .doc)
+    for word_info in post.get("words", []):
+        word_id   = word_info.get("id")
+        word_path = word_info.get("path")
+        if word_path and os.path.isfile(word_path):
+            word_text = load_word(word_path)
+            if word_text:
+                chunks = text_splitter.split_text(word_text)
+                if chunks:
+                    vectors = embed_model.encode(chunks, batch_size=16, show_progress_bar=False)
+                    for i, (chunk, vector) in enumerate(zip(chunks, vectors)):
+                        records.append({
+                            "vector": vector.tolist(),
+                            "text": chunk,
+                            "metadata": {
+                                "post_id":       post_id,
+                                "chunk_id":      i,
+                                "type":          "word",
+                                "channel_id":    channel_id,
+                                "attachment_id": word_id or "",
+                                "comment_id":    "",
+                            }
+                        })
+                    total_chunks += len(chunks)
+                print(f"[RAG] Word 추출/학습 완료: {os.path.basename(word_path)} ({len(word_text)}자)")
+        elif word_path:
+            print(f"[RAG] Word 파일 없음: {word_path}", file=sys.stderr)
 
     # 게시글 본문 (텍스트 학습)
     content = (post.get("content") or "").strip()

@@ -36,21 +36,32 @@ function loadRagConfig() {
   }
 }
 
-// ─── PDF 첨부파일 경로 조회 ───────────────────────────────────
-async function getPdfPathsForPost(postId) {
+// ─── 문서 첨부파일 경로 조회 (PDF + Word) ────────────────────
+async function getDocumentPathsForPost(postId) {
   try {
-    const cfg        = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'))
+    const cfg         = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'))
     const storageBase = cfg['ObjectFile Path'] || path.resolve(__dirname, '../uploads')
     const result = await db.query(
-      `SELECT storage_path FROM attachments
+      `SELECT id, storage_path, content_type FROM attachments
        WHERE post_id = $1 AND status = 'COMPLETED'
-         AND content_type = 'application/pdf'`,
+         AND content_type IN (
+           'application/pdf',
+           'application/msword',
+           'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+         )`,
       [postId]
     )
-    return result.rows.map(r => path.join(storageBase, r.storage_path))
+    const pdfs  = []
+    const words = []
+    for (const r of result.rows) {
+      const item = { id: r.id, path: path.join(storageBase, r.storage_path) }
+      if (r.content_type === 'application/pdf') pdfs.push(item)
+      else words.push(item)
+    }
+    return { pdfs, words }
   } catch (e) {
-    console.error('[RAG] PDF 경로 조회 실패:', e.message)
-    return []
+    console.error('[RAG] 문서 경로 조회 실패:', e.message)
+    return { pdfs: [], words: [] }
   }
 }
 
@@ -84,15 +95,19 @@ async function runTraining(posts) {
   const cfg = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'))
   const ragCfg = cfg.rag || {}
 
-  // 각 게시글의 PDF 첨부파일 경로를 함께 전달
+  // 각 게시글의 PDF + Word 첨부파일 경로를 함께 전달
   const postsWithPdfs = await Promise.all(
-    posts.map(async post => ({
-      id:         post.id,
-      channel_id: post.channel_id || '',
-      content:    post.content || '',
-      source:     'post',
-      pdfs:       await getPdfPathsForPost(post.id),
-    }))
+    posts.map(async post => {
+      const { pdfs, words } = await getDocumentPathsForPost(post.id)
+      return {
+        id:         post.id,
+        channel_id: post.channel_id || '',
+        content:    post.content || '',
+        source:     'post',
+        pdfs,
+        words,
+      }
+    })
   )
 
   const payload = {
