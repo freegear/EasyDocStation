@@ -13,6 +13,7 @@ router.get('/', requireAuth, async (req, res, next) => {
             'id', c.id,
             'name', c.name,
             'type', c.type,
+            'description', c.description,
             'is_archived', c.is_archived,
             'unread', 0,
             'admin_ids', (
@@ -73,14 +74,14 @@ router.get('/:id/members', requireAuth, async (req, res, next) => {
 // POST /api/teams — Create a new team
 router.post('/', requireAuth, async (req, res, next) => {
   try {
-    const { name, adminIds, memberIds } = req.body
-    const id = name.toLowerCase().replace(/\s+/g, '-') + '-' + Date.now().toString().slice(-4)
+    const { name, description, adminIds, memberIds } = req.body
+    const id = name.toLowerCase().replace(/[^a-z0-9]/g, '-') + '-' + Date.now().toString().slice(-4)
 
     await db.query('BEGIN')
 
     const teamResult = await db.query(
-      'INSERT INTO teams (id, name) VALUES ($1, $2) RETURNING *',
-      [id, name]
+      'INSERT INTO teams (id, name, description) VALUES ($1, $2, $3) RETURNING *',
+      [id, name, description || null]
     )
 
     // Add admins
@@ -119,13 +120,13 @@ router.post('/', requireAuth, async (req, res, next) => {
 router.put('/:id', requireAuth, async (req, res, next) => {
   try {
     const { id } = req.params
-    const { name, adminIds, memberIds } = req.body
+    const { name, description, adminIds, memberIds } = req.body
 
     await db.query('BEGIN')
 
     const result = await db.query(
-      'UPDATE teams SET name = $1, updated_at = NOW() WHERE id = $2 RETURNING *',
-      [name, id]
+      'UPDATE teams SET name = $1, description = $2, updated_at = NOW() WHERE id = $3 RETURNING *',
+      [name, description ?? null, id]
     )
 
     // Sync admins

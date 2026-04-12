@@ -5,5 +5,13 @@
   },
   "PostgreSQL Database Path": "/Users/kevinim/Desktop/EasyDocStation/Database/PoseSQLDB",
   "Cassandra Database Path": "/Users/kevinim/Desktop/EasyDocStation/Database/CassandraDB",
-  "ObjectFile Path": "/Users/kevinim/Desktop/EasyDocStation/Database/ObjectFile"
+  "ObjectFile Path": "/Users/kevinim/Desktop/EasyDocStation/Database/ObjectFile",
+  "lancedb Database Path": "/Users/kevinim/Desktop/EasyDocStation/Database/LanceDB",
+  "rag": {
+    "trainingType": "immediate",
+    "dailyTime": "02:00",
+    "vectorSize": 1024,
+    "chunk_size": 800,
+    "chunk_overlap": 100
+  }
 }

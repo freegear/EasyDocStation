@@ -18,7 +18,6 @@ export function ChatProvider({ children }) {
     try {
       const data = await apiFetch('/teams')
       if (data.length > 0) {
-        // Enrich teams with channels and members from DB
         const enriched = await Promise.all(data.map(async t => {
           const members = await apiFetch(`/teams/${t.id}/members`)
           return {
@@ -28,15 +27,15 @@ export function ChatProvider({ children }) {
               id: `dm-${m.id}`,
               name: m.name,
               avatar: m.name[0],
-              online: Math.random() > 0.5, // Simulate for UI
+              image_url: m.image_url,
+              online: Math.random() > 0.5,
               userId: m.id
             })),
             icon: t.icon || '🏢'
           }
         }))
         setTeams(enriched)
-        
-        // Update selected team if it exists in the new list
+
         if (selectedTeam) {
           const updated = enriched.find(t => t.id === selectedTeam.id)
           if (updated) setSelectedTeam(updated)
@@ -53,11 +52,12 @@ export function ChatProvider({ children }) {
   function selectTeam(team) {
     setSelectedTeam(team)
     setSelectedChannel(team.channels[0])
+    closeSearch()
   }
 
-  // Select channel and fetch its posts from Cassandra
   async function selectChannel(channel) {
     setSelectedChannel(channel)
+    closeSearch()
     try {
       const data = await apiFetch(`/posts?channelId=${channel.id}`)
       setPosts(prev => ({ ...prev, [channel.id]: data }))
@@ -67,7 +67,6 @@ export function ChatProvider({ children }) {
     }
   }
 
-  // Create post via API, then refetch so attachments are fully enriched
   async function addPost(channelId, { content, attachmentIds = [] }) {
     try {
       await apiFetch('/posts', {
@@ -82,20 +81,19 @@ export function ChatProvider({ children }) {
     }
   }
 
-  function addComment(channelId, postId, text, user, attachments = []) {
-    const comment = {
-      id: `c-${Date.now()}`,
-      author: { name: user.name, avatar: user.avatar },
-      text,
-      attachments,
-      createdAt: new Date().toISOString(),
+  // ─── 댓글 추가 — DB에 저장 후 최신 목록 재조회 ──────────────
+  async function addComment(channelId, postId, text, user, attachments = []) {
+    try {
+      await apiFetch(`/posts/${postId}/comments`, {
+        method: 'POST',
+        body: JSON.stringify({ channelId, content: text, attachments }),
+      })
+      const data = await apiFetch(`/posts?channelId=${channelId}`)
+      setPosts(prev => ({ ...prev, [channelId]: data }))
+    } catch (err) {
+      alert('댓글 저장에 실패했습니다: ' + err.message)
+      throw err
     }
-    setPosts(prev => ({
-      ...prev,
-      [channelId]: (prev[channelId] || []).map(p =>
-        p.id === postId ? { ...p, comments: [...(p.comments || []), comment] } : p
-      ),
-    }))
   }
 
   function incrementViews(channelId, postId) {
@@ -107,15 +105,27 @@ export function ChatProvider({ children }) {
     }))
   }
 
-  function deletePost(channelId, postId) {
-    // In a real app, you'd also call apiFetch('/files/delete', ...) for each attachment
+  async function deletePost(channelId, postId) {
+    try {
+      await apiFetch(`/posts/${postId}`, { method: 'DELETE' })
+    } catch (err) {
+      console.error('delete post error:', err)
+    }
     setPosts(prev => ({
       ...prev,
       [channelId]: (prev[channelId] || []).filter(p => p.id !== postId),
     }))
   }
 
-  function updatePost(channelId, postId, { content, attachments }) {
+  async function updatePost(channelId, postId, { content, attachments }) {
+    try {
+      await apiFetch(`/posts/${postId}`, {
+        method: 'PUT',
+        body: JSON.stringify({ content }),
+      })
+    } catch (err) {
+      console.error('update post error:', err)
+    }
     setPosts(prev => ({
       ...prev,
       [channelId]: (prev[channelId] || []).map(p =>
@@ -124,7 +134,13 @@ export function ChatProvider({ children }) {
     }))
   }
 
-  function deleteComment(channelId, postId, commentId) {
+  // ─── 댓글 삭제 — DB에서 삭제 후 state 반영 ──────────────────
+  async function deleteComment(channelId, postId, commentId) {
+    try {
+      await apiFetch(`/posts/${postId}/comments/${commentId}`, { method: 'DELETE' })
+    } catch (err) {
+      console.error('delete comment error:', err)
+    }
     setPosts(prev => ({
       ...prev,
       [channelId]: (prev[channelId] || []).map(p =>
@@ -133,18 +149,56 @@ export function ChatProvider({ children }) {
     }))
   }
 
-  function updateComment(channelId, postId, commentId, { text, attachments }) {
+  // ─── 댓글 수정 — DB 업데이트 후 state 반영 ──────────────────
+  async function updateComment(channelId, postId, commentId, { text, attachments }) {
+    try {
+      await apiFetch(`/posts/${postId}/comments/${commentId}`, {
+        method: 'PUT',
+        body: JSON.stringify({ content: text, attachments }),
+      })
+    } catch (err) {
+      console.error('update comment error:', err)
+    }
     setPosts(prev => ({
       ...prev,
       [channelId]: (prev[channelId] || []).map(p =>
         p.id === postId ? {
           ...p,
           comments: (p.comments || []).map(c =>
-            c.id === commentId ? { ...c, text, attachments, updatedAt: new Date().toISOString() } : c
+            c.id === commentId
+              ? { ...c, content: text, text, attachments, updatedAt: new Date().toISOString() }
+              : c
           )
         } : p
       ),
     }))
+  }
+
+  const [isSearchMode, setIsSearchMode] = useState(false)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [searchResults, setSearchResults] = useState([])
+  const [isSearching, setIsSearching] = useState(false)
+
+  async function performSearch(query) {
+    if (!query.trim()) return
+    setIsSearching(true)
+    setSearchTerm(query)
+    setIsSearchMode(true)
+    try {
+      const data = await apiFetch(`/posts/search?q=${encodeURIComponent(query)}`)
+      setSearchResults(data)
+    } catch (err) {
+      console.error('Search failed:', err)
+      setSearchResults([])
+    } finally {
+      setIsSearching(false)
+    }
+  }
+
+  function closeSearch() {
+    setIsSearchMode(false)
+    setSearchTerm('')
+    setSearchResults([])
   }
 
   return (
@@ -163,7 +217,14 @@ export function ChatProvider({ children }) {
       updatePost,
       deleteComment,
       updateComment,
-      refreshTeams
+      refreshTeams,
+      isSearchMode,
+      setIsSearchMode,
+      searchTerm,
+      searchResults,
+      isSearching,
+      performSearch,
+      closeSearch
     }}>
       {children}
     </ChatContext.Provider>

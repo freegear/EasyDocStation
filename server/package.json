@@ -18,6 +18,7 @@
     "uuid": "^13.0.0"
   },
   "devDependencies": {
+    "concurrently": "^9.2.1",
     "nodemon": "^3.1.0"
   }
 }

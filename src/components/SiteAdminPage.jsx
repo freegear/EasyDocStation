@@ -262,7 +262,10 @@ export default function SiteAdminPage({ onClose }) {
   const [dbStats, setDbStats] = useState(null)
   const [dbLoading, setDbLoading] = useState(false)
   const [displayForm, setDisplayForm] = useState({ width: 512, height: 512 })
+  const [lancedbPath, setLancedbPath] = useState('/Users/kevinim/Desktop/EasyDocStation/Database/LanceDB')
+  const [ragForm, setRagForm] = useState({ type: 'manual', time: '02:00', vectorSize: 1024, chunkSize: 800, chunkOverlap: 100 })
   const [savingConfig, setSavingConfig] = useState(false)
+  const [trainingStatus, setTrainingStatus] = useState(null) // 'running', 'done', null
 
   async function loadUsers() {
     setLoading(true)
@@ -282,10 +285,23 @@ export default function SiteAdminPage({ onClose }) {
       const data = await apiFetch('/admin/stats')
       setDbStats(data)
       if (data.display) {
-        setDisplayForm({ 
-          width: data.display.width || 512, 
-          height: data.display.height || 512 
+        setDisplayForm({
+          width: data.display.width || 512,
+          height: data.display.height || 512
         })
+      }
+      if (data.lancedb?.location) {
+        setLancedbPath(data.lancedb.location)
+      }
+      if (data.rag) {
+        setRagForm(p => ({
+          ...p,
+          type: data.rag.trainingType || p.type,
+          time: data.rag.dailyTime || p.time,
+          vectorSize: data.rag.vectorSize || p.vectorSize,
+          chunkSize: data.rag.chunk_size ?? p.chunkSize,
+          chunkOverlap: data.rag.chunk_overlap ?? p.chunkOverlap
+        }))
       }
     } catch (err) {
       console.error('Failed to load DB stats:', err)
@@ -296,7 +312,7 @@ export default function SiteAdminPage({ onClose }) {
 
   useEffect(() => { loadUsers() }, [])
   useEffect(() => { 
-    if (activeTab === 'db' || activeTab === 'display') loadDbStats() 
+    if (activeTab === 'db' || activeTab === 'display' || activeTab === 'rag') loadDbStats() 
   }, [activeTab])
 
   function handleSave(saved) {
@@ -322,23 +338,61 @@ export default function SiteAdminPage({ onClose }) {
   async function handleSaveConfig() {
     setSavingConfig(true)
     try {
+      const configData = {}
+
+      if (activeTab === 'display') {
+        configData.imagePreview = {
+          width: parseInt(displayForm.width),
+          height: parseInt(displayForm.height)
+        }
+      } else if (activeTab === 'db') {
+        configData['lancedb Database Path'] = lancedbPath
+      } else if (activeTab === 'rag') {
+        configData.rag = {
+          trainingType: ragForm.type,
+          dailyTime: ragForm.time,
+          vectorSize: parseInt(ragForm.vectorSize),
+          chunk_size: parseInt(ragForm.chunkSize),
+          chunk_overlap: parseInt(ragForm.chunkOverlap)
+        }
+      }
+
       const result = await apiFetch('/admin/config', {
         method: 'PUT',
-        body: JSON.stringify({ 
-          imagePreview: { 
-            width: parseInt(displayForm.width), 
-            height: parseInt(displayForm.height) 
-          } 
-        })
+        body: JSON.stringify(configData)
       })
       if (result.success) {
-        alert('설정이 저장되었습니다.')
-        loadDbStats() // Refresh
+        if (activeTab === 'rag') {
+          // vector size 변경 시 LanceDB 테이블 재초기화
+          try {
+            const reinit = await apiFetch('/admin/rag/reinit-lancedb', { method: 'POST' })
+            alert(`설정이 저장되었습니다.\n${reinit.message || 'LanceDB 재초기화 완료'}`)
+          } catch (reinitErr) {
+            alert(`설정은 저장되었으나 LanceDB 재초기화 실패:\n${reinitErr.message}`)
+          }
+        } else {
+          alert('설정이 저장되었습니다.')
+        }
+        loadDbStats()
       }
     } catch (err) {
       alert('저장 실패: ' + err.message)
     } finally {
       setSavingConfig(false)
+    }
+  }
+
+  async function handleStartTraining() {
+    if (!window.confirm('지금 RAG 학습을 시작하시겠습니까? 데이터양에 따라 시간이 소요될 수 있습니다.')) return
+    setTrainingStatus('running')
+    try {
+      // 실제 API 호출 시뮬레이션 또는 연동
+      await apiFetch('/admin/rag/train', { method: 'POST' })
+      alert('RAG 학습이 시작되었습니다.')
+    } catch (err) {
+      alert('학습 시작 실패: ' + err.message)
+    } finally {
+      setTrainingStatus(null)
     }
   }
 
@@ -404,6 +458,15 @@ export default function SiteAdminPage({ onClose }) {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
             </svg>
             Display 설정
+          </button>
+          <button
+            onClick={() => setActiveTab('rag')}
+            className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${activeTab === 'rag' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20' : 'text-white/30 hover:text-white/60 hover:bg-white/5'}`}
+          >
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
+            </svg>
+            RAG 학습 설정
           </button>
         </div>
 
@@ -548,12 +611,21 @@ export default function SiteAdminPage({ onClose }) {
           </>
         ) : activeTab === 'db' ? (
           <div className="max-w-4xl mx-auto py-4">
-            <h2 className="text-white font-bold text-lg mb-6 flex items-center gap-2">
-              <svg className="w-5 h-5 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-              </svg>
-              데이터베이스 및 오브젝트 관리
-            </h2>
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-white font-bold text-lg flex items-center gap-2">
+                <svg className="w-5 h-5 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                </svg>
+                데이터베이스 및 오브젝트 관리
+              </h2>
+              <button
+                onClick={handleSaveConfig}
+                disabled={savingConfig}
+                className="flex items-center gap-2 px-6 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-sm font-semibold transition-all shadow-lg shadow-indigo-500/25 active:scale-95"
+              >
+                {savingConfig ? '저장 중...' : '설정 저장'}
+              </button>
+            </div>
 
             {dbLoading ? (
               <div className="flex flex-col items-center justify-center py-24 text-white/30">
@@ -657,6 +729,42 @@ export default function SiteAdminPage({ onClose }) {
                     </div>
                   </div>
                 </div>
+
+                {/* LanceDB Stats */}
+                <div className="bg-white/5 border border-white/10 rounded-2xl p-6 shadow-xl">
+                  <div className="flex items-start justify-between mb-6">
+                    <div>
+                      <h3 className="text-white font-bold text-base mb-1">LanceDB (Vector Store)</h3>
+                      <p className="text-white/40 text-xs">RAG 학습 데이터를 저장하는 벡터 데이터베이스 폴더입니다.</p>
+                    </div>
+                    <div className="px-3 py-1 rounded-full bg-teal-500/10 border border-teal-500/20 text-teal-400 text-[10px] font-bold uppercase tracking-wider">
+                      Vector Store
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-8">
+                    <div className="space-y-4">
+                      <div>
+                        <p className="text-white/30 text-xs font-semibold uppercase tracking-wider mb-1.5">폴더 위치 (LanceDB Directory)</p>
+                        <input
+                          type="text"
+                          value={lancedbPath}
+                          onChange={e => setLancedbPath(e.target.value)}
+                          className="w-full bg-black/30 rounded-xl px-4 py-3 border border-white/5 font-mono text-xs text-teal-300 break-all leading-relaxed focus:outline-none focus:border-teal-500/50 transition-colors"
+                        />
+                        <p className="text-white/20 text-[10px] mt-1.5">경로를 수정한 후 상단의 설정 저장 버튼을 눌러 적용하세요.</p>
+                      </div>
+                    </div>
+                    <div className="space-y-10 flex flex-col justify-center">
+                      <div className="text-center p-6 bg-white/3 rounded-3xl border border-white/5 relative overflow-hidden group">
+                        <div className="absolute inset-0 bg-teal-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                        <p className="text-white/40 text-xs font-semibold uppercase tracking-wider mb-2">전체 벡터 데이터 크기</p>
+                        <p className="text-4xl font-black text-teal-400 tracking-tight">{dbStats.lancedb?.size ?? '—'}</p>
+                        <div className="w-12 h-1 bg-teal-500/40 mx-auto mt-4 rounded-full" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
             ) : (
               <div className="text-center py-24 text-white/20">
@@ -664,7 +772,223 @@ export default function SiteAdminPage({ onClose }) {
               </div>
             )}
           </div>
-        ) : (
+        ) : activeTab === 'rag' ? (
+          <div className="max-w-4xl mx-auto py-4">
+            <div className="flex items-center justify-between mb-8">
+              <h2 className="text-white font-bold text-lg flex items-center gap-2">
+                <svg className="w-5 h-5 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
+                </svg>
+                RAG 학습 옵션 설정
+              </h2>
+              <button
+                onClick={handleSaveConfig}
+                disabled={savingConfig}
+                className="flex items-center gap-2 px-6 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-sm font-semibold transition-all shadow-lg shadow-indigo-500/25 active:scale-95"
+              >
+                {savingConfig ? '저장 중...' : '설정 저장'}
+              </button>
+            </div>
+
+            {/* Status Info */}
+            <div className="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-6 mb-6">
+              <div className="flex gap-3 text-amber-400">
+                <svg className="w-5 h-5 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <div className="text-xs leading-relaxed">
+                  <p className="font-bold mb-1">RAG(Retrieval-Augmented Generation) 안내</p>
+                  학습된 데이터는 EasyDoc AgenticAI가 답변을 생성할 때 참고 자료로 사용됩니다.
+                  데이터 양이 많을 경우 CPU 사용량이 일시적으로 증가할 수 있으니 서비스 사용량이 적은 시간에 학습을 예약하는 것을 권장합니다.
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-6">
+              {/* 학습 시간 / 주기 설정 */}
+              <div className="bg-white/5 border border-white/10 rounded-2xl p-8 shadow-xl">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center">
+                    <svg className="w-5 h-5 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="text-white font-bold text-base">학습 시간 / 주기 설정</h3>
+                    <p className="text-white/30 text-xs mt-0.5">문서 데이터를 AI가 학습하는 타이밍을 제어합니다.</p>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  {/* Option 1: Daily */}
+                  <label className={`flex items-center gap-4 p-5 rounded-2xl border transition-all cursor-pointer ${ragForm.type === 'daily' ? 'bg-indigo-500/10 border-indigo-500/50' : 'bg-white/3 border-white/5 hover:border-white/10'}`}>
+                    <input
+                      type="radio"
+                      name="ragType"
+                      checked={ragForm.type === 'daily'}
+                      onChange={() => setRagForm(p => ({ ...p, type: 'daily' }))}
+                      className="w-4 h-4 text-indigo-600 bg-white/10 border-white/20 focus:ring-indigo-500"
+                    />
+                    <div className="flex-1">
+                      <p className="text-white font-semibold text-sm">매일 설정한 시간에 학습</p>
+                      <p className="text-white/30 text-xs mt-1">지정한 시간에 전날 올라온 모든 글을 한꺼번에 학습합니다.</p>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0" onClick={e => e.stopPropagation()}>
+                      <input
+                        type="time"
+                        value={ragForm.time}
+                        onChange={e => setRagForm(p => ({ ...p, time: e.target.value }))}
+                        disabled={ragForm.type !== 'daily'}
+                        className="bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-indigo-500 disabled:opacity-30 disabled:cursor-not-allowed"
+                      />
+                      <span className="text-white/30 text-xs">에 학습 시작</span>
+                    </div>
+                  </label>
+
+                  {/* Option 2: Immediate */}
+                  <label className={`flex items-start gap-4 p-5 rounded-2xl border transition-all cursor-pointer ${ragForm.type === 'immediate' ? 'bg-indigo-500/10 border-indigo-500/50' : 'bg-white/3 border-white/5 hover:border-white/10'}`}>
+                    <input
+                      type="radio"
+                      name="ragType"
+                      checked={ragForm.type === 'immediate'}
+                      onChange={() => setRagForm(p => ({ ...p, type: 'immediate' }))}
+                      className="mt-1 w-4 h-4 text-indigo-600 bg-white/10 border-white/20 focus:ring-indigo-500"
+                    />
+                    <div className="flex-1">
+                      <p className="text-white font-semibold text-sm">글이 올라오는 즉시 학습</p>
+                      <p className="text-white/30 text-xs mt-1">새로운 게시글이 작성되면 실시간으로 벡터 디비에 반영합니다.</p>
+                    </div>
+                  </label>
+
+                  {/* Option 3: Manual */}
+                  <label className={`flex items-start gap-4 p-5 rounded-2xl border transition-all cursor-pointer ${ragForm.type === 'manual' ? 'bg-indigo-500/10 border-indigo-500/50' : 'bg-white/3 border-white/5 hover:border-white/10'}`}>
+                    <input
+                      type="radio"
+                      name="ragType"
+                      checked={ragForm.type === 'manual'}
+                      onChange={() => setRagForm(p => ({ ...p, type: 'manual' }))}
+                      className="mt-1 w-4 h-4 text-indigo-600 bg-white/10 border-white/20 focus:ring-indigo-500"
+                    />
+                    <div className="flex-1">
+                      <p className="text-white font-semibold text-sm">수동 학습 (관리자 실행)</p>
+                      <p className="text-white/30 text-xs mt-1">자동 학습을 수행하지 않으며, 관리자가 버튼을 누를 때에만 학습합니다.</p>
+                      {ragForm.type === 'manual' && (
+                        <div className="mt-4">
+                          <button
+                            onClick={handleStartTraining}
+                            disabled={trainingStatus === 'running'}
+                            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-green-600 hover:bg-green-500 disabled:bg-white/10 text-white text-sm font-bold transition-all shadow-lg shadow-green-600/20 active:scale-95"
+                          >
+                            {trainingStatus === 'running' ? (
+                              <>
+                                <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                학습 대기 중...
+                              </>
+                            ) : (
+                              <>
+                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                지금 학습 시작
+                              </>
+                            )}
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </label>
+                </div>
+              </div>
+
+              {/* Vector Size */}
+              <div className="bg-white/5 border border-white/10 rounded-2xl p-8 shadow-xl">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-10 h-10 rounded-xl bg-teal-500/10 border border-teal-500/20 flex items-center justify-center">
+                    <svg className="w-5 h-5 text-teal-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="text-white font-bold text-base">Vector Size 설정</h3>
+                    <p className="text-white/30 text-xs mt-0.5">임베딩 벡터의 차원 수를 설정합니다. 사용할 임베딩 모델의 출력 크기와 일치해야 합니다.</p>
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-3">
+                  {[256, 512, 1024, 1536, 2048, 4096, 8192].map(size => (
+                    <button
+                      key={size}
+                      onClick={() => setRagForm(p => ({ ...p, vectorSize: size }))}
+                      className={`px-5 py-2.5 rounded-xl text-sm font-bold transition-all border ${
+                        ragForm.vectorSize === size
+                          ? 'bg-teal-500/20 border-teal-500/60 text-teal-300 shadow-lg shadow-teal-500/10'
+                          : 'bg-white/3 border-white/5 text-white/30 hover:text-white/60 hover:border-white/10'
+                      }`}
+                    >
+                      {size.toLocaleString()}
+                    </button>
+                  ))}
+                </div>
+                <p className="text-white/20 text-xs mt-4">
+                  현재 선택: <span className="text-teal-400 font-bold">{ragForm.vectorSize?.toLocaleString()}</span> 차원
+                </p>
+              </div>
+
+              {/* Chunk Size / Overlap */}
+              <div className="bg-white/5 border border-white/10 rounded-2xl p-8 shadow-xl">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-10 h-10 rounded-xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center">
+                    <svg className="w-5 h-5 text-violet-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h8m-8 6h16" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="text-white font-bold text-base">청크 크기 설정</h3>
+                    <p className="text-white/30 text-xs mt-0.5">문서를 분할할 때 각 청크의 크기와 인접 청크 간 중복 영역을 설정합니다.</p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-6">
+                  <div>
+                    <p className="text-white/40 text-xs font-semibold uppercase tracking-wider mb-3">
+                      한 청크당 글자 수 <span className="text-white/20 normal-case font-normal">(chunk_size)</span>
+                    </p>
+                    <div className="bg-black/30 rounded-xl px-4 py-3 border border-white/5 flex items-center gap-3 focus-within:border-violet-500/50 transition-colors">
+                      <input
+                        type="number"
+                        min={100}
+                        max={10000}
+                        step={100}
+                        value={ragForm.chunkSize}
+                        onChange={e => setRagForm(p => ({ ...p, chunkSize: e.target.value }))}
+                        className="bg-transparent text-2xl font-black text-white w-24 focus:outline-none"
+                      />
+                      <span className="text-white/20 text-sm">글자</span>
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-white/40 text-xs font-semibold uppercase tracking-wider mb-3">
+                      청크 간 중복 영역 글자 수 <span className="text-white/20 normal-case font-normal">(chunk_overlap)</span>
+                    </p>
+                    <div className="bg-black/30 rounded-xl px-4 py-3 border border-white/5 flex items-center gap-3 focus-within:border-violet-500/50 transition-colors">
+                      <input
+                        type="number"
+                        min={0}
+                        max={ragForm.chunkSize}
+                        step={10}
+                        value={ragForm.chunkOverlap}
+                        onChange={e => setRagForm(p => ({ ...p, chunkOverlap: e.target.value }))}
+                        className="bg-transparent text-2xl font-black text-white w-24 focus:outline-none"
+                      />
+                      <span className="text-white/20 text-sm">글자</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+
+            </div>
+          </div>
+        ) : activeTab === 'display' ? (
           <div className="max-w-4xl mx-auto py-4">
             <div className="flex items-center justify-between mb-8">
               <h2 className="text-white font-bold text-lg flex items-center gap-2">
@@ -766,7 +1090,7 @@ export default function SiteAdminPage({ onClose }) {
               </div>
             )}
           </div>
-        )}
+        ) : null}
         </div>
 
         {/* Right Side: GROQ Panel */}

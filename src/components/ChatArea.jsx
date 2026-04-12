@@ -1038,12 +1038,20 @@ function PostDetail({ post, channelId, onClose }) {
 
 // ─── Main ─────────────────────────────────────────────────────
 
-export default function ChatArea() {
+export default function ChatArea({ autoOpenPostId }) {
   const { selectedChannel, posts, addPost } = useChat()
   const [selectedPost, setSelectedPost] = useState(null)
   const [leftWidth, setLeftWidth] = useState(42) // percent
   const [resizing, setResizing] = useState(false)
   const containerRef = useRef(null)
+
+  // 검색 결과로 선택된 게시글 자동 오픈
+  useEffect(() => {
+    if (!autoOpenPostId) return
+    const channelPosts = posts[selectedChannel?.id] || []
+    const target = channelPosts.find(p => p.id === autoOpenPostId)
+    if (target) setSelectedPost(target)
+  }, [autoOpenPostId, selectedChannel?.id, posts])
 
   const startResizing = useCallback((e) => {
     setResizing(true)

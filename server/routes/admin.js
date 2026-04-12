@@ -4,6 +4,8 @@ const pool = require('../db')
 const requireAuth = require('../middleware/auth')
 const path = require('path')
 const fs = require('fs')
+const { execFile } = require('child_process')
+const { runManualTraining, reloadRagConfig, getState: getRagState } = require('../rag')
 
 // Check if user is site_admin
 function requireSiteAdmin(req, res, next) {
@@ -64,7 +66,8 @@ router.get('/stats', async (req, res) => {
     const config = JSON.parse(fs.readFileSync(configPath, 'utf8'))
     const uploadPath = config['ObjectFile Path'] || path.resolve(__dirname, '../uploads')
     const cassandraPath = config['Cassandra Database Path'] || '/Users/kevinim/Desktop/EasyDocStation/Database/CassandraDB'
-    
+    const lancedbPath = config['lancedb Database Path'] || '/Users/kevinim/Desktop/EasyDocStation/Database/LanceDB'
+
     if (!fs.existsSync(uploadPath)) {
       fs.mkdirSync(uploadPath, { recursive: true })
     }
@@ -73,9 +76,14 @@ router.get('/stats', async (req, res) => {
       fs.mkdirSync(cassandraPath, { recursive: true })
     }
 
+    if (!fs.existsSync(lancedbPath)) {
+      fs.mkdirSync(lancedbPath, { recursive: true })
+    }
+
     const uploadSizeBytes = getDirSize(uploadPath)
     const cassandraSizeBytes = getDirSize(cassandraPath)
-    
+    const lancedbSizeBytes = getDirSize(lancedbPath)
+
     res.json({
       db: {
         location: dbLocation,
@@ -89,7 +97,12 @@ router.get('/stats', async (req, res) => {
         location: uploadPath,
         size: formatBytes(uploadSizeBytes),
       },
-      display: config.imagePreview || { width: 512, height: 512 }
+      lancedb: {
+        location: lancedbPath,
+        size: formatBytes(lancedbSizeBytes),
+      },
+      display: config.imagePreview || { width: 512, height: 512 },
+      rag: config.rag || { trainingType: 'manual', dailyTime: '02:00', vectorSize: 1024 }
     })
   } catch (err) {
     console.error('Admin Stats Error:', err)
@@ -142,6 +155,60 @@ router.put('/config', requireSiteAdmin, async (req, res) => {
   } catch (err) {
     console.error('Save Config Error:', err)
     res.status(500).json({ error: '설정을 저장하는 중 오류가 발생했습니다.' })
+  }
+})
+
+// GET /api/admin/rag/status — 현재 RAG 상태 조회
+router.get('/rag/status', async (req, res) => {
+  res.json(getRagState())
+})
+
+// POST /api/admin/rag/train — 수동 학습 시작
+router.post('/rag/train', async (req, res) => {
+  try {
+    // 비동기로 학습 시작 (완료 대기 없이 즉시 응답)
+    runManualTraining().catch(e => console.error('[RAG] 수동 학습 오류:', e.message))
+    res.json({ success: true, message: '학습이 시작되었습니다.' })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// POST /api/admin/rag/reload — 설정 변경 후 스케줄러 재적용
+router.post('/rag/reload', async (req, res) => {
+  try {
+    reloadRagConfig()
+    res.json({ success: true, state: getRagState() })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// POST /api/admin/rag/reinit-lancedb — vector size 변경 후 LanceDB 테이블 재초기화
+router.post('/rag/reinit-lancedb', async (req, res) => {
+  try {
+    const configPath = path.resolve(__dirname, '../../config.json')
+    const config = JSON.parse(fs.readFileSync(configPath, 'utf8'))
+    const uri = config['lancedb Database Path'] || '/Users/kevinim/Desktop/EasyDocStation/Database/LanceDB'
+    const dim = config.rag?.vectorSize || 1024
+
+    const script = `
+import lancedb
+db = lancedb.connect(${JSON.stringify(uri)})
+data = [{"vector": [0.1] * ${dim}, "text": "init", "metadata": {"source": "system"}}]
+table = db.create_table("my_rag_table", data=data, mode="overwrite")
+print(f"벡터 크기 ${dim}으로 재설정 완료: {table.count_rows()}건")
+`
+    execFile('python3', ['-c', script], { timeout: 30000 }, (err, stdout, stderr) => {
+      if (err) {
+        console.error('[LanceDB reinit error]', stderr)
+        return res.status(500).json({ error: 'LanceDB 재초기화 실패: ' + (stderr || err.message) })
+      }
+      console.log('[LanceDB reinit]', stdout.trim())
+      res.json({ success: true, message: stdout.trim() })
+    })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
   }
 })
 
