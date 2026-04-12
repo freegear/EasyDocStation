@@ -9,6 +9,7 @@ const adminRouter = require('./routes/admin')
 const teamsRouter = require('./routes/teams')
 const filesRouter = require('./routes/files')
 const postsRouter = require('./routes/posts')
+const ragRouter   = require('./routes/rag')
 const { initCassandra } = require('./cassandra')
 const { initRag } = require('./rag')
 
@@ -34,6 +35,7 @@ app.use('/api/admin', adminRouter)
 app.use('/api/teams', teamsRouter)
 app.use('/api/files', filesRouter)
 app.use('/api/posts', postsRouter)
+app.use('/api/rag',   ragRouter)
 
 app.use((err, req, res, next) => {
   console.error(err)

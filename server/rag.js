@@ -87,10 +87,11 @@ async function runTraining(posts) {
   // 각 게시글의 PDF 첨부파일 경로를 함께 전달
   const postsWithPdfs = await Promise.all(
     posts.map(async post => ({
-      id:      post.id,
-      content: post.content || '',
-      source:  'post',
-      pdfs:    await getPdfPathsForPost(post.id),
+      id:         post.id,
+      channel_id: post.channel_id || '',
+      content:    post.content || '',
+      source:     'post',
+      pdfs:       await getPdfPathsForPost(post.id),
     }))
   )
 
@@ -166,8 +167,10 @@ async function runDailyTraining() {
     yesterdayMidnight.setDate(yesterdayMidnight.getDate() - 1)
 
     console.log(`[RAG] daily 학습 범위: ${yesterdayMidnight.toLocaleString('ko-KR')} ~ ${todayMidnight.toLocaleString('ko-KR')}`)
-    const posts = await queryPosts(yesterdayMidnight, todayMidnight)
+    const posts    = await queryPosts(yesterdayMidnight, todayMidnight)
+    const comments = await queryComments(yesterdayMidnight, todayMidnight)
     await runTraining(posts)
+    await runCommentTraining(comments)
     state.lastTrained = new Date()
   } catch (e) {
     console.error('[RAG] daily 학습 오류:', e.message)
@@ -187,6 +190,65 @@ async function trainPostImmediate(post) {
   }
 }
 
+// ─── 댓글 학습 (Python에 comments 배열 전달) ─────────────────
+async function runCommentTraining(comments) {
+  if (comments.length === 0) {
+    console.log('[RAG] 학습할 댓글이 없습니다.')
+    return
+  }
+
+  const cfg    = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'))
+  const ragCfg = cfg.rag || {}
+
+  const payload = {
+    config: {
+      lancedb_path:  cfg['lancedb Database Path'] || '/Users/kevinim/Desktop/EasyDocStation/Database/LanceDB',
+      chunk_size:    ragCfg.chunk_size    ?? 800,
+      chunk_overlap: ragCfg.chunk_overlap ?? 100,
+      vector_size:   ragCfg.vectorSize    ?? 1024,
+    },
+    posts:    [],
+    comments: comments.map(c => ({
+      id:         c.id,
+      post_id:    c.post_id,
+      channel_id: c.channel_id || '',
+      content:    c.content || '',
+    })),
+  }
+
+  console.log(`[RAG] 댓글 학습 시작 — ${comments.length}개 댓글`)
+  await callPythonTrainer(payload)
+  console.log('[RAG] 댓글 학습 완료')
+}
+
+// ─── 댓글 1건 즉시 학습 (immediate 모드) ─────────────────────
+async function trainCommentImmediate(comment) {
+  if (state.trainingType !== 'immediate') return
+  try {
+    await runCommentTraining([comment])
+    state.lastTrained = new Date()
+  } catch (e) {
+    console.error('[RAG] 댓글 즉시 학습 오류:', e.message)
+  }
+}
+
+// ─── 댓글 조회 (PostgreSQL, 시간 범위 필터) ──────────────────
+async function queryComments(since, until) {
+  let sql, params
+  if (since && until) {
+    sql    = 'SELECT id, post_id, channel_id, author_id, content, created_at FROM comments WHERE created_at >= $1 AND created_at < $2 ORDER BY created_at ASC'
+    params = [since, until]
+  } else if (since) {
+    sql    = 'SELECT id, post_id, channel_id, author_id, content, created_at FROM comments WHERE created_at > $1 ORDER BY created_at ASC'
+    params = [since]
+  } else {
+    sql    = 'SELECT id, post_id, channel_id, author_id, content, created_at FROM comments ORDER BY created_at ASC'
+    params = []
+  }
+  const result = await db.query(sql, params)
+  return result.rows
+}
+
 // ─── 마지막 학습 이후 게시글 학습 (manual 모드) ───────────────
 async function runManualTraining() {
   if (state.isTraining) throw new Error('이미 학습 중입니다.')
@@ -199,8 +261,10 @@ async function runManualTraining() {
     } else {
       console.log('[RAG] manual 학습 범위: 전체 게시글')
     }
-    const posts = await queryPosts(since, null)
+    const posts    = await queryPosts(since, null)
+    const comments = await queryComments(since, null)
     await runTraining(posts)
+    await runCommentTraining(comments)
     state.lastTrained = new Date()
   } catch (e) {
     console.error('[RAG] manual 학습 오류:', e.message)
@@ -269,6 +333,7 @@ module.exports = {
   initRag,
   reloadRagConfig,
   trainPostImmediate,
+  trainCommentImmediate,
   runManualTraining,
   getState: () => ({ ...state, timer: undefined }),
 }

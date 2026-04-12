@@ -4,7 +4,7 @@ const { v4: uuidv4 } = require('uuid')
 const { client, isConnected } = require('../cassandra')
 const db = require('../db')
 const requireAuth = require('../middleware/auth')
-const { trainPostImmediate } = require('../rag')
+const { trainPostImmediate, trainCommentImmediate } = require('../rag')
 
 // ─── Helper: UUIDs → enriched attachment objects ──────────────
 async function enrichAttachments(ids) {
@@ -337,6 +337,10 @@ router.post('/:id/comments', requireAuth, async (req, res, next) => {
     // 방금 등록한 댓글을 전체 정보와 함께 반환
     const comments = await fetchComments(postId)
     const newComment = comments.find(c => c.id === commentId)
+
+    // immediate 모드일 때 즉시 RAG 학습 (비동기, 응답에 영향 없음)
+    trainCommentImmediate({ id: commentId, post_id: postId, content })
+
     res.status(201).json(newComment)
   } catch (err) {
     next(err)

@@ -174,6 +174,26 @@ export function ChatProvider({ children }) {
     }))
   }
 
+  // ─── RAG 참고 문서 클릭 시 해당 채널+게시글로 이동 ──────────
+  const [pendingOpenPostId, setPendingOpenPostId] = useState(null)
+
+  async function navigateToPost(channelId, postId) {
+    // teams에서 channelId에 해당하는 채널 객체를 찾아 이동
+    for (const team of teams) {
+      const ch = (team.channels || []).find(c => c.id === channelId)
+      if (ch) {
+        setSelectedTeam(team)
+        await selectChannel(ch)
+        if (postId) setPendingOpenPostId(postId)
+        return
+      }
+    }
+  }
+
+  function clearPendingPost() {
+    setPendingOpenPostId(null)
+  }
+
   const [isSearchMode, setIsSearchMode] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
   const [searchResults, setSearchResults] = useState([])
@@ -224,7 +244,10 @@ export function ChatProvider({ children }) {
       searchResults,
       isSearching,
       performSearch,
-      closeSearch
+      closeSearch,
+      pendingOpenPostId,
+      navigateToPost,
+      clearPendingPost,
     }}>
       {children}
     </ChatContext.Provider>

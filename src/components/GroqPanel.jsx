@@ -1,5 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { GROQ_MODELS, GROQ_API_KEY } from '../data/mockData'
+import { apiFetch } from '../lib/api'
+import { useChat } from '../contexts/ChatContext'
 
 const SYSTEM_PROMPT = `You are a helpful AI assistant integrated into EasyDocStation, a team collaboration platform.
 Help users with their questions, summarize discussions, draft messages, and provide insights.
@@ -10,6 +12,7 @@ function formatTime(isoString) {
 }
 
 export default function GroqPanel() {
+  const { navigateToPost } = useChat()
   const [copiedId, setCopiedId] = useState(null)
 
   function copyToClipboard(id, text) {
@@ -84,8 +87,28 @@ export default function GroqPanel() {
     setLoading(true)
     setError(null)
 
-    // API 전송용 메시지 구성
-    const userApiMessage = { role: 'user', content: fullText }
+    // ── 1. RAG 검색 — LanceDB에서 관련 문서 검색 ────────────────
+    let ragContext = ''
+    let ragReferences = []
+    try {
+      const ragResult = await apiFetch('/rag/search', {
+        method: 'POST',
+        body: JSON.stringify({ query: text, limit: 3 }),
+      })
+      ragContext    = ragResult.context    || ''
+      ragReferences = ragResult.references || []
+    } catch (e) {
+      // RAG 실패 시 무시하고 일반 답변으로 진행
+      console.warn('[RAG] 검색 실패, 일반 모드로 진행:', e.message)
+    }
+
+    // ── 2. API 전송용 메시지 구성 ────────────────────────────────
+    // RAG 컨텍스트가 있으면 사용자 메시지에 주입
+    const contentWithContext = ragContext
+      ? `아래 [참고 정보]를 바탕으로 답변하세요. 참고 정보와 관련 없는 내용은 일반 지식으로 답변하세요.\n\n[참고 정보]\n${ragContext}\n\n[질문]\n${fullText}`
+      : fullText
+
+    const userApiMessage = { role: 'user', content: contentWithContext }
     if (base64Data) {
       userApiMessage.images = [base64Data] // Ollama 멀티모달 형식
     }
@@ -108,7 +131,7 @@ export default function GroqPanel() {
             ...historyForApi,
             userApiMessage,
           ],
-          stream: false, // 스트리밍 대신 한 번에 결과 받기
+          stream: false,
           options: {
             temperature: 0.7,
             num_predict: 1024,
@@ -128,6 +151,7 @@ export default function GroqPanel() {
         id: `a-${Date.now()}`,
         role: 'assistant',
         content: assistantContent,
+        references: ragReferences,   // 참고문헌 첨부
         time: new Date().toISOString(),
         model: selectedModel,
       }])
@@ -258,27 +282,66 @@ export default function GroqPanel() {
               {msg.content}
             </div>
             {msg.role === 'assistant' && !msg.isError && (
-              <button
-                onClick={() => copyToClipboard(msg.id, msg.content)}
-                title="답변 복사"
-                className="flex items-center gap-1 px-2 py-1 rounded-md text-white/25 hover:text-white/60 hover:bg-white/8 transition-all text-[10px]"
-              >
-                {copiedId === msg.id ? (
-                  <>
-                    <svg className="w-3 h-3 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
-                    <span className="text-green-400">Copied!</span>
-                  </>
-                ) : (
-                  <>
-                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                    </svg>
-                    <span>Copy</span>
-                  </>
+              <>
+                {/* References section */}
+                {msg.references && msg.references.length > 0 && (
+                  <div className="w-full mt-1 px-1">
+                    <div className="text-[10px] text-white/30 mb-1 font-medium">참고 문서</div>
+                    <div className="flex flex-col gap-1">
+                      {msg.references.map((ref, i) => (
+                        <button
+                          key={i}
+                          onClick={() => ref.channel_id && navigateToPost(ref.channel_id, ref.post_id)}
+                          disabled={!ref.channel_id}
+                          className="w-full flex items-start gap-1.5 bg-white/5 rounded-lg px-2 py-1.5 border border-white/8 text-left transition-colors enabled:hover:bg-white/10 enabled:hover:border-white/15 disabled:cursor-default"
+                          title={ref.channel_id ? `${ref.channel || ref.team}으로 이동` : ''}
+                        >
+                          {ref.type === 'pdf' ? (
+                            <svg className="w-3 h-3 text-red-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                            </svg>
+                          ) : ref.type === 'comment' ? (
+                            <svg className="w-3 h-3 text-yellow-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                            </svg>
+                          ) : (
+                            <svg className="w-3 h-3 text-blue-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                          )}
+                          <div className="flex flex-col min-w-0">
+                            <span className="text-[10px] text-white/70 truncate leading-tight">{ref.label}</span>
+                            <span className="text-[9px] text-white/30 leading-tight">
+                              {ref.team ? `${ref.team} · ` : ''}{ref.channel || ''}
+                            </span>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                 )}
-              </button>
+                <button
+                  onClick={() => copyToClipboard(msg.id, msg.content)}
+                  title="답변 복사"
+                  className="flex items-center gap-1 px-2 py-1 rounded-md text-white/25 hover:text-white/60 hover:bg-white/8 transition-all text-[10px]"
+                >
+                  {copiedId === msg.id ? (
+                    <>
+                      <svg className="w-3 h-3 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      <span className="text-green-400">Copied!</span>
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                      </svg>
+                      <span>Copy</span>
+                    </>
+                  )}
+                </button>
+              </>
             )}
           </div>
         ))}

@@ -1039,7 +1039,7 @@ function PostDetail({ post, channelId, onClose }) {
 // ─── Main ─────────────────────────────────────────────────────
 
 export default function ChatArea({ autoOpenPostId }) {
-  const { selectedChannel, posts, addPost } = useChat()
+  const { selectedChannel, posts, addPost, pendingOpenPostId, clearPendingPost } = useChat()
   const [selectedPost, setSelectedPost] = useState(null)
   const [leftWidth, setLeftWidth] = useState(42) // percent
   const [resizing, setResizing] = useState(false)
@@ -1052,6 +1052,17 @@ export default function ChatArea({ autoOpenPostId }) {
     const target = channelPosts.find(p => p.id === autoOpenPostId)
     if (target) setSelectedPost(target)
   }, [autoOpenPostId, selectedChannel?.id, posts])
+
+  // RAG 참고 문서 클릭으로 이동된 게시글 자동 오픈
+  useEffect(() => {
+    if (!pendingOpenPostId) return
+    const channelPosts = posts[selectedChannel?.id] || []
+    const target = channelPosts.find(p => p.id === pendingOpenPostId)
+    if (target) {
+      setSelectedPost(target)
+      clearPendingPost()
+    }
+  }, [pendingOpenPostId, selectedChannel?.id, posts])
 
   const startResizing = useCallback((e) => {
     setResizing(true)
