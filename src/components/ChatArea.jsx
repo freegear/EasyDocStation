@@ -5,8 +5,6 @@ import { apiFetch, getToken } from '../lib/api'
 import config from '../config.json'
 import ChannelManageModal from './ChannelManageModal'
 
-const IMG_W = config.imagePreview.width
-const IMG_H = config.imagePreview.height
 
 // ─── Helpers ──────────────────────────────────────────────────
 
@@ -206,10 +204,129 @@ function PdfPagePreview({ fileId, width = 400 }) {
   )
 }
 
+// ─── Image lightbox ───────────────────────────────────────────
+
+function ImageLightbox({ file, fileUrl, onClose }) {
+  useEffect(() => {
+    const onKey = e => { if (e.key === 'Escape') onClose() }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [onClose])
+
+  return (
+    <div
+      className="fixed inset-0 z-[200] flex items-center justify-center bg-black/85 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <div className="relative max-w-[90vw] max-h-[90vh] flex flex-col items-center" onClick={e => e.stopPropagation()}>
+        <img
+          src={fileUrl}
+          alt={file.name}
+          className="max-w-[90vw] max-h-[80vh] rounded-2xl object-contain shadow-2xl"
+        />
+        <div className="mt-3 flex items-center gap-3">
+          <span className="text-white/60 text-xs">{file.name}</span>
+          <a
+            href={fileUrl}
+            download={file.name}
+            className="px-3 py-1.5 rounded-lg bg-indigo-600/30 hover:bg-indigo-600/50 text-indigo-300 text-xs font-semibold border border-indigo-500/30 transition-colors"
+            onClick={e => e.stopPropagation()}
+          >
+            다운로드
+          </a>
+        </div>
+      </div>
+      <button
+        onClick={onClose}
+        className="absolute top-4 right-4 w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors"
+      >
+        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+    </div>
+  )
+}
+
+// ─── Video player modal ───────────────────────────────────────
+
+const BROWSER_VIDEO_EXTS = /\.(mp4|webm|ogg|ogv|m4v)$/i
+
+function VideoPlayer({ file, fileUrl, onClose }) {
+  const isBrowserPlayable = BROWSER_VIDEO_EXTS.test(file.name || '')
+
+  useEffect(() => {
+    const onKey = e => { if (e.key === 'Escape') onClose() }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [onClose])
+
+  return (
+    <div
+      className="fixed inset-0 z-[200] flex items-center justify-center bg-black/90 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <div
+        className="relative flex flex-col items-center gap-3"
+        style={{ maxWidth: '90vw', maxHeight: '90vh' }}
+        onClick={e => e.stopPropagation()}
+      >
+        {isBrowserPlayable ? (
+          <video
+            src={fileUrl}
+            controls
+            autoPlay
+            className="rounded-2xl shadow-2xl bg-black"
+            style={{ maxWidth: '88vw', maxHeight: '78vh' }}
+          />
+        ) : (
+          <div className="flex flex-col items-center gap-4 px-10 py-8 bg-white/5 rounded-2xl border border-white/10">
+            <svg className="w-14 h-14 text-pink-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 10l4.553-2.069A1 1 0 0121 8.868v6.264a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+            </svg>
+            <p className="text-white/70 text-sm text-center">
+              이 형식({file.name?.split('.').pop()?.toUpperCase()})은<br />브라우저에서 직접 재생할 수 없습니다.
+            </p>
+            <a
+              href={fileUrl}
+              download={file.name}
+              className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold transition-colors"
+              onClick={e => e.stopPropagation()}
+            >
+              파일 다운로드
+            </a>
+          </div>
+        )}
+        <div className="flex items-center gap-3">
+          <span className="text-white/50 text-xs truncate max-w-xs">{file.name}</span>
+          <a
+            href={fileUrl}
+            download={file.name}
+            className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white/70 text-xs font-medium transition-colors flex-shrink-0"
+            onClick={e => e.stopPropagation()}
+          >
+            다운로드
+          </a>
+        </div>
+      </div>
+      <button
+        onClick={onClose}
+        className="absolute top-4 right-4 w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors"
+      >
+        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+    </div>
+  )
+}
+
 // ─── Attachment list in post detail ──────────────────────────
 
-function AttachmentList({ attachments }) {
+function AttachmentList({ attachments, compact = false }) {
   const [moviePreviewSize, setMoviePreviewSize] = useState(config.moviePreview || { width: 480, height: 270 })
+  const [lightboxFile, setLightboxFile] = useState(null)
+  const [videoFile, setVideoFile] = useState(null)
 
   useEffect(() => {
     apiFetch('/config/display')
@@ -229,142 +346,245 @@ function AttachmentList({ attachments }) {
   function thumbUrl(f) {
     if (!f.thumbnail_url) return null
     const token = getToken()
-    // Already has ?thumbnail=true, so append with &
     return `${f.thumbnail_url}&auth_token=${token}`
   }
 
+  // 이미지 클릭 → 라이트박스
+  function handleImageClick(e, f) {
+    e.preventDefault()
+    setLightboxFile(f)
+  }
+
+  // 동영상 클릭 → 비디오 플레이어 모달
+  function handleVideoClick(e, f) {
+    e.preventDefault()
+    setVideoFile(f)
+  }
+
+  // 일반 파일 클릭 → 브라우저 새 탭
+  function handleFileClick(e, f) {
+    e.preventDefault()
+    const url = fileUrl(f)
+    if (url) window.open(url, '_blank')
+  }
+
+  // 네이티브 앱으로 열기 (별도 버튼)
+  async function openNative(e, f) {
+    e.preventDefault()
+    e.stopPropagation()
+    if (!f.id || f.url?.startsWith('blob:')) { window.open(fileUrl(f), '_blank'); return }
+    try {
+      await apiFetch(`/files/${f.id}/open`, { method: 'POST' })
+    } catch {
+      window.open(fileUrl(f), '_blank')
+    }
+  }
+
+  const NativeOpenBtn = ({ f }) => (
+    <button
+      title="네이티브 앱으로 열기"
+      onClick={e => openNative(e, f)}
+      className="flex-shrink-0 p-1 rounded-md text-white/30 hover:text-white/70 hover:bg-white/10 transition-colors"
+    >
+      <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+      </svg>
+    </button>
+  )
+
   return (
-    <div className="mt-6 border-t border-white/8 pt-5">
-      <h4 className="text-white/50 text-xs font-semibold uppercase tracking-widest mb-3 flex items-center gap-1.5">
-        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
-        </svg>
-        첨부파일 {attachments.length}개
-      </h4>
+    <>
+      {lightboxFile && (
+        <ImageLightbox
+          file={lightboxFile}
+          fileUrl={fileUrl(lightboxFile)}
+          onClose={() => setLightboxFile(null)}
+        />
+      )}
+      {videoFile && (
+        <VideoPlayer
+          file={videoFile}
+          fileUrl={fileUrl(videoFile)}
+          onClose={() => setVideoFile(null)}
+        />
+      )}
 
-      <div className="flex flex-col gap-3">
-        {attachments.map(f => {
-          const category = getFileCategory(f.type || '', f.name || '')
-          const dims = getPreviewDimensions(f, moviePreviewSize)
-          const w = dims.width
-          const h = dims.height
+      <div className="mt-6 border-t border-white/8 pt-5">
+        <h4 className="text-white/50 text-xs font-semibold uppercase tracking-widest mb-3 flex items-center gap-1.5">
+          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+          </svg>
+          첨부파일 {attachments.length}개
+        </h4>
 
-          // ── Image ──────────────────────────────────────────
-          if (category === 'image') {
-            return (
-              <a key={f.id} href={fileUrl(f)} target="_blank" rel="noreferrer"
-                className="inline-block rounded-2xl overflow-hidden border border-white/10 hover:border-indigo-500/50 transition-colors group"
-                style={{ width: w, maxWidth: '100%' }}
-              >
-                <img src={fileUrl(f)} alt={f.name}
-                  className="block object-cover group-hover:opacity-90 transition-opacity"
-                  style={{ width: w, height: h, maxWidth: '100%', objectFit: 'cover' }}
-                />
-                <div className="px-3 py-2 flex items-center justify-between bg-white/4">
-                  <span className="text-white/60 text-xs font-medium truncate">{f.name}</span>
-                  <span className="text-white/30 text-xs ml-3 flex-shrink-0">{formatSize(f.size)}</span>
-                </div>
-              </a>
-            )
-          }
+        <div className="flex flex-wrap gap-3">
+          {attachments.map(f => {
+            const category = getFileCategory(f.type || '', f.name || '')
+            const dims = getPreviewDimensions(f, moviePreviewSize)
+            const MAX_W = compact ? 180 : Infinity
+            const MAX_THUMB_H = compact ? 140 : 240
+            const w = Math.min(dims.width, MAX_W)
+            const h = Math.min(dims.height, MAX_THUMB_H)
 
-          // ── PDF — first page preview ───────────────────────
-          // ── PDF — first page preview ───────────────────────
-          if (category === 'pdf') {
-            const tUrl = thumbUrl(f)
-            if (tUrl) {
+            // ── Video → 비디오 플레이어 모달 ──────────────────
+            if (category === 'video') {
+              const tUrl = thumbUrl(f)
               return (
-                <a key={f.id} href={fileUrl(f)} target="_blank" rel="noreferrer"
-                  className="inline-block rounded-2xl overflow-hidden border border-white/10 hover:border-indigo-500/50 transition-colors group"
+                <div key={f.id}
+                  className="rounded-2xl overflow-hidden border border-white/10 hover:border-pink-500/50 transition-colors group cursor-pointer flex-shrink-0 relative"
                   style={{ width: w, maxWidth: '100%' }}
+                  onClick={e => handleVideoClick(e, f)}
                 >
-                  <img src={tUrl} alt={f.name}
-                    className="block object-cover group-hover:opacity-90 transition-opacity bg-white/5"
+                  {tUrl ? (
+                    <img src={tUrl} alt={f.name}
+                      className="block group-hover:opacity-75 transition-opacity bg-black"
+                      style={{ width: w, height: h, maxWidth: '100%', objectFit: 'cover' }}
+                      onError={e => { e.target.style.display = 'none' }}
+                    />
+                  ) : (
+                    <div className="bg-black flex items-center justify-center" style={{ width: w, height: h }}>
+                      <FileTypeIcon category="video" className="w-10 h-10 opacity-40" />
+                    </div>
+                  )}
+                  {/* 재생 버튼 오버레이 */}
+                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none" style={{ bottom: 36 }}>
+                    <div className="w-12 h-12 rounded-full bg-black/50 border-2 border-white/60 flex items-center justify-center group-hover:bg-black/70 group-hover:scale-110 transition-all">
+                      <svg className="w-5 h-5 text-white ml-1" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M8 5v14l11-7z" />
+                      </svg>
+                    </div>
+                  </div>
+                  <div className="px-3 py-2 flex items-center justify-between bg-black/60">
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <FileTypeIcon category="video" className="w-3.5 h-3.5 flex-shrink-0" />
+                      <span className="text-white/70 text-xs font-medium truncate">{f.name}</span>
+                    </div>
+                    <div className="flex items-center gap-1 ml-2 flex-shrink-0">
+                      <span className="text-white/30 text-xs">{formatSize(f.size)}</span>
+                      <NativeOpenBtn f={f} />
+                    </div>
+                  </div>
+                </div>
+              )
+            }
+
+            // ── Image → 라이트박스 ─────────────────────────────
+            if (category === 'image') {
+              return (
+                <div key={f.id}
+                  className="rounded-2xl overflow-hidden border border-white/10 hover:border-indigo-500/50 transition-colors group cursor-pointer flex-shrink-0"
+                  style={{ width: w, maxWidth: '100%' }}
+                  onClick={e => handleImageClick(e, f)}
+                >
+                  <img src={fileUrl(f)} alt={f.name}
+                    className="block group-hover:opacity-90 transition-opacity"
                     style={{ width: w, height: h, maxWidth: '100%', objectFit: 'cover' }}
-                    onError={(e) => { 
-                      console.error('Thumbnail load failed:', tUrl);
-                      e.target.style.display = 'none';
-                    }}
                   />
+                  <div className="px-3 py-2 flex items-center justify-between bg-white/4">
+                    <span className="text-white/60 text-xs font-medium truncate">{f.name}</span>
+                    <div className="flex items-center gap-1 ml-2 flex-shrink-0">
+                      <span className="text-white/30 text-xs">{formatSize(f.size)}</span>
+                      <NativeOpenBtn f={f} />
+                    </div>
+                  </div>
+                </div>
+              )
+            }
+
+            // ── PDF → 브라우저 새 탭 ───────────────────────────
+            if (category === 'pdf') {
+              const tUrl = thumbUrl(f)
+              if (tUrl) {
+                return (
+                  <div key={f.id}
+                    className="rounded-2xl overflow-hidden border border-white/10 hover:border-indigo-500/50 transition-colors group cursor-pointer flex-shrink-0"
+                    style={{ width: w, maxWidth: '100%' }}
+                    onClick={e => handleFileClick(e, f)}
+                  >
+                    <img src={tUrl} alt={f.name}
+                      className="block group-hover:opacity-90 transition-opacity bg-white/5"
+                      style={{ width: w, height: h, maxWidth: '100%', objectFit: 'cover' }}
+                      onError={e => { e.target.style.display = 'none' }}
+                    />
+                    <div className="px-3 py-2 flex items-center justify-between bg-white/4">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <FileTypeIcon category="pdf" className="w-4 h-4 flex-shrink-0" />
+                        <span className="text-white/60 text-xs truncate">{f.name}</span>
+                      </div>
+                      <div className="flex items-center gap-1 flex-shrink-0">
+                        <span className="text-white/30 text-xs">{formatSize(f.size)}</span>
+                        <NativeOpenBtn f={f} />
+                      </div>
+                    </div>
+                  </div>
+                )
+              }
+              return (
+                <div key={f.id}
+                  className="rounded-2xl overflow-hidden border border-white/10 cursor-pointer hover:border-indigo-500/50 transition-colors flex-shrink-0"
+                  style={{ maxWidth: w }}
+                  onClick={e => handleFileClick(e, f)}
+                >
+                  <PdfPagePreview fileId={f.id} width={w} />
                   <div className="px-3 py-2 flex items-center justify-between bg-white/4">
                     <div className="flex items-center gap-2 min-w-0">
                       <FileTypeIcon category="pdf" className="w-4 h-4 flex-shrink-0" />
                       <span className="text-white/60 text-xs truncate">{f.name}</span>
                     </div>
-                    <span className="text-white/30 text-xs flex-shrink-0">{formatSize(f.size)}</span>
+                    <div className="flex items-center gap-1 flex-shrink-0">
+                      <span className="text-white/30 text-xs">{formatSize(f.size)}</span>
+                      <NativeOpenBtn f={f} />
+                    </div>
                   </div>
-                </a>
+                </div>
               )
             }
-            return (
-              <div key={f.id} className="rounded-2xl overflow-hidden border border-white/10" style={{ maxWidth: w }}>
-                <PdfPagePreview fileId={f.id} width={w} />
-                <div className="px-3 py-2 flex items-center justify-between bg-white/4">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <FileTypeIcon category="pdf" className="w-4 h-4 flex-shrink-0" />
-                    <span className="text-white/60 text-xs truncate">{f.name}</span>
-                    <span className="text-white/30 text-xs flex-shrink-0">{formatSize(f.size)}</span>
+
+            // ── 썸네일 있는 파일 → 브라우저 새 탭 ───────────────
+            const tUrl = thumbUrl(f)
+            if (tUrl) {
+              return (
+                <div key={f.id}
+                  className="rounded-2xl overflow-hidden border border-white/10 hover:border-indigo-500/50 transition-colors group cursor-pointer flex-shrink-0"
+                  style={{ width: w, maxWidth: '100%' }}
+                  onClick={e => handleFileClick(e, f)}
+                >
+                  <img src={tUrl} alt={f.name}
+                    className="block group-hover:opacity-90 transition-opacity bg-white/5"
+                    style={{ width: w, height: h, maxWidth: '100%', objectFit: 'cover' }}
+                    onError={e => { e.target.style.display = 'none' }}
+                  />
+                  <div className="px-3 py-2 flex items-center justify-between bg-white/4">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <FileTypeIcon category={category} className="w-4 h-4 flex-shrink-0" />
+                      <span className="text-white/60 text-xs font-medium truncate">{f.name}</span>
+                    </div>
+                    <div className="flex items-center gap-1 ml-2 flex-shrink-0">
+                      <span className="text-white/30 text-xs">{formatSize(f.size)}</span>
+                      <NativeOpenBtn f={f} />
+                    </div>
                   </div>
-                  <a href={fileUrl(f)} download={f.name}
-                    className="ml-3 flex-shrink-0 p-1.5 rounded-lg text-white/40 hover:text-white/80 hover:bg-white/10 transition-colors"
-                    title="다운로드"
-                  >
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                    </svg>
-                  </a>
                 </div>
+              )
+            }
+
+            // ── 썸네일 없는 파일 → 브라우저 새 탭 ───────────────
+            return (
+              <div key={f.id} className="flex items-center gap-3 px-3.5 py-3 rounded-xl bg-white/4 border border-white/8 cursor-pointer hover:border-white/20 transition-colors"
+                onClick={e => handleFileClick(e, f)}
+              >
+                <FileTypeIcon category={category} className="w-5 h-5" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-white/80 text-sm font-medium truncate">{f.name}</p>
+                  <p className="text-white/30 text-xs">{formatSize(f.size)}</p>
+                </div>
+                <NativeOpenBtn f={f} />
               </div>
             )
-          }
-
-          // ── Other files — check for thumbnail first ──────────
-          const tUrl = thumbUrl(f)
-          if (tUrl) {
-            return (
-              <a key={f.id} href={fileUrl(f)} target="_blank" rel="noreferrer"
-                className="inline-block rounded-2xl overflow-hidden border border-white/10 hover:border-indigo-500/50 transition-colors group"
-                style={{ width: w, maxWidth: '100%' }}
-              >
-                <img src={tUrl} alt={f.name}
-                  className="block object-cover group-hover:opacity-90 transition-opacity bg-white/5"
-                  style={{ width: w, height: h, maxWidth: '100%', objectFit: 'cover' }}
-                  onError={(e) => { 
-                    console.error('Thumbnail load failed:', tUrl);
-                    e.target.style.display = 'none';
-                  }}
-                />
-                <div className="px-3 py-2 flex items-center justify-between bg-white/4">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <FileTypeIcon category={category} className="w-4 h-4 flex-shrink-0" />
-                    <span className="text-white/60 text-xs font-medium truncate">{f.name}</span>
-                  </div>
-                  <span className="text-white/30 text-xs ml-3 flex-shrink-0">{formatSize(f.size)}</span>
-                </div>
-              </a>
-            )
-          }
-
-          return (
-            <div key={f.id} className="flex items-center gap-3 px-3.5 py-3 rounded-xl bg-white/4 border border-white/8">
-              <FileTypeIcon category={category} className="w-5 h-5" />
-              <div className="flex-1 min-w-0">
-                <p className="text-white/80 text-sm font-medium truncate">{f.name}</p>
-                <p className="text-white/30 text-xs">{formatSize(f.size)}</p>
-              </div>
-              <a href={fileUrl(f)} download={f.name}
-                className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600/25 hover:bg-indigo-600/40 text-indigo-300 text-xs font-semibold border border-indigo-500/25 transition-colors"
-              >
-                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                </svg>
-                다운로드
-              </a>
-            </div>
-          )
-        })}
+          })}
+        </div>
       </div>
-    </div>
+    </>
   )
 }
 
@@ -822,8 +1042,7 @@ function PostDetail({ post, channelId, onClose }) {
   const [uploading, setUploading] = useState(false)
   const commentsEndRef = useRef(null)
   const fileInputRef = useRef(null)
-  const postEditFileInputRef = useRef(null)
-  const commentEditFileInputRef = useRef(null)
+
   const isAdmin = ['Admin', 'site_admin', 'channel_admin', 'team_admin'].includes(currentUser?.role)
 
   function addFiles(newFiles) {
@@ -977,7 +1196,7 @@ function PostDetail({ post, channelId, onClose }) {
         />
       )}
 
-      <div className="flex-1 overflow-y-auto px-6 py-6">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden px-6 py-6">
         {/* Meta */}
         <div className="mb-6">
           {freshPost.pinned && <div className="flex items-center gap-1.5 text-amber-400 text-xs font-medium mb-3"><PinIcon /><span>고정된 게시글</span></div>}
@@ -1025,13 +1244,13 @@ function PostDetail({ post, channelId, onClose }) {
           </>
         )}
 
-        {/* Comments */}
-        <div className="border-t border-white/8 pt-6 mt-6">
+        {/* Comments list — 스크롤 영역 안 */}
+        <div className="border-t border-white/8 pt-6 mt-6 pb-4">
           <h3 className="text-white font-semibold text-sm mb-4">댓글 {(freshPost.comments || []).length}개</h3>
           {(freshPost.comments || []).length === 0 ? (
-            <p className="text-white/30 text-sm mb-6">첫 번째 댓글을 남겨보세요.</p>
+            <p className="text-white/30 text-sm">첫 번째 댓글을 남겨보세요.</p>
           ) : (
-            <div className="flex flex-col gap-4 mb-6">
+            <div className="flex flex-col gap-4">
               {(freshPost.comments || []).map(c => (
                 <div key={c.id} className="flex items-start gap-3 group">
                   <Avatar letters={c.author?.avatar || '?'} imageUrl={c.author?.image_url} size="sm" />
@@ -1074,8 +1293,8 @@ function PostDetail({ post, channelId, onClose }) {
                           <ContentRenderer text={c.text} />
                         </div>
                         {c.attachments && c.attachments.length > 0 && (
-                          <div className="mt-3 scale-[0.85] origin-top-left">
-                            <AttachmentList attachments={c.attachments} />
+                          <div className="mt-3">
+                            <AttachmentList attachments={c.attachments} compact />
                           </div>
                         )}
                       </>
@@ -1086,54 +1305,58 @@ function PostDetail({ post, channelId, onClose }) {
               <div ref={commentsEndRef} />
             </div>
           )}
-          {!selectedChannel?.is_archived ? (
-            <form onSubmit={handleComment} className="flex items-start gap-3">
-              <input ref={fileInputRef} type="file" multiple className="hidden" onChange={e => { if(e.target.files?.length) addFiles(e.target.files); e.target.value = '' }} />
-              {currentUser && <Avatar letters={currentUser.avatar} size="sm" />}
-              <div className="flex-1 bg-white/5 rounded-xl border border-white/10 focus-within:border-indigo-500/40 transition-colors overflow-hidden">
-                <textarea
-                  value={comment}
-                  onChange={e => setComment(e.target.value)}
-                  placeholder="댓글을 입력하세요..."
-                  rows={2}
-                  className="w-full bg-transparent text-white/80 placeholder-white/20 text-sm px-4 pt-3 pb-2 resize-none focus:outline-none leading-relaxed"
-                  onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleComment(e) } }}
-                />
-                {files.length > 0 && (
-                  <div className="px-4 pb-2">
-                    <div className="flex flex-wrap gap-2">
-                      {files.map(f => <FileChip key={f.id} file={f} onRemove={removeFile} />)}
-                    </div>
-                  </div>
-                )}
-                <div className="flex items-center px-3 pb-2">
-                  <button
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    className="p-1.5 rounded-lg text-white/30 hover:text-white/70 hover:bg-white/8 transition-colors"
-                    title="파일 첨부"
-                  >
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
-                    </svg>
-                  </button>
-                  <div className="flex-1" />
-                  <button type="submit" disabled={(!comment.trim() && files.length === 0) || uploading} className="px-3 py-1.5 rounded-lg bg-indigo-600 disabled:bg-white/10 enabled:hover:bg-indigo-500 text-white text-xs font-semibold transition-colors flex items-center gap-2">
-                    {uploading && <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
-                    {uploading ? '전송 중...' : '댓글 달기'}
-                  </button>
-                </div>
-              </div>
-            </form>
-          ) : (
-            <div className="flex flex-col items-center justify-center py-6 bg-white/2 rounded-xl border border-dashed border-white/10 w-full">
-              <svg className="w-8 h-8 text-white/20 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-              </svg>
-              <p className="text-white/30 text-xs italic">보관된 채널에서는 댓글을 작성할 수 없습니다.</p>
-            </div>
-          )}
         </div>
+      </div>
+
+      {/* 댓글 입력 — 스크롤 영역 밖, 항상 하단 고정 */}
+      <div className="flex-shrink-0 border-t border-white/10 px-6 py-3 bg-[#1a1828]">
+        <input ref={fileInputRef} type="file" multiple className="hidden" onChange={e => { if(e.target.files?.length) addFiles(e.target.files); e.target.value = '' }} />
+        {!selectedChannel?.is_archived ? (
+          <form onSubmit={handleComment} className="flex items-start gap-3">
+            {currentUser && <Avatar letters={currentUser.avatar} imageUrl={currentUser.image_url} size="sm" />}
+            <div className="flex-1 bg-white/5 rounded-xl border border-white/10 focus-within:border-indigo-500/40 transition-colors overflow-hidden">
+              <textarea
+                value={comment}
+                onChange={e => setComment(e.target.value)}
+                placeholder="댓글을 입력하세요..."
+                rows={2}
+                className="w-full bg-transparent text-white/80 placeholder-white/20 text-sm px-4 pt-3 pb-2 resize-none focus:outline-none leading-relaxed"
+                onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleComment(e) } }}
+              />
+              {files.length > 0 && (
+                <div className="px-4 pb-2">
+                  <div className="flex flex-wrap gap-2">
+                    {files.map(f => <FileChip key={f.id} file={f} onRemove={removeFile} />)}
+                  </div>
+                </div>
+              )}
+              <div className="flex items-center px-3 pb-2">
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="p-1.5 rounded-lg text-white/30 hover:text-white/70 hover:bg-white/8 transition-colors"
+                  title="파일 첨부"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                  </svg>
+                </button>
+                <div className="flex-1" />
+                <button type="submit" disabled={(!comment.trim() && files.length === 0) || uploading} className="px-3 py-1.5 rounded-lg bg-indigo-600 disabled:bg-white/10 enabled:hover:bg-indigo-500 text-white text-xs font-semibold transition-colors flex items-center gap-2">
+                  {uploading && <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
+                  {uploading ? '전송 중...' : '댓글 달기'}
+                </button>
+              </div>
+            </div>
+          </form>
+        ) : (
+          <div className="flex items-center justify-center py-2 gap-2 text-white/25 text-xs italic">
+            <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+            </svg>
+            보관된 채널에서는 댓글을 작성할 수 없습니다.
+          </div>
+        )}
       </div>
     </div>
   )
@@ -1142,7 +1365,7 @@ function PostDetail({ post, channelId, onClose }) {
 // ─── Main ─────────────────────────────────────────────────────
 
 export default function ChatArea({ autoOpenPostId }) {
-  const { selectedChannel, posts, addPost, pendingOpenPostId, clearPendingPost } = useChat()
+  const { selectedChannel, posts, addPost, pendingOpenPostId } = useChat()
   const [selectedPost, setSelectedPost] = useState(null)
   const [leftWidth, setLeftWidth] = useState(42) // percent
   const [resizing, setResizing] = useState(false)
@@ -1167,7 +1390,7 @@ export default function ChatArea({ autoOpenPostId }) {
     }
   }, [pendingOpenPostId, selectedChannel?.id, posts])
 
-  const startResizing = useCallback((e) => {
+  const startResizing = useCallback(() => {
     setResizing(true)
   }, [])
 
@@ -1246,7 +1469,7 @@ export default function ChatArea({ autoOpenPostId }) {
 
       {/* Right panel — post detail */}
       {selectedPost && (
-        <div className="flex-1 flex flex-col min-h-0">
+        <div className="flex-1 flex flex-col min-h-0 min-w-0 overflow-hidden">
           <PostDetail
             post={selectedPost}
             channelId={selectedChannel.id}

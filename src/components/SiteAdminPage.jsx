@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { apiFetch } from '../lib/api'
 import { ROLE_LABELS, ROLE_BADGE, ROLE_OPTIONS } from '../constants/roles'
 import { useAuth } from '../contexts/AuthContext'
@@ -38,7 +38,15 @@ function Avatar({ name, imageUrl, size = 8 }) {
 
 // ─── User form modal ──────────────────────────────────────────
 
-function UserFormModal({ user, onClose, onSave }) {
+const SECURITY_LEVEL_OPTIONS = [
+  { value: 0, label: '0 — 누구나' },
+  { value: 1, label: '1 — 팀원' },
+  { value: 2, label: '2 — 팀장' },
+  { value: 3, label: '3 — 임원' },
+  { value: 4, label: '4 — 대표이사' },
+]
+
+function UserFormModal({ user, onClose, onSave, teams = [] }) {
   const isEdit = !!user
   const [form, setForm] = useState({
     username: user?.username ?? '',
@@ -49,21 +57,38 @@ function UserFormModal({ user, onClose, onSave }) {
     confirmPassword: '',
     is_active: user?.is_active ?? true,
     image_url: user?.image_url ?? '',
+    department_id: user?.department_id ?? '',
+    security_level: user?.security_level ?? 0,
   })
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const fileInputRef = useRef(null)
+
+  function handleAvatarClick() {
+    fileInputRef.current?.click()
+  }
+
+  function handleImageFile(e) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = ev => set('image_url', ev.target.result)
+    reader.readAsDataURL(file)
+    e.target.value = ''
+  }
 
   function set(key, val) { setForm(p => ({ ...p, [key]: val })) }
 
-  // 비밀번호 일치 여부 (입력 중 실시간 표시)
   const pwEntered = form.password.length > 0 || form.confirmPassword.length > 0
   const pwMatch = form.password === form.confirmPassword
+
+  // security_level이 3 이상이면 department_id 의미 없음
+  const deptDisabled = form.security_level >= 3
 
   async function handleSubmit(e) {
     e.preventDefault()
     setError('')
 
-    // 비밀번호 입력이 있는 경우 검증
     if (form.password || !isEdit) {
       if (form.password.length < 6) {
         setError('비밀번호는 6자 이상이어야 합니다.')
@@ -79,15 +104,23 @@ function UserFormModal({ user, onClose, onSave }) {
     try {
       let result
       if (isEdit) {
-        const body = { name: form.name, email: form.email, role: form.role, is_active: form.is_active, image_url: form.image_url }
+        const body = {
+          name: form.name, email: form.email, role: form.role,
+          is_active: form.is_active, image_url: form.image_url,
+          department_id: deptDisabled ? null : (form.department_id || null),
+          security_level: form.security_level,
+        }
         if (form.password) body.password = form.password
         result = await apiFetch(`/users/${user.id}`, { method: 'PUT', body: JSON.stringify(body) })
       } else {
         result = await apiFetch('/users', {
           method: 'POST',
-          body: JSON.stringify({ 
-            username: form.username, name: form.name, email: form.email, 
-            password: form.password, role: form.role, image_url: form.image_url 
+          body: JSON.stringify({
+            username: form.username, name: form.name, email: form.email,
+            password: form.password, role: form.role, image_url: form.image_url,
+            department_id: deptDisabled ? null : (form.department_id || null),
+            security_level: form.security_level,
+            is_active: form.is_active,
           }),
         })
       }
@@ -102,8 +135,8 @@ function UserFormModal({ user, onClose, onSave }) {
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center px-4">
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative w-full max-w-md bg-[#1e1c30] rounded-3xl border border-white/10 shadow-2xl overflow-hidden">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-white/10">
+      <div className="relative w-full max-w-md bg-[#1e1c30] rounded-3xl border border-white/10 shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-white/10 flex-shrink-0">
           <h3 className="text-white font-bold text-base">{isEdit ? '사용자 편집' : '새 사용자 추가'}</h3>
           <button onClick={onClose} className="w-8 h-8 rounded-lg text-white/30 hover:text-white hover:bg-white/10 flex items-center justify-center transition-colors">
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -112,29 +145,51 @@ function UserFormModal({ user, onClose, onSave }) {
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="px-6 py-5 flex flex-col gap-4">
+        <form onSubmit={handleSubmit} className="px-6 py-5 flex flex-col gap-4 overflow-y-auto">
           {error && <div className="px-4 py-2.5 rounded-xl bg-red-500/10 border border-red-500/25 text-red-400 text-sm">{error}</div>}
 
-          {/* Image Upload / Preview */}
+          {/* 프로필 이미지 */}
           <div className="flex items-center gap-4 py-2 border-b border-white/5 mb-2">
-            <Avatar name={form.name} imageUrl={form.image_url} size={16} />
-            <div className="flex-1">
-              <label className="text-white/50 text-xs font-medium block mb-1">사용자 이미지 (100x100 권장)</label>
-              <input
-                type="text"
-                value={form.image_url}
-                onChange={e => set('image_url', e.target.value)}
-                placeholder="이미지 URL"
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-white text-xs placeholder-white/20 focus:outline-none focus:ring-1 focus:ring-indigo-500/40"
-              />
+            <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleImageFile} />
+            <button type="button" onClick={handleAvatarClick} className="relative group flex-shrink-0 rounded-full focus:outline-none">
+              <Avatar name={form.name} imageUrl={form.image_url} size={16} />
+              <div className="absolute inset-0 rounded-full bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+              </div>
+            </button>
+            <div className="flex-1 flex flex-col gap-2">
+              {isEdit && (
+                <>
+                  <div>
+                    <label className="text-white/40 text-xs font-medium block mb-0.5">User ID</label>
+                    <div className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-white/50 text-xs font-mono">{user.id}</div>
+                  </div>
+                  <div>
+                    <label className="text-white/40 text-xs font-medium block mb-0.5">User Name</label>
+                    <div className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-white/50 text-xs font-mono">{user.username}</div>
+                  </div>
+                </>
+              )}
+              {!isEdit && (
+                <p className="text-white/30 text-xs">클릭하여 프로필 이미지 선택</p>
+              )}
             </div>
           </div>
 
+          {/* 아이디 (신규만) */}
           {!isEdit && (
-            <FormField label="아이디" value={form.username} onChange={v => set('username', v)} placeholder="username" required />
+            <FormField label="아이디 (고유값, 자동 사용)" value={form.username} onChange={v => set('username', v)} placeholder="username" required />
           )}
-          <FormField label="이름" value={form.name} onChange={v => set('name', v)} placeholder="홍길동" required />
+
+          {/* 표시 이름 */}
+          <FormField label="표시 이름 (Display Name)" value={form.name} onChange={v => set('name', v)} placeholder="홍길동" required />
+
+          {/* 이메일 */}
           <FormField label="이메일" type="email" value={form.email} onChange={v => set('email', v)} placeholder="user@example.com" required />
+
           {/* 비밀번호 */}
           <FormField
             label={isEdit ? '비밀번호 변경 (선택)' : '비밀번호'}
@@ -145,12 +200,10 @@ function UserFormModal({ user, onClose, onSave }) {
             required={!isEdit}
           />
 
-          {/* 비밀번호 재확인 — 신규: 항상 표시, 편집: 비밀번호 입력 시 표시 */}
+          {/* 비밀번호 재확인 */}
           {(!isEdit || form.password.length > 0) && (
             <div>
-              <label className="block text-white/50 text-xs font-medium mb-1.5">
-                비밀번호 재확인
-              </label>
+              <label className="block text-white/50 text-xs font-medium mb-1.5">비밀번호 재확인</label>
               <div className="relative">
                 <input
                   type="password"
@@ -163,9 +216,8 @@ function UserFormModal({ user, onClose, onSave }) {
                       ? 'border-green-500/50 focus:ring-green-500/30 focus:border-green-500/50'
                       : 'border-red-500/50 focus:ring-red-500/30 focus:border-red-500/50'
                     : 'border-white/10 focus:ring-indigo-500/40 focus:border-indigo-500/40'
-                    }`}
+                  }`}
                 />
-                {/* 일치 여부 아이콘 */}
                 {pwEntered && (
                   <span className="absolute right-3 top-1/2 -translate-y-1/2">
                     {pwMatch ? (
@@ -180,44 +232,60 @@ function UserFormModal({ user, onClose, onSave }) {
                   </span>
                 )}
               </div>
-              {pwEntered && !pwMatch && (
-                <p className="text-red-400 text-xs mt-1.5 ml-1">비밀번호가 일치하지 않습니다.</p>
-              )}
-              {pwEntered && pwMatch && form.password.length > 0 && (
-                <p className="text-green-400 text-xs mt-1.5 ml-1">비밀번호가 일치합니다.</p>
-              )}
+              {pwEntered && !pwMatch && <p className="text-red-400 text-xs mt-1.5 ml-1">비밀번호가 일치하지 않습니다.</p>}
+              {pwEntered && pwMatch && form.password.length > 0 && <p className="text-green-400 text-xs mt-1.5 ml-1">비밀번호가 일치합니다.</p>}
             </div>
           )}
 
-          {/* Role */}
+          {/* 보안 등급 */}
           <div>
-            <label className="block text-white/50 text-xs font-medium mb-1.5">권한</label>
+            <label className="block text-white/50 text-xs font-medium mb-1.5">보안 등급 (Security Level)</label>
             <select
-              value={form.role}
-              onChange={e => set('role', e.target.value)}
+              value={form.security_level}
+              onChange={e => set('security_level', parseInt(e.target.value))}
               className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500/40 transition-all"
             >
-              {ROLE_OPTIONS.map(r => (
-                <option key={r.value} value={r.value} className="bg-[#1e1c30]">{r.label}</option>
+              {SECURITY_LEVEL_OPTIONS.map(o => (
+                <option key={o.value} value={o.value} className="bg-[#1e1c30]">{o.label}</option>
+              ))}
+            </select>
+            {form.security_level >= 3 && (
+              <p className="text-yellow-400/70 text-xs mt-1.5 ml-1">보안 등급 3 이상은 부서 배정이 적용되지 않습니다.</p>
+            )}
+          </div>
+
+          {/* 부서 (Security Level < 3 일 때만 활성) */}
+          <div>
+            <label className={`block text-xs font-medium mb-1.5 ${deptDisabled ? 'text-white/20' : 'text-white/50'}`}>
+              부서 (Department ID)
+            </label>
+            <select
+              value={form.department_id}
+              onChange={e => set('department_id', e.target.value)}
+              disabled={deptDisabled}
+              className={`w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500/40 transition-all ${deptDisabled ? 'text-white/20 cursor-not-allowed' : 'text-white'}`}
+            >
+              <option value="" className="bg-[#1e1c30]">— 부서 없음 —</option>
+              {teams.map(t => (
+                <option key={t.id} value={t.id} className="bg-[#1e1c30]">{t.name}</option>
               ))}
             </select>
           </div>
 
-          {/* Active toggle (edit only) */}
-          {isEdit && (
-            <div className="flex items-center justify-between py-2 px-4 rounded-xl bg-white/4 border border-white/8">
-              <span className="text-white/70 text-sm">계정 활성화</span>
-              <button
-                type="button"
-                onClick={() => set('is_active', !form.is_active)}
-                className={`w-10 h-5 rounded-full transition-colors relative ${form.is_active ? 'bg-indigo-500' : 'bg-white/20'}`}
-              >
-                <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all ${form.is_active ? 'left-5' : 'left-0.5'}`} />
-              </button>
-            </div>
-          )}
 
-          <div className="flex gap-2 pt-1">
+          {/* 계정 활성화 */}
+          <div className="flex items-center justify-between py-2 px-4 rounded-xl bg-white/4 border border-white/8">
+            <span className="text-white/70 text-sm">계정 활성화 (Is Active)</span>
+            <button
+              type="button"
+              onClick={() => set('is_active', !form.is_active)}
+              className={`w-10 h-5 rounded-full transition-colors relative ${form.is_active ? 'bg-indigo-500' : 'bg-white/20'}`}
+            >
+              <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all ${form.is_active ? 'left-5' : 'left-0.5'}`} />
+            </button>
+          </div>
+
+          <div className="flex gap-2 pt-1 pb-1">
             <button type="button" onClick={onClose} className="flex-1 py-2.5 rounded-xl text-white/50 hover:text-white/80 text-sm border border-white/10 hover:bg-white/5 transition-colors">
               취소
             </button>
@@ -276,6 +344,16 @@ export default function SiteAdminPage({ onClose }) {
   const [trainingStatus, setTrainingStatus] = useState(null) // 'running', 'done', null
   const [resetConfirmation, setResetConfirmation] = useState('')
   const [executingReset, setExecutingReset] = useState(false)
+  const [teams, setTeams] = useState([])
+
+  async function loadTeams() {
+    try {
+      const data = await apiFetch('/teams')
+      setTeams(data)
+    } catch (e) {
+      console.error('팀 목록 로드 실패:', e)
+    }
+  }
 
   async function loadUsers() {
     setLoading(true)
@@ -330,7 +408,7 @@ export default function SiteAdminPage({ onClose }) {
     }
   }
 
-  useEffect(() => { loadUsers() }, [])
+  useEffect(() => { loadUsers(); loadTeams() }, [])
   useEffect(() => { 
     if (activeTab === 'db' || activeTab === 'display' || activeTab === 'rag' || activeTab === 'agenticai') loadDbStats() 
   }, [activeTab])
@@ -636,6 +714,7 @@ export default function SiteAdminPage({ onClose }) {
                     <tr className="border-b border-white/8 text-white/30 text-xs font-semibold uppercase tracking-wider">
                       <th className="px-5 py-3 text-left font-semibold">사용자</th>
                       <th className="px-5 py-3 text-left font-semibold">이메일</th>
+                      <th className="px-5 py-3 text-left font-semibold">팀</th>
                       <th className="px-5 py-3 text-left font-semibold">권한</th>
                       <th className="px-5 py-3 text-left font-semibold">마지막 로그인</th>
                       <th className="px-5 py-3 text-left font-semibold">상태</th>
@@ -664,6 +743,13 @@ export default function SiteAdminPage({ onClose }) {
                         </td>
                         <td className="px-5 py-3.5 max-w-0">
                           <p className="text-white/50 text-sm truncate">{user.email}</p>
+                        </td>
+                        <td className="px-5 py-3.5">
+                          <p className="text-white/50 text-sm truncate">
+                            {user.department_id
+                              ? (teams.find(t => t.id === user.department_id)?.name ?? user.department_id)
+                              : <span className="text-white/20">—</span>}
+                          </p>
                         </td>
                         <td className="px-5 py-3.5">
                           <RoleBadge role={user.role} />
@@ -1336,6 +1422,7 @@ export default function SiteAdminPage({ onClose }) {
           user={editUser}
           onClose={() => { setShowForm(false); setEditUser(null) }}
           onSave={handleSave}
+          teams={teams}
         />
       )}
     </div>
