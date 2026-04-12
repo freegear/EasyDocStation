@@ -261,7 +261,13 @@ export default function SiteAdminPage({ onClose }) {
   const [activeTab, setActiveTab] = useState('users') // 'users', 'db', or 'display'
   const [dbStats, setDbStats] = useState(null)
   const [dbLoading, setDbLoading] = useState(false)
-  const [displayForm, setDisplayForm] = useState({ width: 512, height: 512 })
+  const [displayForm, setDisplayForm] = useState({
+    imagePreview: { width: 512, height: 512 },
+    pptPreview: { width: 480, height: 270 },
+    pptxPreview: { width: 480, height: 270 },
+    excelPreview: { width: 480, height: 270 },
+    wordPreview: { width: 270, height: 480 }
+  })
   const [lancedbPath, setLancedbPath] = useState('/Users/kevinim/Desktop/EasyDocStation/Database/LanceDB')
   const [ragForm, setRagForm] = useState({ type: 'manual', time: '02:00', vectorSize: 1024, chunkSize: 800, chunkOverlap: 100 })
   const [agenticaiForm, setAgenticaiForm] = useState({ num_predict: 4096, num_ctx: 8192 })
@@ -287,8 +293,11 @@ export default function SiteAdminPage({ onClose }) {
       setDbStats(data)
       if (data.display) {
         setDisplayForm({
-          width: data.display.width || 512,
-          height: data.display.height || 512
+          imagePreview: data.display.imagePreview || { width: 512, height: 512 },
+          pptPreview: data.display.pptPreview || { width: 480, height: 270 },
+          pptxPreview: data.display.pptxPreview || { width: 480, height: 270 },
+          excelPreview: data.display.excelPreview || { width: 480, height: 270 },
+          wordPreview: data.display.wordPreview || { width: 270, height: 480 }
         })
       }
       if (data.lancedb?.location) {
@@ -349,8 +358,24 @@ export default function SiteAdminPage({ onClose }) {
 
       if (activeTab === 'display') {
         configData.imagePreview = {
-          width: parseInt(displayForm.width),
-          height: parseInt(displayForm.height)
+          width: parseInt(displayForm.imagePreview.width),
+          height: parseInt(displayForm.imagePreview.height)
+        }
+        configData.pptPreview = {
+          width: parseInt(displayForm.pptPreview.width),
+          height: parseInt(displayForm.pptPreview.height)
+        }
+        configData.pptxPreview = {
+          width: parseInt(displayForm.pptxPreview.width),
+          height: parseInt(displayForm.pptxPreview.height)
+        }
+        configData.excelPreview = {
+          width: parseInt(displayForm.excelPreview.width),
+          height: parseInt(displayForm.excelPreview.height)
+        }
+        configData.wordPreview = {
+          width: parseInt(displayForm.wordPreview.width),
+          height: parseInt(displayForm.wordPreview.height)
         }
       } else if (activeTab === 'db') {
         configData['lancedb Database Path'] = lancedbPath
@@ -1037,73 +1062,47 @@ export default function SiteAdminPage({ onClose }) {
                 <p className="text-sm">설정을 불러오는 중...</p>
               </div>
             ) : dbStats?.display ? (
-              <div className="bg-white/5 border border-white/10 rounded-2xl p-8 shadow-xl">
-                <div className="flex items-start justify-between mb-8">
-                  <div>
-                    <h3 className="text-white font-bold text-base mb-1">Image Preview 설정</h3>
-                    <p className="text-white/40 text-xs text-secondary leading-relaxed">
-                      게시판 및 채팅 영역에서 이미지가 표시될 때 적용되는 기본 규격입니다.<br/>
-                      현재 config.json 파일에 정의된 값을 수정하고 상단의 버튼으로 저장하세요.
-                    </p>
-                  </div>
-                  <div className="px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 text-[10px] font-bold uppercase tracking-wider">
-                    Global Config
-                  </div>
-                </div>
+              <div className="space-y-6 pb-20">
+                {/* Image Preview */}
+                <PreviewSettingCard
+                  title="Image Preview 설정"
+                  description="게시판 및 채팅 영역에서 이미지가 표시될 때 적용되는 기본 규격입니다."
+                  value={displayForm.imagePreview}
+                  onChange={(val) => setDisplayForm(p => ({ ...p, imagePreview: val }))}
+                />
 
-                <div className="grid grid-cols-2 gap-12">
-                  <div className="flex flex-col justify-center">
-                    <p className="text-white/30 text-xs font-semibold uppercase tracking-wider mb-5">Preview Dimensions</p>
-                    <div className="space-y-4">
-                      <div className="bg-black/40 rounded-2xl p-5 border border-white/10 flex items-center justify-between focus-within:border-indigo-500/50 transition-colors">
-                        <div>
-                          <p className="text-white/40 text-[10px] uppercase font-bold mb-1">Width (가로)</p>
-                          <div className="flex items-center gap-2">
-                            <input
-                              type="number"
-                              value={displayForm.width}
-                              onChange={e => setDisplayForm(p => ({ ...p, width: e.target.value }))}
-                              className="bg-transparent text-3xl font-black text-white w-24 focus:outline-none"
-                            />
-                            <span className="text-sm font-normal text-white/20">px</span>
-                          </div>
-                        </div>
-                        <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center">
-                          <svg className="w-5 h-5 text-white/20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h8m0 0l-4-4m4 4l-4 4" />
-                          </svg>
-                        </div>
-                      </div>
-                      <div className="bg-black/40 rounded-2xl p-5 border border-white/10 flex items-center justify-between focus-within:border-indigo-500/50 transition-colors">
-                        <div>
-                          <p className="text-white/40 text-[10px] uppercase font-bold mb-1">Height (세로)</p>
-                          <div className="flex items-center gap-2">
-                            <input
-                              type="number"
-                              value={displayForm.height}
-                              onChange={e => setDisplayForm(p => ({ ...p, height: e.target.value }))}
-                              className="bg-transparent text-3xl font-black text-white w-24 focus:outline-none"
-                            />
-                            <span className="text-sm font-normal text-white/20">px</span>
-                          </div>
-                        </div>
-                        <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center shadow-inner">
-                          <svg className="w-5 h-5 text-white/20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8v8m0 0l-4-4m4 4l4-4" />
-                          </svg>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex flex-col items-center justify-center">
-                    <div className="relative w-48 h-48 rounded-3xl border-2 border-dashed border-white/10 flex items-center justify-center group overflow-hidden bg-white/[0.02]">
-                      <div className="absolute inset-4 bg-indigo-500/10 rounded-2xl flex items-center justify-center text-[10px] text-indigo-400 font-bold uppercase tracking-widest text-center px-4">
-                        Real-time Aspect Review
-                      </div>
-                      <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                    </div>
-                    <p className="mt-4 text-white/20 text-xs italic">변경 후 상단의 저장 버튼을 눌러야 실제 시스템에 적용됩니다.</p>
-                  </div>
+                <div className="grid grid-cols-2 gap-6">
+                  {/* PPT Preview */}
+                  <PreviewSettingCard
+                    title="PPT Preview 설정"
+                    description="PPT 파일의 미리보기 규격입니다."
+                    value={displayForm.pptPreview}
+                    onChange={(val) => setDisplayForm(p => ({ ...p, pptPreview: val }))}
+                  />
+
+                  {/* PPTX Preview */}
+                  <PreviewSettingCard
+                    title="PPTX Preview 설정"
+                    description="PPTX 파일의 미리보기 규격입니다."
+                    value={displayForm.pptxPreview}
+                    onChange={(val) => setDisplayForm(p => ({ ...p, pptxPreview: val }))}
+                  />
+
+                  {/* Excel Preview */}
+                  <PreviewSettingCard
+                    title="Excel Preview 설정"
+                    description="Excel 파일의 미리보기 규격입니다."
+                    value={displayForm.excelPreview}
+                    onChange={(val) => setDisplayForm(p => ({ ...p, excelPreview: val }))}
+                  />
+
+                  {/* Word Preview */}
+                  <PreviewSettingCard
+                    title="Word Preview 설정"
+                    description="Word 파일의 미리보기 규격입니다."
+                    value={displayForm.wordPreview}
+                    onChange={(val) => setDisplayForm(p => ({ ...p, wordPreview: val }))}
+                  />
                 </div>
               </div>
             ) : (
@@ -1221,6 +1220,51 @@ export default function SiteAdminPage({ onClose }) {
           onSave={handleSave}
         />
       )}
+    </div>
+  )
+}
+
+function PreviewSettingCard({ title, description, value, onChange }) {
+  return (
+    <div className="bg-white/5 border border-white/10 rounded-2xl p-6 shadow-xl h-full flex flex-col">
+      <div className="flex items-start justify-between mb-6">
+        <div>
+          <h3 className="text-white font-bold text-sm mb-1">{title}</h3>
+          <p className="text-white/40 text-[11px] leading-relaxed">
+            {description}
+          </p>
+        </div>
+        <div className="px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 text-[9px] font-bold uppercase tracking-wider shrink-0">
+          Preview
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4 mt-auto">
+        <div className="bg-black/40 rounded-xl px-4 py-3 border border-white/5 flex flex-col focus-within:border-indigo-500/50 transition-colors">
+          <p className="text-white/40 text-[9px] uppercase font-bold mb-1">Width (가로)</p>
+          <div className="flex items-center gap-2">
+            <input
+              type="number"
+              value={value.width}
+              onChange={e => onChange({ ...value, width: e.target.value })}
+              className="bg-transparent text-xl font-black text-white w-full focus:outline-none"
+            />
+            <span className="text-sm font-normal text-white/20 shrink-0">px</span>
+          </div>
+        </div>
+        <div className="bg-black/40 rounded-xl px-4 py-3 border border-white/5 flex flex-col focus-within:border-indigo-500/50 transition-colors">
+          <p className="text-white/40 text-[9px] uppercase font-bold mb-1">Height (세로)</p>
+          <div className="flex items-center gap-2">
+            <input
+              type="number"
+              value={value.height}
+              onChange={e => onChange({ ...value, height: e.target.value })}
+              className="bg-transparent text-xl font-black text-white w-full focus:outline-none"
+            />
+            <span className="text-sm font-normal text-white/20 shrink-0">px</span>
+          </div>
+        </div>
+      </div>
     </div>
   )
 }

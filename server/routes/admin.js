@@ -101,7 +101,13 @@ router.get('/stats', async (req, res) => {
         location: lancedbPath,
         size: formatBytes(lancedbSizeBytes),
       },
-      display: config.imagePreview || { width: 512, height: 512 },
+      display: {
+        imagePreview: config.imagePreview || { width: 512, height: 512 },
+        pptPreview: config.pptPreview || { width: 480, height: 270 },
+        pptxPreview: config.pptxPreview || { width: 480, height: 270 },
+        excelPreview: config.excelPreview || { width: 480, height: 270 },
+        wordPreview: config.wordPreview || { width: 270, height: 480 }
+      },
       rag: config.rag || { trainingType: 'manual', dailyTime: '02:00', vectorSize: 1024 },
       agenticai: config.agenticai || { num_predict: 4096, num_ctx: 8192 }
     })
