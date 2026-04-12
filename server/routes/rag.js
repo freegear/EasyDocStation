@@ -1,9 +1,9 @@
-const express     = require('express')
-const router      = express.Router()
-const path        = require('path')
-const fs          = require('fs')
-const { spawn }   = require('child_process')
-const db          = require('../db')
+const express = require('express')
+const router = express.Router()
+const path = require('path')
+const fs = require('fs')
+const { spawn } = require('child_process')
+const db = require('../db')
 const requireAuth = require('../middleware/auth')
 
 const CONFIG_PATH = path.resolve(__dirname, '../../config.json')
@@ -17,7 +17,7 @@ function readConfig() {
 function callPythonSearch(payload) {
   return new Promise((resolve, reject) => {
     const script = path.resolve(__dirname, '../rag_search.py')
-    const proc   = spawn('python3', [script], { timeout: 60000 })
+    const proc = spawn('python3', [script], { timeout: 60000 })
     let out = '', err = ''
 
     proc.stdin.write(JSON.stringify(payload))
@@ -43,43 +43,30 @@ async function enrichReferences(results) {
   try {
     const cass = require('../cassandra')
     if (cass.isConnected()) cassandraClient = cass.client
-  } catch (e) {}
+  } catch (e) { }
 
   for (const r of results) {
-    let { post_id, type, channel_id: metaChannelId } = r.metadata
+    let { post_id, type, channel_id: metaChannelId, attachment_id, comment_id } = r.metadata
     if (!post_id || post_id === '') continue
 
-    const key = `${post_id}:${type}`
+    const key = `${post_id}:${type}:${attachment_id || ''}:${comment_id || ''}`
     if (seen.has(key)) continue
     seen.add(key)
 
     try {
       // ── channel_id가 메타데이터에 없으면 DB에서 찾기 (fallback) ──
       if (!metaChannelId) {
-        // 1. posts 테이블 (PostgreSQL)
+        // ... (existing fallback logic)
         const pRes = await db.query('SELECT channel_id FROM posts WHERE id = $1 LIMIT 1', [post_id])
         if (pRes.rowCount > 0) {
           metaChannelId = pRes.rows[0].channel_id
-        } 
-        // 2. attachments 테이블 (PostgreSQL) - PDF 등
-        else {
+        } else {
           const aRes = await db.query('SELECT channel_id FROM attachments WHERE post_id = $1 LIMIT 1', [post_id])
           if (aRes.rowCount > 0) metaChannelId = aRes.rows[0].channel_id
         }
-        
-        // 3. Cassandra (Fallback)
-        if (!metaChannelId && cassandraClient) {
-          try {
-            const cql = 'SELECT channel_id FROM posts WHERE id = ? ALLOW FILTERING'
-            const cRes = await cassandraClient.execute(cql, [post_id], { prepare: true })
-            if (cRes.rows.length > 0) metaChannelId = cRes.rows[0].channel_id
-          } catch (err) {
-            console.warn('[RAG] Cassandra channel_id 조회 실패:', err.message)
-          }
-        }
       }
 
-      // ── 채널/팀 이름: channel_id가 있으면 직접 조회 ──
+      // ── 채널/팀 이름 조회 ──
       let channelName = '', teamName = ''
       if (metaChannelId) {
         const chRes = await db.query(
@@ -90,55 +77,33 @@ async function enrichReferences(results) {
         )
         if (chRes.rowCount > 0) {
           channelName = chRes.rows[0].channel_name || ''
-          teamName    = chRes.rows[0].team_name    || ''
+          teamName = chRes.rows[0].team_name || ''
         }
+      }
+
+      const baseRef = {
+        channel: channelName,
+        channel_id: metaChannelId || '',
+        team: teamName,
+        post_id,
+        attachment_id: attachment_id || '',
+        comment_id: comment_id || ''
       }
 
       if (type === 'pdf') {
         const res = await db.query(
-          `SELECT filename FROM attachments
-           WHERE post_id = $1 AND content_type = 'application/pdf'
-           LIMIT 1`,
-          [post_id]
+          `SELECT filename FROM attachments WHERE id = $1 LIMIT 1`,
+          [attachment_id]
         )
-        if (res.rows.length > 0) {
-          refs.push({
-            type:          'pdf',
-            label:         res.rows[0].filename,
-            channel:       channelName,
-            channel_id:    metaChannelId || '',
-            team:          teamName,
-            post_id,
-            attachment_id,
-          })
-        }
+        const label = res.rowCount > 0 ? res.rows[0].filename : '첨부 문서'
+        refs.push({ ...baseRef, type: 'pdf', label })
       } else if (type === 'comment') {
         const preview = (r.text || '').slice(0, 60).replace(/\n/g, ' ')
-        refs.push({
-          type:          'comment',
-          label:         preview + ((r.text?.length ?? 0) > 60 ? '…' : ''),
-          channel:       channelName,
-          channel_id:    metaChannelId || '',
-          team:          teamName,
-          post_id,
-          comment_id,
-        })
+        refs.push({ ...baseRef, type: 'comment', label: preview + ((r.text?.length ?? 0) > 60 ? '…' : '') })
       } else {
         // post / manual_text
-        const pRes = await db.query(
-          'SELECT content FROM posts WHERE id = $1 LIMIT 1',
-          [post_id]
-        )
-        const content = pRes.rowCount > 0 ? (pRes.rows[0].content || '') : (r.text || '')
-        const preview = content.slice(0, 60).replace(/\n/g, ' ')
-        refs.push({
-          type:          'post',
-          label:         preview + (content.length > 60 ? '…' : ''),
-          channel:       channelName,
-          channel_id:    metaChannelId || '',
-          team:          teamName,
-          post_id,
-        })
+        const preview = (r.text || '').slice(0, 60).replace(/\n/g, ' ')
+        refs.push({ ...baseRef, type: 'post', label: preview + ((r.text?.length ?? 0) > 60 ? '…' : '') })
       }
     } catch (e) {
       console.error('[RAG] 참고문헌 조회 오류:', e.message)
@@ -159,7 +124,7 @@ router.post('/search', requireAuth, async (req, res) => {
     const payload = {
       config: {
         lancedb_path: cfg['lancedb Database Path'] || '/Users/kevinim/Desktop/EasyDocStation/Database/LanceDB',
-        vector_size:  ragCfg.vectorSize ?? 1024,
+        vector_size: ragCfg.vectorSize ?? 1024,
       },
       query,
       limit,
@@ -177,7 +142,7 @@ router.post('/search', requireAuth, async (req, res) => {
       return res.json({ context: '', references: [] })
     }
 
-    const context    = validResults.map(r => r.text).join('\n\n')
+    const context = validResults.map(r => r.text).join('\n\n')
     const references = await enrichReferences(validResults)
 
     res.json({ context, references })

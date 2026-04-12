@@ -307,7 +307,7 @@ DB 관리 탭은
 를 알려준다
 
 # 8.3 Display 설정 
-Display 설정 섹션을 두고
+Display 설정 페이지에서 두고
 config.json에 설정된 
 image preview :
     - width : 512
@@ -315,7 +315,30 @@ image preview :
 값을 표시한다.
 그리고 값을 설정할 수 있도록 한다.
 
+  "pptPreview": {
+    "width": 480,
+    "height": 270
+  },
+  "pptxPreview": {
+    "width": 480,
+    "height": 270
+  },
+  "excelPreview": {
+    "width": 480,
+    "height": 270
+  },
+  "wordPreview": {
+    "width": 270,
+    "height": 480
+  },
+
+에 해당하는 설정도 추가해줘
+
+
 Display 설정 섹션의 제일 위에 "저장" 버튼을 두고 버튼이 눌려지면 config.json에 해당 값이 들어간다.
+
+다른 부분은 수정하지 말아줘
+
 
 ############################################################
 # 9 Team 관리
