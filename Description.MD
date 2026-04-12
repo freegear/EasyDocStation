@@ -66,6 +66,14 @@ Slack과 같은 서비스를 구축할 것이다.
 
 댓글도 동일하게 처리한다.
 
+# 1.2.7 댓글의 추가
+계시글에 대해서 댓글이 추가된다. 댓글은 게시글의 밑으로 추가해서 들어간다.
+
+
+# 1.2.8 게시글의 DB추가 
+계시글은 Cassandra에 저장한다.
+계시글이 삭제되면 Cassandra에 저장된 내용도 삭제한다.
+
 
 
 
@@ -74,9 +82,44 @@ GROQ 서비스의 Key값은
 ........
 이다.
 
+# 2.1 GROQ를 제거하고 GEMMA 4.0으로 설치
 
-#3 타이틀바
-EasyDocStation  Login User Name , 언어 설정, Logout 버튼으로 구성한다.
+# 2.1.1 답변의 맨 끝에 Copy로고 버튼을 추가
+EasyDoc AgenticAI의 답변에서
+
+AgenticAI가 답변을 하면 답변의 끝에 Copy 로고 버튼을 추가한다.
+이 버튼을 클릭하면 답변 전체가 Copy 하여서 클립보드에 저장한다.
+
+다른 기능은 수정하지 말아줘
+
+
+
+
+
+
+# 3 타이틀바
+EasyDocStation  찾기 [           ][검색 버튼]  Login User Name , 언어 설정, Logout 버튼으로 구성한다.
+
+EasyDocStation 은 바의 왼쪽 끝에 정렬
+찾기 부터 Logout 은 바의 오른쪽 끝에 정렬 한다.
+
+
+# 3.1 언어 설정
+한국어, 영어로 한다.
+
+# 3.2 찾기 
+# 3.2.1 
+[           ][검색 버튼]
+찾기 기능을 추가한다.
+
+[     ] 키워드 입력창은 배경은 하얀색, 글자 색은 검은색 으로 해줘
+
+# 3.2.2 
+[검색 버튼]을 누르면 
+검색 결과 페이지로 이동하고, 
+검색된 각 계시글을 표시한다.
+
+
 
 # 4 Database
 # 4.1  PostgreSQL Database
@@ -212,6 +255,8 @@ npm run dev
 
 이다.
 
+채널 정보 창의 레이아웃과 구성은 팀 정보 관리 페이지와 동일하다.
+
 해당 정보를 postgresql에 저장한다.
 
 # 7.1 채널 멤버 추가
@@ -297,6 +342,9 @@ Team 설명 :
 
 팀 이름과 관리자는 PostgreSQL에 저장한다.
 
+Team 관리자 *(최소 1명) 칸에 직접 텍스트로 타입을 해서 추가할 수있도록 한다.
+Team 멤버 추가도 관리자 추가 와 같은 방식으로 한다.
+
 # 9.2 Team 삭제
 
 팀 이름을 두번 클릭하면, Team 정보 창이 나타난다.
@@ -307,7 +355,9 @@ Team 관리자 :
 - 관리자 추가 버튼은 크게 만들어서 쉽게 클릭되도록 만든다.
 Team 설명  : 
    MD 포멧으로 설정가능한 편집 영역을 추가함. 팀의 목적을 설명한다.
-   
+   화면에 보이는 모드는 편집과 미리보기 모드이다.
+   디폴트로 미리 보기 모드로한다.
+
 버튼으로 삭제, 저장 , 취소 
 
 
@@ -439,10 +489,6 @@ expires: URL의 만료 시간 (보안성 확보).
 
 서버는 HTTP 응답 헤더(Content-Type, Content-Disposition)를 설정하고, 파일 데이터를 클라이언트로 스트리밍(streaming)하여 보냅니다.
 
-
-
-
-
 # 12 채널에 메시지 등록
 
 현재 채널의 메시지를 계시글로 등록하는 것은 
@@ -453,3 +499,301 @@ expires: URL의 만료 시간 (보안성 확보).
 
 계시되는 메시지에 글 과 함께 Cassendra 에 저장한다.
 
+
+
+# 13 RAG 학습
+
+# 13.1 RAG 학습 옵션 설정 추가
+
+# 13.1.1 RAG 학습 버튼 추가
+
+사이트 관리에서 
+사용자 관리 
+DB 관리
+Display 설정 
+
+밑으로 
+
+RAG 학습 설정 버튼을 추가한다.
+
+이 버튼을 클릭하면 RAG 학습 옵션 설정 페이지를 보여준다.
+
+# 13.2 RAG 학습 옵션 설정 페이지
+
+# 13.2.1 학습 시간 / 주기 설정
+
+학습 시간을 설정할 수 있다.
+- 1) 매일 설정한 시간에 전날 올라온 모든 글을 학습 한다.
+     시간은 설정할 수 있다.
+- 2) 글이 올라오는 즉시 학습한다.
+- 3) 관리자가 "학습 시작" 이라는 버튼을 누르면 학습을 시작한다.
+    "학습 시작" 버튼은 학습 시간 / 주기 설정 section에 있다.
+
+
+# 13.2.2 config.json에 저장
+
+config.json 파일에 
+RAG 학습 옵션 : 
+    학습 시간 / 주기 설정 : 
+          매일 설정한 시간에 학습 , 02:00
+          글이 올라오는 즉시 학습
+          수동 학습 
+에 맞추어서 저장하여줘
+
+# 13.2.3 데이터베이스 및 오브젝트 관리 페이지에
+
+lancedb 폴더를 설정하는 카드를 추가해줘
+
+lancedb 폴더
+/Users/kevinim/Desktop/EasyDocStation/Database/LanceDB
+
+로 추가해줘
+
+해당 데이터는 config.json에 
+
+lancedb Database Path : /Users/kevinim/Desktop/EasyDocStation/Database/LanceDB
+
+로 추가해주고
+
+EasyDocStation이 로딩 될떄에 읽어들여서 설정하고
+저장 버튼을 누르면 새로운 값으로 업데이트 해줘
+
+# 13.2.4 LanceDB 설치
+
+pip install lancedb tantivy
+# Gemma 4 임베딩을 위해 함께 설치
+pip install sentence-transformers
+
+
+# 13.2.5  lancedb를 초기화 
+
+##############
+#  lancedb를 초기화 시켜줘
+import lancedb
+
+uri = "./lancedb_data"
+db = lancedb.connect(uri)
+
+# 최초 생성 시에만 실행
+data = [{"vector": [0.1] * 1024, "text": "init", "metadata": {"source": "system"}}]
+table = db.create_table("my_rag_table", data=data, mode="overwrite")
+##############
+
+# 13.2.6 RAG 학습 옵션 설정 
+RAG 학습 옵션 설정 페이지에
+
+vector size : 256 , 512 , 1024 , 1536 , 2048 , 4096 , 8192 을 선택 할 수 있게 한다
+
+이 값은 config.json 파일에 
+
+rag vector size : 1024
+
+로 추가해주고
+
+EasyDocStation이 로딩 될떄에 읽어들여서 설정하고
+저장 버튼을 누르면 새로운 값으로 업데이트 해줘
+
+다른 페이지나 다른 기능은 수정하지 말아줘
+
+
+설정 저장 버튼을 누르면 아래 코드를 실행해줘
+
+네, 변경 가능합니다. mode="overwrite"로 테이블을 재생성하면 됩니다.
+현재 크기 1024는 초기 데이터 [0.1] * 1024에서 자동으로 결정된 것입니다. 원하는 크기로 바꾸려면:
+
+
+python3 - <<'EOF'
+import lancedb
+
+uri = "/Users/kevinim/Desktop/EasyDocStation/Database/LanceDB"
+db = lancedb.connect(uri)
+
+DIM = 768  # 원하는 크기로 변경 (예: 384, 768, 1024, 1536 등)
+
+data = [{"vector": [0.1] * DIM, "text": "init", "metadata": {"source": "system"}}]
+table = db.create_table("my_rag_table", data=data, mode="overwrite")
+print(f"벡터 크기 {DIM}으로 재설정 완료")
+EOF
+
+
+# 13.2.7 청크 크기 설정
+RAG 학습 옵션 설정 페이지에
+
+한 청크당 글자 수        : chunk_size=800,      # 한 청크당 글자 수
+청크 간 중복 영역 글자 수 : chunk_overlap=100,   # 청크 간 중복 영역 글자 수
+
+을 설정하는 기능을 추가한다.
+
+config.json파일에 rag.chunk_size 와 rag.chunk_overlap 을 추가하고
+
+EasyDocStation이 로딩 될떄에 읽어들여서 설정하고
+저장 버튼을 누르면 새로운 값으로 업데이트 해줘
+
+다른 기능은 수정하지 말아줘
+
+
+
+
+# 13.3 RAG 학습
+
+# 13.3.1 PDF 파일 학습
+
+PDF를 학습하려면 아래 코드를 사용해서 추가함. 
+
+################# 
+from pypdf import PdfReader
+
+def load_pdf(file_path):
+    reader = PdfReader(file_path)
+    text = ""
+    for page in reader.pages:
+        text += page.extract_text() + "\n"
+    return text
+
+raw_text = load_pdf("your_document.pdf")
+
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+
+text_splitter = RecursiveCharacterTextSplitter(
+    chunk_size=config.rag.chunk_size,      # 한 청크당 글자 수
+    chunk_overlap=config.rag.chunk_overlap,   # 앞뒤 청크 간 겹치는 부분 (문맥 유지)
+    length_function=len,
+)
+
+chunks = text_splitter.split_text(raw_text)
+
+# embed_model은 이전 답변에서 설정한 BGE-M3 등을 사용
+vectors = embed_model.encode(chunks)
+
+records = []
+for i, (text, vector) in enumerate(zip(chunks, vectors)):
+    records.append({
+        "vector": vector,
+        "text": text,
+        "metadata": {"source": "my_pdf", "page": i}
+    })
+
+table.add(records)
+
+#################
+
+# 13.3.2 계시글의 학습 설정
+
+만약 계시글이 올라오고, 학습 옵션에서 "글이 올라오는 즉시 학습" 이 선택되어 있다면
+즉 "immediate" 이면, 
+
+즉시 학습한다.
+게시글은 text로 학습한다.
+첨부된 파일중 PDF는  13.3.1 PDF 파일 학습 에 따라서학습한다.
+
+매일 설정한 시간에 학습 이면
+해당 시간에 이전날 올라온 모든 글과 데이터를 학습한다.
+
+수동 학습 (관리자 실행) 이면, 
+관리자가 "학습 시작" 버튼을 누르면 학습을 시작한다.
+이전 학습 이후에 올라온 모든 글을 학습니다.
+
+EasyDocStation이 로드될 때에 config.json을 읽어들여서 설정하거나, 
+저장 버튼을 누르면 새로운 값으로 업데이트 해줘
+
+다른 부분은 수정하지 말아줘
+
+
+# 13.3.3 Text 학습 코드
+
+##########
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+
+# 1. 원본 텍스트 준비
+raw_text = {게시글 내용}
+
+# 2. 텍스트 분할기 설정
+text_splitter = RecursiveCharacterTextSplitter(
+    chunk_size=config.rag.chunk_size,
+    chunk_overlap=config.rag.chunk_overlap,
+    separators=["\n\n", "\n", ".", " "] # 단락 -> 줄바꿈 -> 마침표 순으로 분할 시도
+)
+chunks = text_splitter.split_text(raw_text)
+
+from sentence_transformers import SentenceTransformer
+
+# 모델 로드 (Mac GPU/MPS 가속 활용)
+embed_model = SentenceTransformer('BAAI/bge-m3', device='mps')
+
+# 텍스트를 벡터로 변환
+vectors = embed_model.encode(chunks)
+
+import lancedb
+
+db = lancedb.connect("./lancedb_data")
+table = db.open_table("my_rag_table") # 기존에 만든 테이블 열기
+
+# 저장할 데이터 형식 구성
+data_to_save = []
+for i, (text, vector) in enumerate(zip(chunks, vectors)):
+    data_to_save.append({
+        "vector": vector,
+        "text": text,
+        "metadata": {"chunk_id": i, "type": "manual_text"}
+    })
+
+# DB에 추가 (이 순간 '학습' 완료)
+table.add(data_to_save)
+
+
+
+
+#########
+
+
+#################################################################################
+# Error
+
+# E.1 Display 설정 사라진 사전
+
+사이트 관리 에서
+
+사용자 관리 
+DB 관리
+Display 설정 
+RAG 학습 설정
+
+이 있어야 하는데 DB관리가 없어지고
+DB 관리가 Display 관리로 바뀌었다.
+
+현재의 Display 관리를 DB 관리로 바꾸어주고
+Display 관리는 추가해줘
+
+Display 관리에 추가될 내용은 
+
+config.json 파일에 저장되어있는 imagePreview 내용이다.
+
+  "imagePreview": {
+    "width": 378,
+    "height": 378
+  },
+
+EasyDocStation을 실행할 떄 불러 들여서 설정하고, 
+저장 버튼을 누르면 설정된 값이 저장되도록 한다.
+
+다른 부분은 수정하지 말아줘
+
+
+# E.2 RAG 학습 여부와 결과 확인
+
+import lancedb
+
+db = lancedb.connect("./lancedb_data")
+table = db.open_table("my_rag_table")
+
+# 1. 전체 데이터 개수 확인
+print(f"현재 총 저장된 청크 수: {len(table)}")
+
+# 2. 가장 최근에 추가된 데이터 5개 확인
+# LanceDB는 추가된 순서대로 저장되므로 마지막 레코드를 확인하면 됩니다.
+latest_data = table.to_pandas().tail(5)
+print("--- 최신 추가 데이터 목록 ---")
+print(latest_data[['text', 'metadata']])
+
+
+# E.3 업로드시 즉시 RAG 수행

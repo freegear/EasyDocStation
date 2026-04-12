@@ -10,18 +10,29 @@ function formatTime(isoString) {
 }
 
 export default function GroqPanel() {
+  const [copiedId, setCopiedId] = useState(null)
+
+  function copyToClipboard(id, text) {
+    navigator.clipboard.writeText(text).then(() => {
+      setCopiedId(id)
+      setTimeout(() => setCopiedId(null), 2000)
+    })
+  }
+
   const [messages, setMessages] = useState([
     {
       id: 'init',
       role: 'assistant',
-      content: '안녕하세요! GROQ AI 어시스턴트입니다. 무엇이든 물어보세요. 대화 요약, 문서 작성, 질문 답변 등 도와드릴 수 있습니다.',
+      content: '안녕하세요! EasyDoc AgenticAI 어시스턴트입니다. 무엇이든 물어보세요!',
       time: new Date().toISOString(),
     }
   ])
   const [input, setInput] = useState('')
-  const [selectedModel, setSelectedModel] = useState(GROQ_MODELS[0].id)
+   const [selectedModel, setSelectedModel] = useState(GROQ_MODELS[0].id)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
+  const [attachedFile, setAttachedFile] = useState(null)
+  const fileInputRef = useRef(null)
   const bottomRef = useRef(null)
   const textareaRef = useRef(null)
 
@@ -29,52 +40,89 @@ export default function GroqPanel() {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages.length])
 
+  // 파일을 Base64로 변환하는 헬퍼 함수
+  const fileToBase64 = (file) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.readAsDataURL(file)
+      reader.onload = () => resolve(reader.result.split(',')[1]) // 'data:image/...;base64,' 부분 제거
+      reader.onerror = (error) => reject(error)
+    })
+  }
+
   async function sendMessage() {
     const text = input.trim()
-    if (!text || loading) return
+    if (!text && !attachedFile || loading) return
+
+    const isImage = attachedFile?.type.startsWith('image/')
+    let imageUrl = null
+    let base64Data = null
+
+    if (isImage) {
+      imageUrl = URL.createObjectURL(attachedFile)
+      try {
+        base64Data = await fileToBase64(attachedFile)
+      } catch (e) {
+        console.error("Base64 conversion failed", e)
+      }
+    }
+
+    const fileName = attachedFile ? ` [파일 첨부: ${attachedFile.name}]` : ''
+    const fullText = text + fileName
 
     const userMsg = {
       id: `u-${Date.now()}`,
       role: 'user',
-      content: text,
+      content: fullText,
       time: new Date().toISOString(),
+      image: imageUrl,
     }
 
     setMessages(prev => [...prev, userMsg])
     setInput('')
+    setAttachedFile(null)
     setLoading(true)
     setError(null)
+
+    // API 전송용 메시지 구성
+    const userApiMessage = { role: 'user', content: fullText }
+    if (base64Data) {
+      userApiMessage.images = [base64Data] // Ollama 멀티모달 형식
+    }
 
     const historyForApi = messages
       .filter(m => m.role !== 'system')
       .map(m => ({ role: m.role, content: m.content }))
 
     try {
-      const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      // 로컬 Ollama Native API 호출 (멀티모달 지원 최적화)
+      const response = await fetch('http://localhost:11434/api/chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${GROQ_API_KEY}`,
         },
         body: JSON.stringify({
           model: selectedModel,
           messages: [
             { role: 'system', content: SYSTEM_PROMPT },
             ...historyForApi,
-            { role: 'user', content: text },
+            userApiMessage,
           ],
-          max_tokens: 1024,
-          temperature: 0.7,
+          stream: false, // 스트리밍 대신 한 번에 결과 받기
+          options: {
+            temperature: 0.7,
+            num_predict: 1024,
+          }
         }),
       })
 
       if (!response.ok) {
         const errData = await response.json().catch(() => ({}))
-        throw new Error(errData.error?.message || `HTTP ${response.status}`)
+        throw new Error(errData.error || `HTTP ${response.status}`)
       }
 
       const data = await response.json()
-      const assistantContent = data.choices?.[0]?.message?.content || '응답을 받지 못했습니다.'
+      const assistantContent = data.message?.content || '응답을 받지 못했습니다.'
 
       setMessages(prev => [...prev, {
         id: `a-${Date.now()}`,
@@ -98,10 +146,25 @@ export default function GroqPanel() {
   }
 
   function handleKeyDown(e) {
+    // 한글 입력 중(IME 조합 중) 엔터키가 두 번 인식되는 것을 방지
+    if (e.nativeEvent.isComposing) return
+
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
       sendMessage()
     }
+  }
+
+  function handleFileChange(e) {
+    const file = e.target.files[0]
+    if (file) {
+      setAttachedFile(file)
+    }
+    e.target.value = null // Reset for same file selection
+  }
+
+  function removeFile() {
+    setAttachedFile(null)
   }
 
   function clearChat() {
@@ -112,6 +175,7 @@ export default function GroqPanel() {
       time: new Date().toISOString(),
     }])
     setError(null)
+    setAttachedFile(null)
   }
 
   return (
@@ -124,7 +188,7 @@ export default function GroqPanel() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
             </svg>
           </div>
-          <span className="text-white font-semibold text-sm">GROQ AI</span>
+          <span className="text-white font-semibold text-sm">EasyDoc AgenticAI</span>
           {loading && (
             <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
           )}
@@ -182,8 +246,40 @@ export default function GroqPanel() {
                 ? 'bg-red-500/20 text-red-300 border border-red-500/30 rounded-tl-sm'
                 : 'bg-white/8 text-white/85 rounded-tl-sm border border-white/5'
             }`}>
+              {msg.image && (
+                <div className="mb-2 w-64 h-64 overflow-hidden rounded-lg border border-white/10">
+                  <img
+                    src={msg.image}
+                    alt="첨부 이미지"
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              )}
               {msg.content}
             </div>
+            {msg.role === 'assistant' && !msg.isError && (
+              <button
+                onClick={() => copyToClipboard(msg.id, msg.content)}
+                title="답변 복사"
+                className="flex items-center gap-1 px-2 py-1 rounded-md text-white/25 hover:text-white/60 hover:bg-white/8 transition-all text-[10px]"
+              >
+                {copiedId === msg.id ? (
+                  <>
+                    <svg className="w-3 h-3 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    <span className="text-green-400">Copied!</span>
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                    </svg>
+                    <span>Copy</span>
+                  </>
+                )}
+              </button>
+            )}
           </div>
         ))}
 
@@ -209,7 +305,40 @@ export default function GroqPanel() {
 
       {/* Input area */}
       <div className="px-3 py-3 border-t border-white/10 flex-shrink-0">
-        <div className="flex items-end gap-2 bg-white/8 rounded-xl border border-white/10 px-3 py-2 focus-within:border-green-500/40 transition-colors">
+        {/* Attached File Preview */}
+        {attachedFile && (
+          <div className="mb-2 flex items-center justify-between bg-white/5 rounded-lg px-2 py-1.5 border border-white/10">
+            <div className="flex items-center gap-2 overflow-hidden">
+              <svg className="w-3.5 h-3.5 text-green-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.414a4 4 0 00-5.656-5.656l-6.415 6.414a6 6 0 008.486 8.486L20.5 13" />
+              </svg>
+              <span className="text-[10px] text-white/70 truncate">{attachedFile.name}</span>
+            </div>
+            <button onClick={removeFile} className="text-white/30 hover:text-white/70">
+              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        )}
+
+        <div className="flex items-end gap-2 bg-white/8 rounded-xl border border-white/10 px-2 py-2 focus-within:border-green-500/40 transition-colors">
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleFileChange}
+            className="hidden"
+          />
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            disabled={loading}
+            title="파일 첨부"
+            className="flex-shrink-0 w-7 h-7 rounded-lg hover:bg-white/10 text-white/40 hover:text-white/70 flex items-center justify-center transition-colors self-end"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.414a4 4 0 00-5.656-5.656l-6.415 6.414a6 6 0 008.486 8.486L20.5 13" />
+            </svg>
+          </button>
           <textarea
             ref={textareaRef}
             value={input}

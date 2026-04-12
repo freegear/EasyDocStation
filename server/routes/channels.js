@@ -23,8 +23,8 @@ router.get('/:id', requireAuth, async (req, res, next) => {
 router.put('/:id', requireAuth, async (req, res, next) => {
   try {
     const { id } = req.params
-    const { name, type, team_id, adminIds, memberIds } = req.body
-
+    const { name, type, description, team_id, adminIds, memberIds } = req.body
+    
     // Ensure team exists or use a default existing team
     let finalTeamId = team_id
     const teamCheck = await db.query('SELECT id FROM teams WHERE id = $1', [finalTeamId])
@@ -37,14 +37,15 @@ router.put('/:id', requireAuth, async (req, res, next) => {
     await db.query('BEGIN')
 
     const result = await db.query(
-      `INSERT INTO channels (id, team_id, name, type, updated_at)
-       VALUES ($1, $2, $3, $4, NOW())
+      `INSERT INTO channels (id, team_id, name, type, description, updated_at)
+       VALUES ($1, $2, $3, $4, $5, NOW())
        ON CONFLICT (id) DO UPDATE
        SET name = EXCLUDED.name, 
            type = EXCLUDED.type, 
+           description = EXCLUDED.description,
            updated_at = NOW()
        RETURNING *`,
-      [id, finalTeamId, name, type]
+      [id, finalTeamId, name, type, description || null]
     )
 
     // Sync Admins
@@ -95,9 +96,9 @@ router.get('/:id/stats', requireAuth, async (req, res, next) => {
     const { id } = req.params
     const stats = await db.query(`
       SELECT 
-        (SELECT COUNT(*) FROM posts WHERE channel_id = $1) as message_count,
-        (SELECT COUNT(*) FROM attachments a JOIN posts p ON a.post_id = p.id WHERE p.channel_id = $1) as file_count,
-        (SELECT COALESCE(SUM(size), 0) FROM attachments a JOIN posts p ON a.post_id = p.id WHERE p.channel_id = $1) as total_size
+        ( (SELECT COUNT(*) FROM posts WHERE channel_id = $1) + (SELECT COUNT(*) FROM comments WHERE channel_id = $1) ) as message_count,
+        (SELECT COUNT(*) FROM attachments WHERE channel_id = $1) as file_count,
+        (SELECT COALESCE(SUM(size), 0) FROM attachments WHERE channel_id = $1) as total_size
     `, [id])
     
     res.json(stats.rows[0])

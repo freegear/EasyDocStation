@@ -337,10 +337,8 @@ export const USERS = [
 ]
 
 export const GROQ_MODELS = [
-  { id: 'llama-3.3-70b-versatile', label: 'Llama 3.3 70B' },
-  { id: 'llama-3.1-8b-instant', label: 'Llama 3.1 8B (Fast)' },
-  { id: 'gemma2-9b-it', label: 'Gemma2 9B' },
-  { id: 'mixtral-8x7b-32768', label: 'Mixtral 8x7B' },
+  { id: 'gemma4:e4b', label: 'EasyDoc AgenticAI (Gemma)' },
+  { id: 'llava', label: 'Image Analysis (Llava)' },
 ]
 
-export const GROQ_API_KEY = import.meta.env.VITE_GROQ_API_KEY || ''
+export const GROQ_API_KEY = 'ollama' // 로컬 Ollama 사용 시 키가 필요 없으므로 임의 값 설정

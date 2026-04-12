@@ -10,12 +10,16 @@ const teamsRouter = require('./routes/teams')
 const filesRouter = require('./routes/files')
 const postsRouter = require('./routes/posts')
 const { initCassandra } = require('./cassandra')
+const { initRag } = require('./rag')
 
 const app = express()
 const PORT = process.env.PORT || 3001
 
 // Initialize Cassandra
 initCassandra()
+
+// Initialize RAG scheduler (config.json 의 rag 설정 반영)
+initRag()
 
 app.use(cors({
   origin: process.env.CLIENT_ORIGIN || 'http://localhost:5173',
