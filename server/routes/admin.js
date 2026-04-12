@@ -5,7 +5,100 @@ const requireAuth = require('../middleware/auth')
 const path = require('path')
 const fs = require('fs')
 const { execFile } = require('child_process')
+const bcrypt = require('bcryptjs')
+const { client: cassandraClient } = require('../cassandra')
 const { runManualTraining, reloadRagConfig, getState: getRagState } = require('../rag')
+
+// ... (existing code helpers)
+
+// POST /api/admin/reset — Full Site Reset
+router.post('/reset', async (req, res) => {
+  const { confirmation } = req.body
+  if (confirmation !== '초기화를 해줘') {
+    return res.status(400).json({ error: '초기화 문구가 정확하지 않습니다.' })
+  }
+
+  try {
+    // 1. PostgreSQL Clean
+    // Tables order to avoid FK issues: 
+    // comments, attachments, posts, team_members, channel_members, channels, teams, users (except siteadmin)
+    await pool.query('BEGIN')
+    
+    // Clear transactional data
+    await pool.query('DELETE FROM comments')
+    await pool.query('DELETE FROM attachments')
+    await pool.query('DELETE FROM posts')
+    await pool.query('DELETE FROM team_members')
+    await pool.query('DELETE FROM channel_members')
+    await pool.query('DELETE FROM channels')
+    await pool.query('DELETE FROM teams')
+    
+    // Manage siteadmin user
+    const adminPasswordHash = await bcrypt.hash('siteadmin1234', 10)
+    
+    // Delete all users except siteadmin
+    await pool.query("DELETE FROM users WHERE username != 'siteadmin'")
+    
+    // Upsert siteadmin
+    const siteAdminCheck = await pool.query("SELECT id FROM users WHERE username = 'siteadmin'")
+    if (siteAdminCheck.rowCount > 0) {
+      await pool.query(
+        "UPDATE users SET password_hash = $1, role = 'site_admin', is_active = true WHERE username = 'siteadmin'",
+        [adminPasswordHash]
+      )
+    } else {
+      await pool.query(
+        "INSERT INTO users (username, name, email, password_hash, role, is_active) VALUES ($1, $2, $3, $4, $5, $6)",
+        ['siteadmin', 'Site Admin', 'admin@example.com', adminPasswordHash, 'site_admin', true]
+      )
+    }
+    
+    await pool.query('COMMIT')
+
+    // 2. Cassandra Clean
+    const { isConnected: isCassandraConnected } = require('../cassandra')
+    if (isCassandraConnected()) {
+      try {
+        await cassandraClient.execute('TRUNCATE posts')
+        await cassandraClient.execute('TRUNCATE comments')
+      } catch (e) {
+        console.error('Cassandra clear error:', e.message)
+      }
+    }
+
+    // 3. Storage & DB Folders Clean
+    const configPath = path.resolve(__dirname, '../../config.json')
+    const config = JSON.parse(fs.readFileSync(configPath, 'utf8'))
+    
+    const deleteFolderContents = (folder) => {
+      if (fs.existsSync(folder)) {
+        fs.readdirSync(folder).forEach((file) => {
+          const curPath = path.join(folder, file)
+          if (fs.lstatSync(curPath).isDirectory()) {
+            deleteFolderContents(curPath)
+            fs.rmdirSync(curPath)
+          } else {
+            fs.unlinkSync(curPath)
+          }
+        })
+      }
+    }
+    
+    // Clear ObjectFile
+    const uploadPath = config['ObjectFile Path'] || path.resolve(__dirname, '../../Database/ObjectFile')
+    deleteFolderContents(uploadPath)
+    
+    // Clear LanceDB
+    const lancedbPath = config['lancedb Database Path'] || path.resolve(__dirname, '../../Database/LanceDB')
+    deleteFolderContents(lancedbPath)
+
+    res.json({ success: true, message: '사이트가 초기화되었습니다. 다시 로그인해 주세요.' })
+  } catch (err) {
+    await pool.query('ROLLBACK')
+    console.error('Reset Error:', err)
+    res.status(500).json({ error: '초기화 작업 중 오류가 발생했습니다: ' + err.message })
+  }
+})
 
 // Check if user is site_admin
 function requireSiteAdmin(req, res, next) {
