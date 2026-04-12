@@ -48,3 +48,11 @@
 [2026-04-12T05:47:18.172Z] Success: thumbnails/50c74388-8c20-46e6-abbc-3448a6b66ad3.png
 [2026-04-12T05:52:40.884Z] Generating for 3a4411e0-fdb5-49ed-b3d1-8ee39b89bbe7: qlmanage -t -s 512 -o "/Users/kevinim/Desktop/EasyDocStation/Database/ObjectFile/thumbnails" "/Users/kevinim/Desktop/EasyDocStation/Database/ObjectFile/종윤/20260412055240/녹음 2026-04-07 105523.mp4"
 [2026-04-12T05:52:41.067Z] Success: thumbnails/3a4411e0-fdb5-49ed-b3d1-8ee39b89bbe7.png
+[2026-04-12T06:06:56.135Z] Generating for 3fca7cd1-6dc2-42bb-8d11-e4c89963cb94: qlmanage -t -s 512 -o "/Users/kevinim/Desktop/EasyDocStation/Database/ObjectFile/thumbnails" "/Users/kevinim/Desktop/EasyDocStation/Database/ObjectFile/StoryForge/20260412060656/1_견적서_셀콘_Zynq 펌웨어_250425.docx"
+[2026-04-12T06:06:56.592Z] Success: thumbnails/3fca7cd1-6dc2-42bb-8d11-e4c89963cb94.png
+[2026-04-12T06:12:25.846Z] Generating for 84d64001-232c-4352-acb5-47c93d5e53b3: qlmanage -t -s 512 -o "/Users/kevinim/Desktop/EasyDocStation/Database/ObjectFile/thumbnails" "/Users/kevinim/Desktop/EasyDocStation/Database/ObjectFile/StoryForge/20260412061225/1_견적서_셀콘_Zynq 펌웨어_250425 (1).docx"
+[2026-04-12T06:12:26.078Z] Success: thumbnails/84d64001-232c-4352-acb5-47c93d5e53b3.png
+[2026-04-12T06:16:03.204Z] Generating for e3929c25-868f-44fa-b7f9-64f0f780dfa8: qlmanage -t -s 512 -o "/Users/kevinim/Desktop/EasyDocStation/Database/ObjectFile/thumbnails" "/Users/kevinim/Desktop/EasyDocStation/Database/ObjectFile/StoryForge/20260412061603/H30 N2840 J2900 2 LAN 4 COM PC.docx"
+[2026-04-12T06:16:03.423Z] Success: thumbnails/e3929c25-868f-44fa-b7f9-64f0f780dfa8.png
+[2026-04-12T06:17:48.310Z] Generating for 6016af13-6a18-445c-b220-8cbb819072f6: qlmanage -t -s 512 -o "/Users/kevinim/Desktop/EasyDocStation/Database/ObjectFile/thumbnails" "/Users/kevinim/Desktop/EasyDocStation/Database/ObjectFile/StoryForge/20260412061748/개발용역계약서_갱신.docx"
+[2026-04-12T06:17:48.604Z] Success: thumbnails/6016af13-6a18-445c-b220-8cbb819072f6.png

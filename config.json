@@ -1,4 +1,5 @@
 {
+  "EasyDocStation Version": "0.1.0",
   "imagePreview": {
     "width": 378,
     "height": 378
@@ -37,5 +38,11 @@
   "agenticai": {
     "num_predict": 4096,
     "num_ctx": 8192
+  },
+  "email_settings": {
+    "smtp_server": "smtp.gmail.com",
+    "smtp_port": 587,
+    "sender_email": "your-email@gmail.com",
+    "sender_password": "your-app-password"
   }
 }

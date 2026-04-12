@@ -422,7 +422,7 @@ router.post('/:id/comments', requireAuth, async (req, res, next) => {
     const newComment = comments.find(c => c.id === commentId)
 
     // 업로드 즉시 LanceDB 임베딩 (비동기, 응답에 영향 없음)
-    trainCommentImmediate({ id: commentId, post_id: postId, channel_id: channelId || '', content })
+    trainCommentImmediate({ id: commentId, post_id: postId, channel_id: channelId || '', content, attachmentIds })
 
     res.status(201).json(newComment)
   } catch (err) {

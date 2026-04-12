@@ -204,6 +204,36 @@ async function trainPostImmediate(post) {
   }
 }
 
+// ─── 댓글 첨부파일 경로 조회 (attachment ID 목록으로 직접 조회) ─
+async function getDocumentPathsByIds(attachmentIds) {
+  if (!attachmentIds || attachmentIds.length === 0) return { pdfs: [], words: [] }
+  try {
+    const cfg         = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'))
+    const storageBase = cfg['ObjectFile Path'] || path.resolve(__dirname, '../uploads')
+    const placeholders = attachmentIds.map((_, i) => `$${i + 1}`).join(', ')
+    const result = await db.query(
+      `SELECT id, storage_path, content_type FROM attachments
+       WHERE id IN (${placeholders}) AND status = 'COMPLETED'
+         AND content_type IN (
+           'application/pdf',
+           'application/msword',
+           'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+         )`,
+      attachmentIds
+    )
+    const pdfs = [], words = []
+    for (const r of result.rows) {
+      const item = { id: r.id, path: path.join(storageBase, r.storage_path) }
+      if (r.content_type === 'application/pdf') pdfs.push(item)
+      else words.push(item)
+    }
+    return { pdfs, words }
+  } catch (e) {
+    console.error('[RAG] 댓글 문서 경로 조회 실패:', e.message)
+    return { pdfs: [], words: [] }
+  }
+}
+
 // ─── 댓글 학습 (Python에 comments 배열 전달) ─────────────────
 async function runCommentTraining(comments) {
   if (comments.length === 0) {
@@ -214,6 +244,21 @@ async function runCommentTraining(comments) {
   const cfg    = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'))
   const ragCfg = cfg.rag || {}
 
+  // 각 댓글의 PDF + Word 첨부파일 경로 조회
+  const commentsWithDocs = await Promise.all(
+    comments.map(async c => {
+      const { pdfs, words } = await getDocumentPathsByIds(c.attachmentIds || [])
+      return {
+        id:            c.id,
+        post_id:       c.post_id,
+        channel_id:    c.channel_id || '',
+        content:       c.content || '',
+        pdfs,
+        words,
+      }
+    })
+  )
+
   const payload = {
     config: {
       lancedb_path:  cfg['lancedb Database Path'] || '/Users/kevinim/Desktop/EasyDocStation/Database/LanceDB',
@@ -222,12 +267,7 @@ async function runCommentTraining(comments) {
       vector_size:   ragCfg.vectorSize    ?? 1024,
     },
     posts:    [],
-    comments: comments.map(c => ({
-      id:         c.id,
-      post_id:    c.post_id,
-      channel_id: c.channel_id || '',
-      content:    c.content || '',
-    })),
+    comments: commentsWithDocs,
   }
 
   console.log(`[RAG] 댓글 학습 시작 — ${comments.length}개 댓글`)

@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useChat } from '../contexts/ChatContext'
 import { useAuth } from '../contexts/AuthContext'
+import { apiFetch } from '../lib/api'
 import TeamManageModal from './TeamManageModal'
 import ChannelManageModal from './ChannelManageModal'
 
@@ -30,6 +31,13 @@ export default function Sidebar() {
   const [showChannelModal, setShowChannelModal] = useState(false)
   const [channelModalMode, setChannelModalMode] = useState('add')
   const [editingChannel, setEditingChannel] = useState(null)
+  const [appVersion, setAppVersion] = useState('')
+
+  useEffect(() => {
+    apiFetch('/config/version')
+      .then(data => setAppVersion(data.version || ''))
+      .catch(() => {})
+  }, [])
 
   // 채널 관리 권한 체크
   // - site_admin: 모든 채널 관리 가능
@@ -211,6 +219,13 @@ export default function Sidebar() {
             </div>
           )}
         </div>
+      </div>
+
+      {/* Version */}
+      <div className="px-4 py-2.5 border-t border-white/5 mt-auto">
+        <p className="text-white/20 text-[10px] text-center tracking-widest">
+          EasyDocStation {appVersion && `v${appVersion}`}
+        </p>
       </div>
 
       {showTeamModal && (

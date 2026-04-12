@@ -38,6 +38,18 @@ app.use('/api/posts', postsRouter)
 app.use('/api/rag',   ragRouter)
 
 // 공용 설정 API (관리자 설정값 조회용)
+app.get('/api/config/version', (req, res) => {
+  try {
+    const fs = require('fs')
+    const path = require('path')
+    const configPath = path.resolve(__dirname, '../config.json')
+    const config = JSON.parse(fs.readFileSync(configPath, 'utf8'))
+    res.json({ version: config['EasyDocStation Version'] || '0.1.0' })
+  } catch (e) {
+    res.json({ version: '0.1.0' })
+  }
+})
+
 app.get('/api/config/display', (req, res) => {
   try {
     const fs = require('fs')
