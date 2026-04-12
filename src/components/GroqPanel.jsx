@@ -1,4 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 import { GROQ_MODELS, GROQ_API_KEY } from '../data/mockData'
 import { apiFetch } from '../lib/api'
 import { useChat } from '../contexts/ChatContext'
@@ -288,10 +290,10 @@ export default function GroqPanel() {
               )}
               <span className="text-white/30 text-xs">{formatTime(msg.time)}</span>
             </div>
-            <div className={`px-3 py-2 rounded-xl text-xs leading-relaxed max-w-full whitespace-pre-wrap ${msg.role === 'user'
-                ? 'bg-indigo-600 text-white rounded-tr-sm'
+            <div className={`px-3 py-2 rounded-xl text-xs leading-relaxed max-w-full ${msg.role === 'user'
+                ? 'bg-indigo-600 text-white rounded-tr-sm whitespace-pre-wrap'
                 : msg.isError
-                  ? 'bg-red-500/20 text-red-300 border border-red-500/30 rounded-tl-sm'
+                  ? 'bg-red-500/20 text-red-300 border border-red-500/30 rounded-tl-sm whitespace-pre-wrap'
                   : 'bg-white/8 text-white/85 rounded-tl-sm border border-white/5'
               }`}>
               {msg.image && (
@@ -303,7 +305,35 @@ export default function GroqPanel() {
                   />
                 </div>
               )}
-              {msg.content}
+              {msg.role === 'assistant' && !msg.isError ? (
+                <ReactMarkdown
+                  remarkPlugins={[remarkGfm]}
+                  components={{
+                    h1: ({ children }) => <p className="font-bold text-sm mb-1">{children}</p>,
+                    h2: ({ children }) => <p className="font-bold text-xs mb-1">{children}</p>,
+                    h3: ({ children }) => <p className="font-semibold text-xs mb-1">{children}</p>,
+                    p: ({ children }) => <p className="mb-1.5 last:mb-0">{children}</p>,
+                    ul: ({ children }) => <ul className="list-disc pl-4 mb-1.5 space-y-0.5">{children}</ul>,
+                    ol: ({ children }) => <ol className="list-decimal pl-4 mb-1.5 space-y-0.5">{children}</ol>,
+                    li: ({ children }) => <li>{children}</li>,
+                    strong: ({ children }) => <strong className="font-semibold text-white">{children}</strong>,
+                    em: ({ children }) => <em className="italic text-white/70">{children}</em>,
+                    code: ({ inline, children }) => inline
+                      ? <code className="bg-black/30 px-1 py-0.5 rounded text-green-300 font-mono">{children}</code>
+                      : <pre className="bg-black/40 rounded-lg p-2 mt-1 mb-1.5 overflow-x-auto"><code className="text-green-300 font-mono text-[10px]">{children}</code></pre>,
+                    blockquote: ({ children }) => <blockquote className="border-l-2 border-white/30 pl-2 text-white/60 italic my-1">{children}</blockquote>,
+                    hr: () => <hr className="border-white/15 my-2" />,
+                    a: ({ href, children }) => <a href={href} target="_blank" rel="noreferrer" className="text-indigo-300 underline hover:text-indigo-200">{children}</a>,
+                    table: ({ children }) => <div className="overflow-x-auto my-1.5"><table className="w-full text-[10px] border-collapse">{children}</table></div>,
+                    th: ({ children }) => <th className="border border-white/20 px-2 py-1 bg-white/10 font-semibold text-left">{children}</th>,
+                    td: ({ children }) => <td className="border border-white/10 px-2 py-1">{children}</td>,
+                  }}
+                >
+                  {msg.content}
+                </ReactMarkdown>
+              ) : (
+                msg.content
+              )}
             </div>
             {msg.role === 'assistant' && !msg.isError && (
               <>

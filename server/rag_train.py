@@ -240,6 +240,64 @@ for comment in comments:
     post_id    = comment.get("post_id", "")
     channel_id = comment.get("channel_id", "")
     content    = (comment.get("content") or "").strip()
+
+    # PDF 첨부파일 학습
+    for pdf_info in comment.get("pdfs", []):
+        pdf_id   = pdf_info.get("id")
+        pdf_path = pdf_info.get("path")
+        if pdf_path and os.path.isfile(pdf_path):
+            pdf_text = load_pdf(pdf_path)
+            if pdf_text:
+                chunks = text_splitter.split_text(pdf_text)
+                if chunks:
+                    vectors = embed_model.encode(chunks, batch_size=16, show_progress_bar=False)
+                    for i, (chunk, vector) in enumerate(zip(chunks, vectors)):
+                        records.append({
+                            "vector": vector.tolist(),
+                            "text": chunk,
+                            "metadata": {
+                                "post_id":       post_id,
+                                "chunk_id":      i,
+                                "type":          "comment_pdf",
+                                "channel_id":    channel_id,
+                                "attachment_id": pdf_id or "",
+                                "comment_id":    comment_id,
+                            }
+                        })
+                    total_chunks += len(chunks)
+                print(f"[RAG] comment={comment_id} PDF 학습 완료: {os.path.basename(pdf_path)}", flush=True)
+        elif pdf_path:
+            print(f"[RAG] comment={comment_id} PDF 파일 없음: {pdf_path}", file=sys.stderr)
+
+    # Word 첨부파일 학습
+    for word_info in comment.get("words", []):
+        word_id   = word_info.get("id")
+        word_path = word_info.get("path")
+        if word_path and os.path.isfile(word_path):
+            word_text = load_word(word_path)
+            if word_text:
+                chunks = text_splitter.split_text(word_text)
+                if chunks:
+                    vectors = embed_model.encode(chunks, batch_size=16, show_progress_bar=False)
+                    for i, (chunk, vector) in enumerate(zip(chunks, vectors)):
+                        records.append({
+                            "vector": vector.tolist(),
+                            "text": chunk,
+                            "metadata": {
+                                "post_id":       post_id,
+                                "chunk_id":      i,
+                                "type":          "comment_word",
+                                "channel_id":    channel_id,
+                                "attachment_id": word_id or "",
+                                "comment_id":    comment_id,
+                            }
+                        })
+                    total_chunks += len(chunks)
+                print(f"[RAG] comment={comment_id} Word 학습 완료: {os.path.basename(word_path)}", flush=True)
+        elif word_path:
+            print(f"[RAG] comment={comment_id} Word 파일 없음: {word_path}", file=sys.stderr)
+
+    # 텍스트 내용 학습
     if not content:
         continue
 
