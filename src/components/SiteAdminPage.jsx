@@ -266,7 +266,8 @@ export default function SiteAdminPage({ onClose }) {
     pptPreview: { width: 480, height: 270 },
     pptxPreview: { width: 480, height: 270 },
     excelPreview: { width: 480, height: 270 },
-    wordPreview: { width: 270, height: 480 }
+    wordPreview: { width: 270, height: 480 },
+    moviePreview: { width: 480, height: 270 }
   })
   const [lancedbPath, setLancedbPath] = useState('/Users/kevinim/Desktop/EasyDocStation/Database/LanceDB')
   const [ragForm, setRagForm] = useState({ type: 'manual', time: '02:00', vectorSize: 1024, chunkSize: 800, chunkOverlap: 100 })
@@ -299,7 +300,8 @@ export default function SiteAdminPage({ onClose }) {
           pptPreview: data.display.pptPreview || { width: 480, height: 270 },
           pptxPreview: data.display.pptxPreview || { width: 480, height: 270 },
           excelPreview: data.display.excelPreview || { width: 480, height: 270 },
-          wordPreview: data.display.wordPreview || { width: 270, height: 480 }
+          wordPreview: data.display.wordPreview || { width: 270, height: 480 },
+          moviePreview: data.display.moviePreview || { width: 480, height: 270 }
         })
       }
       if (data.lancedb?.location) {
@@ -378,6 +380,10 @@ export default function SiteAdminPage({ onClose }) {
         configData.wordPreview = {
           width: parseInt(displayForm.wordPreview.width),
           height: parseInt(displayForm.wordPreview.height)
+        }
+        configData.moviePreview = {
+          width: parseInt(displayForm.moviePreview.width),
+          height: parseInt(displayForm.moviePreview.height)
         }
       } else if (activeTab === 'db') {
         configData['lancedb Database Path'] = lancedbPath
@@ -609,15 +615,6 @@ export default function SiteAdminPage({ onClose }) {
 
             {/* User table */}
             <div className="bg-white/3 border border-white/8 rounded-2xl overflow-hidden">
-              <div className="grid grid-cols-[auto_1fr_1fr_auto_auto_auto] gap-4 px-5 py-3 border-b border-white/8 text-white/30 text-xs font-semibold uppercase tracking-wider">
-                <span>사용자</span><span></span>
-                <span>이메일</span>
-                <span>권한</span>
-                <span>마지막 로그인</span>
-                <span>상태</span>
-                <span></span>
-              </div>
-
               {loading ? (
                 <div className="flex items-center justify-center py-16 text-white/30 text-sm">
                   <div className="w-5 h-5 border-2 border-white/20 border-t-indigo-500 rounded-full animate-spin mr-2" />
@@ -626,60 +623,88 @@ export default function SiteAdminPage({ onClose }) {
               ) : filtered.length === 0 ? (
                 <div className="text-center py-16 text-white/30 text-sm">검색 결과가 없습니다.</div>
               ) : (
-                <div className="divide-y divide-white/5">
-                  {filtered.map(user => (
-                    <div
-                      key={user.id}
-                      className={`flex items-center gap-4 px-5 py-3.5 hover:bg-white/3 transition-colors ${!user.is_active ? 'opacity-50' : ''}`}
-                    >
-                      <div className="flex items-center gap-3 flex-1 min-w-0">
-                        <Avatar name={user.name} imageUrl={user.image_url} size={9} />
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-2">
-                            <p className="text-white text-sm font-medium truncate">{user.name}</p>
-                            {user.id === currentUser.id && (
-                              <span className="px-1.5 py-0.5 rounded text-xs bg-indigo-500/20 text-indigo-300 border border-indigo-500/20 flex-shrink-0">나</span>
+                <table className="w-full border-collapse">
+                  <colgroup>
+                    <col style={{ width: '220px' }} />
+                    <col />
+                    <col style={{ width: '180px' }} />
+                    <col style={{ width: '128px' }} />
+                    <col style={{ width: '72px' }} />
+                    <col style={{ width: '72px' }} />
+                  </colgroup>
+                  <thead>
+                    <tr className="border-b border-white/8 text-white/30 text-xs font-semibold uppercase tracking-wider">
+                      <th className="px-5 py-3 text-left font-semibold">사용자</th>
+                      <th className="px-5 py-3 text-left font-semibold">이메일</th>
+                      <th className="px-5 py-3 text-left font-semibold">권한</th>
+                      <th className="px-5 py-3 text-left font-semibold">마지막 로그인</th>
+                      <th className="px-5 py-3 text-left font-semibold">상태</th>
+                      <th className="px-5 py-3"></th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/5">
+                    {filtered.map(user => (
+                      <tr
+                        key={user.id}
+                        className={`hover:bg-white/3 transition-colors ${!user.is_active ? 'opacity-50' : ''}`}
+                      >
+                        <td className="px-5 py-3.5">
+                          <div className="flex items-center gap-3">
+                            <Avatar name={user.name} imageUrl={user.image_url} size={9} />
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-2">
+                                <p className="text-white text-sm font-medium truncate">{user.name}</p>
+                                {user.id === currentUser.id && (
+                                  <span className="px-1.5 py-0.5 rounded text-xs bg-indigo-500/20 text-indigo-300 border border-indigo-500/20 flex-shrink-0">나</span>
+                                )}
+                              </div>
+                              <p className="text-white/35 text-xs">@{user.username}</p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-5 py-3.5 max-w-0">
+                          <p className="text-white/50 text-sm truncate">{user.email}</p>
+                        </td>
+                        <td className="px-5 py-3.5">
+                          <RoleBadge role={user.role} />
+                        </td>
+                        <td className="px-5 py-3.5 text-white/30 text-xs whitespace-nowrap">
+                          {formatDate(user.last_login_at)}
+                        </td>
+                        <td className="px-5 py-3.5">
+                          <span className={`flex items-center gap-1 text-xs whitespace-nowrap ${user.is_active ? 'text-green-400' : 'text-white/25'}`}>
+                            <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${user.is_active ? 'bg-green-400' : 'bg-white/20'}`} />
+                            {user.is_active ? '활성' : '비활성'}
+                          </span>
+                        </td>
+                        <td className="px-5 py-3.5">
+                          <div className="flex items-center gap-1 justify-end">
+                            <button
+                              onClick={() => { setEditUser(user); setShowForm(true) }}
+                              className="p-1.5 rounded-lg text-white/30 hover:text-white/70 hover:bg-white/8 transition-colors"
+                              title="편집"
+                            >
+                              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                              </svg>
+                            </button>
+                            {user.id !== currentUser.id && (
+                              <button
+                                onClick={() => handleDelete(user)}
+                                className="p-1.5 rounded-lg text-red-400/40 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                                title="삭제"
+                              >
+                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                              </button>
                             )}
                           </div>
-                          <p className="text-white/35 text-xs">@{user.username}</p>
-                        </div>
-                      </div>
-
-                      <p className="text-white/50 text-sm flex-1 min-w-0 truncate">{user.email}</p>
-                      <div className="flex-shrink-0"><RoleBadge role={user.role} /></div>
-                      <p className="text-white/30 text-xs flex-shrink-0 w-32 text-right">{formatDate(user.last_login_at)}</p>
-                      <div className="flex-shrink-0">
-                        <span className={`flex items-center gap-1 text-xs ${user.is_active ? 'text-green-400' : 'text-white/25'}`}>
-                          <span className={`w-1.5 h-1.5 rounded-full ${user.is_active ? 'bg-green-400' : 'bg-white/20'}`} />
-                          {user.is_active ? '활성' : '비활성'}
-                        </span>
-                      </div>
-
-                      <div className="flex items-center gap-1 flex-shrink-0">
-                        <button
-                          onClick={() => { setEditUser(user); setShowForm(true) }}
-                          className="p-1.5 rounded-lg text-white/30 hover:text-white/70 hover:bg-white/8 transition-colors"
-                          title="편집"
-                        >
-                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                          </svg>
-                        </button>
-                        {user.id !== currentUser.id && (
-                          <button
-                            onClick={() => handleDelete(user)}
-                            className="p-1.5 rounded-lg text-red-400/40 hover:text-red-400 hover:bg-red-500/10 transition-colors"
-                            title="삭제"
-                          >
-                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               )}
             </div>
             <p className="text-white/20 text-xs mt-3 text-right">
@@ -1132,6 +1157,14 @@ export default function SiteAdminPage({ onClose }) {
                     description="Word 파일의 미리보기 규격입니다."
                     value={displayForm.wordPreview}
                     onChange={(val) => setDisplayForm(p => ({ ...p, wordPreview: val }))}
+                  />
+
+                  {/* Movie Preview */}
+                  <PreviewSettingCard
+                    title="Movie Preview 설정"
+                    description="AVI, MOV 동영상 파일의 미리보기 규격입니다."
+                    value={displayForm.moviePreview}
+                    onChange={(val) => setDisplayForm(p => ({ ...p, moviePreview: val }))}
                   />
                 </div>
               </div>

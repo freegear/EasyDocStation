@@ -18,5 +18,9 @@
   "wordPreview": {
     "width": 270,
     "height": 480
+  },
+  "moviePreview": {
+    "width": 480,
+    "height": 270
   }
 }

@@ -38,6 +38,25 @@ app.use('/api/posts', postsRouter)
 app.use('/api/rag',   ragRouter)
 
 // 공용 설정 API (관리자 설정값 조회용)
+app.get('/api/config/display', (req, res) => {
+  try {
+    const fs = require('fs')
+    const path = require('path')
+    const configPath = path.resolve(__dirname, '../config.json')
+    const config = JSON.parse(fs.readFileSync(configPath, 'utf8'))
+    res.json({
+      imagePreview:  config.imagePreview  || { width: 512, height: 512 },
+      pptPreview:    config.pptPreview    || { width: 480, height: 270 },
+      pptxPreview:   config.pptxPreview   || { width: 480, height: 270 },
+      excelPreview:  config.excelPreview  || { width: 480, height: 270 },
+      wordPreview:   config.wordPreview   || { width: 270, height: 480 },
+      moviePreview:  config.moviePreview  || { width: 480, height: 270 },
+    })
+  } catch (e) {
+    res.json({ moviePreview: { width: 480, height: 270 } })
+  }
+})
+
 app.get('/api/config/agenticai', (req, res) => {
   try {
     const fs = require('fs')

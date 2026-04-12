@@ -44,3 +44,7 @@
 [2026-04-12T05:38:01.162Z] Success: thumbnails/5035374e-c436-457a-87a7-5fb3678cce99.png
 [2026-04-12T05:39:52.320Z] Generating for e9fadc12-bb84-42bd-bca6-df0a76b442c6: qlmanage -t -s 512 -o "/Users/kevinim/Desktop/EasyDocStation/Database/ObjectFile/thumbnails" "/Users/kevinim/Desktop/EasyDocStation/Database/ObjectFile/StoryForge/20260412053952/화면 기록 2026-04-12 오전 11.24.20.mov"
 [2026-04-12T05:39:52.516Z] Success: thumbnails/e9fadc12-bb84-42bd-bca6-df0a76b442c6.png
+[2026-04-12T05:47:17.979Z] Generating for 50c74388-8c20-46e6-abbc-3448a6b66ad3: qlmanage -t -s 512 -o "/Users/kevinim/Desktop/EasyDocStation/Database/ObjectFile/thumbnails" "/Users/kevinim/Desktop/EasyDocStation/Database/ObjectFile/종윤/20260412054717/화면 기록 2026-04-12 오후 2.37.52.mov"
+[2026-04-12T05:47:18.172Z] Success: thumbnails/50c74388-8c20-46e6-abbc-3448a6b66ad3.png
+[2026-04-12T05:52:40.884Z] Generating for 3a4411e0-fdb5-49ed-b3d1-8ee39b89bbe7: qlmanage -t -s 512 -o "/Users/kevinim/Desktop/EasyDocStation/Database/ObjectFile/thumbnails" "/Users/kevinim/Desktop/EasyDocStation/Database/ObjectFile/종윤/20260412055240/녹음 2026-04-07 105523.mp4"
+[2026-04-12T05:52:41.067Z] Success: thumbnails/3a4411e0-fdb5-49ed-b3d1-8ee39b89bbe7.png
