@@ -48,6 +48,15 @@ function getFileCategory(type, name) {
   return 'file'
 }
 
+function getPreviewDimensions(f) {
+  const name = (f.name || '').toLowerCase()
+  if (name.endsWith('.pptx')) return config.pptxPreview || config.imagePreview
+  if (name.endsWith('.ppt')) return config.pptPreview || config.imagePreview
+  if (name.endsWith('.xlsx') || name.endsWith('.xls')) return config.excelPreview || config.imagePreview
+  if (name.endsWith('.docx') || name.endsWith('.doc')) return config.wordPreview || config.imagePreview
+  return config.imagePreview
+}
+
 function FileTypeIcon({ category, className = 'w-5 h-5' }) {
   const icons = {
     image: { color: 'text-green-400', path: 'M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z' },
@@ -208,6 +217,13 @@ function AttachmentList({ attachments }) {
     return token ? `${f.url}?auth_token=${token}` : f.url
   }
 
+  function thumbUrl(f) {
+    if (!f.thumbnail_url) return null
+    const token = getToken()
+    // Already has ?thumbnail=true, so append with &
+    return `${f.thumbnail_url}&auth_token=${token}`
+  }
+
   return (
     <div className="mt-6 border-t border-white/8 pt-5">
       <h4 className="text-white/50 text-xs font-semibold uppercase tracking-widest mb-3 flex items-center gap-1.5">
@@ -220,17 +236,20 @@ function AttachmentList({ attachments }) {
       <div className="flex flex-col gap-3">
         {attachments.map(f => {
           const category = getFileCategory(f.type || '', f.name || '')
+          const dims = getPreviewDimensions(f)
+          const w = dims.width
+          const h = dims.height
 
           // ── Image ──────────────────────────────────────────
           if (category === 'image') {
             return (
               <a key={f.id} href={fileUrl(f)} target="_blank" rel="noreferrer"
                 className="inline-block rounded-2xl overflow-hidden border border-white/10 hover:border-indigo-500/50 transition-colors group"
-                style={{ width: IMG_W, maxWidth: '100%' }}
+                style={{ width: w, maxWidth: '100%' }}
               >
                 <img src={fileUrl(f)} alt={f.name}
                   className="block object-cover group-hover:opacity-90 transition-opacity"
-                  style={{ width: IMG_W, height: IMG_H, maxWidth: '100%', objectFit: 'cover' }}
+                  style={{ width: w, height: h, maxWidth: '100%', objectFit: 'cover' }}
                 />
                 <div className="px-3 py-2 flex items-center justify-between bg-white/4">
                   <span className="text-white/60 text-xs font-medium truncate">{f.name}</span>
@@ -241,10 +260,36 @@ function AttachmentList({ attachments }) {
           }
 
           // ── PDF — first page preview ───────────────────────
+          // ── PDF — first page preview ───────────────────────
           if (category === 'pdf') {
+            const tUrl = thumbUrl(f)
+            if (tUrl) {
+              return (
+                <a key={f.id} href={fileUrl(f)} target="_blank" rel="noreferrer"
+                  className="inline-block rounded-2xl overflow-hidden border border-white/10 hover:border-indigo-500/50 transition-colors group"
+                  style={{ width: w, maxWidth: '100%' }}
+                >
+                  <img src={tUrl} alt={f.name}
+                    className="block object-cover group-hover:opacity-90 transition-opacity bg-white/5"
+                    style={{ width: w, height: h, maxWidth: '100%', objectFit: 'cover' }}
+                    onError={(e) => { 
+                      console.error('Thumbnail load failed:', tUrl);
+                      e.target.style.display = 'none';
+                    }}
+                  />
+                  <div className="px-3 py-2 flex items-center justify-between bg-white/4">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <FileTypeIcon category="pdf" className="w-4 h-4 flex-shrink-0" />
+                      <span className="text-white/60 text-xs truncate">{f.name}</span>
+                    </div>
+                    <span className="text-white/30 text-xs flex-shrink-0">{formatSize(f.size)}</span>
+                  </div>
+                </a>
+              )
+            }
             return (
-              <div key={f.id} className="rounded-2xl overflow-hidden border border-white/10" style={{ maxWidth: IMG_W }}>
-                <PdfPagePreview fileId={f.id} width={IMG_W} />
+              <div key={f.id} className="rounded-2xl overflow-hidden border border-white/10" style={{ maxWidth: w }}>
+                <PdfPagePreview fileId={f.id} width={w} />
                 <div className="px-3 py-2 flex items-center justify-between bg-white/4">
                   <div className="flex items-center gap-2 min-w-0">
                     <FileTypeIcon category="pdf" className="w-4 h-4 flex-shrink-0" />
@@ -264,7 +309,33 @@ function AttachmentList({ attachments }) {
             )
           }
 
-          // ── Other files — name + download button ──────────
+          // ── Other files — check for thumbnail first ──────────
+          const tUrl = thumbUrl(f)
+          if (tUrl) {
+            return (
+              <a key={f.id} href={fileUrl(f)} target="_blank" rel="noreferrer"
+                className="inline-block rounded-2xl overflow-hidden border border-white/10 hover:border-indigo-500/50 transition-colors group"
+                style={{ width: w, maxWidth: '100%' }}
+              >
+                <img src={tUrl} alt={f.name}
+                  className="block object-cover group-hover:opacity-90 transition-opacity bg-white/5"
+                  style={{ width: w, height: h, maxWidth: '100%', objectFit: 'cover' }}
+                  onError={(e) => { 
+                    console.error('Thumbnail load failed:', tUrl);
+                    e.target.style.display = 'none';
+                  }}
+                />
+                <div className="px-3 py-2 flex items-center justify-between bg-white/4">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <FileTypeIcon category={category} className="w-4 h-4 flex-shrink-0" />
+                    <span className="text-white/60 text-xs font-medium truncate">{f.name}</span>
+                  </div>
+                  <span className="text-white/30 text-xs ml-3 flex-shrink-0">{formatSize(f.size)}</span>
+                </div>
+              </a>
+            )
+          }
+
           return (
             <div key={f.id} className="flex items-center gap-3 px-3.5 py-3 rounded-xl bg-white/4 border border-white/8">
               <FileTypeIcon category={category} className="w-5 h-5" />
@@ -351,6 +422,9 @@ function ComposeBar({ onSubmit }) {
   const dragCounter = useRef(0)
 
   function addFiles(newFiles) {
+    if (newFiles.length > 0 && !content.trim()) {
+      setContent(newFiles[0].name)
+    }
     const mapped = Array.from(newFiles).map(f => ({
       id: `f-${Date.now()}-${Math.random()}`,
       name: f.name,
@@ -394,7 +468,7 @@ function ComposeBar({ onSubmit }) {
   }
 
   async function handleSend() {
-    if (!content.trim()) { contentRef.current?.focus(); return }
+    if (!content.trim() && files.length === 0) { contentRef.current?.focus(); return }
     setSending(true)
     try {
       const attachmentIds = []
@@ -730,6 +804,9 @@ function PostDetail({ post, channelId, onClose }) {
   const isAdmin = ['Admin', 'site_admin', 'channel_admin', 'team_admin'].includes(currentUser?.role)
 
   function addFiles(newFiles) {
+    if (newFiles.length > 0 && !comment.trim()) {
+      setComment(newFiles[0].name)
+    }
     const mapped = Array.from(newFiles).map(f => ({
       id: `f-${Date.now()}-${Math.random()}`,
       name: f.name,

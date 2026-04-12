@@ -2,5 +2,21 @@
   "imagePreview": {
     "width": 512,
     "height": 512
+  },
+  "pptPreview": {
+    "width": 480,
+    "height": 270
+  },
+  "pptxPreview": {
+    "width": 480,
+    "height": 270
+  },
+  "excelPreview": {
+    "width": 480,
+    "height": 270
+  },
+  "wordPreview": {
+    "width": 270,
+    "height": 480
   }
 }

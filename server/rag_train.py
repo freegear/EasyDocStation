@@ -69,12 +69,19 @@ db = lancedb.connect(LANCEDB_PATH)
 TABLE_NAME = "my_rag_table"
 
 # 테이블이 없거나 스키마가 다르면 올바른 스키마로 재생성
-# metadata 구조: {"post_id": str, "chunk_id": int, "type": str, "channel_id": str}
+# metadata 구조: {"post_id": str, "chunk_id": int, "type": str, "channel_id": str, "attachment_id": str, "comment_id": str}
 def ensure_table(vector_size):
     init_data = [{
         "vector": [0.0] * vector_size,
         "text": "__init__",
-        "metadata": {"post_id": "", "chunk_id": 0, "type": "system", "channel_id": ""}
+        "metadata": {
+            "post_id": "", 
+            "chunk_id": 0, 
+            "type": "system", 
+            "channel_id": "",
+            "attachment_id": "",
+            "comment_id": ""
+        }
     }]
     existing = db.table_names() if hasattr(db, 'table_names') else db.list_tables()
     if TABLE_NAME not in existing:
@@ -86,9 +93,16 @@ def ensure_table(vector_size):
     meta_field = next((f for f in tbl.schema if f.name == "metadata"), None)
     meta_subfields = [sf.name for sf in meta_field.type] if meta_field else []
     vec_size = tbl.schema.field("vector").type.list_size
-    # channel_id / chunk_id / type 필드가 없거나 vector 크기가 다르면 재생성
-    if "channel_id" not in meta_subfields or "chunk_id" not in meta_subfields or "type" not in meta_subfields or vec_size != vector_size:
-        print(f"[RAG] 스키마 불일치 → 테이블 재생성 (channel_id 포함, dim={vector_size})")
+    # 필수 필드가 없거나 vector 크기가 다르면 재생성
+    required = ["channel_id", "chunk_id", "type", "attachment_id", "comment_id"]
+    needs_recreate = False
+    for r in required:
+        if r not in meta_subfields:
+            needs_recreate = True
+            break
+    
+    if needs_recreate or vec_size != vector_size:
+        print(f"[RAG] 스키마 불일치 → 테이블 재생성 (필드 업데이트, dim={vector_size})")
         tbl = db.create_table(TABLE_NAME, data=init_data, mode="overwrite")
     return tbl
 

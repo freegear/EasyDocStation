@@ -264,6 +264,7 @@ export default function SiteAdminPage({ onClose }) {
   const [displayForm, setDisplayForm] = useState({ width: 512, height: 512 })
   const [lancedbPath, setLancedbPath] = useState('/Users/kevinim/Desktop/EasyDocStation/Database/LanceDB')
   const [ragForm, setRagForm] = useState({ type: 'manual', time: '02:00', vectorSize: 1024, chunkSize: 800, chunkOverlap: 100 })
+  const [agenticaiForm, setAgenticaiForm] = useState({ num_predict: 4096, num_ctx: 8192 })
   const [savingConfig, setSavingConfig] = useState(false)
   const [trainingStatus, setTrainingStatus] = useState(null) // 'running', 'done', null
 
@@ -303,6 +304,12 @@ export default function SiteAdminPage({ onClose }) {
           chunkOverlap: data.rag.chunk_overlap ?? p.chunkOverlap
         }))
       }
+      if (data.agenticai) {
+        setAgenticaiForm({
+          num_predict: data.agenticai.num_predict || 4096,
+          num_ctx: data.agenticai.num_ctx || 8192
+        })
+      }
     } catch (err) {
       console.error('Failed to load DB stats:', err)
     } finally {
@@ -312,7 +319,7 @@ export default function SiteAdminPage({ onClose }) {
 
   useEffect(() => { loadUsers() }, [])
   useEffect(() => { 
-    if (activeTab === 'db' || activeTab === 'display' || activeTab === 'rag') loadDbStats() 
+    if (activeTab === 'db' || activeTab === 'display' || activeTab === 'rag' || activeTab === 'agenticai') loadDbStats() 
   }, [activeTab])
 
   function handleSave(saved) {
@@ -354,6 +361,11 @@ export default function SiteAdminPage({ onClose }) {
           vectorSize: parseInt(ragForm.vectorSize),
           chunk_size: parseInt(ragForm.chunkSize),
           chunk_overlap: parseInt(ragForm.chunkOverlap)
+        }
+      } else if (activeTab === 'agenticai') {
+        configData.agenticai = {
+          num_predict: parseInt(agenticaiForm.num_predict),
+          num_ctx: parseInt(agenticaiForm.num_ctx)
         }
       }
 
@@ -467,6 +479,16 @@ export default function SiteAdminPage({ onClose }) {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
             </svg>
             RAG 학습 설정
+          </button>
+          <button
+            onClick={() => setActiveTab('agenticai')}
+            className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${activeTab === 'agenticai' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20' : 'text-white/30 hover:text-white/60 hover:bg-white/5'}`}
+          >
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+            AgenticAI 설정
           </button>
         </div>
 
@@ -1089,6 +1111,98 @@ export default function SiteAdminPage({ onClose }) {
                 인터페이스 설정 정보를 불러올 수 없습니다.
               </div>
             )}
+          </div>
+        ) : activeTab === 'agenticai' ? (
+          <div className="max-w-4xl mx-auto py-4">
+            <div className="flex items-center justify-between mb-8">
+              <h2 className="text-white font-bold text-lg flex items-center gap-2">
+                <svg className="w-5 h-5 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+                AgenticAI 지능형 비서 설정
+              </h2>
+              <button
+                onClick={handleSaveConfig}
+                disabled={savingConfig}
+                className="flex items-center gap-2 px-6 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-sm font-semibold transition-all shadow-lg shadow-indigo-500/25 active:scale-95"
+              >
+                {savingConfig ? '저장 중...' : '설정 저장'}
+              </button>
+            </div>
+
+            <div className="space-y-8">
+              {/* num_predict */}
+              <div className="bg-white/5 border border-white/10 rounded-2xl p-8 shadow-xl">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-10 h-10 rounded-xl bg-green-500/10 border border-green-500/20 flex items-center justify-center">
+                    <svg className="w-5 h-5 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="text-white font-bold text-base">최대 답변 길이 (num_predict)</h3>
+                    <p className="text-white/30 text-xs mt-0.5">매우 긴 장문의 답변도 끊기지 않고 끝까지 출력되도록 설정합니다.</p>
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-3">
+                  {[1024, 2048, 4096, 8192, 16384, 32768].map(size => (
+                    <button
+                      key={size}
+                      onClick={() => setAgenticaiForm(p => ({ ...p, num_predict: size }))}
+                      className={`px-5 py-2.5 rounded-xl text-sm font-bold transition-all border ${
+                        agenticaiForm.num_predict === size
+                          ? 'bg-green-500/20 border-green-500/60 text-green-300 shadow-lg shadow-green-500/10'
+                          : 'bg-white/3 border-white/5 text-white/30 hover:text-white/60 hover:border-white/10'
+                      }`}
+                    >
+                      {size.toLocaleString()}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* num_ctx */}
+              <div className="bg-white/5 border border-white/10 rounded-2xl p-8 shadow-xl">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center">
+                    <svg className="w-5 h-5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="text-white font-bold text-base">문맥 유지 범위 (num_ctx)</h3>
+                    <p className="text-white/30 text-xs mt-0.5">이전 대화 내용이나 참조 문서(RAG)를 얼마나 많이 기억할지 설정합니다.</p>
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-3">
+                  {[4096, 8192, 16384, 32768, 65536].map(size => (
+                    <button
+                      key={size}
+                      onClick={() => setAgenticaiForm(p => ({ ...p, num_ctx: size }))}
+                      className={`px-5 py-2.5 rounded-xl text-sm font-bold transition-all border ${
+                        agenticaiForm.num_ctx === size
+                          ? 'bg-blue-500/20 border-blue-500/60 text-blue-300 shadow-lg shadow-blue-500/10'
+                          : 'bg-white/3 border-white/5 text-white/30 hover:text-white/60 hover:border-white/10'
+                      }`}
+                    >
+                      {size.toLocaleString()}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="p-6 bg-white/3 border border-dashed border-white/10 rounded-2xl flex items-center gap-4">
+                <div className="w-12 h-12 rounded-full bg-indigo-500/10 flex items-center justify-center text-indigo-400">
+                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <div>
+                  <p className="text-white text-xs font-semibold mb-0.5">설정값은 즉시 시스템에 반영됩니다.</p>
+                  <p className="text-white/30 text-[10px]">너무 큰 값으로 설정하면 서버 부하가 커지거나 응답 속도가 느려질 수 있습니다.</p>
+                </div>
+              </div>
+            </div>
           </div>
         ) : null}
         </div>

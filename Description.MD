@@ -830,6 +830,52 @@ channel_id가 없는 항목은 클릭 비활성화
 
 
 
+# 14. AgenticAI 설정
+
+# 14.1 AgenticAI 설정 버튼을 추가한다.
+
+사이트 관리에서 
+
+사용자 관리 
+DB 관리
+Display 설정 
+RAG 학습 설정 
+
+밑에 
+
+AgenticAI 설정 버튼을 추가한다.
+
+이 버튼을 클릭하면 AgenticAI 설정 페이지로 이동한다.
+
+# 14.2 AgenticAI 설정 페이지
+
+# 14.2.1 num_predict / num_ctx 설정
+
+num_predict : 1024 , 2048 , 4096 , 8192 , 16384 , 32768
+num_ctx     : 4096 , 8192 , 16384 , 32768 , 65536
+
+중 하나를 선택한다. 
+기본 값은 num_predict : 4096 , num_ctx : 8192 이다. 
+
+각 항목의 설명을 함꼐 UI에 넣어줘
+num_predict에 대한 설명 : 매우 긴 장문의 답변도 끊기지 않고 끝까지 출력
+num_ctx에 대한 설명 : 문맥 유지 범위
+
+를 설정한다.
+
+# 14.2.2 config.json에 저장
+
+agenticai : 
+   num_predict : 4096 , 
+   num_ctx : 8192
+
+으로 저장하고, EasyDocStation이 실행될 때에 불러 들여서 설정하거나,
+AgenticAI 설정 페이지에서 저장 버튼을 누르면 새롭게 설정한다.
+
+다른 부분은 수정하지 말아줘
+
+
+
 
 
 

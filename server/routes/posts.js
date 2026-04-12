@@ -10,11 +10,20 @@ const { trainPostImmediate, trainCommentImmediate } = require('../rag')
 async function enrichAttachments(ids) {
   if (!ids || ids.length === 0) return []
   const results = await Promise.all(
-    ids.map(async (id) => {
+    ids.map(async (item) => {
+      const id = typeof item === 'object' ? item.id : item
+      if (!id) return null
       const res = await db.query('SELECT * FROM attachments WHERE id = $1', [id])
       if (res.rowCount === 0) return null
       const a = res.rows[0]
-      return { id: a.id, name: a.filename, type: a.content_type, size: a.size, url: `/api/files/view/${a.id}` }
+      return { 
+        id: a.id, 
+        name: a.filename, 
+        type: a.content_type, 
+        size: a.size, 
+        url: `/api/files/view/${a.id}`,
+        thumbnail_url: a.thumbnail_path ? `/api/files/view/${a.id}?thumbnail=true` : null
+      }
     })
   )
   return results.filter(Boolean)
@@ -40,14 +49,15 @@ async function fetchComments(postId) {
     ORDER BY c.created_at ASC
   `, [postId])
 
-  return result.rows.map(row => {
+  return Promise.all(result.rows.map(async row => {
     const avatarLetters = row.author_name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+    const attachments = await enrichAttachments(row.attachments || [])
     return {
       id: row.id,
       post_id: row.post_id,
       content: row.content,
       text: row.content,  // 프론트 호환
-      attachments: row.attachments || [],
+      attachments,
       author: {
         id: row.author_id,
         name: row.author_name,
@@ -58,7 +68,7 @@ async function fetchComments(postId) {
       createdAt: row.created_at,
       updatedAt: row.updated_at,
     }
-  })
+  }))
 }
 
 // ─── GET /api/posts/search ────────────────────────────────────
@@ -191,6 +201,7 @@ router.get('/', requireAuth, async (req, res, next) => {
       const attachments = attRes.rows.map(a => ({
         id: a.id, name: a.filename, type: a.content_type, size: a.size,
         url: `/api/files/view/${a.id}`,
+        thumbnail_url: a.thumbnail_path ? `/api/files/view/${a.id}?thumbnail=true` : null,
       }))
       const avatarLetters = row.author_name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
       const comments = await fetchComments(row.id)

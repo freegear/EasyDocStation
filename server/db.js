@@ -19,6 +19,9 @@ async function initDb() {
           IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='channels' AND column_name='description') THEN
             ALTER TABLE channels ADD COLUMN description TEXT;
           END IF;
+          IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='attachments' AND column_name='thumbnail_path') THEN
+            ALTER TABLE attachments ADD COLUMN thumbnail_path TEXT;
+          END IF;
         END $$;
       `)
       // comments 테이블 생성 (없는 경우)

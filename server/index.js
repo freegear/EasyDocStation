@@ -37,6 +37,19 @@ app.use('/api/files', filesRouter)
 app.use('/api/posts', postsRouter)
 app.use('/api/rag',   ragRouter)
 
+// 공용 설정 API (관리자 설정값 조회용)
+app.get('/api/config/agenticai', (req, res) => {
+  try {
+    const fs = require('fs')
+    const path = require('path')
+    const configPath = path.resolve(__dirname, '../config.json')
+    const config = JSON.parse(fs.readFileSync(configPath, 'utf8'))
+    res.json(config.agenticai || { num_predict: 4096, num_ctx: 8192 })
+  } catch (e) {
+    res.json({ num_predict: 4096, num_ctx: 8192 })
+  }
+})
+
 app.use((err, req, res, next) => {
   console.error(err)
   res.status(500).json({ error: '서버 오류가 발생했습니다.' })
