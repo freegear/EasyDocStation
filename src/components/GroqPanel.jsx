@@ -31,7 +31,7 @@ export default function GroqPanel() {
     }
   ])
   const [input, setInput] = useState('')
-   const [selectedModel, setSelectedModel] = useState(GROQ_MODELS[0].id)
+  const [selectedModel, setSelectedModel] = useState(GROQ_MODELS[0].id)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const [attachedFile, setAttachedFile] = useState(null)
@@ -95,7 +95,7 @@ export default function GroqPanel() {
         method: 'POST',
         body: JSON.stringify({ query: text, limit: 3 }),
       })
-      ragContext    = ragResult.context    || ''
+      ragContext = ragResult.context || ''
       ragReferences = ragResult.references || []
     } catch (e) {
       // RAG 실패 시 무시하고 일반 답변으로 진행
@@ -235,10 +235,10 @@ export default function GroqPanel() {
         <select
           value={selectedModel}
           onChange={e => setSelectedModel(e.target.value)}
-          className="w-full bg-white/8 text-white text-xs rounded-md px-2 py-1.5 border border-white/10 focus:outline-none focus:ring-1 focus:ring-green-500 cursor-pointer"
+          className="w-full bg-white text-black text-xs rounded-md px-2 py-1.5 border border-white/10 focus:outline-none focus:ring-1 focus:ring-green-500 cursor-pointer font-medium"
         >
           {GROQ_MODELS.map(m => (
-            <option key={m.id} value={m.id} className="bg-[#161428]">
+            <option key={m.id} value={m.id} className="text-black bg-white">
               {m.label}
             </option>
           ))}
@@ -263,13 +263,12 @@ export default function GroqPanel() {
               )}
               <span className="text-white/30 text-xs">{formatTime(msg.time)}</span>
             </div>
-            <div className={`px-3 py-2 rounded-xl text-xs leading-relaxed max-w-full whitespace-pre-wrap ${
-              msg.role === 'user'
+            <div className={`px-3 py-2 rounded-xl text-xs leading-relaxed max-w-full whitespace-pre-wrap ${msg.role === 'user'
                 ? 'bg-indigo-600 text-white rounded-tr-sm'
                 : msg.isError
-                ? 'bg-red-500/20 text-red-300 border border-red-500/30 rounded-tl-sm'
-                : 'bg-white/8 text-white/85 rounded-tl-sm border border-white/5'
-            }`}>
+                  ? 'bg-red-500/20 text-red-300 border border-red-500/30 rounded-tl-sm'
+                  : 'bg-white/8 text-white/85 rounded-tl-sm border border-white/5'
+              }`}>
               {msg.image && (
                 <div className="mb-2 w-64 h-64 overflow-hidden rounded-lg border border-white/10">
                   <img
@@ -291,7 +290,7 @@ export default function GroqPanel() {
                       {msg.references.map((ref, i) => (
                         <button
                           key={i}
-                          onClick={() => ref.channel_id && navigateToPost(ref.channel_id, ref.post_id)}
+                          onClick={() => ref.channel_id && navigateToPost(ref.channel_id, ref.post_id, { commentId: ref.comment_id, attachmentId: ref.attachment_id })}
                           disabled={!ref.channel_id}
                           className="w-full flex items-start gap-1.5 bg-white/5 rounded-lg px-2 py-1.5 border border-white/8 text-left transition-colors enabled:hover:bg-white/10 enabled:hover:border-white/15 disabled:opacity-40 disabled:cursor-not-allowed"
                           title={ref.channel_id ? `${ref.team ? ref.team + ' · ' : ''}${ref.channel} 채널로 이동` : '재학습 후 이동 가능합니다'}

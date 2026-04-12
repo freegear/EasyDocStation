@@ -1060,7 +1060,7 @@ export default function ChatArea({ autoOpenPostId }) {
     const target = channelPosts.find(p => p.id === pendingOpenPostId)
     if (target) {
       setSelectedPost(target)
-      clearPendingPost()
+      // clearPendingPost() // PostDetail 내부에서 스크롤 후 호출하도록 이동
     }
   }, [pendingOpenPostId, selectedChannel?.id, posts])
 
@@ -1101,7 +1101,12 @@ export default function ChatArea({ autoOpenPostId }) {
 
   const channelPosts = posts[selectedChannel?.id] || []
 
-  useEffect(() => { setSelectedPost(null) }, [selectedChannel?.id])
+  // 채널 전환 시 기존 선택된 게시글 초기화 (단, 이동 중인 경우에는 유지)
+  useEffect(() => { 
+    if (!pendingOpenPostId) {
+      setSelectedPost(null) 
+    }
+  }, [selectedChannel?.id, pendingOpenPostId])
 
   async function handleNewPost(data) {
     await addPost(selectedChannel.id, data)

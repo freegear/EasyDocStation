@@ -38,10 +38,17 @@ export function ChatProvider({ children }) {
 
         if (selectedTeam) {
           const updated = enriched.find(t => t.id === selectedTeam.id)
-          if (updated) setSelectedTeam(updated)
+          if (updated) {
+            setSelectedTeam(updated)
+            // 채널도 다시 동기화
+            const updatedCh = updated.channels.find(c => c.id === selectedChannel?.id) || updated.channels[0]
+            if (updatedCh) selectChannel(updatedCh)
+          }
         } else {
           setSelectedTeam(enriched[0])
-          setSelectedChannel(enriched[0].channels[0])
+          if (enriched[0].channels && enriched[0].channels.length > 0) {
+            selectChannel(enriched[0].channels[0])
+          }
         }
       }
     } catch (err) {
@@ -51,7 +58,9 @@ export function ChatProvider({ children }) {
 
   function selectTeam(team) {
     setSelectedTeam(team)
-    setSelectedChannel(team.channels[0])
+    if (team.channels && team.channels.length > 0) {
+      selectChannel(team.channels[0])
+    }
     closeSearch()
   }
 
@@ -176,8 +185,10 @@ export function ChatProvider({ children }) {
 
   // ─── RAG 참고 문서 클릭 시 해당 채널+게시글로 이동 ──────────
   const [pendingOpenPostId, setPendingOpenPostId] = useState(null)
+  const [pendingOpenCommentId, setPendingOpenCommentId] = useState(null)
+  const [pendingOpenAttachmentId, setPendingOpenAttachmentId] = useState(null)
 
-  async function navigateToPost(channelId, postId) {
+  async function navigateToPost(channelId, postId, meta = {}) {
     // teams에서 channelId에 해당하는 채널 객체를 찾아 이동
     for (const team of teams) {
       const ch = (team.channels || []).find(c => c.id === channelId)
@@ -185,6 +196,8 @@ export function ChatProvider({ children }) {
         setSelectedTeam(team)
         await selectChannel(ch)
         if (postId) setPendingOpenPostId(postId)
+        if (meta.commentId) setPendingOpenCommentId(meta.commentId)
+        if (meta.attachmentId) setPendingOpenAttachmentId(meta.attachmentId)
         return
       }
     }
@@ -192,6 +205,8 @@ export function ChatProvider({ children }) {
 
   function clearPendingPost() {
     setPendingOpenPostId(null)
+    setPendingOpenCommentId(null)
+    setPendingOpenAttachmentId(null)
   }
 
   const [isSearchMode, setIsSearchMode] = useState(false)
@@ -246,6 +261,8 @@ export function ChatProvider({ children }) {
       performSearch,
       closeSearch,
       pendingOpenPostId,
+      pendingOpenCommentId,
+      pendingOpenAttachmentId,
       navigateToPost,
       clearPendingPost,
     }}>

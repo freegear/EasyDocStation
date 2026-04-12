@@ -130,36 +130,55 @@ for post in posts:
     if content:
         texts_to_train.append((content, "manual_text"))
 
-    # PDF 첨부파일 학습 (13.3.1)
-    for pdf_path in post.get("pdfs", []):
-        if os.path.isfile(pdf_path):
+    # PDF 첨부파일 학습
+    for pdf_info in post.get("pdfs", []):
+        pdf_id   = pdf_info.get("id")
+        pdf_path = pdf_info.get("path")
+        if pdf_path and os.path.isfile(pdf_path):
             pdf_text = load_pdf(pdf_path)
             if pdf_text:
-                texts_to_train.append((pdf_text, "pdf"))
-                print(f"[RAG] PDF 추출 완료: {os.path.basename(pdf_path)} ({len(pdf_text)}자)")
-        else:
+                chunks = text_splitter.split_text(pdf_text)
+                if chunks:
+                    vectors = embed_model.encode(chunks, batch_size=16, show_progress_bar=False)
+                    for i, (chunk, vector) in enumerate(zip(chunks, vectors)):
+                        records.append({
+                            "vector": vector.tolist(),
+                            "text": chunk,
+                            "metadata": {
+                                "post_id":       post_id,
+                                "chunk_id":      i,
+                                "type":          "pdf",
+                                "channel_id":    channel_id,
+                                "attachment_id": pdf_id or "",
+                                "comment_id":    "",
+                            }
+                        })
+                    total_chunks += len(chunks)
+                print(f"[RAG] PDF 추출/학습 완료: {os.path.basename(pdf_path)} ({len(pdf_text)}자)")
+        elif pdf_path:
             print(f"[RAG] PDF 파일 없음: {pdf_path}", file=sys.stderr)
 
-    for raw_text, data_type in texts_to_train:
-        chunks = text_splitter.split_text(raw_text)
-        if not chunks:
-            continue
-
-        vectors = embed_model.encode(chunks, batch_size=16, show_progress_bar=False)
-
-        for i, (chunk, vector) in enumerate(zip(chunks, vectors)):
-            records.append({
-                "vector": vector.tolist(),
-                "text": chunk,
-                "metadata": {
-                    "post_id":    post_id,
-                    "chunk_id":   i,
-                    "type":       data_type,   # "manual_text" 또는 "pdf"
-                    "channel_id": channel_id,
-                }
-            })
-        total_chunks += len(chunks)
-        print(f"[RAG] post={post_id} type={data_type} → {len(chunks)}청크", flush=True)
+    # 게시글 본문 (텍스트 학습)
+    content = (post.get("content") or "").strip()
+    if content:
+        chunks = text_splitter.split_text(content)
+        if chunks:
+            vectors = embed_model.encode(chunks, batch_size=16, show_progress_bar=False)
+            for i, (chunk, vector) in enumerate(zip(chunks, vectors)):
+                records.append({
+                    "vector": vector.tolist(),
+                    "text": chunk,
+                    "metadata": {
+                        "post_id":       post_id,
+                        "chunk_id":      i,
+                        "type":          "manual_text",
+                        "channel_id":    channel_id,
+                        "attachment_id": "",
+                        "comment_id":    "",
+                    }
+                })
+            total_chunks += len(chunks)
+        print(f"[RAG] post={post_id} text → {len(chunks)}청크", flush=True)
 
 # ─── 댓글 학습 ───────────────────────────────────────────────
 for comment in comments:
@@ -181,10 +200,12 @@ for comment in comments:
             "vector": vector.tolist(),
             "text": chunk,
             "metadata": {
-                "post_id":    post_id,
-                "chunk_id":   i,
-                "type":       "comment",
-                "channel_id": channel_id,
+                "post_id":       post_id,
+                "chunk_id":      i,
+                "type":          "comment",
+                "channel_id":    channel_id,
+                "attachment_id": "",
+                "comment_id":    comment_id,
             }
         })
     total_chunks += len(chunks)

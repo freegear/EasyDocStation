@@ -59,11 +59,12 @@ for r in results:
     output.append({
         "text":     r["text"],
         "score":    float(r.get("_distance", 0)),
-        "metadata": {
-            "post_id":    meta["post_id"],
-            "chunk_id":   meta["chunk_id"],
-            "type":       meta["type"],
-            "channel_id": meta.get("channel_id", ""),
+            "post_id":       meta.get("post_id", ""),
+            "chunk_id":      meta.get("chunk_id", 0),
+            "type":          meta.get("type", ""),
+            "channel_id":    meta.get("channel_id", ""),
+            "attachment_id": meta.get("attachment_id", ""),
+            "comment_id":    meta.get("comment_id", ""),
         }
     })
 
