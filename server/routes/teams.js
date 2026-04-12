@@ -75,6 +75,13 @@ router.get('/:id/members', requireAuth, async (req, res, next) => {
 router.post('/', requireAuth, async (req, res, next) => {
   try {
     const { name, description, adminIds, memberIds } = req.body
+
+    // 같은 이름의 팀이 이미 존재하면 거부
+    const dup = await db.query('SELECT id FROM teams WHERE name = $1', [name])
+    if (dup.rowCount > 0) {
+      return res.status(409).json({ error: `이미 같은 이름의 팀이 존재합니다: "${name}"` })
+    }
+
     const id = name.toLowerCase().replace(/[^a-z0-9]/g, '-') + '-' + Date.now().toString().slice(-4)
 
     await db.query('BEGIN')
@@ -121,6 +128,12 @@ router.put('/:id', requireAuth, async (req, res, next) => {
   try {
     const { id } = req.params
     const { name, description, adminIds, memberIds } = req.body
+
+    // 자신을 제외한 다른 팀과 이름이 겹치면 거부
+    const dup = await db.query('SELECT id FROM teams WHERE name = $1 AND id <> $2', [name, id])
+    if (dup.rowCount > 0) {
+      return res.status(409).json({ error: `이미 같은 이름의 팀이 존재합니다: "${name}"` })
+    }
 
     await db.query('BEGIN')
 
