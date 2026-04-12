@@ -337,8 +337,8 @@ export const USERS = [
 ]
 
 export const GROQ_MODELS = [
-  { id: 'gemma4:e4b', label: 'EasyDoc AgenticAI (Gemma)' },
-  { id: 'llava', label: 'Image Analysis (Llava)' },
+  { id: 'gemma4:e4b', label: 'EasyDoc AgenticAI' },
+  { id: 'llava', label: 'Image Analysis' },
 ]
 
 export const GROQ_API_KEY = 'ollama' // 로컬 Ollama 사용 시 키가 필요 없으므로 임의 값 설정

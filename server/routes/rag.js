@@ -38,8 +38,15 @@ async function enrichReferences(results) {
   const refs = []
   const seen = new Set()
 
+  // Cassandra 클라이언트 (필요 시)
+  let cassandraClient = null
+  try {
+    const cass = require('../cassandra')
+    if (cass.isConnected()) cassandraClient = cass.client
+  } catch (e) {}
+
   for (const r of results) {
-    const { post_id, type, channel_id: metaChannelId } = r.metadata
+    let { post_id, type, channel_id: metaChannelId } = r.metadata
     if (!post_id || post_id === '') continue
 
     const key = `${post_id}:${type}`
@@ -47,7 +54,32 @@ async function enrichReferences(results) {
     seen.add(key)
 
     try {
-      // ── 채널/팀 이름: channel_id가 메타데이터에 있으면 직접 조회 ──
+      // ── channel_id가 메타데이터에 없으면 DB에서 찾기 (fallback) ──
+      if (!metaChannelId) {
+        // 1. posts 테이블 (PostgreSQL)
+        const pRes = await db.query('SELECT channel_id FROM posts WHERE id = $1 LIMIT 1', [post_id])
+        if (pRes.rowCount > 0) {
+          metaChannelId = pRes.rows[0].channel_id
+        } 
+        // 2. attachments 테이블 (PostgreSQL) - PDF 등
+        else {
+          const aRes = await db.query('SELECT channel_id FROM attachments WHERE post_id = $1 LIMIT 1', [post_id])
+          if (aRes.rowCount > 0) metaChannelId = aRes.rows[0].channel_id
+        }
+        
+        // 3. Cassandra (Fallback)
+        if (!metaChannelId && cassandraClient) {
+          try {
+            const cql = 'SELECT channel_id FROM posts WHERE id = ? ALLOW FILTERING'
+            const cRes = await cassandraClient.execute(cql, [post_id], { prepare: true })
+            if (cRes.rows.length > 0) metaChannelId = cRes.rows[0].channel_id
+          } catch (err) {
+            console.warn('[RAG] Cassandra channel_id 조회 실패:', err.message)
+          }
+        }
+      }
+
+      // ── 채널/팀 이름: channel_id가 있으면 직접 조회 ──
       let channelName = '', teamName = ''
       if (metaChannelId) {
         const chRes = await db.query(
@@ -69,40 +101,42 @@ async function enrichReferences(results) {
            LIMIT 1`,
           [post_id]
         )
-        if (res.rowCount > 0) {
+        if (res.rows.length > 0) {
           refs.push({
-            type:       'pdf',
-            label:      res.rows[0].filename,
-            channel:    channelName,
-            channel_id: metaChannelId || '',
-            team:       teamName,
+            type:          'pdf',
+            label:         res.rows[0].filename,
+            channel:       channelName,
+            channel_id:    metaChannelId || '',
+            team:          teamName,
             post_id,
+            attachment_id,
           })
         }
       } else if (type === 'comment') {
         const preview = (r.text || '').slice(0, 60).replace(/\n/g, ' ')
         refs.push({
-          type:       'comment',
-          label:      preview + ((r.text?.length ?? 0) > 60 ? '…' : ''),
-          channel:    channelName,
-          channel_id: metaChannelId || '',
-          team:       teamName,
+          type:          'comment',
+          label:         preview + ((r.text?.length ?? 0) > 60 ? '…' : ''),
+          channel:       channelName,
+          channel_id:    metaChannelId || '',
+          team:          teamName,
           post_id,
+          comment_id,
         })
       } else {
-        // post / manual_text: PostgreSQL에서 내용 조회 (Cassandra 전용이면 r.text 사용)
-        const res = await db.query(
+        // post / manual_text
+        const pRes = await db.query(
           'SELECT content FROM posts WHERE id = $1 LIMIT 1',
           [post_id]
         )
-        const content = res.rowCount > 0 ? (res.rows[0].content || '') : (r.text || '')
+        const content = pRes.rowCount > 0 ? (pRes.rows[0].content || '') : (r.text || '')
         const preview = content.slice(0, 60).replace(/\n/g, ' ')
         refs.push({
-          type:       'post',
-          label:      preview + (content.length > 60 ? '…' : ''),
-          channel:    channelName,
-          channel_id: metaChannelId || '',
-          team:       teamName,
+          type:          'post',
+          label:         preview + (content.length > 60 ? '…' : ''),
+          channel:       channelName,
+          channel_id:    metaChannelId || '',
+          team:          teamName,
           post_id,
         })
       }
