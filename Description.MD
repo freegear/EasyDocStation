@@ -346,7 +346,7 @@ Team 관리자 *(최소 1명) 칸에 직접 텍스트로 타입을 해서 추가
 Team 멤버 추가도 관리자 추가 와 같은 방식으로 한다.
 
 # 9.1.2 같은 Team 이름이 있으면 추가되지 않도록 한다.
-
+저장 버튼을 눌렀을 때.  같은 Team 이름이 있으면 추가되지 않도록 한다.
 
 # 9.2 Team 삭제
 
@@ -742,6 +742,96 @@ for i, (text, vector) in enumerate(zip(chunks, vectors)):
 
 # DB에 추가 (이 순간 '학습' 완료)
 table.add(data_to_save)
+
+
+# 13.3.4 댓글 학습
+
+댓글이 추가되면, 학습 시작 조건에 따라서 학습 되도록 한다.
+계시판 글과 같은 방식으로 학습 되도록 한다.
+다른 부분은 수정하지 말아줘
+
+# 13.3.5 학습 진행 과정 표시
+
+추가된 계시판 글이나 댓글이 학습을 진행할 경우 해당 글에 학습중이라는 표시를 하도록 한다.
+
+
+
+
+# 13.4 RAG 질문과 참고자료 표시 및 링크 추가
+
+Gemma로 문의가 들어가면, 우선 RAG를 찾아서 답변을 한다.
+
+그때 RAG의 답변의 출처가 되는 문서를 답변의 끝에 표시하도록 한다.
+- 문서는 PDF , 계시글, 이미지 등등이 될 수 있다.
+
+참고로 하는 코드는 아래와 같다.
+
+##################################
+# 1. LanceDB에서 검색 (텍스트와 메타데이터 함께 가져오기)
+query_vec = embed_model.encode("Gemma 4의 특징은?")
+results = table.search(query_vec).limit(2).to_list()
+
+# 2. Gemma에게 전달할 컨텍스트와 출처(Reference) 분리
+context_list = []
+references = []
+
+for res in results:
+    context_list.append(res['text'])
+    # 메타데이터에서 출처 정보 추출 (파일명, 게시판 ID 등)
+    source = res['metadata'].get('source', 'Unknown')
+    page = res['metadata'].get('page', '-')
+    references.append(f"- 출처: {source} (위치: {page}페이지)")
+
+context_text = "\n\n".join(context_list)
+
+# 3. Gemma 4에게 답변 요청 (프롬프트 구성)
+prompt = f"""아래 [정보]를 바탕으로 질문에 답하세요.
+[정보]: {context_text}
+질문: Gemma 4의 특징은?
+"""
+
+# (API 호출 부분 생략)
+response = client.chat.completions.create(model="gemma4:e4b", messages=[{"role": "user", "content": prompt}])
+
+# 4. 답변 뒤에 Reference 붙여서 출력
+print("--- Gemma의 답변 ---")
+print(response.choices[0].message.content)
+print("\n--- 참고 자료(References) ---")
+print("\n".join(set(references))) # 중복 제거 후 출력
+########################################
+
+
+# 13.5 제시된 참조 목록을 클릭하면 해당 게시판이나 글로 이동하고 싶다.
+
+RAG를 이용해서 질문하면 Reference 자료를 목록으로 제시한다.
+이때 제시된 목록의 아이템을 클릭하면 해당 게시판이나 글로 이동하고 싶다.
+
+이렇게 되도록 수정해줘
+
+이 기능은 방금 전 13.4 구현에서 이미 완료되었습니다.
+
+구현된 내용:
+
+server/routes/rag.js — 참조 항목에 channel_id 포함
+src/contexts/ChatContext.jsx — navigateToPost(channelId, postId) 함수 추가
+src/components/ChatArea.jsx — pendingOpenPostId 감지 후 해당 게시글 자동 오픈
+src/components/GroqPanel.jsx — 참고 문서 항목을 <button>으로 변경, 클릭 시 navigateToPost 호출
+클릭하면:
+
+해당 팀/채널로 자동 전환
+게시글·댓글 참조는 해당 게시글이 자동 오픈
+PDF 참조는 첨부된 게시글이 오픈
+channel_id가 없는 항목은 클릭 비활성화
+추가로 바꾸고 싶은 동작이 있으면 말씀해주세요.
+
+>> 링크가 클릭이 안된다.
+>> channel_id를 항상 추가하는 방법은 ?
+
+
+
+
+
+
 
 
 

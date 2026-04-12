@@ -33,15 +33,16 @@ except Exception as e:
     print(f"[ERROR] 입력 JSON 파싱 실패: {e}", file=sys.stderr)
     sys.exit(1)
 
-cfg   = payload.get("config", {})
-posts = payload.get("posts", [])
+cfg      = payload.get("config", {})
+posts    = payload.get("posts", [])
+comments = payload.get("comments", [])
 
 LANCEDB_PATH  = cfg.get("lancedb_path",  "/Users/kevinim/Desktop/EasyDocStation/Database/LanceDB")
 CHUNK_SIZE    = int(cfg.get("chunk_size",   800))
 CHUNK_OVERLAP = int(cfg.get("chunk_overlap", 100))
 VECTOR_SIZE   = int(cfg.get("vector_size",  1024))
 
-if not posts:
+if not posts and not comments:
     print("[RAG] 학습할 데이터가 없습니다.")
     sys.exit(0)
 
@@ -68,12 +69,12 @@ db = lancedb.connect(LANCEDB_PATH)
 TABLE_NAME = "my_rag_table"
 
 # 테이블이 없거나 스키마가 다르면 올바른 스키마로 재생성
-# metadata 구조: {"post_id": str, "chunk_id": int, "type": str}
+# metadata 구조: {"post_id": str, "chunk_id": int, "type": str, "channel_id": str}
 def ensure_table(vector_size):
     init_data = [{
         "vector": [0.0] * vector_size,
         "text": "__init__",
-        "metadata": {"post_id": "", "chunk_id": 0, "type": "system"}
+        "metadata": {"post_id": "", "chunk_id": 0, "type": "system", "channel_id": ""}
     }]
     existing = db.table_names() if hasattr(db, 'table_names') else db.list_tables()
     if TABLE_NAME not in existing:
@@ -85,9 +86,9 @@ def ensure_table(vector_size):
     meta_field = next((f for f in tbl.schema if f.name == "metadata"), None)
     meta_subfields = [sf.name for sf in meta_field.type] if meta_field else []
     vec_size = tbl.schema.field("vector").type.list_size
-    # chunk_id / type 필드가 없거나 vector 크기가 다르면 재생성
-    if "chunk_id" not in meta_subfields or "type" not in meta_subfields or vec_size != vector_size:
-        print(f"[RAG] 스키마 불일치 → 테이블 재생성 (dim={vector_size})")
+    # channel_id / chunk_id / type 필드가 없거나 vector 크기가 다르면 재생성
+    if "channel_id" not in meta_subfields or "chunk_id" not in meta_subfields or "type" not in meta_subfields or vec_size != vector_size:
+        print(f"[RAG] 스키마 불일치 → 테이블 재생성 (channel_id 포함, dim={vector_size})")
         tbl = db.create_table(TABLE_NAME, data=init_data, mode="overwrite")
     return tbl
 
@@ -120,7 +121,8 @@ total_chunks = 0
 records = []
 
 for post in posts:
-    post_id = post.get("id", "unknown")
+    post_id    = post.get("id", "unknown")
+    channel_id = post.get("channel_id", "")
     texts_to_train = []  # (text, source_label) 튜플 목록
 
     # 게시글 본문 (텍스트 학습)
@@ -150,17 +152,47 @@ for post in posts:
                 "vector": vector.tolist(),
                 "text": chunk,
                 "metadata": {
-                    "post_id": post_id,
-                    "chunk_id": i,
-                    "type": data_type      # "manual_text" 또는 "pdf"
+                    "post_id":    post_id,
+                    "chunk_id":   i,
+                    "type":       data_type,   # "manual_text" 또는 "pdf"
+                    "channel_id": channel_id,
                 }
             })
         total_chunks += len(chunks)
         print(f"[RAG] post={post_id} type={data_type} → {len(chunks)}청크", flush=True)
 
+# ─── 댓글 학습 ───────────────────────────────────────────────
+for comment in comments:
+    comment_id = comment.get("id", "unknown")
+    post_id    = comment.get("post_id", "")
+    channel_id = comment.get("channel_id", "")
+    content    = (comment.get("content") or "").strip()
+    if not content:
+        continue
+
+    chunks = text_splitter.split_text(content)
+    if not chunks:
+        continue
+
+    vectors = embed_model.encode(chunks, batch_size=16, show_progress_bar=False)
+
+    for i, (chunk, vector) in enumerate(zip(chunks, vectors)):
+        records.append({
+            "vector": vector.tolist(),
+            "text": chunk,
+            "metadata": {
+                "post_id":    post_id,
+                "chunk_id":   i,
+                "type":       "comment",
+                "channel_id": channel_id,
+            }
+        })
+    total_chunks += len(chunks)
+    print(f"[RAG] comment={comment_id} post={post_id} → {len(chunks)}청크", flush=True)
+
 # ─── LanceDB에 저장 ───────────────────────────────────────────
 if records:
     table.add(records)
-    print(f"[RAG] 저장 완료 — {total_chunks}청크 / {len(posts)}개 게시글")
+    print(f"[RAG] 저장 완료 — {total_chunks}청크 / {len(posts)}개 게시글 / {len(comments)}개 댓글")
 else:
     print("[RAG] 저장할 레코드 없음")
