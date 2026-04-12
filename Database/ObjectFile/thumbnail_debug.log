@@ -34,3 +34,13 @@
 [2026-04-12T05:06:11.528Z] Success: thumbnails/f84415e4-41ab-499b-9072-5ce13d33034a.png
 [2026-04-12T05:09:01.997Z] Generating for 6e0d97da-6d6b-458a-810b-cc2f08fb803f: qlmanage -t -s 512 -o "/Users/kevinim/Desktop/EasyDocStation/Database/ObjectFile/thumbnails" "/Users/kevinim/Desktop/EasyDocStation/Database/ObjectFile/StoryForge/20260412050901/1_견적서_셀콘_Zynq 펌웨어_250425.docx"
 [2026-04-12T05:09:02.193Z] Success: thumbnails/6e0d97da-6d6b-458a-810b-cc2f08fb803f.png
+[2026-04-12T05:21:31.407Z] Generating for 08dd8f08-6296-497e-91c7-e6e9ed2c709e: qlmanage -t -s 512 -o "/Users/kevinim/Desktop/EasyDocStation/Database/ObjectFile/thumbnails" "/Users/kevinim/Desktop/EasyDocStation/Database/ObjectFile/StoryForge/20260412052131/블루탑 국책과제 컨설팅 계약_260407.docx"
+[2026-04-12T05:21:31.639Z] Success: thumbnails/08dd8f08-6296-497e-91c7-e6e9ed2c709e.png
+[2026-04-12T05:27:02.003Z] Generating for db89bf46-a79b-4af1-832a-214b989f2ee1: qlmanage -t -s 512 -o "/Users/kevinim/Desktop/EasyDocStation/Database/ObjectFile/thumbnails" "/Users/kevinim/Desktop/EasyDocStation/Database/ObjectFile/StoryForge/20260412052701/storyforge_proposal_prompt_supply_20260319053834.pdf"
+[2026-04-12T05:27:02.220Z] Success: thumbnails/db89bf46-a79b-4af1-832a-214b989f2ee1.png
+[2026-04-12T05:36:20.216Z] Generating for 92d7efa5-83be-44d4-a46d-fa23de8beebb: qlmanage -t -s 512 -o "/Users/kevinim/Desktop/EasyDocStation/Database/ObjectFile/thumbnails" "/Users/kevinim/Desktop/EasyDocStation/Database/ObjectFile/StoryForge/20260412053620/storyforge_proposal_prompt_supply_20260319053834 (2).pdf"
+[2026-04-12T05:36:20.372Z] Success: thumbnails/92d7efa5-83be-44d4-a46d-fa23de8beebb.png
+[2026-04-12T05:38:01.002Z] Generating for 5035374e-c436-457a-87a7-5fb3678cce99: qlmanage -t -s 512 -o "/Users/kevinim/Desktop/EasyDocStation/Database/ObjectFile/thumbnails" "/Users/kevinim/Desktop/EasyDocStation/Database/ObjectFile/StoryForge/20260412053800/storyforge_proposal_prompt_supply_20260319053834 (2).pdf"
+[2026-04-12T05:38:01.162Z] Success: thumbnails/5035374e-c436-457a-87a7-5fb3678cce99.png
+[2026-04-12T05:39:52.320Z] Generating for e9fadc12-bb84-42bd-bca6-df0a76b442c6: qlmanage -t -s 512 -o "/Users/kevinim/Desktop/EasyDocStation/Database/ObjectFile/thumbnails" "/Users/kevinim/Desktop/EasyDocStation/Database/ObjectFile/StoryForge/20260412053952/화면 기록 2026-04-12 오전 11.24.20.mov"
+[2026-04-12T05:39:52.516Z] Success: thumbnails/e9fadc12-bb84-42bd-bca6-df0a76b442c6.png

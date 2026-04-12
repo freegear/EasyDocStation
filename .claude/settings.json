@@ -7,7 +7,8 @@
       "Bash(pip3 install:*)",
       "Bash(python3 /Users/kevinim/Desktop/EasyDocStation/server/rag_train.py)",
       "Bash(python3 -)",
-      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\(json.dumps\\({k:v for k,v in d.items\\(\\) if 'lance' in k.lower\\(\\) or 'rag' in k.lower\\(\\) or 'embed' in k.lower\\(\\)}, indent=2, ensure_ascii=False\\)\\)\")"
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\(json.dumps\\({k:v for k,v in d.items\\(\\) if 'lance' in k.lower\\(\\) or 'rag' in k.lower\\(\\) or 'embed' in k.lower\\(\\)}, indent=2, ensure_ascii=False\\)\\)\")",
+      "Bash(python3 -c ':*)"
     ]
   }
 }

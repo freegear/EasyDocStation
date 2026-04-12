@@ -3,9 +3,10 @@ import { GROQ_MODELS, GROQ_API_KEY } from '../data/mockData'
 import { apiFetch } from '../lib/api'
 import { useChat } from '../contexts/ChatContext'
 
-const SYSTEM_PROMPT = `You are a helpful AI assistant integrated into EasyDocStation, a team collaboration platform.
-Help users with their questions, summarize discussions, draft messages, and provide insights.
-Respond concisely and helpfully. When responding in Korean, use natural Korean.`
+const SYSTEM_PROMPT = `당신은 EasyDocStation의 AI 어시스턴트입니다.
+반드시 제공된 [참고 정보]에 있는 내용만을 근거로 답변하세요.
+참고 정보에 없는 내용은 절대 추측하거나 일반 지식으로 보충하지 마세요.
+답변은 간결하고 명확하게 한국어로 작성하세요.`
 
 function formatTime(isoString) {
   return new Date(isoString).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })
@@ -111,15 +112,25 @@ export default function GroqPanel() {
       ragContext = ragResult.context || ''
       ragReferences = ragResult.references || []
     } catch (e) {
-      // RAG 실패 시 무시하고 일반 답변으로 진행
-      console.warn('[RAG] 검색 실패, 일반 모드로 진행:', e.message)
+      console.warn('[RAG] 검색 실패:', e.message)
     }
 
-    // ── 2. API 전송용 메시지 구성 ────────────────────────────────
-    // RAG 컨텍스트가 있으면 사용자 메시지에 주입
-    const contentWithContext = ragContext
-      ? `아래 [참고 정보]를 바탕으로 답변하세요. 참고 정보와 관련 없는 내용은 일반 지식으로 답변하세요.\n\n[참고 정보]\n${ragContext}\n\n[질문]\n${fullText}`
-      : fullText
+    // ── 2. RAG 데이터 없으면 AI 호출 없이 안내 메시지 반환 ──────
+    if (!ragContext) {
+      setMessages(prev => [...prev, {
+        id: `a-${Date.now()}`,
+        role: 'assistant',
+        content: '죄송합니다. 관련 데이터를 찾을 수 없습니다.\n\nRAG 데이터베이스에 해당 질문과 관련된 정보가 없습니다. 게시판에 관련 내용을 먼저 등록해 주세요.',
+        references: [],
+        time: new Date().toISOString(),
+        model: selectedModel,
+      }])
+      setLoading(false)
+      return
+    }
+
+    // ── 3. API 전송용 메시지 구성 — RAG 데이터만 사용 ────────────
+    const contentWithContext = `아래 [참고 정보]에 있는 내용만을 근거로 답변하세요. 참고 정보에 없는 내용은 절대 추측하거나 일반 지식으로 보충하지 마세요.\n\n[참고 정보]\n${ragContext}\n\n[질문]\n${fullText}`
 
     const userApiMessage = { role: 'user', content: contentWithContext }
     if (base64Data) {

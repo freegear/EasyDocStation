@@ -783,7 +783,59 @@ table.add(data_to_save)
 계시판 글과 같은 방식으로 학습 되도록 한다.
 다른 부분은 수정하지 말아줘
 
-# 13.3.5 학습 진행 과정 표시
+
+# 13.3.5 WORD 파일 학습
+
+word파일이 계시판이나 댓글에 첨부파일로 올라올 경우 아래와 같이 하여서 학습을 진행한다.
+
+
+from langchain_community.document_loaders import Docx2txtLoader
+
+# 1. Word 파일 로더 설정 (S3에서 다운로드한 파일 경로라고 가정)
+file_path = word file path
+loader = Docx2txtLoader(file_path)
+
+# 2. 파일에서 데이터 로드 (Document 객체 리스트 반환)
+# Document 객체는 page_content(텍스트)와 metadata(출처 등)를 가집니다.
+raw_documents = loader.load()
+
+print(f"문서 로드 완료. 총 {len(raw_documents)}개의 문서 객체 생성.")
+print(f"첫 번째 문서 앞부분: {raw_documents[0].page_content[:100]}...")
+
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+
+# 1. 텍스트 분할기(Splitter) 설정
+text_splitter = RecursiveCharacterTextSplitter(
+    chunk_size=config.rag.chunk_size,    # 각 청크의 최대 글자 수 (토큰 수와 유사하게 관리)
+    chunk_overlap=config.rag.chunk_overlap,  # 청크 간 중복되는 글자 수 (문맥 유지용)
+    length_function=len,
+    is_separator_regex=False,
+)
+
+# 2. 로드한 문서 분할
+sn_documents = text_splitter.split_documents(raw_documents)
+
+print(f"문서 분할 완료. 총 {len(sn_documents)}개의 청크 생성.")
+print(f"첫 번째 청크 내용: {sn_documents[0].page_content}")
+print(f"첫 번째 청크 메타데이터: {sn_documents[0].metadata}") # 자동으로 source가 들어감
+
+
+from langchain_community.embeddings import HuggingFaceEmbeddings
+
+# 한국어 지원이 좋은 모델 예시
+model_name = "jhgan/ko-sroberta-multitask"
+encode_kwargs = {'normalize_embeddings': True} # 클러스터링/검색 품질 향상
+embeddings_model = HuggingFaceEmbeddings(
+    model_name=model_name,
+    encode_kwargs=encode_kwargs
+)
+
+print("임베딩 모델 로드 완료.")
+
+#################
+
+
+# 13.3.6 학습 진행 과정 표시
 
 추가된 계시판 글이나 댓글이 학습을 진행할 경우 해당 글에 학습중이라는 표시를 하도록 한다.
 
@@ -906,6 +958,16 @@ agenticai :
 AgenticAI 설정 페이지에서 저장 버튼을 누르면 새롭게 설정한다.
 
 다른 부분은 수정하지 말아줘
+
+# 14.3 EasyDoc AgenticAI 에서 질문을 할 경우 
+   
+기본적으로 RAG에서 데이터를 가지고온다
+데이터가 있으면 RAG의 데이터를 가지고와서 답변을 하고
+없으면 없다고 이야기한다.
+
+RAG DB는 LanceDB를 사용하므로 여기서 가지고온다
+
+
 
 
 
