@@ -4,6 +4,7 @@ const jwt = require('jsonwebtoken')
 const path = require('path')
 const fs = require('fs')
 const { v4: uuidv4 } = require('uuid')
+const { exec } = require('child_process')
 const db = require('../db')
 const requireAuth = require('../middleware/auth')
 
@@ -22,6 +23,11 @@ const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret'
 // Ensure storage base exists
 if (!fs.existsSync(STORAGE_BASE)) {
   fs.mkdirSync(STORAGE_BASE, { recursive: true })
+}
+
+const THUMBNAIL_BASE = path.join(STORAGE_BASE, 'thumbnails')
+if (!fs.existsSync(THUMBNAIL_BASE)) {
+  fs.mkdirSync(THUMBNAIL_BASE, { recursive: true })
 }
 
 /**
@@ -75,10 +81,20 @@ router.get('/view/:id', requireAuth, async (req, res, next) => {
     if (result.rowCount === 0) return res.status(404).send('파일을 찾을 수 없습니다.')
 
     const file = result.rows[0]
-    const fullPath = path.join(STORAGE_BASE, file.storage_path)
+    let fullPath = path.join(STORAGE_BASE, file.storage_path)
+    let contentType = file.content_type || 'application/octet-stream'
+
+    // 썸네일 요청 처리
+    if (req.query.thumbnail === 'true' && file.thumbnail_path) {
+      const thumbPath = path.join(STORAGE_BASE, file.thumbnail_path)
+      if (fs.existsSync(thumbPath)) {
+        fullPath = thumbPath
+        contentType = 'image/png' // qlmanage outputs png
+      }
+    }
+
     if (!fs.existsSync(fullPath)) return res.status(404).send('파일을 찾을 수 없습니다.')
 
-    const contentType = file.content_type || 'application/octet-stream'
     res.setHeader('Content-Type', contentType)
     if (!contentType.startsWith('image/') && !contentType.startsWith('video/')) {
       res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(file.filename)}"`)
@@ -151,6 +167,49 @@ router.put('/gateway/upload', async (req, res) => {
         SET status = 'COMPLETED', size = $1, created_at = NOW() 
         WHERE id = $2
       `, [totalSize, decoded.file_uuid])
+      
+      // ─── 썸네일 생성 로직 추가 (영상이거나 문서인 경우) ──────────
+      const isThumbTarget = /\.(pdf|pptx|ppt|docx|doc|xlsx|xls|mp4|mov|avi|mkv|webm)$/i.test(decoded.key)
+      
+      if (isThumbTarget) {
+        try {
+            // qlmanage -t -s 512 -o <THUMBNAIL_BASE> <fullPath>
+            // qlmanage는 <파일명>.png 형태로 파일을 만듦
+            const cmd = `qlmanage -t -s 512 -o "${THUMBNAIL_BASE}" "${fullPath}"`
+            
+            // 디버그 로그용
+            const logFile = path.join(STORAGE_BASE, 'thumbnail_debug.log')
+            fs.appendFileSync(logFile, `[${new Date().toISOString()}] Generating for ${decoded.file_uuid}: ${cmd}\n`)
+
+            exec(cmd, async (err, stdout, stderr) => {
+              if (err) {
+                fs.appendFileSync(logFile, `[${new Date().toISOString()}] Error: ${err.message}\nStderr: ${stderr}\n`)
+                console.error('[Thumbnail] Generation failed:', err)
+                return
+              }
+              
+              const originalBase = path.basename(fullPath)
+              const generatedPath = path.join(THUMBNAIL_BASE, originalBase + '.png')
+              const uniqueThumbName = `${decoded.file_uuid}.png`
+              const finalThumbPath = path.join(THUMBNAIL_BASE, uniqueThumbName)
+
+              // qlmanage가 생성한 파일을 UUID 기반의 고유 이름으로 변경
+              if (fs.existsSync(generatedPath)) {
+                fs.renameSync(generatedPath, finalThumbPath)
+                const thumbRelPath = path.join('thumbnails', uniqueThumbName)
+                
+                await db.query(`
+                  UPDATE attachments SET thumbnail_path = $1 WHERE id = $2
+                `, [thumbRelPath, decoded.file_uuid])
+                fs.appendFileSync(logFile, `[${new Date().toISOString()}] Success: ${thumbRelPath}\n`)
+              } else {
+                fs.appendFileSync(logFile, `[${new Date().toISOString()}] Generated file not found: ${generatedPath}\n`)
+              }
+            })
+        } catch (e) {
+          console.error('[Thumbnail] Error:', e)
+        }
+      }
       
       res.status(200).send('Upload successful')
     })

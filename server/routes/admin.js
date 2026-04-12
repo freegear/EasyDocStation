@@ -102,7 +102,8 @@ router.get('/stats', async (req, res) => {
         size: formatBytes(lancedbSizeBytes),
       },
       display: config.imagePreview || { width: 512, height: 512 },
-      rag: config.rag || { trainingType: 'manual', dailyTime: '02:00', vectorSize: 1024 }
+      rag: config.rag || { trainingType: 'manual', dailyTime: '02:00', vectorSize: 1024 },
+      agenticai: config.agenticai || { num_predict: 4096, num_ctx: 8192 }
     })
   } catch (err) {
     console.error('Admin Stats Error:', err)

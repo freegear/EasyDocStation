@@ -3,6 +3,22 @@
     "width": 378,
     "height": 378
   },
+  "pptPreview": {
+    "width": 480,
+    "height": 270
+  },
+  "pptxPreview": {
+    "width": 480,
+    "height": 270
+  },
+  "excelPreview": {
+    "width": 480,
+    "height": 270
+  },
+  "wordPreview": {
+    "width": 270,
+    "height": 480
+  },
   "PostgreSQL Database Path": "/Users/kevinim/Desktop/EasyDocStation/Database/PoseSQLDB",
   "Cassandra Database Path": "/Users/kevinim/Desktop/EasyDocStation/Database/CassandraDB",
   "ObjectFile Path": "/Users/kevinim/Desktop/EasyDocStation/Database/ObjectFile",
@@ -13,5 +29,9 @@
     "vectorSize": 1024,
     "chunk_size": 800,
     "chunk_overlap": 100
+  },
+  "agenticai": {
+    "num_predict": 4096,
+    "num_ctx": 8192
   }
 }

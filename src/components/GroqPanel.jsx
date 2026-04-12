@@ -35,6 +35,7 @@ export default function GroqPanel() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const [attachedFile, setAttachedFile] = useState(null)
+  const [aiConfig, setAiConfig] = useState({ num_predict: 4096, num_ctx: 8192 })
   const fileInputRef = useRef(null)
   const bottomRef = useRef(null)
   const textareaRef = useRef(null)
@@ -42,6 +43,18 @@ export default function GroqPanel() {
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages.length])
+
+  useEffect(() => {
+    async function fetchConfig() {
+      try {
+        const data = await apiFetch('/config/agenticai')
+        setAiConfig(data)
+      } catch (e) {
+        console.error('Failed to load AI config:', e)
+      }
+    }
+    fetchConfig()
+  }, [])
 
   // 파일을 Base64로 변환하는 헬퍼 함수
   const fileToBase64 = (file) => {
@@ -134,7 +147,8 @@ export default function GroqPanel() {
           stream: false,
           options: {
             temperature: 0.7,
-            num_predict: 1024,
+            num_ctx: aiConfig.num_ctx || 8192,
+            num_predict: aiConfig.num_predict || 4096,
           }
         }),
       })
