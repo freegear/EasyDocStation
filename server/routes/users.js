@@ -18,6 +18,8 @@ function toPublicUser(u) {
     image_url: u.image_url,
     last_login_at: u.last_login_at,
     created_at: u.created_at,
+    department_id: u.department_id ?? null,
+    security_level: u.security_level ?? 0,
   }
 }
 
@@ -78,7 +80,7 @@ router.get('/', requireSiteAdmin, async (req, res) => {
 
 // POST /api/users — site admin only
 router.post('/', requireSiteAdmin, async (req, res) => {
-  const { username, name, email, password, role, image_url } = req.body
+  const { username, name, email, password, role, image_url, department_id, security_level, is_active } = req.body
   if (!username || !name || !email || !password) {
     return res.status(400).json({ error: '필수 항목을 모두 입력하세요.' })
   }
@@ -86,15 +88,19 @@ router.post('/', requireSiteAdmin, async (req, res) => {
   if (!canAssignRole(req.user.role, assignRole)) {
     return res.status(403).json({ error: '해당 권한을 부여할 수 없습니다.' })
   }
+  const secLevel = (security_level !== undefined && security_level !== null) ? parseInt(security_level) : 0
+  const active = is_active !== undefined ? is_active : true
   try {
     const hash = await bcrypt.hash(password, 10)
     const { rows } = await pool.query(
-      `INSERT INTO users (username, name, email, password_hash, role, image_url)
-       VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
-      [username.trim(), name.trim(), email.trim().toLowerCase(), hash, assignRole, image_url]
+      `INSERT INTO users (username, name, email, password_hash, role, image_url, department_id, security_level, is_active)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`,
+      [username.trim(), name.trim(), email.trim().toLowerCase(), hash, assignRole, image_url || null,
+       department_id || null, secLevel, active]
     )
     res.status(201).json(toPublicUser(rows[0]))
   } catch (err) {
+    console.error('POST /users error:', err)
     if (err.code === '23505') return res.status(400).json({ error: '이미 사용 중인 아이디 또는 이메일입니다.' })
     res.status(500).json({ error: '서버 오류가 발생했습니다.' })
   }
@@ -103,7 +109,7 @@ router.post('/', requireSiteAdmin, async (req, res) => {
 // PUT /api/users/:id — site admin only
 router.put('/:id', requireSiteAdmin, async (req, res) => {
   const targetId = parseInt(req.params.id)
-  const { name, email, role, password, is_active, image_url } = req.body
+  const { name, email, role, password, is_active, image_url, department_id, security_level } = req.body
 
   if (role && !canAssignRole(req.user.role, role)) {
     return res.status(403).json({ error: '해당 권한을 부여할 수 없습니다.' })
@@ -114,11 +120,13 @@ router.put('/:id', requireSiteAdmin, async (req, res) => {
     const vals = []
     let i = 1
 
-    if (name !== undefined)      { sets.push(`name = $${i++}`);      vals.push(name.trim()) }
-    if (email !== undefined)     { sets.push(`email = $${i++}`);     vals.push(email.trim().toLowerCase()) }
-    if (role !== undefined)      { sets.push(`role = $${i++}`);      vals.push(role) }
-    if (is_active !== undefined) { sets.push(`is_active = $${i++}`); vals.push(is_active) }
-    if (image_url !== undefined) { sets.push(`image_url = $${i++}`); vals.push(image_url) }
+    if (name !== undefined)             { sets.push(`name = $${i++}`);             vals.push(name.trim()) }
+    if (email !== undefined)            { sets.push(`email = $${i++}`);            vals.push(email.trim().toLowerCase()) }
+    if (role !== undefined)             { sets.push(`role = $${i++}`);             vals.push(role) }
+    if (is_active !== undefined)        { sets.push(`is_active = $${i++}`);        vals.push(is_active) }
+    if (image_url !== undefined)        { sets.push(`image_url = $${i++}`);        vals.push(image_url) }
+    if (department_id !== undefined)    { sets.push(`department_id = $${i++}`);    vals.push(department_id || null) }
+    if (security_level !== undefined)   { sets.push(`security_level = $${i++}`);   vals.push(parseInt(security_level)) }
     if (password) {
       const hash = await bcrypt.hash(password, 10)
       sets.push(`password_hash = $${i++}`); vals.push(hash)

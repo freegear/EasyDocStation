@@ -2,7 +2,10 @@
   "permissions": {
     "allow": [
       "Bash(npm create:*)",
-      "Bash(npx tailwindcss:*)"
+      "Bash(npx tailwindcss:*)",
+      "Bash(psql -p 5433 -U kevinim -d easydocstation -c ':*)",
+      "Bash(pg_ctl -D /Users/kevinim/Desktop/EasyDocStation/Database/PoseSQLDB status)",
+      "Bash(psql -h localhost -p 5433 -U kevinim -d easydocstation -c ':*)"
     ]
   }
 }

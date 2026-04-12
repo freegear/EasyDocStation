@@ -56,3 +56,17 @@
 [2026-04-12T06:16:03.423Z] Success: thumbnails/e3929c25-868f-44fa-b7f9-64f0f780dfa8.png
 [2026-04-12T06:17:48.310Z] Generating for 6016af13-6a18-445c-b220-8cbb819072f6: qlmanage -t -s 512 -o "/Users/kevinim/Desktop/EasyDocStation/Database/ObjectFile/thumbnails" "/Users/kevinim/Desktop/EasyDocStation/Database/ObjectFile/StoryForge/20260412061748/개발용역계약서_갱신.docx"
 [2026-04-12T06:17:48.604Z] Success: thumbnails/6016af13-6a18-445c-b220-8cbb819072f6.png
+[2026-04-12T10:27:54.417Z] Generating for 5c7a5f8e-617d-487e-9a7f-213a64ba37a9: qlmanage -t -s 512 -o "/Users/kevinim/Desktop/EasyDocStation/Database/ObjectFile/thumbnails" "/Users/kevinim/Desktop/EasyDocStation/Database/ObjectFile/영업 1 팀/20260412102754/개발용역계약서_갱신 (1).docx"
+[2026-04-12T10:27:54.648Z] Success: thumbnails/5c7a5f8e-617d-487e-9a7f-213a64ba37a9.png
+[2026-04-12T10:42:20.762Z] Generating for 995a6c7c-9223-4313-8710-ecdba7350036: qlmanage -t -s 512 -o "/Users/kevinim/Desktop/EasyDocStation/Database/ObjectFile/thumbnails" "/Users/kevinim/Desktop/EasyDocStation/Database/ObjectFile/영업 2 팀/20260412104220/50c74388-8c20-46e6-abbc-3448a6b66ad3.mov"
+[2026-04-12T10:42:20.958Z] Success: thumbnails/995a6c7c-9223-4313-8710-ecdba7350036.png
+[2026-04-12T10:42:38.540Z] Generating for 04c5673d-8729-4a5a-9ee6-d72bc5ec3e6a: qlmanage -t -s 512 -o "/Users/kevinim/Desktop/EasyDocStation/Database/ObjectFile/thumbnails" "/Users/kevinim/Desktop/EasyDocStation/Database/ObjectFile/영업 2 팀/20260412104238/50c74388-8c20-46e6-abbc-3448a6b66ad3.mov"
+[2026-04-12T10:42:38.728Z] Success: thumbnails/04c5673d-8729-4a5a-9ee6-d72bc5ec3e6a.png
+[2026-04-12T10:42:50.549Z] Generating for 82a896fb-809f-4e24-9c67-1d634643e484: qlmanage -t -s 512 -o "/Users/kevinim/Desktop/EasyDocStation/Database/ObjectFile/thumbnails" "/Users/kevinim/Desktop/EasyDocStation/Database/ObjectFile/영업 2 팀/20260412104250/50c74388-8c20-46e6-abbc-3448a6b66ad3.mov"
+[2026-04-12T10:42:50.733Z] Success: thumbnails/82a896fb-809f-4e24-9c67-1d634643e484.png
+[2026-04-12T10:46:28.081Z] Generating for 31ea4c50-a0af-4e14-98b6-fb657c750a0c: qlmanage -t -s 512 -o "/Users/kevinim/Desktop/EasyDocStation/Database/ObjectFile/thumbnails" "/Users/kevinim/Desktop/EasyDocStation/Database/ObjectFile/영업 2 팀/20260412104627/50c74388-8c20-46e6-abbc-3448a6b66ad3.mov"
+[2026-04-12T10:46:28.243Z] Success: thumbnails/31ea4c50-a0af-4e14-98b6-fb657c750a0c.png
+[2026-04-12T10:53:40.901Z] Generating for 8cda9934-052d-4e8b-ae1c-a874044173c7: qlmanage -t -s 512 -o "/Users/kevinim/Desktop/EasyDocStation/Database/ObjectFile/thumbnails" "/Users/kevinim/Desktop/EasyDocStation/Database/ObjectFile/영업 2 팀/20260412105340/1_견적서_셀콘_Zynq 펌웨어_250425 (1) (1).docx"
+[2026-04-12T10:53:41.102Z] Success: thumbnails/8cda9934-052d-4e8b-ae1c-a874044173c7.png
+[2026-04-12T10:54:01.609Z] Generating for f9353afb-8eac-4b70-8d7e-48191aaf1fcf: qlmanage -t -s 512 -o "/Users/kevinim/Desktop/EasyDocStation/Database/ObjectFile/thumbnails" "/Users/kevinim/Desktop/EasyDocStation/Database/ObjectFile/영업 2 팀/20260412105401/webtoon_animation_automation_strategy_20260124094123 (1) (1) (1).pptx"
+[2026-04-12T10:54:01.816Z] Success: thumbnails/f9353afb-8eac-4b70-8d7e-48191aaf1fcf.png

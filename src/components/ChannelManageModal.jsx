@@ -151,7 +151,7 @@ export default function ChannelManageModal({ mode = 'manage', channel = null, on
       }
 
       const result = await apiFetch(`/channels/${channelId}`, {
-        method: isEdit ? 'PUT' : 'POST', // Use POST for new channel if supported, or just keep PUT logic if it's upsert
+        method: 'PUT',
         body: JSON.stringify(payload)
       })
 
@@ -226,7 +226,7 @@ export default function ChannelManageModal({ mode = 'manage', channel = null, on
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-6 space-y-6">
+        <div className="flex-1 overflow-y-auto p-6 space-y-5">
           {/* Error Message */}
           {error && (
             <div className="px-4 py-2.5 rounded-xl bg-red-500/10 border border-red-500/25 text-red-400 text-sm">
@@ -234,10 +234,56 @@ export default function ChannelManageModal({ mode = 'manage', channel = null, on
             </div>
           )}
 
-          {/* Row: Name and Type */}
+          {/* DS.002 메타 정보 (읽기 전용) */}
+          <div className="bg-white/3 border border-white/8 rounded-2xl px-4 py-3 space-y-2.5">
+            <p className="text-white/30 text-[10px] font-semibold uppercase tracking-widest mb-1">DS.002 채널 정보</p>
+
+            {/* Channel ID */}
+            <div className="flex items-center gap-3">
+              <span className="text-white/35 text-xs w-28 flex-shrink-0">Channel ID</span>
+              <span className="text-white/60 text-xs font-mono">{isEdit ? targetChannel.id : '저장 시 자동 생성'}</span>
+            </div>
+
+            {/* Team ID */}
+            <div className="flex items-center gap-3">
+              <span className="text-white/35 text-xs w-28 flex-shrink-0">Team ID</span>
+              <span className="text-white/60 text-xs font-mono">{selectedTeam?.id ?? '-'}</span>
+              {selectedTeam?.name && <span className="text-white/30 text-xs">({selectedTeam.name})</span>}
+            </div>
+
+            {/* Created At */}
+            {isEdit && (
+              <div className="flex items-center gap-3">
+                <span className="text-white/35 text-xs w-28 flex-shrink-0">Created At</span>
+                <span className="text-white/60 text-xs font-mono">
+                  {targetChannel.created_at
+                    ? new Date(targetChannel.created_at).toLocaleString('ko-KR')
+                    : '-'}
+                </span>
+              </div>
+            )}
+
+            {/* Root Post ID */}
+            <div className="flex items-center gap-3">
+              <span className="text-white/35 text-xs w-28 flex-shrink-0">Root Post ID</span>
+              <span className={`text-xs font-mono ${isEdit && targetChannel.root_post_id ? 'text-indigo-300' : 'text-white/25'}`}>
+                {isEdit ? (targetChannel.root_post_id ?? 'NULL') : 'NULL'}
+              </span>
+            </div>
+
+            {/* Tail Post ID */}
+            <div className="flex items-center gap-3">
+              <span className="text-white/35 text-xs w-28 flex-shrink-0">Tail Post ID</span>
+              <span className={`text-xs font-mono ${isEdit && targetChannel.tail_post_id ? 'text-indigo-300' : 'text-white/25'}`}>
+                {isEdit ? (targetChannel.tail_post_id ?? 'NULL') : 'NULL'}
+              </span>
+            </div>
+          </div>
+
+          {/* 채널 이름 + Is Private */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-white/50 text-xs font-medium mb-1.5">채널 이름 <span className="text-red-400">*</span></label>
+              <label className="block text-white/50 text-xs font-medium mb-1.5">Channel Name <span className="text-red-400">*</span></label>
               <input
                 type="text"
                 value={name}
@@ -247,17 +293,22 @@ export default function ChannelManageModal({ mode = 'manage', channel = null, on
               />
             </div>
             <div>
-              <label className="block text-white/50 text-xs font-medium mb-1.5">채널 종류</label>
+              <label className="block text-white/50 text-xs font-medium mb-1.5">Is Private</label>
               <div className="flex gap-2">
-                {['public', 'private'].map(t => (
+                {[
+                  { value: 'public',  label: '공개', icon: '🌐' },
+                  { value: 'private', label: '비공개', icon: '🔒' },
+                ].map(t => (
                   <button
-                    key={t}
-                    onClick={() => setType(t)}
-                    className={`flex-1 py-2.5 rounded-xl text-xs font-semibold border transition-all ${
-                      type === t ? 'bg-indigo-600 border-indigo-500 text-white shadow-lg shadow-indigo-500/20' : 'bg-white/5 border-white/10 text-white/40 hover:text-white/60'
+                    key={t.value}
+                    onClick={() => setType(t.value)}
+                    className={`flex-1 py-2.5 rounded-xl text-xs font-semibold border transition-all flex items-center justify-center gap-1 ${
+                      type === t.value
+                        ? 'bg-indigo-600 border-indigo-500 text-white shadow-lg shadow-indigo-500/20'
+                        : 'bg-white/5 border-white/10 text-white/40 hover:text-white/60'
                     }`}
                   >
-                    {t === 'public' ? '공개' : '비공개'}
+                    {t.icon} {t.label}
                   </button>
                 ))}
               </div>

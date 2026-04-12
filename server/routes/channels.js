@@ -40,14 +40,15 @@ router.put('/:id', requireAuth, async (req, res, next) => {
       `INSERT INTO channels (id, team_id, name, type, description, is_archived, updated_at)
        VALUES ($1, $2, $3, $4, $5, $6, NOW())
        ON CONFLICT (id) DO UPDATE
-       SET name = EXCLUDED.name, 
-           type = EXCLUDED.type, 
+       SET name = EXCLUDED.name,
+           type = EXCLUDED.type,
            description = EXCLUDED.description,
            is_archived = EXCLUDED.is_archived,
            updated_at = NOW()
        RETURNING *`,
       [id, finalTeamId, name, type, description || null, is_archived ?? false]
     )
+    // root_post_id / tail_post_id are managed by the posts system, not here
 
     // Sync Admins
     if (adminIds && Array.isArray(adminIds)) {

@@ -20,14 +20,29 @@ CREATE TABLE IF NOT EXISTS teams (
 
 -- ─── Channels ────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS channels (
-  id          VARCHAR(50) PRIMARY KEY,
-  team_id     VARCHAR(50) NOT NULL REFERENCES teams(id) ON DELETE CASCADE,
-  name        VARCHAR(100) NOT NULL,
-  type        VARCHAR(20)  NOT NULL DEFAULT 'public' CHECK (type IN ('public', 'private')),
-  is_archived BOOLEAN      NOT NULL DEFAULT false,
-  created_at  TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
-  updated_at  TIMESTAMPTZ  NOT NULL DEFAULT NOW()
+  id            VARCHAR(50) PRIMARY KEY,
+  team_id       VARCHAR(50) NOT NULL REFERENCES teams(id) ON DELETE CASCADE,
+  name          VARCHAR(100) NOT NULL,
+  type          VARCHAR(20)  NOT NULL DEFAULT 'public' CHECK (type IN ('public', 'private')),
+  is_archived   BOOLEAN      NOT NULL DEFAULT false,
+  description   TEXT,
+  root_post_id  VARCHAR(50),
+  tail_post_id  VARCHAR(50),
+  created_at    TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+  updated_at    TIMESTAMPTZ  NOT NULL DEFAULT NOW()
 );
+
+-- Migration: add columns if they don't exist (safe to re-run)
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='channels' AND column_name='description')
+  THEN ALTER TABLE channels ADD COLUMN description TEXT; END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='channels' AND column_name='root_post_id')
+  THEN ALTER TABLE channels ADD COLUMN root_post_id VARCHAR(50); END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='channels' AND column_name='tail_post_id')
+  THEN ALTER TABLE channels ADD COLUMN tail_post_id VARCHAR(50); END IF;
+END $$;
 
 -- ─── Users ───────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS users (
@@ -107,18 +122,29 @@ CREATE TABLE IF NOT EXISTS posts (
   updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- ─── Attachments ─────────────────────────────────────────────
+-- ─── Attachments (DS.005) ─────────────────────────────────────
 CREATE TABLE IF NOT EXISTS attachments (
-  id            VARCHAR(50) PRIMARY KEY,
-  channel_id    VARCHAR(50) REFERENCES channels(id) ON DELETE CASCADE,
-  post_id       VARCHAR(50),  -- no FK: post may live in Cassandra or PostgreSQL
-  filename      VARCHAR(255) NOT NULL,
-  content_type  VARCHAR(100),
-  size          BIGINT      DEFAULT 0,
-  status        VARCHAR(20) DEFAULT 'PENDING',
-  storage_path  TEXT        NOT NULL,
-  created_at    TIMESTAMPTZ DEFAULT NOW()
+  id            VARCHAR(50)  PRIMARY KEY,             -- File ID
+  post_id       VARCHAR(50),                          -- Post ID (FK)
+  channel_id    VARCHAR(50)  REFERENCES channels(id) ON DELETE CASCADE,
+  uploader_id   INTEGER      REFERENCES users(id) ON DELETE SET NULL, -- Uploader ID
+  filename      VARCHAR(255) NOT NULL,                -- File Name (원본 파일명)
+  storage_path  TEXT         NOT NULL,               -- Stored Path (UUID 기반 저장 경로)
+  content_type  VARCHAR(100),                        -- File Type
+  size          BIGINT       DEFAULT 0,              -- File Size (bytes)
+  status        VARCHAR(20)  DEFAULT 'PENDING',
+  thumbnail_path TEXT,
+  created_at    TIMESTAMPTZ  DEFAULT NOW()           -- Created At
 );
+
+-- Migration: DS.005 컬럼 추가 (안전하게 재실행 가능)
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='attachments' AND column_name='uploader_id')
+  THEN ALTER TABLE attachments ADD COLUMN uploader_id INTEGER REFERENCES users(id) ON DELETE SET NULL; END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='attachments' AND column_name='thumbnail_path')
+  THEN ALTER TABLE attachments ADD COLUMN thumbnail_path TEXT; END IF;
+END $$;
 
 -- ─── Indexes ─────────────────────────────────────────────────
 CREATE INDEX IF NOT EXISTS idx_users_email          ON users(email);

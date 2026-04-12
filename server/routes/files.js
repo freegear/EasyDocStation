@@ -38,18 +38,16 @@ router.post('/get-upload-url', requireAuth, async (req, res, next) => {
   try {
     const { filename, contentType, channelName } = req.body
     const file_uuid = uuidv4()
-    const timestamp = new Date().toISOString().replace(/[-:T]/g, '').slice(0, 14) // YYYYMMDDHHMMSS
-    
-    // Rule: ~ObjectFile/ChannelName/YYYYMMDDHHMMSS/filename
-    const relativeDir = path.join(channelName || 'general', timestamp)
-    const key = path.join(relativeDir, filename)
 
-    // Create record in DB (PENDING)
-    // Note: Assuming attachments table has (id, filename, content_type, size, status, storage_path, created_at)
+    // DS.005: UUID-based storage path preserves original ext, original filename stored separately
+    const ext = path.extname(filename)
+    const key = path.join(channelName || 'general', file_uuid + ext)
+
+    // Create record in DB (PENDING) — filename = original name for download
     await db.query(`
-      INSERT INTO attachments (id, filename, content_type, size, status, storage_path)
-      VALUES ($1, $2, $3, $4, $5, $6)
-    `, [file_uuid, filename, contentType, 0, 'PENDING', key])
+      INSERT INTO attachments (id, filename, content_type, size, status, storage_path, uploader_id)
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
+    `, [file_uuid, filename, contentType, 0, 'PENDING', key, req.user.id])
 
     // Generate Mask Presigned URL with Token
     const token = jwt.sign({
@@ -237,17 +235,51 @@ router.get('/gateway/download', async (req, res) => {
     const fullPath = path.join(STORAGE_BASE, decoded.key)
     if (!fs.existsSync(fullPath)) return res.status(404).send('File not found on disk')
 
-    const filename = path.basename(fullPath)
-    
-    // Set proper headers
-    // Using a simple content-type check or just generic stream
-    res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(filename)}"`)
-    
+    // DS.005: use original filename stored at upload time
+    const fileRow = await db.query('SELECT filename FROM attachments WHERE id = $1', [decoded.file_uuid])
+    const originalName = fileRow.rows[0]?.filename || path.basename(fullPath)
+
+    res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(originalName)}"`)
+
     const fileStream = fs.createReadStream(fullPath)
     fileStream.pipe(res)
 
   } catch (err) {
     return res.status(401).send('Invalid or expired token')
+  }
+})
+
+/**
+ * 파일을 OS 연결 앱으로 열기
+ * POST /api/files/:id/open
+ */
+router.post('/:id/open', requireAuth, async (req, res, next) => {
+  try {
+    const { id } = req.params
+    const result = await db.query('SELECT * FROM attachments WHERE id = $1', [id])
+    if (result.rowCount === 0) return res.status(404).json({ error: '파일을 찾을 수 없습니다.' })
+
+    const file = result.rows[0]
+    const fullPath = path.join(STORAGE_BASE, file.storage_path)
+
+    if (!fs.existsSync(fullPath)) return res.status(404).json({ error: '파일이 디스크에 없습니다.' })
+
+    const platform = process.platform
+    let cmd
+    if (platform === 'darwin')     cmd = `open "${fullPath}"`
+    else if (platform === 'linux') cmd = `xdg-open "${fullPath}"`
+    else if (platform === 'win32') cmd = `start "" "${fullPath}"`
+    else return res.status(400).json({ error: '지원하지 않는 OS입니다.' })
+
+    exec(cmd, (err) => {
+      if (err) {
+        console.error('[Open] 파일 열기 실패:', err)
+        return res.status(500).json({ error: '파일 열기에 실패했습니다.' })
+      }
+      res.json({ success: true })
+    })
+  } catch (err) {
+    next(err)
   }
 })
 

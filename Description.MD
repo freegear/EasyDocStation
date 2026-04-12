@@ -84,6 +84,11 @@ Slack과 같은 서비스를 구축할 것이다.
 계시글이 삭제되면 Cassandra에 저장된 내용도 삭제한다.
 
 
+# 1.2.9 게시글의 첨부 파일을 클릭
+
+첨부 파일을 클릭하면 연결된 앱을 통해서 보여준다.
+예를들어서 PDF인 경우 Adobe Acrobat Reader를 통해서 보여준다.
+
 
 
 # 2 GROQ 서비스
@@ -324,7 +329,8 @@ npm run dev
 채널의 이름이 변경된 경우, 
 이전 채널 이름으로 등록된 모든 채널의 게시글과 댓글의 채널 이름을 현재 채널 이름으로 변경해야 한다.
 이것을 일괄적으로 다 해야 한다.
-
+--> 이렇게 하면 시간이 너무 걸린다.
+POST의 Channel ID를 따라서 연결 되므로, 그냥 POST는 수정할 필요가 없다.
 
 
 ##################################################################################################
@@ -410,7 +416,6 @@ Mov Avi 파일이 계시글이나 댓글에 첨부파일로 올라올 때 Previe
 
 
 Display 설정 섹션의 제일 위에 "저장" 버튼을 두고 버튼이 눌려지면 config.json에 해당 값이 들어간다.
-
 다른 부분은 수정하지 말아줘
 
 
@@ -1219,7 +1224,6 @@ print(latest_data[['text', 'metadata']])
 id는 반드시 고유한 것으로 한다. 
 그래서 이름이 바뀌어도 id로 찾아가므로 영향이 없도록 한다.
 
-
 # DS.001 USER 
 - user id   : 
 - user name :
@@ -1227,11 +1231,19 @@ id는 반드시 고유한 것으로 한다.
 - email.    :
 - Display Name :
 - ProfilePicture : 
-- Is Active :
-- Creadted Date :
-- Last Login Date :
-- Department ID:
-- Security Level: 보안 등급 (0: 일반, 1: 팀원, 2: 팀장, 3: 임원, 4: 대표이사)
+- Is Active : 계정이 활성화 되었는지 여부
+- Creadted Date : 계정이 생성된 날짜
+- Last Login Date : 마지막 로그인 날짜
+- Department ID: 부서 ID 보안 등급이 3 이상이면 의미가 없다. 
+- Security Level: 보안 등급 (0: 누구나, 1: 팀원, 2: 팀장, 3: 임원, 4: 대표이사)
+
+사용자 테이블은 위와 같다.
+- PostSQL에 저장한다.
+- 유저 아이디는 고유한 것으로 사용자를 생성할 때 고유한 값으로 자동 생성된다. 
+- 유저 이름도 고유한 것으로 사용자를 생성할 때 고유한 값으로 생성된다. 
+- 사용자 추가를 할 떄 위의 값을 참고로 생성창을 만들어 준다. 
+
+
 
 # DS.002 CHANNELS :
 - Channel id :
@@ -1240,14 +1252,24 @@ id는 반드시 고유한 것으로 한다.
 - Is Private :
 - Created at :
 - Channel description 
-- Root Post ID : 최초 POST ID를 가진다. 
-- Tail Post ID : 최종 (최신) Post ID를 가진다.
+- Root Post ID : 최초 POST ID를 가진다. / 생성할 때에는 NULL이다.
+- Tail Post ID : 최종 (최신) Post ID를 가진다. / 생성할 때에는 NULL이다.
+
 
 # DS.003 TEAMS :
 - Team id          : 부서 고유 ID
 - Team name        : 부서명 (예: 인사팀, 개발팀)
 - Team description : 부서 설명
 - Created at       : 생성 일시
+
+팀을 생성할 떄에 
+- 팀 아이디는 고유한 것으로 사용자를 생성할 때 고유한 값으로 자동 생성된다. 
+- 부서명은 입력 할 수 있다. 
+- 부서 설명은 입력 할 수 있도록 한다.
+- 생성 일시는 당일 날자로 한다.
+- 정보는 PostSQL에 저장한다.
+
+
 
 # DS.004 POSTS :
 
@@ -1284,7 +1306,16 @@ id는 반드시 고유한 것으로 한다.
 - Post ID     : 연결된 게시글/댓글 ID,FK (어느 글의 파일인지 식별)
 - Uploader ID : 업로드한 사용자 ID,FK 
 - File Name   : 사용자가 올린 원본 파일명,예: report_final.pdf
-- Stored Path : 실제 저장된 경로 URL,예: https://s3.../uuid_name.pdf
+- Stored Path : 실제 저장된 경로 URL,예: ~/ObjectFile/20260413/uuid_name.pdf
 - File Type   : 파일 확장자/MIME 타입,"예: image/png, application/pdf"
 - File Size   : 파일 크기,Byte 단위 (용량 제한 체크용)
 - Created At  : 업로드 일시
+
+
+파일이 첨부되면 파일마다, 이와 같은 정보를 만들어서 카산드라 DB에 저장한다.
+원본 파일은 기존의 방식처럼 저장하고 저장된 위치에 대한 정보를 받아서 Stored Path 에 저장한다.
+File Name 은 첨부된 파일의 원본 이름을 추가한다.
+
+나중에 다운로드 할 때. 원본 이름으로 다운로드 하도록 한다.
+
+첨부파일 하나마다 이 정보를 만들면, File ID를 해당 POST의 Attachments에 등록한다.
