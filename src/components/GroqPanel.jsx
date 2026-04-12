@@ -293,8 +293,8 @@ export default function GroqPanel() {
                           key={i}
                           onClick={() => ref.channel_id && navigateToPost(ref.channel_id, ref.post_id)}
                           disabled={!ref.channel_id}
-                          className="w-full flex items-start gap-1.5 bg-white/5 rounded-lg px-2 py-1.5 border border-white/8 text-left transition-colors enabled:hover:bg-white/10 enabled:hover:border-white/15 disabled:cursor-default"
-                          title={ref.channel_id ? `${ref.channel || ref.team}으로 이동` : ''}
+                          className="w-full flex items-start gap-1.5 bg-white/5 rounded-lg px-2 py-1.5 border border-white/8 text-left transition-colors enabled:hover:bg-white/10 enabled:hover:border-white/15 disabled:opacity-40 disabled:cursor-not-allowed"
+                          title={ref.channel_id ? `${ref.team ? ref.team + ' · ' : ''}${ref.channel} 채널로 이동` : '재학습 후 이동 가능합니다'}
                         >
                           {ref.type === 'pdf' ? (
                             <svg className="w-3 h-3 text-red-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
