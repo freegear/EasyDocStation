@@ -48,12 +48,13 @@ function getFileCategory(type, name) {
   return 'file'
 }
 
-function getPreviewDimensions(f) {
+function getPreviewDimensions(f, moviePreviewOverride) {
   const name = (f.name || '').toLowerCase()
   if (name.endsWith('.pptx')) return config.pptxPreview || config.imagePreview
   if (name.endsWith('.ppt')) return config.pptPreview || config.imagePreview
   if (name.endsWith('.xlsx') || name.endsWith('.xls')) return config.excelPreview || config.imagePreview
   if (name.endsWith('.docx') || name.endsWith('.doc')) return config.wordPreview || config.imagePreview
+  if (/\.(avi|mov|mp4)$/i.test(name)) return moviePreviewOverride || config.moviePreview || config.imagePreview
   return config.imagePreview
 }
 
@@ -208,6 +209,14 @@ function PdfPagePreview({ fileId, width = 400 }) {
 // ─── Attachment list in post detail ──────────────────────────
 
 function AttachmentList({ attachments }) {
+  const [moviePreviewSize, setMoviePreviewSize] = useState(config.moviePreview || { width: 480, height: 270 })
+
+  useEffect(() => {
+    apiFetch('/config/display')
+      .then(data => { if (data.moviePreview) setMoviePreviewSize(data.moviePreview) })
+      .catch(() => {})
+  }, [])
+
   if (!attachments || attachments.length === 0) return null
 
   function fileUrl(f) {
@@ -236,7 +245,7 @@ function AttachmentList({ attachments }) {
       <div className="flex flex-col gap-3">
         {attachments.map(f => {
           const category = getFileCategory(f.type || '', f.name || '')
-          const dims = getPreviewDimensions(f)
+          const dims = getPreviewDimensions(f, moviePreviewSize)
           const w = dims.width
           const h = dims.height
 

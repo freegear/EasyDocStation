@@ -199,7 +199,8 @@ router.get('/stats', async (req, res) => {
         pptPreview: config.pptPreview || { width: 480, height: 270 },
         pptxPreview: config.pptxPreview || { width: 480, height: 270 },
         excelPreview: config.excelPreview || { width: 480, height: 270 },
-        wordPreview: config.wordPreview || { width: 270, height: 480 }
+        wordPreview: config.wordPreview || { width: 270, height: 480 },
+        moviePreview: config.moviePreview || { width: 480, height: 270 }
       },
       rag: config.rag || { trainingType: 'manual', dailyTime: '02:00', vectorSize: 1024 },
       agenticai: config.agenticai || { num_predict: 4096, num_ctx: 8192 }
