@@ -273,6 +273,8 @@ export default function SiteAdminPage({ onClose }) {
   const [agenticaiForm, setAgenticaiForm] = useState({ num_predict: 4096, num_ctx: 8192 })
   const [savingConfig, setSavingConfig] = useState(false)
   const [trainingStatus, setTrainingStatus] = useState(null) // 'running', 'done', null
+  const [resetConfirmation, setResetConfirmation] = useState('')
+  const [executingReset, setExecutingReset] = useState(false)
 
   async function loadUsers() {
     setLoading(true)
@@ -433,6 +435,25 @@ export default function SiteAdminPage({ onClose }) {
     }
   }
 
+  async function handleExecuteReset() {
+    if (resetConfirmation !== '초기화를 해줘') return
+    setExecutingReset(true)
+    try {
+      const res = await apiFetch('/admin/reset', {
+        method: 'POST',
+        body: JSON.stringify({ confirmation: resetConfirmation })
+      })
+      alert(res.message)
+      // Force logout by clearing token and reloading
+      localStorage.removeItem('token')
+      window.location.reload()
+    } catch (err) {
+      alert('초기화 실패: ' + err.message)
+    } finally {
+      setExecutingReset(false)
+    }
+  }
+
   const filtered = users.filter(u => {
     const matchSearch = !search || u.name.includes(search) || u.email.includes(search) || u.username.includes(search)
     const matchRole = roleFilter === 'all' || u.role === roleFilter
@@ -457,10 +478,10 @@ export default function SiteAdminPage({ onClose }) {
 
         <button
           onClick={onClose}
-          className="flex items-center gap-2 px-3 py-2 rounded-xl text-white/50 hover:text-white hover:bg-white/8 text-sm transition-colors"
+          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 hover:bg-red-500/20 text-white/70 hover:text-red-400 border border-white/10 hover:border-red-500/30 text-sm font-medium transition-all active:scale-95"
         >
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
           </svg>
           닫기
         </button>
@@ -514,6 +535,15 @@ export default function SiteAdminPage({ onClose }) {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
             </svg>
             AgenticAI 설정
+          </button>
+          <button
+            onClick={() => setActiveTab('reset')}
+            className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${activeTab === 'reset' ? 'bg-red-600 text-white shadow-lg shadow-red-500/20' : 'text-white/30 hover:text-white/60 hover:bg-white/5'}`}
+          >
+            <svg className="w-5 h-5 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
+            사이트 초기화
           </button>
         </div>
 
@@ -1200,6 +1230,61 @@ export default function SiteAdminPage({ onClose }) {
                   <p className="text-white text-xs font-semibold mb-0.5">설정값은 즉시 시스템에 반영됩니다.</p>
                   <p className="text-white/30 text-[10px]">너무 큰 값으로 설정하면 서버 부하가 커지거나 응답 속도가 느려질 수 있습니다.</p>
                 </div>
+              </div>
+            </div>
+          </div>
+        ) : activeTab === 'reset' ? (
+          <div className="max-w-2xl mx-auto py-12">
+            <div className="bg-red-950/20 border border-red-500/30 rounded-3xl p-10 shadow-2xl overflow-hidden relative">
+              <div className="absolute top-0 right-0 w-64 h-64 bg-red-500/5 blur-[100px] -mr-32 -mt-32" />
+              
+              <div className="flex flex-col items-center text-center relative z-10">
+                <div className="w-20 h-20 rounded-full bg-red-500/10 border border-red-500/20 flex items-center justify-center mb-8">
+                  <svg className="w-10 h-10 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                </div>
+
+                <h2 className="text-3xl font-black text-white mb-4">사이트 완전 초기화</h2>
+                <div className="space-y-4 px-6 mb-10 text-red-200/60 leading-relaxed font-medium">
+                  <p>이 사이트 초기화를 실행하면 사이트에 등록된 모든 정보가 초기화가 됩니다.</p>
+                  <p className="text-red-400 font-bold underline decoration-red-500/30 underline-offset-8 text-lg">이후에는 절대로 복구 할 수 없습니다.</p>
+                </div>
+
+                <div className="w-full bg-black/40 border border-white/5 rounded-2xl p-8 mb-8">
+                  <p className="text-white/40 text-sm mb-4">계속하려면 아래 입력창에 <span className="text-white font-bold">"초기화를 해줘"</span> 라고 입력해 주세요.</p>
+                  <input
+                    type="text"
+                    value={resetConfirmation}
+                    onChange={e => setResetConfirmation(e.target.value)}
+                    placeholder="초기화를 해줘"
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-5 py-3.5 text-white text-lg font-bold placeholder-white/10 text-center focus:outline-none focus:border-red-500/50 focus:ring-1 focus:ring-red-500/50 transition-all"
+                  />
+                </div>
+
+                <button
+                  onClick={handleExecuteReset}
+                  disabled={resetConfirmation !== '초기화를 해줘' || executingReset}
+                  className={`w-full py-4 rounded-2xl font-black text-lg transition-all flex items-center justify-center gap-3 ${
+                    resetConfirmation === '초기화를 해줘' && !executingReset
+                      ? 'bg-red-600 hover:bg-red-500 text-white shadow-xl shadow-red-600/25 active:scale-[0.98]'
+                      : 'bg-white/5 text-white/10 cursor-not-allowed border border-white/5'
+                  }`}
+                >
+                  {executingReset ? (
+                    <>
+                      <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                      초기화 중...
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                      초기화 실행
+                    </>
+                  )}
+                </button>
               </div>
             </div>
           </div>

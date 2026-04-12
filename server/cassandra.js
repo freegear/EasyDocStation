@@ -39,6 +39,18 @@ async function initCassandra() {
       ) WITH CLUSTERING ORDER BY (authored_at DESC)
     `)
 
+    await client.execute(`
+      CREATE TABLE IF NOT EXISTS comments (
+        post_id uuid,
+        id text,
+        author_id int,
+        content text,
+        attachments list<text>,
+        created_at timestamp,
+        PRIMARY KEY (post_id, created_at)
+      ) WITH CLUSTERING ORDER BY (created_at ASC)
+    `)
+
     console.log('✅ Cassandra schema initialized')
   } catch (err) {
     connected = false

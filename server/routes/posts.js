@@ -41,6 +41,47 @@ async function linkAttachments(postId, ids) {
 
 // ─── Helper: fetch comments for a post ───────────────────────
 async function fetchComments(postId) {
+  // ── Cassandra path ──────────────────────────────────────────
+  if (isConnected()) {
+    try {
+      const result = await client.execute(
+        'SELECT * FROM comments WHERE post_id = ? ORDER BY created_at ASC',
+        [postId], { prepare: true }
+      )
+      
+      return Promise.all(result.rows.map(async row => {
+        const authorRes = await db.query(
+          'SELECT id, name, username, image_url FROM users WHERE id = $1',
+          [row.author_id]
+        )
+        const author = authorRes.rows[0] || { id: null, name: '알 수 없음', username: 'unknown', image_url: null }
+        const avatarLetters = author.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+        const attachments = await enrichAttachments(row.attachments || [])
+        
+        return {
+          id: row.id,
+          post_id: row.post_id.toString(),
+          content: row.content,
+          text: row.content,
+          attachments,
+          author: {
+            id: author.id,
+            name: author.name,
+            username: author.username,
+            avatar: avatarLetters,
+            image_url: author.image_url,
+          },
+          createdAt: row.created_at,
+          updatedAt: row.created_at, // Cassandra comments table doesn't have updated_at yet
+        }
+      }))
+    } catch (err) {
+      console.error('[Cassandra] 댓글 조회 오류:', err.message)
+      // fallback to postgres
+    }
+  }
+
+  // ── PostgreSQL fallback ─────────────────────────────────────
   const result = await db.query(`
     SELECT c.*, u.name AS author_name, u.username, u.image_url
     FROM comments c
@@ -334,15 +375,36 @@ router.get('/:id/comments', requireAuth, async (req, res, next) => {
 router.post('/:id/comments', requireAuth, async (req, res, next) => {
   try {
     const { id: postId } = req.params
-    const { channelId, content, attachments = [] } = req.body
+    const { channelId, content, attachmentIds = [] } = req.body // 프론트에서 attachmentIds로 보낸다고 가정 (posts와 동일하게)
     if (!content) return res.status(400).json({ error: 'content is required' })
 
     const commentId = `c-${uuidv4()}`
+    const createdAt = new Date()
 
+    // ── Cassandra path ────────────────────────────────────────
+    if (isConnected()) {
+      let storagePaths = []
+      if (attachmentIds.length > 0) {
+        const pathsRes = await db.query(
+          'SELECT storage_path FROM attachments WHERE id = ANY($1)',
+          [attachmentIds]
+        )
+        storagePaths = pathsRes.rows.map(r => r.storage_path)
+      }
+
+      await client.execute(
+        `INSERT INTO comments (post_id, id, author_id, content, attachments, created_at)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        [postId, commentId, req.user.id, content, storagePaths, createdAt],
+        { prepare: true }
+      )
+    }
+
+    // ── PostgreSQL fallback (or concurrent write for search support)
     await db.query(
-      `INSERT INTO comments (id, post_id, channel_id, author_id, content, attachments)
-       VALUES ($1, $2, $3, $4, $5, $6)`,
-      [commentId, postId, channelId, req.user.id, content, JSON.stringify(attachments)]
+      `INSERT INTO comments (id, post_id, channel_id, author_id, content, attachments, created_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+      [commentId, postId, channelId, req.user.id, content, JSON.stringify(attachmentIds), createdAt]
     )
 
     // 방금 등록한 댓글을 전체 정보와 함께 반환
@@ -377,7 +439,30 @@ router.put('/:postId/comments/:commentId', requireAuth, async (req, res, next) =
 // ─── DELETE /api/posts/:postId/comments/:commentId ───────────
 router.delete('/:postId/comments/:commentId', requireAuth, async (req, res, next) => {
   try {
-    const { commentId } = req.params
+    const { postId, commentId } = req.params
+    
+    // ── Cassandra 삭제 ────────────────────────────────────────
+    if (isConnected()) {
+      try {
+        const found = await client.execute(
+          'SELECT post_id, created_at, author_id FROM comments WHERE id = ? ALLOW FILTERING',
+          [commentId], { prepare: true }
+        )
+        if (found.rows.length > 0) {
+          const row = found.rows[0]
+          if (String(row.author_id) === String(req.user.id)) {
+            await client.execute(
+              'DELETE FROM comments WHERE post_id = ? AND created_at = ?',
+              [row.post_id, row.created_at], { prepare: true }
+            )
+          }
+        }
+      } catch (cassErr) {
+        console.error('[Cassandra] 댓글 삭제 오류:', cassErr.message)
+      }
+    }
+
+    // ── PostgreSQL 삭제 ───────────────────────────────────────
     await db.query(
       'DELETE FROM comments WHERE id = $1 AND author_id = $2',
       [commentId, req.user.id]
