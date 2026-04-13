@@ -1,0 +1,163 @@
+
+<style>
+  .wrap { padding: 1.5rem 0; font-family: var(--font-sans); }
+  h2 { font-size: 18px; font-weight: 500; color: var(--color-text-primary); margin: 0 0 1rem; }
+  .legend { display: flex; gap: 16px; margin-bottom: 1rem; font-size: 13px; color: var(--color-text-secondary); }
+  .legend-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 5px; vertical-align: middle; }
+  table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  thead th { font-size: 13px; font-weight: 500; padding: 10px 14px; text-align: center; border-bottom: 1.5px solid var(--color-border-secondary); }
+  thead th:first-child { text-align: left; color: var(--color-text-secondary); }
+  .col-single { color: #185FA5; }
+  .col-multi  { color: #0F6E56; }
+  tbody tr { border-bottom: 1px solid var(--color-border-tertiary); }
+  tbody tr:last-child { border-bottom: none; }
+  tbody td { padding: 10px 14px; vertical-align: top; }
+  .cat { font-size: 11px; font-weight: 500; letter-spacing: .5px; text-transform: uppercase; color: var(--color-text-tertiary); padding-top: 16px; padding-bottom: 2px; border-bottom: none !important; background: none; }
+  .attr { color: var(--color-text-secondary); font-size: 12.5px; min-width: 110px; }
+  .cell-s { background: #E6F1FB22; color: var(--color-text-primary); border-radius: 6px; padding: 6px 10px; }
+  .cell-m { background: #E1F5EE22; color: var(--color-text-primary); border-radius: 6px; padding: 6px 10px; }
+  .badge { display: inline-block; border-radius: 4px; font-size: 11px; font-weight: 500; padding: 2px 7px; margin-bottom: 4px; }
+  .b-blue  { background: #E6F1FB; color: #0C447C; }
+  .b-teal  { background: #E1F5EE; color: #085041; }
+  .b-amber { background: #FAEEDA; color: #633806; }
+  .b-gray  { background: #F1EFE8; color: #444441; }
+  @media (prefers-color-scheme: dark) {
+    .b-blue  { background: #0C447C; color: #B5D4F4; }
+    .b-teal  { background: #085041; color: #9FE1CB; }
+    .b-amber { background: #633806; color: #FAC775; }
+    .b-gray  { background: #444441; color: #D3D1C7; }
+    .cell-s  { background: #185FA511; }
+    .cell-m  { background: #0F6E5611; }
+  }
+  .star { color: #EF9F27; font-size: 13px; }
+  .icon { font-size: 14px; }
+</style>
+<div class="wrap">
+  <div class="legend">
+    <span><span class="legend-dot" style="background:#378ADD"></span>단일 에이전트 (Single Agent)</span>
+    <span><span class="legend-dot" style="background:#1D9E75"></span>멀티 에이전트 (Multi Agent)</span>
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th style="width:18%">항목</th>
+        <th class="col-single" style="width:41%">단일 에이전트 플랫폼</th>
+        <th class="col-multi"  style="width:41%">멀티 에이전트 플랫폼</th>
+      </tr>
+    </thead>
+    <tbody>
+
+      <tr><td colspan="3" class="cat">🏗 아키텍처 구조</td></tr>
+
+      <tr>
+        <td class="attr">구조</td>
+        <td class="cell-s">하나의 AI 에이전트가 모든 작업을 순차적으로 처리</td>
+        <td class="cell-m">역할 분담된 여러 에이전트가 병렬·협력으로 작업 수행</td>
+      </tr>
+      <tr>
+        <td class="attr">의사결정</td>
+        <td class="cell-s">중앙 집중형 — 단일 컨텍스트 내에서 판단</td>
+        <td class="cell-m">분산형 — 오케스트레이터가 서브에이전트를 조율</td>
+      </tr>
+      <tr>
+        <td class="attr">컨텍스트 관리</td>
+        <td class="cell-s">단일 컨텍스트 윈도우에 전체 상태 보관</td>
+        <td class="cell-m">에이전트별 독립 컨텍스트, 필요 시 공유 메모리 활용</td>
+      </tr>
+
+      <tr><td colspan="3" class="cat">⚡ 성능 및 확장성</td></tr>
+
+      <tr>
+        <td class="attr">처리 속도</td>
+        <td class="cell-s"><span class="badge b-gray">순차 처리</span><br>단계별 실행, 병목 발생 가능</td>
+        <td class="cell-m"><span class="badge b-teal">병렬 처리</span><br>동시 실행으로 전체 처리 시간 단축</td>
+      </tr>
+      <tr>
+        <td class="attr">확장성</td>
+        <td class="cell-s">단일 모델 한계에 묶임 — 수직 확장만 가능</td>
+        <td class="cell-m">에이전트 추가로 수평 확장 가능, 부하 분산 용이</td>
+      </tr>
+      <tr>
+        <td class="attr">복잡 태스크 처리</td>
+        <td class="cell-s">컨텍스트 한도 초과 시 성능 저하</td>
+        <td class="cell-m">태스크를 분해해 각 에이전트가 특화 처리 — 정밀도 향상</td>
+      </tr>
+
+      <tr><td colspan="3" class="cat">🛡 신뢰성 및 품질</td></tr>
+
+      <tr>
+        <td class="attr">오류 격리</td>
+        <td class="cell-s">단일 실패 지점 — 오류 시 전체 파이프라인 영향</td>
+        <td class="cell-m">에이전트 단위 격리 — 한 에이전트 실패가 전체를 중단시키지 않음</td>
+      </tr>
+      <tr>
+        <td class="attr">검증 / 품질 관리</td>
+        <td class="cell-s">자가 검토에 의존, 편향 발생 가능</td>
+        <td class="cell-m"><span class="badge b-teal">전문 검증 에이전트</span> 별도 운용 가능 — 교차 검증으로 품질 향상</td>
+      </tr>
+      <tr>
+        <td class="attr">장기 작업 안정성</td>
+        <td class="cell-s">장기 실행 시 컨텍스트 오염·드리프트 위험</td>
+        <td class="cell-m">에이전트별 상태 분리로 장기 안정성 확보</td>
+      </tr>
+
+      <tr><td colspan="3" class="cat">🔧 개발 및 운영</td></tr>
+
+      <tr>
+        <td class="attr">개발 복잡도</td>
+        <td class="cell-s"><span class="badge b-blue">낮음</span><br>단일 프롬프트·단일 루프로 빠른 프로토타이핑</td>
+        <td class="cell-m"><span class="badge b-amber">높음</span><br>에이전트 간 통신·오케스트레이션 설계 필요</td>
+      </tr>
+      <tr>
+        <td class="attr">디버깅·관찰성</td>
+        <td class="cell-s">단일 로그 스트림 — 추적 단순</td>
+        <td class="cell-m">분산 추적 인프라 필요 (트레이싱, 로그 집계)</td>
+      </tr>
+      <tr>
+        <td class="attr">운영 비용</td>
+        <td class="cell-s"><span class="badge b-blue">상대적으로 낮음</span><br>단일 모델 호출·인프라</td>
+        <td class="cell-m"><span class="badge b-amber">상대적으로 높음</span><br>다중 LLM 호출·오케스트레이션 오버헤드</td>
+      </tr>
+
+      <tr><td colspan="3" class="cat">🎯 적합한 사용 사례</td></tr>
+
+      <tr>
+        <td class="attr">최적 시나리오</td>
+        <td class="cell-s">
+          <span class="badge b-blue">단순·단일 도메인 태스크</span><br>
+          챗봇, Q&A, 요약, 간단한 코드 생성,<br>
+          단계가 명확한 선형 워크플로
+        </td>
+        <td class="cell-m">
+          <span class="badge b-teal">복잡·다단계 태스크</span><br>
+          소프트웨어 개발 파이프라인, 연구·분석 워크플로,<br>
+          대규모 콘텐츠 생성, 자율 운영 시스템
+        </td>
+      </tr>
+      <tr>
+        <td class="attr">대표 사례</td>
+        <td class="cell-s">고객 지원 봇, 문서 요약 도구, 간단한 코드 어시스턴트</td>
+        <td class="cell-m">AI 소프트웨어 엔지니어링 (SWE-bench), 멀티스텝 연구 보고서 생성, 자율 운영 에이전트</td>
+      </tr>
+
+      <tr><td colspan="3" class="cat">📊 종합 평가</td></tr>
+
+      <tr>
+        <td class="attr">도입 장벽</td>
+        <td class="cell-s"><span class="star">★★★★★</span> 낮음 — 빠른 시작 가능</td>
+        <td class="cell-m"><span class="star">★★☆☆☆</span> 높음 — 설계·인프라 투자 필요</td>
+      </tr>
+      <tr>
+        <td class="attr">태스크 정밀도</td>
+        <td class="cell-s"><span class="star">★★★☆☆</span> 범용적, 전문성 한계</td>
+        <td class="cell-m"><span class="star">★★★★★</span> 역할별 전문화로 높은 정밀도</td>
+      </tr>
+      <tr>
+        <td class="attr">미래 확장 여지</td>
+        <td class="cell-s"><span class="star">★★☆☆☆</span> 태스크 범위 확장에 한계</td>
+        <td class="cell-m"><span class="star">★★★★★</span> 에이전트 추가·교체로 유연한 확장</td>
+      </tr>
+
+    </tbody>
+  </table>
+</div>

@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "nodemon index.js",
     "start": "node index.js",
-    "seed": "node seed.js"
+    "seed": "node seed.js",
+    "reset-db": "node -e \"const { initCassandra, client } = require('./cassandra'); (async () => { await initCassandra(); await client.execute('DROP TABLE IF EXISTS posts'); await client.execute('DROP TABLE IF EXISTS attachments'); console.log('Tables dropped'); process.exit(0); })()\""
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

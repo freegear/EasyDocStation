@@ -224,7 +224,7 @@ export default function Sidebar() {
       {/* Version */}
       <div className="px-4 py-2.5 border-t border-white/5 mt-auto">
         <p className="text-white/20 text-[10px] text-center tracking-widest">
-          EasyDocStation {appVersion && `v${appVersion}`}
+          EasyStation {appVersion && `v${appVersion}`}
         </p>
       </div>
 

@@ -63,6 +63,7 @@ app.get('/api/config/display', (req, res) => {
       excelPreview:  config.excelPreview  || { width: 480, height: 270 },
       wordPreview:   config.wordPreview   || { width: 270, height: 480 },
       moviePreview:  config.moviePreview  || { width: 480, height: 270 },
+      htmlPreview:   config.htmlPreview   || { width: 480, height: 270 },
     })
   } catch (e) {
     res.json({ moviePreview: { width: 480, height: 270 } })

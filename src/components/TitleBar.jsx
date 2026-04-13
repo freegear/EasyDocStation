@@ -198,12 +198,10 @@ export default function TitleBar({ onOpenProfile, onOpenSiteAdmin, onSelectSearc
 
   return (
     <header className="flex items-center justify-between px-5 h-14 bg-[#1a1d2e] border-b border-white/10 flex-shrink-0 z-10">
-      {/* 왼쪽 끝: 앱 로고 + 타이틀 */}
-      <div className="flex items-center gap-2 flex-shrink-0">
-        <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-xs font-bold shadow">
-          ED
-        </div>
-        <span className="text-white font-bold text-base tracking-tight hidden sm:inline">EasyDocStation</span>
+      {/* 왼쪽 끝: 새로운 로고(SVG) + 타이틀 */}
+      <div className="flex items-center gap-2.5 flex-shrink-0 cursor-pointer" onClick={() => window.location.href = '/'}>
+        <img src="/img/logo.png" alt="Logo" className="w-8 h-8 object-contain" />
+        <span className="text-white font-bold text-lg tracking-tight hidden sm:inline">EasyStation</span>
       </div>
 
       {/* 오른쪽 끝: 검색 + 언어 + 사용자 */}

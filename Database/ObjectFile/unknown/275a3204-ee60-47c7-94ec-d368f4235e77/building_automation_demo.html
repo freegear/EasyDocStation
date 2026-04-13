@@ -1,0 +1,615 @@
+
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: var(--font-sans); }
+
+#app {
+  display: flex;
+  height: 92vh;
+  min-height: 600px;
+  gap: 0;
+  background: var(--color-background-tertiary);
+  border-radius: var(--border-radius-lg);
+  overflow: hidden;
+  border: 0.5px solid var(--color-border-tertiary);
+}
+
+/* LEFT PANEL */
+#left-panel {
+  width: 52%;
+  display: flex;
+  flex-direction: column;
+  border-right: 0.5px solid var(--color-border-tertiary);
+  background: var(--color-background-primary);
+  overflow: hidden;
+}
+
+#building-header {
+  padding: 10px 14px 8px;
+  border-bottom: 0.5px solid var(--color-border-tertiary);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+}
+#building-header h2 { font-size: 13px; font-weight: 500; color: var(--color-text-primary); }
+#building-header .subtitle { font-size: 11px; color: var(--color-text-secondary); }
+
+.status-bar {
+  display: flex; gap: 8px; align-items: center;
+}
+.status-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  animation: pulse 2s infinite;
+}
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+.dot-green { background: #2d9a5f; }
+.dot-amber { background: #c97b1a; }
+.dot-red { background: #c03030; }
+
+#floor-scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+#floor-scroll::-webkit-scrollbar { width: 4px; }
+#floor-scroll::-webkit-scrollbar-thumb { background: var(--color-border-secondary); border-radius: 2px; }
+
+.floor-card {
+  border: 0.5px solid var(--color-border-tertiary);
+  border-radius: var(--border-radius-md);
+  background: var(--color-background-primary);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+  overflow: hidden;
+}
+.floor-card:hover { border-color: var(--color-border-primary); }
+.floor-card.selected {
+  border-color: #3b6dd4;
+  background: var(--color-background-secondary);
+}
+
+.floor-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+}
+.floor-label {
+  font-size: 11px; font-weight: 500; color: var(--color-text-primary);
+  min-width: 28px;
+}
+.floor-type { font-size: 10px; color: var(--color-text-secondary); flex: 1; }
+
+.floor-stats {
+  display: flex; gap: 6px; align-items: center;
+}
+.stat-chip {
+  display: flex; align-items: center; gap: 3px;
+  font-size: 10px; color: var(--color-text-secondary);
+  background: var(--color-background-tertiary);
+  padding: 2px 5px; border-radius: 4px;
+}
+.stat-chip .icon { font-size: 9px; }
+
+.floor-detail {
+  border-top: 0.5px solid var(--color-border-tertiary);
+  padding: 8px 10px;
+  display: none;
+}
+.floor-detail.show { display: block; }
+
+/* Network topology inside floor detail */
+.topo-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+.topo-section { font-size: 10px; }
+.topo-title { font-weight: 500; color: var(--color-text-secondary); margin-bottom: 4px; font-size: 10px; }
+.topo-item {
+  display: flex; align-items: center; gap: 4px;
+  padding: 3px 6px; border-radius: 4px;
+  background: var(--color-background-tertiary);
+  margin-bottom: 2px;
+  font-size: 10px; color: var(--color-text-primary);
+}
+.topo-item .led {
+  width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
+}
+.led-ok { background: #2d9a5f; }
+.led-warn { background: #c97b1a; }
+.led-err { background: #c03030; }
+
+.room-row {
+  display: flex; align-items: center; gap: 4px;
+  padding: 4px 6px; border-radius: 4px;
+  background: var(--color-background-secondary);
+  margin-bottom: 2px;
+  font-size: 10px;
+}
+.room-name { min-width: 52px; font-weight: 500; color: var(--color-text-primary); }
+.sensor-badges { display: flex; gap: 3px; flex-wrap: wrap; }
+.badge {
+  padding: 1px 5px; border-radius: 3px; font-size: 9px; font-weight: 500;
+}
+.badge-temp { background: #faeeda; color: #633806; }
+.badge-light { background: #e6f1fb; color: #0c447c; }
+.badge-hvac { background: #e1f5ee; color: #085041; }
+.badge-people { background: #eeedfe; color: #3c3489; }
+
+/* Elevator indicator */
+.elevator-strip {
+  display: flex; gap: 6px; padding: 5px 10px;
+  border-top: 0.5px solid var(--color-border-tertiary);
+  background: var(--color-background-tertiary);
+  flex-shrink: 0;
+}
+.elev-box {
+  flex: 1; border: 0.5px solid var(--color-border-tertiary);
+  border-radius: 6px; padding: 5px 8px;
+  background: var(--color-background-primary);
+  font-size: 10px;
+  display: flex; align-items: center; gap: 6px;
+}
+.elev-icon { font-size: 14px; }
+.elev-info { flex: 1; }
+.elev-floor { font-weight: 500; font-size: 11px; }
+.elev-status { color: var(--color-text-secondary); }
+
+/* RIGHT PANEL - Chat */
+#right-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-background-primary);
+  overflow: hidden;
+}
+
+#chat-header {
+  padding: 10px 14px 8px;
+  border-bottom: 0.5px solid var(--color-border-tertiary);
+  display: flex; align-items: center; gap: 8px;
+  flex-shrink: 0;
+}
+.ai-avatar {
+  width: 26px; height: 26px; border-radius: 6px;
+  background: linear-gradient(135deg, #3b4dcf, #7b5ea7);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; color: #fff; font-weight: 500;
+}
+#chat-header-info h2 { font-size: 13px; font-weight: 500; }
+#chat-header-info p { font-size: 10px; color: var(--color-text-secondary); }
+
+#chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px 12px;
+  display: flex; flex-direction: column; gap: 8px;
+}
+#chat-messages::-webkit-scrollbar { width: 4px; }
+#chat-messages::-webkit-scrollbar-thumb { background: var(--color-border-secondary); border-radius: 2px; }
+
+.msg {
+  display: flex; gap: 8px; align-items: flex-start;
+  max-width: 90%;
+}
+.msg.user { align-self: flex-end; flex-direction: row-reverse; }
+.msg-avatar {
+  width: 22px; height: 22px; border-radius: 5px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 9px; font-weight: 500; flex-shrink: 0;
+}
+.msg-avatar.ai { background: linear-gradient(135deg, #3b4dcf, #7b5ea7); color: #fff; }
+.msg-avatar.user { background: var(--color-background-tertiary); color: var(--color-text-secondary); border: 0.5px solid var(--color-border-tertiary); }
+.msg-bubble {
+  padding: 7px 10px; border-radius: 10px;
+  font-size: 12px; line-height: 1.55;
+  max-width: calc(100% - 30px);
+}
+.msg.ai .msg-bubble {
+  background: var(--color-background-secondary);
+  border: 0.5px solid var(--color-border-tertiary);
+  color: var(--color-text-primary);
+  border-radius: 3px 10px 10px 10px;
+}
+.msg.user .msg-bubble {
+  background: #3b4dcf;
+  color: #fff;
+  border-radius: 10px 3px 10px 10px;
+}
+.msg-time { font-size: 9px; color: var(--color-text-tertiary); margin-top: 2px; }
+
+.typing-dots {
+  display: flex; gap: 3px; padding: 6px 2px;
+}
+.typing-dots span {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--color-text-tertiary);
+  animation: dot-bounce 1.2s infinite;
+}
+.typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+.typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+@keyframes dot-bounce { 0%,60%,100%{transform:translateY(0)} 30%{transform:translateY(-5px)} }
+
+.quick-chips {
+  display: flex; gap: 5px; flex-wrap: wrap; padding: 6px 12px;
+  border-top: 0.5px solid var(--color-border-tertiary);
+  flex-shrink: 0;
+}
+.chip {
+  padding: 3px 8px; border-radius: 12px; font-size: 10px;
+  border: 0.5px solid var(--color-border-secondary);
+  cursor: pointer; color: var(--color-text-secondary);
+  background: var(--color-background-primary);
+  transition: background 0.1s, color 0.1s;
+  white-space: nowrap;
+}
+.chip:hover { background: var(--color-background-tertiary); color: var(--color-text-primary); }
+
+#chat-input-area {
+  display: flex; gap: 6px; padding: 8px 10px;
+  border-top: 0.5px solid var(--color-border-tertiary);
+  flex-shrink: 0;
+  align-items: flex-end;
+}
+#user-input {
+  flex: 1; border: 0.5px solid var(--color-border-secondary);
+  border-radius: 8px; padding: 7px 10px;
+  font-size: 12px; resize: none; min-height: 34px; max-height: 90px;
+  font-family: var(--font-sans);
+  background: var(--color-background-primary);
+  color: var(--color-text-primary);
+  outline: none;
+  line-height: 1.4;
+}
+#user-input:focus { border-color: #3b4dcf; }
+#send-btn {
+  width: 32px; height: 32px; border-radius: 7px;
+  background: #3b4dcf; border: none; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; font-size: 13px; flex-shrink: 0;
+  transition: opacity 0.1s;
+}
+#send-btn:hover { opacity: 0.85; }
+#send-btn:disabled { opacity: 0.4; cursor: default; }
+</style>
+
+<div id="app">
+  <!-- LEFT: Building Network Panel -->
+  <div id="left-panel">
+    <div id="building-header">
+      <div>
+        <h2>🏢 스마트 빌딩 네트워크 현황</h2>
+        <div class="subtitle">12F · Optical Backbone · WiFi-7 MESH</div>
+      </div>
+      <div class="status-bar">
+        <div class="status-dot dot-green"></div>
+        <span style="font-size:10px;color:var(--color-text-secondary)">정상 운영</span>
+      </div>
+    </div>
+
+    <div id="floor-scroll"></div>
+
+    <div class="elevator-strip">
+      <div class="elev-box">
+        <div class="elev-icon">🛗</div>
+        <div class="elev-info">
+          <div class="elev-floor" id="elev1-floor">7F</div>
+          <div class="elev-status" id="elev1-status">상행 중</div>
+        </div>
+        <div style="font-size:9px;color:var(--color-text-secondary)">ELV-1</div>
+      </div>
+      <div class="elev-box">
+        <div class="elev-icon">🛗</div>
+        <div class="elev-info">
+          <div class="elev-floor" id="elev2-floor">3F</div>
+          <div class="elev-status" id="elev2-status">대기</div>
+        </div>
+        <div style="font-size:9px;color:var(--color-text-secondary)">ELV-2</div>
+      </div>
+      <div class="elev-box">
+        <div class="elev-icon">🛗</div>
+        <div class="elev-info">
+          <div class="elev-floor" id="elev3-floor">12F</div>
+          <div class="elev-status" id="elev3-status">하행 중</div>
+        </div>
+        <div style="font-size:9px;color:var(--color-text-secondary)">ELV-3</div>
+      </div>
+      <div class="elev-box">
+        <div class="elev-icon">🛗</div>
+        <div class="elev-info">
+          <div class="elev-floor" id="elev4-floor">1F</div>
+          <div class="elev-status" id="elev4-status">대기</div>
+        </div>
+        <div style="font-size:9px;color:var(--color-text-secondary)">ELV-4</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT: Chat Panel -->
+  <div id="right-panel">
+    <div id="chat-header">
+      <div class="ai-avatar">AI</div>
+      <div id="chat-header-info">
+        <h2>AgenticAI 모니터링</h2>
+        <p>GROQ · llama-3.3-70b-versatile · 빌딩 자동화 전문</p>
+      </div>
+    </div>
+
+    <div id="chat-messages">
+      <div class="msg ai">
+        <div class="msg-avatar ai">AI</div>
+        <div>
+          <div class="msg-bubble">안녕하세요! 저는 스마트 빌딩 AgenticAI입니다. 🏢<br><br>현재 <strong>12층 빌딩</strong>의 전체 네트워크를 실시간 모니터링 중입니다.<br><br>• Optical 백본 네트워크: 정상<br>• WiFi-7 MESH AP (48개): 47개 정상<br>• 온도/조명/공조/재실 센서: 전체 운영 중<br>• 엘리베이터 4기: 정상 운행<br><br>무엇이든 물어보세요!</div>
+          <div class="msg-time">방금 전</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="quick-chips">
+      <div class="chip" onclick="sendQuick('전체 네트워크 상태를 요약해줘')">📊 전체 상태 요약</div>
+      <div class="chip" onclick="sendQuick('3층 온도 이상 감지됐어, 확인해줘')">🌡️ 온도 이상 감지</div>
+      <div class="chip" onclick="sendQuick('야간 모드로 자동 조명 제어해줘')">💡 야간 모드</div>
+      <div class="chip" onclick="sendQuick('WiFi MESH 토폴로지를 설명해줘')">📡 MESH 토폴로지</div>
+      <div class="chip" onclick="sendQuick('에너지 절약 최적화 방안 제안해줘')">⚡ 에너지 최적화</div>
+    </div>
+
+    <div id="chat-input-area">
+      <textarea id="user-input" rows="1" placeholder="빌딩 제어 명령 또는 질문을 입력하세요..."></textarea>
+      <button id="send-btn" onclick="sendMessage()">↑</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const GROQ_API_KEY = "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";
+const GROQ_MODEL = "llama-3.3-70b-versatile";
+
+// Floor data
+const floorTypes = {
+  12: '임원층', 11: '회의실', 10: '연구개발', 9: '연구개발',
+  8: '인사/재무', 7: '영업/마케팅', 6: '개발팀', 5: '개발팀',
+  4: '기획팀', 3: '고객지원', 2: '회의/교육', 1: '로비/안내'
+};
+const roomCounts = [5,4,6,5,4,6,5,6,4,5,4,0];
+const apStatus = [
+  ['ok','ok','ok','ok'],['ok','ok','warn','ok'],['ok','ok','ok','ok'],['ok','ok','ok','ok'],
+  ['ok','ok','ok','warn'],['ok','ok','ok','ok'],['ok','ok','ok','ok'],['warn','ok','ok','ok'],
+  ['ok','ok','ok','ok'],['ok','ok','ok','ok'],['ok','ok','ok','ok'],['ok','ok','ok','ok']
+];
+
+function randTemp() { return (20 + Math.random()*8).toFixed(1); }
+function randPeople() { return Math.floor(Math.random()*12); }
+
+function buildFloors() {
+  const scroll = document.getElementById('floor-scroll');
+  for(let f=12; f>=1; f--) {
+    const idx = f-1;
+    const rooms = roomCounts[idx] || Math.floor(4+Math.random()*3);
+    const aps = apStatus[idx];
+    const hasIssue = aps.some(s=>s==='warn'||s==='err');
+    
+    const card = document.createElement('div');
+    card.className = 'floor-card';
+    card.id = `floor-${f}`;
+    
+    // Build room list
+    let roomsHtml = '';
+    const rnames = ['A','B','C','D','E','F'];
+    for(let r=0; r<rooms; r++) {
+      const temp = randTemp();
+      const people = randPeople();
+      const lightVal = Math.floor(30+Math.random()*70);
+      roomsHtml += `<div class="room-row">
+        <span class="room-name">${f}0${r+1}호</span>
+        <div class="sensor-badges">
+          <span class="badge badge-temp">🌡 ${temp}°</span>
+          <span class="badge badge-light">💡 ${lightVal}%</span>
+          <span class="badge badge-hvac">❄ 자동</span>
+          <span class="badge badge-people">👤 ${people}명</span>
+        </div>
+      </div>`;
+    }
+    
+    // AP items
+    let apHtml = '';
+    ['AP-1','AP-2','AP-3','AP-4'].forEach((ap,i) => {
+      const st = aps[i];
+      apHtml += `<div class="topo-item"><div class="led led-${st==='ok'?'ok':st==='warn'?'warn':'err'}"></div>${ap} <span style="color:var(--color-text-tertiary);font-size:9px;margin-left:auto">${st==='ok'?'정상':st==='warn'?'점검':'오류'}</span></div>`;
+    });
+    
+    card.innerHTML = `
+      <div class="floor-header" onclick="toggleFloor(${f})">
+        <span class="floor-label">${f}F</span>
+        <span class="floor-type">${floorTypes[f]||'일반'} · ${rooms}개 방</span>
+        <div class="floor-stats">
+          <span class="stat-chip"><span class="icon">📡</span>${aps.filter(s=>s==='ok').length}/4</span>
+          <span class="stat-chip"><span class="icon">🌡</span>${randTemp()}°</span>
+          <span class="stat-chip" style="${hasIssue?'color:var(--color-text-warning)':''}">
+            ${hasIssue?'⚠ 점검':'✓ 정상'}
+          </span>
+        </div>
+      </div>
+      <div class="floor-detail" id="detail-${f}">
+        <div class="topo-grid">
+          <div class="topo-section">
+            <div class="topo-title">📡 WiFi-7 MESH AP</div>
+            ${apHtml}
+            <div style="font-size:9px;color:var(--color-text-tertiary);margin-top:4px;padding:2px 6px;background:var(--color-background-tertiary);border-radius:3px">
+              🔗 Optical 백본 연결
+            </div>
+          </div>
+          <div class="topo-section">
+            <div class="topo-title">🏠 방별 센서 현황</div>
+            ${roomsHtml}
+          </div>
+        </div>
+      </div>
+    `;
+    scroll.appendChild(card);
+  }
+}
+
+function toggleFloor(f) {
+  const detail = document.getElementById(`detail-${f}`);
+  const card = document.getElementById(`floor-${f}`);
+  const isOpen = detail.classList.contains('show');
+  
+  document.querySelectorAll('.floor-detail').forEach(d=>d.classList.remove('show'));
+  document.querySelectorAll('.floor-card').forEach(c=>c.classList.remove('selected'));
+  
+  if(!isOpen) {
+    detail.classList.add('show');
+    card.classList.add('selected');
+  }
+}
+
+// Elevator animation
+const elevData = [
+  {id:'elev1',floor:7,dir:1,status:'상행 중'},
+  {id:'elev2',floor:3,dir:0,status:'대기'},
+  {id:'elev3',floor:12,dir:-1,status:'하행 중'},
+  {id:'elev4',floor:1,dir:0,status:'대기'}
+];
+function tickElevator() {
+  elevData.forEach((e,i) => {
+    if(e.dir!==0) {
+      e.floor += e.dir;
+      if(e.floor>=12){e.floor=12;e.dir=-1;e.status='하행 중';}
+      if(e.floor<=1){e.floor=1;e.dir=1;e.status='상행 중';}
+      if(Math.random()<0.15){e.dir=0;e.status='대기';setTimeout(()=>{e.dir=Math.random()>0.5?1:-1;e.status=e.dir>0?'상행 중':'하행 중';},2500);}
+    }
+    document.getElementById(`elev${i+1}-floor`).textContent = e.floor+'F';
+    document.getElementById(`elev${i+1}-status`).textContent = e.status;
+  });
+}
+setInterval(tickElevator, 1800);
+
+// Chat
+let chatHistory = [];
+const sysPrompt = `당신은 스마트 빌딩 자동화 시스템의 AgenticAI입니다.
+건물 정보:
+- 12층 빌딩, 각 층 4~6개 방
+- 엘리베이터 4기 운영 (각 층에 2기씩 배치, 총 4기)
+- 층간 네트워크: Optical Fiber 백본
+- 각 층 WiFi-7 AP 4개 (MESH 구조)
+- 각 방: 온도센서, 조명 제어, 공조기 제어, People Counter
+
+역할:
+- 전체 네트워크 및 빌딩 시스템 모니터링
+- 이상 징후 감지 및 자동 제어 제안
+- 에너지 효율 최적화
+- 보안 및 접근 제어
+
+한국어로 간결하고 전문적으로 답변하세요. 필요 시 구체적인 제어 명령이나 조치 사항을 제안하세요.`;
+
+function getTime() {
+  return new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'});
+}
+
+function appendMsg(role, text) {
+  const msgs = document.getElementById('chat-messages');
+  const div = document.createElement('div');
+  div.className = `msg ${role}`;
+  const avatarText = role==='ai'?'AI':'나';
+  div.innerHTML = `
+    <div class="msg-avatar ${role}">${avatarText}</div>
+    <div>
+      <div class="msg-bubble">${text.replace(/\n/g,'<br>').replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')}</div>
+      <div class="msg-time">${getTime()}</div>
+    </div>
+  `;
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+  return div;
+}
+
+function showTyping() {
+  const msgs = document.getElementById('chat-messages');
+  const div = document.createElement('div');
+  div.className = 'msg ai';
+  div.id = 'typing-indicator';
+  div.innerHTML = `
+    <div class="msg-avatar ai">AI</div>
+    <div><div class="msg-bubble" style="padding:8px 12px">
+      <div class="typing-dots"><span></span><span></span><span></span></div>
+    </div></div>
+  `;
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+function removeTyping() {
+  const t = document.getElementById('typing-indicator');
+  if(t) t.remove();
+}
+
+async function callGroq(userMsg) {
+  chatHistory.push({role:'user', content: userMsg});
+  const body = {
+    model: GROQ_MODEL,
+    messages: [{role:'system', content:sysPrompt}, ...chatHistory],
+    max_tokens: 600,
+    temperature: 0.7
+  };
+  try {
+    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        'Authorization':`Bearer ${GROQ_API_KEY}`
+      },
+      body: JSON.stringify(body)
+    });
+    const data = await res.json();
+    const reply = data.choices?.[0]?.message?.content || '응답을 가져올 수 없습니다.';
+    chatHistory.push({role:'assistant', content: reply});
+    return reply;
+  } catch(e) {
+    return '⚠ 네트워크 오류가 발생했습니다. 잠시 후 다시 시도해주세요.';
+  }
+}
+
+async function sendMessage() {
+  const input = document.getElementById('user-input');
+  const text = input.value.trim();
+  if(!text) return;
+  
+  input.value = '';
+  input.style.height = 'auto';
+  document.getElementById('send-btn').disabled = true;
+  
+  appendMsg('user', text);
+  showTyping();
+  
+  const reply = await callGroq(text);
+  removeTyping();
+  appendMsg('ai', reply);
+  document.getElementById('send-btn').disabled = false;
+  input.focus();
+}
+
+function sendQuick(text) {
+  document.getElementById('user-input').value = text;
+  sendMessage();
+}
+
+// Enter key
+document.getElementById('user-input').addEventListener('keydown', function(e) {
+  if(e.key==='Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+  setTimeout(()=>{
+    this.style.height='auto';
+    this.style.height=Math.min(this.scrollHeight,90)+'px';
+  },0);
+});
+
+// Init
+buildFloors();
+// Auto-expand floor 7 on start
+setTimeout(()=>toggleFloor(7), 300);
+</script>

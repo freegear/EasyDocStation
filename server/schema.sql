@@ -53,8 +53,11 @@ CREATE TABLE IF NOT EXISTS users (
   email         VARCHAR(255) UNIQUE NOT NULL,
   role          VARCHAR(20)  NOT NULL DEFAULT 'user'
                   CHECK (role IN ('site_admin', 'team_admin', 'channel_admin', 'user')),
+  display_name  VARCHAR(100),
   image_url     TEXT,
   is_active     BOOLEAN      NOT NULL DEFAULT true,
+  department_id VARCHAR(50),
+  security_level INTEGER     NOT NULL DEFAULT 0,
   created_at    TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
   updated_at    TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
   last_login_at TIMESTAMPTZ
@@ -115,11 +118,27 @@ CREATE TABLE IF NOT EXISTS posts (
   channel_id  VARCHAR(50) NOT NULL REFERENCES channels(id) ON DELETE CASCADE,
   author_id   INTEGER     NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   title       TEXT,
-  content     TEXT        NOT NULL,
-  pinned      BOOLEAN     DEFAULT false,
-  views       INTEGER     DEFAULT 0,
-  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  content        TEXT        NOT NULL,
+  pinned         BOOLEAN     DEFAULT false,
+  views          INTEGER     DEFAULT 0,
+  security_level INTEGER     NOT NULL DEFAULT 0,
+  is_edited      BOOLEAN     DEFAULT false,
+  prev_post_id   VARCHAR(50),
+  next_post_id   VARCHAR(50),
+  child_post_id  VARCHAR(50),
+  parent_id      VARCHAR(50),
+  attachments_1  VARCHAR(50),
+  attachments_2  VARCHAR(50),
+  attachments_3  VARCHAR(50),
+  attachments_4  VARCHAR(50),
+  attachments_5  VARCHAR(50),
+  attachments_6  VARCHAR(50),
+  attachments_7  VARCHAR(50),
+  attachments_8  VARCHAR(50),
+  attachments_9  VARCHAR(50),
+  attachments_10 VARCHAR(50),
+  created_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at     TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 -- ─── Attachments (DS.005) ─────────────────────────────────────

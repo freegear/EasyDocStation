@@ -24,6 +24,10 @@
     "width": 480,
     "height": 270
   },
+  "htmlPreview": {
+    "width": 480,
+    "height": 270
+  },
   "PostgreSQL Database Path": "/Users/kevinim/Desktop/EasyDocStation/Database/PoseSQLDB",
   "Cassandra Database Path": "/Users/kevinim/Desktop/EasyDocStation/Database/CassandraDB",
   "ObjectFile Path": "/Users/kevinim/Desktop/EasyDocStation/Database/ObjectFile",

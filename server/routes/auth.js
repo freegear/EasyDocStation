@@ -13,9 +13,12 @@ function toPublicUser(u) {
     name: u.name,
     email: u.email,
     role: u.role,
+    display_name: u.display_name,
     is_active: u.is_active,
-    avatar: u.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2),
+    avatar: (u.display_name || u.name).split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2),
     image_url: u.image_url,
+    security_level: u.security_level || 0,
+    department_id: u.department_id,
     last_login_at: u.last_login_at,
     created_at: u.created_at,
   }
@@ -49,7 +52,7 @@ router.post('/login', async (req, res) => {
     )
 
     const token = jwt.sign(
-      { id: user.id, email: user.email, role: user.role },
+      { id: user.id, email: user.email, role: user.role, security_level: user.security_level || 0 },
       process.env.JWT_SECRET,
       { expiresIn: '7d' }
     )

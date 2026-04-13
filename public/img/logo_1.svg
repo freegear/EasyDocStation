@@ -1,0 +1,11 @@
+<svg width="100" height="100" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Main Blue Part -->
+  <path d="M50 0L6.7 25V75L50 100V50L50 0Z" fill="#004EA8"/>
+  <path d="M50 0L93.3 25V50L50 50L50 0Z" fill="#0072BC"/>
+  
+  <!-- Orange Part -->
+  <path d="M50 100L93.3 75V50L50 50V100Z" fill="#F15A24"/>
+  
+  <!-- White Cutout (Stylized Arrow/Play) -->
+  <path d="M40 35L65 50L40 65V35Z" fill="white"/>
+</svg>

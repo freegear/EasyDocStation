@@ -40,6 +40,30 @@ async function initDb() {
           IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='security_level') THEN
             ALTER TABLE users ADD COLUMN security_level INTEGER NOT NULL DEFAULT 0 CHECK (security_level BETWEEN 0 AND 4);
           END IF;
+          -- posts 테이블 컬럼 추가
+          IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='posts' AND column_name='security_level') THEN
+            ALTER TABLE posts ADD COLUMN security_level INTEGER NOT NULL DEFAULT 0;
+          END IF;
+          IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='posts' AND column_name='is_edited') THEN
+            ALTER TABLE posts ADD COLUMN is_edited BOOLEAN DEFAULT false;
+          END IF;
+          IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='posts' AND column_name='prev_post_id') THEN
+            ALTER TABLE posts ADD COLUMN prev_post_id VARCHAR(50);
+          END IF;
+          IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='posts' AND column_name='next_post_id') THEN
+            ALTER TABLE posts ADD COLUMN next_post_id VARCHAR(50);
+          END IF;
+          IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='posts' AND column_name='child_post_id') THEN
+            ALTER TABLE posts ADD COLUMN child_post_id VARCHAR(50);
+          END IF;
+          IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='posts' AND column_name='parent_id') THEN
+            ALTER TABLE posts ADD COLUMN parent_id VARCHAR(50);
+          END IF;
+          FOR i IN 1..10 LOOP
+            IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='posts' AND column_name='attachments_' || i) THEN
+              EXECUTE 'ALTER TABLE posts ADD COLUMN attachments_' || i || ' VARCHAR(50)';
+            END IF;
+          END LOOP;
         END $$;
       `)
       // comments 테이블 생성 (없는 경우)
@@ -51,6 +75,7 @@ async function initDb() {
           author_id   INTEGER      NOT NULL REFERENCES users(id) ON DELETE CASCADE,
           content     TEXT         NOT NULL,
           attachments JSONB        NOT NULL DEFAULT '[]',
+          security_level INTEGER    NOT NULL DEFAULT 0,
           created_at  TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
           updated_at  TIMESTAMPTZ  NOT NULL DEFAULT NOW()
         );
