@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { apiFetch } from '../lib/api'
 import { useAuth } from '../contexts/AuthContext'
+import { useT } from '../i18n/useT'
 
 // MD 미리보기를 간단히 처리하는 헬퍼
 function SimpleMDPreview({ text }) {
@@ -23,6 +24,7 @@ function SimpleMDPreview({ text }) {
 
 export default function TeamManageModal({ team = null, onClose, onSave }) {
   const { currentUser } = useAuth()
+  const t = useT()
   const isEdit = !!team
 
   const [name, setName] = useState(team?.name || '')
@@ -118,7 +120,7 @@ export default function TeamManageModal({ team = null, onClose, onSave }) {
   const handleRemoveUser = (id, target) => {
     if (target === 'admin') {
       if (selectedAdmins.length <= 1) {
-        setError('팀 관리자는 최소 1명 이상이어야 합니다.')
+        setError(t.team.minOneAdmin)
         return
       }
       setSelectedAdmins(prev => prev.filter(a => a.id !== id))
@@ -130,8 +132,8 @@ export default function TeamManageModal({ team = null, onClose, onSave }) {
 
   const handleSubmit = async () => {
     setError('')
-    if (!name.trim()) { setError('팀 이름을 입력해주세요.'); return }
-    if (selectedAdmins.length === 0) { setError('최소 1명의 관리자를 지정해야 합니다.'); return }
+    if (!name.trim()) { setError(t.team.nameRequired); return }
+    if (selectedAdmins.length === 0) { setError(t.team.minOneAdmin); return }
 
     setLoading(true)
     try {
@@ -156,7 +158,7 @@ export default function TeamManageModal({ team = null, onClose, onSave }) {
 
   const handleDelete = async () => {
     if (deleteConfirmName !== team.name) {
-      setError('팀 이름이 일치하지 않습니다.')
+      setError(t.team.nameNotMatch)
       return
     }
     setLoading(true)
@@ -180,7 +182,7 @@ export default function TeamManageModal({ team = null, onClose, onSave }) {
         <div className="px-6 py-4 border-b border-white/10 bg-white/5 flex items-center justify-between flex-shrink-0">
           <div className="flex items-center gap-3">
             <span className="text-2xl">{team?.icon || '🏢'}</span>
-            <h2 className="text-white font-bold text-base">{isEdit ? `${team.name} — 팀 정보` : 'Team 추가'}</h2>
+            <h2 className="text-white font-bold text-base">{isEdit ? t.team.editHeader(team.name) : t.team.addTitle}</h2>
           </div>
           <button onClick={onClose} className="w-7 h-7 rounded-lg flex items-center justify-center text-white/30 hover:text-white hover:bg-white/10 transition-colors">
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -200,12 +202,12 @@ export default function TeamManageModal({ team = null, onClose, onSave }) {
 
           {/* Team 이름 */}
           <div>
-            <label className="block text-white/50 text-xs font-medium mb-1.5">Team 이름 <span className="text-red-400">*</span></label>
+            <label className="block text-white/50 text-xs font-medium mb-1.5">{t.team.teamName} <span className="text-red-400">*</span></label>
             <input
               type="text"
               value={name}
               onChange={e => setName(e.target.value)}
-              placeholder="팀 이름을 입력하세요"
+              placeholder={t.team.teamNamePlaceholder}
               className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm placeholder-white/20 focus:ring-1 focus:ring-indigo-500 outline-none transition-all"
             />
           </div>
@@ -214,8 +216,7 @@ export default function TeamManageModal({ team = null, onClose, onSave }) {
           <div>
             <div className="flex justify-between items-center mb-2">
               <label className="text-white/50 text-xs font-medium">
-                Team 관리자 <span className="text-red-400">*</span>
-                <span className="text-white/25 ml-1">(최소 1명)</span>
+                {t.team.admins} <span className="text-red-400">*</span>
               </label>
             </div>
             {/* 관리자 태그 목록 */}
@@ -230,7 +231,7 @@ export default function TeamManageModal({ team = null, onClose, onSave }) {
                 </div>
               ))}
               {selectedAdmins.length === 0 && (
-                <span className="text-white/20 text-xs px-1 py-1">관리자를 추가해주세요</span>
+                <span className="text-white/20 text-xs px-1 py-1">{t.team.noAdmins}</span>
               )}
             </div>
             {/* 관리자 추가: 버튼 or 인라인 검색 */}
@@ -241,13 +242,13 @@ export default function TeamManageModal({ team = null, onClose, onSave }) {
                   value={searchQuery}
                   onChange={e => setSearchQuery(e.target.value)}
                   autoFocus
-                  placeholder="이름 또는 아이디 검색..."
+                  placeholder={t.team.addAdminsPlaceholder}
                   onBlur={() => { if (!searchQuery.trim()) { setSearchTarget(null); setSearchResults([]) } }}
                   className="w-full bg-indigo-500/10 border border-indigo-500/30 rounded-xl px-4 py-3 text-white text-sm placeholder-white/25 focus:ring-1 focus:ring-indigo-500 outline-none"
                 />
                 {searchQuery.trim() && (searchResults.length > 0 || isSearching) && (
                   <div className="absolute left-0 right-0 top-full mt-1 bg-[#161428] border border-white/10 rounded-xl shadow-2xl z-20 max-h-48 overflow-y-auto">
-                    {isSearching && <div className="px-4 py-3 text-white/30 text-xs">검색 중...</div>}
+                    {isSearching && <div className="px-4 py-3 text-white/30 text-xs">{t.team.searching}</div>}
                     {searchResults.map(u => (
                       <button
                         key={u.id}
@@ -266,7 +267,7 @@ export default function TeamManageModal({ team = null, onClose, onSave }) {
                   </div>
                 )}
                 {searchQuery.trim() && !isSearching && searchResults.length === 0 && (
-                  <p className="text-white/25 text-xs mt-1 px-1">검색 결과가 없습니다.</p>
+                  <p className="text-white/25 text-xs mt-1 px-1">{t.team.searchNoResults}</p>
                 )}
               </div>
             ) : (
@@ -277,14 +278,14 @@ export default function TeamManageModal({ team = null, onClose, onSave }) {
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                 </svg>
-                관리자 추가
+                {t.team.addAdmins}
               </button>
             )}
           </div>
 
           {/* 멤버 */}
           <div>
-            <label className="block text-white/50 text-xs font-medium mb-2">Team 멤버</label>
+            <label className="block text-white/50 text-xs font-medium mb-2">{t.team.members}</label>
             <div className="min-h-[44px] p-2 bg-white/5 rounded-xl border border-white/10 flex flex-wrap gap-1.5 mb-3">
               {selectedMembers.map(m => (
                 <div key={m.id} className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-white/8 border border-white/10 text-white/60 text-[11px]">
@@ -296,7 +297,7 @@ export default function TeamManageModal({ team = null, onClose, onSave }) {
                 </div>
               ))}
               {selectedMembers.length === 0 && (
-                <span className="text-white/20 text-xs px-1 py-1">멤버 없음</span>
+                <span className="text-white/20 text-xs px-1 py-1">{t.team.noMembers}</span>
               )}
             </div>
 
@@ -308,13 +309,13 @@ export default function TeamManageModal({ team = null, onClose, onSave }) {
                   value={searchQuery}
                   onChange={e => setSearchQuery(e.target.value)}
                   autoFocus
-                  placeholder="이름 또는 아이디 검색..."
+                  placeholder={t.team.addMembersPlaceholder}
                   onBlur={() => { if (!searchQuery.trim()) { setSearchTarget(null); setSearchResults([]) } }}
                   className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm placeholder-white/25 focus:ring-1 focus:ring-indigo-500/60 outline-none"
                 />
                 {searchQuery.trim() && (searchResults.length > 0 || isSearching) && (
                   <div className="absolute left-0 right-0 top-full mt-1 bg-[#161428] border border-white/10 rounded-xl shadow-2xl z-20 max-h-48 overflow-y-auto">
-                    {isSearching && <div className="px-4 py-3 text-white/30 text-xs">검색 중...</div>}
+                    {isSearching && <div className="px-4 py-3 text-white/30 text-xs">{t.team.searching}</div>}
                     {searchResults.map(u => (
                       <button
                         key={u.id}
@@ -333,7 +334,7 @@ export default function TeamManageModal({ team = null, onClose, onSave }) {
                   </div>
                 )}
                 {searchQuery.trim() && !isSearching && searchResults.length === 0 && (
-                  <p className="text-white/25 text-xs mt-1 px-1">검색 결과가 없습니다.</p>
+                  <p className="text-white/25 text-xs mt-1 px-1">{t.team.searchNoResults}</p>
                 )}
               </div>
             ) : (
@@ -344,7 +345,7 @@ export default function TeamManageModal({ team = null, onClose, onSave }) {
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                 </svg>
-                멤버 추가
+                {t.team.addMembers}
               </button>
             )}
           </div>
@@ -352,17 +353,17 @@ export default function TeamManageModal({ team = null, onClose, onSave }) {
           {/* 팀 설명 (MD 편집) */}
           <div>
             <div className="flex items-center justify-between mb-2">
-              <label className="text-white/50 text-xs font-medium">Team 설명</label>
+              <label className="text-white/50 text-xs font-medium">{t.team.description}</label>
               <div className="flex gap-1 bg-white/5 rounded-lg p-0.5">
-                {['write', 'preview'].map(t => (
+                {[{ key: 'write', label: t.team.descWrite }, { key: 'preview', label: t.team.descPreview }].map(tab => (
                   <button
-                    key={t}
-                    onClick={() => setDescTab(t)}
+                    key={tab.key}
+                    onClick={() => setDescTab(tab.key)}
                     className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all ${
-                      descTab === t ? 'bg-indigo-600 text-white' : 'text-white/40 hover:text-white/70'
+                      descTab === tab.key ? 'bg-indigo-600 text-white' : 'text-white/40 hover:text-white/70'
                     }`}
                   >
-                    {t === 'write' ? '✏️ 편집' : '👁 미리보기'}
+                    {tab.label}
                   </button>
                 ))}
               </div>
@@ -372,18 +373,17 @@ export default function TeamManageModal({ team = null, onClose, onSave }) {
                 value={description}
                 onChange={e => setDescription(e.target.value)}
                 rows={6}
-                placeholder={'팀의 목적과 설명을 Markdown 형식으로 작성하세요.\n\n예:\n# 팀 소개\n이 팀은 **개발**과 **디자인**을 담당합니다.\n\n- 주요 업무 1\n- 주요 업무 2'}
+                placeholder={t.team.descriptionPlaceholder}
                 className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm placeholder-white/15 focus:ring-1 focus:ring-indigo-500 outline-none resize-none leading-relaxed font-mono"
               />
             ) : (
               <div className="min-h-[120px] bg-white/5 border border-white/10 rounded-xl px-4 py-3">
                 {description.trim()
                   ? <SimpleMDPreview text={description} />
-                  : <p className="text-white/20 text-sm">미리볼 내용이 없습니다.</p>
+                  : <p className="text-white/20 text-sm">{t.team.descEmpty}</p>
                 }
               </div>
             )}
-            <p className="text-white/20 text-[10px] mt-1.5 px-1">Markdown 형식 지원: **굵게**, *기울임*, `코드`, # 제목, - 목록</p>
           </div>
 
         </div>
@@ -396,18 +396,18 @@ export default function TeamManageModal({ team = null, onClose, onSave }) {
               disabled={loading}
               className="mr-auto px-4 py-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 text-xs font-bold transition-all"
             >
-              팀 삭제
+              {t.team.deleteTitle}
             </button>
           )}
           <button onClick={onClose} className="px-4 py-2 text-white/40 text-xs font-bold hover:text-white transition-colors">
-            취소
+            {t.team.cancel}
           </button>
           <button
             onClick={handleSubmit}
             disabled={loading}
             className="px-6 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-60 text-white text-xs font-bold shadow-lg shadow-indigo-500/20 active:scale-95 transition-all"
           >
-            {loading ? '처리 중...' : '저장'}
+            {loading ? t.team.processing : t.team.save}
           </button>
         </div>
 
@@ -415,18 +415,14 @@ export default function TeamManageModal({ team = null, onClose, onSave }) {
         {showDeleteConfirm && (
           <div className="absolute inset-0 z-30 bg-[#1e1c30]/95 flex flex-col items-center justify-center p-8 space-y-5">
             <div className="text-4xl">⚠️</div>
-            <h3 className="text-white font-bold text-center text-lg">팀을 정말 삭제하시겠습니까?</h3>
-            <p className="text-white/40 text-sm text-center leading-relaxed">
-              이 팀에 속한 <span className="text-orange-400 font-medium">모든 채널과 게시글</span>이<br/>함께 삭제되며 복구할 수 없습니다.
-            </p>
-            <p className="text-white/40 text-xs text-center">
-              확인을 위해 팀 이름 <strong className="text-white">[{team?.name}]</strong>을(를) 입력하세요.
-            </p>
+            <h3 className="text-white font-bold text-center text-lg">{t.team.deleteConfirmTitle}</h3>
+            <p className="text-white/40 text-sm text-center leading-relaxed">{t.team.deleteWarning}</p>
+            <p className="text-white/40 text-xs text-center">{t.team.deleteConfirmInput(team?.name)}</p>
             <input
               type="text"
               value={deleteConfirmName}
               onChange={e => setDeleteConfirmName(e.target.value)}
-              placeholder="팀 이름 입력"
+              placeholder={t.team.deleteConfirmPlaceholder}
               className="w-full max-w-sm bg-white/5 border border-red-500/30 rounded-xl px-4 py-2.5 text-white text-sm focus:ring-1 focus:ring-red-500 outline-none text-center"
             />
             {error && <p className="text-red-400 text-xs">{error}</p>}
@@ -435,14 +431,14 @@ export default function TeamManageModal({ team = null, onClose, onSave }) {
                 onClick={() => { setShowDeleteConfirm(false); setDeleteConfirmName(''); setError('') }}
                 className="px-6 py-2 text-white/40 text-sm font-bold hover:text-white"
               >
-                취소
+                {t.team.cancel}
               </button>
               <button
                 onClick={handleDelete}
                 disabled={deleteConfirmName !== team?.name || loading}
                 className="px-8 py-2.5 rounded-xl bg-red-600 hover:bg-red-500 disabled:opacity-30 text-white text-sm font-bold shadow-lg shadow-red-500/20 transition-all"
               >
-                {loading ? '삭제 중...' : '영구 삭제'}
+                {loading ? t.team.processing : t.team.permanentDelete}
               </button>
             </div>
           </div>

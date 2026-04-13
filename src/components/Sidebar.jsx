@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { apiFetch } from '../lib/api'
 import TeamManageModal from './TeamManageModal'
 import ChannelManageModal from './ChannelManageModal'
+import { useT } from '../i18n/useT'
 
 function HashIcon() {
   return (
@@ -24,6 +25,7 @@ function LockIcon() {
 export default function Sidebar() {
   const { teams, setTeams, selectedTeam, selectedChannel, selectTeam, selectChannel, refreshTeams } = useChat()
   const { currentUser } = useAuth()
+  const t = useT()
   const [dmCollapsed, setDmCollapsed] = useState(false)
   const [channelsCollapsed, setChannelsCollapsed] = useState(false)
   const [showTeamModal, setShowTeamModal] = useState(false)
@@ -95,7 +97,7 @@ export default function Sidebar() {
     <aside className="w-64 flex-shrink-0 bg-[#19172d] flex flex-col h-full border-r border-white/5">
       {/* Team selector */}
       <div className="px-3 py-3 border-b border-white/10">
-        <p className="text-white/40 text-xs uppercase tracking-widest mb-2 px-2">Teams</p>
+        <p className="text-white/40 text-xs uppercase tracking-widest mb-2 px-2">{t.sidebar.teams}</p>
         <div className="flex flex-col gap-1">
           {teams.map(team => {
             const teamUnread = team.channels.reduce((s, c) => s + c.unread, 0)
@@ -132,7 +134,7 @@ export default function Sidebar() {
               className="flex items-center gap-2 w-full px-3 py-2 rounded-lg text-white/30 hover:text-white/60 hover:bg-white/5 text-sm transition-all mt-1"
             >
               <span className="text-lg leading-none">+</span>
-              <span>팀 추가</span>
+              <span>{t.sidebar.addTeam}</span>
             </button>
           )}
         </div>
@@ -146,7 +148,7 @@ export default function Sidebar() {
             className="flex items-center justify-between w-full px-3 py-1.5 text-white/40 hover:text-white/70 text-xs uppercase tracking-widest transition-colors"
             onClick={() => setChannelsCollapsed(v => !v)}
           >
-            <span>Channels</span>
+            <span>{t.sidebar.channels}</span>
             <span className="text-base">{channelsCollapsed ? '▸' : '▾'}</span>
           </button>
 
@@ -167,7 +169,7 @@ export default function Sidebar() {
                       setChannelModalMode('manage')
                       setShowChannelModal(true)
                     }}
-                    title={canManageChannel(ch) ? '더블클릭하면 채널 관리' : undefined}
+                    title={canManageChannel(ch) ? t.sidebar.channelManageTitle : undefined}
                     className={`flex items-center gap-2 w-full px-2 py-1.5 rounded-md text-sm text-left transition-all ${isActive
                         ? 'bg-indigo-500/30 text-white'
                         : ch.unread > 0
@@ -199,7 +201,7 @@ export default function Sidebar() {
                   className="flex items-center gap-2 w-full px-2 py-1.5 rounded-md text-white/30 hover:text-white/60 text-sm transition-colors hover:bg-white/5"
                 >
                   <span className="text-lg leading-none">+</span>
-                  <span>채널 추가</span>
+                  <span>{t.sidebar.addChannel}</span>
                 </button>
               )}
             </div>
@@ -212,7 +214,7 @@ export default function Sidebar() {
             className="flex items-center justify-between w-full px-3 py-1.5 text-white/40 hover:text-white/70 text-xs uppercase tracking-widest transition-colors"
             onClick={() => setDmCollapsed(v => !v)}
           >
-            <span>Direct Messages</span>
+            <span>{t.sidebar.directMessages}</span>
             <span className="text-base">{dmCollapsed ? '▸' : '▾'}</span>
           </button>
 

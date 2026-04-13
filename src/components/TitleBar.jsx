@@ -3,6 +3,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { useChat } from '../contexts/ChatContext'
 import { apiFetch } from '../lib/api'
 import { ROLE_LABELS, ROLE_BADGE } from '../constants/roles'
+import { useT } from '../i18n/useT'
 
 const LANGUAGES = [
   { code: 'ko', label: '한국어' },
@@ -13,6 +14,7 @@ const LANGUAGES = [
 function SearchBar({ onSelectResult }) {
   const { teams, posts, selectTeam, selectChannel, performSearch } = useChat()
   const { selectTeam: ctxSelectTeam, selectChannel: ctxSelectChannel } = useChat()
+  const t = useT()
   const [query, setQuery] = useState('')
   const [results, setResults] = useState([])
   const [open, setOpen] = useState(false)
@@ -110,7 +112,7 @@ function SearchBar({ onSelectResult }) {
             value={query}
             onChange={e => { setQuery(e.target.value); setOpen(true) }}
             onFocus={() => { if (results.length > 0) setOpen(true) }}
-            placeholder="게시글 및 댓글 검색..."
+            placeholder={t.titlebar.searchPlaceholder}
             className="w-full bg-white border border-gray-200 rounded-l-xl pl-8 pr-3 py-1.5 text-gray-900 text-sm placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-indigo-500/60 focus:border-indigo-400 transition-all"
           />
         </div>
@@ -118,7 +120,7 @@ function SearchBar({ onSelectResult }) {
           type="submit"
           className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold rounded-r-xl border border-indigo-500 transition-colors whitespace-nowrap flex-shrink-0"
         >
-          검색
+          {t.titlebar.searchButton}
         </button>
       </form>
 
@@ -128,11 +130,11 @@ function SearchBar({ onSelectResult }) {
           {searching && (
             <div className="px-4 py-3 text-white/30 text-sm flex items-center gap-2">
               <div className="w-3 h-3 border border-indigo-400/40 border-t-indigo-400 rounded-full animate-spin" />
-              검색 중...
+              {t.titlebar.searching}
             </div>
           )}
           {!searching && results.length === 0 && (
-            <div className="px-4 py-3 text-white/25 text-sm">"{query}"에 대한 결과가 없습니다.</div>
+            <div className="px-4 py-3 text-white/25 text-sm">{t.titlebar.noResults(query)}</div>
           )}
           {!searching && results.map((item, i) => {
             const preview = (item.post.content || '').slice(0, 120)
@@ -148,7 +150,7 @@ function SearchBar({ onSelectResult }) {
                       ? 'bg-indigo-500/20 text-indigo-300'
                       : 'bg-purple-500/20 text-purple-300'
                   }`}>
-                    {item.matchType === 'post' ? '게시글' : '댓글'}
+                    {item.matchType === 'post' ? t.titlebar.searchPost : t.titlebar.searchComment}
                   </span>
                   <span className="text-white/30 text-[10px]">{item.team.name} › {item.channel.name}</span>
                   {item.post.author?.name && (
@@ -170,6 +172,7 @@ function SearchBar({ onSelectResult }) {
 // ─── TitleBar ─────────────────────────────────────────────────
 export default function TitleBar({ onOpenProfile, onOpenSiteAdmin, onSelectSearchResult }) {
   const { currentUser, language, setLanguage, logout } = useAuth()
+  const t = useT()
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef(null)
 
@@ -273,7 +276,7 @@ export default function TitleBar({ onOpenProfile, onOpenSiteAdmin, onSelectSearc
                   </div>
                   {currentUser.last_login_at && (
                     <p className="text-white/25 text-xs mt-2">
-                      마지막 로그인: {formatLoginTime(currentUser.last_login_at)}
+                      {t.titlebar.lastLogin} {formatLoginTime(currentUser.last_login_at)}
                     </p>
                   )}
                 </div>
@@ -286,7 +289,7 @@ export default function TitleBar({ onOpenProfile, onOpenSiteAdmin, onSelectSearc
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                       </svg>
                     }
-                    label="사용자 정보 편집"
+                    label={t.titlebar.editProfile}
                     onClick={() => { setMenuOpen(false); onOpenProfile?.() }}
                   />
 
@@ -298,8 +301,8 @@ export default function TitleBar({ onOpenProfile, onOpenSiteAdmin, onSelectSearc
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                         </svg>
                       }
-                      label="사이트 관리"
-                      badge="관리자"
+                      label={t.titlebar.siteAdmin}
+                      badge={t.titlebar.adminBadge}
                       onClick={() => { setMenuOpen(false); onOpenSiteAdmin?.() }}
                     />
                   )}
@@ -312,7 +315,7 @@ export default function TitleBar({ onOpenProfile, onOpenSiteAdmin, onSelectSearc
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
                       </svg>
                     }
-                    label="로그아웃"
+                    label={t.titlebar.logout}
                     danger
                     onClick={() => { setMenuOpen(false); logout() }}
                   />
