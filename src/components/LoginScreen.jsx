@@ -34,10 +34,10 @@ export default function LoginScreen() {
         <div className="bg-[#1a1830]/90 backdrop-blur border border-white/10 rounded-3xl p-8 shadow-2xl">
           {/* Logo */}
           <div className="flex flex-col items-center mb-8">
-            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-indigo-500/30 mb-4">
-              ED
+            <div className="flex items-center gap-3 mb-4">
+              <img src="/img/logo.png" alt="Logo" className="w-12 h-12 object-contain" />
+              <h1 className="text-white font-bold text-3xl tracking-tight">EasyStation</h1>
             </div>
-            <h1 className="text-white font-bold text-2xl tracking-tight">EasyDocStation</h1>
             <p className="text-white/40 text-sm mt-1">팀 협업 플랫폼에 오신 것을 환영합니다</p>
           </div>
 

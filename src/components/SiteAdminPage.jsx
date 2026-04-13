@@ -59,6 +59,7 @@ function UserFormModal({ user, onClose, onSave, teams = [] }) {
     image_url: user?.image_url ?? '',
     department_id: user?.department_id ?? '',
     security_level: user?.security_level ?? 0,
+    display_name: user?.display_name ?? '',
   })
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -107,6 +108,7 @@ function UserFormModal({ user, onClose, onSave, teams = [] }) {
         const body = {
           name: form.name, email: form.email, role: form.role,
           is_active: form.is_active, image_url: form.image_url,
+          display_name: form.display_name,
           department_id: deptDisabled ? null : (form.department_id || null),
           security_level: form.security_level,
         }
@@ -120,6 +122,7 @@ function UserFormModal({ user, onClose, onSave, teams = [] }) {
             password: form.password, role: form.role, image_url: form.image_url,
             department_id: deptDisabled ? null : (form.department_id || null),
             security_level: form.security_level,
+            display_name: form.display_name,
             is_active: form.is_active,
           }),
         })
@@ -185,7 +188,10 @@ function UserFormModal({ user, onClose, onSave, teams = [] }) {
           )}
 
           {/* 표시 이름 */}
-          <FormField label="표시 이름 (Display Name)" value={form.name} onChange={v => set('name', v)} placeholder="홍길동" required />
+          <FormField label="사용자 이름 (Full Name)" value={form.name} onChange={v => set('name', v)} placeholder="홍길동" required />
+
+          {/* 디스플레이 이름 */}
+          <FormField label="표시 이름 (Display Name)" value={form.display_name} onChange={v => set('display_name', v)} placeholder="길동님" required />
 
           {/* 이메일 */}
           <FormField label="이메일" type="email" value={form.email} onChange={v => set('email', v)} placeholder="user@example.com" required />
@@ -335,7 +341,8 @@ export default function SiteAdminPage({ onClose }) {
     pptxPreview: { width: 480, height: 270 },
     excelPreview: { width: 480, height: 270 },
     wordPreview: { width: 270, height: 480 },
-    moviePreview: { width: 480, height: 270 }
+    moviePreview: { width: 480, height: 270 },
+    htmlPreview: { width: 480, height: 270 }
   })
   const [lancedbPath, setLancedbPath] = useState('/Users/kevinim/Desktop/EasyDocStation/Database/LanceDB')
   const [ragForm, setRagForm] = useState({ type: 'manual', time: '02:00', vectorSize: 1024, chunkSize: 800, chunkOverlap: 100 })
@@ -379,7 +386,8 @@ export default function SiteAdminPage({ onClose }) {
           pptxPreview: data.display.pptxPreview || { width: 480, height: 270 },
           excelPreview: data.display.excelPreview || { width: 480, height: 270 },
           wordPreview: data.display.wordPreview || { width: 270, height: 480 },
-          moviePreview: data.display.moviePreview || { width: 480, height: 270 }
+          moviePreview: data.display.moviePreview || { width: 480, height: 270 },
+          htmlPreview: data.display.htmlPreview || { width: 480, height: 270 }
         })
       }
       if (data.lancedb?.location) {
@@ -462,6 +470,10 @@ export default function SiteAdminPage({ onClose }) {
         configData.moviePreview = {
           width: parseInt(displayForm.moviePreview.width),
           height: parseInt(displayForm.moviePreview.height)
+        }
+        configData.htmlPreview = {
+          width: parseInt(displayForm.htmlPreview.width),
+          height: parseInt(displayForm.htmlPreview.height)
         }
       } else if (activeTab === 'db') {
         configData['lancedb Database Path'] = lancedbPath
@@ -1251,6 +1263,14 @@ export default function SiteAdminPage({ onClose }) {
                     description="AVI, MOV 동영상 파일의 미리보기 규격입니다."
                     value={displayForm.moviePreview}
                     onChange={(val) => setDisplayForm(p => ({ ...p, moviePreview: val }))}
+                  />
+
+                  {/* HTML Preview */}
+                  <PreviewSettingCard
+                    title="HTML Preview 설정"
+                    description="HTML 파일의 미리보기 규격입니다."
+                    value={displayForm.htmlPreview}
+                    onChange={(val) => setDisplayForm(p => ({ ...p, htmlPreview: val }))}
                   />
                 </div>
               </div>

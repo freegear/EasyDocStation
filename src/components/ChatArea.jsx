@@ -35,6 +35,7 @@ function formatSize(bytes) {
 function getFileCategory(type, name) {
   if (type.startsWith('image/')) return 'image'
   if (type === 'application/pdf') return 'pdf'
+  if (type === 'text/html' || /\.html?$/i.test(name)) return 'html'
   if (type.includes('spreadsheet') || type.includes('excel') || /\.(xls|xlsx|csv)$/i.test(name)) return 'sheet'
   if (type.includes('word') || /\.(doc|docx)$/i.test(name)) return 'doc'
   if (type.includes('presentation') || /\.(ppt|pptx)$/i.test(name)) return 'slide'
@@ -46,13 +47,14 @@ function getFileCategory(type, name) {
   return 'file'
 }
 
-function getPreviewDimensions(f, moviePreviewOverride) {
+function getPreviewDimensions(f, moviePreviewOverride, htmlPreviewOverride) {
   const name = (f.name || '').toLowerCase()
   if (name.endsWith('.pptx')) return config.pptxPreview || config.imagePreview
   if (name.endsWith('.ppt')) return config.pptPreview || config.imagePreview
   if (name.endsWith('.xlsx') || name.endsWith('.xls')) return config.excelPreview || config.imagePreview
   if (name.endsWith('.docx') || name.endsWith('.doc')) return config.wordPreview || config.imagePreview
   if (/\.(avi|mov|mp4)$/i.test(name)) return moviePreviewOverride || config.moviePreview || config.imagePreview
+  if (/\.html?$/i.test(name)) return htmlPreviewOverride || config.htmlPreview || { width: 480, height: 270 }
   return config.imagePreview
 }
 
@@ -325,12 +327,16 @@ function VideoPlayer({ file, fileUrl, onClose }) {
 
 function AttachmentList({ attachments, compact = false }) {
   const [moviePreviewSize, setMoviePreviewSize] = useState(config.moviePreview || { width: 480, height: 270 })
+  const [htmlPreviewSize, setHtmlPreviewSize] = useState(config.htmlPreview || { width: 480, height: 270 })
   const [lightboxFile, setLightboxFile] = useState(null)
   const [videoFile, setVideoFile] = useState(null)
 
   useEffect(() => {
     apiFetch('/config/display')
-      .then(data => { if (data.moviePreview) setMoviePreviewSize(data.moviePreview) })
+      .then(data => {
+        if (data.moviePreview) setMoviePreviewSize(data.moviePreview)
+        if (data.htmlPreview) setHtmlPreviewSize(data.htmlPreview)
+      })
       .catch(() => {})
   }, [])
 
@@ -420,7 +426,7 @@ function AttachmentList({ attachments, compact = false }) {
         <div className="flex flex-wrap gap-3">
           {attachments.map(f => {
             const category = getFileCategory(f.type || '', f.name || '')
-            const dims = getPreviewDimensions(f, moviePreviewSize)
+            const dims = getPreviewDimensions(f, moviePreviewSize, htmlPreviewSize)
             const MAX_W = compact ? 180 : Infinity
             const MAX_THUMB_H = compact ? 140 : 240
             const w = Math.min(dims.width, MAX_W)
@@ -540,6 +546,46 @@ function AttachmentList({ attachments, compact = false }) {
               )
             }
 
+            // ── HTML → iframe 인라인 미리보기 ────────────────────
+            if (category === 'html') {
+              return (
+                <div key={f.id}
+                  className="rounded-2xl overflow-hidden border border-white/10 hover:border-amber-500/50 transition-colors group cursor-pointer flex-shrink-0"
+                  style={{ width: w, maxWidth: '100%' }}
+                  onClick={e => handleFileClick(e, f)}
+                >
+                  <div style={{ width: w, height: h, position: 'relative', overflow: 'hidden' }}>
+                    <iframe
+                      src={fileUrl(f)}
+                      sandbox="allow-same-origin"
+                      title={f.name}
+                      style={{
+                        width: dims.width,
+                        height: dims.height,
+                        border: 'none',
+                        transformOrigin: '0 0',
+                        transform: `scale(${w / dims.width})`,
+                        pointerEvents: 'none',
+                        background: '#fff',
+                      }}
+                    />
+                  </div>
+                  <div className="px-3 py-2 flex items-center justify-between bg-white/4">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <svg className="w-4 h-4 text-amber-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                      </svg>
+                      <span className="text-white/60 text-xs font-medium truncate">{f.name}</span>
+                    </div>
+                    <div className="flex items-center gap-1 ml-2 flex-shrink-0">
+                      <span className="text-white/30 text-xs">{formatSize(f.size)}</span>
+                      <NativeOpenBtn f={f} />
+                    </div>
+                  </div>
+                </div>
+              )
+            }
+
             // ── 썸네일 있는 파일 → 브라우저 새 탭 ───────────────
             const tUrl = thumbUrl(f)
             if (tUrl) {
@@ -651,6 +697,10 @@ function ComposeBar({ onSubmit, isArchived }) {
   const dragCounter = useRef(0)
 
   function addFiles(newFiles) {
+    if (files.length + newFiles.length > 10) {
+      alert("10개까지의 첨부 파일을 지원합니다.")
+      return
+    }
     if (newFiles.length > 0 && !content.trim()) {
       setContent(newFiles[0].name)
     }
@@ -709,7 +759,7 @@ function ComposeBar({ onSubmit, isArchived }) {
           body: JSON.stringify({
             filename: fObj.name,
             contentType: fObj.type,
-            channelName: selectedChannel.name,
+            channelId: selectedChannel.id,
           }),
         })
         await fetch(uploadUrl, { method: 'PUT', body: fObj.file })
@@ -1039,9 +1089,11 @@ function PostDetail({ post, channelId, onClose }) {
   const [commentEditFiles, setCommentEditFiles] = useState([])
 
   const [files, setFiles] = useState([])
+  const [dragOver, setDragOver] = useState(false)
   const [uploading, setUploading] = useState(false)
   const commentsEndRef = useRef(null)
   const fileInputRef = useRef(null)
+  const dragCounter = useRef(0)
 
   const isAdmin = ['Admin', 'site_admin', 'channel_admin', 'team_admin'].includes(currentUser?.role)
 
@@ -1066,6 +1118,24 @@ function PostDetail({ post, channelId, onClose }) {
       if (target) URL.revokeObjectURL(target.url)
       return prev.filter(f => f.id !== id)
     })
+  }
+
+  function handleDragEnter(e) {
+    e.preventDefault()
+    dragCounter.current++
+    if (e.dataTransfer.types.includes('Files')) setDragOver(true)
+  }
+  function handleDragLeave(e) {
+    e.preventDefault()
+    dragCounter.current--
+    if (dragCounter.current === 0) setDragOver(false)
+  }
+  function handleDragOver(e) { e.preventDefault() }
+  function handleDrop(e) {
+    e.preventDefault()
+    dragCounter.current = 0
+    setDragOver(false)
+    if (e.dataTransfer.files?.length) addFiles(e.dataTransfer.files)
   }
 
   useEffect(() => {
@@ -1314,7 +1384,25 @@ function PostDetail({ post, channelId, onClose }) {
         {!selectedChannel?.is_archived ? (
           <form onSubmit={handleComment} className="flex items-start gap-3">
             {currentUser && <Avatar letters={currentUser.avatar} imageUrl={currentUser.image_url} size="sm" />}
-            <div className="flex-1 bg-white/5 rounded-xl border border-white/10 focus-within:border-indigo-500/40 transition-colors overflow-hidden">
+            <div
+              onDragEnter={handleDragEnter}
+              onDragLeave={handleDragLeave}
+              onDragOver={handleDragOver}
+              onDrop={handleDrop}
+              className={`flex-1 rounded-xl border transition-all duration-150 relative overflow-hidden ${
+                dragOver
+                  ? 'border-indigo-400/70 bg-indigo-500/10 shadow-lg shadow-indigo-500/20'
+                  : 'bg-white/5 border-white/10 focus-within:border-indigo-500/40'
+              }`}
+            >
+              {dragOver && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center z-10 pointer-events-none">
+                  <svg className="w-8 h-8 text-indigo-400 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                  </svg>
+                  <p className="text-indigo-300 text-sm font-semibold">파일을 놓아 첨부하세요</p>
+                </div>
+              )}
               <textarea
                 value={comment}
                 onChange={e => setComment(e.target.value)}

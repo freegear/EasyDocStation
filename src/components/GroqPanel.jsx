@@ -5,7 +5,7 @@ import { GROQ_MODELS, GROQ_API_KEY } from '../data/mockData'
 import { apiFetch } from '../lib/api'
 import { useChat } from '../contexts/ChatContext'
 
-const SYSTEM_PROMPT = `당신은 EasyDocStation의 AI 어시스턴트입니다.
+const SYSTEM_PROMPT = `당신은 EasyStation의 AI 어시스턴트입니다.
 반드시 제공된 [참고 정보]에 있는 내용만을 근거로 답변하세요.
 참고 정보에 없는 내용은 절대 추측하거나 일반 지식으로 보충하지 마세요.
 답변은 간결하고 명확하게 한국어로 작성하세요.`
@@ -29,7 +29,7 @@ export default function GroqPanel() {
     {
       id: 'init',
       role: 'assistant',
-      content: '안녕하세요! EasyDoc AgenticAI 어시스턴트입니다. 무엇이든 물어보세요!',
+      content: '안녕하세요! EasyStation AgenticAI 어시스턴트입니다. 무엇이든 물어보세요!',
       time: new Date().toISOString(),
     }
   ])
@@ -239,7 +239,7 @@ export default function GroqPanel() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
             </svg>
           </div>
-          <span className="text-white font-semibold text-sm">EasyDoc AgenticAI</span>
+          <span className="text-white font-semibold text-sm">EasyStation AgenticAI</span>
           {loading && (
             <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
           )}

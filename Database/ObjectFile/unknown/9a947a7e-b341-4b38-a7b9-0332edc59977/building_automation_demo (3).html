@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Smart Building Automation — AgenticAI Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Noto+Sans+KR:wght@300;400;500;700&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#0a0d13; --bg2:#0f1420; --bg3:#151b2e;
+  --surface:#1a2035; --border:rgba(99,140,255,.12); --border2:rgba(99,140,255,.22);
+  --accent:#4d7cff; --accent2:#00e5c8; --text:#e8edf8; --text2:#8899bb; --text3:#4a5880;
+  --ok:#00c97a; --warn:#ffb547; --err:#ff4d4d;
+  --font-mono:'JetBrains Mono','Space Mono',monospace; --font-sans:'Noto Sans KR',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;overflow:hidden;}
+body{font-family:var(--font-sans);background:var(--bg);color:var(--text);display:flex;flex-direction:column;}
+
+/* TOPBAR */
+#topbar{display:flex;align-items:center;justify-content:space-between;padding:0 20px;height:48px;background:var(--bg2);border-bottom:1px solid var(--border);flex-shrink:0;}
+.logo-wrap{display:flex;align-items:center;gap:10px;}
+.logo-box{width:28px;height:28px;border-radius:6px;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-family:var(--font-mono);font-size:11px;font-weight:700;color:#fff;}
+.logo-text{font-family:var(--font-mono);font-size:13px;font-weight:700;color:var(--text);letter-spacing:.5px;}
+.logo-text span{color:var(--accent2);}
+.topbar-stats{display:flex;gap:8px;}
+.tstat{font-family:var(--font-mono);font-size:10px;color:var(--text2);padding:3px 8px;border:1px solid var(--border);border-radius:4px;background:var(--bg3);}
+.tstat .val{color:var(--accent);margin-left:4px;}
+.topbar-right{display:flex;align-items:center;gap:14px;}
+.meta-live{display:flex;align-items:center;gap:5px;font-family:var(--font-mono);font-size:10px;color:var(--text2);}
+.pulse{width:6px;height:6px;border-radius:50%;background:var(--ok);animation:blink 2s ease-in-out infinite;box-shadow:0 0 6px var(--ok);}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.4}}
+#next-upd{font-family:var(--font-mono);font-size:10px;color:var(--accent2);}
+#clock{font-family:var(--font-mono);font-size:12px;color:var(--accent2);letter-spacing:1px;}
+
+/* COUNTDOWN BAR */
+#cdbar{height:2px;background:var(--bg3);flex-shrink:0;}
+#cdfill{height:100%;background:linear-gradient(90deg,var(--accent2),var(--accent));transition:width .25s linear;}
+
+/* MAIN */
+#main{display:flex;flex:1;overflow:hidden;}
+
+/* LEFT */
+#left{width:54%;display:flex;flex-direction:column;border-right:1px solid var(--border);overflow:hidden;}
+#lhead{padding:10px 16px 8px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;background:var(--bg2);}
+.ptitle{font-family:var(--font-mono);font-size:11px;font-weight:700;color:var(--accent);letter-spacing:1px;text-transform:uppercase;}
+.psub{font-size:10px;color:var(--text3);margin-top:1px;}
+.legend{display:flex;gap:10px;align-items:center;}
+.leg{display:flex;align-items:center;gap:4px;font-size:9px;color:var(--text3);font-family:var(--font-mono);}
+.leg-d{width:6px;height:6px;border-radius:50%;}
+
+#flist{flex:1;overflow-y:auto;padding:8px;display:flex;flex-direction:column;gap:3px;background:var(--bg);}
+#flist::-webkit-scrollbar{width:3px;}
+#flist::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px;}
+
+.fr{border:1px solid var(--border);border-radius:6px;background:var(--bg2);overflow:hidden;cursor:pointer;transition:border-color .15s;}
+.fr:hover{border-color:var(--border2);}
+.fr.active{border-color:var(--accent);background:var(--bg3);box-shadow:0 0 0 1px rgba(77,124,255,.15);}
+.fh{display:flex;align-items:center;height:36px;user-select:none;}
+.fn{font-family:var(--font-mono);font-size:13px;font-weight:700;color:var(--accent);min-width:42px;text-align:center;border-right:1px solid var(--border);height:100%;display:flex;align-items:center;justify-content:center;}
+.ftl{font-size:11px;color:var(--text);font-weight:500;padding:0 10px;flex:1;}
+.ftl span{font-size:9px;color:var(--text3);font-family:var(--font-mono);display:block;}
+.find{display:flex;align-items:center;gap:6px;padding:0 10px;}
+.fi{display:flex;align-items:center;gap:3px;font-family:var(--font-mono);font-size:9px;color:var(--text3);background:var(--bg3);padding:2px 6px;border-radius:3px;}
+.fi .dot{width:5px;height:5px;border-radius:50%;}
+.stag{font-family:var(--font-mono);font-size:9px;font-weight:700;padding:2px 6px;border-radius:3px;letter-spacing:.5px;}
+.s-ok{background:rgba(0,201,122,.12);color:var(--ok);border:1px solid rgba(0,201,122,.2);}
+.s-warn{background:rgba(255,181,71,.12);color:var(--warn);border:1px solid rgba(255,181,71,.2);}
+.s-err{background:rgba(255,77,77,.12);color:var(--err);border:1px solid rgba(255,77,77,.2);}
+.chev{font-size:9px;color:var(--text3);transition:transform .2s;padding-right:8px;}
+.fr.active .chev{transform:rotate(90deg);}
+
+.fdet{display:none;padding:10px;border-top:1px solid var(--border);}
+.fr.active .fdet{display:block;}
+.dgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.dct{font-family:var(--font-mono);font-size:9px;color:var(--accent2);letter-spacing:1px;text-transform:uppercase;margin-bottom:5px;}
+
+.api{display:flex;align-items:center;gap:6px;padding:4px 8px;border-radius:4px;background:var(--bg);margin-bottom:2px;border:1px solid var(--border);font-family:var(--font-mono);font-size:9px;}
+.apn{color:var(--text);flex:1;}
+.aps{color:var(--text3);font-size:8px;}
+.apb{font-size:8px;padding:1px 5px;border-radius:2px;font-weight:700;}
+.b-ok{background:rgba(0,201,122,.15);color:var(--ok);}
+.b-warn{background:rgba(255,181,71,.15);color:var(--warn);}
+.b-err{background:rgba(255,77,77,.15);color:var(--err);}
+.mesh-t{display:inline-flex;align-items:center;gap:3px;font-family:var(--font-mono);font-size:8px;color:var(--accent2);background:rgba(0,229,200,.08);border:1px solid rgba(0,229,200,.2);padding:2px 6px;border-radius:3px;margin-top:3px;}
+
+.optl{display:flex;align-items:center;gap:6px;padding:5px 8px;border-radius:4px;margin-top:6px;font-family:var(--font-mono);font-size:9px;border:1px solid rgba(77,124,255,.2);}
+.optl.l-ok{background:rgba(77,124,255,.06);color:var(--accent);}
+.optl.l-warn{background:rgba(255,181,71,.06);color:var(--warn);border-color:rgba(255,181,71,.3);}
+.optl.l-err{background:rgba(255,77,77,.06);color:var(--err);border-color:rgba(255,77,77,.3);}
+.optp{width:5px;height:5px;border-radius:50%;animation:blink 1s ease-in-out infinite;flex-shrink:0;}
+
+.ri{display:flex;align-items:center;gap:5px;padding:4px 6px;border-radius:4px;background:var(--bg);margin-bottom:2px;border:1px solid var(--border);}
+.rid{font-family:var(--font-mono);font-size:9px;color:var(--accent);min-width:36px;}
+.srow{display:flex;gap:3px;flex-wrap:wrap;}
+.sb{font-size:8px;padding:1px 5px;border-radius:2px;font-family:var(--font-mono);}
+.st{background:rgba(255,107,77,.15);color:#ff9a84;}
+.sl{background:rgba(77,124,255,.15);color:#849aff;}
+.sh{background:rgba(0,229,200,.12);color:var(--accent2);}
+.sp{background:rgba(180,140,255,.15);color:#c8a8ff;}
+
+/* flash on change */
+@keyframes fup{0%{background:rgba(0,201,122,.4)}100%{background:transparent}}
+@keyframes fdn{0%{background:rgba(255,77,77,.35)}100%{background:transparent}}
+.fu{animation:fup .7s ease-out;}
+.fd{animation:fdn .7s ease-out;}
+
+/* ELEVATORS */
+#estrip{display:flex;gap:4px;padding:7px 8px;border-top:1px solid var(--border);background:var(--bg2);flex-shrink:0;}
+.ec{flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:5px;padding:5px 8px;display:flex;align-items:center;gap:7px;}
+.esh{width:18px;height:40px;border:1px solid var(--border2);border-radius:3px;position:relative;overflow:hidden;background:var(--bg);flex-shrink:0;}
+.ecab{position:absolute;left:2px;right:2px;height:10px;background:var(--accent);border-radius:2px;transition:bottom .6s cubic-bezier(.4,0,.2,1);box-shadow:0 0 6px rgba(77,124,255,.5);}
+.ei{flex:1;}
+.eid{font-family:var(--font-mono);font-size:8px;color:var(--text3);}
+.efl{font-family:var(--font-mono);font-size:14px;font-weight:700;color:var(--accent);line-height:1;}
+.est{font-size:9px;color:var(--text2);margin-top:1px;}
+
+/* RIGHT CHAT */
+#right{flex:1;display:flex;flex-direction:column;background:var(--bg);overflow:hidden;}
+#chead{padding:10px 16px 8px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;background:var(--bg2);flex-shrink:0;}
+.aib{width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,#2a3fcf,#7b2acf);display:flex;align-items:center;justify-content:center;font-family:var(--font-mono);font-size:11px;font-weight:700;color:#fff;position:relative;}
+.aib::after{content:'';position:absolute;bottom:0;right:0;width:8px;height:8px;border-radius:50%;background:var(--ok);border:1px solid var(--bg2);box-shadow:0 0 5px var(--ok);}
+.chi h2{font-size:13px;font-weight:700;}
+.chi p{font-family:var(--font-mono);font-size:9px;color:var(--text3);}
+.gtag{margin-left:auto;font-family:var(--font-mono);font-size:9px;background:rgba(77,124,255,.1);border:1px solid rgba(77,124,255,.25);color:var(--accent);padding:3px 8px;border-radius:4px;letter-spacing:.5px;}
+#msgs{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:10px;scroll-behavior:smooth;}
+#msgs::-webkit-scrollbar{width:3px;}
+#msgs::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px;}
+.msg{display:flex;gap:8px;align-items:flex-start;max-width:88%;}
+.msg.user{align-self:flex-end;flex-direction:row-reverse;}
+.mav{width:24px;height:24px;border-radius:5px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-family:var(--font-mono);font-size:8px;font-weight:700;}
+.mai{background:linear-gradient(135deg,#2a3fcf,#7b2acf);color:#fff;}
+.mau{background:var(--surface);color:var(--text2);border:1px solid var(--border2);}
+.mb{padding:8px 12px;border-radius:8px;font-size:12px;line-height:1.65;}
+.msg.ai .mb{background:var(--surface);border:1px solid var(--border2);color:var(--text);border-radius:3px 8px 8px 8px;}
+.msg.user .mb{background:linear-gradient(135deg,#2a3fcf,#3f5fcf);color:#fff;border-radius:8px 3px 8px 8px;}
+.mmt{font-family:var(--font-mono);font-size:8px;color:var(--text3);margin-top:3px;padding-left:2px;}
+.msg.user .mmt{text-align:right;}
+.typmsg{display:flex;gap:8px;align-items:flex-start;}
+.typb{background:var(--surface);border:1px solid var(--border2);border-radius:3px 8px 8px 8px;padding:10px 14px;display:flex;align-items:center;gap:4px;}
+.typb span{width:5px;height:5px;border-radius:50%;background:var(--text3);animation:td 1.2s ease-in-out infinite;}
+.typb span:nth-child(2){animation-delay:.2s;}
+.typb span:nth-child(3){animation-delay:.4s;}
+@keyframes td{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-5px)}}
+#qa{padding:6px 12px;border-top:1px solid var(--border);display:flex;gap:5px;flex-wrap:wrap;background:var(--bg2);flex-shrink:0;}
+.qc{font-family:var(--font-mono);font-size:9px;padding:3px 9px;border-radius:12px;border:1px solid var(--border2);color:var(--text2);background:var(--bg3);cursor:pointer;white-space:nowrap;transition:all .15s;}
+.qc:hover{border-color:var(--accent);color:var(--accent);background:rgba(77,124,255,.08);}
+#ia{display:flex;gap:8px;padding:8px 12px;border-top:1px solid var(--border);align-items:flex-end;background:var(--bg2);flex-shrink:0;}
+#ui{flex:1;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:8px 12px;font-size:12px;resize:none;min-height:36px;max-height:100px;font-family:var(--font-sans);color:var(--text);outline:none;line-height:1.5;transition:border-color .15s;}
+#ui:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(77,124,255,.1);}
+#ui::placeholder{color:var(--text3);}
+#sb{width:36px;height:36px;border-radius:8px;background:linear-gradient(135deg,var(--accent),#6a8fff);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#fff;font-size:15px;flex-shrink:0;transition:opacity .1s,transform .1s;box-shadow:0 0 12px rgba(77,124,255,.3);}
+#sb:hover{opacity:.88;transform:scale(.97);}
+#sb:disabled{opacity:.3;cursor:default;transform:none;box-shadow:none;}
+body::before{content:'';position:fixed;inset:0;z-index:100;pointer-events:none;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,.03) 2px,rgba(0,0,0,.03) 4px);}
+</style>
+</head>
+<body>
+
+<div id="topbar">
+  <div class="logo-wrap">
+    <div class="logo-box">AB</div>
+    <div class="logo-text">AUTOBUILD <span>v2.4</span></div>
+  </div>
+  <div class="topbar-stats">
+    <div class="tstat">층수<span class="val">12F</span></div>
+    <div class="tstat">AP 정상<span class="val" id="s-ap">48/48</span></div>
+    <div class="tstat">Optical<span class="val" id="s-opt">12/12</span></div>
+    <div class="tstat">평균온도<span class="val" id="s-temp">--°C</span></div>
+    <div class="tstat">총 재실<span class="val" id="s-ppl">--명</span></div>
+  </div>
+  <div class="topbar-right">
+    <div class="meta-live"><div class="pulse"></div>LIVE</div>
+    <span id="next-upd">다음 갱신: 10s</span>
+    <div id="clock">--:--:--</div>
+  </div>
+</div>
+
+<div id="cdbar"><div id="cdfill" style="width:100%"></div></div>
+
+<div id="main">
+  <div id="left">
+    <div id="lhead">
+      <div>
+        <div class="ptitle">▸ 빌딩 네트워크 토폴로지</div>
+        <div class="psub">12F · WiFi-7 MESH · Optical Backbone · 10초마다 자동 갱신</div>
+      </div>
+      <div class="legend">
+        <div class="leg"><div class="leg-d" style="background:var(--ok)"></div>정상</div>
+        <div class="leg"><div class="leg-d" style="background:var(--warn)"></div>점검</div>
+        <div class="leg"><div class="leg-d" style="background:var(--err)"></div>오류</div>
+      </div>
+    </div>
+    <div id="flist"></div>
+    <div id="estrip">
+      <div class="ec"><div class="esh"><div class="ecab" id="cb1"></div></div><div class="ei"><div class="eid">ELV-1</div><div class="efl" id="ef1">7F</div><div class="est" id="es1">상행 ↑</div></div></div>
+      <div class="ec"><div class="esh"><div class="ecab" id="cb2"></div></div><div class="ei"><div class="eid">ELV-2</div><div class="efl" id="ef2">3F</div><div class="est" id="es2">대기 —</div></div></div>
+      <div class="ec"><div class="esh"><div class="ecab" id="cb3"></div></div><div class="ei"><div class="eid">ELV-3</div><div class="efl" id="ef3">12F</div><div class="est" id="es3">하행 ↓</div></div></div>
+      <div class="ec"><div class="esh"><div class="ecab" id="cb4"></div></div><div class="ei"><div class="eid">ELV-4</div><div class="efl" id="ef4">1F</div><div class="est" id="es4">대기 —</div></div></div>
+    </div>
+  </div>
+
+  <div id="right">
+    <div id="chead">
+      <div class="aib">AI</div>
+      <div class="chi"><h2>AgenticAI 네트워크 모니터</h2><p>GROQ · llama-3.3-70b-versatile · 빌딩 자동화 전문 AI</p></div>
+      <div class="gtag">● GROQ ONLINE</div>
+    </div>
+    <div id="msgs"></div>
+    <div id="qa">
+      <div class="qc" onclick="qs('전체 네트워크 상태를 요약해줘')">📊 전체 상태 요약</div>
+      <div class="qc" onclick="qs('온도 이상 층이 있으면 분석하고 조치 방법 알려줘')">🌡 온도 이상 분석</div>
+      <div class="qc" onclick="qs('야간 모드로 전환해줘. 조명 30%로 낮추고 공조기 절전 모드로')">🌙 야간 모드</div>
+      <div class="qc" onclick="qs('WiFi-7 MESH 토폴로지 구성을 설명해줘')">📡 MESH 토폴로지</div>
+      <div class="qc" onclick="qs('에너지 사용량 최적화 방안을 제안해줘')">⚡ 에너지 최적화</div>
+      <div class="qc" onclick="qs('AP 장애 발생 시 대응 절차를 알려줘')">⚠ AP 장애 대응</div>
+    </div>
+    <div id="ia">
+      <textarea id="ui" rows="1" placeholder="빌딩 제어 명령 또는 질문을 입력하세요... (Enter: 전송)"></textarea>
+      <button id="sb" onclick="sendMsg()">↑</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ═══════ CONSTANTS ═══════ */
+const FM = {
+  12:{type:'임원층',rooms:4}, 11:{type:'회의실',rooms:6}, 10:{type:'연구개발',rooms:5},
+  9:{type:'연구개발',rooms:5},  8:{type:'인사/재무',rooms:4}, 7:{type:'영업/마케팅',rooms:6},
+  6:{type:'개발팀',rooms:5},   5:{type:'개발팀',rooms:5},   4:{type:'기획팀',rooms:4},
+  3:{type:'고객지원',rooms:6},  2:{type:'회의/교육',rooms:4}, 1:{type:'로비/안내',rooms:0}
+};
+const APN = ['AP-1','AP-2','AP-3','AP-4'];
+const APCH = [36,100,6,149];
+const SL = ['OK','WARN','ERR'];
+const OL = ['정상','점검 중','오류'];
+const SC = ['b-ok','b-warn','b-err'];
+const TC = ['l-ok','l-warn','l-err'];
+const INTERVAL = 10000;
+
+/* ═══════ STATE ═══════ */
+const S = {};   // S[floor] = { opt, avgTemp, aps:[{st,sig}], rooms:[{temp,light,ppl}] }
+
+function clamp(v,a,b){ return Math.max(a,Math.min(b,v)); }
+function d1(){ return Math.random()<.5?1:-1; }
+
+function initS(){
+  for(let f=12;f>=1;f--){
+    const m=FM[f];
+    S[f]={
+      opt: Math.random()<.94?0:(Math.random()<.6?1:2),
+      avgTemp: parseFloat((20+Math.random()*6).toFixed(1)),
+      aps: APN.map(()=>({ st:Math.random()<.92?0:(Math.random()<.65?1:2), sig:Math.floor(55+Math.random()*30) })),
+      rooms: Array.from({length:m.rooms},()=>({
+        temp: parseFloat((19+Math.random()*9).toFixed(1)),
+        light: Math.floor(25+Math.random()*70),
+        ppl:  Math.floor(Math.random()*14)
+      }))
+    };
+  }
+}
+
+function tickS(){
+  for(let f=12;f>=1;f--){
+    const s=S[f];
+    // avgTemp ±0.1
+    s.avgTemp=clamp(parseFloat((s.avgTemp+d1()*.1).toFixed(1)),0,45);
+    // optical: rarely shift
+    if(Math.random()<.07) s.opt=clamp(s.opt+d1(),0,2);
+    // APs
+    s.aps.forEach(a=>{
+      a.sig=clamp(a.sig+d1(),0,90);
+      if(Math.random()<.06) a.st=clamp(a.st+d1(),0,2);
+    });
+    // rooms
+    s.rooms.forEach(r=>{
+      r.temp =clamp(parseFloat((r.temp+d1()*.1).toFixed(1)),0,45);
+      r.light=clamp(r.light+d1(),0,100);
+      r.ppl  =clamp(r.ppl+d1(),0,30);
+    });
+  }
+}
+
+/* ═══════ BUILD DOM (once) ═══════ */
+function buildDOM(){
+  const list=document.getElementById('flist');
+  for(let f=12;f>=1;f--){
+    const m=FM[f]; const s=S[f];
+    // AP rows
+    let apH='';
+    s.aps.forEach((a,i)=>{
+      const c=['var(--ok)','var(--warn)','var(--err)'][a.st];
+      apH+=`<div class="api">
+        <div class="adot" style="width:6px;height:6px;border-radius:50%;flex-shrink:0;background:${c};box-shadow:0 0 5px ${c}"></div>
+        <span class="apn">${APN[i]} (2.4/5/6GHz)</span>
+        <span class="aps">CH${APCH[i]} · <span class="asig">${a.sig}</span>dBm</span>
+        <span class="apb ${SC[a.st]}">${SL[a.st]}</span>
+      </div>`;
+    });
+    // optical
+    const oc=['var(--accent)','var(--warn)','var(--err)'][s.opt];
+    // room rows
+    let rH='';
+    if(m.rooms===0){
+      rH='<div style="font-size:9px;color:var(--text3);padding:4px 6px;font-family:var(--font-mono)">개방 공간 (센서 없음)</div>';
+    } else {
+      s.rooms.forEach((r,i)=>{
+        rH+=`<div class="ri">
+          <span class="rid">${f}0${i+1}호</span>
+          <div class="srow">
+            <span class="sb st btemp" data-old="${r.temp}">🌡 ${r.temp}°C</span>
+            <span class="sb sl blight" data-old="${r.light}">💡 ${r.light}%</span>
+            <span class="sb sh">❄ AUTO</span>
+            <span class="sb sp bppl" data-old="${r.ppl}">👤 ${r.ppl}명</span>
+          </div>
+        </div>`;
+      });
+    }
+    // head summary
+    const aok=s.aps.filter(a=>a.st===0).length;
+    const bad=s.aps.some(a=>a.st>0)||s.opt>0;
+    const err=s.aps.some(a=>a.st===2)||s.opt===2;
+    const scl=bad?(err?'s-err':'s-warn'):'s-ok';
+    const slb=bad?(err?'✖ 오류':'⚠ 점검'):'✓ 정상';
+    const dc=bad?(err?'var(--err)':'var(--warn)'):'var(--ok)';
+
+    const card=document.createElement('div');
+    card.className='fr'; card.id=`fl${f}`;
+    card.innerHTML=`
+      <div class="fh" onclick="tog(${f})">
+        <div class="fn">${f}F</div>
+        <div class="ftl">${m.type}<span>${m.rooms>0?m.rooms+'개 방':''} · Optical 연결</span></div>
+        <div class="find">
+          <div class="fi"><div class="dot hd" style="background:${dc}"></div><span class="hap">${aok}/${s.aps.length}</span></div>
+          <div class="fi"><span class="htmp">🌡 ${s.avgTemp}°</span></div>
+          <div class="stag ${scl} hst">${slb}</div>
+        </div>
+        <div class="chev">▶</div>
+      </div>
+      <div class="fdet">
+        <div class="dgrid">
+          <div>
+            <div class="dct">📡 WiFi-7 MESH AP</div>
+            ${apH}
+            <div class="mesh-t">◈ MESH TOPOLOGY ACTIVE</div>
+            <div class="optl ${TC[s.opt]}">
+              <div class="optp" style="background:${oc}"></div>
+              <span class="otxt">Optical Backbone · 10Gbps · ${OL[s.opt]}</span>
+            </div>
+          </div>
+          <div>
+            <div class="dct">🏠 방별 센서 현황</div>
+            ${rH}
+          </div>
+        </div>
+      </div>`;
+    list.appendChild(card);
+  }
+}
+
+function tog(f){
+  const r=document.getElementById(`fl${f}`);
+  const was=r.classList.contains('active');
+  document.querySelectorAll('.fr').forEach(x=>x.classList.remove('active'));
+  if(!was) r.classList.add('active');
+}
+
+/* ═══════ RENDER UPDATES ═══════ */
+function flash(el,up){
+  el.classList.remove('fu','fd');
+  void el.offsetWidth;
+  el.classList.add(up?'fu':'fd');
+}
+
+function renderAll(){
+  let totalPpl=0, tempSum=0, roomCnt=0, apOk=0, optOk=0;
+
+  for(let f=12;f>=1;f--){
+    const s=S[f]; const m=FM[f];
+    const card=document.getElementById(`fl${f}`);
+    if(!card) continue;
+
+    // stats accum
+    s.rooms.forEach(r=>{ totalPpl+=r.ppl; tempSum+=r.temp; roomCnt++; });
+    s.aps.forEach(a=>{ if(a.st===0) apOk++; });
+    if(s.opt===0) optOk++;
+
+    // HEAD
+    const aok=s.aps.filter(a=>a.st===0).length;
+    const bad=s.aps.some(a=>a.st>0)||s.opt>0;
+    const err=s.aps.some(a=>a.st===2)||s.opt===2;
+    card.querySelector('.hd').style.background=bad?(err?'var(--err)':'var(--warn)'):'var(--ok)';
+    card.querySelector('.hap').textContent=`${aok}/${s.aps.length}`;
+    card.querySelector('.htmp').textContent=`🌡 ${s.avgTemp}°`;
+    const stEl=card.querySelector('.hst');
+    const scl=bad?(err?'s-err':'s-warn'):'s-ok';
+    stEl.className=`stag ${scl} hst`;
+    stEl.textContent=bad?(err?'✖ 오류':'⚠ 점검'):'✓ 정상';
+
+    // APs
+    card.querySelectorAll('.api').forEach((el,i)=>{
+      const a=s.aps[i];
+      const c=['var(--ok)','var(--warn)','var(--err)'][a.st];
+      el.querySelector('.adot').style.background=c;
+      el.querySelector('.adot').style.boxShadow=`0 0 5px ${c}`;
+      el.querySelector('.asig').textContent=a.sig;
+      const b=el.querySelector('.apb');
+      b.className=`apb ${SC[a.st]}`;
+      b.textContent=SL[a.st];
+    });
+
+    // Optical
+    const ol=card.querySelector('.optl');
+    if(ol){
+      ol.className=`optl ${TC[s.opt]}`;
+      const oc=['var(--accent)','var(--warn)','var(--err)'][s.opt];
+      ol.querySelector('.optp').style.background=oc;
+      ol.querySelector('.otxt').textContent=`Optical Backbone · 10Gbps · ${OL[s.opt]}`;
+    }
+
+    // Rooms
+    card.querySelectorAll('.ri').forEach((el,i)=>{
+      const r=s.rooms[i];
+      if(!r) return;
+      const bt=el.querySelector('.btemp');
+      const bl=el.querySelector('.blight');
+      const bp=el.querySelector('.bppl');
+
+      if(bt){
+        const old=parseFloat(bt.dataset.old||r.temp);
+        if(r.temp!==old){ flash(bt,r.temp>old); }
+        bt.textContent=`🌡 ${r.temp}°C`;
+        bt.dataset.old=r.temp;
+      }
+      if(bl){
+        const old=parseFloat(bl.dataset.old||r.light);
+        if(r.light!==old){ flash(bl,r.light>old); }
+        bl.textContent=`💡 ${r.light}%`;
+        bl.dataset.old=r.light;
+      }
+      if(bp){
+        const old=parseFloat(bp.dataset.old||r.ppl);
+        if(r.ppl!==old){ flash(bp,r.ppl>old); }
+        bp.textContent=`👤 ${r.ppl}명`;
+        bp.dataset.old=r.ppl;
+      }
+    });
+  }
+
+  // top stats
+  const avg=roomCnt>0?(tempSum/roomCnt).toFixed(1):'--';
+  document.getElementById('s-ap').textContent=`${apOk}/48`;
+  document.getElementById('s-opt').textContent=`${optOk}/12`;
+  document.getElementById('s-temp').textContent=`${avg}°C`;
+  document.getElementById('s-ppl').textContent=`${totalPpl}명`;
+}
+
+/* ═══════ COUNTDOWN ═══════ */
+let lastTick=Date.now();
+setInterval(()=>{
+  const now=Date.now();
+  const elapsed=now-lastTick;
+  if(elapsed>=INTERVAL){
+    lastTick=now;
+    tickS();
+    renderAll();
+  }
+  const rem=Math.max(0,INTERVAL-elapsed);
+  document.getElementById('cdfill').style.width=(rem/INTERVAL*100)+'%';
+  document.getElementById('next-upd').textContent=`다음 갱신: ${Math.ceil(rem/1000)}s`;
+},250);
+
+/* ═══════ ELEVATORS ═══════ */
+const EL=[{f:7,d:1},{f:3,d:0},{f:12,d:-1},{f:1,d:1}];
+setInterval(()=>{
+  EL.forEach((e,i)=>{
+    const n=i+1;
+    if(e.d!==0){
+      e.f+=e.d;
+      if(e.f>=12){e.f=12;e.d=-1;}
+      if(e.f<=1){e.f=1;e.d=1;}
+      if(Math.random()<.12){e.d=0;setTimeout(()=>e.d=Math.random()>.5?1:-1,2000+Math.random()*2000);}
+    }
+    const pct=(e.f-1)/11*85+5;
+    document.getElementById(`cb${n}`).style.bottom=pct+'%';
+    document.getElementById(`ef${n}`).textContent=e.f+'F';
+    document.getElementById(`es${n}`).textContent=e.d===0?'대기 —':e.d>0?'상행 ↑':'하행 ↓';
+  });
+},1800);
+
+/* ═══════ CLOCK ═══════ */
+setInterval(()=>{
+  document.getElementById('clock').textContent=
+    new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false});
+},1000);
+
+/* ═══════ CHAT ═══════ */
+const GK="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";
+const GM="llama-3.3-70b-versatile";
+const SP=`당신은 스마트 빌딩 자동화 시스템의 AgenticAI입니다.
+건물: 12층, 각 층 4~6개 방, 총 ~60개 방, 엘리베이터 4기
+네트워크: Optical Fiber 백본(10Gbps), WiFi-7 AP 4개/층(MESH), 총 48개 AP
+각 방: 온도센서, 조명제어(DALI), 공조기(BACnet), People Counter
+모든 파라미터(온도, 재실인원, AP신호, Optical 상태)는 10초마다 ±1 단위로 실시간 갱신됨
+층별: 1F로비, 2F회의/교육, 3F고객지원, 4F기획, 5~6F개발, 7F영업/마케팅, 8F인사/재무, 9~10F연구개발, 11F회의실, 12F임원층
+역할: 실시간 모니터링, 이상 감지, 자동 제어 제안, 에너지 최적화, BACnet/DALI 제어
+한국어로 전문적으로 답변하세요. 구체적 수치와 조치사항을 포함하세요.`;
+
+let hist=[];
+function gt(){ return new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'}); }
+
+function addM(role,txt){
+  const el=document.createElement('div');
+  el.className=`msg ${role}`;
+  el.innerHTML=`<div class="mav ${role==='ai'?'mai':'mau'}">${role==='ai'?'AI':'ME'}</div>
+    <div><div class="mb">${txt.replace(/\n/g,'<br>').replace(/\*\*(.*?)\*\*/g,'<strong style="color:var(--accent2)">$1</strong>').replace(/\`([^\`]+)\`/g,'<code style="background:var(--bg3);padding:1px 4px;border-radius:3px;font-family:var(--font-mono);font-size:10px;color:var(--accent)">$1</code>')}</div>
+    <div class="mmt">${gt()}</div></div>`;
+  document.getElementById('msgs').appendChild(el);
+  document.getElementById('msgs').scrollTop=99999;
+}
+function addTyp(){
+  const el=document.createElement('div'); el.className='typmsg'; el.id='typ';
+  el.innerHTML=`<div class="mav mai">AI</div><div class="typb"><span></span><span></span><span></span></div>`;
+  document.getElementById('msgs').appendChild(el);
+  document.getElementById('msgs').scrollTop=99999;
+}
+function remTyp(){ const t=document.getElementById('typ');if(t)t.remove(); }
+
+async function callG(msg){
+  hist.push({role:'user',content:msg});
+  try{
+    const r=await fetch('https://api.groq.com/openai/v1/chat/completions',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':`Bearer ${GK}`},
+      body:JSON.stringify({model:GM,messages:[{role:'system',content:SP},...hist],max_tokens:700,temperature:.7})
+    });
+    const d=await r.json();
+    const rep=d.choices?.[0]?.message?.content||'⚠ 응답 없음';
+    hist.push({role:'assistant',content:rep});
+    return rep;
+  }catch(e){ return '⚠ GROQ API 연결 오류. 인터넷 연결을 확인해주세요.'; }
+}
+
+async function sendMsg(){
+  const inp=document.getElementById('ui');
+  const txt=inp.value.trim(); if(!txt)return;
+  inp.value=''; inp.style.height='auto';
+  document.getElementById('sb').disabled=true;
+  addM('user',txt); addTyp();
+  const rep=await callG(txt);
+  remTyp(); addM('ai',rep);
+  document.getElementById('sb').disabled=false; inp.focus();
+}
+function qs(t){ document.getElementById('ui').value=t; sendMsg(); }
+document.getElementById('ui').addEventListener('keydown',function(e){
+  if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMsg();}
+  setTimeout(()=>{this.style.height='auto';this.style.height=Math.min(this.scrollHeight,100)+'px';},0);
+});
+
+/* ═══════ INIT ═══════ */
+initS();
+buildDOM();
+renderAll();
+lastTick=Date.now();
+
+addM('ai',`🏢 **스마트 빌딩 AgenticAI 시스템 가동**
+
+실시간 모니터링이 시작되었습니다.
+
+**자동 갱신 정책 (매 10초)**
+• 🌡 각 방 온도 — ±0.1°C 랜덤 변동
+• 👤 재실 인원 — ±1명 랜덤 변동 (최소 0명)
+• 📡 AP 신호 강도 — ±1 dBm 랜덤 변동 (최소 0)
+• 🔗 AP / Optical 상태 — 간헐적 상태 변화 (정상→점검→오류)
+• 상단 카운트바로 다음 갱신 시점 확인 가능
+
+**값 변화 표시**
+• 🟢 녹색 플래시 = 값 상승
+• 🔴 붉은 플래시 = 값 하락
+
+층을 클릭하면 상세 데이터를 확인하세요.`);
+
+setTimeout(()=>tog(7),400);
+</script>
+</body>
+</html>

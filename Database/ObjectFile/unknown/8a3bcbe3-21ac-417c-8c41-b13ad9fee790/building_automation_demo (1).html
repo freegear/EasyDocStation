@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Smart Building Automation — AgenticAI Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Noto+Sans+KR:wght@300;400;500;700&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0a0d13;
+  --bg2: #0f1420;
+  --bg3: #151b2e;
+  --surface: #1a2035;
+  --surface2: #202840;
+  --border: rgba(99,140,255,0.12);
+  --border2: rgba(99,140,255,0.22);
+  --accent: #4d7cff;
+  --accent2: #00e5c8;
+  --accent3: #ff6b4d;
+  --text: #e8edf8;
+  --text2: #8899bb;
+  --text3: #4a5880;
+  --ok: #00c97a;
+  --warn: #ffb547;
+  --err: #ff4d4d;
+  --font-mono: 'JetBrains Mono', 'Space Mono', monospace;
+  --font-sans: 'Noto Sans KR', sans-serif;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; overflow: hidden; }
+body {
+  font-family: var(--font-sans);
+  background: var(--bg);
+  color: var(--text);
+  display: flex;
+  flex-direction: column;
+}
+
+/* ───── TOP BAR ───── */
+#topbar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 20px;
+  height: 48px;
+  background: var(--bg2);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  position: relative;
+  z-index: 10;
+}
+.topbar-logo {
+  display: flex; align-items: center; gap: 10px;
+}
+.logo-box {
+  width: 28px; height: 28px; border-radius: 6px;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-mono); font-size: 11px; font-weight: 700;
+  color: #fff; letter-spacing: -0.5px;
+}
+.logo-text {
+  font-family: var(--font-mono); font-size: 13px; font-weight: 700;
+  color: var(--text); letter-spacing: 0.5px;
+}
+.logo-text span { color: var(--accent2); }
+.topbar-meta {
+  display: flex; align-items: center; gap: 16px;
+}
+.meta-item {
+  display: flex; align-items: center; gap: 5px;
+  font-family: var(--font-mono); font-size: 10px; color: var(--text2);
+}
+.pulse {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--ok);
+  animation: pulse 2s ease-in-out infinite;
+  box-shadow: 0 0 6px var(--ok);
+}
+@keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.5;transform:scale(0.8)} }
+.topbar-time {
+  font-family: var(--font-mono); font-size: 12px;
+  color: var(--accent2); letter-spacing: 1px;
+}
+.topbar-stats {
+  display: flex; gap: 12px;
+}
+.tstat {
+  font-family: var(--font-mono); font-size: 10px;
+  color: var(--text2); padding: 3px 8px;
+  border: 1px solid var(--border); border-radius: 4px;
+  background: var(--bg3);
+}
+.tstat .val { color: var(--accent); margin-left: 4px; }
+
+/* ───── MAIN LAYOUT ───── */
+#main {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+/* ───── LEFT PANEL ───── */
+#left {
+  width: 54%;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--border);
+  overflow: hidden;
+}
+
+#left-header {
+  padding: 10px 16px 8px;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+  flex-shrink: 0;
+  background: var(--bg2);
+}
+.panel-title {
+  font-family: var(--font-mono); font-size: 11px; font-weight: 700;
+  color: var(--accent); letter-spacing: 1px; text-transform: uppercase;
+}
+.panel-sub { font-size: 10px; color: var(--text3); margin-top: 1px; }
+
+.network-legend {
+  display: flex; gap: 10px; align-items: center;
+}
+.leg { display: flex; align-items: center; gap: 4px; font-size: 9px; color: var(--text3); font-family: var(--font-mono); }
+.leg-dot { width: 6px; height: 6px; border-radius: 50%; }
+
+/* Floor scroll */
+#floor-list {
+  flex: 1; overflow-y: auto; padding: 8px;
+  display: flex; flex-direction: column; gap: 3px;
+  background: var(--bg);
+}
+#floor-list::-webkit-scrollbar { width: 3px; }
+#floor-list::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+.floor-row {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg2);
+  transition: border-color 0.15s;
+  overflow: hidden;
+  cursor: pointer;
+}
+.floor-row:hover { border-color: var(--border2); }
+.floor-row.active {
+  border-color: var(--accent);
+  background: var(--bg3);
+  box-shadow: 0 0 0 1px rgba(77,124,255,0.15);
+}
+
+.floor-head {
+  display: flex; align-items: center; gap: 0;
+  padding: 0;
+  height: 36px;
+  user-select: none;
+}
+.floor-num {
+  font-family: var(--font-mono); font-size: 13px; font-weight: 700;
+  color: var(--accent); min-width: 42px; text-align: center;
+  border-right: 1px solid var(--border);
+  height: 100%; display: flex; align-items: center; justify-content: center;
+}
+.floor-type-label {
+  font-size: 11px; color: var(--text); font-weight: 500;
+  padding: 0 10px; flex: 1;
+}
+.floor-type-label span { font-size: 9px; color: var(--text3); font-family: var(--font-mono); display: block; }
+.floor-indicators {
+  display: flex; align-items: center; gap: 6px; padding: 0 10px;
+}
+.fi {
+  display: flex; align-items: center; gap: 3px;
+  font-family: var(--font-mono); font-size: 9px; color: var(--text3);
+  background: var(--bg3); padding: 2px 6px; border-radius: 3px;
+}
+.fi .dot { width: 5px; height: 5px; border-radius: 50%; }
+.status-tag {
+  font-family: var(--font-mono); font-size: 9px; font-weight: 700;
+  padding: 2px 6px; border-radius: 3px; letter-spacing: 0.5px;
+}
+.st-ok { background: rgba(0,201,122,0.12); color: var(--ok); border: 1px solid rgba(0,201,122,0.2); }
+.st-warn { background: rgba(255,181,71,0.12); color: var(--warn); border: 1px solid rgba(255,181,71,0.2); }
+.chevron { font-size: 9px; color: var(--text3); transition: transform 0.2s; padding-right: 8px; }
+.floor-row.active .chevron { transform: rotate(90deg); }
+
+/* Floor Detail */
+.floor-detail { display: none; padding: 10px; border-top: 1px solid var(--border); }
+.floor-row.active .floor-detail { display: block; }
+
+.detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.detail-col-title {
+  font-family: var(--font-mono); font-size: 9px; color: var(--accent2);
+  letter-spacing: 1px; text-transform: uppercase; margin-bottom: 5px;
+  display: flex; align-items: center; gap: 4px;
+}
+
+/* AP items */
+.ap-item {
+  display: flex; align-items: center; gap: 6px;
+  padding: 4px 8px; border-radius: 4px;
+  background: var(--bg); margin-bottom: 2px;
+  border: 1px solid var(--border);
+  font-family: var(--font-mono); font-size: 9px;
+}
+.ap-name { color: var(--text); flex: 1; }
+.ap-signal { color: var(--text3); font-size: 8px; }
+.ap-badge {
+  font-size: 8px; padding: 1px 5px; border-radius: 2px; font-weight: 700;
+}
+.ap-ok { background: rgba(0,201,122,0.15); color: var(--ok); }
+.ap-warn { background: rgba(255,181,71,0.15); color: var(--warn); }
+
+.mesh-tag {
+  display: inline-flex; align-items: center; gap: 3px;
+  font-family: var(--font-mono); font-size: 8px; color: var(--accent2);
+  background: rgba(0,229,200,0.08); border: 1px solid rgba(0,229,200,0.2);
+  padding: 2px 6px; border-radius: 3px; margin-top: 3px;
+}
+
+/* Room items */
+.room-item {
+  display: flex; align-items: center; gap: 5px;
+  padding: 4px 6px; border-radius: 4px;
+  background: var(--bg); margin-bottom: 2px;
+  border: 1px solid var(--border);
+}
+.room-id {
+  font-family: var(--font-mono); font-size: 9px; color: var(--accent);
+  min-width: 36px;
+}
+.sensor-row { display: flex; gap: 3px; flex-wrap: wrap; }
+.sbadge {
+  font-size: 8px; padding: 1px 5px; border-radius: 2px; font-family: var(--font-mono);
+}
+.s-temp { background: rgba(255,107,77,0.15); color: #ff9a84; }
+.s-light { background: rgba(77,124,255,0.15); color: #849aff; }
+.s-hvac { background: rgba(0,229,200,0.12); color: var(--accent2); }
+.s-ppl { background: rgba(180,140,255,0.15); color: #c8a8ff; }
+
+/* Optical line indicator */
+.optical-line {
+  display: flex; align-items: center; gap: 6px;
+  padding: 5px 8px; border-radius: 4px; margin-top: 6px;
+  background: rgba(77,124,255,0.06); border: 1px solid rgba(77,124,255,0.2);
+  font-family: var(--font-mono); font-size: 9px; color: var(--accent);
+}
+.opt-pulse { width: 5px; height: 5px; border-radius: 50%; background: var(--accent); animation: pulse 1s ease-in-out infinite; box-shadow: 0 0 5px var(--accent); }
+
+/* Elevator strip */
+#elev-strip {
+  display: flex; gap: 4px; padding: 7px 8px;
+  border-top: 1px solid var(--border);
+  background: var(--bg2);
+  flex-shrink: 0;
+}
+.elev-card {
+  flex: 1; background: var(--bg3); border: 1px solid var(--border);
+  border-radius: 5px; padding: 5px 8px;
+  display: flex; align-items: center; gap: 7px;
+}
+.elev-shaft {
+  width: 18px; height: 40px; border: 1px solid var(--border2);
+  border-radius: 3px; position: relative; overflow: hidden; background: var(--bg);
+  flex-shrink: 0;
+}
+.elev-cab {
+  position: absolute; left: 2px; right: 2px; height: 10px;
+  background: var(--accent); border-radius: 2px;
+  transition: bottom 0.6s cubic-bezier(0.4,0,0.2,1);
+  box-shadow: 0 0 6px rgba(77,124,255,0.5);
+}
+.elev-info { flex: 1; }
+.elev-id { font-family: var(--font-mono); font-size: 8px; color: var(--text3); }
+.elev-fl { font-family: var(--font-mono); font-size: 14px; font-weight: 700; color: var(--accent); line-height: 1; }
+.elev-st { font-size: 9px; color: var(--text2); margin-top: 1px; }
+
+/* ───── RIGHT PANEL ───── */
+#right {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  overflow: hidden;
+}
+
+#chat-header {
+  padding: 10px 16px 8px;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 10px;
+  background: var(--bg2);
+  flex-shrink: 0;
+}
+.ai-badge {
+  width: 32px; height: 32px; border-radius: 8px;
+  background: linear-gradient(135deg, #2a3fcf, #7b2acf);
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-mono); font-size: 11px; font-weight: 700;
+  color: #fff; position: relative;
+}
+.ai-badge::after {
+  content: '';
+  position: absolute; bottom: 0; right: 0;
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--ok); border: 1px solid var(--bg2);
+  box-shadow: 0 0 5px var(--ok);
+}
+.chat-head-info h2 { font-size: 13px; font-weight: 700; letter-spacing: 0.2px; }
+.chat-head-info p { font-family: var(--font-mono); font-size: 9px; color: var(--text3); }
+.groq-tag {
+  margin-left: auto;
+  font-family: var(--font-mono); font-size: 9px;
+  background: rgba(77,124,255,0.1); border: 1px solid rgba(77,124,255,0.25);
+  color: var(--accent); padding: 3px 8px; border-radius: 4px; letter-spacing: 0.5px;
+}
+
+#chat-messages {
+  flex: 1; overflow-y: auto; padding: 12px;
+  display: flex; flex-direction: column; gap: 10px;
+  scroll-behavior: smooth;
+}
+#chat-messages::-webkit-scrollbar { width: 3px; }
+#chat-messages::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+.msg { display: flex; gap: 8px; align-items: flex-start; max-width: 88%; }
+.msg.user { align-self: flex-end; flex-direction: row-reverse; }
+.msg-av {
+  width: 24px; height: 24px; border-radius: 5px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-mono); font-size: 8px; font-weight: 700;
+}
+.av-ai { background: linear-gradient(135deg, #2a3fcf, #7b2acf); color: #fff; }
+.av-user { background: var(--surface); color: var(--text2); border: 1px solid var(--border2); }
+.msg-body {}
+.msg-bubble {
+  padding: 8px 12px; border-radius: 8px;
+  font-size: 12px; line-height: 1.65; font-weight: 400;
+}
+.msg.ai .msg-bubble {
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  color: var(--text);
+  border-radius: 3px 8px 8px 8px;
+}
+.msg.user .msg-bubble {
+  background: linear-gradient(135deg, #2a3fcf, #3f5fcf);
+  color: #fff;
+  border-radius: 8px 3px 8px 8px;
+}
+.msg-meta { font-family: var(--font-mono); font-size: 8px; color: var(--text3); margin-top: 3px; padding-left: 2px; }
+.msg.user .msg-meta { text-align: right; }
+
+/* typing */
+.typing-msg { display: flex; gap: 8px; align-items: flex-start; }
+.typing-bubble {
+  background: var(--surface); border: 1px solid var(--border2);
+  border-radius: 3px 8px 8px 8px; padding: 10px 14px;
+  display: flex; align-items: center; gap: 4px;
+}
+.typing-bubble span {
+  width: 5px; height: 5px; border-radius: 50%; background: var(--text3);
+  animation: td 1.2s ease-in-out infinite;
+}
+.typing-bubble span:nth-child(2) { animation-delay: 0.2s; }
+.typing-bubble span:nth-child(3) { animation-delay: 0.4s; }
+@keyframes td { 0%,60%,100%{transform:translateY(0)} 30%{transform:translateY(-5px)} }
+
+/* Quick chips */
+#quick-area {
+  padding: 6px 12px;
+  border-top: 1px solid var(--border);
+  display: flex; gap: 5px; flex-wrap: wrap;
+  background: var(--bg2);
+  flex-shrink: 0;
+}
+.qchip {
+  font-family: var(--font-mono); font-size: 9px;
+  padding: 3px 9px; border-radius: 12px;
+  border: 1px solid var(--border2); color: var(--text2);
+  background: var(--bg3); cursor: pointer; white-space: nowrap;
+  transition: all 0.15s; letter-spacing: 0.3px;
+}
+.qchip:hover { border-color: var(--accent); color: var(--accent); background: rgba(77,124,255,0.08); }
+
+/* Input area */
+#input-area {
+  display: flex; gap: 8px; padding: 8px 12px;
+  border-top: 1px solid var(--border);
+  align-items: flex-end;
+  background: var(--bg2);
+  flex-shrink: 0;
+}
+#user-input {
+  flex: 1; background: var(--bg3); border: 1px solid var(--border2);
+  border-radius: 8px; padding: 8px 12px;
+  font-size: 12px; resize: none; min-height: 36px; max-height: 100px;
+  font-family: var(--font-sans); color: var(--text);
+  outline: none; line-height: 1.5;
+  transition: border-color 0.15s;
+}
+#user-input:focus { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(77,124,255,0.1); }
+#user-input::placeholder { color: var(--text3); }
+#send-btn {
+  width: 36px; height: 36px; border-radius: 8px;
+  background: linear-gradient(135deg, var(--accent), #6a8fff);
+  border: none; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; font-size: 15px; flex-shrink: 0;
+  transition: opacity 0.1s, transform 0.1s;
+  box-shadow: 0 0 12px rgba(77,124,255,0.3);
+}
+#send-btn:hover { opacity: 0.88; transform: scale(0.97); }
+#send-btn:disabled { opacity: 0.3; cursor: default; transform: none; box-shadow: none; }
+
+/* Scan line overlay */
+body::before {
+  content: '';
+  position: fixed; inset: 0; z-index: 100; pointer-events: none;
+  background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.03) 2px, rgba(0,0,0,0.03) 4px);
+}
+
+/* Corner decorations on topbar */
+.corner-deco {
+  position: absolute; width: 20px; height: 20px;
+  border-color: var(--accent); border-style: solid; border-width: 0; opacity: 0.4;
+}
+.corner-tl { top: 6px; left: 6px; border-top-width: 1px; border-left-width: 1px; }
+.corner-tr { top: 6px; right: 6px; border-top-width: 1px; border-right-width: 1px; }
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div id="topbar">
+  <div class="corner-deco corner-tl"></div>
+  <div class="corner-deco corner-tr"></div>
+  <div class="topbar-logo">
+    <div class="logo-box">AB</div>
+    <div class="logo-text">AUTOBUILD <span>v2.4</span></div>
+  </div>
+  <div class="topbar-stats">
+    <div class="tstat">층수<span class="val">12F</span></div>
+    <div class="tstat">AP<span class="val">48</span></div>
+    <div class="tstat">센서<span class="val">312</span></div>
+    <div class="tstat">ELV<span class="val">4</span></div>
+  </div>
+  <div class="topbar-meta">
+    <div class="meta-item"><div class="pulse"></div> LIVE</div>
+    <div class="meta-item">OPTICAL BACKBONE: <span style="color:var(--ok);margin-left:3px">ACTIVE</span></div>
+    <div class="topbar-time" id="clock">--:--:--</div>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div id="main">
+
+  <!-- LEFT: Building Network -->
+  <div id="left">
+    <div id="left-header">
+      <div>
+        <div class="panel-title">▸ 빌딩 네트워크 토폴로지</div>
+        <div class="panel-sub">12F · WiFi-7 MESH · Optical Backbone · 실시간 모니터링</div>
+      </div>
+      <div class="network-legend">
+        <div class="leg"><div class="leg-dot" style="background:var(--ok)"></div>정상</div>
+        <div class="leg"><div class="leg-dot" style="background:var(--warn)"></div>점검</div>
+        <div class="leg"><div class="leg-dot" style="background:var(--err)"></div>오류</div>
+      </div>
+    </div>
+
+    <div id="floor-list"></div>
+
+    <!-- Elevator Strip -->
+    <div id="elev-strip">
+      <div class="elev-card" id="elev-1">
+        <div class="elev-shaft"><div class="elev-cab" id="cab-1" style="bottom:60%"></div></div>
+        <div class="elev-info">
+          <div class="elev-id">ELV-1</div>
+          <div class="elev-fl" id="efl-1">7F</div>
+          <div class="elev-st" id="est-1">상행 중 ↑</div>
+        </div>
+      </div>
+      <div class="elev-card" id="elev-2">
+        <div class="elev-shaft"><div class="elev-cab" id="cab-2" style="bottom:18%"></div></div>
+        <div class="elev-info">
+          <div class="elev-id">ELV-2</div>
+          <div class="elev-fl" id="efl-2">3F</div>
+          <div class="elev-st" id="est-2">대기 중 —</div>
+        </div>
+      </div>
+      <div class="elev-card" id="elev-3">
+        <div class="elev-shaft"><div class="elev-cab" id="cab-3" style="bottom:90%"></div></div>
+        <div class="elev-info">
+          <div class="elev-id">ELV-3</div>
+          <div class="elev-fl" id="efl-3">12F</div>
+          <div class="elev-st" id="est-3">하행 중 ↓</div>
+        </div>
+      </div>
+      <div class="elev-card" id="elev-4">
+        <div class="elev-shaft"><div class="elev-cab" id="cab-4" style="bottom:5%"></div></div>
+        <div class="elev-info">
+          <div class="elev-id">ELV-4</div>
+          <div class="elev-fl" id="efl-4">1F</div>
+          <div class="elev-st" id="est-4">대기 중 —</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT: Chat Panel -->
+  <div id="right">
+    <div id="chat-header">
+      <div class="ai-badge">AI</div>
+      <div class="chat-head-info">
+        <h2>AgenticAI 네트워크 모니터</h2>
+        <p>GROQ · llama-3.3-70b-versatile · 빌딩 자동화 전문 AI</p>
+      </div>
+      <div class="groq-tag">● GROQ ONLINE</div>
+    </div>
+
+    <div id="chat-messages"></div>
+
+    <div id="quick-area">
+      <div class="qchip" onclick="quickSend('전체 네트워크 상태를 요약해줘')">📊 전체 상태 요약</div>
+      <div class="qchip" onclick="quickSend('3층 온도 이상이 감지됐어. 원인 분석하고 조치 방법 알려줘')">🌡 온도 이상 분석</div>
+      <div class="qchip" onclick="quickSend('야간 모드로 전환해줘. 조명 30%로 낮추고 공조기 절전 모드로')">🌙 야간 모드 전환</div>
+      <div class="qchip" onclick="quickSend('WiFi-7 MESH 토폴로지 구성을 설명해줘')">📡 MESH 토폴로지</div>
+      <div class="qchip" onclick="quickSend('건물 전체 에너지 사용량을 최적화할 방안을 제안해줘')">⚡ 에너지 최적화</div>
+      <div class="qchip" onclick="quickSend('2번 AP가 점검 상태야. 어떻게 해야 해?')">⚠ AP 장애 대응</div>
+    </div>
+
+    <div id="input-area">
+      <textarea id="user-input" rows="1" placeholder="빌딩 제어 명령 또는 질문을 입력하세요... (Enter: 전송, Shift+Enter: 줄바꿈)"></textarea>
+      <button id="send-btn" onclick="sendMessage()">↑</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const GROQ_KEY = "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";
+const GROQ_MODEL = "llama-3.3-70b-versatile";
+const SYS_PROMPT = `당신은 스마트 빌딩 자동화 시스템의 AgenticAI입니다.
+
+건물 사양:
+- 12층 건물, 각 층 4~6개 방, 총 약 60개 방
+- 엘리베이터 4기 (층당 2기 배치)
+- 층간 네트워크: Optical Fiber 백본 (단일모드, 10Gbps)
+- 각 층 WiFi-7 AP 4개, MESH 구조로 연결 (총 48개 AP)
+- 각 방 설치 장비: 온도센서, 조명 제어 (DALI), 공조기 제어 (BACnet), People Counter
+
+층별 용도:
+1F:로비/안내, 2F:회의/교육, 3F:고객지원, 4F:기획팀, 5F:개발팀, 6F:개발팀
+7F:영업/마케팅, 8F:인사/재무, 9F:연구개발, 10F:연구개발, 11F:회의실, 12F:임원층
+
+AgenticAI 역할:
+- 실시간 네트워크 및 센서 모니터링
+- 이상 감지 시 자동 알람 및 제어 명령 생성
+- 에너지 효율 최적화 (공조/조명 자동 제어)
+- BACnet/DALI 프로토콜 기반 장비 제어
+- MESH 네트워크 성능 최적화
+- 보안 및 접근 제어 관리
+
+전문적이고 간결하게 한국어로 답변하세요. 실제 제어 시스템처럼 구체적인 수치, 명령어, 조치사항을 포함하세요. 이모지를 적절히 사용하여 가독성을 높이세요.`;
+
+let history = [];
+
+function getTime() {
+  return new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'});
+}
+
+function addMsg(role, text) {
+  const el = document.createElement('div');
+  el.className = `msg ${role}`;
+  const avLabel = role==='ai' ? 'AI' : 'ME';
+  const avClass = role==='ai' ? 'av-ai' : 'av-user';
+  el.innerHTML = `
+    <div class="msg-av ${avClass}">${avLabel}</div>
+    <div class="msg-body">
+      <div class="msg-bubble">${text.replace(/\n/g,'<br>').replace(/\*\*(.*?)\*\*/g,'<strong style="color:var(--accent2)">$1</strong>').replace(/`([^`]+)`/g,'<code style="background:var(--bg3);padding:1px 5px;border-radius:3px;font-family:var(--font-mono);font-size:10px;color:var(--accent)">$1</code>')}</div>
+      <div class="msg-meta">${getTime()}</div>
+    </div>`;
+  document.getElementById('chat-messages').appendChild(el);
+  document.getElementById('chat-messages').scrollTop = 99999;
+  return el;
+}
+
+function addTyping() {
+  const el = document.createElement('div');
+  el.className = 'typing-msg'; el.id = 'typing';
+  el.innerHTML = `
+    <div class="msg-av av-ai">AI</div>
+    <div class="typing-bubble"><span></span><span></span><span></span></div>`;
+  document.getElementById('chat-messages').appendChild(el);
+  document.getElementById('chat-messages').scrollTop = 99999;
+}
+function removeTyping() { const t=document.getElementById('typing'); if(t)t.remove(); }
+
+async function callGroq(msg) {
+  history.push({role:'user',content:msg});
+  try {
+    const res = await fetch('https://api.groq.com/openai/v1/chat/completions',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':`Bearer ${GROQ_KEY}`},
+      body: JSON.stringify({
+        model: GROQ_MODEL,
+        messages:[{role:'system',content:SYS_PROMPT},...history],
+        max_tokens: 700, temperature: 0.7
+      })
+    });
+    const d = await res.json();
+    const reply = d.choices?.[0]?.message?.content || '⚠ 응답 없음';
+    history.push({role:'assistant',content:reply});
+    return reply;
+  } catch(e) {
+    return '⚠ 네트워크 연결 오류가 발생했습니다. GROQ API 연결을 확인해주세요.';
+  }
+}
+
+async function sendMessage() {
+  const inp = document.getElementById('user-input');
+  const txt = inp.value.trim();
+  if(!txt) return;
+  inp.value=''; inp.style.height='auto';
+  document.getElementById('send-btn').disabled=true;
+  addMsg('user',txt);
+  addTyping();
+  const reply = await callGroq(txt);
+  removeTyping();
+  addMsg('ai',reply);
+  document.getElementById('send-btn').disabled=false;
+  inp.focus();
+}
+
+function quickSend(t) {
+  document.getElementById('user-input').value=t;
+  sendMessage();
+}
+
+document.getElementById('user-input').addEventListener('keydown',function(e){
+  if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMessage();}
+  setTimeout(()=>{this.style.height='auto';this.style.height=Math.min(this.scrollHeight,100)+'px';},0);
+});
+
+// Clock
+function updateClock(){
+  const n=new Date();
+  document.getElementById('clock').textContent=
+    n.toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false});
+}
+setInterval(updateClock,1000); updateClock();
+
+// ─── FLOOR DATA ───
+const floorMeta = {
+  12:{type:'임원층',rooms:4}, 11:{type:'회의실',rooms:6}, 10:{type:'연구개발',rooms:5},
+  9:{type:'연구개발',rooms:5}, 8:{type:'인사/재무',rooms:4}, 7:{type:'영업/마케팅',rooms:6},
+  6:{type:'개발팀',rooms:5}, 5:{type:'개발팀',rooms:5}, 4:{type:'기획팀',rooms:4},
+  3:{type:'고객지원',rooms:6}, 2:{type:'회의/교육',rooms:4}, 1:{type:'로비/안내',rooms:0}
+};
+const apIssues = {11:1, 5:3}; // floor -> AP index with warn
+
+function rTemp(){return (19+Math.random()*9).toFixed(1);}
+function rPpl(){return Math.floor(Math.random()*14);}
+function rLight(){return Math.floor(25+Math.random()*70);}
+
+function buildFloors(){
+  const list=document.getElementById('floor-list');
+  for(let f=12;f>=1;f--){
+    const m=floorMeta[f];
+    const hasIssue=!!apIssues[f];
+    const stOk=hasIssue?'st-warn':'st-ok';
+    const stLabel=hasIssue?'⚠ 점검':'✓ 정상';
+    let roomsHtml='';
+    for(let r=1;r<=m.rooms;r++){
+      const t=rTemp(),p=rPpl(),l=rLight();
+      roomsHtml+=`<div class="room-item">
+        <span class="room-id">${f}0${r}호</span>
+        <div class="sensor-row">
+          <span class="sbadge s-temp">🌡 ${t}°C</span>
+          <span class="sbadge s-light">💡 ${l}%</span>
+          <span class="sbadge s-hvac">❄ AUTO</span>
+          <span class="sbadge s-ppl">👤 ${p}명</span>
+        </div>
+      </div>`;
+    }
+    if(m.rooms===0){roomsHtml='<div style="font-size:9px;color:var(--text3);padding:4px 6px;font-family:var(--font-mono)">개방 공간 (센서 없음)</div>';}
+    let apHtml='';
+    ['AP-1 (2.4/5/6GHz)','AP-2 (2.4/5/6GHz)','AP-3 (2.4/5/6GHz)','AP-4 (2.4/5/6GHz)'].forEach((ap,i)=>{
+      const isWarn=apIssues[f]===i+1;
+      const ch=[36,100,6,149][i];
+      apHtml+=`<div class="ap-item">
+        <div style="width:6px;height:6px;border-radius:50%;background:${isWarn?'var(--warn)':'var(--ok)'};box-shadow:0 0 5px ${isWarn?'var(--warn)':'var(--ok)'}"></div>
+        <span class="ap-name">${ap}</span>
+        <span class="ap-signal">CH${ch} · ${(Math.random()*30+55).toFixed(0)}dBm</span>
+        <span class="ap-badge ${isWarn?'ap-warn':'ap-ok'}">${isWarn?'점검':'OK'}</span>
+      </div>`;
+    });
+    const avgTemp=rTemp();
+    const card=document.createElement('div');
+    card.className='floor-row';
+    card.id=`fl-${f}`;
+    card.innerHTML=`
+      <div class="floor-head" onclick="toggleFloor(${f})">
+        <div class="floor-num">${f}F</div>
+        <div class="floor-type-label">${m.type}<span>${m.rooms>0?m.rooms+'개 방':''} · 광케이블 연결</span></div>
+        <div class="floor-indicators">
+          <div class="fi"><div class="dot" style="background:${hasIssue?'var(--warn)':'var(--ok)'}"></div>${hasIssue?'3/4':'4/4'}</div>
+          <div class="fi">🌡 ${avgTemp}°</div>
+          <div class="status-tag ${stOk}">${stLabel}</div>
+        </div>
+        <div class="chevron">▶</div>
+      </div>
+      <div class="floor-detail">
+        <div class="detail-grid">
+          <div>
+            <div class="detail-col-title">📡 WiFi-7 MESH AP</div>
+            ${apHtml}
+            <div class="mesh-tag">◈ MESH TOPOLOGY ACTIVE</div>
+            <div class="optical-line"><div class="opt-pulse"></div>Optical Backbone · 10Gbps · 정상</div>
+          </div>
+          <div>
+            <div class="detail-col-title">🏠 방별 센서 현황</div>
+            ${roomsHtml}
+          </div>
+        </div>
+      </div>`;
+    list.appendChild(card);
+  }
+}
+
+function toggleFloor(f){
+  const row=document.getElementById(`fl-${f}`);
+  const isOpen=row.classList.contains('active');
+  document.querySelectorAll('.floor-row').forEach(r=>r.classList.remove('active'));
+  if(!isOpen) row.classList.add('active');
+}
+
+// ─── ELEVATOR ANIMATION ───
+const elvs=[
+  {fl:7,dir:1},{fl:3,dir:0},{fl:12,dir:-1},{fl:1,dir:1}
+];
+function tickElevs(){
+  elvs.forEach((e,i)=>{
+    const n=i+1;
+    if(e.dir!==0){
+      e.fl+=e.dir;
+      if(e.fl>=12){e.fl=12;e.dir=-1;}
+      if(e.fl<=1){e.fl=1;e.dir=1;}
+      if(Math.random()<0.12){
+        const old=e.dir; e.dir=0;
+        setTimeout(()=>{
+          e.dir=Math.random()>0.5?1:-1;
+          document.getElementById(`est-${n}`).textContent=e.dir>0?'상행 중 ↑':'하행 중 ↓';
+        },2000+Math.random()*2000);
+      }
+    }
+    const pct=(e.fl-1)/11*85+5;
+    document.getElementById(`cab-${n}`).style.bottom=pct+'%';
+    document.getElementById(`efl-${n}`).textContent=e.fl+'F';
+    document.getElementById(`est-${n}`).textContent=
+      e.dir===0?'대기 중 —':e.dir>0?'상행 중 ↑':'하행 중 ↓';
+  });
+}
+setInterval(tickElevs,1800);
+
+// ─── INIT ───
+buildFloors();
+
+// Welcome message
+addMsg('ai',`🏢 **스마트 빌딩 AgenticAI 시스템 가동**
+
+안녕하세요! 저는 이 건물의 네트워크와 설비를 총괄 모니터링하는 AgenticAI입니다.
+
+**현재 시스템 상태**
+• Optical 백본 (10Gbps): ✅ 전 구간 정상
+• WiFi-7 MESH AP 48개: ⚠ 47개 정상 / 1개 점검
+• 온도·조명·공조·재실 센서 312개: ✅ 운영 중
+• 엘리베이터 4기: ✅ 정상 운행
+
+**빠른 접근**
+왼쪽 패널에서 층을 클릭하면 해당 층의 네트워크 구성과 센서 데이터를 확인하실 수 있습니다.
+
+무엇을 도와드릴까요?`);
+
+// Open floor 7 by default
+setTimeout(()=>toggleFloor(7),400);
+</script>
+</body>
+</html>

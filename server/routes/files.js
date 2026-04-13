@@ -5,6 +5,7 @@ const path = require('path')
 const fs = require('fs')
 const { v4: uuidv4 } = require('uuid')
 const { exec } = require('child_process')
+const { client, isConnected } = require('../cassandra')
 const db = require('../db')
 const requireAuth = require('../middleware/auth')
 
@@ -36,14 +37,21 @@ if (!fs.existsSync(THUMBNAIL_BASE)) {
  */
 router.post('/get-upload-url', requireAuth, async (req, res, next) => {
   try {
-    const { filename, contentType, channelName } = req.body
+    const { filename, contentType, channelId } = req.body
     const file_uuid = uuidv4()
 
-    // DS.005: UUID-based storage path preserves original ext, original filename stored separately
-    const ext = path.extname(filename)
-    const key = path.join(channelName || 'general', file_uuid + ext)
+    // DS.002: ChannelID로 만든 폴더 밑에 File마다 폴더를 둔다.
+    const key = path.join(channelId || 'unknown', file_uuid, filename)
 
-    // Create record in DB (PENDING) — filename = original name for download
+    // Register in Cassandra (if connected)
+    if (isConnected()) {
+      await client.execute(`
+        INSERT INTO attachments (id, filename, content_type, size, status, storage_path, uploader_id, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      `, [file_uuid, filename, contentType, 0, 'PENDING', key, req.user.id, new Date()], { prepare: true })
+    }
+
+    // Fallback/Legacy: Register in PostgreSQL as well (for stability or transition)
     await db.query(`
       INSERT INTO attachments (id, filename, content_type, size, status, storage_path, uploader_id)
       VALUES ($1, $2, $3, $4, $5, $6, $7)
@@ -75,10 +83,20 @@ router.post('/get-upload-url', requireAuth, async (req, res, next) => {
 router.get('/view/:id', requireAuth, async (req, res, next) => {
   try {
     const { id } = req.params
-    const result = await db.query('SELECT * FROM attachments WHERE id = $1', [id])
-    if (result.rowCount === 0) return res.status(404).send('파일을 찾을 수 없습니다.')
+    let file
+    
+    if (isConnected()) {
+      const res = await client.execute('SELECT * FROM attachments WHERE id = ?', [id], { prepare: true })
+      if (res.rowCount > 0) file = res.rows[0]
+    }
+    
+    if (!file) {
+      const result = await db.query('SELECT * FROM attachments WHERE id = $1', [id])
+      if (result.rowCount > 0) file = result.rows[0]
+    }
 
-    const file = result.rows[0]
+    if (!file) return res.status(404).send('파일을 찾을 수 없습니다.')
+
     let fullPath = path.join(STORAGE_BASE, file.storage_path)
     let contentType = file.content_type || 'application/octet-stream'
 
@@ -110,10 +128,19 @@ router.get('/view/:id', requireAuth, async (req, res, next) => {
 router.get('/:id/get-download-url', requireAuth, async (req, res, next) => {
   try {
     const { id } = req.params
-    const result = await db.query('SELECT * FROM attachments WHERE id = $1', [id])
-    if (result.rowCount === 0) return res.status(404).json({ error: '파일을 찾을 수 없습니다.' })
+    let file
     
-    const file = result.rows[0]
+    if (isConnected()) {
+      const res = await client.execute('SELECT * FROM attachments WHERE id = ?', [id], { prepare: true })
+      if (res.rowCount > 0) file = res.rows[0]
+    }
+    
+    if (!file) {
+      const result = await db.query('SELECT * FROM attachments WHERE id = $1', [id])
+      if (result.rowCount > 0) file = result.rows[0]
+    }
+
+    if (!file) return res.status(404).json({ error: '파일을 찾을 수 없습니다.' })
     
     const token = jwt.sign({
       file_uuid: id,
@@ -159,7 +186,14 @@ router.put('/gateway/upload', async (req, res) => {
     req.pipe(fileStream)
 
     fileStream.on('finish', async () => {
-      // Update record to COMPLETED
+      // Update record in Cassandra
+      if (isConnected()) {
+        await client.execute(`
+          UPDATE attachments SET status = 'COMPLETED', size = ? WHERE id = ?
+        `, [totalSize, decoded.file_uuid], { prepare: true })
+      }
+
+      // Update record in PostgreSQL
       await db.query(`
         UPDATE attachments
         SET status = 'COMPLETED', size = $1, created_at = NOW()
@@ -191,6 +225,12 @@ router.put('/gateway/upload', async (req, res) => {
               try {
                 fs.renameSync(generatedPath, finalThumbPath)
                 const thumbRelPath = path.join('thumbnails', uniqueThumbName)
+                if (isConnected()) {
+                  await client.execute(
+                    'UPDATE attachments SET thumbnail_path = ? WHERE id = ?',
+                    [thumbRelPath, decoded.file_uuid], { prepare: true }
+                  )
+                }
                 await db.query(
                   'UPDATE attachments SET thumbnail_path = $1 WHERE id = $2',
                   [thumbRelPath, decoded.file_uuid]
@@ -236,8 +276,16 @@ router.get('/gateway/download', async (req, res) => {
     if (!fs.existsSync(fullPath)) return res.status(404).send('File not found on disk')
 
     // DS.005: use original filename stored at upload time
-    const fileRow = await db.query('SELECT filename FROM attachments WHERE id = $1', [decoded.file_uuid])
-    const originalName = fileRow.rows[0]?.filename || path.basename(fullPath)
+    let originalName
+    if (isConnected()) {
+      const res = await client.execute('SELECT filename FROM attachments WHERE id = ?', [decoded.file_uuid], { prepare: true })
+      if (res.rowCount > 0) originalName = res.rows[0].filename
+    }
+
+    if (!originalName) {
+      const fileRow = await db.query('SELECT filename FROM attachments WHERE id = $1', [decoded.file_uuid])
+      originalName = fileRow.rows[0]?.filename || path.basename(fullPath)
+    }
 
     res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(originalName)}"`)
 

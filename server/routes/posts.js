@@ -37,6 +37,11 @@ async function linkAttachments(postId, ids) {
     `UPDATE attachments SET post_id = $1 WHERE id IN (${placeholders})`,
     [postId, ...ids]
   )
+  if (isConnected()) {
+    for (const id of ids) {
+      await client.execute('UPDATE attachments SET post_id = ? WHERE id = ?', [postId, id], { prepare: true })
+    }
+  }
 }
 
 // ─── Helper: fetch comments for a post ───────────────────────
@@ -219,7 +224,7 @@ router.get('/', requireAuth, async (req, res, next) => {
     // ── Cassandra path ────────────────────────────────────────
     if (isConnected()) {
       const result = await client.execute(
-        'SELECT * FROM posts WHERE channel_id = ? ORDER BY authored_at ASC',
+        'SELECT * FROM posts WHERE channel_id = ? ORDER BY created_at ASC',
         [channelId], { prepare: true }
       )
 
@@ -230,7 +235,14 @@ router.get('/', requireAuth, async (req, res, next) => {
         )
         const author = authorRes.rows[0] || { id: null, name: '알 수 없음', username: 'unknown', image_url: null }
         const avatarLetters = author.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
-        const attachments = await enrichAttachments(row.attachments || [])
+        
+        // Extract IDs from 10 columns
+        const attachmentIds = [
+          row.attachments_1, row.attachments_2, row.attachments_3, row.attachments_4, row.attachments_5,
+          row.attachments_6, row.attachments_7, row.attachments_8, row.attachments_9, row.attachments_10
+        ].filter(Boolean)
+        
+        const attachments = await enrichAttachments(attachmentIds)
         const comments = await fetchComments(row.id.toString())
         return {
           id: row.id.toString(),
@@ -244,8 +256,9 @@ router.get('/', requireAuth, async (req, res, next) => {
             avatar: avatarLetters,
             image_url: author.image_url,
           },
-          createdAt: row.authored_at,
+          createdAt: row.created_at,
           comments,
+          security_level: row.security_level || 0,
           tags: [], pinned: false, views: 0,
         }
       }))
@@ -263,15 +276,26 @@ router.get('/', requireAuth, async (req, res, next) => {
     `, [channelId])
 
     const posts = await Promise.all(result.rows.map(async row => {
-      const attRes = await db.query(
-        `SELECT * FROM attachments WHERE post_id = $1 AND status = 'COMPLETED'`,
-        [row.id]
-      )
-      const attachments = attRes.rows.map(a => ({
-        id: a.id, name: a.filename, type: a.content_type, size: a.size,
-        url: `/api/files/view/${a.id}`,
-        thumbnail_url: a.thumbnail_path ? `/api/files/view/${a.id}?thumbnail=true` : null,
-      }))
+      const attachmentIds = [
+        row.attachments_1, row.attachments_2, row.attachments_3, row.attachments_4, row.attachments_5,
+        row.attachments_6, row.attachments_7, row.attachments_8, row.attachments_9, row.attachments_10
+      ].filter(Boolean)
+
+      let attachments = []
+      if (attachmentIds.length > 0) {
+        attachments = await enrichAttachments(attachmentIds)
+      } else {
+        const attRes = await db.query(
+          `SELECT * FROM attachments WHERE post_id = $1 AND status = 'COMPLETED'`,
+          [row.id]
+        )
+        attachments = attRes.rows.map(a => ({
+          id: a.id, name: a.filename, type: a.content_type, size: a.size,
+          url: `/api/files/view/${a.id}`,
+          thumbnail_url: a.thumbnail_path ? `/api/files/view/${a.id}?thumbnail=true` : null,
+        }))
+      }
+
       const avatarLetters = row.author_name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
       const comments = await fetchComments(row.id)
       return {
@@ -288,6 +312,7 @@ router.get('/', requireAuth, async (req, res, next) => {
         },
         createdAt: row.created_at,
         comments,
+        security_level: row.security_level || 0,
         tags: [], pinned: false, views: row.views || 0,
       }
     }))
@@ -306,16 +331,77 @@ router.post('/', requireAuth, async (req, res, next) => {
 
     const postId = uuidv4()
     const authoredAt = new Date()
-    const ids = attachmentIds || []
+    const ids = (attachmentIds || []).slice(0, 10)
+    const attCols = Array(10).fill(null)
+    ids.forEach((id, i) => { attCols[i] = id })
+
+    // ── 0. 연결 고리 로직 (Prev/Next Post ID) ────────────────────────
+    const channelRes = await db.query('SELECT root_post_id, tail_post_id FROM channels WHERE id = $1', [channelId])
+    const channelData = channelRes.rows[0]
+    const prevPostId = channelData?.tail_post_id || null
 
     // ── Cassandra write ───────────────────────────────────────
-    if (!isConnected()) return res.status(503).json({ error: 'Cassandra 연결이 필요합니다.' })
-    await client.execute(
-      `INSERT INTO posts (channel_id, id, author_id, content, attachments, authored_at)
-       VALUES (?, ?, ?, ?, ?, ?)`,
-      [channelId, postId, req.user.id, content, ids, authoredAt],
-      { prepare: true }
-    )
+    if (isConnected()) {
+      await client.execute(
+        `INSERT INTO posts (
+          channel_id, id, author_id, content, created_at, updated_at, 
+          is_edited, prev_post_id, next_post_id, child_post_id, parent_id,
+          attachments_1, attachments_2, attachments_3, attachments_4, attachments_5, 
+          attachments_6, attachments_7, attachments_8, attachments_9, attachments_10,
+          security_level
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          channelId, postId, req.user.id, content, authoredAt, authoredAt, 
+          false, prevPostId, null, null, null,
+          ...attCols,
+          req.user.security_level || 0
+        ],
+        { prepare: true }
+      )
+
+      // ── 1. 이전 게시글의 Next Post ID 업데이트 (Cassandra) ─────────────────────
+      if (prevPostId) {
+        const prevRow = await client.execute(
+          'SELECT created_at FROM posts WHERE id = ? ALLOW FILTERING',
+          [prevPostId], { prepare: true }
+        )
+        if (prevRow.rows.length > 0) {
+          await client.execute(
+            'UPDATE posts SET next_post_id = ? WHERE channel_id = ? AND created_at = ?',
+            [postId, channelId, prevRow.rows[0].created_at], { prepare: true }
+          )
+        }
+      }
+    } else {
+      // ── PostgreSQL Fallback write ──────────────────────────────────
+      await db.query(
+        `INSERT INTO posts (
+          channel_id, id, author_id, content, created_at, updated_at,
+          is_edited, prev_post_id, next_post_id, child_post_id, parent_id,
+          attachments_1, attachments_2, attachments_3, attachments_4, attachments_5,
+          attachments_6, attachments_7, attachments_8, attachments_9, attachments_10,
+          security_level
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22)`,
+        [
+          channelId, postId, req.user.id, content, authoredAt, authoredAt,
+          false, prevPostId, null, null, null,
+          ...attCols,
+          req.user.security_level || 0
+        ]
+      )
+
+      // ── 1. 이전 게시글의 Next Post ID 업데이트 (PostgreSQL) ─────────────────────
+      if (prevPostId) {
+        await db.query('UPDATE posts SET next_post_id = $1 WHERE id = $2', [postId, prevPostId])
+      }
+    }
+
+    // ── 2. 채널의 Root/Tail ID 업데이트 (PostgreSQL — 메타데이터 핵심 관리) ────────────
+    if (!channelData?.root_post_id) {
+      await db.query('UPDATE channels SET root_post_id = $1, tail_post_id = $1 WHERE id = $2', [postId, channelId])
+    } else {
+      await db.query('UPDATE channels SET tail_post_id = $1 WHERE id = $2', [postId, channelId])
+    }
 
     await linkAttachments(postId, ids)
 
@@ -335,17 +421,17 @@ router.delete('/:id', requireAuth, async (req, res, next) => {
 
     // ── Cassandra 삭제 ────────────────────────────────────────
     if (!isConnected()) return res.status(503).json({ error: 'Cassandra 연결이 필요합니다.' })
-    const found = await client.execute(
-      'SELECT channel_id, authored_at, author_id FROM posts WHERE id = ? ALLOW FILTERING',
-      [id], { prepare: true }
-    )
-    if (found.rows.length > 0) {
-      const row = found.rows[0]
-      if (String(row.author_id) === String(req.user.id)) {
-        await client.execute(
-          'DELETE FROM posts WHERE channel_id = ? AND authored_at = ?',
-          [row.channel_id, row.authored_at], { prepare: true }
-        )
+      const found = await client.execute(
+        'SELECT channel_id, created_at, author_id FROM posts WHERE id = ? ALLOW FILTERING',
+        [id], { prepare: true }
+      )
+      if (found.rows.length > 0) {
+        const row = found.rows[0]
+        if (String(row.author_id) === String(req.user.id)) {
+          await client.execute(
+            'DELETE FROM posts WHERE channel_id = ? AND created_at = ?',
+            [row.channel_id, row.created_at], { prepare: true }
+          )
         // 해당 게시글의 댓글도 Cassandra에서 삭제
         const cRows = await client.execute(
           'SELECT post_id, created_at FROM comments WHERE post_id = ? ALLOW FILTERING',
@@ -372,15 +458,15 @@ router.put('/:id', requireAuth, async (req, res, next) => {
     const { content } = req.body
     if (!isConnected()) return res.status(503).json({ error: 'Cassandra 연결이 필요합니다.' })
     const found = await client.execute(
-      'SELECT channel_id, authored_at, author_id FROM posts WHERE id = ? ALLOW FILTERING',
+      'SELECT channel_id, created_at, author_id FROM posts WHERE id = ? ALLOW FILTERING',
       [id], { prepare: true }
     )
     if (found.rows.length === 0) return res.status(404).json({ error: '게시글을 찾을 수 없습니다.' })
     const row = found.rows[0]
     if (String(row.author_id) !== String(req.user.id)) return res.status(403).json({ error: '권한이 없습니다.' })
     await client.execute(
-      'UPDATE posts SET content = ? WHERE channel_id = ? AND authored_at = ?',
-      [content, row.channel_id, row.authored_at], { prepare: true }
+      'UPDATE posts SET content = ? WHERE channel_id = ? AND created_at = ?',
+      [content, row.channel_id, row.created_at], { prepare: true }
     )
     res.json({ success: true })
   } catch (err) {
@@ -411,9 +497,9 @@ router.post('/:id/comments', requireAuth, async (req, res, next) => {
     // ── Cassandra write ───────────────────────────────────────
     if (!isConnected()) return res.status(503).json({ error: 'Cassandra 연결이 필요합니다.' })
     await client.execute(
-      `INSERT INTO comments (post_id, id, author_id, content, attachments, created_at)
-       VALUES (?, ?, ?, ?, ?, ?)`,
-      [postId, commentId, req.user.id, content, attachmentIds, createdAt],
+      `INSERT INTO comments (post_id, id, author_id, content, attachments, security_level, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [postId, commentId, req.user.id, content, attachmentIds, req.user.security_level || 0, createdAt],
       { prepare: true }
     )
 

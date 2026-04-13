@@ -29,27 +29,69 @@ async function initCassandra() {
 
     await client.execute(`
       CREATE TABLE IF NOT EXISTS posts (
+        id text,
         channel_id text,
-        id uuid,
+        prev_post_id text,
+        next_post_id text,
+        child_post_id text,
         author_id int,
+        parent_id text,
         content text,
-        attachments list<text>,
-        authored_at timestamp,
-        PRIMARY KEY (channel_id, authored_at)
-      ) WITH CLUSTERING ORDER BY (authored_at DESC)
+        is_edited boolean,
+        created_at timestamp,
+        updated_at timestamp,
+        attachments_1 text,
+        attachments_2 text,
+        attachments_3 text,
+        attachments_4 text,
+        attachments_5 text,
+        attachments_6 text,
+        attachments_7 text,
+        attachments_8 text,
+        attachments_9 text,
+        attachments_10 text,
+        security_level int,
+        PRIMARY KEY (channel_id, created_at)
+      ) WITH CLUSTERING ORDER BY (created_at DESC)
     `)
 
     await client.execute(`
       CREATE TABLE IF NOT EXISTS comments (
-        post_id uuid,
         id text,
+        post_id text,
         author_id int,
         content text,
         attachments list<text>,
+        security_level int,
         created_at timestamp,
         PRIMARY KEY (post_id, created_at)
       ) WITH CLUSTERING ORDER BY (created_at ASC)
     `)
+
+    await client.execute(`
+      CREATE TABLE IF NOT EXISTS attachments (
+        id text PRIMARY KEY,
+        post_id text,
+        channel_id text,
+        uploader_id int,
+        filename text,
+        storage_path text,
+        content_type text,
+        size bigint,
+        status text,
+        thumbnail_path text,
+        created_at timestamp
+      )
+    `)
+
+    // 기존 테이블에 누락된 컬럼 추가 (마이그레이션)
+    const migrations = [
+      `ALTER TABLE ${keyspace}.posts ADD security_level int`,
+      `ALTER TABLE ${keyspace}.comments ADD security_level int`,
+    ]
+    for (const cql of migrations) {
+      try { await client.execute(cql) } catch (_) { /* 이미 존재하면 무시 */ }
+    }
 
     console.log('✅ Cassandra schema initialized')
   } catch (err) {
