@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useChat } from '../contexts/ChatContext'
 import { apiFetch } from '../lib/api'
 import { useAuth } from '../contexts/AuthContext'
+import { useT } from '../i18n/useT'
 
 // MD 미리보기를 간단히 처리하는 헬퍼 (TeamManageModal과 동일)
 function SimpleMDPreview({ text }) {
@@ -25,6 +26,7 @@ function SimpleMDPreview({ text }) {
 export default function ChannelManageModal({ mode = 'manage', channel = null, onClose, onSave = () => {} }) {
   const { currentUser } = useAuth()
   const { selectedTeam, selectedChannel } = useChat()
+  const t = useT()
   const targetChannel = channel || selectedChannel
   const isEdit = mode === 'manage' && !!targetChannel
 
@@ -122,7 +124,7 @@ export default function ChannelManageModal({ mode = 'manage', channel = null, on
   const handleRemoveUser = (id, target) => {
     if (target === 'admin') {
       if (admins.length <= 1) {
-        setError('채널 관리자는 최소 1명 이상이어야 합니다.')
+        setError(t.channel.minOneAdmin)
         return
       }
       setAdmins(prev => prev.filter(a => a.id !== id))
@@ -134,8 +136,8 @@ export default function ChannelManageModal({ mode = 'manage', channel = null, on
 
   const handleSave = async () => {
     setError('')
-    if (!name.trim()) { setError('채널 이름을 입력해주세요.'); return }
-    if (admins.length === 0) { setError('최소 1명의 관리자를 지정해야 합니다.'); return }
+    if (!name.trim()) { setError(t.channel.nameRequired); return }
+    if (admins.length === 0) { setError(t.channel.minOneAdmin); return }
 
     setLoading(true)
     try {
@@ -165,7 +167,7 @@ export default function ChannelManageModal({ mode = 'manage', channel = null, on
   }
 
   const handleArchive = async () => {
-    if (!window.confirm('이 채널을 보관하시겠습니까? 보관 후에는 사이드바에서 사라지며 읽기 전용이 됩니다.')) return
+    if (!window.confirm(t.channel.archiveConfirm)) return
     
     setLoading(true)
     try {
@@ -193,7 +195,7 @@ export default function ChannelManageModal({ mode = 'manage', channel = null, on
 
   const handleDelete = async () => {
     if (deleteConfirmName !== targetChannel.name) {
-      setError('채널 이름이 일치하지 않습니다.')
+      setError(t.channel.nameNotMatch)
       return
     }
     setLoading(true)
@@ -217,7 +219,7 @@ export default function ChannelManageModal({ mode = 'manage', channel = null, on
         <div className="px-6 py-4 border-b border-white/10 bg-white/5 flex items-center justify-between flex-shrink-0">
           <div className="flex items-center gap-3">
             <span className="text-xl">{type === 'public' ? '🌐' : '🔒'}</span>
-            <h2 className="text-white font-bold text-base">{isEdit ? `${targetChannel.name} — 채널 관리` : '채널 추가'}</h2>
+            <h2 className="text-white font-bold text-base">{isEdit ? t.channel.editHeader(targetChannel.name) : t.channel.addTitle}</h2>
           </div>
           <button onClick={onClose} className="w-7 h-7 rounded-lg flex items-center justify-center text-white/30 hover:text-white hover:bg-white/10 transition-colors">
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -236,12 +238,12 @@ export default function ChannelManageModal({ mode = 'manage', channel = null, on
 
           {/* DS.002 메타 정보 (읽기 전용) */}
           <div className="bg-white/3 border border-white/8 rounded-2xl px-4 py-3 space-y-2.5">
-            <p className="text-white/30 text-[10px] font-semibold uppercase tracking-widest mb-1">DS.002 채널 정보</p>
+            <p className="text-white/30 text-[10px] font-semibold uppercase tracking-widest mb-1">DS.002 {t.channel.manageTitle}</p>
 
             {/* Channel ID */}
             <div className="flex items-center gap-3">
               <span className="text-white/35 text-xs w-28 flex-shrink-0">Channel ID</span>
-              <span className="text-white/60 text-xs font-mono">{isEdit ? targetChannel.id : '저장 시 자동 생성'}</span>
+              <span className="text-white/60 text-xs font-mono">{isEdit ? targetChannel.id : t.channel.autoId}</span>
             </div>
 
             {/* Team ID */}
@@ -288,7 +290,7 @@ export default function ChannelManageModal({ mode = 'manage', channel = null, on
                 type="text"
                 value={name}
                 onChange={e => setName(e.target.value)}
-                placeholder="채널명 입력"
+                placeholder={t.channel.channelNamePlaceholder}
                 className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm focus:ring-1 focus:ring-indigo-500 outline-none transition-all"
               />
             </div>
@@ -296,19 +298,19 @@ export default function ChannelManageModal({ mode = 'manage', channel = null, on
               <label className="block text-white/50 text-xs font-medium mb-1.5">Is Private</label>
               <div className="flex gap-2">
                 {[
-                  { value: 'public',  label: '공개', icon: '🌐' },
-                  { value: 'private', label: '비공개', icon: '🔒' },
-                ].map(t => (
+                  { value: 'public',  label: t.channel.typePublic, icon: '🌐' },
+                  { value: 'private', label: t.channel.typePrivate, icon: '🔒' },
+                ].map(opt => (
                   <button
-                    key={t.value}
-                    onClick={() => setType(t.value)}
+                    key={opt.value}
+                    onClick={() => setType(opt.value)}
                     className={`flex-1 py-2.5 rounded-xl text-xs font-semibold border transition-all flex items-center justify-center gap-1 ${
-                      type === t.value
+                      type === opt.value
                         ? 'bg-indigo-600 border-indigo-500 text-white shadow-lg shadow-indigo-500/20'
                         : 'bg-white/5 border-white/10 text-white/40 hover:text-white/60'
                     }`}
                   >
-                    {t.icon} {t.label}
+                    {opt.icon} {opt.label}
                   </button>
                 ))}
               </div>
@@ -318,8 +320,7 @@ export default function ChannelManageModal({ mode = 'manage', channel = null, on
           {/* Admins (TeamManageModal 스타일) */}
           <div>
             <label className="block text-white/50 text-xs font-medium mb-2">
-              채널 관리자 <span className="text-red-400">*</span>
-              <span className="text-white/25 ml-1">(최소 1명)</span>
+              {t.channel.admins} <span className="text-red-400">*</span>
             </label>
             <div className="min-h-[44px] p-2 bg-white/5 rounded-xl border border-white/10 flex flex-wrap gap-1.5 mb-3">
               {admins.map(a => (
@@ -328,7 +329,7 @@ export default function ChannelManageModal({ mode = 'manage', channel = null, on
                   <button onClick={() => handleRemoveUser(a.id, 'admin')} className="text-indigo-400/60 hover:text-red-400 transition-colors">×</button>
                 </div>
               ))}
-              {admins.length === 0 && <span className="text-white/20 text-xs px-1 py-1">관리자를 추가해주세요</span>}
+              {admins.length === 0 && <span className="text-white/20 text-xs px-1 py-1">{t.channel.noAdmins}</span>}
             </div>
             {searchTarget === 'admin' ? (
               <div className="relative">
@@ -337,13 +338,13 @@ export default function ChannelManageModal({ mode = 'manage', channel = null, on
                   value={searchQuery}
                   onChange={e => setSearchQuery(e.target.value)}
                   autoFocus
-                  placeholder="이름 또는 아이디 검색..."
+                  placeholder={t.channel.addAdminsPlaceholder}
                   onBlur={() => { if (!searchQuery.trim()) { setSearchTarget(null); setSearchResults([]) } }}
                   className="w-full bg-indigo-500/10 border border-indigo-500/30 rounded-xl px-4 py-3 text-white text-sm placeholder-white/25 focus:ring-1 focus:ring-indigo-500 outline-none"
                 />
                 {searchQuery.trim() && (searchResults.length > 0 || isSearching) && (
                   <div className="absolute left-0 right-0 top-full mt-1 bg-[#161428] border border-white/10 rounded-xl shadow-2xl z-20 max-h-48 overflow-y-auto">
-                    {isSearching && <div className="px-4 py-3 text-white/30 text-xs">검색 중...</div>}
+                    {isSearching && <div className="px-4 py-3 text-white/30 text-xs">{t.channel.searching}</div>}
                     {searchResults.map(u => (
                       <button key={u.id} onMouseDown={() => handleAddUser(u)} className="w-full px-4 py-2.5 text-left text-sm text-white hover:bg-white/8 border-b border-white/5 last:border-0 flex items-center gap-3">
                         <div className="w-7 h-7 rounded-full bg-indigo-500 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">{u.name[0]}</div>
@@ -357,13 +358,13 @@ export default function ChannelManageModal({ mode = 'manage', channel = null, on
                 )}
               </div>
             ) : (
-              <button onClick={() => { setSearchTarget('admin'); setSearchQuery('') }} className="w-full py-3 rounded-xl border-2 border-dashed border-indigo-500/30 text-indigo-400 hover:border-indigo-500/60 hover:bg-indigo-500/10 transition-all text-sm font-semibold flex items-center justify-center gap-2"> + 관리자 추가 </button>
+              <button onClick={() => { setSearchTarget('admin'); setSearchQuery('') }} className="w-full py-3 rounded-xl border-2 border-dashed border-indigo-500/30 text-indigo-400 hover:border-indigo-500/60 hover:bg-indigo-500/10 transition-all text-sm font-semibold flex items-center justify-center gap-2">{t.channel.addAdmins}</button>
             )}
           </div>
 
           {/* Members (TeamManageModal 스타일) */}
           <div>
-            <label className="block text-white/50 text-xs font-medium mb-2">채널 멤버</label>
+            <label className="block text-white/50 text-xs font-medium mb-2">{t.channel.members}</label>
             <div className="min-h-[44px] p-2 bg-white/5 rounded-xl border border-white/10 flex flex-wrap gap-1.5 mb-3">
               {members.map(m => (
                 <div key={m.id} className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-white/8 border border-white/10 text-white/60 text-[11px]">
@@ -371,7 +372,7 @@ export default function ChannelManageModal({ mode = 'manage', channel = null, on
                   <button onClick={() => handleRemoveUser(m.id, 'member')} className="text-white/30 hover:text-red-400 transition-colors">×</button>
                 </div>
               ))}
-              {members.length === 0 && <span className="text-white/20 text-xs px-1 py-1">멤버 없음</span>}
+              {members.length === 0 && <span className="text-white/20 text-xs px-1 py-1">{t.channel.noMembers}</span>}
             </div>
             {searchTarget === 'member' ? (
               <div className="relative">
@@ -380,13 +381,13 @@ export default function ChannelManageModal({ mode = 'manage', channel = null, on
                   value={searchQuery}
                   onChange={e => setSearchQuery(e.target.value)}
                   autoFocus
-                  placeholder="이름 또는 아이디 검색..."
+                  placeholder={t.channel.addMembersPlaceholder}
                   onBlur={() => { if (!searchQuery.trim()) { setSearchTarget(null); setSearchResults([]) } }}
                   className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm placeholder-white/25 focus:ring-1 focus:ring-indigo-500/60 outline-none"
                 />
                 {searchQuery.trim() && (searchResults.length > 0 || isSearching) && (
                   <div className="absolute left-0 right-0 top-full mt-1 bg-[#161428] border border-white/10 rounded-xl shadow-2xl z-20 max-h-48 overflow-y-auto">
-                    {isSearching && <div className="px-4 py-3 text-white/30 text-xs">검색 중...</div>}
+                    {isSearching && <div className="px-4 py-3 text-white/30 text-xs">{t.channel.searching}</div>}
                     {searchResults.map(u => (
                       <button key={u.id} onMouseDown={() => handleAddUser(u)} className="w-full px-4 py-2.5 text-left text-sm text-white hover:bg-white/8 border-b border-white/5 last:border-0 flex items-center gap-3">
                         <div className="w-7 h-7 rounded-full bg-indigo-500 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">{u.name[0]}</div>
@@ -400,24 +401,24 @@ export default function ChannelManageModal({ mode = 'manage', channel = null, on
                 )}
               </div>
             ) : (
-              <button onClick={() => { setSearchTarget('member'); setSearchQuery('') }} className="w-full py-3 rounded-xl border-2 border-dashed border-white/15 text-white/40 hover:border-white/30 hover:bg-white/5 hover:text-white/60 transition-all text-sm font-semibold flex items-center justify-center gap-2"> + 멤버 추가 </button>
+              <button onClick={() => { setSearchTarget('member'); setSearchQuery('') }} className="w-full py-3 rounded-xl border-2 border-dashed border-white/15 text-white/40 hover:border-white/30 hover:bg-white/5 hover:text-white/60 transition-all text-sm font-semibold flex items-center justify-center gap-2">{t.channel.addMembers}</button>
             )}
           </div>
 
           {/* Channel Description (MD 편집) */}
           <div>
             <div className="flex items-center justify-between mb-2">
-              <label className="text-white/50 text-xs font-medium">채널 설명</label>
+              <label className="text-white/50 text-xs font-medium">{t.channel.description}</label>
               <div className="flex gap-1 bg-white/5 rounded-lg p-0.5">
-                {['write', 'preview'].map(t => (
+                {[{ key: 'write', label: t.channel.descWrite }, { key: 'preview', label: t.channel.descPreview }].map(tab => (
                   <button
-                    key={t}
-                    onClick={() => setDescTab(t)}
+                    key={tab.key}
+                    onClick={() => setDescTab(tab.key)}
                     className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all ${
-                      descTab === t ? 'bg-indigo-600 text-white' : 'text-white/40 hover:text-white/70'
+                      descTab === tab.key ? 'bg-indigo-600 text-white' : 'text-white/40 hover:text-white/70'
                     }`}
                   >
-                    {t === 'write' ? '✏️ 편집' : '👁 미리보기'}
+                    {tab.label}
                   </button>
                 ))}
               </div>
@@ -427,12 +428,12 @@ export default function ChannelManageModal({ mode = 'manage', channel = null, on
                 value={description}
                 onChange={e => setDescription(e.target.value)}
                 rows={4}
-                placeholder={'채널의 설명을 Markdown 형식으로 작성하세요.'}
+                placeholder={t.channel.descriptionPlaceholder}
                 className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm placeholder-white/15 focus:ring-1 focus:ring-indigo-500 outline-none resize-none leading-relaxed font-mono"
               />
             ) : (
               <div className="min-h-[100px] bg-white/5 border border-white/10 rounded-xl px-4 py-3">
-                {description.trim() ? <SimpleMDPreview text={description} /> : <p className="text-white/20 text-sm">미리볼 내용이 없습니다.</p>}
+                {description.trim() ? <SimpleMDPreview text={description} /> : <p className="text-white/20 text-sm">{t.channel.descEmpty}</p>}
               </div>
             )}
           </div>
@@ -448,29 +449,29 @@ export default function ChannelManageModal({ mode = 'manage', channel = null, on
                 disabled={loading}
                 className="px-4 py-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 text-xs font-bold transition-all"
               >
-                삭제
+                {t.channel.delete}
               </button>
               <button
                 onClick={handleArchive}
                 disabled={loading || isArchived}
                 className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
-                  isArchived 
+                  isArchived
                     ? 'bg-amber-500/20 text-amber-500 cursor-not-allowed'
                     : 'bg-amber-500/10 hover:bg-amber-500/20 text-amber-500'
                 }`}
               >
-                {isArchived ? '보관됨' : '보관'}
+                {isArchived ? t.channel.unarchive : t.channel.archive}
               </button>
             </>
           )}
           <div className="flex-1" />
-          <button onClick={onClose} className="px-4 py-2 text-white/40 text-xs font-bold hover:text-white transition-colors">취소</button>
+          <button onClick={onClose} className="px-4 py-2 text-white/40 text-xs font-bold hover:text-white transition-colors">{t.channel.cancel}</button>
           <button
             onClick={handleSave}
             disabled={loading}
             className="px-6 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-60 text-white text-xs font-bold shadow-lg shadow-indigo-500/20 active:scale-95 transition-all"
           >
-            {loading ? '처리 중...' : '저장'}
+            {loading ? t.channel.processing : t.channel.save}
           </button>
         </div>
 
@@ -478,25 +479,24 @@ export default function ChannelManageModal({ mode = 'manage', channel = null, on
         {showDeleteConfirm && (
           <div className="absolute inset-0 z-30 bg-[#1e1c30]/95 flex flex-col items-center justify-center p-8 space-y-5">
             <div className="w-16 h-16 rounded-full bg-red-500/10 flex items-center justify-center text-red-500 text-3xl mb-2">⚠️</div>
-            <h3 className="text-white font-bold text-center text-lg">정말 이 채널을 삭제하시겠습니까?</h3>
-            <p className="text-red-400/80 text-sm text-center">삭제 되면 복구할 수 없습니다.</p>
-            <p className="text-white/40 text-[11px] text-center mt-2">확인을 위해 채널 이름 <strong className="text-white">[{targetChannel.name}]</strong>을(를) 아래에 입력하세요.</p>
+            <h3 className="text-white font-bold text-center text-lg">{t.channel.deleteConfirmTitle}</h3>
+            <p className="text-white/40 text-[11px] text-center mt-2">{t.channel.deleteConfirmHint(targetChannel.name)}</p>
             <input
               type="text"
               value={deleteConfirmName}
               onChange={e => setDeleteConfirmName(e.target.value)}
-              placeholder="채널 이름 입력"
+              placeholder={t.channel.deleteConfirmPlaceholder}
               className="w-full max-w-sm bg-black/40 border border-red-500/30 rounded-xl px-4 py-3 text-white text-sm focus:ring-1 focus:ring-red-500 outline-none text-center font-bold"
             />
             {error && <p className="text-red-400 text-xs">{error}</p>}
             <div className="flex gap-4 mt-4">
-              <button onClick={() => { setShowDeleteConfirm(false); setDeleteConfirmName(''); setError('') }} className="px-6 py-2 text-white/40 text-sm font-bold hover:text-white transition-colors">취소</button>
+              <button onClick={() => { setShowDeleteConfirm(false); setDeleteConfirmName(''); setError('') }} className="px-6 py-2 text-white/40 text-sm font-bold hover:text-white transition-colors">{t.channel.cancel}</button>
               <button
                 onClick={handleDelete}
                 disabled={deleteConfirmName !== targetChannel.name || loading}
                 className="px-10 py-3 rounded-xl bg-red-600 hover:bg-red-500 disabled:opacity-30 text-white text-sm font-black shadow-xl shadow-red-600/20 active:scale-95 transition-all"
               >
-                {loading ? '삭제 중...' : '확인'}
+                {loading ? t.channel.processing : t.channel.permanentDelete}
               </button>
             </div>
           </div>

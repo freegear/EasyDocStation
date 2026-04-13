@@ -2,13 +2,14 @@ import { useState, useEffect, useRef } from 'react'
 import { apiFetch } from '../lib/api'
 import { ROLE_LABELS, ROLE_BADGE, ROLE_OPTIONS } from '../constants/roles'
 import { useAuth } from '../contexts/AuthContext'
+import { useT } from '../i18n/useT'
 import GroqPanel from './GroqPanel'
 
 // ─── helpers ─────────────────────────────────────────────────
 
 function formatDate(iso) {
   if (!iso) return '-'
-  return new Date(iso).toLocaleString('ko-KR', {
+  return new Date(iso).toLocaleString(undefined, {
     year: 'numeric', month: 'short', day: 'numeric',
     hour: '2-digit', minute: '2-digit',
   })
@@ -38,15 +39,8 @@ function Avatar({ name, imageUrl, size = 8 }) {
 
 // ─── User form modal ──────────────────────────────────────────
 
-const SECURITY_LEVEL_OPTIONS = [
-  { value: 0, label: '0 — 누구나' },
-  { value: 1, label: '1 — 팀원' },
-  { value: 2, label: '2 — 팀장' },
-  { value: 3, label: '3 — 임원' },
-  { value: 4, label: '4 — 대표이사' },
-]
-
 function UserFormModal({ user, onClose, onSave, teams = [] }) {
+  const t = useT()
   const isEdit = !!user
   const [form, setForm] = useState({
     username: user?.username ?? '',
@@ -64,6 +58,8 @@ function UserFormModal({ user, onClose, onSave, teams = [] }) {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const fileInputRef = useRef(null)
+
+  const SECURITY_LEVEL_OPTIONS = t.admin.securityLevels.map((label, i) => ({ value: i, label }))
 
   function handleAvatarClick() {
     fileInputRef.current?.click()
@@ -92,11 +88,11 @@ function UserFormModal({ user, onClose, onSave, teams = [] }) {
 
     if (form.password || !isEdit) {
       if (form.password.length < 6) {
-        setError('비밀번호는 6자 이상이어야 합니다.')
+        setError(t.admin.pwTooShort)
         return
       }
       if (form.password !== form.confirmPassword) {
-        setError('비밀번호가 일치하지 않습니다.')
+        setError(t.admin.pwMismatch)
         return
       }
     }
@@ -140,7 +136,7 @@ function UserFormModal({ user, onClose, onSave, teams = [] }) {
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
       <div className="relative w-full max-w-md bg-[#1e1c30] rounded-3xl border border-white/10 shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
         <div className="flex items-center justify-between px-6 py-4 border-b border-white/10 flex-shrink-0">
-          <h3 className="text-white font-bold text-base">{isEdit ? '사용자 편집' : '새 사용자 추가'}</h3>
+          <h3 className="text-white font-bold text-base">{isEdit ? t.admin.formTitleEdit : t.admin.formTitleAdd}</h3>
           <button onClick={onClose} className="w-8 h-8 rounded-lg text-white/30 hover:text-white hover:bg-white/10 flex items-center justify-center transition-colors">
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -177,45 +173,45 @@ function UserFormModal({ user, onClose, onSave, teams = [] }) {
                 </>
               )}
               {!isEdit && (
-                <p className="text-white/30 text-xs">클릭하여 프로필 이미지 선택</p>
+                <p className="text-white/30 text-xs">{t.admin.clickToSelectImage}</p>
               )}
             </div>
           </div>
 
           {/* 아이디 (신규만) */}
           {!isEdit && (
-            <FormField label="아이디 (고유값, 자동 사용)" value={form.username} onChange={v => set('username', v)} placeholder="username" required />
+            <FormField label={t.admin.labelUsername} value={form.username} onChange={v => set('username', v)} placeholder="username" required />
           )}
 
           {/* 표시 이름 */}
-          <FormField label="사용자 이름 (Full Name)" value={form.name} onChange={v => set('name', v)} placeholder="홍길동" required />
+          <FormField label={t.admin.labelName} value={form.name} onChange={v => set('name', v)} placeholder={t.admin.placeholderName} required />
 
           {/* 디스플레이 이름 */}
-          <FormField label="표시 이름 (Display Name)" value={form.display_name} onChange={v => set('display_name', v)} placeholder="길동님" required />
+          <FormField label={t.admin.labelDisplayName} value={form.display_name} onChange={v => set('display_name', v)} placeholder={t.admin.placeholderDisplayName} required />
 
           {/* 이메일 */}
-          <FormField label="이메일" type="email" value={form.email} onChange={v => set('email', v)} placeholder="user@example.com" required />
+          <FormField label={t.admin.labelEmail} type="email" value={form.email} onChange={v => set('email', v)} placeholder="user@example.com" required />
 
           {/* 비밀번호 */}
           <FormField
-            label={isEdit ? '비밀번호 변경 (선택)' : '비밀번호'}
+            label={isEdit ? t.admin.labelPasswordEdit : t.admin.labelPasswordNew}
             type="password"
             value={form.password}
             onChange={v => set('password', v)}
-            placeholder={isEdit ? '변경 시에만 입력' : '6자 이상'}
+            placeholder={isEdit ? t.admin.placeholderPasswordEdit : t.admin.placeholderPasswordNew}
             required={!isEdit}
           />
 
           {/* 비밀번호 재확인 */}
           {(!isEdit || form.password.length > 0) && (
             <div>
-              <label className="block text-white/50 text-xs font-medium mb-1.5">비밀번호 재확인</label>
+              <label className="block text-white/50 text-xs font-medium mb-1.5">{t.admin.labelPasswordConfirm}</label>
               <div className="relative">
                 <input
                   type="password"
                   value={form.confirmPassword}
                   onChange={e => set('confirmPassword', e.target.value)}
-                  placeholder="비밀번호를 다시 입력하세요"
+                  placeholder={t.admin.placeholderPasswordConfirm}
                   required={!isEdit}
                   className={`w-full bg-white/5 border rounded-xl px-4 py-2.5 text-white text-sm placeholder-white/20 focus:outline-none focus:ring-2 transition-all pr-10 ${pwEntered
                     ? pwMatch
@@ -238,14 +234,14 @@ function UserFormModal({ user, onClose, onSave, teams = [] }) {
                   </span>
                 )}
               </div>
-              {pwEntered && !pwMatch && <p className="text-red-400 text-xs mt-1.5 ml-1">비밀번호가 일치하지 않습니다.</p>}
-              {pwEntered && pwMatch && form.password.length > 0 && <p className="text-green-400 text-xs mt-1.5 ml-1">비밀번호가 일치합니다.</p>}
+              {pwEntered && !pwMatch && <p className="text-red-400 text-xs mt-1.5 ml-1">{t.admin.pwMismatch}</p>}
+              {pwEntered && pwMatch && form.password.length > 0 && <p className="text-green-400 text-xs mt-1.5 ml-1">{t.admin.pwMatch}</p>}
             </div>
           )}
 
           {/* 보안 등급 */}
           <div>
-            <label className="block text-white/50 text-xs font-medium mb-1.5">보안 등급 (Security Level)</label>
+            <label className="block text-white/50 text-xs font-medium mb-1.5">{t.admin.labelSecurityLevel}</label>
             <select
               value={form.security_level}
               onChange={e => set('security_level', parseInt(e.target.value))}
@@ -256,14 +252,14 @@ function UserFormModal({ user, onClose, onSave, teams = [] }) {
               ))}
             </select>
             {form.security_level >= 3 && (
-              <p className="text-yellow-400/70 text-xs mt-1.5 ml-1">보안 등급 3 이상은 부서 배정이 적용되지 않습니다.</p>
+              <p className="text-yellow-400/70 text-xs mt-1.5 ml-1">{t.admin.securityLevelWarning}</p>
             )}
           </div>
 
           {/* 부서 (Security Level < 3 일 때만 활성) */}
           <div>
             <label className={`block text-xs font-medium mb-1.5 ${deptDisabled ? 'text-white/20' : 'text-white/50'}`}>
-              부서 (Department ID)
+              {t.admin.labelDepartment}
             </label>
             <select
               value={form.department_id}
@@ -271,9 +267,9 @@ function UserFormModal({ user, onClose, onSave, teams = [] }) {
               disabled={deptDisabled}
               className={`w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500/40 transition-all ${deptDisabled ? 'text-white/20 cursor-not-allowed' : 'text-white'}`}
             >
-              <option value="" className="bg-[#1e1c30]">— 부서 없음 —</option>
-              {teams.map(t => (
-                <option key={t.id} value={t.id} className="bg-[#1e1c30]">{t.name}</option>
+              <option value="" className="bg-[#1e1c30]">{t.admin.noDepartment}</option>
+              {teams.map(team => (
+                <option key={team.id} value={team.id} className="bg-[#1e1c30]">{team.name}</option>
               ))}
             </select>
           </div>
@@ -281,7 +277,7 @@ function UserFormModal({ user, onClose, onSave, teams = [] }) {
 
           {/* 계정 활성화 */}
           <div className="flex items-center justify-between py-2 px-4 rounded-xl bg-white/4 border border-white/8">
-            <span className="text-white/70 text-sm">계정 활성화 (Is Active)</span>
+            <span className="text-white/70 text-sm">{t.admin.labelIsActive}</span>
             <button
               type="button"
               onClick={() => set('is_active', !form.is_active)}
@@ -293,10 +289,10 @@ function UserFormModal({ user, onClose, onSave, teams = [] }) {
 
           <div className="flex gap-2 pt-1 pb-1">
             <button type="button" onClick={onClose} className="flex-1 py-2.5 rounded-xl text-white/50 hover:text-white/80 text-sm border border-white/10 hover:bg-white/5 transition-colors">
-              취소
+              {t.admin.cancel}
             </button>
             <button type="submit" disabled={saving} className="flex-1 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-60 text-white text-sm font-semibold transition-colors">
-              {saving ? '저장 중...' : (isEdit ? '저장' : '추가')}
+              {saving ? t.admin.saving : (isEdit ? t.admin.save : t.admin.add)}
             </button>
           </div>
         </form>
@@ -324,6 +320,7 @@ function FormField({ label, type = 'text', value, onChange, placeholder, require
 // ─── Main SiteAdminPage ───────────────────────────────────────
 
 export default function SiteAdminPage({ onClose }) {
+  const t = useT()
   const { currentUser } = useAuth()
   const [users, setUsers] = useState([])
   const [loading, setLoading] = useState(true)
@@ -433,7 +430,7 @@ export default function SiteAdminPage({ onClose }) {
 
   async function handleDelete(user) {
     if (user.id === currentUser.id) return
-    if (!window.confirm(`'${user.name}' 계정을 삭제하시겠습니까?`)) return
+    if (!window.confirm(t.admin.deleteConfirm(user.name))) return
     try {
       await apiFetch(`/users/${user.id}`, { method: 'DELETE' })
       setUsers(prev => prev.filter(u => u.id !== user.id))
@@ -503,38 +500,38 @@ export default function SiteAdminPage({ onClose }) {
           // vector size 변경 시 LanceDB 테이블 재초기화
           try {
             const reinit = await apiFetch('/admin/rag/reinit-lancedb', { method: 'POST' })
-            alert(`설정이 저장되었습니다.\n${reinit.message || 'LanceDB 재초기화 완료'}`)
+            alert(t.admin.settingsSavedWithReinit(reinit.message || t.admin.lancedbReinitComplete))
           } catch (reinitErr) {
-            alert(`설정은 저장되었으나 LanceDB 재초기화 실패:\n${reinitErr.message}`)
+            alert(t.admin.settingsReinitFailed(reinitErr.message))
           }
         } else {
-          alert('설정이 저장되었습니다.')
+          alert(t.admin.settingsSaved)
         }
         loadDbStats()
       }
     } catch (err) {
-      alert('저장 실패: ' + err.message)
+      alert(t.admin.settingsSaveFailed(err.message))
     } finally {
       setSavingConfig(false)
     }
   }
 
   async function handleStartTraining() {
-    if (!window.confirm('지금 RAG 학습을 시작하시겠습니까? 데이터양에 따라 시간이 소요될 수 있습니다.')) return
+    if (!window.confirm(t.admin.ragTrainingConfirm)) return
     setTrainingStatus('running')
     try {
       // 실제 API 호출 시뮬레이션 또는 연동
       await apiFetch('/admin/rag/train', { method: 'POST' })
-      alert('RAG 학습이 시작되었습니다.')
+      alert(t.admin.ragTrainingStarted)
     } catch (err) {
-      alert('학습 시작 실패: ' + err.message)
+      alert(t.admin.ragTrainingFailed(err.message))
     } finally {
       setTrainingStatus(null)
     }
   }
 
   async function handleExecuteReset() {
-    if (resetConfirmation !== '초기화를 해줘') return
+    if (resetConfirmation !== t.admin.resetConfirmWord) return
     setExecutingReset(true)
     try {
       const res = await apiFetch('/admin/reset', {
@@ -546,7 +543,7 @@ export default function SiteAdminPage({ onClose }) {
       localStorage.removeItem('token')
       window.location.reload()
     } catch (err) {
-      alert('초기화 실패: ' + err.message)
+      alert(t.admin.resetFailed(err.message))
     } finally {
       setExecutingReset(false)
     }
@@ -567,9 +564,9 @@ export default function SiteAdminPage({ onClose }) {
             ED
           </div>
           <div>
-            <h1 className="text-white font-bold text-base">사이트 관리</h1>
+            <h1 className="text-white font-bold text-base">{t.admin.headerTitle}</h1>
             <p className="text-white/30 text-xs">
-              {activeTab === 'users' ? '전체 사용자 관리' : '시스템 및 데이터베이스 관리'}
+              {activeTab === 'users' ? t.admin.headerSubUsers : t.admin.headerSubSystem}
             </p>
           </div>
         </div>
@@ -581,7 +578,7 @@ export default function SiteAdminPage({ onClose }) {
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
           </svg>
-          닫기
+          {t.admin.close}
         </button>
       </div>
 
@@ -595,7 +592,7 @@ export default function SiteAdminPage({ onClose }) {
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 01-12 0v-1z" />
             </svg>
-            전체 사용자 관리
+            {t.admin.navUsers}
           </button>
           <button
             onClick={() => setActiveTab('db')}
@@ -604,7 +601,7 @@ export default function SiteAdminPage({ onClose }) {
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" />
             </svg>
-            DB 관리
+            {t.admin.navDb}
           </button>
           <button
             onClick={() => setActiveTab('display')}
@@ -613,7 +610,7 @@ export default function SiteAdminPage({ onClose }) {
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
             </svg>
-            Display 설정
+            {t.admin.navDisplay}
           </button>
           <button
             onClick={() => setActiveTab('rag')}
@@ -622,7 +619,7 @@ export default function SiteAdminPage({ onClose }) {
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
             </svg>
-            RAG 학습 설정
+            {t.admin.navRag}
           </button>
           <button
             onClick={() => setActiveTab('agenticai')}
@@ -632,7 +629,7 @@ export default function SiteAdminPage({ onClose }) {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
             </svg>
-            AgenticAI 설정
+            {t.admin.navAgenticAI}
           </button>
           <button
             onClick={() => setActiveTab('reset')}
@@ -641,7 +638,7 @@ export default function SiteAdminPage({ onClose }) {
             <svg className="w-5 h-5 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
             </svg>
-            사이트 초기화
+            {t.admin.navReset}
           </button>
         </div>
 
@@ -652,10 +649,10 @@ export default function SiteAdminPage({ onClose }) {
             {/* Stats bar */}
             <div className="grid grid-cols-4 gap-3 mb-5">
               {[
-                { label: '전체 사용자', value: users.length, color: 'text-white' },
-                { label: '사이트 관리자', value: users.filter(u => u.role === 'site_admin').length, color: 'text-red-400' },
-                { label: '팀 관리자', value: users.filter(u => u.role === 'team_admin').length, color: 'text-orange-400' },
-                { label: '활성 계정', value: users.filter(u => u.is_active).length, color: 'text-green-400' },
+                { label: t.admin.statTotalUsers, value: users.length, color: 'text-white' },
+                { label: t.admin.statSiteAdmins, value: users.filter(u => u.role === 'site_admin').length, color: 'text-red-400' },
+                { label: t.admin.statTeamAdmins, value: users.filter(u => u.role === 'team_admin').length, color: 'text-orange-400' },
+                { label: t.admin.statActiveAccounts, value: users.filter(u => u.is_active).length, color: 'text-green-400' },
               ].map(s => (
                 <div key={s.label} className="bg-white/4 border border-white/8 rounded-2xl px-4 py-3">
                   <p className={`text-2xl font-bold ${s.color}`}>{s.value}</p>
@@ -673,7 +670,7 @@ export default function SiteAdminPage({ onClose }) {
                 <input
                   value={search}
                   onChange={e => setSearch(e.target.value)}
-                  placeholder="이름, 이메일, 아이디 검색..."
+                  placeholder={t.admin.searchPlaceholder}
                   className="w-full bg-white/5 border border-white/10 rounded-xl pl-9 pr-4 py-2.5 text-white text-sm placeholder-white/20 focus:outline-none focus:border-indigo-500/40 focus:ring-1 focus:ring-indigo-500/40"
                 />
               </div>
@@ -683,7 +680,7 @@ export default function SiteAdminPage({ onClose }) {
                 onChange={e => setRoleFilter(e.target.value)}
                 className="bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:border-indigo-500/40"
               >
-                <option value="all" className="bg-[#1e1c30]">전체 권한</option>
+                <option value="all" className="bg-[#1e1c30]">{t.admin.roleAll}</option>
                 {ROLE_OPTIONS.map(r => (
                   <option key={r.value} value={r.value} className="bg-[#1e1c30]">{r.label}</option>
                 ))}
@@ -696,7 +693,7 @@ export default function SiteAdminPage({ onClose }) {
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                 </svg>
-                사용자 추가
+                {t.admin.addUser}
               </button>
             </div>
 
@@ -710,10 +707,10 @@ export default function SiteAdminPage({ onClose }) {
               {loading ? (
                 <div className="flex items-center justify-center py-16 text-white/30 text-sm">
                   <div className="w-5 h-5 border-2 border-white/20 border-t-indigo-500 rounded-full animate-spin mr-2" />
-                  불러오는 중...
+                  {t.admin.loading}
                 </div>
               ) : filtered.length === 0 ? (
-                <div className="text-center py-16 text-white/30 text-sm">검색 결과가 없습니다.</div>
+                <div className="text-center py-16 text-white/30 text-sm">{t.admin.noResults}</div>
               ) : (
                 <table className="w-full border-collapse">
                   <colgroup>
@@ -726,12 +723,12 @@ export default function SiteAdminPage({ onClose }) {
                   </colgroup>
                   <thead>
                     <tr className="border-b border-white/8 text-white/30 text-xs font-semibold uppercase tracking-wider">
-                      <th className="px-5 py-3 text-left font-semibold">사용자</th>
-                      <th className="px-5 py-3 text-left font-semibold">이메일</th>
-                      <th className="px-5 py-3 text-left font-semibold">팀</th>
-                      <th className="px-5 py-3 text-left font-semibold">권한</th>
-                      <th className="px-5 py-3 text-left font-semibold">마지막 로그인</th>
-                      <th className="px-5 py-3 text-left font-semibold">상태</th>
+                      <th className="px-5 py-3 text-left font-semibold">{t.admin.tableUser}</th>
+                      <th className="px-5 py-3 text-left font-semibold">{t.admin.tableEmail}</th>
+                      <th className="px-5 py-3 text-left font-semibold">{t.admin.tableTeam}</th>
+                      <th className="px-5 py-3 text-left font-semibold">{t.admin.tableRole}</th>
+                      <th className="px-5 py-3 text-left font-semibold">{t.admin.tableLastLogin}</th>
+                      <th className="px-5 py-3 text-left font-semibold">{t.admin.tableStatus}</th>
                       <th className="px-5 py-3"></th>
                     </tr>
                   </thead>
@@ -748,7 +745,7 @@ export default function SiteAdminPage({ onClose }) {
                               <div className="flex items-center gap-2">
                                 <p className="text-white text-sm font-medium truncate">{user.name}</p>
                                 {user.id === currentUser.id && (
-                                  <span className="px-1.5 py-0.5 rounded text-xs bg-indigo-500/20 text-indigo-300 border border-indigo-500/20 flex-shrink-0">나</span>
+                                  <span className="px-1.5 py-0.5 rounded text-xs bg-indigo-500/20 text-indigo-300 border border-indigo-500/20 flex-shrink-0">{t.admin.me}</span>
                                 )}
                               </div>
                               <p className="text-white/35 text-xs">@{user.username}</p>
@@ -761,7 +758,7 @@ export default function SiteAdminPage({ onClose }) {
                         <td className="px-5 py-3.5">
                           <p className="text-white/50 text-sm truncate">
                             {user.department_id
-                              ? (teams.find(t => t.id === user.department_id)?.name ?? user.department_id)
+                              ? (teams.find(team => team.id === user.department_id)?.name ?? user.department_id)
                               : <span className="text-white/20">—</span>}
                           </p>
                         </td>
@@ -774,7 +771,7 @@ export default function SiteAdminPage({ onClose }) {
                         <td className="px-5 py-3.5">
                           <span className={`flex items-center gap-1 text-xs whitespace-nowrap ${user.is_active ? 'text-green-400' : 'text-white/25'}`}>
                             <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${user.is_active ? 'bg-green-400' : 'bg-white/20'}`} />
-                            {user.is_active ? '활성' : '비활성'}
+                            {user.is_active ? t.admin.active : t.admin.inactive}
                           </span>
                         </td>
                         <td className="px-5 py-3.5">
@@ -782,7 +779,7 @@ export default function SiteAdminPage({ onClose }) {
                             <button
                               onClick={() => { setEditUser(user); setShowForm(true) }}
                               className="p-1.5 rounded-lg text-white/30 hover:text-white/70 hover:bg-white/8 transition-colors"
-                              title="편집"
+                              title={t.admin.tooltipEdit}
                             >
                               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -792,7 +789,7 @@ export default function SiteAdminPage({ onClose }) {
                               <button
                                 onClick={() => handleDelete(user)}
                                 className="p-1.5 rounded-lg text-red-400/40 hover:text-red-400 hover:bg-red-500/10 transition-colors"
-                                title="삭제"
+                                title={t.admin.tooltipDelete}
                               >
                                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -808,7 +805,7 @@ export default function SiteAdminPage({ onClose }) {
               )}
             </div>
             <p className="text-white/20 text-xs mt-3 text-right">
-              총 {filtered.length}명 표시 (전체 {users.length}명)
+              {t.admin.userCount(filtered.length, users.length)}
             </p>
           </>
         ) : activeTab === 'db' ? (
@@ -818,21 +815,21 @@ export default function SiteAdminPage({ onClose }) {
                 <svg className="w-5 h-5 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
                 </svg>
-                데이터베이스 및 오브젝트 관리
+                {t.admin.dbTabTitle}
               </h2>
               <button
                 onClick={handleSaveConfig}
                 disabled={savingConfig}
                 className="flex items-center gap-2 px-6 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-sm font-semibold transition-all shadow-lg shadow-indigo-500/25 active:scale-95"
               >
-                {savingConfig ? '저장 중...' : '설정 저장'}
+                {savingConfig ? t.admin.savingConfig : t.admin.saveSettings}
               </button>
             </div>
 
             {dbLoading ? (
               <div className="flex flex-col items-center justify-center py-24 text-white/30">
                 <div className="w-8 h-8 border-2 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin mb-4" />
-                <p className="text-sm">서버에서 정보를 불러오는 중...</p>
+                <p className="text-sm">{t.admin.dbLoadingInfo}</p>
               </div>
             ) : dbStats ? (
               <div className="space-y-6">
@@ -841,7 +838,7 @@ export default function SiteAdminPage({ onClose }) {
                   <div className="flex items-start justify-between mb-6">
                     <div>
                       <h3 className="text-white font-bold text-base mb-1">PostgreSQL Database</h3>
-                      <p className="text-white/40 text-xs">현재 작동 중인 데이터베이스 정보입니다.</p>
+                      <p className="text-white/40 text-xs">{t.admin.dbPostgresDesc}</p>
                     </div>
                     <div className="px-3 py-1 rounded-full bg-green-500/10 border border-green-500/20 text-green-400 text-[10px] font-bold uppercase tracking-wider">
                       Online
@@ -851,7 +848,7 @@ export default function SiteAdminPage({ onClose }) {
                   <div className="grid grid-cols-2 gap-8">
                     <div className="space-y-4">
                       <div>
-                        <p className="text-white/30 text-xs font-semibold uppercase tracking-wider mb-1.5">DB 위치 (Data Directory)</p>
+                        <p className="text-white/30 text-xs font-semibold uppercase tracking-wider mb-1.5">{t.admin.dbLocation}</p>
                         <div className="bg-black/30 rounded-xl px-4 py-3 border border-white/5 font-mono text-xs text-indigo-300 break-all leading-relaxed">
                           {dbStats.db.location}
                         </div>
@@ -860,7 +857,7 @@ export default function SiteAdminPage({ onClose }) {
                     <div className="space-y-10 flex flex-col justify-center">
                       <div className="text-center p-6 bg-white/3 rounded-3xl border border-white/5 relative overflow-hidden group">
                         <div className="absolute inset-0 bg-indigo-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
-                        <p className="text-white/40 text-xs font-semibold uppercase tracking-wider mb-2">현재 DB 할당 크기</p>
+                        <p className="text-white/40 text-xs font-semibold uppercase tracking-wider mb-2">{t.admin.dbCurrentSize}</p>
                         <p className="text-4xl font-black text-white tracking-tight">{dbStats.db.size}</p>
                         <div className="w-12 h-1 bg-indigo-500 mx-auto mt-4 rounded-full" />
                       </div>
@@ -873,7 +870,7 @@ export default function SiteAdminPage({ onClose }) {
                   <div className="flex items-start justify-between mb-6">
                     <div>
                       <h3 className="text-white font-bold text-base mb-1">Cassandra Database (Posts)</h3>
-                      <p className="text-white/40 text-xs">게시글 및 메시지 저장을 위한 분산 데이터베이스 정보입니다.</p>
+                      <p className="text-white/40 text-xs">{t.admin.dbCassandraDesc}</p>
                     </div>
                     <div className="px-3 py-1 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-400 text-[10px] font-bold uppercase tracking-wider">
                       Distributed Storage
@@ -883,7 +880,7 @@ export default function SiteAdminPage({ onClose }) {
                   <div className="grid grid-cols-2 gap-8">
                     <div className="space-y-4">
                       <div>
-                        <p className="text-white/30 text-xs font-semibold uppercase tracking-wider mb-1.5">DB 위치 (Data Directory)</p>
+                        <p className="text-white/30 text-xs font-semibold uppercase tracking-wider mb-1.5">{t.admin.dbLocation}</p>
                         <div className="bg-black/30 rounded-xl px-4 py-3 border border-white/5 font-mono text-xs text-indigo-300 break-all leading-relaxed">
                           {dbStats.cassandra?.location}
                         </div>
@@ -892,7 +889,7 @@ export default function SiteAdminPage({ onClose }) {
                     <div className="space-y-10 flex flex-col justify-center">
                       <div className="text-center p-6 bg-white/3 rounded-3xl border border-white/5 relative overflow-hidden group">
                         <div className="absolute inset-0 bg-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
-                        <p className="text-white/40 text-xs font-semibold uppercase tracking-wider mb-2">현재 데이터 크기</p>
+                        <p className="text-white/40 text-xs font-semibold uppercase tracking-wider mb-2">{t.admin.dbCurrentDataSize}</p>
                         <p className="text-4xl font-black text-white tracking-tight">{dbStats.cassandra?.size}</p>
                         <div className="w-12 h-1 bg-purple-500 mx-auto mt-4 rounded-full" />
                       </div>
@@ -905,7 +902,7 @@ export default function SiteAdminPage({ onClose }) {
                   <div className="flex items-start justify-between mb-6">
                     <div>
                       <h3 className="text-white font-bold text-base mb-1">Object File Storage</h3>
-                      <p className="text-white/40 text-xs">첨부파일 및 미디어 오브젝트 저장소 정보입니다.</p>
+                      <p className="text-white/40 text-xs">{t.admin.dbObjectDesc}</p>
                     </div>
                     <div className="px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-[10px] font-bold uppercase tracking-wider">
                       Stored Locally
@@ -915,7 +912,7 @@ export default function SiteAdminPage({ onClose }) {
                   <div className="grid grid-cols-2 gap-8">
                     <div className="space-y-4">
                       <div>
-                        <p className="text-white/30 text-xs font-semibold uppercase tracking-wider mb-1.5">폴더 위치 (Upload Directory)</p>
+                        <p className="text-white/30 text-xs font-semibold uppercase tracking-wider mb-1.5">{t.admin.dbFolderLocation}</p>
                         <div className="bg-black/30 rounded-xl px-4 py-3 border border-white/5 font-mono text-xs text-indigo-300 break-all leading-relaxed">
                           {dbStats.objects.location}
                         </div>
@@ -924,7 +921,7 @@ export default function SiteAdminPage({ onClose }) {
                     <div className="space-y-10 flex flex-col justify-center">
                       <div className="text-center p-6 bg-white/3 rounded-3xl border border-white/5 relative overflow-hidden group">
                         <div className="absolute inset-0 bg-indigo-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
-                        <p className="text-white/40 text-xs font-semibold uppercase tracking-wider mb-2">전체 오브젝트 크기</p>
+                        <p className="text-white/40 text-xs font-semibold uppercase tracking-wider mb-2">{t.admin.dbTotalObjectSize}</p>
                         <p className="text-4xl font-black text-indigo-400 tracking-tight">{dbStats.objects.size}</p>
                         <div className="w-12 h-1 bg-indigo-500/40 mx-auto mt-4 rounded-full" />
                       </div>
@@ -937,7 +934,7 @@ export default function SiteAdminPage({ onClose }) {
                   <div className="flex items-start justify-between mb-6">
                     <div>
                       <h3 className="text-white font-bold text-base mb-1">LanceDB (Vector Store)</h3>
-                      <p className="text-white/40 text-xs">RAG 학습 데이터를 저장하는 벡터 데이터베이스 폴더입니다.</p>
+                      <p className="text-white/40 text-xs">{t.admin.dbLancedbDesc}</p>
                     </div>
                     <div className="px-3 py-1 rounded-full bg-teal-500/10 border border-teal-500/20 text-teal-400 text-[10px] font-bold uppercase tracking-wider">
                       Vector Store
@@ -947,20 +944,20 @@ export default function SiteAdminPage({ onClose }) {
                   <div className="grid grid-cols-2 gap-8">
                     <div className="space-y-4">
                       <div>
-                        <p className="text-white/30 text-xs font-semibold uppercase tracking-wider mb-1.5">폴더 위치 (LanceDB Directory)</p>
+                        <p className="text-white/30 text-xs font-semibold uppercase tracking-wider mb-1.5">{t.admin.dbLancedbFolderLocation}</p>
                         <input
                           type="text"
                           value={lancedbPath}
                           onChange={e => setLancedbPath(e.target.value)}
                           className="w-full bg-black/30 rounded-xl px-4 py-3 border border-white/5 font-mono text-xs text-teal-300 break-all leading-relaxed focus:outline-none focus:border-teal-500/50 transition-colors"
                         />
-                        <p className="text-white/20 text-[10px] mt-1.5">경로를 수정한 후 상단의 설정 저장 버튼을 눌러 적용하세요.</p>
+                        <p className="text-white/20 text-[10px] mt-1.5">{t.admin.dbPathHint}</p>
                       </div>
                     </div>
                     <div className="space-y-10 flex flex-col justify-center">
                       <div className="text-center p-6 bg-white/3 rounded-3xl border border-white/5 relative overflow-hidden group">
                         <div className="absolute inset-0 bg-teal-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
-                        <p className="text-white/40 text-xs font-semibold uppercase tracking-wider mb-2">전체 벡터 데이터 크기</p>
+                        <p className="text-white/40 text-xs font-semibold uppercase tracking-wider mb-2">{t.admin.dbTotalVectorSize}</p>
                         <p className="text-4xl font-black text-teal-400 tracking-tight">{dbStats.lancedb?.size ?? '—'}</p>
                         <div className="w-12 h-1 bg-teal-500/40 mx-auto mt-4 rounded-full" />
                       </div>
@@ -970,7 +967,7 @@ export default function SiteAdminPage({ onClose }) {
               </div>
             ) : (
               <div className="text-center py-24 text-white/20">
-                정보를 가져올 수 없습니다.
+                {t.admin.noResults}
               </div>
             )}
           </div>
@@ -981,14 +978,14 @@ export default function SiteAdminPage({ onClose }) {
                 <svg className="w-5 h-5 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
                 </svg>
-                RAG 학습 옵션 설정
+                {t.admin.ragTabTitle}
               </h2>
               <button
                 onClick={handleSaveConfig}
                 disabled={savingConfig}
                 className="flex items-center gap-2 px-6 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-sm font-semibold transition-all shadow-lg shadow-indigo-500/25 active:scale-95"
               >
-                {savingConfig ? '저장 중...' : '설정 저장'}
+                {savingConfig ? t.admin.savingConfig : t.admin.saveSettings}
               </button>
             </div>
 
@@ -999,9 +996,8 @@ export default function SiteAdminPage({ onClose }) {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
                 <div className="text-xs leading-relaxed">
-                  <p className="font-bold mb-1">RAG(Retrieval-Augmented Generation) 안내</p>
-                  학습된 데이터는 EasyDoc AgenticAI가 답변을 생성할 때 참고 자료로 사용됩니다.
-                  데이터 양이 많을 경우 CPU 사용량이 일시적으로 증가할 수 있으니 서비스 사용량이 적은 시간에 학습을 예약하는 것을 권장합니다.
+                  <p className="font-bold mb-1">{t.admin.ragNotice}</p>
+                  {t.admin.ragNoticeDesc}
                 </div>
               </div>
             </div>
@@ -1016,8 +1012,8 @@ export default function SiteAdminPage({ onClose }) {
                     </svg>
                   </div>
                   <div>
-                    <h3 className="text-white font-bold text-base">학습 시간 / 주기 설정</h3>
-                    <p className="text-white/30 text-xs mt-0.5">문서 데이터를 AI가 학습하는 타이밍을 제어합니다.</p>
+                    <h3 className="text-white font-bold text-base">{t.admin.ragScheduleTitle}</h3>
+                    <p className="text-white/30 text-xs mt-0.5">{t.admin.ragScheduleDesc}</p>
                   </div>
                 </div>
 
@@ -1032,8 +1028,8 @@ export default function SiteAdminPage({ onClose }) {
                       className="w-4 h-4 text-indigo-600 bg-white/10 border-white/20 focus:ring-indigo-500"
                     />
                     <div className="flex-1">
-                      <p className="text-white font-semibold text-sm">매일 설정한 시간에 학습</p>
-                      <p className="text-white/30 text-xs mt-1">지정한 시간에 전날 올라온 모든 글을 한꺼번에 학습합니다.</p>
+                      <p className="text-white font-semibold text-sm">{t.admin.ragDailyLabel}</p>
+                      <p className="text-white/30 text-xs mt-1">{t.admin.ragDailyDesc}</p>
                     </div>
                     <div className="flex items-center gap-2 shrink-0" onClick={e => e.stopPropagation()}>
                       <input
@@ -1043,7 +1039,7 @@ export default function SiteAdminPage({ onClose }) {
                         disabled={ragForm.type !== 'daily'}
                         className="bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-indigo-500 disabled:opacity-30 disabled:cursor-not-allowed"
                       />
-                      <span className="text-white/30 text-xs">에 학습 시작</span>
+                      <span className="text-white/30 text-xs">{t.admin.ragDailyStartLabel}</span>
                     </div>
                   </label>
 
@@ -1057,8 +1053,8 @@ export default function SiteAdminPage({ onClose }) {
                       className="mt-1 w-4 h-4 text-indigo-600 bg-white/10 border-white/20 focus:ring-indigo-500"
                     />
                     <div className="flex-1">
-                      <p className="text-white font-semibold text-sm">글이 올라오는 즉시 학습</p>
-                      <p className="text-white/30 text-xs mt-1">새로운 게시글이 작성되면 실시간으로 벡터 디비에 반영합니다.</p>
+                      <p className="text-white font-semibold text-sm">{t.admin.ragImmediateLabel}</p>
+                      <p className="text-white/30 text-xs mt-1">{t.admin.ragImmediateDesc}</p>
                     </div>
                   </label>
 
@@ -1072,8 +1068,8 @@ export default function SiteAdminPage({ onClose }) {
                       className="mt-1 w-4 h-4 text-indigo-600 bg-white/10 border-white/20 focus:ring-indigo-500"
                     />
                     <div className="flex-1">
-                      <p className="text-white font-semibold text-sm">수동 학습 (관리자 실행)</p>
-                      <p className="text-white/30 text-xs mt-1">자동 학습을 수행하지 않으며, 관리자가 버튼을 누를 때에만 학습합니다.</p>
+                      <p className="text-white font-semibold text-sm">{t.admin.ragManualLabel}</p>
+                      <p className="text-white/30 text-xs mt-1">{t.admin.ragManualDesc}</p>
                       {ragForm.type === 'manual' && (
                         <div className="mt-4">
                           <button
@@ -1084,7 +1080,7 @@ export default function SiteAdminPage({ onClose }) {
                             {trainingStatus === 'running' ? (
                               <>
                                 <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                학습 대기 중...
+                                {t.admin.ragTrainingWaiting}
                               </>
                             ) : (
                               <>
@@ -1092,7 +1088,7 @@ export default function SiteAdminPage({ onClose }) {
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                                 </svg>
-                                지금 학습 시작
+                                {t.admin.ragStartNow}
                               </>
                             )}
                           </button>
@@ -1112,8 +1108,8 @@ export default function SiteAdminPage({ onClose }) {
                     </svg>
                   </div>
                   <div>
-                    <h3 className="text-white font-bold text-base">Vector Size 설정</h3>
-                    <p className="text-white/30 text-xs mt-0.5">임베딩 벡터의 차원 수를 설정합니다. 사용할 임베딩 모델의 출력 크기와 일치해야 합니다.</p>
+                    <h3 className="text-white font-bold text-base">{t.admin.ragVectorSizeTitle}</h3>
+                    <p className="text-white/30 text-xs mt-0.5">{t.admin.ragVectorSizeDesc}</p>
                   </div>
                 </div>
                 <div className="flex flex-wrap gap-3">
@@ -1132,7 +1128,7 @@ export default function SiteAdminPage({ onClose }) {
                   ))}
                 </div>
                 <p className="text-white/20 text-xs mt-4">
-                  현재 선택: <span className="text-teal-400 font-bold">{ragForm.vectorSize?.toLocaleString()}</span> 차원
+                  {t.admin.ragCurrentSelection(ragForm.vectorSize?.toLocaleString())}
                 </p>
               </div>
 
@@ -1145,14 +1141,14 @@ export default function SiteAdminPage({ onClose }) {
                     </svg>
                   </div>
                   <div>
-                    <h3 className="text-white font-bold text-base">청크 크기 설정</h3>
-                    <p className="text-white/30 text-xs mt-0.5">문서를 분할할 때 각 청크의 크기와 인접 청크 간 중복 영역을 설정합니다.</p>
+                    <h3 className="text-white font-bold text-base">{t.admin.ragChunkTitle}</h3>
+                    <p className="text-white/30 text-xs mt-0.5">{t.admin.ragChunkDesc}</p>
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-6">
                   <div>
                     <p className="text-white/40 text-xs font-semibold uppercase tracking-wider mb-3">
-                      한 청크당 글자 수 <span className="text-white/20 normal-case font-normal">(chunk_size)</span>
+                      {t.admin.ragChunkSizeLabel} <span className="text-white/20 normal-case font-normal">(chunk_size)</span>
                     </p>
                     <div className="bg-black/30 rounded-xl px-4 py-3 border border-white/5 flex items-center gap-3 focus-within:border-violet-500/50 transition-colors">
                       <input
@@ -1164,12 +1160,12 @@ export default function SiteAdminPage({ onClose }) {
                         onChange={e => setRagForm(p => ({ ...p, chunkSize: e.target.value }))}
                         className="bg-transparent text-2xl font-black text-white w-24 focus:outline-none"
                       />
-                      <span className="text-white/20 text-sm">글자</span>
+                      <span className="text-white/20 text-sm">{t.admin.ragChunkUnit}</span>
                     </div>
                   </div>
                   <div>
                     <p className="text-white/40 text-xs font-semibold uppercase tracking-wider mb-3">
-                      청크 간 중복 영역 글자 수 <span className="text-white/20 normal-case font-normal">(chunk_overlap)</span>
+                      {t.admin.ragChunkOverlapLabel} <span className="text-white/20 normal-case font-normal">(chunk_overlap)</span>
                     </p>
                     <div className="bg-black/30 rounded-xl px-4 py-3 border border-white/5 flex items-center gap-3 focus-within:border-violet-500/50 transition-colors">
                       <input
@@ -1181,7 +1177,7 @@ export default function SiteAdminPage({ onClose }) {
                         onChange={e => setRagForm(p => ({ ...p, chunkOverlap: e.target.value }))}
                         className="bg-transparent text-2xl font-black text-white w-24 focus:outline-none"
                       />
-                      <span className="text-white/20 text-sm">글자</span>
+                      <span className="text-white/20 text-sm">{t.admin.ragChunkUnit}</span>
                     </div>
                   </div>
                 </div>
@@ -1197,7 +1193,7 @@ export default function SiteAdminPage({ onClose }) {
                 <svg className="w-5 h-5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                 </svg>
-                전역 디스플레이 설정
+                {t.admin.displayTabTitle}
               </h2>
               <button
                 onClick={handleSaveConfig}
@@ -1207,21 +1203,21 @@ export default function SiteAdminPage({ onClose }) {
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
                 </svg>
-                {savingConfig ? '저장 중...' : '저장'}
+                {savingConfig ? t.admin.savingConfig : t.admin.displaySaveBtn}
               </button>
             </div>
 
             {dbLoading ? (
               <div className="flex flex-col items-center justify-center py-24 text-white/30">
                 <div className="w-8 h-8 border-2 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin mb-4" />
-                <p className="text-sm">설정을 불러오는 중...</p>
+                <p className="text-sm">{t.admin.displayLoading}</p>
               </div>
             ) : dbStats?.display ? (
               <div className="space-y-6 pb-20">
                 {/* Image Preview */}
                 <PreviewSettingCard
-                  title="Image Preview 설정"
-                  description="게시판 및 채팅 영역에서 이미지가 표시될 때 적용되는 기본 규격입니다."
+                  title={t.admin.previewImageTitle}
+                  description={t.admin.previewImageDesc}
                   value={displayForm.imagePreview}
                   onChange={(val) => setDisplayForm(p => ({ ...p, imagePreview: val }))}
                 />
@@ -1229,48 +1225,48 @@ export default function SiteAdminPage({ onClose }) {
                 <div className="grid grid-cols-2 gap-6">
                   {/* PPT Preview */}
                   <PreviewSettingCard
-                    title="PPT Preview 설정"
-                    description="PPT 파일의 미리보기 규격입니다."
+                    title={t.admin.previewPptTitle}
+                    description={t.admin.previewPptDesc}
                     value={displayForm.pptPreview}
                     onChange={(val) => setDisplayForm(p => ({ ...p, pptPreview: val }))}
                   />
 
                   {/* PPTX Preview */}
                   <PreviewSettingCard
-                    title="PPTX Preview 설정"
-                    description="PPTX 파일의 미리보기 규격입니다."
+                    title={t.admin.previewPptxTitle}
+                    description={t.admin.previewPptxDesc}
                     value={displayForm.pptxPreview}
                     onChange={(val) => setDisplayForm(p => ({ ...p, pptxPreview: val }))}
                   />
 
                   {/* Excel Preview */}
                   <PreviewSettingCard
-                    title="Excel Preview 설정"
-                    description="Excel 파일의 미리보기 규격입니다."
+                    title={t.admin.previewExcelTitle}
+                    description={t.admin.previewExcelDesc}
                     value={displayForm.excelPreview}
                     onChange={(val) => setDisplayForm(p => ({ ...p, excelPreview: val }))}
                   />
 
                   {/* Word Preview */}
                   <PreviewSettingCard
-                    title="Word Preview 설정"
-                    description="Word 파일의 미리보기 규격입니다."
+                    title={t.admin.previewWordTitle}
+                    description={t.admin.previewWordDesc}
                     value={displayForm.wordPreview}
                     onChange={(val) => setDisplayForm(p => ({ ...p, wordPreview: val }))}
                   />
 
                   {/* Movie Preview */}
                   <PreviewSettingCard
-                    title="Movie Preview 설정"
-                    description="AVI, MOV 동영상 파일의 미리보기 규격입니다."
+                    title={t.admin.previewMovieTitle}
+                    description={t.admin.previewMovieDesc}
                     value={displayForm.moviePreview}
                     onChange={(val) => setDisplayForm(p => ({ ...p, moviePreview: val }))}
                   />
 
                   {/* HTML Preview */}
                   <PreviewSettingCard
-                    title="HTML Preview 설정"
-                    description="HTML 파일의 미리보기 규격입니다."
+                    title={t.admin.previewHtmlTitle}
+                    description={t.admin.previewHtmlDesc}
                     value={displayForm.htmlPreview}
                     onChange={(val) => setDisplayForm(p => ({ ...p, htmlPreview: val }))}
                   />
@@ -1278,7 +1274,7 @@ export default function SiteAdminPage({ onClose }) {
               </div>
             ) : (
               <div className="text-center py-24 text-white/20">
-                인터페이스 설정 정보를 불러올 수 없습니다.
+                {t.admin.displayNoInfo}
               </div>
             )}
           </div>
@@ -1289,14 +1285,14 @@ export default function SiteAdminPage({ onClose }) {
                 <svg className="w-5 h-5 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                 </svg>
-                AgenticAI 지능형 비서 설정
+                {t.admin.agenticaiTabTitle}
               </h2>
               <button
                 onClick={handleSaveConfig}
                 disabled={savingConfig}
                 className="flex items-center gap-2 px-6 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-sm font-semibold transition-all shadow-lg shadow-indigo-500/25 active:scale-95"
               >
-                {savingConfig ? '저장 중...' : '설정 저장'}
+                {savingConfig ? t.admin.savingConfig : t.admin.saveSettings}
               </button>
             </div>
 
@@ -1310,8 +1306,8 @@ export default function SiteAdminPage({ onClose }) {
                     </svg>
                   </div>
                   <div>
-                    <h3 className="text-white font-bold text-base">최대 답변 길이 (num_predict)</h3>
-                    <p className="text-white/30 text-xs mt-0.5">매우 긴 장문의 답변도 끊기지 않고 끝까지 출력되도록 설정합니다.</p>
+                    <h3 className="text-white font-bold text-base">{t.admin.agenticaiNumPredictTitle}</h3>
+                    <p className="text-white/30 text-xs mt-0.5">{t.admin.agenticaiNumPredictDesc}</p>
                   </div>
                 </div>
                 <div className="flex flex-wrap gap-3">
@@ -1340,8 +1336,8 @@ export default function SiteAdminPage({ onClose }) {
                     </svg>
                   </div>
                   <div>
-                    <h3 className="text-white font-bold text-base">문맥 유지 범위 (num_ctx)</h3>
-                    <p className="text-white/30 text-xs mt-0.5">이전 대화 내용이나 참조 문서(RAG)를 얼마나 많이 기억할지 설정합니다.</p>
+                    <h3 className="text-white font-bold text-base">{t.admin.agenticaiNumCtxTitle}</h3>
+                    <p className="text-white/30 text-xs mt-0.5">{t.admin.agenticaiNumCtxDesc}</p>
                   </div>
                 </div>
                 <div className="flex flex-wrap gap-3">
@@ -1370,8 +1366,8 @@ export default function SiteAdminPage({ onClose }) {
                     </svg>
                   </div>
                   <div>
-                    <h3 className="text-white font-bold text-base">대화 히스토리 (History)</h3>
-                    <p className="text-white/30 text-xs mt-0.5">AI에게 전달할 이전 대화 메시지 수입니다. 값이 클수록 문맥 이해가 높아지지만 응답 속도가 느려집니다.</p>
+                    <h3 className="text-white font-bold text-base">{t.admin.agenticaiHistoryTitle}</h3>
+                    <p className="text-white/30 text-xs mt-0.5">{t.admin.agenticaiHistoryDesc}</p>
                   </div>
                 </div>
                 <div className="flex flex-wrap gap-3">
@@ -1398,8 +1394,8 @@ export default function SiteAdminPage({ onClose }) {
                   </svg>
                 </div>
                 <div>
-                  <p className="text-white text-xs font-semibold mb-0.5">설정값은 즉시 시스템에 반영됩니다.</p>
-                  <p className="text-white/30 text-[10px]">너무 큰 값으로 설정하면 서버 부하가 커지거나 응답 속도가 느려질 수 있습니다.</p>
+                  <p className="text-white text-xs font-semibold mb-0.5">{t.admin.agenticaiSettingNote}</p>
+                  <p className="text-white/30 text-[10px]">{t.admin.agenticaiSettingNoteDesc}</p>
                 </div>
               </div>
             </div>
@@ -1416,28 +1412,28 @@ export default function SiteAdminPage({ onClose }) {
                   </svg>
                 </div>
 
-                <h2 className="text-3xl font-black text-white mb-4">사이트 완전 초기화</h2>
+                <h2 className="text-3xl font-black text-white mb-4">{t.admin.resetSectionTitle}</h2>
                 <div className="space-y-4 px-6 mb-10 text-red-200/60 leading-relaxed font-medium">
-                  <p>이 사이트 초기화를 실행하면 사이트에 등록된 모든 정보가 초기화가 됩니다.</p>
-                  <p className="text-red-400 font-bold underline decoration-red-500/30 underline-offset-8 text-lg">이후에는 절대로 복구 할 수 없습니다.</p>
+                  <p>{t.admin.resetSectionDesc1}</p>
+                  <p className="text-red-400 font-bold underline decoration-red-500/30 underline-offset-8 text-lg">{t.admin.resetSectionDesc2}</p>
                 </div>
 
                 <div className="w-full bg-black/40 border border-white/5 rounded-2xl p-8 mb-8">
-                  <p className="text-white/40 text-sm mb-4">계속하려면 아래 입력창에 <span className="text-white font-bold">"초기화를 해줘"</span> 라고 입력해 주세요.</p>
+                  <p className="text-white/40 text-sm mb-4">{t.admin.resetHint(t.admin.resetConfirmWord)}</p>
                   <input
                     type="text"
                     value={resetConfirmation}
                     onChange={e => setResetConfirmation(e.target.value)}
-                    placeholder="초기화를 해줘"
+                    placeholder={t.admin.resetConfirmPlaceholder}
                     className="w-full bg-white/5 border border-white/10 rounded-xl px-5 py-3.5 text-white text-lg font-bold placeholder-white/10 text-center focus:outline-none focus:border-red-500/50 focus:ring-1 focus:ring-red-500/50 transition-all"
                   />
                 </div>
 
                 <button
                   onClick={handleExecuteReset}
-                  disabled={resetConfirmation !== '초기화를 해줘' || executingReset}
+                  disabled={resetConfirmation !== t.admin.resetConfirmWord || executingReset}
                   className={`w-full py-4 rounded-2xl font-black text-lg transition-all flex items-center justify-center gap-3 ${
-                    resetConfirmation === '초기화를 해줘' && !executingReset
+                    resetConfirmation === t.admin.resetConfirmWord && !executingReset
                       ? 'bg-red-600 hover:bg-red-500 text-white shadow-xl shadow-red-600/25 active:scale-[0.98]'
                       : 'bg-white/5 text-white/10 cursor-not-allowed border border-white/5'
                   }`}
@@ -1445,14 +1441,14 @@ export default function SiteAdminPage({ onClose }) {
                   {executingReset ? (
                     <>
                       <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
-                      초기화 중...
+                      {t.admin.resetRunning}
                     </>
                   ) : (
                     <>
                       <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                       </svg>
-                      초기화 실행
+                      {t.admin.resetExecute}
                     </>
                   )}
                 </button>
@@ -1482,6 +1478,7 @@ export default function SiteAdminPage({ onClose }) {
 }
 
 function PreviewSettingCard({ title, description, value, onChange }) {
+  const t = useT()
   return (
     <div className="bg-white/5 border border-white/10 rounded-2xl p-6 shadow-xl h-full flex flex-col">
       <div className="flex items-start justify-between mb-6">
@@ -1498,7 +1495,7 @@ function PreviewSettingCard({ title, description, value, onChange }) {
 
       <div className="grid grid-cols-2 gap-4 mt-auto">
         <div className="bg-black/40 rounded-xl px-4 py-3 border border-white/5 flex flex-col focus-within:border-indigo-500/50 transition-colors">
-          <p className="text-white/40 text-[9px] uppercase font-bold mb-1">Width (가로)</p>
+          <p className="text-white/40 text-[9px] uppercase font-bold mb-1">{t.admin.previewWidthLabel}</p>
           <div className="flex items-center gap-2">
             <input
               type="number"
@@ -1510,7 +1507,7 @@ function PreviewSettingCard({ title, description, value, onChange }) {
           </div>
         </div>
         <div className="bg-black/40 rounded-xl px-4 py-3 border border-white/5 flex flex-col focus-within:border-indigo-500/50 transition-colors">
-          <p className="text-white/40 text-[9px] uppercase font-bold mb-1">Height (세로)</p>
+          <p className="text-white/40 text-[9px] uppercase font-bold mb-1">{t.admin.previewHeightLabel}</p>
           <div className="flex items-center gap-2">
             <input
               type="number"

@@ -4,6 +4,7 @@ import remarkGfm from 'remark-gfm'
 import { GROQ_MODELS, GROQ_API_KEY } from '../data/mockData'
 import { apiFetch } from '../lib/api'
 import { useChat } from '../contexts/ChatContext'
+import { useT } from '../i18n/useT'
 
 const SYSTEM_PROMPT = `당신은 EasyStation의 AI 어시스턴트입니다.
 반드시 제공된 [참고 정보]에 있는 내용만을 근거로 답변하세요.
@@ -16,6 +17,7 @@ function formatTime(isoString) {
 
 export default function GroqPanel() {
   const { navigateToPost } = useChat()
+  const t = useT()
   const [copiedId, setCopiedId] = useState(null)
 
   function copyToClipboard(id, text) {
@@ -25,14 +27,7 @@ export default function GroqPanel() {
     })
   }
 
-  const [messages, setMessages] = useState([
-    {
-      id: 'init',
-      role: 'assistant',
-      content: '안녕하세요! EasyStation AgenticAI 어시스턴트입니다. 무엇이든 물어보세요!',
-      time: new Date().toISOString(),
-    }
-  ])
+  const [messages, setMessages] = useState([])
   const [input, setInput] = useState('')
   const [selectedModel, setSelectedModel] = useState(GROQ_MODELS[0].id)
   const [loading, setLoading] = useState(false)
@@ -42,6 +37,18 @@ export default function GroqPanel() {
   const fileInputRef = useRef(null)
   const bottomRef = useRef(null)
   const textareaRef = useRef(null)
+
+  useEffect(() => {
+    if (messages.length === 0) {
+      setMessages([{
+        id: 'init',
+        role: 'assistant',
+        content: t.ai.greeting,
+        time: new Date().toISOString(),
+      }])
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [t.ai.greeting])
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -86,7 +93,7 @@ export default function GroqPanel() {
       }
     }
 
-    const fileName = attachedFile ? ` [파일 첨부: ${attachedFile.name}]` : ''
+    const fileName = attachedFile ? ` [${t.ai.attachFile}: ${attachedFile.name}]` : ''
     const fullText = text + fileName
 
     const userMsg = {
@@ -122,7 +129,7 @@ export default function GroqPanel() {
       setMessages(prev => [...prev, {
         id: `a-${Date.now()}`,
         role: 'assistant',
-        content: '죄송합니다. 관련 데이터를 찾을 수 없습니다.\n\nRAG 데이터베이스에 해당 질문과 관련된 정보가 없습니다. 게시판에 관련 내용을 먼저 등록해 주세요.',
+        content: t.ai.noData,
         references: [],
         time: new Date().toISOString(),
         model: selectedModel,
@@ -219,7 +226,7 @@ export default function GroqPanel() {
       setError(err.message)
       setMessages(prev => prev.map(m =>
         m.id === msgId
-          ? { ...m, content: `오류가 발생했습니다: ${err.message}`, streaming: false, isError: true }
+          ? { ...m, content: t.ai.errorPrefix + err.message, streaming: false, isError: true }
           : m
       ))
     } finally {
@@ -253,7 +260,7 @@ export default function GroqPanel() {
     setMessages([{
       id: 'init-' + Date.now(),
       role: 'assistant',
-      content: '대화가 초기화되었습니다. 새로운 질문을 입력해주세요.',
+      content: t.ai.cleared,
       time: new Date().toISOString(),
     }])
     setError(null)
@@ -278,7 +285,7 @@ export default function GroqPanel() {
         <div className="flex items-center gap-1">
           <button
             onClick={clearChat}
-            title="대화 초기화"
+            title={t.ai.clearChat}
             className="p-1.5 rounded-md text-white/30 hover:text-white/70 hover:bg-white/10 transition-colors"
           >
             <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -331,7 +338,7 @@ export default function GroqPanel() {
                 <div className="mb-2 w-64 h-64 overflow-hidden rounded-lg border border-white/10">
                   <img
                     src={msg.image}
-                    alt="첨부 이미지"
+                    alt={t.ai.attachedImage}
                     className="w-full h-full object-cover"
                   />
                 </div>
@@ -374,7 +381,7 @@ export default function GroqPanel() {
                 {/* References section */}
                 {msg.references && msg.references.length > 0 && (
                   <div className="w-full mt-1 px-1">
-                    <div className="text-[10px] text-white/30 mb-1 font-medium">참고 문서</div>
+                    <div className="text-[10px] text-white/30 mb-1 font-medium">{t.ai.references}</div>
                     <div className="flex flex-col gap-1">
                       {msg.references.map((ref, i) => (
                         <button
@@ -382,7 +389,7 @@ export default function GroqPanel() {
                           onClick={() => ref.channel_id && navigateToPost(ref.channel_id, ref.post_id, { commentId: ref.comment_id, attachmentId: ref.attachment_id })}
                           disabled={!ref.channel_id}
                           className="w-full flex items-start gap-1.5 bg-white/5 rounded-lg px-2 py-1.5 border border-white/8 text-left transition-colors enabled:hover:bg-white/10 enabled:hover:border-white/15 disabled:opacity-40 disabled:cursor-not-allowed"
-                          title={ref.channel_id ? `${ref.team ? ref.team + ' · ' : ''}${ref.channel} 채널로 이동` : '재학습 후 이동 가능합니다'}
+                          title={ref.channel_id ? t.ai.gotoChannel(ref.team, ref.channel) : t.ai.gotoAfterRetrain}
                         >
                           {ref.type === 'pdf' ? (
                             <svg className="w-3 h-3 text-red-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -410,7 +417,7 @@ export default function GroqPanel() {
                 )}
                 <button
                   onClick={() => copyToClipboard(msg.id, msg.content)}
-                  title="답변 복사"
+                  title={t.ai.copyAnswer}
                   className="flex items-center gap-1 px-2 py-1 rounded-md text-white/25 hover:text-white/60 hover:bg-white/8 transition-all text-[10px]"
                 >
                   {copiedId === msg.id ? (
@@ -418,14 +425,14 @@ export default function GroqPanel() {
                       <svg className="w-3 h-3 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                       </svg>
-                      <span className="text-green-400">Copied!</span>
+                      <span className="text-green-400">{t.ai.copied}</span>
                     </>
                   ) : (
                     <>
                       <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
                       </svg>
-                      <span>Copy</span>
+                      <span>{t.ai.copy}</span>
                     </>
                   )}
                 </button>
@@ -483,7 +490,7 @@ export default function GroqPanel() {
           <button
             onClick={() => fileInputRef.current?.click()}
             disabled={loading}
-            title="파일 첨부"
+            title={t.ai.attachFile}
             className="flex-shrink-0 w-7 h-7 rounded-lg hover:bg-white/10 text-white/40 hover:text-white/70 flex items-center justify-center transition-colors self-end"
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -495,7 +502,7 @@ export default function GroqPanel() {
             value={input}
             onChange={e => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="AI에게 물어보세요..."
+            placeholder={t.ai.inputPlaceholder}
             rows={1}
             disabled={loading}
             className="flex-1 bg-transparent text-white placeholder-white/30 text-xs resize-none focus:outline-none leading-relaxed min-h-[24px] max-h-24 overflow-y-auto disabled:opacity-50"
@@ -518,7 +525,7 @@ export default function GroqPanel() {
             )}
           </button>
         </div>
-        <p className="text-white/15 text-xs mt-1 px-0.5">Enter로 전송 · Shift+Enter로 줄바꿈</p>
+        <p className="text-white/15 text-xs mt-1 px-0.5">{t.ai.inputHint}</p>
       </div>
     </div>
   )

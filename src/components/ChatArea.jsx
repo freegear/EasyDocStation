@@ -4,19 +4,20 @@ import { useAuth } from '../contexts/AuthContext'
 import { apiFetch, getToken } from '../lib/api'
 import config from '../config.json'
 import ChannelManageModal from './ChannelManageModal'
+import { useT } from '../i18n/useT'
 
 
 // ─── Helpers ──────────────────────────────────────────────────
 
-function formatDate(iso) {
+function formatDate(iso, t) {
   const d = new Date(iso)
   const now = new Date()
   const diff = Math.floor((now - d) / 1000)
-  if (diff < 60) return '방금 전'
-  if (diff < 3600) return `${Math.floor(diff / 60)}분 전`
-  if (diff < 86400) return `${Math.floor(diff / 3600)}시간 전`
-  if (diff < 86400 * 7) return `${Math.floor(diff / 86400)}일 전`
-  return d.toLocaleDateString('ko-KR', { year: 'numeric', month: 'short', day: 'numeric' })
+  if (diff < 60) return t.chat.justNow
+  if (diff < 3600) return t.chat.minutesAgo(Math.floor(diff / 60))
+  if (diff < 86400) return t.chat.hoursAgo(Math.floor(diff / 3600))
+  if (diff < 86400 * 7) return t.chat.daysAgo(Math.floor(diff / 86400))
+  return d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
 }
 
 function formatFull(iso) {
@@ -137,6 +138,7 @@ function FileChip({ file, onRemove }) {
 // ─── PDF first-page preview ───────────────────────────────────
 
 function PdfPagePreview({ fileId, width = 400 }) {
+  const t = useT()
   const canvasRef = useRef(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
@@ -187,7 +189,7 @@ function PdfPagePreview({ fileId, width = 400 }) {
   if (error) {
     return (
       <div className="flex items-center justify-center h-24 bg-white/5 rounded-xl text-white/30 text-sm">
-        PDF 미리보기 불가
+        {t.chat.pdfPreviewFailed}
       </div>
     )
   }
@@ -209,6 +211,7 @@ function PdfPagePreview({ fileId, width = 400 }) {
 // ─── Image lightbox ───────────────────────────────────────────
 
 function ImageLightbox({ file, fileUrl, onClose }) {
+  const t = useT()
   useEffect(() => {
     const onKey = e => { if (e.key === 'Escape') onClose() }
     window.addEventListener('keydown', onKey)
@@ -234,7 +237,7 @@ function ImageLightbox({ file, fileUrl, onClose }) {
             className="px-3 py-1.5 rounded-lg bg-indigo-600/30 hover:bg-indigo-600/50 text-indigo-300 text-xs font-semibold border border-indigo-500/30 transition-colors"
             onClick={e => e.stopPropagation()}
           >
-            다운로드
+            {t.chat.download}
           </a>
         </div>
       </div>
@@ -255,6 +258,7 @@ function ImageLightbox({ file, fileUrl, onClose }) {
 const BROWSER_VIDEO_EXTS = /\.(mp4|webm|ogg|ogv|m4v)$/i
 
 function VideoPlayer({ file, fileUrl, onClose }) {
+  const t = useT()
   const isBrowserPlayable = BROWSER_VIDEO_EXTS.test(file.name || '')
 
   useEffect(() => {
@@ -287,7 +291,7 @@ function VideoPlayer({ file, fileUrl, onClose }) {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 10l4.553-2.069A1 1 0 0121 8.868v6.264a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
             </svg>
             <p className="text-white/70 text-sm text-center">
-              이 형식({file.name?.split('.').pop()?.toUpperCase()})은<br />브라우저에서 직접 재생할 수 없습니다.
+              {t.chat.videoUnsupported(file.name?.split('.').pop()?.toUpperCase() || '')}
             </p>
             <a
               href={fileUrl}
@@ -295,7 +299,7 @@ function VideoPlayer({ file, fileUrl, onClose }) {
               className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold transition-colors"
               onClick={e => e.stopPropagation()}
             >
-              파일 다운로드
+              {t.chat.fileDownload}
             </a>
           </div>
         )}
@@ -307,7 +311,7 @@ function VideoPlayer({ file, fileUrl, onClose }) {
             className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white/70 text-xs font-medium transition-colors flex-shrink-0"
             onClick={e => e.stopPropagation()}
           >
-            다운로드
+            {t.chat.download}
           </a>
         </div>
       </div>
@@ -326,6 +330,7 @@ function VideoPlayer({ file, fileUrl, onClose }) {
 // ─── Attachment list in post detail ──────────────────────────
 
 function AttachmentList({ attachments, compact = false }) {
+  const t = useT()
   const [moviePreviewSize, setMoviePreviewSize] = useState(config.moviePreview || { width: 480, height: 270 })
   const [htmlPreviewSize, setHtmlPreviewSize] = useState(config.htmlPreview || { width: 480, height: 270 })
   const [lightboxFile, setLightboxFile] = useState(null)
@@ -388,7 +393,7 @@ function AttachmentList({ attachments, compact = false }) {
 
   const NativeOpenBtn = ({ f }) => (
     <button
-      title="네이티브 앱으로 열기"
+      title={t.chat.openInApp}
       onClick={e => openNative(e, f)}
       className="flex-shrink-0 p-1 rounded-md text-white/30 hover:text-white/70 hover:bg-white/10 transition-colors"
     >
@@ -420,7 +425,7 @@ function AttachmentList({ attachments, compact = false }) {
           <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
           </svg>
-          첨부파일 {attachments.length}개
+          {t.chat.attachmentsCount(attachments.length)}
         </h4>
 
         <div className="flex flex-wrap gap-3">
@@ -684,6 +689,7 @@ function TableRow({ line }) {
 // ─── Compose bar with file attach ────────────────────────────
 
 function ComposeBar({ onSubmit, isArchived }) {
+  const t = useT()
   const { currentUser } = useAuth()
   const { selectedChannel } = useChat()
   const [content, setContent] = useState('')
@@ -698,7 +704,7 @@ function ComposeBar({ onSubmit, isArchived }) {
 
   function addFiles(newFiles) {
     if (files.length + newFiles.length > 10) {
-      alert("10개까지의 첨부 파일을 지원합니다.")
+      alert(t.chat.maxFiles10)
       return
     }
     if (newFiles.length > 0 && !content.trim()) {
@@ -776,7 +782,7 @@ function ComposeBar({ onSubmit, isArchived }) {
         contentRef.current.style.height = 'auto'
       }
     } catch (err) {
-      alert('전송 중 오류가 발생했습니다: ' + err.message)
+      alert(t.chat.sendError(err.message))
     } finally {
       setSending(false)
     }
@@ -808,8 +814,8 @@ function ComposeBar({ onSubmit, isArchived }) {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
           </svg>
         </div>
-        <p className="text-white font-bold text-sm mb-1">보관된 채널입니다</p>
-        <p className="text-white/30 text-[11px]">이 채널은 현재 읽기 전용 상태이며, 새로운 메시지를 전송하거나 편집할 수 없습니다.</p>
+        <p className="text-white font-bold text-sm mb-1">{t.chat.archivedChannel}</p>
+        <p className="text-white/30 text-[11px]">{t.chat.archivedDesc}</p>
       </div>
     )
   }
@@ -837,7 +843,7 @@ function ComposeBar({ onSubmit, isArchived }) {
             <svg className="w-8 h-8 text-indigo-400 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
             </svg>
-            <p className="text-indigo-300 text-sm font-semibold">파일을 놓아 첨부하세요</p>
+            <p className="text-indigo-300 text-sm font-semibold">{t.chat.dropFile}</p>
           </div>
         )}
 
@@ -850,7 +856,7 @@ function ComposeBar({ onSubmit, isArchived }) {
             onChange={e => setContent(e.target.value)}
             onFocus={() => setFocused(true)}
             onKeyDown={handleKeyDown}
-            placeholder="메시지를 입력하세요... (Shift+Enter 줄바꿈)"
+            placeholder={t.chat.messagePlaceholder}
             rows={1}
             className="flex-1 bg-transparent text-white/90 placeholder-white/25 text-sm leading-relaxed resize-none focus:outline-none pt-0.5"
             onInput={e => {
@@ -875,7 +881,7 @@ function ComposeBar({ onSubmit, isArchived }) {
             {/* Clip button */}
             <button
               type="button"
-              title="파일 첨부"
+              title={t.chat.attachFile}
               onClick={() => fileInputRef.current.click()}
               className="p-1.5 rounded-lg text-white/30 hover:text-white/70 hover:bg-white/8 transition-colors flex-shrink-0"
             >
@@ -892,7 +898,7 @@ function ComposeBar({ onSubmit, isArchived }) {
               onClick={handleCancel}
               className="px-2.5 py-1.5 rounded-lg text-white/30 hover:text-white/60 text-xs transition-colors hover:bg-white/5"
             >
-              취소
+              {t.chat.cancel}
             </button>
             <button
               type="button"
@@ -913,7 +919,7 @@ function ComposeBar({ onSubmit, isArchived }) {
       </div>
 
       <p className="text-white/15 text-xs mt-1.5 px-1">
-        Enter로 전송 · Shift+Enter 줄바꿈 · 클립 또는 드래그 앤 드롭으로 파일 첨부
+        {t.chat.messageHint}
       </p>
     </div>
   )
@@ -922,6 +928,7 @@ function ComposeBar({ onSubmit, isArchived }) {
 // ─── Post List ────────────────────────────────────────────────
 
 function PostList({ posts, onSelect, onSubmit, selectedPostId }) {
+  const t = useT()
   const { selectedChannel, selectedTeam, refreshTeams } = useChat()
   const pinnedPosts = posts.filter(p => p.pinned)
   const normalPosts = posts.filter(p => !p.pinned)
@@ -948,7 +955,7 @@ function PostList({ posts, onSelect, onSubmit, selectedPostId }) {
               </svg>
             )}
           </div>
-          <p className="text-white/30 text-xs mt-0.5">{selectedTeam.name} · 게시글 {posts.length}개</p>
+          <p className="text-white/30 text-xs mt-0.5">{t.chat.postsCount(selectedTeam.name, posts.length)}</p>
         </div>
 
         <div className="flex-1" />
@@ -962,14 +969,14 @@ function PostList({ posts, onSelect, onSubmit, selectedPostId }) {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
             </svg>
-            채널 관리
+            {t.channel.manageTitle}
           </button>
         )}
       </div>
 
       {showManageModal && (
-        <ChannelManageModal 
-          onClose={() => setShowManageModal(false)} 
+        <ChannelManageModal
+          onClose={() => setShowManageModal(false)}
           onSave={() => refreshTeams()}
         />
       )}
@@ -979,15 +986,15 @@ function PostList({ posts, onSelect, onSubmit, selectedPostId }) {
         {posts.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center py-16">
             <div className="w-16 h-16 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-3xl mb-4">📄</div>
-            <h3 className="text-white font-semibold mb-1">아직 게시글이 없습니다</h3>
-            <p className="text-white/40 text-sm">아래 입력창에 메시지를 입력해보세요!</p>
+            <h3 className="text-white font-semibold mb-1">{t.chat.noPostsTitle}</h3>
+            <p className="text-white/40 text-sm">{t.chat.noPostsDesc}</p>
           </div>
         ) : (
           <div className="flex flex-col gap-3">
             {pinnedPosts.length > 0 && (
               <>
                 <div className="flex items-center gap-2 text-amber-400/60 text-xs font-medium uppercase tracking-widest mb-1">
-                  <PinIcon /><span>고정된 게시글</span>
+                  <PinIcon /><span>{t.chat.pinnedPost}</span>
                 </div>
                 {pinnedPosts.map(p => <PostCard key={p.id} post={p} onSelect={onSelect} pinned isSelected={p.id === selectedPostId} />)}
                 {normalPosts.length > 0 && <div className="border-t border-white/5 my-1" />}
@@ -1005,6 +1012,7 @@ function PostList({ posts, onSelect, onSubmit, selectedPostId }) {
 }
 
 function PostCard({ post, onSelect, pinned, isSelected }) {
+  const t = useT()
   const plain = (post.content || '')
     .replace(/#{1,3} /g, '').replace(/\*\*/g, '').replace(/`/g, '')
     .split('\n').filter(l => l.trim() && !l.startsWith('|') && !l.startsWith('-'))
@@ -1041,7 +1049,7 @@ function PostCard({ post, onSelect, pinned, isSelected }) {
               <span className="text-white/25">@{post.author.username}</span>
             )}
             <span>·</span>
-            <span>{formatDate(post.createdAt)}</span>
+            <span>{formatDate(post.createdAt, t)}</span>
             {attachCount > 0 && (
               <>
                 <span>·</span>
@@ -1072,6 +1080,7 @@ function PostCard({ post, onSelect, pinned, isSelected }) {
 // ─── Post Detail ──────────────────────────────────────────────
 
 function PostDetail({ post, channelId, onClose }) {
+  const t = useT()
   const { addComment, incrementViews, deletePost, updatePost, deleteComment, updateComment, posts, refreshTeams, selectedChannel } = useChat()
   const { currentUser } = useAuth()
   const [comment, setComment] = useState('')
@@ -1099,7 +1108,7 @@ function PostDetail({ post, channelId, onClose }) {
 
   function addFiles(newFiles) {
     if (files.length + newFiles.length > 10) {
-      alert('첨부파일은 최대 10개까지만 가능합니다.')
+      alert(t.chat.maxFilesExceeded)
       return
     }
     if (newFiles.length > 0 && !comment.trim()) {
@@ -1176,7 +1185,7 @@ function PostDetail({ post, channelId, onClose }) {
       setFiles([])
       setTimeout(() => commentsEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 50)
     } catch (err) {
-      alert('댓글 전송 중 오류가 발생했습니다: ' + err.message)
+      alert(t.chat.commentError(err.message))
     } finally {
       setUploading(false)
     }
@@ -1196,14 +1205,14 @@ function PostDetail({ post, channelId, onClose }) {
       updatePost(channelId, post.id, { content: postContent, attachments })
       setIsEditingPost(false)
     } catch (err) {
-      alert('저장 중 오류가 발생했습니다: ' + err.message)
+      alert(t.chat.saveError(err.message))
     } finally {
       setUploading(false)
     }
   }
 
   function handleDelete() {
-    if (window.confirm('이 게시글을 삭제하시겠습니까?')) { deletePost(channelId, post.id); onClose() }
+    if (window.confirm(t.chat.deletePostConfirm)) { deletePost(channelId, post.id); onClose() }
   }
 
   // Handlers for Comment Edit/Delete
@@ -1214,7 +1223,7 @@ function PostDetail({ post, channelId, onClose }) {
   }
 
   function handleCommentDelete(cId) {
-    if (window.confirm('이 댓글을 삭제하시겠습니까?')) {
+    if (window.confirm(t.chat.deleteCommentConfirm)) {
       deleteComment(channelId, post.id, cId)
     }
   }
@@ -1232,11 +1241,11 @@ function PostDetail({ post, channelId, onClose }) {
           <div className="flex items-center gap-2">
             <button onClick={startPostEdit} className="flex items-center gap-1 text-white/40 hover:text-white text-xs transition-colors">
               <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
-              수정
+              {t.chat.edit}
             </button>
             <button onClick={handleDelete} className="flex items-center gap-1 text-red-400/60 hover:text-red-400 text-xs transition-colors">
               <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-              삭제
+              {t.chat.delete}
             </button>
           </div>
         )}
@@ -1249,7 +1258,7 @@ function PostDetail({ post, channelId, onClose }) {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
             </svg>
-            채널 관리
+            {t.chat.manageChannel}
           </button>
         )}
         {/* Close right panel */}
@@ -1273,7 +1282,7 @@ function PostDetail({ post, channelId, onClose }) {
       <div className="flex-1 overflow-y-auto overflow-x-hidden px-6 py-6">
         {/* Meta */}
         <div className="mb-6">
-          {freshPost.pinned && <div className="flex items-center gap-1.5 text-amber-400 text-xs font-medium mb-3"><PinIcon /><span>고정된 게시글</span></div>}
+          {freshPost.pinned && <div className="flex items-center gap-1.5 text-amber-400 text-xs font-medium mb-3"><PinIcon /><span>{t.chat.pinnedPost}</span></div>}
           <div className="flex items-center gap-4 mb-6 p-4 rounded-2xl bg-white/4 border border-white/8">
             <Avatar letters={freshPost.author?.avatar || '?'} imageUrl={freshPost.author?.image_url} size="lg" />
             <div className="min-w-0 flex-1">
@@ -1282,7 +1291,7 @@ function PostDetail({ post, channelId, onClose }) {
                 <p className="text-indigo-400/70 text-xs mt-0.5">@{freshPost.author.username}</p>
               )}
               <p className="text-white/30 text-xs mt-1" title={formatFull(freshPost.createdAt)}>
-                작성: {formatFull(freshPost.createdAt)}
+                {t.chat.postedAt}: {formatFull(freshPost.createdAt)}
               </p>
             </div>
           </div>
@@ -1305,8 +1314,8 @@ function PostDetail({ post, channelId, onClose }) {
               </div>
             )}
             <div className="flex justify-end gap-2">
-              <button onClick={() => setIsEditingPost(false)} className="px-3 py-1.5 rounded-lg text-white/40 hover:text-white text-xs transition-colors">취소</button>
-              <button onClick={handlePostUpdate} className="px-4 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold transition-colors">저장하기</button>
+              <button onClick={() => setIsEditingPost(false)} className="px-3 py-1.5 rounded-lg text-white/40 hover:text-white text-xs transition-colors">{t.chat.cancel}</button>
+              <button onClick={handlePostUpdate} className="px-4 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold transition-colors">{t.chat.savePost}</button>
             </div>
           </div>
         ) : (
@@ -1320,9 +1329,9 @@ function PostDetail({ post, channelId, onClose }) {
 
         {/* Comments list — 스크롤 영역 안 */}
         <div className="border-t border-white/8 pt-6 mt-6 pb-4">
-          <h3 className="text-white font-semibold text-sm mb-4">댓글 {(freshPost.comments || []).length}개</h3>
+          <h3 className="text-white font-semibold text-sm mb-4">{t.chat.commentCount((freshPost.comments || []).length)}</h3>
           {(freshPost.comments || []).length === 0 ? (
-            <p className="text-white/30 text-sm">첫 번째 댓글을 남겨보세요.</p>
+            <p className="text-white/30 text-sm">{t.chat.noComments}</p>
           ) : (
             <div className="flex flex-col gap-4">
               {(freshPost.comments || []).map(c => (
@@ -1334,11 +1343,11 @@ function PostDetail({ post, channelId, onClose }) {
                       {c.author?.username && (
                         <span className="text-indigo-400/50 text-[10px]">@{c.author.username}</span>
                       )}
-                      <span className="text-white/25 text-xs">{formatDate(c.createdAt)}</span>
+                      <span className="text-white/25 text-xs">{formatDate(c.createdAt, t)}</span>
                       {c.author?.name === currentUser?.name && editingCommentId !== c.id && !selectedChannel?.is_archived && (
                         <div className="ml-auto flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <button onClick={() => startCommentEdit(c)} className="text-white/30 hover:text-white text-[10px] font-medium uppercase tracking-tight">수정</button>
-                          <button onClick={() => handleCommentDelete(c.id)} className="text-red-400/40 hover:text-red-400 text-[10px] font-medium uppercase tracking-tight">삭제</button>
+                          <button onClick={() => startCommentEdit(c)} className="text-white/30 hover:text-white text-[10px] font-medium uppercase tracking-tight">{t.chat.edit}</button>
+                          <button onClick={() => handleCommentDelete(c.id)} className="text-red-400/40 hover:text-red-400 text-[10px] font-medium uppercase tracking-tight">{t.chat.delete}</button>
                         </div>
                       )}
                     </div>
@@ -1357,8 +1366,8 @@ function PostDetail({ post, channelId, onClose }) {
                           </div>
                         )}
                         <div className="flex justify-end gap-2 mt-2">
-                          <button onClick={() => setEditingCommentId(null)} className="text-white/40 hover:text-white text-xs">취소</button>
-                          <button onClick={() => handleCommentUpdate(c.id)} className="text-indigo-400 hover:text-indigo-300 text-xs font-semibold">저장</button>
+                          <button onClick={() => setEditingCommentId(null)} className="text-white/40 hover:text-white text-xs">{t.chat.cancel}</button>
+                          <button onClick={() => handleCommentUpdate(c.id)} className="text-indigo-400 hover:text-indigo-300 text-xs font-semibold">{t.chat.save}</button>
                         </div>
                       </div>
                     ) : (
@@ -1404,13 +1413,13 @@ function PostDetail({ post, channelId, onClose }) {
                   <svg className="w-8 h-8 text-indigo-400 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
                   </svg>
-                  <p className="text-indigo-300 text-sm font-semibold">파일을 놓아 첨부하세요</p>
+                  <p className="text-indigo-300 text-sm font-semibold">{t.chat.dropFile}</p>
                 </div>
               )}
               <textarea
                 value={comment}
                 onChange={e => setComment(e.target.value)}
-                placeholder="댓글을 입력하세요..."
+                placeholder={t.chat.commentPlaceholder}
                 rows={2}
                 className="w-full bg-transparent text-white/80 placeholder-white/20 text-sm px-4 pt-3 pb-2 resize-none focus:outline-none leading-relaxed"
                 onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleComment(e) } }}
@@ -1427,7 +1436,7 @@ function PostDetail({ post, channelId, onClose }) {
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
                   className="p-1.5 rounded-lg text-white/30 hover:text-white/70 hover:bg-white/8 transition-colors"
-                  title="파일 첨부"
+                  title={t.chat.attachFile}
                 >
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
@@ -1436,7 +1445,7 @@ function PostDetail({ post, channelId, onClose }) {
                 <div className="flex-1" />
                 <button type="submit" disabled={(!comment.trim() && files.length === 0) || uploading} className="px-3 py-1.5 rounded-lg bg-indigo-600 disabled:bg-white/10 enabled:hover:bg-indigo-500 text-white text-xs font-semibold transition-colors flex items-center gap-2">
                   {uploading && <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
-                  {uploading ? '전송 중...' : '댓글 달기'}
+                  {uploading ? t.chat.sending : t.chat.addComment}
                 </button>
               </div>
             </div>
@@ -1446,7 +1455,7 @@ function PostDetail({ post, channelId, onClose }) {
             <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
             </svg>
-            보관된 채널에서는 댓글을 작성할 수 없습니다.
+            {t.chat.archivedComment}
           </div>
         )}
       </div>
@@ -1458,6 +1467,7 @@ function PostDetail({ post, channelId, onClose }) {
 
 export default function ChatArea({ autoOpenPostId }) {
   const { selectedChannel, posts, addPost, pendingOpenPostId } = useChat()
+  const t = useT()
   const [selectedPost, setSelectedPost] = useState(null)
   const [leftWidth, setLeftWidth] = useState(42) // percent
   const [resizing, setResizing] = useState(false)
@@ -1531,7 +1541,7 @@ export default function ChatArea({ autoOpenPostId }) {
   }
 
   if (!selectedChannel) {
-    return <div className="flex-1 flex items-center justify-center text-white/30 bg-[#1e1c30]">채널을 선택하세요</div>
+    return <div className="flex-1 flex items-center justify-center text-white/30 bg-[#1e1c30]">{t.chat.selectChannel}</div>
   }
 
   return (

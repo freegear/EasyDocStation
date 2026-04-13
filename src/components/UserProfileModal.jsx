@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { ROLE_LABELS, ROLE_BADGE } from '../constants/roles'
+import { useT } from '../i18n/useT'
 
 export default function UserProfileModal({ onClose }) {
   const { currentUser, updateProfile } = useAuth()
+  const t = useT()
   const [tab, setTab] = useState('info')   // 'info' | 'password'
 
   const [name, setName] = useState(currentUser?.name ?? '')
@@ -20,9 +22,7 @@ export default function UserProfileModal({ onClose }) {
 
   useEffect(() => {
     const handleKeyDown = (e) => {
-      if (e.key === 'Escape') {
-        onClose()
-      }
+      if (e.key === 'Escape') onClose()
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
@@ -36,7 +36,7 @@ export default function UserProfileModal({ onClose }) {
     setSaving(true)
     try {
       await updateProfile({ name, email, image_url: imageUrl })
-      setSuccess('정보가 업데이트되었습니다.')
+      setSuccess(t.profile.successInfo)
     } catch (err) {
       setError(err.message)
     } finally {
@@ -48,21 +48,19 @@ export default function UserProfileModal({ onClose }) {
     const file = e.target.files?.[0]
     if (!file) return
     if (!file.type.startsWith('image/')) {
-      setError('이미지 파일만 업로드 가능합니다.')
+      setError(t.profile.imageOnly)
       return
     }
 
     setSaving(true)
     clearMessages()
     try {
-      // Canvas를 사용하여 100x100으로 리사이즈 후 Base64로 변환
       const base64 = await resizeImageToBase64(file, 100, 100)
       setImageUrl(base64)
-      // 즉시 DB에 저장 (저장 버튼 찾을 필요 없음)
       await updateProfile({ image_url: base64 })
-      setSuccess('프로필 사진이 업데이트되었습니다.')
+      setSuccess(t.profile.imageUploadSuccess)
     } catch (err) {
-      setError('이미지 업로드 실패: ' + err.message)
+      setError(t.profile.imageUploadFail(err.message))
     } finally {
       setSaving(false)
     }
@@ -78,7 +76,6 @@ export default function UserProfileModal({ onClose }) {
         canvas.width = maxW
         canvas.height = maxH
         const ctx = canvas.getContext('2d')
-        // 비율 유지하면서 켨래 스케일 (cover 방식)
         const scale = Math.max(maxW / img.width, maxH / img.height)
         const sw = maxW / scale
         const sh = maxH / scale
@@ -95,12 +92,12 @@ export default function UserProfileModal({ onClose }) {
   async function handleChangePassword(e) {
     e.preventDefault()
     clearMessages()
-    if (newPw !== confirmPw) { setError('새 비밀번호가 일치하지 않습니다.'); return }
-    if (newPw.length < 6) { setError('비밀번호는 6자 이상이어야 합니다.'); return }
+    if (newPw !== confirmPw) { setError(t.profile.passwordMismatch); return }
+    if (newPw.length < 6) { setError(t.profile.passwordTooShort); return }
     setSaving(true)
     try {
       await updateProfile({ currentPassword: currentPw, newPassword: newPw })
-      setSuccess('비밀번호가 변경되었습니다.')
+      setSuccess(t.profile.successPassword)
       setCurrentPw(''); setNewPw(''); setConfirmPw('')
     } catch (err) {
       setError(err.message)
@@ -112,6 +109,11 @@ export default function UserProfileModal({ onClose }) {
   const roleBadge = ROLE_BADGE[currentUser?.role] ?? ROLE_BADGE.user
   const roleLabel = ROLE_LABELS[currentUser?.role] ?? ''
 
+  const tabs = [
+    { key: 'info', label: t.profile.tabInfoFull },
+    { key: 'password', label: t.profile.tabPassword },
+  ]
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
       {/* Backdrop */}
@@ -120,7 +122,7 @@ export default function UserProfileModal({ onClose }) {
       <div className="relative w-full max-w-md bg-[#1e1c30] rounded-3xl border border-white/10 shadow-2xl shadow-black/50 overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-white/10">
-          <h2 className="text-white font-bold text-base">사용자 정보 편집</h2>
+          <h2 className="text-white font-bold text-base">{t.profile.title}</h2>
           <button onClick={onClose} className="w-8 h-8 rounded-lg text-white/30 hover:text-white hover:bg-white/10 flex items-center justify-center transition-colors">
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -157,17 +159,17 @@ export default function UserProfileModal({ onClose }) {
 
         {/* Tabs */}
         <div className="flex border-b border-white/8">
-          {[{ key: 'info', label: '기본 정보' }, { key: 'password', label: '비밀번호 변경' }].map(t => (
+          {tabs.map(tb => (
             <button
-              key={t.key}
-              onClick={() => { setTab(t.key); clearMessages() }}
+              key={tb.key}
+              onClick={() => { setTab(tb.key); clearMessages() }}
               className={`flex-1 py-3 text-sm font-medium transition-colors ${
-                tab === t.key
+                tab === tb.key
                   ? 'text-white border-b-2 border-indigo-500'
                   : 'text-white/40 hover:text-white/70'
               }`}
             >
-              {t.label}
+              {tb.label}
             </button>
           ))}
         </div>
@@ -184,15 +186,15 @@ export default function UserProfileModal({ onClose }) {
           {/* Basic info tab */}
           {tab === 'info' && (
             <form onSubmit={handleSaveInfo} className="flex flex-col gap-4">
-              <Field label="이름" value={name} onChange={setName} placeholder="이름" />
-              <Field label="이메일" type="email" value={email} onChange={setEmail} placeholder="email@example.com" />
-              <Field label="아이디" value={currentUser?.username ?? ''} disabled />
+              <Field label={t.profile.name} value={name} onChange={setName} placeholder={t.profile.name} />
+              <Field label={t.profile.email} type="email" value={email} onChange={setEmail} placeholder="email@example.com" />
+              <Field label={t.profile.username} value={currentUser?.username ?? ''} disabled />
               <button
                 type="submit"
                 disabled={saving}
                 className="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-60 text-white text-sm font-semibold transition-colors"
               >
-                {saving ? '저장 중...' : '저장'}
+                {saving ? t.profile.saving : t.profile.save}
               </button>
             </form>
           )}
@@ -200,15 +202,15 @@ export default function UserProfileModal({ onClose }) {
           {/* Password tab */}
           {tab === 'password' && (
             <form onSubmit={handleChangePassword} className="flex flex-col gap-4">
-              <Field label="현재 비밀번호" type="password" value={currentPw} onChange={setCurrentPw} placeholder="현재 비밀번호" />
-              <Field label="새 비밀번호" type="password" value={newPw} onChange={setNewPw} placeholder="6자 이상" />
-              <Field label="새 비밀번호 확인" type="password" value={confirmPw} onChange={setConfirmPw} placeholder="새 비밀번호 재입력" />
+              <Field label={t.profile.currentPassword} type="password" value={currentPw} onChange={setCurrentPw} placeholder={t.profile.currentPasswordPlaceholder} />
+              <Field label={t.profile.newPassword} type="password" value={newPw} onChange={setNewPw} placeholder={t.profile.passwordMinLength} />
+              <Field label={t.profile.confirmPassword} type="password" value={confirmPw} onChange={setConfirmPw} placeholder={t.profile.passwordReenter} />
               <button
                 type="submit"
                 disabled={saving || !currentPw || !newPw || !confirmPw}
                 className="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-60 text-white text-sm font-semibold transition-colors"
               >
-                {saving ? '변경 중...' : '비밀번호 변경'}
+                {saving ? t.profile.changingPassword : t.profile.changePassword}
               </button>
             </form>
           )}
