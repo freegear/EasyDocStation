@@ -24,6 +24,8 @@ function toPublicUser(u) {
   }
 }
 
+const MAX_FAILED_ATTEMPTS = 3
+
 // POST /api/auth/login
 router.post('/login', async (req, res) => {
   const { email, password } = req.body
@@ -35,17 +37,47 @@ router.post('/login', async (req, res) => {
       [email.trim().toLowerCase()]
     )
     const user = rows[0]
-    if (!user || !user.is_active) {
+
+    // 계정이 없는 경우
+    if (!user) {
       return res.status(401).json({ error: '이메일 또는 비밀번호가 올바르지 않습니다.' })
+    }
+
+    // 계정이 비활성화된 경우 (잠김)
+    if (!user.is_active) {
+      return res.status(401).json({ error: '계정이 잠겼습니다. 관리자에게 문의하세요.', code: 'ACCOUNT_LOCKED' })
     }
 
     const valid = await bcrypt.compare(password, user.password_hash)
     if (!valid) {
-      return res.status(401).json({ error: '이메일 또는 비밀번호가 올바르지 않습니다.' })
+      const newAttempts = (user.failed_login_attempts || 0) + 1
+
+      if (newAttempts >= MAX_FAILED_ATTEMPTS) {
+        // 3회 이상 실패 → 계정 비활성화
+        await pool.query(
+          'UPDATE users SET failed_login_attempts = $1, is_active = false WHERE id = $2',
+          [newAttempts, user.id]
+        )
+        return res.status(401).json({
+          error: `비밀번호를 ${MAX_FAILED_ATTEMPTS}회 이상 틀렸습니다. 계정이 잠겼습니다. 관리자에게 문의하세요.`,
+          code: 'ACCOUNT_LOCKED',
+        })
+      }
+
+      await pool.query(
+        'UPDATE users SET failed_login_attempts = $1 WHERE id = $2',
+        [newAttempts, user.id]
+      )
+      return res.status(401).json({
+        error: `비밀번호가 올바르지 않습니다. (${newAttempts}/${MAX_FAILED_ATTEMPTS}회 실패)`,
+      })
     }
 
-    // Record login time and history
-    await pool.query('UPDATE users SET last_login_at = NOW() WHERE id = $1', [user.id])
+    // 로그인 성공 — 실패 횟수 초기화 및 기록
+    await pool.query(
+      'UPDATE users SET failed_login_attempts = 0, last_login_at = NOW() WHERE id = $1',
+      [user.id]
+    )
     await pool.query(
       'INSERT INTO login_history (user_id, ip_address, user_agent) VALUES ($1, $2, $3)',
       [user.id, req.ip, req.headers['user-agent']]

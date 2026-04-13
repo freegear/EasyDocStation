@@ -2,24 +2,86 @@ const express = require('express')
 const router = express.Router()
 const path = require('path')
 const fs = require('fs')
+const http = require('http')
 const { spawn } = require('child_process')
 const db = require('../db')
 const requireAuth = require('../middleware/auth')
 
 const CONFIG_PATH = path.resolve(__dirname, '../../config.json')
+const RAG_SERVER_PORT = 5001
 
 function readConfig() {
   try { return JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8')) }
   catch (e) { return {} }
 }
 
-// ─── Python 검색 스크립트 호출 ────────────────────────────────
-function callPythonSearch(payload) {
+// ─── 영구 Python RAG 서버 관리 ────────────────────────────────
+let ragServerReady = false
+let ragServerProc  = null
+
+function startRagServer() {
+  const script = path.resolve(__dirname, '../rag_server.py')
+  ragServerProc = spawn('python3', [script, String(RAG_SERVER_PORT)], {
+    stdio: ['ignore', 'pipe', 'pipe']
+  })
+  ragServerProc.stdout.on('data', d => {
+    const msg = d.toString()
+    process.stdout.write(`[RAG Server] ${msg}`)
+    if (msg.includes('시작됨')) ragServerReady = true
+  })
+  ragServerProc.stderr.on('data', d => {
+    const msg = d.toString()
+    // sentence_transformers 초기화 로그 등 정상 stderr는 억제
+    if (!msg.includes('huggingface') && !msg.includes('tokenizer') && !msg.includes('Batches')) {
+      process.stderr.write(`[RAG Server ERR] ${msg}`)
+    }
+  })
+  ragServerProc.on('close', code => {
+    ragServerReady = false
+    if (code !== null) {  // 의도적 종료가 아닐 때만 재시작
+      console.log(`[RAG Server] 프로세스 종료 (code=${code}), 5초 후 재시작...`)
+      setTimeout(startRagServer, 5000)
+    }
+  })
+}
+
+startRagServer()
+
+// ─── 영구 서버 HTTP 호출 ──────────────────────────────────────
+function callRagServer(payload) {
+  return new Promise((resolve, reject) => {
+    const body = JSON.stringify(payload)
+    const req = http.request({
+      hostname: '127.0.0.1',
+      port: RAG_SERVER_PORT,
+      path: '/',
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength(body),
+      },
+      timeout: 30000,
+    }, res => {
+      let data = ''
+      res.on('data', d => data += d)
+      res.on('end', () => {
+        try { resolve(JSON.parse(data)) }
+        catch (e) { reject(new Error('검색 결과 파싱 실패')) }
+      })
+    })
+    req.on('error', reject)
+    req.on('timeout', () => { req.destroy(); reject(new Error('RAG 서버 타임아웃')) })
+    req.write(body)
+    req.end()
+  })
+}
+
+// ─── fallback: 서버 미준비 시 직접 subprocess 호출 ────────────
+function callPythonSearchDirect(payload) {
   return new Promise((resolve, reject) => {
     const script = path.resolve(__dirname, '../rag_search.py')
     const proc = spawn('python3', [script], { timeout: 60000 })
     let out = '', err = ''
-
     proc.stdin.write(JSON.stringify(payload))
     proc.stdin.end()
     proc.stdout.on('data', d => out += d)
@@ -33,22 +95,29 @@ function callPythonSearch(payload) {
   })
 }
 
-// ─── 참고문헌 정보 DB 조회 ────────────────────────────────────
+function callPythonSearch(payload) {
+  if (ragServerReady) return callRagServer(payload)
+  return callPythonSearchDirect(payload)
+}
+
+// ─── 참고문헌 정보 DB 조회 (병렬 처리) ──────────────────────
 async function enrichReferences(results) {
-  const refs = []
   const seen = new Set()
-
+  const unique = []
   for (const r of results) {
-    let { post_id, type, channel_id: metaChannelId, attachment_id, comment_id } = r.metadata
+    const { post_id, type, channel_id: metaChannelId, attachment_id, comment_id } = r.metadata
     if (!post_id || post_id === '') continue
-
     const key = `${post_id}:${type}:${attachment_id || ''}:${comment_id || ''}`
     if (seen.has(key)) continue
     seen.add(key)
+    unique.push({ r, post_id, type, metaChannelId, attachment_id, comment_id })
+  }
 
+  const settled = await Promise.all(unique.map(async ({ r, post_id, type, metaChannelId, attachment_id, comment_id }) => {
     try {
-      // ── channel_id가 메타데이터에 없으면 Cassandra에서 찾기 ──
-      if (!metaChannelId) {
+      // ── channel_id가 메타데이터에 없으면 DB에서 조회 ──
+      let channelId = metaChannelId
+      if (!channelId) {
         try {
           const cass = require('../cassandra')
           if (cass.isConnected()) {
@@ -56,60 +125,59 @@ async function enrichReferences(results) {
               'SELECT channel_id FROM posts WHERE id = ? ALLOW FILTERING',
               [post_id], { prepare: true }
             )
-            if (pRes.rows.length > 0) metaChannelId = pRes.rows[0].channel_id
+            if (pRes.rows.length > 0) channelId = pRes.rows[0].channel_id
           }
         } catch (_) {}
-        // 첨부파일 테이블은 여전히 PostgreSQL
-        if (!metaChannelId) {
+        if (!channelId) {
           const aRes = await db.query('SELECT channel_id FROM attachments WHERE post_id = $1 LIMIT 1', [post_id])
-          if (aRes.rowCount > 0) metaChannelId = aRes.rows[0].channel_id
+          if (aRes.rowCount > 0) channelId = aRes.rows[0].channel_id
         }
       }
 
-      // ── 채널/팀 이름 조회 ──
-      let channelName = '', teamName = ''
-      if (metaChannelId) {
-        const chRes = await db.query(
-          `SELECT c.name AS channel_name, t.name AS team_name
-           FROM channels c LEFT JOIN teams t ON t.id = c.team_id
-           WHERE c.id = $1 LIMIT 1`,
-          [metaChannelId]
-        )
-        if (chRes.rowCount > 0) {
-          channelName = chRes.rows[0].channel_name || ''
-          teamName = chRes.rows[0].team_name || ''
-        }
-      }
+      // ── 채널/팀 이름 + 첨부파일 이름을 병렬 조회 ──
+      const [chRes, fileRes] = await Promise.all([
+        channelId
+          ? db.query(
+              `SELECT c.name AS channel_name, t.name AS team_name
+               FROM channels c LEFT JOIN teams t ON t.id = c.team_id
+               WHERE c.id = $1 LIMIT 1`,
+              [channelId]
+            )
+          : Promise.resolve({ rowCount: 0, rows: [] }),
+        type === 'pdf' && attachment_id
+          ? db.query(`SELECT filename FROM attachments WHERE id = $1 LIMIT 1`, [attachment_id])
+          : Promise.resolve({ rowCount: 0, rows: [] }),
+      ])
+
+      const channelName = chRes.rowCount > 0 ? (chRes.rows[0].channel_name || '') : ''
+      const teamName    = chRes.rowCount > 0 ? (chRes.rows[0].team_name    || '') : ''
 
       const baseRef = {
         channel: channelName,
-        channel_id: metaChannelId || '',
+        channel_id: channelId || '',
         team: teamName,
         post_id,
         attachment_id: attachment_id || '',
-        comment_id: comment_id || ''
+        comment_id: comment_id || '',
       }
 
       if (type === 'pdf') {
-        const res = await db.query(
-          `SELECT filename FROM attachments WHERE id = $1 LIMIT 1`,
-          [attachment_id]
-        )
-        const label = res.rowCount > 0 ? res.rows[0].filename : '첨부 문서'
-        refs.push({ ...baseRef, type: 'pdf', label })
+        const label = fileRes.rowCount > 0 ? fileRes.rows[0].filename : '첨부 문서'
+        return { ...baseRef, type: 'pdf', label }
       } else if (type === 'comment') {
         const preview = (r.text || '').slice(0, 60).replace(/\n/g, ' ')
-        refs.push({ ...baseRef, type: 'comment', label: preview + ((r.text?.length ?? 0) > 60 ? '…' : '') })
+        return { ...baseRef, type: 'comment', label: preview + ((r.text?.length ?? 0) > 60 ? '…' : '') }
       } else {
-        // post / manual_text
         const preview = (r.text || '').slice(0, 60).replace(/\n/g, ' ')
-        refs.push({ ...baseRef, type: 'post', label: preview + ((r.text?.length ?? 0) > 60 ? '…' : '') })
+        return { ...baseRef, type: 'post', label: preview + ((r.text?.length ?? 0) > 60 ? '…' : '') }
       }
     } catch (e) {
       console.error('[RAG] 참고문헌 조회 오류:', e.message)
+      return null
     }
-  }
-  return refs
+  }))
+
+  return settled.filter(Boolean)
 }
 
 // ─── POST /api/rag/search ─────────────────────────────────────

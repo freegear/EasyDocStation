@@ -1098,6 +1098,10 @@ function PostDetail({ post, channelId, onClose }) {
   const isAdmin = ['Admin', 'site_admin', 'channel_admin', 'team_admin'].includes(currentUser?.role)
 
   function addFiles(newFiles) {
+    if (files.length + newFiles.length > 10) {
+      alert('첨부파일은 최대 10개까지만 가능합니다.')
+      return
+    }
     if (newFiles.length > 0 && !comment.trim()) {
       setComment(newFiles[0].name)
     }

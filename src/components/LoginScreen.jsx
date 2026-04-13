@@ -6,16 +6,22 @@ export default function LoginScreen() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
+  const [isLocked, setIsLocked] = useState(false)
   const [loading, setLoading] = useState(false)
 
   async function handleSubmit(e) {
     e.preventDefault()
     setError('')
+    setIsLocked(false)
     setLoading(true)
     try {
       await login(email, password)
     } catch (err) {
-      setError(err.message || '이메일 또는 비밀번호가 올바르지 않습니다.')
+      const msg = err.message || '이메일 또는 비밀번호가 올바르지 않습니다.'
+      if (msg.includes('잠겼습니다')) {
+        setIsLocked(true)
+      }
+      setError(msg)
     } finally {
       setLoading(false)
     }
@@ -67,7 +73,17 @@ export default function LoginScreen() {
             </div>
 
             {error && (
-              <div className="bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 text-red-400 text-sm">
+              <div className={`border rounded-xl px-4 py-3 text-sm ${
+                isLocked
+                  ? 'bg-orange-500/10 border-orange-500/30 text-orange-400'
+                  : 'bg-red-500/10 border-red-500/30 text-red-400'
+              }`}>
+                {isLocked && (
+                  <div className="flex items-center gap-2 mb-1 font-semibold">
+                    <span>🔒</span>
+                    <span>계정 잠김</span>
+                  </div>
+                )}
                 {error}
               </div>
             )}

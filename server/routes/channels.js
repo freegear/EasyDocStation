@@ -2,6 +2,100 @@ const express = require('express')
 const router = express.Router()
 const db = require('../db')
 const requireAuth = require('../middleware/auth')
+const { client, isConnected } = require('../cassandra')
+
+// ─── Unread counts ────────────────────────────────────────────
+
+// GET /api/channels/unread — 현재 사용자의 채널별 읽지 않은 게시글 수
+router.get('/unread', requireAuth, async (req, res, next) => {
+  try {
+    const userId = req.user.id
+
+    // 사용자가 접근 가능한 모든 채널 ID 조회 (소속 팀의 public + 멤버인 private)
+    const channelsRes = await db.query(`
+      SELECT DISTINCT c.id
+      FROM channels c
+      JOIN team_members tm ON tm.team_id = c.team_id AND tm.user_id = $1
+      WHERE c.is_archived = false
+        AND (
+          c.type = 'public'
+          OR c.id IN (SELECT channel_id FROM channel_members WHERE user_id = $1)
+        )
+    `, [userId])
+
+    const channelIds = channelsRes.rows.map(r => r.id)
+    if (channelIds.length === 0) return res.json({})
+
+    // 마지막 읽은 시각 조회
+    const lastReadRes = await db.query(`
+      SELECT channel_id, last_read_at
+      FROM channel_last_read
+      WHERE user_id = $1 AND channel_id = ANY($2)
+    `, [userId, channelIds])
+
+    const lastReadMap = {}
+    for (const row of lastReadRes.rows) {
+      lastReadMap[row.channel_id] = row.last_read_at
+    }
+
+    const unreadCounts = {}
+
+    if (isConnected()) {
+      // Cassandra: channel_id 파티션 키 + created_at 클러스터링 키로 효율적 조회
+      await Promise.all(channelIds.map(async channelId => {
+        const lastRead = lastReadMap[channelId]
+        let result
+        if (!lastRead) {
+          result = await client.execute(
+            'SELECT COUNT(*) FROM posts WHERE channel_id = ?',
+            [channelId], { prepare: true }
+          )
+        } else {
+          result = await client.execute(
+            'SELECT COUNT(*) FROM posts WHERE channel_id = ? AND created_at > ?',
+            [channelId, lastRead], { prepare: true }
+          )
+        }
+        unreadCounts[channelId] = result.rows[0] ? Number(result.rows[0].count) : 0
+      }))
+    } else {
+      // PostgreSQL fallback
+      await Promise.all(channelIds.map(async channelId => {
+        const lastRead = lastReadMap[channelId]
+        let result
+        if (!lastRead) {
+          result = await db.query('SELECT COUNT(*) FROM posts WHERE channel_id = $1', [channelId])
+        } else {
+          result = await db.query(
+            'SELECT COUNT(*) FROM posts WHERE channel_id = $1 AND created_at > $2',
+            [channelId, lastRead]
+          )
+        }
+        unreadCounts[channelId] = parseInt(result.rows[0].count, 10)
+      }))
+    }
+
+    res.json(unreadCounts)
+  } catch (err) {
+    next(err)
+  }
+})
+
+// POST /api/channels/:id/read — 채널을 읽음 처리 (last_read_at 갱신)
+router.post('/:id/read', requireAuth, async (req, res, next) => {
+  try {
+    const { id } = req.params
+    await db.query(`
+      INSERT INTO channel_last_read (user_id, channel_id, last_read_at)
+      VALUES ($1, $2, NOW())
+      ON CONFLICT (user_id, channel_id)
+      DO UPDATE SET last_read_at = NOW()
+    `, [req.user.id, id])
+    res.json({ success: true })
+  } catch (err) {
+    next(err)
+  }
+})
 
 // ─── Channels ────────────────────────────────────────────────
 
@@ -143,11 +237,33 @@ router.get('/:id/members', requireAuth, async (req, res, next) => {
   }
 })
 
+// 채널 멤버 수정 권한 확인 헬퍼
+// site_admin, 채널 소속 팀의 team_admin, 또는 channel_admin만 가능
+async function requireChannelMemberAdmin(req, res, channelId) {
+  if (req.user.role === 'site_admin') return true
+
+  const chRes = await db.query('SELECT team_id FROM channels WHERE id = $1', [channelId])
+  if (chRes.rowCount === 0) { res.status(404).json({ error: '채널을 찾을 수 없습니다.' }); return false }
+  const teamId = chRes.rows[0].team_id
+
+  const [teamAdminCheck, channelAdminCheck] = await Promise.all([
+    db.query('SELECT 1 FROM team_admins WHERE team_id = $1 AND user_id = $2', [teamId, req.user.id]),
+    db.query('SELECT 1 FROM channel_admins WHERE channel_id = $1 AND user_id = $2', [channelId, req.user.id]),
+  ])
+
+  if (teamAdminCheck.rowCount > 0 || channelAdminCheck.rowCount > 0) return true
+
+  res.status(403).json({ error: '채널 멤버 관리 권한이 없습니다. 사이트 관리자, 팀 관리자, 또는 채널 관리자만 가능합니다.' })
+  return false
+}
+
 // Add member to channel
 router.post('/:id/members', requireAuth, async (req, res, next) => {
   try {
     const { id } = req.params
     const { userId } = req.body
+
+    if (!await requireChannelMemberAdmin(req, res, id)) return
 
     await db.query(
       'INSERT INTO channel_members (channel_id, user_id, added_by) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING',
@@ -164,6 +280,9 @@ router.post('/:id/members', requireAuth, async (req, res, next) => {
 router.delete('/:id/members/:userId', requireAuth, async (req, res, next) => {
   try {
     const { id, userId } = req.params
+
+    if (!await requireChannelMemberAdmin(req, res, id)) return
+
     await db.query(
       'DELETE FROM channel_members WHERE channel_id = $1 AND user_id = $2',
       [id, parseInt(userId)]

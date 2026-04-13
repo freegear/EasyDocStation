@@ -6,3 +6,7 @@ node_modules/
 .env
 dist/
 node_modules/
+*.mkv
+*.pptx
+*.mp4
+Database/ObjectFile/

@@ -40,8 +40,9 @@
     "chunk_overlap": 100
   },
   "agenticai": {
-    "num_predict": 4096,
-    "num_ctx": 8192
+    "num_predict": 2048,
+    "num_ctx": 4096,
+    "history": 6
   },
   "email_settings": {
     "smtp_server": "smtp.gmail.com",

@@ -1,28 +1,71 @@
-import { createContext, useContext, useState, useEffect } from 'react'
+import { createContext, useContext, useState, useEffect, useRef } from 'react'
 import { TEAMS, POSTS } from '../data/mockData'
 import { apiFetch } from '../lib/api'
 
 const ChatContext = createContext(null)
 
 export function ChatProvider({ children }) {
-  const [teams, setTeams] = useState(TEAMS)
-  const [selectedTeam, setSelectedTeam] = useState(TEAMS[0])
-  const [selectedChannel, setSelectedChannel] = useState(TEAMS[0].channels[0])
-  const [posts, setPosts] = useState(POSTS)
+  const [teams, setTeams] = useState([])
+  const [selectedTeam, setSelectedTeam] = useState({ id: null, channels: [], directMessages: [], admin_ids: [] })
+  const [selectedChannel, setSelectedChannel] = useState(null)
+  const [posts, setPosts] = useState({})
+  const selectedChannelRef = useRef(selectedChannel)
+
+  useEffect(() => {
+    selectedChannelRef.current = selectedChannel
+  }, [selectedChannel])
 
   useEffect(() => {
     refreshTeams()
   }, [])
 
+  // 30초마다 안읽은 글 수 갱신 (다른 사용자가 올린 새 게시글 반영)
+  useEffect(() => {
+    const interval = setInterval(refreshUnread, 30000)
+    return () => clearInterval(interval)
+  }, [])
+
+  // 채널별 unread count를 teams/selectedTeam state에 반영
+  function applyUnreadCounts(teamsData, counts) {
+    const currentChannelId = selectedChannelRef.current?.id
+    return teamsData.map(t => ({
+      ...t,
+      channels: t.channels.map(c => ({
+        ...c,
+        unread: c.id === currentChannelId ? 0 : (counts[c.id] ?? c.unread ?? 0),
+      })),
+    }))
+  }
+
+  async function refreshUnread() {
+    try {
+      const counts = await apiFetch('/channels/unread')
+      setTeams(prev => applyUnreadCounts(prev, counts))
+      setSelectedTeam(prev => ({
+        ...prev,
+        channels: prev.channels.map(c => ({
+          ...c,
+          unread: c.id === selectedChannelRef.current?.id ? 0 : (counts[c.id] ?? c.unread ?? 0),
+        })),
+      }))
+    } catch (_) {}
+  }
+
   async function refreshTeams() {
     try {
-      const data = await apiFetch('/teams')
+      const [data, unreadCounts] = await Promise.all([
+        apiFetch('/teams'),
+        apiFetch('/channels/unread').catch(() => ({})),
+      ])
       if (data.length > 0) {
         const enriched = await Promise.all(data.map(async t => {
           const members = await apiFetch(`/teams/${t.id}/members`)
           return {
             ...t,
-            channels: (t.channels || []).map(c => ({ ...c, unread: 0 })),
+            channels: (t.channels || []).map(c => ({
+              ...c,
+              unread: c.id === selectedChannelRef.current?.id ? 0 : (unreadCounts[c.id] ?? 0),
+            })),
             directMessages: members.map(m => ({
               id: `dm-${m.id}`,
               name: m.name,
@@ -36,19 +79,22 @@ export function ChatProvider({ children }) {
         }))
         setTeams(enriched)
 
-        if (selectedTeam) {
+        if (selectedTeam?.id) {
           const updated = enriched.find(t => t.id === selectedTeam.id)
           if (updated) {
             setSelectedTeam(updated)
             // 채널도 다시 동기화
             const updatedCh = updated.channels.find(c => c.id === selectedChannel?.id) || updated.channels[0]
             if (updatedCh) selectChannel(updatedCh)
+          } else {
+            // 기존 선택 팀이 사라진 경우 첫 번째 팀으로 폴백
+            setSelectedTeam(enriched[0])
+            if (enriched[0].channels?.length > 0) selectChannel(enriched[0].channels[0])
           }
         } else {
+          // 최초 로드 — 첫 번째 팀/채널 자동 선택
           setSelectedTeam(enriched[0])
-          if (enriched[0].channels && enriched[0].channels.length > 0) {
-            selectChannel(enriched[0].channels[0])
-          }
+          if (enriched[0].channels?.length > 0) selectChannel(enriched[0].channels[0])
         }
       }
     } catch (err) {
@@ -67,6 +113,18 @@ export function ChatProvider({ children }) {
   async function selectChannel(channel) {
     setSelectedChannel(channel)
     closeSearch()
+
+    // 읽음 처리: last_read_at 갱신 + 클라이언트 unread 즉시 0으로 초기화
+    apiFetch(`/channels/${channel.id}/read`, { method: 'POST' }).catch(() => {})
+    setTeams(prev => prev.map(t => ({
+      ...t,
+      channels: t.channels.map(c => c.id === channel.id ? { ...c, unread: 0 } : c),
+    })))
+    setSelectedTeam(prev => ({
+      ...prev,
+      channels: prev.channels.map(c => c.id === channel.id ? { ...c, unread: 0 } : c),
+    }))
+
     try {
       const data = await apiFetch(`/posts?channelId=${channel.id}`)
       setPosts(prev => ({ ...prev, [channel.id]: data }))
@@ -253,6 +311,7 @@ export function ChatProvider({ children }) {
       deleteComment,
       updateComment,
       refreshTeams,
+      refreshUnread,
       isSearchMode,
       setIsSearchMode,
       searchTerm,
