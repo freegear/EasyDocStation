@@ -113,3 +113,11 @@
 [2026-04-13T02:34:40.274Z] Success: thumbnails/1804efd9-d923-47e4-95d7-90d0b02cf1be.png
 [2026-04-13T02:35:25.041Z] Generating for b3ed59ad-68eb-4034-abb4-f96a3d5580de: qlmanage -t -s 512 -o "/Users/kevinim/Desktop/EasyDocStation/Database/ObjectFile/thumbnails" "/Users/kevinim/Desktop/EasyDocStation/Database/ObjectFile/ch-1775906672629/b3ed59ad-68eb-4034-abb4-f96a3d5580de/부속 계약서_CoreEdge_P1p_cen회신_20260410.docx"
 [2026-04-13T02:35:25.870Z] Success: thumbnails/b3ed59ad-68eb-4034-abb4-f96a3d5580de.png
+[2026-04-13T06:04:22.830Z] Generating for 4051ea58-dc63-477e-8c1b-3ae79decc679: qlmanage -t -s 512 -o "/Users/kevinim/Desktop/EasyDocStation/Database/ObjectFile/thumbnails" "/Users/kevinim/Desktop/EasyDocStation/Database/ObjectFile/ch-1775906672629/4051ea58-dc63-477e-8c1b-3ae79decc679/H30 N2840 J2900 2 LAN 4 COM PC.docx"
+[2026-04-13T06:04:23.022Z] Success: thumbnails/4051ea58-dc63-477e-8c1b-3ae79decc679.png
+[2026-04-13T06:04:23.035Z] Generating for f3b23f46-d630-4c3c-938d-eafc7f7369d9: qlmanage -t -s 512 -o "/Users/kevinim/Desktop/EasyDocStation/Database/ObjectFile/thumbnails" "/Users/kevinim/Desktop/EasyDocStation/Database/ObjectFile/ch-1775906672629/f3b23f46-d630-4c3c-938d-eafc7f7369d9/H30 N2840 J2900 2 LAN 4 COM PC.pdf"
+[2026-04-13T06:04:23.127Z] Success: thumbnails/f3b23f46-d630-4c3c-938d-eafc7f7369d9.png
+[2026-04-13T06:04:23.144Z] Generating for 1af124ea-5e99-4c96-a9ac-53a72096c5cc: qlmanage -t -s 512 -o "/Users/kevinim/Desktop/EasyDocStation/Database/ObjectFile/thumbnails" "/Users/kevinim/Desktop/EasyDocStation/Database/ObjectFile/ch-1775906672629/1af124ea-5e99-4c96-a9ac-53a72096c5cc/HD_magok_site_setup_development_guide ver_0.71.pptx"
+[2026-04-13T06:04:23.391Z] Success: thumbnails/1af124ea-5e99-4c96-a9ac-53a72096c5cc.png
+[2026-04-13T06:18:23.145Z] Generating for 5b0d2242-7ffa-4d72-8eac-2f9c70a34988: qlmanage -t -s 512 -o "/Users/kevinim/Desktop/EasyDocStation/Database/ObjectFile/thumbnails" "/Users/kevinim/Desktop/EasyDocStation/Database/ObjectFile/ch-1775906672629/5b0d2242-7ffa-4d72-8eac-2f9c70a34988/Invoice-GND3ICLV-0003.pdf"
+[2026-04-13T06:18:23.315Z] Success: thumbnails/5b0d2242-7ffa-4d72-8eac-2f9c70a34988.png

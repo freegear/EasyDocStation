@@ -329,9 +329,13 @@ router.post('/', requireAuth, async (req, res, next) => {
     const { channelId, content, attachmentIds } = req.body
     if (!channelId || !content) return res.status(400).json({ error: 'channelId and content are required' })
 
+    if (attachmentIds && attachmentIds.length > 10) {
+      return res.status(400).json({ error: '첨부파일은 최대 10개까지만 가능합니다.' })
+    }
+
     const postId = uuidv4()
     const authoredAt = new Date()
-    const ids = (attachmentIds || []).slice(0, 10)
+    const ids = (attachmentIds || [])
     const attCols = Array(10).fill(null)
     ids.forEach((id, i) => { attCols[i] = id })
 
@@ -490,6 +494,9 @@ router.post('/:id/comments', requireAuth, async (req, res, next) => {
     const { id: postId } = req.params
     const { content, attachmentIds = [], channelId } = req.body
     if (!content) return res.status(400).json({ error: 'content is required' })
+    if (attachmentIds.length > 10) {
+      return res.status(400).json({ error: '첨부파일은 최대 10개까지만 가능합니다.' })
+    }
 
     const commentId = `c-${uuidv4()}`
     const createdAt = new Date()

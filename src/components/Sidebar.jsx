@@ -73,7 +73,23 @@ export default function Sidebar() {
     return false
   }
 
-  const totalUnread = selectedTeam.channels.reduce((sum, ch) => sum + ch.unread, 0)
+  // 팀 추가 버튼: site_admin만
+  function canAddTeam() {
+    return currentUser?.role === 'site_admin'
+  }
+
+  // 채널 추가 버튼: site_admin 또는 현재 팀의 team_admin
+  function canAddChannel() {
+    if (!currentUser) return false
+    if (currentUser.role === 'site_admin') return true
+    if (currentUser.role === 'team_admin') {
+      const teamAdminIds = selectedTeam?.admin_ids || []
+      return teamAdminIds.includes(currentUser.id)
+    }
+    return false
+  }
+
+  const totalUnread = (selectedTeam?.channels || []).reduce((sum, ch) => sum + (ch.unread || 0), 0)
 
   return (
     <aside className="w-64 flex-shrink-0 bg-[#19172d] flex flex-col h-full border-r border-white/5">
@@ -109,14 +125,16 @@ export default function Sidebar() {
             )
           })}
 
-          {/* Add Team Button at the bottom of the list */}
-          <button
-            onClick={() => { setEditingTeam(null); setShowTeamModal(true) }}
-            className="flex items-center gap-2 w-full px-3 py-2 rounded-lg text-white/30 hover:text-white/60 hover:bg-white/5 text-sm transition-all mt-1"
-          >
-            <span className="text-lg leading-none">+</span>
-            <span>팀 추가</span>
-          </button>
+          {/* Add Team Button: site_admin만 표시 */}
+          {canAddTeam() && (
+            <button
+              onClick={() => { setEditingTeam(null); setShowTeamModal(true) }}
+              className="flex items-center gap-2 w-full px-3 py-2 rounded-lg text-white/30 hover:text-white/60 hover:bg-white/5 text-sm transition-all mt-1"
+            >
+              <span className="text-lg leading-none">+</span>
+              <span>팀 추가</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -170,18 +188,20 @@ export default function Sidebar() {
                 )
               })}
 
-              {/* Add channel */}
-              <button
-                onClick={() => {
-                  setEditingChannel(null)
-                  setChannelModalMode('add')
-                  setShowChannelModal(true)
-                }}
-                className="flex items-center gap-2 w-full px-2 py-1.5 rounded-md text-white/30 hover:text-white/60 text-sm transition-colors hover:bg-white/5"
-              >
-                <span className="text-lg leading-none">+</span>
-                <span>채널 추가</span>
-              </button>
+              {/* Add channel: site_admin 또는 현재 팀의 team_admin만 표시 */}
+              {canAddChannel() && (
+                <button
+                  onClick={() => {
+                    setEditingChannel(null)
+                    setChannelModalMode('add')
+                    setShowChannelModal(true)
+                  }}
+                  className="flex items-center gap-2 w-full px-2 py-1.5 rounded-md text-white/30 hover:text-white/60 text-sm transition-colors hover:bg-white/5"
+                >
+                  <span className="text-lg leading-none">+</span>
+                  <span>채널 추가</span>
+                </button>
+              )}
             </div>
           )}
         </div>

@@ -65,15 +65,21 @@ function AppContent() {
     )
   }
 
-  return currentUser ? <MainLayout /> : <LoginScreen />
+  if (!currentUser) return <LoginScreen />
+
+  // 로그인 성공 후에만 ChatProvider를 마운트
+  // → useEffect의 refreshTeams()가 인증 토큰이 있는 상태에서 실행됨
+  return (
+    <ChatProvider>
+      <MainLayout />
+    </ChatProvider>
+  )
 }
 
 export default function App() {
   return (
     <AuthProvider>
-      <ChatProvider>
-        <AppContent />
-      </ChatProvider>
+      <AppContent />
     </AuthProvider>
   )
 }

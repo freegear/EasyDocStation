@@ -63,6 +63,12 @@ CREATE TABLE IF NOT EXISTS users (
   last_login_at TIMESTAMPTZ
 );
 
+-- Migration: failed_login_attempts 컬럼 추가 (안전하게 재실행 가능)
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='failed_login_attempts')
+  THEN ALTER TABLE users ADD COLUMN failed_login_attempts INTEGER NOT NULL DEFAULT 0; END IF;
+END $$;
+
 -- ─── Login history ───────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS login_history (
   id           SERIAL PRIMARY KEY,
@@ -165,7 +171,16 @@ DO $$ BEGIN
   THEN ALTER TABLE attachments ADD COLUMN thumbnail_path TEXT; END IF;
 END $$;
 
+-- ─── Channel last-read tracking ──────────────────────────────
+CREATE TABLE IF NOT EXISTS channel_last_read (
+  user_id      INTEGER     NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  channel_id   VARCHAR(50) NOT NULL REFERENCES channels(id) ON DELETE CASCADE,
+  last_read_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  PRIMARY KEY (user_id, channel_id)
+);
+
 -- ─── Indexes ─────────────────────────────────────────────────
+CREATE INDEX IF NOT EXISTS idx_channel_last_read_user ON channel_last_read(user_id);
 CREATE INDEX IF NOT EXISTS idx_users_email          ON users(email);
 CREATE INDEX IF NOT EXISTS idx_users_role           ON users(role);
 CREATE INDEX IF NOT EXISTS idx_login_history_user   ON login_history(user_id);

@@ -38,7 +38,7 @@ export default function GroqPanel() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const [attachedFile, setAttachedFile] = useState(null)
-  const [aiConfig, setAiConfig] = useState({ num_predict: 4096, num_ctx: 8192 })
+  const [aiConfig, setAiConfig] = useState({ num_predict: 4096, num_ctx: 8192, history: 6 })
   const fileInputRef = useRef(null)
   const bottomRef = useRef(null)
   const textareaRef = useRef(null)
@@ -141,15 +141,26 @@ export default function GroqPanel() {
 
     const historyForApi = messages
       .filter(m => m.role !== 'system')
+      .slice(-(aiConfig.history ?? 6))  // 관리자 설정값만큼 최근 메시지 유지
       .map(m => ({ role: m.role, content: m.content }))
 
+    // ── 3-1. 스트리밍용 빈 메시지 먼저 추가 ────────────────────
+    const msgId = `a-${Date.now()}`
+    setMessages(prev => [...prev, {
+      id: msgId,
+      role: 'assistant',
+      content: '',
+      references: ragReferences,
+      time: new Date().toISOString(),
+      model: selectedModel,
+      streaming: true,
+    }])
+
     try {
-      // 로컬 Ollama Native API 호출 (멀티모달 지원 최적화)
+      // 로컬 Ollama Native API 호출 (스트리밍)
       const response = await fetch('http://localhost:11434/api/chat', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           model: selectedModel,
           messages: [
@@ -157,11 +168,11 @@ export default function GroqPanel() {
             ...historyForApi,
             userApiMessage,
           ],
-          stream: false,
+          stream: true,
           options: {
             temperature: 0.7,
-            num_ctx: aiConfig.num_ctx || 8192,
-            num_predict: aiConfig.num_predict || 4096,
+            num_ctx: aiConfig.num_ctx || 4096,
+            num_predict: aiConfig.num_predict || 2048,
           }
         }),
       })
@@ -171,26 +182,46 @@ export default function GroqPanel() {
         throw new Error(errData.error || `HTTP ${response.status}`)
       }
 
-      const data = await response.json()
-      const assistantContent = data.message?.content || '응답을 받지 못했습니다.'
+      // ── NDJSON 스트림 읽기 ─────────────────────────────────
+      const reader = response.body.getReader()
+      const decoder = new TextDecoder()
+      let accumulated = ''
+      let buf = ''
 
-      setMessages(prev => [...prev, {
-        id: `a-${Date.now()}`,
-        role: 'assistant',
-        content: assistantContent,
-        references: ragReferences,   // 참고문헌 첨부
-        time: new Date().toISOString(),
-        model: selectedModel,
-      }])
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+
+        buf += decoder.decode(value, { stream: true })
+        const lines = buf.split('\n')
+        buf = lines.pop()  // 마지막 불완전 줄은 다음 청크로
+
+        for (const line of lines) {
+          if (!line.trim()) continue
+          try {
+            const obj = JSON.parse(line)
+            if (obj.message?.content) {
+              accumulated += obj.message.content
+              setMessages(prev => prev.map(m =>
+                m.id === msgId ? { ...m, content: accumulated } : m
+              ))
+              bottomRef.current?.scrollIntoView({ behavior: 'instant' })
+            }
+          } catch (_) {}
+        }
+      }
+
+      // 스트리밍 완료 — streaming 플래그 제거
+      setMessages(prev => prev.map(m =>
+        m.id === msgId ? { ...m, streaming: false } : m
+      ))
     } catch (err) {
       setError(err.message)
-      setMessages(prev => [...prev, {
-        id: `err-${Date.now()}`,
-        role: 'assistant',
-        content: `오류가 발생했습니다: ${err.message}`,
-        time: new Date().toISOString(),
-        isError: true,
-      }])
+      setMessages(prev => prev.map(m =>
+        m.id === msgId
+          ? { ...m, content: `오류가 발생했습니다: ${err.message}`, streaming: false, isError: true }
+          : m
+      ))
     } finally {
       setLoading(false)
     }
@@ -305,6 +336,9 @@ export default function GroqPanel() {
                   />
                 </div>
               )}
+              {msg.streaming && msg.content === '' && (
+                <span className="inline-block w-1.5 h-3.5 bg-white/50 rounded-sm animate-pulse" />
+              )}
               {msg.role === 'assistant' && !msg.isError ? (
                 <ReactMarkdown
                   remarkPlugins={[remarkGfm]}
@@ -329,7 +363,7 @@ export default function GroqPanel() {
                     td: ({ children }) => <td className="border border-white/10 px-2 py-1">{children}</td>,
                   }}
                 >
-                  {msg.content}
+                  {msg.content + (msg.streaming ? '▍' : '')}
                 </ReactMarkdown>
               ) : (
                 msg.content

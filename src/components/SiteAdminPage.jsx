@@ -346,7 +346,7 @@ export default function SiteAdminPage({ onClose }) {
   })
   const [lancedbPath, setLancedbPath] = useState('/Users/kevinim/Desktop/EasyDocStation/Database/LanceDB')
   const [ragForm, setRagForm] = useState({ type: 'manual', time: '02:00', vectorSize: 1024, chunkSize: 800, chunkOverlap: 100 })
-  const [agenticaiForm, setAgenticaiForm] = useState({ num_predict: 4096, num_ctx: 8192 })
+  const [agenticaiForm, setAgenticaiForm] = useState({ num_predict: 4096, num_ctx: 8192, history: 6 })
   const [savingConfig, setSavingConfig] = useState(false)
   const [trainingStatus, setTrainingStatus] = useState(null) // 'running', 'done', null
   const [resetConfirmation, setResetConfirmation] = useState('')
@@ -406,7 +406,8 @@ export default function SiteAdminPage({ onClose }) {
       if (data.agenticai) {
         setAgenticaiForm({
           num_predict: data.agenticai.num_predict || 4096,
-          num_ctx: data.agenticai.num_ctx || 8192
+          num_ctx: data.agenticai.num_ctx || 8192,
+          history: data.agenticai.history ?? 6
         })
       }
     } catch (err) {
@@ -488,7 +489,8 @@ export default function SiteAdminPage({ onClose }) {
       } else if (activeTab === 'agenticai') {
         configData.agenticai = {
           num_predict: parseInt(agenticaiForm.num_predict),
-          num_ctx: parseInt(agenticaiForm.num_ctx)
+          num_ctx: parseInt(agenticaiForm.num_ctx),
+          history: parseInt(agenticaiForm.history)
         }
       }
 
@@ -1354,6 +1356,36 @@ export default function SiteAdminPage({ onClose }) {
                       }`}
                     >
                       {size.toLocaleString()}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* history */}
+              <div className="bg-white/5 border border-white/10 rounded-2xl p-8 shadow-xl">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center">
+                    <svg className="w-5 h-5 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="text-white font-bold text-base">대화 히스토리 (History)</h3>
+                    <p className="text-white/30 text-xs mt-0.5">AI에게 전달할 이전 대화 메시지 수입니다. 값이 클수록 문맥 이해가 높아지지만 응답 속도가 느려집니다.</p>
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-3">
+                  {[2, 4, 6, 8, 16, 32, 64].map(n => (
+                    <button
+                      key={n}
+                      onClick={() => setAgenticaiForm(p => ({ ...p, history: n }))}
+                      className={`px-5 py-2.5 rounded-xl text-sm font-bold transition-all border ${
+                        agenticaiForm.history === n
+                          ? 'bg-purple-500/20 border-purple-500/60 text-purple-300 shadow-lg shadow-purple-500/10'
+                          : 'bg-white/3 border-white/5 text-white/30 hover:text-white/60 hover:border-white/10'
+                      }`}
+                    >
+                      {n}
                     </button>
                   ))}
                 </div>

@@ -3,11 +3,17 @@ const router = express.Router()
 const db = require('../db')
 const requireAuth = require('../middleware/auth')
 
-// GET /api/teams — List all teams with their channels
+// GET /api/teams — 역할에 따른 팀/채널 목록 반환
+//   site_admin  : 모든 팀 + 모든 채널
+//   team_admin  : 자신이 속한 팀 + 해당 팀의 모든 채널
+//   channel_admin / user : 자신이 속한 팀 + (public 채널 + 자신이 멤버인 채널 + 자신이 admin인 채널)
 router.get('/', requireAuth, async (req, res, next) => {
   try {
+    const userId = req.user.id
+    const isSiteAdmin = req.user.role === 'site_admin'
+
     const result = await db.query(`
-      SELECT t.*, 
+      SELECT t.*,
         (SELECT json_agg(
           json_build_object(
             'id', c.id,
@@ -22,16 +28,30 @@ router.get('/', requireAuth, async (req, res, next) => {
               WHERE ca.channel_id = c.id
             )
           ) ORDER BY c.name ASC
-        ) 
-         FROM channels c WHERE c.team_id = t.id) as channels,
-        (SELECT json_agg(u.username) 
-         FROM users u JOIN team_admins ta ON u.id = ta.user_id 
+        )
+        FROM channels c
+        WHERE c.team_id = t.id
+          AND (
+            $2::boolean = true
+            OR EXISTS (SELECT 1 FROM team_admins ta WHERE ta.team_id = t.id AND ta.user_id = $1)
+            OR c.type = 'public'
+            OR EXISTS (SELECT 1 FROM channel_members cm WHERE cm.channel_id = c.id AND cm.user_id = $1)
+            OR EXISTS (SELECT 1 FROM channel_admins ca WHERE ca.channel_id = c.id AND ca.user_id = $1)
+          )
+        ) as channels,
+        (SELECT json_agg(u.username)
+         FROM users u JOIN team_admins ta ON u.id = ta.user_id
          WHERE ta.team_id = t.id) as admins,
         (SELECT json_agg(ta2.user_id)
          FROM team_admins ta2 WHERE ta2.team_id = t.id) as admin_ids
       FROM teams t
+      WHERE (
+        $2::boolean = true
+        OR EXISTS (SELECT 1 FROM team_members tm WHERE tm.team_id = t.id AND tm.user_id = $1)
+      )
       ORDER BY t.created_at ASC
-    `)
+    `, [userId, isSiteAdmin])
+
     res.json(result.rows)
   } catch (err) {
     next(err)
@@ -128,6 +148,17 @@ router.put('/:id', requireAuth, async (req, res, next) => {
   try {
     const { id } = req.params
     const { name, description, adminIds, memberIds } = req.body
+
+    // 권한 체크: site_admin 또는 해당 팀의 team_admin만 수정 가능
+    if (req.user.role !== 'site_admin') {
+      const check = await db.query(
+        'SELECT 1 FROM team_admins WHERE team_id = $1 AND user_id = $2',
+        [id, req.user.id]
+      )
+      if (check.rowCount === 0) {
+        return res.status(403).json({ error: '팀 관리자 권한이 필요합니다.' })
+      }
+    }
 
     // 자신을 제외한 다른 팀과 이름이 겹치면 거부
     const dup = await db.query('SELECT id FROM teams WHERE name = $1 AND id <> $2', [name, id])

@@ -76,9 +76,10 @@ app.get('/api/config/agenticai', (req, res) => {
     const path = require('path')
     const configPath = path.resolve(__dirname, '../config.json')
     const config = JSON.parse(fs.readFileSync(configPath, 'utf8'))
-    res.json(config.agenticai || { num_predict: 4096, num_ctx: 8192 })
+    const ai = config.agenticai || {}
+    res.json({ num_predict: 4096, num_ctx: 8192, history: 6, ...ai })
   } catch (e) {
-    res.json({ num_predict: 4096, num_ctx: 8192 })
+    res.json({ num_predict: 4096, num_ctx: 8192, history: 6 })
   }
 })
 
