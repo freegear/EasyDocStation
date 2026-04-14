@@ -27,7 +27,7 @@ function RoleBadge({ role }) {
 function Avatar({ name, imageUrl, size = 8 }) {
   const letters = name?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) ?? '?'
   return (
-    <div className={`w-${size} h-${size} rounded-full bg-indigo-500 overflow-hidden flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0 border border-white/10`}>
+    <div className={`w-${size} h-${size} rounded-full bg-indigo-500 overflow-hidden flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0 border border-gray-200`}>
       {imageUrl ? (
         <img src={imageUrl} alt={name} className="w-full h-full object-cover" />
       ) : (
@@ -134,10 +134,10 @@ function UserFormModal({ user, onClose, onSave, teams = [] }) {
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center px-4">
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative w-full max-w-md bg-[#1e1c30] rounded-3xl border border-white/10 shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-white/10 flex-shrink-0">
-          <h3 className="text-white font-bold text-base">{isEdit ? t.admin.formTitleEdit : t.admin.formTitleAdd}</h3>
-          <button onClick={onClose} className="w-8 h-8 rounded-lg text-white/30 hover:text-white hover:bg-white/10 flex items-center justify-center transition-colors">
+      <div className="relative w-full max-w-md bg-gray-50 rounded-3xl border border-gray-200 shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 flex-shrink-0">
+          <h3 className="text-gray-900 font-bold text-base">{isEdit ? t.admin.formTitleEdit : t.admin.formTitleAdd}</h3>
+          <button onClick={onClose} className="w-8 h-8 rounded-lg text-gray-400 hover:text-gray-900 hover:bg-gray-200 flex items-center justify-center transition-colors">
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -148,12 +148,12 @@ function UserFormModal({ user, onClose, onSave, teams = [] }) {
           {error && <div className="px-4 py-2.5 rounded-xl bg-red-500/10 border border-red-500/25 text-red-400 text-sm">{error}</div>}
 
           {/* 프로필 이미지 */}
-          <div className="flex items-center gap-4 py-2 border-b border-white/5 mb-2">
+          <div className="flex items-center gap-4 py-2 border-b border-gray-100 mb-2">
             <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleImageFile} />
             <button type="button" onClick={handleAvatarClick} className="relative group flex-shrink-0 rounded-full focus:outline-none">
               <Avatar name={form.name} imageUrl={form.image_url} size={16} />
               <div className="absolute inset-0 rounded-full bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg className="w-5 h-5 text-gray-900" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
                 </svg>
@@ -163,17 +163,17 @@ function UserFormModal({ user, onClose, onSave, teams = [] }) {
               {isEdit && (
                 <>
                   <div>
-                    <label className="text-white/40 text-xs font-medium block mb-0.5">User ID</label>
-                    <div className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-white/50 text-xs font-mono">{user.id}</div>
+                    <label className="text-gray-400 text-xs font-medium block mb-0.5">User ID</label>
+                    <div className="w-full bg-gray-100 border border-gray-200 rounded-xl px-4 py-2 text-gray-500 text-xs font-mono">{user.id}</div>
                   </div>
                   <div>
-                    <label className="text-white/40 text-xs font-medium block mb-0.5">User Name</label>
-                    <div className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-white/50 text-xs font-mono">{user.username}</div>
+                    <label className="text-gray-400 text-xs font-medium block mb-0.5">User Name</label>
+                    <div className="w-full bg-gray-100 border border-gray-200 rounded-xl px-4 py-2 text-gray-500 text-xs font-mono">{user.username}</div>
                   </div>
                 </>
               )}
               {!isEdit && (
-                <p className="text-white/30 text-xs">{t.admin.clickToSelectImage}</p>
+                <p className="text-gray-400 text-xs">{t.admin.clickToSelectImage}</p>
               )}
             </div>
           </div>
@@ -205,7 +205,7 @@ function UserFormModal({ user, onClose, onSave, teams = [] }) {
           {/* 비밀번호 재확인 */}
           {(!isEdit || form.password.length > 0) && (
             <div>
-              <label className="block text-white/50 text-xs font-medium mb-1.5">{t.admin.labelPasswordConfirm}</label>
+              <label className="block text-gray-500 text-xs font-medium mb-1.5">{t.admin.labelPasswordConfirm}</label>
               <div className="relative">
                 <input
                   type="password"
@@ -213,11 +213,11 @@ function UserFormModal({ user, onClose, onSave, teams = [] }) {
                   onChange={e => set('confirmPassword', e.target.value)}
                   placeholder={t.admin.placeholderPasswordConfirm}
                   required={!isEdit}
-                  className={`w-full bg-white/5 border rounded-xl px-4 py-2.5 text-white text-sm placeholder-white/20 focus:outline-none focus:ring-2 transition-all pr-10 ${pwEntered
+                  className={`w-full bg-gray-100 border rounded-xl px-4 py-2.5 text-gray-900 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 transition-all pr-10 ${pwEntered
                     ? pwMatch
                       ? 'border-green-500/50 focus:ring-green-500/30 focus:border-green-500/50'
                       : 'border-red-500/50 focus:ring-red-500/30 focus:border-red-500/50'
-                    : 'border-white/10 focus:ring-indigo-500/40 focus:border-indigo-500/40'
+                    : 'border-gray-200 focus:ring-indigo-500/40 focus:border-indigo-300'
                   }`}
                 />
                 {pwEntered && (
@@ -241,14 +241,14 @@ function UserFormModal({ user, onClose, onSave, teams = [] }) {
 
           {/* 보안 등급 */}
           <div>
-            <label className="block text-white/50 text-xs font-medium mb-1.5">{t.admin.labelSecurityLevel}</label>
+            <label className="block text-gray-500 text-xs font-medium mb-1.5">{t.admin.labelSecurityLevel}</label>
             <select
               value={form.security_level}
               onChange={e => set('security_level', parseInt(e.target.value))}
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500/40 transition-all"
+              className="w-full bg-gray-100 border border-gray-200 rounded-xl px-4 py-2.5 text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-300 transition-all"
             >
               {SECURITY_LEVEL_OPTIONS.map(o => (
-                <option key={o.value} value={o.value} className="bg-[#1e1c30]">{o.label}</option>
+                <option key={o.value} value={o.value} className="bg-gray-50">{o.label}</option>
               ))}
             </select>
             {form.security_level >= 3 && (
@@ -258,37 +258,37 @@ function UserFormModal({ user, onClose, onSave, teams = [] }) {
 
           {/* 부서 (Security Level < 3 일 때만 활성) */}
           <div>
-            <label className={`block text-xs font-medium mb-1.5 ${deptDisabled ? 'text-white/20' : 'text-white/50'}`}>
+            <label className={`block text-xs font-medium mb-1.5 ${deptDisabled ? 'text-gray-300' : 'text-gray-500'}`}>
               {t.admin.labelDepartment}
             </label>
             <select
               value={form.department_id}
               onChange={e => set('department_id', e.target.value)}
               disabled={deptDisabled}
-              className={`w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500/40 transition-all ${deptDisabled ? 'text-white/20 cursor-not-allowed' : 'text-white'}`}
+              className={`w-full bg-gray-100 border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-300 transition-all ${deptDisabled ? 'text-gray-300 cursor-not-allowed' : 'text-gray-900'}`}
             >
-              <option value="" className="bg-[#1e1c30]">{t.admin.noDepartment}</option>
+              <option value="" className="bg-gray-50">{t.admin.noDepartment}</option>
               {teams.map(team => (
-                <option key={team.id} value={team.id} className="bg-[#1e1c30]">{team.name}</option>
+                <option key={team.id} value={team.id} className="bg-gray-50">{team.name}</option>
               ))}
             </select>
           </div>
 
 
           {/* 계정 활성화 */}
-          <div className="flex items-center justify-between py-2 px-4 rounded-xl bg-white/4 border border-white/8">
-            <span className="text-white/70 text-sm">{t.admin.labelIsActive}</span>
+          <div className="flex items-center justify-between py-2 px-4 rounded-xl bg-gray-50 border border-gray-200">
+            <span className="text-gray-600 text-sm">{t.admin.labelIsActive}</span>
             <button
               type="button"
               onClick={() => set('is_active', !form.is_active)}
-              className={`w-10 h-5 rounded-full transition-colors relative ${form.is_active ? 'bg-indigo-500' : 'bg-white/20'}`}
+              className={`w-10 h-5 rounded-full transition-colors relative ${form.is_active ? 'bg-indigo-500' : 'bg-gray-300'}`}
             >
               <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all ${form.is_active ? 'left-5' : 'left-0.5'}`} />
             </button>
           </div>
 
           <div className="flex gap-2 pt-1 pb-1">
-            <button type="button" onClick={onClose} className="flex-1 py-2.5 rounded-xl text-white/50 hover:text-white/80 text-sm border border-white/10 hover:bg-white/5 transition-colors">
+            <button type="button" onClick={onClose} className="flex-1 py-2.5 rounded-xl text-gray-500 hover:text-gray-700 text-sm border border-gray-200 hover:bg-gray-100 transition-colors">
               {t.admin.cancel}
             </button>
             <button type="submit" disabled={saving} className="flex-1 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-60 text-white text-sm font-semibold transition-colors">
@@ -304,14 +304,14 @@ function UserFormModal({ user, onClose, onSave, teams = [] }) {
 function FormField({ label, type = 'text', value, onChange, placeholder, required }) {
   return (
     <div>
-      <label className="block text-white/50 text-xs font-medium mb-1.5">{label}</label>
+      <label className="block text-gray-500 text-xs font-medium mb-1.5">{label}</label>
       <input
         type={type}
         value={value}
         onChange={e => onChange(e.target.value)}
         placeholder={placeholder}
         required={required}
-        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm placeholder-white/20 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500/40 transition-all"
+        className="w-full bg-gray-100 border border-gray-200 rounded-xl px-4 py-2.5 text-gray-900 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-300 transition-all"
       />
     </div>
   )
@@ -565,16 +565,16 @@ export default function SiteAdminPage({ onClose }) {
   })
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-[#0f0e1a]/95 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 flex flex-col bg-gray-100/95 backdrop-blur-sm">
       {/* Header */}
-      <div className="flex items-center justify-between px-6 py-4 bg-[#1a1d2e] border-b border-white/10 flex-shrink-0">
+      <div className="flex items-center justify-between px-6 py-4 bg-gray-100 border-b border-gray-200 flex-shrink-0">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-xs font-bold">
             ED
           </div>
           <div>
-            <h1 className="text-white font-bold text-base">{t.admin.headerTitle}</h1>
-            <p className="text-white/30 text-xs">
+            <h1 className="text-gray-900 font-bold text-base">{t.admin.headerTitle}</h1>
+            <p className="text-gray-400 text-xs">
               {activeTab === 'users' ? t.admin.headerSubUsers : t.admin.headerSubSystem}
             </p>
           </div>
@@ -582,7 +582,7 @@ export default function SiteAdminPage({ onClose }) {
 
         <button
           onClick={onClose}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 hover:bg-red-500/20 text-white/70 hover:text-red-400 border border-white/10 hover:border-red-500/30 text-sm font-medium transition-all active:scale-95"
+          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gray-100 hover:bg-red-500/20 text-gray-600 hover:text-red-400 border border-gray-200 hover:border-red-200 text-sm font-medium transition-all active:scale-95"
         >
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
@@ -591,12 +591,12 @@ export default function SiteAdminPage({ onClose }) {
         </button>
       </div>
 
-      <div className="flex-1 flex min-h-0 bg-[#0f0e1a] relative">
+      <div className="flex-1 flex min-h-0 bg-gray-100 relative">
         {/* Left Side: Button Plane (Sidebar) */}
-        <div className="w-64 border-r border-white/5 bg-[#141324] px-4 py-6 flex flex-col gap-2 flex-shrink-0">
+        <div className="w-64 border-r border-gray-100 bg-gray-100 px-4 py-6 flex flex-col gap-2 flex-shrink-0">
           <button
             onClick={() => setActiveTab('users')}
-            className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${activeTab === 'users' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20' : 'text-white/30 hover:text-white/60 hover:bg-white/5'}`}
+            className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${activeTab === 'users' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200' : 'text-gray-400 hover:text-gray-500 hover:bg-gray-100'}`}
           >
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 01-12 0v-1z" />
@@ -605,7 +605,7 @@ export default function SiteAdminPage({ onClose }) {
           </button>
           <button
             onClick={() => setActiveTab('db')}
-            className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${activeTab === 'db' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20' : 'text-white/30 hover:text-white/60 hover:bg-white/5'}`}
+            className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${activeTab === 'db' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200' : 'text-gray-400 hover:text-gray-500 hover:bg-gray-100'}`}
           >
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" />
@@ -614,7 +614,7 @@ export default function SiteAdminPage({ onClose }) {
           </button>
           <button
             onClick={() => setActiveTab('display')}
-            className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${activeTab === 'display' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20' : 'text-white/30 hover:text-white/60 hover:bg-white/5'}`}
+            className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${activeTab === 'display' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200' : 'text-gray-400 hover:text-gray-500 hover:bg-gray-100'}`}
           >
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
@@ -623,7 +623,7 @@ export default function SiteAdminPage({ onClose }) {
           </button>
           <button
             onClick={() => setActiveTab('rag')}
-            className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${activeTab === 'rag' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20' : 'text-white/30 hover:text-white/60 hover:bg-white/5'}`}
+            className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${activeTab === 'rag' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200' : 'text-gray-400 hover:text-gray-500 hover:bg-gray-100'}`}
           >
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
@@ -632,7 +632,7 @@ export default function SiteAdminPage({ onClose }) {
           </button>
           <button
             onClick={() => setActiveTab('agenticai')}
-            className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${activeTab === 'agenticai' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20' : 'text-white/30 hover:text-white/60 hover:bg-white/5'}`}
+            className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${activeTab === 'agenticai' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200' : 'text-gray-400 hover:text-gray-500 hover:bg-gray-100'}`}
           >
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
@@ -642,7 +642,7 @@ export default function SiteAdminPage({ onClose }) {
           </button>
           <button
             onClick={() => setActiveTab('sns')}
-            className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${activeTab === 'sns' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20' : 'text-white/30 hover:text-white/60 hover:bg-white/5'}`}
+            className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${activeTab === 'sns' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200' : 'text-gray-400 hover:text-gray-500 hover:bg-gray-100'}`}
           >
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 3H3a2 2 0 00-2 2v14l4-4h16a2 2 0 002-2V5a2 2 0 00-2-2z" />
@@ -651,7 +651,7 @@ export default function SiteAdminPage({ onClose }) {
           </button>
           <button
             onClick={() => setActiveTab('reset')}
-            className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${activeTab === 'reset' ? 'bg-red-600 text-white shadow-lg shadow-red-500/20' : 'text-white/30 hover:text-white/60 hover:bg-white/5'}`}
+            className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${activeTab === 'reset' ? 'bg-red-600 text-gray-900 shadow-lg shadow-red-500/20' : 'text-gray-400 hover:text-gray-500 hover:bg-gray-100'}`}
           >
             <svg className="w-5 h-5 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -667,14 +667,14 @@ export default function SiteAdminPage({ onClose }) {
             {/* Stats bar */}
             <div className="grid grid-cols-4 gap-3 mb-5">
               {[
-                { label: t.admin.statTotalUsers, value: users.length, color: 'text-white' },
+                { label: t.admin.statTotalUsers, value: users.length, color: 'text-gray-900' },
                 { label: t.admin.statSiteAdmins, value: users.filter(u => u.role === 'site_admin').length, color: 'text-red-400' },
-                { label: t.admin.statTeamAdmins, value: users.filter(u => u.role === 'team_admin').length, color: 'text-orange-400' },
+                { label: t.admin.statTeamAdmins, value: users.filter(u => u.role === 'team_admin').length, color: 'text-orange-600' },
                 { label: t.admin.statActiveAccounts, value: users.filter(u => u.is_active).length, color: 'text-green-400' },
               ].map(s => (
-                <div key={s.label} className="bg-white/4 border border-white/8 rounded-2xl px-4 py-3">
+                <div key={s.label} className="bg-gray-50 border border-gray-200 rounded-2xl px-4 py-3">
                   <p className={`text-2xl font-bold ${s.color}`}>{s.value}</p>
-                  <p className="text-white/40 text-xs mt-0.5">{s.label}</p>
+                  <p className="text-gray-400 text-xs mt-0.5">{s.label}</p>
                 </div>
               ))}
             </div>
@@ -682,31 +682,31 @@ export default function SiteAdminPage({ onClose }) {
             {/* Toolbar */}
             <div className="flex items-center gap-3 mb-4">
               <div className="flex-1 relative">
-                <svg className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-white/30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                 </svg>
                 <input
                   value={search}
                   onChange={e => setSearch(e.target.value)}
                   placeholder={t.admin.searchPlaceholder}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl pl-9 pr-4 py-2.5 text-white text-sm placeholder-white/20 focus:outline-none focus:border-indigo-500/40 focus:ring-1 focus:ring-indigo-500/40"
+                  className="w-full bg-gray-100 border border-gray-200 rounded-xl pl-9 pr-4 py-2.5 text-gray-900 text-sm placeholder-gray-400 focus:outline-none focus:border-indigo-300 focus:ring-1 focus:ring-indigo-500/40"
                 />
               </div>
 
               <select
                 value={roleFilter}
                 onChange={e => setRoleFilter(e.target.value)}
-                className="bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:border-indigo-500/40"
+                className="bg-gray-100 border border-gray-200 rounded-xl px-3 py-2.5 text-gray-900 text-sm focus:outline-none focus:border-indigo-300"
               >
-                <option value="all" className="bg-[#1e1c30]">{t.admin.roleAll}</option>
+                <option value="all" className="bg-gray-50">{t.admin.roleAll}</option>
                 {ROLE_OPTIONS.map(r => (
-                  <option key={r.value} value={r.value} className="bg-[#1e1c30]">{r.label}</option>
+                  <option key={r.value} value={r.value} className="bg-gray-50">{r.label}</option>
                 ))}
               </select>
 
               <button
                 onClick={() => { setEditUser(null); setShowForm(true) }}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold transition-colors shadow-lg shadow-indigo-500/20 flex-shrink-0"
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold transition-colors shadow-lg shadow-indigo-200 flex-shrink-0"
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -721,14 +721,14 @@ export default function SiteAdminPage({ onClose }) {
             )}
 
             {/* User table */}
-            <div className="bg-white/3 border border-white/8 rounded-2xl overflow-hidden">
+            <div className="bg-gray-50 border border-gray-200 rounded-2xl overflow-hidden">
               {loading ? (
-                <div className="flex items-center justify-center py-16 text-white/30 text-sm">
-                  <div className="w-5 h-5 border-2 border-white/20 border-t-indigo-500 rounded-full animate-spin mr-2" />
+                <div className="flex items-center justify-center py-16 text-gray-400 text-sm">
+                  <div className="w-5 h-5 border-2 border-gray-300 border-t-indigo-500 rounded-full animate-spin mr-2" />
                   {t.admin.loading}
                 </div>
               ) : filtered.length === 0 ? (
-                <div className="text-center py-16 text-white/30 text-sm">{t.admin.noResults}</div>
+                <div className="text-center py-16 text-gray-400 text-sm">{t.admin.noResults}</div>
               ) : (
                 <table className="w-full border-collapse">
                   <colgroup>
@@ -740,7 +740,7 @@ export default function SiteAdminPage({ onClose }) {
                     <col style={{ width: '72px' }} />
                   </colgroup>
                   <thead>
-                    <tr className="border-b border-white/8 text-white/30 text-xs font-semibold uppercase tracking-wider">
+                    <tr className="border-b border-gray-200 text-gray-400 text-xs font-semibold uppercase tracking-wider">
                       <th className="px-5 py-3 text-left font-semibold">{t.admin.tableUser}</th>
                       <th className="px-5 py-3 text-left font-semibold">{t.admin.tableEmail}</th>
                       <th className="px-5 py-3 text-left font-semibold">{t.admin.tableTeam}</th>
@@ -754,41 +754,41 @@ export default function SiteAdminPage({ onClose }) {
                     {filtered.map(user => (
                       <tr
                         key={user.id}
-                        className={`hover:bg-white/3 transition-colors ${!user.is_active ? 'opacity-50' : ''}`}
+                        className={`hover:bg-gray-50 transition-colors ${!user.is_active ? 'opacity-50' : ''}`}
                       >
                         <td className="px-5 py-3.5">
                           <div className="flex items-center gap-3">
                             <Avatar name={user.name} imageUrl={user.image_url} size={9} />
                             <div className="min-w-0">
                               <div className="flex items-center gap-2">
-                                <p className="text-white text-sm font-medium truncate">{user.name}</p>
+                                <p className="text-gray-900 text-sm font-medium truncate">{user.name}</p>
                                 {user.id === currentUser.id && (
-                                  <span className="px-1.5 py-0.5 rounded text-xs bg-indigo-500/20 text-indigo-300 border border-indigo-500/20 flex-shrink-0">{t.admin.me}</span>
+                                  <span className="px-1.5 py-0.5 rounded text-xs bg-indigo-100 text-indigo-600 border border-indigo-200 flex-shrink-0">{t.admin.me}</span>
                                 )}
                               </div>
-                              <p className="text-white/35 text-xs">@{user.username}</p>
+                              <p className="text-gray-400 text-xs">@{user.username}</p>
                             </div>
                           </div>
                         </td>
                         <td className="px-5 py-3.5 max-w-0">
-                          <p className="text-white/50 text-sm truncate">{user.email}</p>
+                          <p className="text-gray-500 text-sm truncate">{user.email}</p>
                         </td>
                         <td className="px-5 py-3.5">
-                          <p className="text-white/50 text-sm truncate">
+                          <p className="text-gray-500 text-sm truncate">
                             {user.department_id
                               ? (teams.find(team => team.id === user.department_id)?.name ?? user.department_id)
-                              : <span className="text-white/20">—</span>}
+                              : <span className="text-gray-300">—</span>}
                           </p>
                         </td>
                         <td className="px-5 py-3.5">
                           <RoleBadge role={user.role} />
                         </td>
-                        <td className="px-5 py-3.5 text-white/30 text-xs whitespace-nowrap">
+                        <td className="px-5 py-3.5 text-gray-400 text-xs whitespace-nowrap">
                           {formatDate(user.last_login_at)}
                         </td>
                         <td className="px-5 py-3.5">
-                          <span className={`flex items-center gap-1 text-xs whitespace-nowrap ${user.is_active ? 'text-green-400' : 'text-white/25'}`}>
-                            <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${user.is_active ? 'bg-green-400' : 'bg-white/20'}`} />
+                          <span className={`flex items-center gap-1 text-xs whitespace-nowrap ${user.is_active ? 'text-green-400' : 'text-gray-400'}`}>
+                            <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${user.is_active ? 'bg-green-400' : 'bg-gray-300'}`} />
                             {user.is_active ? t.admin.active : t.admin.inactive}
                           </span>
                         </td>
@@ -796,7 +796,7 @@ export default function SiteAdminPage({ onClose }) {
                           <div className="flex items-center gap-1 justify-end">
                             <button
                               onClick={() => { setEditUser(user); setShowForm(true) }}
-                              className="p-1.5 rounded-lg text-white/30 hover:text-white/70 hover:bg-white/8 transition-colors"
+                              className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-200 transition-colors"
                               title={t.admin.tooltipEdit}
                             >
                               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -806,7 +806,7 @@ export default function SiteAdminPage({ onClose }) {
                             {user.id !== currentUser.id && (
                               <button
                                 onClick={() => handleDelete(user)}
-                                className="p-1.5 rounded-lg text-red-400/40 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                                className="p-1.5 rounded-lg text-red-400 hover:text-red-400 hover:bg-red-50 transition-colors"
                                 title={t.admin.tooltipDelete}
                               >
                                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -822,15 +822,15 @@ export default function SiteAdminPage({ onClose }) {
                 </table>
               )}
             </div>
-            <p className="text-white/20 text-xs mt-3 text-right">
+            <p className="text-gray-300 text-xs mt-3 text-right">
               {t.admin.userCount(filtered.length, users.length)}
             </p>
           </>
         ) : activeTab === 'db' ? (
           <div className="max-w-4xl mx-auto py-4">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-white font-bold text-lg flex items-center gap-2">
-                <svg className="w-5 h-5 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <h2 className="text-gray-900 font-bold text-lg flex items-center gap-2">
+                <svg className="w-5 h-5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
                 </svg>
                 {t.admin.dbTabTitle}
@@ -838,25 +838,25 @@ export default function SiteAdminPage({ onClose }) {
               <button
                 onClick={handleSaveConfig}
                 disabled={savingConfig}
-                className="flex items-center gap-2 px-6 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-sm font-semibold transition-all shadow-lg shadow-indigo-500/25 active:scale-95"
+                className="flex items-center gap-2 px-6 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-sm font-semibold transition-all shadow-lg shadow-indigo-200 active:scale-95"
               >
                 {savingConfig ? t.admin.savingConfig : t.admin.saveSettings}
               </button>
             </div>
 
             {dbLoading ? (
-              <div className="flex flex-col items-center justify-center py-24 text-white/30">
-                <div className="w-8 h-8 border-2 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin mb-4" />
+              <div className="flex flex-col items-center justify-center py-24 text-gray-400">
+                <div className="w-8 h-8 border-2 border-indigo-200 border-t-indigo-500 rounded-full animate-spin mb-4" />
                 <p className="text-sm">{t.admin.dbLoadingInfo}</p>
               </div>
             ) : dbStats ? (
               <div className="space-y-6">
                 {/* Postgres Stats */}
-                <div className="bg-white/5 border border-white/10 rounded-2xl p-6 shadow-xl">
+                <div className="bg-gray-100 border border-gray-200 rounded-2xl p-6 shadow-xl">
                   <div className="flex items-start justify-between mb-6">
                     <div>
-                      <h3 className="text-white font-bold text-base mb-1">PostgreSQL Database</h3>
-                      <p className="text-white/40 text-xs">{t.admin.dbPostgresDesc}</p>
+                      <h3 className="text-gray-900 font-bold text-base mb-1">PostgreSQL Database</h3>
+                      <p className="text-gray-400 text-xs">{t.admin.dbPostgresDesc}</p>
                     </div>
                     <div className="px-3 py-1 rounded-full bg-green-500/10 border border-green-500/20 text-green-400 text-[10px] font-bold uppercase tracking-wider">
                       Online
@@ -866,17 +866,17 @@ export default function SiteAdminPage({ onClose }) {
                   <div className="grid grid-cols-2 gap-8">
                     <div className="space-y-4">
                       <div>
-                        <p className="text-white/30 text-xs font-semibold uppercase tracking-wider mb-1.5">{t.admin.dbLocation}</p>
-                        <div className="bg-black/30 rounded-xl px-4 py-3 border border-white/5 font-mono text-xs text-indigo-300 break-all leading-relaxed">
+                        <p className="text-gray-400 text-xs font-semibold uppercase tracking-wider mb-1.5">{t.admin.dbLocation}</p>
+                        <div className="bg-gray-200 rounded-xl px-4 py-3 border border-gray-100 font-mono text-xs text-indigo-600 break-all leading-relaxed">
                           {dbStats.db.location}
                         </div>
                       </div>
                     </div>
                     <div className="space-y-10 flex flex-col justify-center">
-                      <div className="text-center p-6 bg-white/3 rounded-3xl border border-white/5 relative overflow-hidden group">
+                      <div className="text-center p-6 bg-gray-50 rounded-3xl border border-gray-100 relative overflow-hidden group">
                         <div className="absolute inset-0 bg-indigo-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
-                        <p className="text-white/40 text-xs font-semibold uppercase tracking-wider mb-2">{t.admin.dbCurrentSize}</p>
-                        <p className="text-4xl font-black text-white tracking-tight">{dbStats.db.size}</p>
+                        <p className="text-gray-400 text-xs font-semibold uppercase tracking-wider mb-2">{t.admin.dbCurrentSize}</p>
+                        <p className="text-4xl font-black text-gray-900 tracking-tight">{dbStats.db.size}</p>
                         <div className="w-12 h-1 bg-indigo-500 mx-auto mt-4 rounded-full" />
                       </div>
                     </div>
@@ -884,11 +884,11 @@ export default function SiteAdminPage({ onClose }) {
                 </div>
 
                 {/* Cassandra Stats */}
-                <div className="bg-white/5 border border-white/10 rounded-2xl p-6 shadow-xl">
+                <div className="bg-gray-100 border border-gray-200 rounded-2xl p-6 shadow-xl">
                   <div className="flex items-start justify-between mb-6">
                     <div>
-                      <h3 className="text-white font-bold text-base mb-1">Cassandra Database (Posts)</h3>
-                      <p className="text-white/40 text-xs">{t.admin.dbCassandraDesc}</p>
+                      <h3 className="text-gray-900 font-bold text-base mb-1">Cassandra Database (Posts)</h3>
+                      <p className="text-gray-400 text-xs">{t.admin.dbCassandraDesc}</p>
                     </div>
                     <div className="px-3 py-1 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-400 text-[10px] font-bold uppercase tracking-wider">
                       Distributed Storage
@@ -898,17 +898,17 @@ export default function SiteAdminPage({ onClose }) {
                   <div className="grid grid-cols-2 gap-8">
                     <div className="space-y-4">
                       <div>
-                        <p className="text-white/30 text-xs font-semibold uppercase tracking-wider mb-1.5">{t.admin.dbLocation}</p>
-                        <div className="bg-black/30 rounded-xl px-4 py-3 border border-white/5 font-mono text-xs text-indigo-300 break-all leading-relaxed">
+                        <p className="text-gray-400 text-xs font-semibold uppercase tracking-wider mb-1.5">{t.admin.dbLocation}</p>
+                        <div className="bg-gray-200 rounded-xl px-4 py-3 border border-gray-100 font-mono text-xs text-indigo-600 break-all leading-relaxed">
                           {dbStats.cassandra?.location}
                         </div>
                       </div>
                     </div>
                     <div className="space-y-10 flex flex-col justify-center">
-                      <div className="text-center p-6 bg-white/3 rounded-3xl border border-white/5 relative overflow-hidden group">
+                      <div className="text-center p-6 bg-gray-50 rounded-3xl border border-gray-100 relative overflow-hidden group">
                         <div className="absolute inset-0 bg-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
-                        <p className="text-white/40 text-xs font-semibold uppercase tracking-wider mb-2">{t.admin.dbCurrentDataSize}</p>
-                        <p className="text-4xl font-black text-white tracking-tight">{dbStats.cassandra?.size}</p>
+                        <p className="text-gray-400 text-xs font-semibold uppercase tracking-wider mb-2">{t.admin.dbCurrentDataSize}</p>
+                        <p className="text-4xl font-black text-gray-900 tracking-tight">{dbStats.cassandra?.size}</p>
                         <div className="w-12 h-1 bg-purple-500 mx-auto mt-4 rounded-full" />
                       </div>
                     </div>
@@ -916,13 +916,13 @@ export default function SiteAdminPage({ onClose }) {
                 </div>
 
                 {/* Object Files Stats */}
-                <div className="bg-white/5 border border-white/10 rounded-2xl p-6 shadow-xl">
+                <div className="bg-gray-100 border border-gray-200 rounded-2xl p-6 shadow-xl">
                   <div className="flex items-start justify-between mb-6">
                     <div>
-                      <h3 className="text-white font-bold text-base mb-1">Object File Storage</h3>
-                      <p className="text-white/40 text-xs">{t.admin.dbObjectDesc}</p>
+                      <h3 className="text-gray-900 font-bold text-base mb-1">Object File Storage</h3>
+                      <p className="text-gray-400 text-xs">{t.admin.dbObjectDesc}</p>
                     </div>
-                    <div className="px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-[10px] font-bold uppercase tracking-wider">
+                    <div className="px-3 py-1 rounded-full bg-indigo-50 border border-indigo-200 text-indigo-600 text-[10px] font-bold uppercase tracking-wider">
                       Stored Locally
                     </div>
                   </div>
@@ -930,17 +930,17 @@ export default function SiteAdminPage({ onClose }) {
                   <div className="grid grid-cols-2 gap-8">
                     <div className="space-y-4">
                       <div>
-                        <p className="text-white/30 text-xs font-semibold uppercase tracking-wider mb-1.5">{t.admin.dbFolderLocation}</p>
-                        <div className="bg-black/30 rounded-xl px-4 py-3 border border-white/5 font-mono text-xs text-indigo-300 break-all leading-relaxed">
+                        <p className="text-gray-400 text-xs font-semibold uppercase tracking-wider mb-1.5">{t.admin.dbFolderLocation}</p>
+                        <div className="bg-gray-200 rounded-xl px-4 py-3 border border-gray-100 font-mono text-xs text-indigo-600 break-all leading-relaxed">
                           {dbStats.objects.location}
                         </div>
                       </div>
                     </div>
                     <div className="space-y-10 flex flex-col justify-center">
-                      <div className="text-center p-6 bg-white/3 rounded-3xl border border-white/5 relative overflow-hidden group">
+                      <div className="text-center p-6 bg-gray-50 rounded-3xl border border-gray-100 relative overflow-hidden group">
                         <div className="absolute inset-0 bg-indigo-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
-                        <p className="text-white/40 text-xs font-semibold uppercase tracking-wider mb-2">{t.admin.dbTotalObjectSize}</p>
-                        <p className="text-4xl font-black text-indigo-400 tracking-tight">{dbStats.objects.size}</p>
+                        <p className="text-gray-400 text-xs font-semibold uppercase tracking-wider mb-2">{t.admin.dbTotalObjectSize}</p>
+                        <p className="text-4xl font-black text-indigo-600 tracking-tight">{dbStats.objects.size}</p>
                         <div className="w-12 h-1 bg-indigo-500/40 mx-auto mt-4 rounded-full" />
                       </div>
                     </div>
@@ -948,13 +948,13 @@ export default function SiteAdminPage({ onClose }) {
                 </div>
 
                 {/* LanceDB Stats */}
-                <div className="bg-white/5 border border-white/10 rounded-2xl p-6 shadow-xl">
+                <div className="bg-gray-100 border border-gray-200 rounded-2xl p-6 shadow-xl">
                   <div className="flex items-start justify-between mb-6">
                     <div>
-                      <h3 className="text-white font-bold text-base mb-1">LanceDB (Vector Store)</h3>
-                      <p className="text-white/40 text-xs">{t.admin.dbLancedbDesc}</p>
+                      <h3 className="text-gray-900 font-bold text-base mb-1">LanceDB (Vector Store)</h3>
+                      <p className="text-gray-400 text-xs">{t.admin.dbLancedbDesc}</p>
                     </div>
-                    <div className="px-3 py-1 rounded-full bg-teal-500/10 border border-teal-500/20 text-teal-400 text-[10px] font-bold uppercase tracking-wider">
+                    <div className="px-3 py-1 rounded-full bg-teal-50 border border-teal-200 text-teal-700 text-[10px] font-bold uppercase tracking-wider">
                       Vector Store
                     </div>
                   </div>
@@ -962,21 +962,21 @@ export default function SiteAdminPage({ onClose }) {
                   <div className="grid grid-cols-2 gap-8">
                     <div className="space-y-4">
                       <div>
-                        <p className="text-white/30 text-xs font-semibold uppercase tracking-wider mb-1.5">{t.admin.dbLancedbFolderLocation}</p>
+                        <p className="text-gray-400 text-xs font-semibold uppercase tracking-wider mb-1.5">{t.admin.dbLancedbFolderLocation}</p>
                         <input
                           type="text"
                           value={lancedbPath}
                           onChange={e => setLancedbPath(e.target.value)}
-                          className="w-full bg-black/30 rounded-xl px-4 py-3 border border-white/5 font-mono text-xs text-teal-300 break-all leading-relaxed focus:outline-none focus:border-teal-500/50 transition-colors"
+                          className="w-full bg-gray-200 rounded-xl px-4 py-3 border border-gray-100 font-mono text-xs text-teal-700 break-all leading-relaxed focus:outline-none focus:border-teal-500/50 transition-colors"
                         />
-                        <p className="text-white/20 text-[10px] mt-1.5">{t.admin.dbPathHint}</p>
+                        <p className="text-gray-300 text-[10px] mt-1.5">{t.admin.dbPathHint}</p>
                       </div>
                     </div>
                     <div className="space-y-10 flex flex-col justify-center">
-                      <div className="text-center p-6 bg-white/3 rounded-3xl border border-white/5 relative overflow-hidden group">
+                      <div className="text-center p-6 bg-gray-50 rounded-3xl border border-gray-100 relative overflow-hidden group">
                         <div className="absolute inset-0 bg-teal-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
-                        <p className="text-white/40 text-xs font-semibold uppercase tracking-wider mb-2">{t.admin.dbTotalVectorSize}</p>
-                        <p className="text-4xl font-black text-teal-400 tracking-tight">{dbStats.lancedb?.size ?? '—'}</p>
+                        <p className="text-gray-400 text-xs font-semibold uppercase tracking-wider mb-2">{t.admin.dbTotalVectorSize}</p>
+                        <p className="text-4xl font-black text-teal-700 tracking-tight">{dbStats.lancedb?.size ?? '—'}</p>
                         <div className="w-12 h-1 bg-teal-500/40 mx-auto mt-4 rounded-full" />
                       </div>
                     </div>
@@ -984,20 +984,20 @@ export default function SiteAdminPage({ onClose }) {
                 </div>
 
                 {/* Max Attachment File Size */}
-                <div className="bg-white/5 border border-white/10 rounded-2xl p-6 shadow-xl">
+                <div className="bg-gray-100 border border-gray-200 rounded-2xl p-6 shadow-xl">
                   <div className="flex items-start justify-between mb-6">
                     <div>
-                      <h3 className="text-white font-bold text-base mb-1">{t.admin.maxAttachmentTitle}</h3>
-                      <p className="text-white/40 text-xs">{t.admin.maxAttachmentDesc}</p>
+                      <h3 className="text-gray-900 font-bold text-base mb-1">{t.admin.maxAttachmentTitle}</h3>
+                      <p className="text-gray-400 text-xs">{t.admin.maxAttachmentDesc}</p>
                     </div>
-                    <div className="px-3 py-1 rounded-full bg-orange-500/10 border border-orange-500/20 text-orange-400 text-[10px] font-bold uppercase tracking-wider">
+                    <div className="px-3 py-1 rounded-full bg-orange-50 border border-orange-500/20 text-orange-600 text-[10px] font-bold uppercase tracking-wider">
                       Upload
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-8">
                     <div className="space-y-4">
                       <div>
-                        <p className="text-white/30 text-xs font-semibold uppercase tracking-wider mb-1.5">{t.admin.maxAttachmentLabel}</p>
+                        <p className="text-gray-400 text-xs font-semibold uppercase tracking-wider mb-1.5">{t.admin.maxAttachmentLabel}</p>
                         <div className="flex items-center gap-3">
                           <input
                             type="number"
@@ -1005,19 +1005,19 @@ export default function SiteAdminPage({ onClose }) {
                             max="10240"
                             value={maxAttachmentFileSize}
                             onChange={e => setMaxAttachmentFileSizeLocal(e.target.value)}
-                            className="w-32 bg-black/30 rounded-xl px-4 py-3 border border-white/5 font-mono text-sm text-orange-300 focus:outline-none focus:border-orange-500/50 transition-colors text-right"
+                            className="w-32 bg-gray-200 rounded-xl px-4 py-3 border border-gray-100 font-mono text-sm text-orange-300 focus:outline-none focus:border-orange-500/50 transition-colors text-right"
                           />
-                          <span className="text-white/40 text-sm font-semibold">MB</span>
+                          <span className="text-gray-400 text-sm font-semibold">MB</span>
                         </div>
-                        <p className="text-white/20 text-[10px] mt-1.5">{t.admin.maxAttachmentHint}</p>
+                        <p className="text-gray-300 text-[10px] mt-1.5">{t.admin.maxAttachmentHint}</p>
                       </div>
                     </div>
                     <div className="flex flex-col justify-center">
-                      <div className="text-center p-6 bg-white/3 rounded-3xl border border-white/5 relative overflow-hidden group">
+                      <div className="text-center p-6 bg-gray-50 rounded-3xl border border-gray-100 relative overflow-hidden group">
                         <div className="absolute inset-0 bg-orange-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
-                        <p className="text-white/40 text-xs font-semibold uppercase tracking-wider mb-2">{t.admin.maxAttachmentCurrent}</p>
-                        <p className="text-4xl font-black text-orange-400 tracking-tight">{maxAttachmentFileSize}</p>
-                        <p className="text-white/30 text-xs mt-2">MB</p>
+                        <p className="text-gray-400 text-xs font-semibold uppercase tracking-wider mb-2">{t.admin.maxAttachmentCurrent}</p>
+                        <p className="text-4xl font-black text-orange-600 tracking-tight">{maxAttachmentFileSize}</p>
+                        <p className="text-gray-400 text-xs mt-2">MB</p>
                         <div className="w-12 h-1 bg-orange-500/40 mx-auto mt-4 rounded-full" />
                       </div>
                     </div>
@@ -1026,7 +1026,7 @@ export default function SiteAdminPage({ onClose }) {
 
               </div>
             ) : (
-              <div className="text-center py-24 text-white/20">
+              <div className="text-center py-24 text-gray-300">
                 {t.admin.noResults}
               </div>
             )}
@@ -1034,8 +1034,8 @@ export default function SiteAdminPage({ onClose }) {
         ) : activeTab === 'rag' ? (
           <div className="max-w-4xl mx-auto py-4">
             <div className="flex items-center justify-between mb-8">
-              <h2 className="text-white font-bold text-lg flex items-center gap-2">
-                <svg className="w-5 h-5 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <h2 className="text-gray-900 font-bold text-lg flex items-center gap-2">
+                <svg className="w-5 h-5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
                 </svg>
                 {t.admin.ragTabTitle}
@@ -1043,15 +1043,15 @@ export default function SiteAdminPage({ onClose }) {
               <button
                 onClick={handleSaveConfig}
                 disabled={savingConfig}
-                className="flex items-center gap-2 px-6 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-sm font-semibold transition-all shadow-lg shadow-indigo-500/25 active:scale-95"
+                className="flex items-center gap-2 px-6 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-sm font-semibold transition-all shadow-lg shadow-indigo-200 active:scale-95"
               >
                 {savingConfig ? t.admin.savingConfig : t.admin.saveSettings}
               </button>
             </div>
 
             {/* Status Info */}
-            <div className="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-6 mb-6">
-              <div className="flex gap-3 text-amber-400">
+            <div className="bg-amber-50 border border-amber-500/20 rounded-2xl p-6 mb-6">
+              <div className="flex gap-3 text-amber-600">
                 <svg className="w-5 h-5 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
@@ -1064,32 +1064,32 @@ export default function SiteAdminPage({ onClose }) {
 
             <div className="space-y-6">
               {/* 학습 시간 / 주기 설정 */}
-              <div className="bg-white/5 border border-white/10 rounded-2xl p-8 shadow-xl">
+              <div className="bg-gray-100 border border-gray-200 rounded-2xl p-8 shadow-xl">
                 <div className="flex items-center gap-3 mb-6">
-                  <div className="w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center">
-                    <svg className="w-5 h-5 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <div className="w-10 h-10 rounded-xl bg-indigo-50 border border-indigo-200 flex items-center justify-center">
+                    <svg className="w-5 h-5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                   </div>
                   <div>
-                    <h3 className="text-white font-bold text-base">{t.admin.ragScheduleTitle}</h3>
-                    <p className="text-white/30 text-xs mt-0.5">{t.admin.ragScheduleDesc}</p>
+                    <h3 className="text-gray-900 font-bold text-base">{t.admin.ragScheduleTitle}</h3>
+                    <p className="text-gray-400 text-xs mt-0.5">{t.admin.ragScheduleDesc}</p>
                   </div>
                 </div>
 
                 <div className="space-y-4">
                   {/* Option 1: Daily */}
-                  <label className={`flex items-center gap-4 p-5 rounded-2xl border transition-all cursor-pointer ${ragForm.type === 'daily' ? 'bg-indigo-500/10 border-indigo-500/50' : 'bg-white/3 border-white/5 hover:border-white/10'}`}>
+                  <label className={`flex items-center gap-4 p-5 rounded-2xl border transition-all cursor-pointer ${ragForm.type === 'daily' ? 'bg-indigo-50 border-indigo-500/50' : 'bg-gray-50 border-gray-100 hover:border-gray-200'}`}>
                     <input
                       type="radio"
                       name="ragType"
                       checked={ragForm.type === 'daily'}
                       onChange={() => setRagForm(p => ({ ...p, type: 'daily' }))}
-                      className="w-4 h-4 text-indigo-600 bg-white/10 border-white/20 focus:ring-indigo-500"
+                      className="w-4 h-4 text-indigo-600 bg-gray-200 border-gray-300 focus:ring-indigo-500"
                     />
                     <div className="flex-1">
-                      <p className="text-white font-semibold text-sm">{t.admin.ragDailyLabel}</p>
-                      <p className="text-white/30 text-xs mt-1">{t.admin.ragDailyDesc}</p>
+                      <p className="text-gray-900 font-semibold text-sm">{t.admin.ragDailyLabel}</p>
+                      <p className="text-gray-400 text-xs mt-1">{t.admin.ragDailyDesc}</p>
                     </div>
                     <div className="flex items-center gap-2 shrink-0" onClick={e => e.stopPropagation()}>
                       <input
@@ -1097,49 +1097,49 @@ export default function SiteAdminPage({ onClose }) {
                         value={ragForm.time}
                         onChange={e => setRagForm(p => ({ ...p, time: e.target.value }))}
                         disabled={ragForm.type !== 'daily'}
-                        className="bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-indigo-500 disabled:opacity-30 disabled:cursor-not-allowed"
+                        className="bg-gray-200 border border-gray-200 rounded-lg px-3 py-2 text-gray-900 text-sm focus:outline-none focus:border-indigo-500 disabled:opacity-30 disabled:cursor-not-allowed"
                       />
-                      <span className="text-white/30 text-xs">{t.admin.ragDailyStartLabel}</span>
+                      <span className="text-gray-400 text-xs">{t.admin.ragDailyStartLabel}</span>
                     </div>
                   </label>
 
                   {/* Option 2: Immediate */}
-                  <label className={`flex items-start gap-4 p-5 rounded-2xl border transition-all cursor-pointer ${ragForm.type === 'immediate' ? 'bg-indigo-500/10 border-indigo-500/50' : 'bg-white/3 border-white/5 hover:border-white/10'}`}>
+                  <label className={`flex items-start gap-4 p-5 rounded-2xl border transition-all cursor-pointer ${ragForm.type === 'immediate' ? 'bg-indigo-50 border-indigo-500/50' : 'bg-gray-50 border-gray-100 hover:border-gray-200'}`}>
                     <input
                       type="radio"
                       name="ragType"
                       checked={ragForm.type === 'immediate'}
                       onChange={() => setRagForm(p => ({ ...p, type: 'immediate' }))}
-                      className="mt-1 w-4 h-4 text-indigo-600 bg-white/10 border-white/20 focus:ring-indigo-500"
+                      className="mt-1 w-4 h-4 text-indigo-600 bg-gray-200 border-gray-300 focus:ring-indigo-500"
                     />
                     <div className="flex-1">
-                      <p className="text-white font-semibold text-sm">{t.admin.ragImmediateLabel}</p>
-                      <p className="text-white/30 text-xs mt-1">{t.admin.ragImmediateDesc}</p>
+                      <p className="text-gray-900 font-semibold text-sm">{t.admin.ragImmediateLabel}</p>
+                      <p className="text-gray-400 text-xs mt-1">{t.admin.ragImmediateDesc}</p>
                     </div>
                   </label>
 
                   {/* Option 3: Manual */}
-                  <label className={`flex items-start gap-4 p-5 rounded-2xl border transition-all cursor-pointer ${ragForm.type === 'manual' ? 'bg-indigo-500/10 border-indigo-500/50' : 'bg-white/3 border-white/5 hover:border-white/10'}`}>
+                  <label className={`flex items-start gap-4 p-5 rounded-2xl border transition-all cursor-pointer ${ragForm.type === 'manual' ? 'bg-indigo-50 border-indigo-500/50' : 'bg-gray-50 border-gray-100 hover:border-gray-200'}`}>
                     <input
                       type="radio"
                       name="ragType"
                       checked={ragForm.type === 'manual'}
                       onChange={() => setRagForm(p => ({ ...p, type: 'manual' }))}
-                      className="mt-1 w-4 h-4 text-indigo-600 bg-white/10 border-white/20 focus:ring-indigo-500"
+                      className="mt-1 w-4 h-4 text-indigo-600 bg-gray-200 border-gray-300 focus:ring-indigo-500"
                     />
                     <div className="flex-1">
-                      <p className="text-white font-semibold text-sm">{t.admin.ragManualLabel}</p>
-                      <p className="text-white/30 text-xs mt-1">{t.admin.ragManualDesc}</p>
+                      <p className="text-gray-900 font-semibold text-sm">{t.admin.ragManualLabel}</p>
+                      <p className="text-gray-400 text-xs mt-1">{t.admin.ragManualDesc}</p>
                       {ragForm.type === 'manual' && (
                         <div className="mt-4">
                           <button
                             onClick={handleStartTraining}
                             disabled={trainingStatus === 'running'}
-                            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-green-600 hover:bg-green-500 disabled:bg-white/10 text-white text-sm font-bold transition-all shadow-lg shadow-green-600/20 active:scale-95"
+                            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:bg-gray-200 text-white text-sm font-bold transition-all shadow-lg shadow-blue-600/20 active:scale-95"
                           >
                             {trainingStatus === 'running' ? (
                               <>
-                                <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                <div className="w-3 h-3 border-2 border-blue-300 border-t-white rounded-full animate-spin" />
                                 {t.admin.ragTrainingWaiting}
                               </>
                             ) : (
@@ -1160,16 +1160,16 @@ export default function SiteAdminPage({ onClose }) {
               </div>
 
               {/* Vector Size */}
-              <div className="bg-white/5 border border-white/10 rounded-2xl p-8 shadow-xl">
+              <div className="bg-gray-100 border border-gray-200 rounded-2xl p-8 shadow-xl">
                 <div className="flex items-center gap-3 mb-6">
-                  <div className="w-10 h-10 rounded-xl bg-teal-500/10 border border-teal-500/20 flex items-center justify-center">
-                    <svg className="w-5 h-5 text-teal-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <div className="w-10 h-10 rounded-xl bg-teal-50 border border-teal-200 flex items-center justify-center">
+                    <svg className="w-5 h-5 text-teal-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
                     </svg>
                   </div>
                   <div>
-                    <h3 className="text-white font-bold text-base">{t.admin.ragVectorSizeTitle}</h3>
-                    <p className="text-white/30 text-xs mt-0.5">{t.admin.ragVectorSizeDesc}</p>
+                    <h3 className="text-gray-900 font-bold text-base">{t.admin.ragVectorSizeTitle}</h3>
+                    <p className="text-gray-400 text-xs mt-0.5">{t.admin.ragVectorSizeDesc}</p>
                   </div>
                 </div>
                 <div className="flex flex-wrap gap-3">
@@ -1179,21 +1179,21 @@ export default function SiteAdminPage({ onClose }) {
                       onClick={() => setRagForm(p => ({ ...p, vectorSize: size }))}
                       className={`px-5 py-2.5 rounded-xl text-sm font-bold transition-all border ${
                         ragForm.vectorSize === size
-                          ? 'bg-teal-500/20 border-teal-500/60 text-teal-300 shadow-lg shadow-teal-500/10'
-                          : 'bg-white/3 border-white/5 text-white/30 hover:text-white/60 hover:border-white/10'
+                          ? 'bg-teal-500/20 border-teal-500/60 text-teal-700 shadow-lg shadow-teal-500/10'
+                          : 'bg-gray-50 border-gray-100 text-gray-400 hover:text-gray-500 hover:border-gray-200'
                       }`}
                     >
                       {size.toLocaleString()}
                     </button>
                   ))}
                 </div>
-                <p className="text-white/20 text-xs mt-4">
+                <p className="text-gray-300 text-xs mt-4">
                   {t.admin.ragCurrentSelection(ragForm.vectorSize?.toLocaleString())}
                 </p>
               </div>
 
               {/* Chunk Size / Overlap */}
-              <div className="bg-white/5 border border-white/10 rounded-2xl p-8 shadow-xl">
+              <div className="bg-gray-100 border border-gray-200 rounded-2xl p-8 shadow-xl">
                 <div className="flex items-center gap-3 mb-6">
                   <div className="w-10 h-10 rounded-xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center">
                     <svg className="w-5 h-5 text-violet-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1201,16 +1201,16 @@ export default function SiteAdminPage({ onClose }) {
                     </svg>
                   </div>
                   <div>
-                    <h3 className="text-white font-bold text-base">{t.admin.ragChunkTitle}</h3>
-                    <p className="text-white/30 text-xs mt-0.5">{t.admin.ragChunkDesc}</p>
+                    <h3 className="text-gray-900 font-bold text-base">{t.admin.ragChunkTitle}</h3>
+                    <p className="text-gray-400 text-xs mt-0.5">{t.admin.ragChunkDesc}</p>
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-6">
                   <div>
-                    <p className="text-white/40 text-xs font-semibold uppercase tracking-wider mb-3">
-                      {t.admin.ragChunkSizeLabel} <span className="text-white/20 normal-case font-normal">(chunk_size)</span>
+                    <p className="text-gray-400 text-xs font-semibold uppercase tracking-wider mb-3">
+                      {t.admin.ragChunkSizeLabel} <span className="text-gray-300 normal-case font-normal">(chunk_size)</span>
                     </p>
-                    <div className="bg-black/30 rounded-xl px-4 py-3 border border-white/5 flex items-center gap-3 focus-within:border-violet-500/50 transition-colors">
+                    <div className="bg-gray-200 rounded-xl px-4 py-3 border border-gray-100 flex items-center gap-3 focus-within:border-violet-500/50 transition-colors">
                       <input
                         type="number"
                         min={100}
@@ -1218,16 +1218,16 @@ export default function SiteAdminPage({ onClose }) {
                         step={100}
                         value={ragForm.chunkSize}
                         onChange={e => setRagForm(p => ({ ...p, chunkSize: e.target.value }))}
-                        className="bg-transparent text-2xl font-black text-white w-24 focus:outline-none"
+                        className="bg-transparent text-2xl font-black text-gray-900 w-24 focus:outline-none"
                       />
-                      <span className="text-white/20 text-sm">{t.admin.ragChunkUnit}</span>
+                      <span className="text-gray-300 text-sm">{t.admin.ragChunkUnit}</span>
                     </div>
                   </div>
                   <div>
-                    <p className="text-white/40 text-xs font-semibold uppercase tracking-wider mb-3">
-                      {t.admin.ragChunkOverlapLabel} <span className="text-white/20 normal-case font-normal">(chunk_overlap)</span>
+                    <p className="text-gray-400 text-xs font-semibold uppercase tracking-wider mb-3">
+                      {t.admin.ragChunkOverlapLabel} <span className="text-gray-300 normal-case font-normal">(chunk_overlap)</span>
                     </p>
-                    <div className="bg-black/30 rounded-xl px-4 py-3 border border-white/5 flex items-center gap-3 focus-within:border-violet-500/50 transition-colors">
+                    <div className="bg-gray-200 rounded-xl px-4 py-3 border border-gray-100 flex items-center gap-3 focus-within:border-violet-500/50 transition-colors">
                       <input
                         type="number"
                         min={0}
@@ -1235,9 +1235,9 @@ export default function SiteAdminPage({ onClose }) {
                         step={10}
                         value={ragForm.chunkOverlap}
                         onChange={e => setRagForm(p => ({ ...p, chunkOverlap: e.target.value }))}
-                        className="bg-transparent text-2xl font-black text-white w-24 focus:outline-none"
+                        className="bg-transparent text-2xl font-black text-gray-900 w-24 focus:outline-none"
                       />
-                      <span className="text-white/20 text-sm">{t.admin.ragChunkUnit}</span>
+                      <span className="text-gray-300 text-sm">{t.admin.ragChunkUnit}</span>
                     </div>
                   </div>
                 </div>
@@ -1249,8 +1249,8 @@ export default function SiteAdminPage({ onClose }) {
         ) : activeTab === 'display' ? (
           <div className="max-w-4xl mx-auto py-4">
             <div className="flex items-center justify-between mb-8">
-              <h2 className="text-white font-bold text-lg flex items-center gap-2">
-                <svg className="w-5 h-5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <h2 className="text-gray-900 font-bold text-lg flex items-center gap-2">
+                <svg className="w-5 h-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                 </svg>
                 {t.admin.displayTabTitle}
@@ -1258,7 +1258,7 @@ export default function SiteAdminPage({ onClose }) {
               <button
                 onClick={handleSaveConfig}
                 disabled={savingConfig}
-                className="flex items-center gap-2 px-6 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-sm font-semibold transition-all shadow-lg shadow-indigo-500/25 active:scale-95"
+                className="flex items-center gap-2 px-6 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-sm font-semibold transition-all shadow-lg shadow-indigo-200 active:scale-95"
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
@@ -1268,8 +1268,8 @@ export default function SiteAdminPage({ onClose }) {
             </div>
 
             {dbLoading ? (
-              <div className="flex flex-col items-center justify-center py-24 text-white/30">
-                <div className="w-8 h-8 border-2 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin mb-4" />
+              <div className="flex flex-col items-center justify-center py-24 text-gray-400">
+                <div className="w-8 h-8 border-2 border-indigo-200 border-t-indigo-500 rounded-full animate-spin mb-4" />
                 <p className="text-sm">{t.admin.displayLoading}</p>
               </div>
             ) : dbStats?.display ? (
@@ -1333,7 +1333,7 @@ export default function SiteAdminPage({ onClose }) {
                 </div>
               </div>
             ) : (
-              <div className="text-center py-24 text-white/20">
+              <div className="text-center py-24 text-gray-300">
                 {t.admin.displayNoInfo}
               </div>
             )}
@@ -1341,7 +1341,7 @@ export default function SiteAdminPage({ onClose }) {
         ) : activeTab === 'agenticai' ? (
           <div className="max-w-4xl mx-auto py-4">
             <div className="flex items-center justify-between mb-8">
-              <h2 className="text-white font-bold text-lg flex items-center gap-2">
+              <h2 className="text-gray-900 font-bold text-lg flex items-center gap-2">
                 <svg className="w-5 h-5 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                 </svg>
@@ -1350,7 +1350,7 @@ export default function SiteAdminPage({ onClose }) {
               <button
                 onClick={handleSaveConfig}
                 disabled={savingConfig}
-                className="flex items-center gap-2 px-6 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-sm font-semibold transition-all shadow-lg shadow-indigo-500/25 active:scale-95"
+                className="flex items-center gap-2 px-6 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-sm font-semibold transition-all shadow-lg shadow-indigo-200 active:scale-95"
               >
                 {savingConfig ? t.admin.savingConfig : t.admin.saveSettings}
               </button>
@@ -1358,7 +1358,7 @@ export default function SiteAdminPage({ onClose }) {
 
             <div className="space-y-8">
               {/* num_predict */}
-              <div className="bg-white/5 border border-white/10 rounded-2xl p-8 shadow-xl">
+              <div className="bg-gray-100 border border-gray-200 rounded-2xl p-8 shadow-xl">
                 <div className="flex items-center gap-3 mb-6">
                   <div className="w-10 h-10 rounded-xl bg-green-500/10 border border-green-500/20 flex items-center justify-center">
                     <svg className="w-5 h-5 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1366,8 +1366,8 @@ export default function SiteAdminPage({ onClose }) {
                     </svg>
                   </div>
                   <div>
-                    <h3 className="text-white font-bold text-base">{t.admin.agenticaiNumPredictTitle}</h3>
-                    <p className="text-white/30 text-xs mt-0.5">{t.admin.agenticaiNumPredictDesc}</p>
+                    <h3 className="text-gray-900 font-bold text-base">{t.admin.agenticaiNumPredictTitle}</h3>
+                    <p className="text-gray-400 text-xs mt-0.5">{t.admin.agenticaiNumPredictDesc}</p>
                   </div>
                 </div>
                 <div className="flex flex-wrap gap-3">
@@ -1378,7 +1378,7 @@ export default function SiteAdminPage({ onClose }) {
                       className={`px-5 py-2.5 rounded-xl text-sm font-bold transition-all border ${
                         agenticaiForm.num_predict === size
                           ? 'bg-green-500/20 border-green-500/60 text-green-300 shadow-lg shadow-green-500/10'
-                          : 'bg-white/3 border-white/5 text-white/30 hover:text-white/60 hover:border-white/10'
+                          : 'bg-gray-50 border-gray-100 text-gray-400 hover:text-gray-500 hover:border-gray-200'
                       }`}
                     >
                       {size.toLocaleString()}
@@ -1388,7 +1388,7 @@ export default function SiteAdminPage({ onClose }) {
               </div>
 
               {/* num_ctx */}
-              <div className="bg-white/5 border border-white/10 rounded-2xl p-8 shadow-xl">
+              <div className="bg-gray-100 border border-gray-200 rounded-2xl p-8 shadow-xl">
                 <div className="flex items-center gap-3 mb-6">
                   <div className="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center">
                     <svg className="w-5 h-5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1396,8 +1396,8 @@ export default function SiteAdminPage({ onClose }) {
                     </svg>
                   </div>
                   <div>
-                    <h3 className="text-white font-bold text-base">{t.admin.agenticaiNumCtxTitle}</h3>
-                    <p className="text-white/30 text-xs mt-0.5">{t.admin.agenticaiNumCtxDesc}</p>
+                    <h3 className="text-gray-900 font-bold text-base">{t.admin.agenticaiNumCtxTitle}</h3>
+                    <p className="text-gray-400 text-xs mt-0.5">{t.admin.agenticaiNumCtxDesc}</p>
                   </div>
                 </div>
                 <div className="flex flex-wrap gap-3">
@@ -1408,7 +1408,7 @@ export default function SiteAdminPage({ onClose }) {
                       className={`px-5 py-2.5 rounded-xl text-sm font-bold transition-all border ${
                         agenticaiForm.num_ctx === size
                           ? 'bg-blue-500/20 border-blue-500/60 text-blue-300 shadow-lg shadow-blue-500/10'
-                          : 'bg-white/3 border-white/5 text-white/30 hover:text-white/60 hover:border-white/10'
+                          : 'bg-gray-50 border-gray-100 text-gray-400 hover:text-gray-500 hover:border-gray-200'
                       }`}
                     >
                       {size.toLocaleString()}
@@ -1418,7 +1418,7 @@ export default function SiteAdminPage({ onClose }) {
               </div>
 
               {/* history */}
-              <div className="bg-white/5 border border-white/10 rounded-2xl p-8 shadow-xl">
+              <div className="bg-gray-100 border border-gray-200 rounded-2xl p-8 shadow-xl">
                 <div className="flex items-center gap-3 mb-6">
                   <div className="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center">
                     <svg className="w-5 h-5 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1426,8 +1426,8 @@ export default function SiteAdminPage({ onClose }) {
                     </svg>
                   </div>
                   <div>
-                    <h3 className="text-white font-bold text-base">{t.admin.agenticaiHistoryTitle}</h3>
-                    <p className="text-white/30 text-xs mt-0.5">{t.admin.agenticaiHistoryDesc}</p>
+                    <h3 className="text-gray-900 font-bold text-base">{t.admin.agenticaiHistoryTitle}</h3>
+                    <p className="text-gray-400 text-xs mt-0.5">{t.admin.agenticaiHistoryDesc}</p>
                   </div>
                 </div>
                 <div className="flex flex-wrap gap-3">
@@ -1437,8 +1437,8 @@ export default function SiteAdminPage({ onClose }) {
                       onClick={() => setAgenticaiForm(p => ({ ...p, history: n }))}
                       className={`px-5 py-2.5 rounded-xl text-sm font-bold transition-all border ${
                         agenticaiForm.history === n
-                          ? 'bg-purple-500/20 border-purple-500/60 text-purple-300 shadow-lg shadow-purple-500/10'
-                          : 'bg-white/3 border-white/5 text-white/30 hover:text-white/60 hover:border-white/10'
+                          ? 'bg-purple-500/20 border-purple-500/60 text-purple-700 shadow-lg shadow-purple-500/10'
+                          : 'bg-gray-50 border-gray-100 text-gray-400 hover:text-gray-500 hover:border-gray-200'
                       }`}
                     >
                       {n}
@@ -1447,15 +1447,15 @@ export default function SiteAdminPage({ onClose }) {
                 </div>
               </div>
 
-              <div className="p-6 bg-white/3 border border-dashed border-white/10 rounded-2xl flex items-center gap-4">
-                <div className="w-12 h-12 rounded-full bg-indigo-500/10 flex items-center justify-center text-indigo-400">
+              <div className="p-6 bg-gray-50 border border-dashed border-gray-200 rounded-2xl flex items-center gap-4">
+                <div className="w-12 h-12 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-600">
                   <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                 </div>
                 <div>
-                  <p className="text-white text-xs font-semibold mb-0.5">{t.admin.agenticaiSettingNote}</p>
-                  <p className="text-white/30 text-[10px]">{t.admin.agenticaiSettingNoteDesc}</p>
+                  <p className="text-gray-900 text-xs font-semibold mb-0.5">{t.admin.agenticaiSettingNote}</p>
+                  <p className="text-gray-400 text-[10px]">{t.admin.agenticaiSettingNoteDesc}</p>
                 </div>
               </div>
             </div>
@@ -1463,23 +1463,23 @@ export default function SiteAdminPage({ onClose }) {
         ) : activeTab === 'sns' ? (
           <div className="max-w-4xl mx-auto py-4">
             <div className="flex items-center gap-3 mb-8">
-              <svg className="w-6 h-6 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="w-6 h-6 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 3H3a2 2 0 00-2 2v14l4-4h16a2 2 0 002-2V5a2 2 0 00-2-2z" />
               </svg>
-              <h2 className="text-white font-bold text-lg">{t.admin.snsTitle}</h2>
+              <h2 className="text-gray-900 font-bold text-lg">{t.admin.snsTitle}</h2>
             </div>
-            <div className="bg-white/5 border border-white/10 rounded-2xl p-12 shadow-xl flex flex-col items-center justify-center text-center gap-6">
-              <div className="w-20 h-20 rounded-full bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center">
-                <svg className="w-10 h-10 text-indigo-400/60" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <div className="bg-gray-100 border border-gray-200 rounded-2xl p-12 shadow-xl flex flex-col items-center justify-center text-center gap-6">
+              <div className="w-20 h-20 rounded-full bg-indigo-50 border border-indigo-200 flex items-center justify-center">
+                <svg className="w-10 h-10 text-indigo-600/60" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 3H3a2 2 0 00-2 2v14l4-4h16a2 2 0 002-2V5a2 2 0 00-2-2z" />
                 </svg>
               </div>
-              <p className="text-white/50 text-base font-medium">{t.admin.snsComingSoon}</p>
+              <p className="text-gray-500 text-base font-medium">{t.admin.snsComingSoon}</p>
             </div>
           </div>
         ) : activeTab === 'reset' ? (
           <div className="max-w-2xl mx-auto py-12">
-            <div className="bg-red-950/20 border border-red-500/30 rounded-3xl p-10 shadow-2xl overflow-hidden relative">
+            <div className="bg-red-50 border border-red-200 rounded-3xl p-10 shadow-2xl overflow-hidden relative">
               <div className="absolute top-0 right-0 w-64 h-64 bg-red-500/5 blur-[100px] -mr-32 -mt-32" />
               
               <div className="flex flex-col items-center text-center relative z-10">
@@ -1489,20 +1489,20 @@ export default function SiteAdminPage({ onClose }) {
                   </svg>
                 </div>
 
-                <h2 className="text-3xl font-black text-white mb-4">{t.admin.resetSectionTitle}</h2>
+                <h2 className="text-3xl font-black text-gray-900 mb-4">{t.admin.resetSectionTitle}</h2>
                 <div className="space-y-4 px-6 mb-10 text-red-200/60 leading-relaxed font-medium">
                   <p>{t.admin.resetSectionDesc1}</p>
                   <p className="text-red-400 font-bold underline decoration-red-500/30 underline-offset-8 text-lg">{t.admin.resetSectionDesc2}</p>
                 </div>
 
-                <div className="w-full bg-black/40 border border-white/5 rounded-2xl p-8 mb-8">
-                  <p className="text-white/40 text-sm mb-4">{t.admin.resetHint(t.admin.resetConfirmWord)}</p>
+                <div className="w-full bg-black/40 border border-gray-100 rounded-2xl p-8 mb-8">
+                  <p className="text-gray-400 text-sm mb-4">{t.admin.resetHint(t.admin.resetConfirmWord)}</p>
                   <input
                     type="text"
                     value={resetConfirmation}
                     onChange={e => setResetConfirmation(e.target.value)}
                     placeholder={t.admin.resetConfirmPlaceholder}
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-5 py-3.5 text-white text-lg font-bold placeholder-white/10 text-center focus:outline-none focus:border-red-500/50 focus:ring-1 focus:ring-red-500/50 transition-all"
+                    className="w-full bg-gray-100 border border-gray-200 rounded-xl px-5 py-3.5 text-gray-900 text-lg font-bold placeholder-white/10 text-center focus:outline-none focus:border-red-500/50 focus:ring-1 focus:ring-red-500/50 transition-all"
                   />
                 </div>
 
@@ -1512,12 +1512,12 @@ export default function SiteAdminPage({ onClose }) {
                   className={`w-full py-4 rounded-2xl font-black text-lg transition-all flex items-center justify-center gap-3 ${
                     resetConfirmation === t.admin.resetConfirmWord && !executingReset
                       ? 'bg-red-600 hover:bg-red-500 text-white shadow-xl shadow-red-600/25 active:scale-[0.98]'
-                      : 'bg-white/5 text-white/10 cursor-not-allowed border border-white/5'
+                      : 'bg-gray-100 text-gray-200 cursor-not-allowed border border-gray-100'
                   }`}
                 >
                   {executingReset ? (
                     <>
-                      <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                      <div className="w-5 h-5 border-2 border-gray-300 border-t-white rounded-full animate-spin" />
                       {t.admin.resetRunning}
                     </>
                   ) : (
@@ -1536,7 +1536,7 @@ export default function SiteAdminPage({ onClose }) {
         </div>
 
         {/* Right Side: GROQ Panel */}
-        <div className="h-full border-l border-white/5">
+        <div className="h-full border-l border-gray-100">
           <GroqPanel />
         </div>
       </div>
@@ -1557,42 +1557,42 @@ export default function SiteAdminPage({ onClose }) {
 function PreviewSettingCard({ title, description, value, onChange }) {
   const t = useT()
   return (
-    <div className="bg-white/5 border border-white/10 rounded-2xl p-6 shadow-xl h-full flex flex-col">
+    <div className="bg-gray-100 border border-gray-200 rounded-2xl p-6 shadow-xl h-full flex flex-col">
       <div className="flex items-start justify-between mb-6">
         <div>
-          <h3 className="text-white font-bold text-sm mb-1">{title}</h3>
-          <p className="text-white/40 text-[11px] leading-relaxed">
+          <h3 className="text-gray-900 font-bold text-sm mb-1">{title}</h3>
+          <p className="text-gray-400 text-[11px] leading-relaxed">
             {description}
           </p>
         </div>
-        <div className="px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 text-[9px] font-bold uppercase tracking-wider shrink-0">
+        <div className="px-2 py-0.5 rounded-full bg-amber-50 border border-amber-500/20 text-amber-600 text-[9px] font-bold uppercase tracking-wider shrink-0">
           Preview
         </div>
       </div>
 
       <div className="grid grid-cols-2 gap-4 mt-auto">
-        <div className="bg-black/40 rounded-xl px-4 py-3 border border-white/5 flex flex-col focus-within:border-indigo-500/50 transition-colors">
-          <p className="text-white/40 text-[9px] uppercase font-bold mb-1">{t.admin.previewWidthLabel}</p>
+        <div className="bg-black/40 rounded-xl px-4 py-3 border border-gray-100 flex flex-col focus-within:border-indigo-500/50 transition-colors">
+          <p className="text-gray-400 text-[9px] uppercase font-bold mb-1">{t.admin.previewWidthLabel}</p>
           <div className="flex items-center gap-2">
             <input
               type="number"
               value={value.width}
               onChange={e => onChange({ ...value, width: e.target.value })}
-              className="bg-transparent text-xl font-black text-white w-full focus:outline-none"
+              className="bg-transparent text-xl font-black text-gray-900 w-full focus:outline-none"
             />
-            <span className="text-sm font-normal text-white/20 shrink-0">px</span>
+            <span className="text-sm font-normal text-gray-300 shrink-0">px</span>
           </div>
         </div>
-        <div className="bg-black/40 rounded-xl px-4 py-3 border border-white/5 flex flex-col focus-within:border-indigo-500/50 transition-colors">
-          <p className="text-white/40 text-[9px] uppercase font-bold mb-1">{t.admin.previewHeightLabel}</p>
+        <div className="bg-black/40 rounded-xl px-4 py-3 border border-gray-100 flex flex-col focus-within:border-indigo-500/50 transition-colors">
+          <p className="text-gray-400 text-[9px] uppercase font-bold mb-1">{t.admin.previewHeightLabel}</p>
           <div className="flex items-center gap-2">
             <input
               type="number"
               value={value.height}
               onChange={e => onChange({ ...value, height: e.target.value })}
-              className="bg-transparent text-xl font-black text-white w-full focus:outline-none"
+              className="bg-transparent text-xl font-black text-gray-900 w-full focus:outline-none"
             />
-            <span className="text-sm font-normal text-white/20 shrink-0">px</span>
+            <span className="text-sm font-normal text-gray-300 shrink-0">px</span>
           </div>
         </div>
       </div>

@@ -93,7 +93,7 @@ function SearchBar({ onSelectResult }) {
     return (
       <>
         {text.slice(0, idx)}
-        <mark className="bg-indigo-400/30 text-indigo-200 rounded px-0.5">{text.slice(idx, idx + q.length)}</mark>
+        <mark className="bg-indigo-100 text-indigo-700 rounded px-0.5">{text.slice(idx, idx + q.length)}</mark>
         {text.slice(idx + q.length)}
       </>
     )
@@ -103,7 +103,7 @@ function SearchBar({ onSelectResult }) {
     <div ref={containerRef} className="relative flex-1 max-w-md">
       <form onSubmit={handleSubmit} className="flex items-center gap-0">
         <div className="relative flex-1">
-          <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/30 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
           </svg>
           <input
@@ -126,15 +126,15 @@ function SearchBar({ onSelectResult }) {
 
       {/* 검색 결과 드롭다운 */}
       {open && query.trim() && (
-        <div className="absolute left-0 right-0 top-full mt-1.5 bg-[#1a1828] border border-white/10 rounded-2xl shadow-2xl shadow-black/50 z-50 overflow-hidden max-h-[400px] overflow-y-auto">
+        <div className="absolute left-0 right-0 top-full mt-1.5 bg-white border border-gray-200 rounded-2xl shadow-2xl shadow-gray-400/30 z-50 overflow-hidden max-h-[400px] overflow-y-auto">
           {searching && (
-            <div className="px-4 py-3 text-white/30 text-sm flex items-center gap-2">
+            <div className="px-4 py-3 text-gray-400 text-sm flex items-center gap-2">
               <div className="w-3 h-3 border border-indigo-400/40 border-t-indigo-400 rounded-full animate-spin" />
               {t.titlebar.searching}
             </div>
           )}
           {!searching && results.length === 0 && (
-            <div className="px-4 py-3 text-white/25 text-sm">{t.titlebar.noResults(query)}</div>
+            <div className="px-4 py-3 text-gray-400 text-sm">{t.titlebar.noResults(query)}</div>
           )}
           {!searching && results.map((item, i) => {
             const preview = (item.post.content || '').slice(0, 120)
@@ -142,22 +142,22 @@ function SearchBar({ onSelectResult }) {
               <button
                 key={`${item.post.id}-${i}`}
                 onMouseDown={() => handleSelect(item)}
-                className="w-full px-4 py-3 text-left hover:bg-white/6 border-b border-white/5 last:border-0 transition-colors"
+                className="w-full px-4 py-3 text-left hover:bg-gray-100 border-b border-gray-100 last:border-0 transition-colors"
               >
                 <div className="flex items-center gap-2 mb-1">
                   <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wide ${
                     item.matchType === 'post'
-                      ? 'bg-indigo-500/20 text-indigo-300'
-                      : 'bg-purple-500/20 text-purple-300'
+                      ? 'bg-indigo-100 text-indigo-600'
+                      : 'bg-purple-100 text-purple-700'
                   }`}>
                     {item.matchType === 'post' ? t.titlebar.searchPost : t.titlebar.searchComment}
                   </span>
-                  <span className="text-white/30 text-[10px]">{item.team.name} › {item.channel.name}</span>
+                  <span className="text-gray-400 text-[10px]">{item.team.name} › {item.channel.name}</span>
                   {item.post.author?.name && (
-                    <span className="text-white/25 text-[10px] ml-auto">{item.post.author.name}</span>
+                    <span className="text-gray-400 text-[10px] ml-auto">{item.post.author.name}</span>
                   )}
                 </div>
-                <p className="text-white/80 text-xs leading-relaxed line-clamp-2">
+                <p className="text-gray-700 text-xs leading-relaxed line-clamp-2">
                   {highlight(preview, query)}
                 </p>
               </button>
@@ -200,11 +200,11 @@ export default function TitleBar({ onOpenProfile, onOpenSiteAdmin, onSelectSearc
   }
 
   return (
-    <header className="flex items-center justify-between px-5 h-14 bg-[#1a1d2e] border-b border-white/10 flex-shrink-0 z-10">
+    <header className="flex items-center justify-between px-5 h-14 bg-gray-100 border-b border-gray-200 flex-shrink-0 z-10">
       {/* 왼쪽 끝: 새로운 로고(SVG) + 타이틀 */}
       <div className="flex items-center gap-2.5 flex-shrink-0 cursor-pointer" onClick={() => window.location.href = '/'}>
         <img src="/img/logo.png" alt="Logo" className="w-8 h-8 object-contain" />
-        <span className="text-white font-bold text-lg tracking-tight hidden sm:inline">EasyStation</span>
+        <span className="text-gray-900 font-bold text-lg tracking-tight hidden sm:inline">EasyStation</span>
       </div>
 
       {/* 오른쪽 끝: 검색 + 언어 + 사용자 */}
@@ -214,7 +214,7 @@ export default function TitleBar({ onOpenProfile, onOpenSiteAdmin, onSelectSearc
         <SearchBar onSelectResult={onSelectSearchResult} />
 
         {/* Language toggle button */}
-        <div className="flex items-center bg-white/6 border border-white/10 rounded-lg overflow-hidden flex-shrink-0">
+        <div className="flex items-center bg-gray-100 border border-gray-200 rounded-lg overflow-hidden flex-shrink-0">
           {LANGUAGES.map(lang => (
             <button
               key={lang.code}
@@ -222,7 +222,7 @@ export default function TitleBar({ onOpenProfile, onOpenSiteAdmin, onSelectSearc
               className={`px-2.5 py-1 text-xs font-medium transition-all ${
                 language === lang.code
                   ? 'bg-indigo-600 text-white'
-                  : 'text-white/40 hover:text-white/70 hover:bg-white/5'
+                  : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'
               }`}
             >
               {lang.label}
@@ -235,7 +235,7 @@ export default function TitleBar({ onOpenProfile, onOpenSiteAdmin, onSelectSearc
           <div className="relative" ref={menuRef}>
             <button
               onClick={() => setMenuOpen(v => !v)}
-              className="flex items-center gap-2 px-2 py-1.5 rounded-xl hover:bg-white/8 transition-colors group"
+              className="flex items-center gap-2 px-2 py-1.5 rounded-xl hover:bg-gray-200 transition-colors group"
             >
               <div className="w-7 h-7 rounded-full bg-indigo-500 overflow-hidden flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
                 {currentUser.image_url ? (
@@ -245,19 +245,19 @@ export default function TitleBar({ onOpenProfile, onOpenSiteAdmin, onSelectSearc
                 )}
               </div>
               <div className="hidden sm:block text-left">
-                <p className="text-white text-xs font-medium leading-none">{currentUser.name}</p>
-                <p className="text-white/40 text-[10px] leading-none mt-0.5">{roleLabel}</p>
+                <p className="text-gray-900 text-xs font-medium leading-none">{currentUser.name}</p>
+                <p className="text-gray-400 text-[10px] leading-none mt-0.5">{roleLabel}</p>
               </div>
-              <svg className={`w-3 h-3 text-white/30 transition-transform ${menuOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className={`w-3 h-3 text-gray-400 transition-transform ${menuOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
               </svg>
             </button>
 
             {/* Dropdown menu */}
             {menuOpen && (
-              <div className="absolute right-0 top-full mt-2 w-64 bg-[#1e1c30] border border-white/10 rounded-2xl shadow-2xl shadow-black/40 overflow-hidden z-50">
+              <div className="absolute right-0 top-full mt-2 w-64 bg-gray-50 border border-gray-200 rounded-2xl shadow-2xl shadow-gray-400/30 overflow-hidden z-50">
                 {/* User summary */}
-                <div className="px-4 py-3 border-b border-white/8">
+                <div className="px-4 py-3 border-b border-gray-200">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-full bg-indigo-500 overflow-hidden flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
                       {currentUser.image_url ? (
@@ -267,15 +267,15 @@ export default function TitleBar({ onOpenProfile, onOpenSiteAdmin, onSelectSearc
                       )}
                     </div>
                     <div className="min-w-0">
-                      <p className="text-white font-semibold text-sm truncate">{currentUser.name}</p>
-                      <p className="text-white/40 text-xs truncate">{currentUser.email}</p>
+                      <p className="text-gray-900 font-semibold text-sm truncate">{currentUser.name}</p>
+                      <p className="text-gray-400 text-xs truncate">{currentUser.email}</p>
                       <span className={`inline-block mt-1 px-2 py-0.5 rounded-md text-xs font-medium border ${roleBadge}`}>
                         {roleLabel}
                       </span>
                     </div>
                   </div>
                   {currentUser.last_login_at && (
-                    <p className="text-white/25 text-xs mt-2">
+                    <p className="text-gray-400 text-xs mt-2">
                       {t.titlebar.lastLogin} {formatLoginTime(currentUser.last_login_at)}
                     </p>
                   )}
@@ -308,7 +308,7 @@ export default function TitleBar({ onOpenProfile, onOpenSiteAdmin, onSelectSearc
                   )}
                 </div>
 
-                <div className="border-t border-white/8 py-1">
+                <div className="border-t border-gray-200 py-1">
                   <MenuItem
                     icon={
                       <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -335,14 +335,14 @@ function MenuItem({ icon, label, badge, danger, onClick }) {
       onClick={onClick}
       className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors text-left ${
         danger
-          ? 'text-red-400/70 hover:text-red-400 hover:bg-red-500/8'
-          : 'text-white/60 hover:text-white hover:bg-white/6'
+          ? 'text-red-400/70 hover:text-red-400 hover:bg-red-50'
+          : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'
       }`}
     >
       <span className="flex-shrink-0">{icon}</span>
       <span className="flex-1">{label}</span>
       {badge && (
-        <span className="px-1.5 py-0.5 rounded text-xs bg-indigo-500/20 text-indigo-300 border border-indigo-500/20">
+        <span className="px-1.5 py-0.5 rounded text-xs bg-indigo-100 text-indigo-600 border border-indigo-200">
           {badge}
         </span>
       )}

@@ -119,11 +119,11 @@ export default function UserProfileModal({ onClose }) {
       {/* Backdrop */}
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
 
-      <div className="relative w-full max-w-md bg-[#1e1c30] rounded-3xl border border-white/10 shadow-2xl shadow-black/50 overflow-hidden">
+      <div className="relative w-full max-w-md bg-gray-50 rounded-3xl border border-gray-200 shadow-2xl shadow-gray-400/30 overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-white/10">
-          <h2 className="text-white font-bold text-base">{t.profile.title}</h2>
-          <button onClick={onClose} className="w-8 h-8 rounded-lg text-white/30 hover:text-white hover:bg-white/10 flex items-center justify-center transition-colors">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+          <h2 className="text-gray-900 font-bold text-base">{t.profile.title}</h2>
+          <button onClick={onClose} className="w-8 h-8 rounded-lg text-gray-400 hover:text-gray-900 hover:bg-gray-200 flex items-center justify-center transition-colors">
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -131,16 +131,16 @@ export default function UserProfileModal({ onClose }) {
         </div>
 
         {/* Current user summary */}
-        <div className="px-6 py-4 border-b border-white/8 flex items-center gap-4">
+        <div className="px-6 py-4 border-b border-gray-200 flex items-center gap-4">
           <div className="relative group">
-            <div className="w-16 h-16 rounded-full bg-indigo-500 overflow-hidden flex items-center justify-center text-white font-bold text-xl flex-shrink-0 border-2 border-white/10">
+            <div className="w-16 h-16 rounded-full bg-indigo-500 overflow-hidden flex items-center justify-center text-white font-bold text-xl flex-shrink-0 border-2 border-gray-200">
               {imageUrl ? (
                 <img src={imageUrl} alt={currentUser?.name} className="w-full h-full object-cover" />
               ) : (
                 currentUser?.avatar
               )}
             </div>
-            <label className="absolute inset-0 flex items-center justify-center bg-black/60 text-white opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity rounded-full">
+            <label className="absolute inset-0 flex items-center justify-center bg-black/60 text-gray-900 opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity rounded-full">
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 011.664.89l.812 1.22A2 2 0 0010.07 10H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -149,8 +149,8 @@ export default function UserProfileModal({ onClose }) {
             </label>
           </div>
           <div>
-            <p className="text-white font-semibold text-lg">{currentUser?.name}</p>
-            <p className="text-white/40 text-sm">{currentUser?.email}</p>
+            <p className="text-gray-900 font-semibold text-lg">{currentUser?.name}</p>
+            <p className="text-gray-400 text-sm">{currentUser?.email}</p>
             <span className={`inline-block mt-1 px-2 py-0.5 rounded-md text-xs font-medium border ${roleBadge}`}>
               {roleLabel}
             </span>
@@ -158,15 +158,15 @@ export default function UserProfileModal({ onClose }) {
         </div>
 
         {/* Tabs */}
-        <div className="flex border-b border-white/8">
+        <div className="flex border-b border-gray-200">
           {tabs.map(tb => (
             <button
               key={tb.key}
               onClick={() => { setTab(tb.key); clearMessages() }}
               className={`flex-1 py-3 text-sm font-medium transition-colors ${
                 tab === tb.key
-                  ? 'text-white border-b-2 border-indigo-500'
-                  : 'text-white/40 hover:text-white/70'
+                  ? 'text-gray-900 border-b-2 border-indigo-500'
+                  : 'text-gray-400 hover:text-gray-600'
               }`}
             >
               {tb.label}
@@ -223,14 +223,14 @@ export default function UserProfileModal({ onClose }) {
 function Field({ label, type = 'text', value, onChange, placeholder, disabled }) {
   return (
     <div>
-      <label className="block text-white/50 text-xs font-medium mb-1.5">{label}</label>
+      <label className="block text-gray-500 text-xs font-medium mb-1.5">{label}</label>
       <input
         type={type}
         value={value}
         onChange={e => onChange?.(e.target.value)}
         placeholder={placeholder}
         disabled={disabled}
-        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm placeholder-white/20 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500/40 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+        className="w-full bg-gray-100 border border-gray-200 rounded-xl px-4 py-2.5 text-gray-900 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-300 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
       />
     </div>
   )

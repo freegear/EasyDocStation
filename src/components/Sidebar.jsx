@@ -94,10 +94,10 @@ export default function Sidebar() {
   const totalUnread = (selectedTeam?.channels || []).reduce((sum, ch) => sum + (ch.unread || 0), 0)
 
   return (
-    <aside className="w-64 flex-shrink-0 bg-[#19172d] flex flex-col h-full border-r border-white/5">
+    <aside className="w-64 flex-shrink-0 bg-gray-200 flex flex-col h-full border-r border-gray-100">
       {/* Team selector */}
-      <div className="px-3 py-3 border-b border-white/10">
-        <p className="text-white/40 text-xs uppercase tracking-widest mb-2 px-2">{t.sidebar.teams}</p>
+      <div className="px-3 py-3 border-b border-gray-200">
+        <p className="text-gray-400 text-xs uppercase tracking-widest mb-2 px-2">{t.sidebar.teams}</p>
         <div className="flex flex-col gap-1">
           {teams.map(team => {
             const teamUnread = team.channels.reduce((s, c) => s + c.unread, 0)
@@ -113,7 +113,7 @@ export default function Sidebar() {
                 }}
                 className={`flex items-center gap-2.5 w-full px-2 py-2 rounded-lg text-sm text-left transition-all ${isActive
                     ? 'bg-indigo-600 text-white shadow-lg'
-                    : 'text-white/60 hover:bg-white/8 hover:text-white'
+                    : 'text-gray-500 hover:bg-gray-200 hover:text-gray-900'
                   }`}
               >
                 <span className="text-base">{team.icon}</span>
@@ -131,7 +131,7 @@ export default function Sidebar() {
           {canAddTeam() && (
             <button
               onClick={() => { setEditingTeam(null); setShowTeamModal(true) }}
-              className="flex items-center gap-2 w-full px-3 py-2 rounded-lg text-white/30 hover:text-white/60 hover:bg-white/5 text-sm transition-all mt-1"
+              className="flex items-center gap-2 w-full px-3 py-2 rounded-lg text-gray-400 hover:text-gray-500 hover:bg-gray-100 text-sm transition-all mt-1"
             >
               <span className="text-lg leading-none">+</span>
               <span>{t.sidebar.addTeam}</span>
@@ -145,7 +145,7 @@ export default function Sidebar() {
         {/* Channels section */}
         <div className="mb-2">
           <button
-            className="flex items-center justify-between w-full px-3 py-1.5 text-white/40 hover:text-white/70 text-xs uppercase tracking-widest transition-colors"
+            className="flex items-center justify-between w-full px-3 py-1.5 text-gray-400 hover:text-gray-600 text-xs uppercase tracking-widest transition-colors"
             onClick={() => setChannelsCollapsed(v => !v)}
           >
             <span>{t.sidebar.channels}</span>
@@ -171,13 +171,13 @@ export default function Sidebar() {
                     }}
                     title={canManageChannel(ch) ? t.sidebar.channelManageTitle : undefined}
                     className={`flex items-center gap-2 w-full px-2 py-1.5 rounded-md text-sm text-left transition-all ${isActive
-                        ? 'bg-indigo-500/30 text-white'
+                        ? 'bg-indigo-500/30 text-gray-900'
                         : ch.unread > 0
-                          ? 'text-white hover:bg-white/8'
-                          : 'text-white/50 hover:bg-white/5 hover:text-white/80'
+                          ? 'text-gray-900 hover:bg-gray-200'
+                          : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700'
                       }`}
                   >
-                    <span className={`flex-shrink-0 ${isActive ? 'text-indigo-300' : 'text-white/40'}`}>
+                    <span className={`flex-shrink-0 ${isActive ? 'text-indigo-600' : 'text-gray-400'}`}>
                       {ch.type === 'private' ? <LockIcon /> : <HashIcon />}
                     </span>
                     <span className="flex-1 truncate font-medium">{ch.name}</span>
@@ -198,7 +198,7 @@ export default function Sidebar() {
                     setChannelModalMode('add')
                     setShowChannelModal(true)
                   }}
-                  className="flex items-center gap-2 w-full px-2 py-1.5 rounded-md text-white/30 hover:text-white/60 text-sm transition-colors hover:bg-white/5"
+                  className="flex items-center gap-2 w-full px-2 py-1.5 rounded-md text-gray-400 hover:text-gray-500 text-sm transition-colors hover:bg-gray-100"
                 >
                   <span className="text-lg leading-none">+</span>
                   <span>{t.sidebar.addChannel}</span>
@@ -211,7 +211,7 @@ export default function Sidebar() {
         {/* Direct Messages */}
         <div>
           <button
-            className="flex items-center justify-between w-full px-3 py-1.5 text-white/40 hover:text-white/70 text-xs uppercase tracking-widest transition-colors"
+            className="flex items-center justify-between w-full px-3 py-1.5 text-gray-400 hover:text-gray-600 text-xs uppercase tracking-widest transition-colors"
             onClick={() => setDmCollapsed(v => !v)}
           >
             <span>{t.sidebar.directMessages}</span>
@@ -223,7 +223,7 @@ export default function Sidebar() {
               {selectedTeam.directMessages.map(dm => (
                 <button
                   key={dm.id}
-                  className="flex items-center gap-2.5 w-full px-2 py-1.5 rounded-md text-white/50 hover:bg-white/5 hover:text-white/80 text-sm text-left transition-all"
+                  className="flex items-center gap-2.5 w-full px-2 py-1.5 rounded-md text-gray-500 hover:bg-gray-100 hover:text-gray-700 text-sm text-left transition-all"
                 >
                   <div className="relative flex-shrink-0">
                     <div className="w-6 h-6 rounded-md bg-indigo-500 overflow-hidden flex items-center justify-center text-white text-[10px] font-bold">
@@ -233,7 +233,7 @@ export default function Sidebar() {
                         dm.avatar
                       )}
                     </div>
-                    <div className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-[#19172d] ${dm.online ? 'bg-green-400' : 'bg-white/20'}`} />
+                    <div className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-gray-200 ${dm.online ? 'bg-green-400' : 'bg-gray-300'}`} />
                   </div>
                   <span className="truncate">{dm.name}</span>
                 </button>
@@ -244,8 +244,8 @@ export default function Sidebar() {
       </div>
 
       {/* Version */}
-      <div className="px-4 py-2.5 border-t border-white/5 mt-auto">
-        <p className="text-white/20 text-[10px] text-center tracking-widest">
+      <div className="px-4 py-2.5 border-t border-gray-100 mt-auto">
+        <p className="text-gray-300 text-[10px] text-center tracking-widest">
           EasyStation {appVersion && `v${appVersion}`}
         </p>
       </div>
