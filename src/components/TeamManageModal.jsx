@@ -6,17 +6,17 @@ import { useT } from '../i18n/useT'
 // MD 미리보기를 간단히 처리하는 헬퍼
 function SimpleMDPreview({ text }) {
   const html = text
-    .replace(/^### (.+)$/gm, '<h3 class="text-white/80 font-semibold text-sm mt-3 mb-1">$1</h3>')
-    .replace(/^## (.+)$/gm, '<h2 class="text-white font-bold text-base mt-4 mb-1.5">$1</h2>')
-    .replace(/^# (.+)$/gm, '<h1 class="text-white font-bold text-lg mt-4 mb-2">$1</h1>')
-    .replace(/\*\*(.+?)\*\*/g, '<strong class="text-white font-semibold">$1</strong>')
-    .replace(/\*(.+?)\*/g, '<em class="text-white/70 italic">$1</em>')
-    .replace(/`(.+?)`/g, '<code class="bg-white/10 text-indigo-300 px-1 rounded text-xs">$1</code>')
-    .replace(/^- (.+)$/gm, '<li class="ml-4 list-disc text-white/60 text-sm">$1</li>')
+    .replace(/^### (.+)$/gm, '<h3 class="text-gray-700 font-semibold text-sm mt-3 mb-1">$1</h3>')
+    .replace(/^## (.+)$/gm, '<h2 class="text-gray-900 font-bold text-base mt-4 mb-1.5">$1</h2>')
+    .replace(/^# (.+)$/gm, '<h1 class="text-gray-900 font-bold text-lg mt-4 mb-2">$1</h1>')
+    .replace(/\*\*(.+?)\*\*/g, '<strong class="text-gray-900 font-semibold">$1</strong>')
+    .replace(/\*(.+?)\*/g, '<em class="text-gray-600 italic">$1</em>')
+    .replace(/`(.+?)`/g, '<code class="bg-gray-200 text-indigo-600 px-1 rounded text-xs">$1</code>')
+    .replace(/^- (.+)$/gm, '<li class="ml-4 list-disc text-gray-500 text-sm">$1</li>')
     .replace(/\n/g, '<br/>')
   return (
     <div
-      className="text-white/60 text-sm leading-relaxed"
+      className="text-gray-500 text-sm leading-relaxed"
       dangerouslySetInnerHTML={{ __html: html }}
     />
   )
@@ -176,15 +176,15 @@ export default function TeamManageModal({ team = null, onClose, onSave }) {
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center px-4">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative w-full max-w-xl bg-[#1e1c30] rounded-3xl border border-white/10 shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
+      <div className="relative w-full max-w-xl bg-gray-50 rounded-3xl border border-gray-200 shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
 
         {/* Header */}
-        <div className="px-6 py-4 border-b border-white/10 bg-white/5 flex items-center justify-between flex-shrink-0">
+        <div className="px-6 py-4 border-b border-gray-200 bg-gray-100 flex items-center justify-between flex-shrink-0">
           <div className="flex items-center gap-3">
             <span className="text-2xl">{team?.icon || '🏢'}</span>
-            <h2 className="text-white font-bold text-base">{isEdit ? t.team.editHeader(team.name) : t.team.addTitle}</h2>
+            <h2 className="text-gray-900 font-bold text-base">{isEdit ? t.team.editHeader(team.name) : t.team.addTitle}</h2>
           </div>
-          <button onClick={onClose} className="w-7 h-7 rounded-lg flex items-center justify-center text-white/30 hover:text-white hover:bg-white/10 transition-colors">
+          <button onClick={onClose} className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:text-gray-900 hover:bg-gray-200 transition-colors">
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -202,36 +202,36 @@ export default function TeamManageModal({ team = null, onClose, onSave }) {
 
           {/* Team 이름 */}
           <div>
-            <label className="block text-white/50 text-xs font-medium mb-1.5">{t.team.teamName} <span className="text-red-400">*</span></label>
+            <label className="block text-gray-500 text-xs font-medium mb-1.5">{t.team.teamName} <span className="text-red-400">*</span></label>
             <input
               type="text"
               value={name}
               onChange={e => setName(e.target.value)}
               placeholder={t.team.teamNamePlaceholder}
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm placeholder-white/20 focus:ring-1 focus:ring-indigo-500 outline-none transition-all"
+              className="w-full bg-gray-100 border border-gray-200 rounded-xl px-4 py-2.5 text-gray-900 text-sm placeholder-gray-400 focus:ring-1 focus:ring-indigo-500 outline-none transition-all"
             />
           </div>
 
           {/* 관리자 */}
           <div>
             <div className="flex justify-between items-center mb-2">
-              <label className="text-white/50 text-xs font-medium">
+              <label className="text-gray-500 text-xs font-medium">
                 {t.team.admins} <span className="text-red-400">*</span>
               </label>
             </div>
             {/* 관리자 태그 목록 */}
-            <div className="min-h-[44px] p-2 bg-white/5 rounded-xl border border-white/10 flex flex-wrap gap-1.5 mb-3">
+            <div className="min-h-[44px] p-2 bg-gray-100 rounded-xl border border-gray-200 flex flex-wrap gap-1.5 mb-3">
               {selectedAdmins.map(a => (
-                <div key={a.id} className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-indigo-500/20 border border-indigo-500/30 text-indigo-300 text-[11px] font-medium">
+                <div key={a.id} className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-indigo-100 border border-indigo-200 text-indigo-600 text-[11px] font-medium">
                   <span>{a.name}</span>
                   <button
                     onClick={() => handleRemoveUser(a.id, 'admin')}
-                    className="text-indigo-400/60 hover:text-red-400 transition-colors text-sm leading-none"
+                    className="text-indigo-600/60 hover:text-red-400 transition-colors text-sm leading-none"
                   >×</button>
                 </div>
               ))}
               {selectedAdmins.length === 0 && (
-                <span className="text-white/20 text-xs px-1 py-1">{t.team.noAdmins}</span>
+                <span className="text-gray-300 text-xs px-1 py-1">{t.team.noAdmins}</span>
               )}
             </div>
             {/* 관리자 추가: 버튼 or 인라인 검색 */}
@@ -244,36 +244,36 @@ export default function TeamManageModal({ team = null, onClose, onSave }) {
                   autoFocus
                   placeholder={t.team.addAdminsPlaceholder}
                   onBlur={() => { if (!searchQuery.trim()) { setSearchTarget(null); setSearchResults([]) } }}
-                  className="w-full bg-indigo-500/10 border border-indigo-500/30 rounded-xl px-4 py-3 text-white text-sm placeholder-white/25 focus:ring-1 focus:ring-indigo-500 outline-none"
+                  className="w-full bg-indigo-50 border border-indigo-200 rounded-xl px-4 py-3 text-gray-900 text-sm placeholder-gray-400 focus:ring-1 focus:ring-indigo-500 outline-none"
                 />
                 {searchQuery.trim() && (searchResults.length > 0 || isSearching) && (
-                  <div className="absolute left-0 right-0 top-full mt-1 bg-[#161428] border border-white/10 rounded-xl shadow-2xl z-20 max-h-48 overflow-y-auto">
-                    {isSearching && <div className="px-4 py-3 text-white/30 text-xs">{t.team.searching}</div>}
+                  <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-gray-200 rounded-xl shadow-2xl z-20 max-h-48 overflow-y-auto">
+                    {isSearching && <div className="px-4 py-3 text-gray-400 text-xs">{t.team.searching}</div>}
                     {searchResults.map(u => (
                       <button
                         key={u.id}
                         onMouseDown={() => handleAddUser(u)}
-                        className="w-full px-4 py-2.5 text-left text-sm text-white hover:bg-white/8 border-b border-white/5 last:border-0 flex items-center gap-3"
+                        className="w-full px-4 py-2.5 text-left text-sm text-gray-900 hover:bg-gray-200 border-b border-gray-100 last:border-0 flex items-center gap-3"
                       >
                         <div className="w-7 h-7 rounded-full bg-indigo-500 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
                           {u.name[0]}
                         </div>
                         <div>
                           <p className="font-medium">{u.name}</p>
-                          <p className="text-white/40 text-xs">@{u.username}</p>
+                          <p className="text-gray-400 text-xs">@{u.username}</p>
                         </div>
                       </button>
                     ))}
                   </div>
                 )}
                 {searchQuery.trim() && !isSearching && searchResults.length === 0 && (
-                  <p className="text-white/25 text-xs mt-1 px-1">{t.team.searchNoResults}</p>
+                  <p className="text-gray-400 text-xs mt-1 px-1">{t.team.searchNoResults}</p>
                 )}
               </div>
             ) : (
               <button
                 onClick={() => { setSearchTarget('admin'); setSearchQuery('') }}
-                className="w-full py-3 rounded-xl border-2 border-dashed border-indigo-500/30 text-indigo-400 hover:border-indigo-500/60 hover:bg-indigo-500/10 transition-all text-sm font-semibold flex items-center justify-center gap-2"
+                className="w-full py-3 rounded-xl border-2 border-dashed border-indigo-200 text-indigo-600 hover:border-indigo-500/60 hover:bg-indigo-50 transition-all text-sm font-semibold flex items-center justify-center gap-2"
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
@@ -285,19 +285,19 @@ export default function TeamManageModal({ team = null, onClose, onSave }) {
 
           {/* 멤버 */}
           <div>
-            <label className="block text-white/50 text-xs font-medium mb-2">{t.team.members}</label>
-            <div className="min-h-[44px] p-2 bg-white/5 rounded-xl border border-white/10 flex flex-wrap gap-1.5 mb-3">
+            <label className="block text-gray-500 text-xs font-medium mb-2">{t.team.members}</label>
+            <div className="min-h-[44px] p-2 bg-gray-100 rounded-xl border border-gray-200 flex flex-wrap gap-1.5 mb-3">
               {selectedMembers.map(m => (
-                <div key={m.id} className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-white/8 border border-white/10 text-white/60 text-[11px]">
+                <div key={m.id} className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-gray-200 border border-gray-200 text-gray-500 text-[11px]">
                   <span>{m.name}</span>
                   <button
                     onClick={() => handleRemoveUser(m.id, 'member')}
-                    className="text-white/30 hover:text-red-400 transition-colors"
+                    className="text-gray-400 hover:text-red-400 transition-colors"
                   >×</button>
                 </div>
               ))}
               {selectedMembers.length === 0 && (
-                <span className="text-white/20 text-xs px-1 py-1">{t.team.noMembers}</span>
+                <span className="text-gray-300 text-xs px-1 py-1">{t.team.noMembers}</span>
               )}
             </div>
 
@@ -311,36 +311,36 @@ export default function TeamManageModal({ team = null, onClose, onSave }) {
                   autoFocus
                   placeholder={t.team.addMembersPlaceholder}
                   onBlur={() => { if (!searchQuery.trim()) { setSearchTarget(null); setSearchResults([]) } }}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm placeholder-white/25 focus:ring-1 focus:ring-indigo-500/60 outline-none"
+                  className="w-full bg-gray-100 border border-gray-200 rounded-xl px-4 py-3 text-gray-900 text-sm placeholder-gray-400 focus:ring-1 focus:ring-indigo-500/60 outline-none"
                 />
                 {searchQuery.trim() && (searchResults.length > 0 || isSearching) && (
-                  <div className="absolute left-0 right-0 top-full mt-1 bg-[#161428] border border-white/10 rounded-xl shadow-2xl z-20 max-h-48 overflow-y-auto">
-                    {isSearching && <div className="px-4 py-3 text-white/30 text-xs">{t.team.searching}</div>}
+                  <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-gray-200 rounded-xl shadow-2xl z-20 max-h-48 overflow-y-auto">
+                    {isSearching && <div className="px-4 py-3 text-gray-400 text-xs">{t.team.searching}</div>}
                     {searchResults.map(u => (
                       <button
                         key={u.id}
                         onMouseDown={() => handleAddUser(u)}
-                        className="w-full px-4 py-2.5 text-left text-sm text-white hover:bg-white/8 border-b border-white/5 last:border-0 flex items-center gap-3"
+                        className="w-full px-4 py-2.5 text-left text-sm text-gray-900 hover:bg-gray-200 border-b border-gray-100 last:border-0 flex items-center gap-3"
                       >
                         <div className="w-7 h-7 rounded-full bg-indigo-500 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
                           {u.name[0]}
                         </div>
                         <div>
                           <p className="font-medium">{u.name}</p>
-                          <p className="text-white/40 text-xs">@{u.username}</p>
+                          <p className="text-gray-400 text-xs">@{u.username}</p>
                         </div>
                       </button>
                     ))}
                   </div>
                 )}
                 {searchQuery.trim() && !isSearching && searchResults.length === 0 && (
-                  <p className="text-white/25 text-xs mt-1 px-1">{t.team.searchNoResults}</p>
+                  <p className="text-gray-400 text-xs mt-1 px-1">{t.team.searchNoResults}</p>
                 )}
               </div>
             ) : (
               <button
                 onClick={() => { setSearchTarget('member'); setSearchQuery('') }}
-                className="w-full py-3 rounded-xl border-2 border-dashed border-white/15 text-white/40 hover:border-white/30 hover:bg-white/5 hover:text-white/60 transition-all text-sm font-semibold flex items-center justify-center gap-2"
+                className="w-full py-3 rounded-xl border-2 border-dashed border-gray-200 text-gray-400 hover:border-white/30 hover:bg-gray-100 hover:text-gray-500 transition-all text-sm font-semibold flex items-center justify-center gap-2"
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
@@ -353,14 +353,14 @@ export default function TeamManageModal({ team = null, onClose, onSave }) {
           {/* 팀 설명 (MD 편집) */}
           <div>
             <div className="flex items-center justify-between mb-2">
-              <label className="text-white/50 text-xs font-medium">{t.team.description}</label>
-              <div className="flex gap-1 bg-white/5 rounded-lg p-0.5">
+              <label className="text-gray-500 text-xs font-medium">{t.team.description}</label>
+              <div className="flex gap-1 bg-gray-100 rounded-lg p-0.5">
                 {[{ key: 'write', label: t.team.descWrite }, { key: 'preview', label: t.team.descPreview }].map(tab => (
                   <button
                     key={tab.key}
                     onClick={() => setDescTab(tab.key)}
                     className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all ${
-                      descTab === tab.key ? 'bg-indigo-600 text-white' : 'text-white/40 hover:text-white/70'
+                      descTab === tab.key ? 'bg-indigo-600 text-white' : 'text-gray-400 hover:text-gray-600'
                     }`}
                   >
                     {tab.label}
@@ -374,13 +374,13 @@ export default function TeamManageModal({ team = null, onClose, onSave }) {
                 onChange={e => setDescription(e.target.value)}
                 rows={6}
                 placeholder={t.team.descriptionPlaceholder}
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm placeholder-white/15 focus:ring-1 focus:ring-indigo-500 outline-none resize-none leading-relaxed font-mono"
+                className="w-full bg-gray-100 border border-gray-200 rounded-xl px-4 py-3 text-gray-900 text-sm placeholder-white/15 focus:ring-1 focus:ring-indigo-500 outline-none resize-none leading-relaxed font-mono"
               />
             ) : (
-              <div className="min-h-[120px] bg-white/5 border border-white/10 rounded-xl px-4 py-3">
+              <div className="min-h-[120px] bg-gray-100 border border-gray-200 rounded-xl px-4 py-3">
                 {description.trim()
                   ? <SimpleMDPreview text={description} />
-                  : <p className="text-white/20 text-sm">{t.team.descEmpty}</p>
+                  : <p className="text-gray-300 text-sm">{t.team.descEmpty}</p>
                 }
               </div>
             )}
@@ -389,7 +389,7 @@ export default function TeamManageModal({ team = null, onClose, onSave }) {
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 bg-white/5 border-t border-white/10 flex items-center justify-end gap-3 flex-shrink-0">
+        <div className="px-6 py-4 bg-gray-100 border-t border-gray-200 flex items-center justify-end gap-3 flex-shrink-0">
           {isEdit && (
             <button
               onClick={() => setShowDeleteConfirm(true)}
@@ -399,13 +399,13 @@ export default function TeamManageModal({ team = null, onClose, onSave }) {
               {t.team.deleteTitle}
             </button>
           )}
-          <button onClick={onClose} className="px-4 py-2 text-white/40 text-xs font-bold hover:text-white transition-colors">
+          <button onClick={onClose} className="px-4 py-2 text-gray-400 text-xs font-bold hover:text-gray-900 transition-colors">
             {t.team.cancel}
           </button>
           <button
             onClick={handleSubmit}
             disabled={loading}
-            className="px-6 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-60 text-white text-xs font-bold shadow-lg shadow-indigo-500/20 active:scale-95 transition-all"
+            className="px-6 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-60 text-white text-xs font-bold shadow-lg shadow-indigo-200 active:scale-95 transition-all"
           >
             {loading ? t.team.processing : t.team.save}
           </button>
@@ -413,23 +413,23 @@ export default function TeamManageModal({ team = null, onClose, onSave }) {
 
         {/* 삭제 확인 오버레이 */}
         {showDeleteConfirm && (
-          <div className="absolute inset-0 z-30 bg-[#1e1c30]/95 flex flex-col items-center justify-center p-8 space-y-5">
+          <div className="absolute inset-0 z-30 bg-gray-50/95 flex flex-col items-center justify-center p-8 space-y-5">
             <div className="text-4xl">⚠️</div>
-            <h3 className="text-white font-bold text-center text-lg">{t.team.deleteConfirmTitle}</h3>
-            <p className="text-white/40 text-sm text-center leading-relaxed">{t.team.deleteWarning}</p>
-            <p className="text-white/40 text-xs text-center">{t.team.deleteConfirmInput(team?.name)}</p>
+            <h3 className="text-gray-900 font-bold text-center text-lg">{t.team.deleteConfirmTitle}</h3>
+            <p className="text-gray-400 text-sm text-center leading-relaxed">{t.team.deleteWarning}</p>
+            <p className="text-gray-400 text-xs text-center">{t.team.deleteConfirmInput(team?.name)}</p>
             <input
               type="text"
               value={deleteConfirmName}
               onChange={e => setDeleteConfirmName(e.target.value)}
               placeholder={t.team.deleteConfirmPlaceholder}
-              className="w-full max-w-sm bg-white/5 border border-red-500/30 rounded-xl px-4 py-2.5 text-white text-sm focus:ring-1 focus:ring-red-500 outline-none text-center"
+              className="w-full max-w-sm bg-gray-100 border border-red-200 rounded-xl px-4 py-2.5 text-gray-900 text-sm focus:ring-1 focus:ring-red-500 outline-none text-center"
             />
             {error && <p className="text-red-400 text-xs">{error}</p>}
             <div className="flex gap-3">
               <button
                 onClick={() => { setShowDeleteConfirm(false); setDeleteConfirmName(''); setError('') }}
-                className="px-6 py-2 text-white/40 text-sm font-bold hover:text-white"
+                className="px-6 py-2 text-gray-400 text-sm font-bold hover:text-gray-900"
               >
                 {t.team.cancel}
               </button>

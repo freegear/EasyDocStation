@@ -25,7 +25,7 @@ function MainLayout() {
   }
 
   return (
-    <div className="flex flex-col h-screen bg-[#1e1c30] overflow-hidden">
+    <div className="flex flex-col h-screen bg-gray-50 overflow-hidden">
       <TitleBar
         onOpenProfile={() => setShowProfile(true)}
         onOpenSiteAdmin={() => setShowSiteAdmin(true)}
@@ -54,12 +54,12 @@ function AppContent() {
 
   if (loading) {
     return (
-      <div className="h-screen bg-[#0f0e1a] flex items-center justify-center">
+      <div className="h-screen bg-gray-100 flex items-center justify-center">
         <div className="flex flex-col items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold animate-pulse">
             ED
           </div>
-          <div className="w-5 h-5 border-2 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin" />
+          <div className="w-5 h-5 border-2 border-indigo-200 border-t-indigo-500 rounded-full animate-spin" />
         </div>
       </div>
     )

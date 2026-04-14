@@ -7,17 +7,17 @@ import { useT } from '../i18n/useT'
 // MD 미리보기를 간단히 처리하는 헬퍼 (TeamManageModal과 동일)
 function SimpleMDPreview({ text }) {
   const html = text
-    .replace(/^### (.+)$/gm, '<h3 class="text-white/80 font-semibold text-sm mt-3 mb-1">$1</h3>')
-    .replace(/^## (.+)$/gm, '<h2 class="text-white font-bold text-base mt-4 mb-1.5">$1</h2>')
-    .replace(/^# (.+)$/gm, '<h1 class="text-white font-bold text-lg mt-4 mb-2">$1</h1>')
-    .replace(/\*\*(.+?)\*\*/g, '<strong class="text-white font-semibold">$1</strong>')
-    .replace(/\*(.+?)\*/g, '<em class="text-white/70 italic">$1</em>')
-    .replace(/`(.+?)`/g, '<code class="bg-white/10 text-indigo-300 px-1 rounded text-xs">$1</code>')
-    .replace(/^- (.+)$/gm, '<li class="ml-4 list-disc text-white/60 text-sm">$1</li>')
+    .replace(/^### (.+)$/gm, '<h3 class="text-gray-700 font-semibold text-sm mt-3 mb-1">$1</h3>')
+    .replace(/^## (.+)$/gm, '<h2 class="text-gray-900 font-bold text-base mt-4 mb-1.5">$1</h2>')
+    .replace(/^# (.+)$/gm, '<h1 class="text-gray-900 font-bold text-lg mt-4 mb-2">$1</h1>')
+    .replace(/\*\*(.+?)\*\*/g, '<strong class="text-gray-900 font-semibold">$1</strong>')
+    .replace(/\*(.+?)\*/g, '<em class="text-gray-600 italic">$1</em>')
+    .replace(/`(.+?)`/g, '<code class="bg-gray-200 text-indigo-600 px-1 rounded text-xs">$1</code>')
+    .replace(/^- (.+)$/gm, '<li class="ml-4 list-disc text-gray-500 text-sm">$1</li>')
     .replace(/\n/g, '<br/>')
   return (
     <div
-      className="text-white/60 text-sm leading-relaxed"
+      className="text-gray-500 text-sm leading-relaxed"
       dangerouslySetInnerHTML={{ __html: html }}
     />
   )
@@ -213,15 +213,15 @@ export default function ChannelManageModal({ mode = 'manage', channel = null, on
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center px-4">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative w-full max-w-xl bg-[#1e1c30] rounded-3xl border border-white/10 shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
+      <div className="relative w-full max-w-xl bg-gray-50 rounded-3xl border border-gray-200 shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
         
         {/* Header */}
-        <div className="px-6 py-4 border-b border-white/10 bg-white/5 flex items-center justify-between flex-shrink-0">
+        <div className="px-6 py-4 border-b border-gray-200 bg-gray-100 flex items-center justify-between flex-shrink-0">
           <div className="flex items-center gap-3">
             <span className="text-xl">{type === 'public' ? '🌐' : '🔒'}</span>
-            <h2 className="text-white font-bold text-base">{isEdit ? t.channel.editHeader(targetChannel.name) : t.channel.addTitle}</h2>
+            <h2 className="text-gray-900 font-bold text-base">{isEdit ? t.channel.editHeader(targetChannel.name) : t.channel.addTitle}</h2>
           </div>
-          <button onClick={onClose} className="w-7 h-7 rounded-lg flex items-center justify-center text-white/30 hover:text-white hover:bg-white/10 transition-colors">
+          <button onClick={onClose} className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:text-gray-900 hover:bg-gray-200 transition-colors">
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -237,27 +237,27 @@ export default function ChannelManageModal({ mode = 'manage', channel = null, on
           )}
 
           {/* DS.002 메타 정보 (읽기 전용) */}
-          <div className="bg-white/3 border border-white/8 rounded-2xl px-4 py-3 space-y-2.5">
-            <p className="text-white/30 text-[10px] font-semibold uppercase tracking-widest mb-1">DS.002 {t.channel.manageTitle}</p>
+          <div className="bg-gray-50 border border-gray-200 rounded-2xl px-4 py-3 space-y-2.5">
+            <p className="text-gray-400 text-[10px] font-semibold uppercase tracking-widest mb-1">DS.002 {t.channel.manageTitle}</p>
 
             {/* Channel ID */}
             <div className="flex items-center gap-3">
-              <span className="text-white/35 text-xs w-28 flex-shrink-0">Channel ID</span>
-              <span className="text-white/60 text-xs font-mono">{isEdit ? targetChannel.id : t.channel.autoId}</span>
+              <span className="text-gray-400 text-xs w-28 flex-shrink-0">Channel ID</span>
+              <span className="text-gray-500 text-xs font-mono">{isEdit ? targetChannel.id : t.channel.autoId}</span>
             </div>
 
             {/* Team ID */}
             <div className="flex items-center gap-3">
-              <span className="text-white/35 text-xs w-28 flex-shrink-0">Team ID</span>
-              <span className="text-white/60 text-xs font-mono">{selectedTeam?.id ?? '-'}</span>
-              {selectedTeam?.name && <span className="text-white/30 text-xs">({selectedTeam.name})</span>}
+              <span className="text-gray-400 text-xs w-28 flex-shrink-0">Team ID</span>
+              <span className="text-gray-500 text-xs font-mono">{selectedTeam?.id ?? '-'}</span>
+              {selectedTeam?.name && <span className="text-gray-400 text-xs">({selectedTeam.name})</span>}
             </div>
 
             {/* Created At */}
             {isEdit && (
               <div className="flex items-center gap-3">
-                <span className="text-white/35 text-xs w-28 flex-shrink-0">Created At</span>
-                <span className="text-white/60 text-xs font-mono">
+                <span className="text-gray-400 text-xs w-28 flex-shrink-0">Created At</span>
+                <span className="text-gray-500 text-xs font-mono">
                   {targetChannel.created_at
                     ? new Date(targetChannel.created_at).toLocaleString('ko-KR')
                     : '-'}
@@ -267,16 +267,16 @@ export default function ChannelManageModal({ mode = 'manage', channel = null, on
 
             {/* Root Post ID */}
             <div className="flex items-center gap-3">
-              <span className="text-white/35 text-xs w-28 flex-shrink-0">Root Post ID</span>
-              <span className={`text-xs font-mono ${isEdit && targetChannel.root_post_id ? 'text-indigo-300' : 'text-white/25'}`}>
+              <span className="text-gray-400 text-xs w-28 flex-shrink-0">Root Post ID</span>
+              <span className={`text-xs font-mono ${isEdit && targetChannel.root_post_id ? 'text-indigo-600' : 'text-gray-400'}`}>
                 {isEdit ? (targetChannel.root_post_id ?? 'NULL') : 'NULL'}
               </span>
             </div>
 
             {/* Tail Post ID */}
             <div className="flex items-center gap-3">
-              <span className="text-white/35 text-xs w-28 flex-shrink-0">Tail Post ID</span>
-              <span className={`text-xs font-mono ${isEdit && targetChannel.tail_post_id ? 'text-indigo-300' : 'text-white/25'}`}>
+              <span className="text-gray-400 text-xs w-28 flex-shrink-0">Tail Post ID</span>
+              <span className={`text-xs font-mono ${isEdit && targetChannel.tail_post_id ? 'text-indigo-600' : 'text-gray-400'}`}>
                 {isEdit ? (targetChannel.tail_post_id ?? 'NULL') : 'NULL'}
               </span>
             </div>
@@ -285,17 +285,17 @@ export default function ChannelManageModal({ mode = 'manage', channel = null, on
           {/* 채널 이름 + Is Private */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-white/50 text-xs font-medium mb-1.5">Channel Name <span className="text-red-400">*</span></label>
+              <label className="block text-gray-500 text-xs font-medium mb-1.5">Channel Name <span className="text-red-400">*</span></label>
               <input
                 type="text"
                 value={name}
                 onChange={e => setName(e.target.value)}
                 placeholder={t.channel.channelNamePlaceholder}
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm focus:ring-1 focus:ring-indigo-500 outline-none transition-all"
+                className="w-full bg-gray-100 border border-gray-200 rounded-xl px-4 py-2.5 text-gray-900 text-sm focus:ring-1 focus:ring-indigo-500 outline-none transition-all"
               />
             </div>
             <div>
-              <label className="block text-white/50 text-xs font-medium mb-1.5">Is Private</label>
+              <label className="block text-gray-500 text-xs font-medium mb-1.5">Is Private</label>
               <div className="flex gap-2">
                 {[
                   { value: 'public',  label: t.channel.typePublic, icon: '🌐' },
@@ -306,8 +306,8 @@ export default function ChannelManageModal({ mode = 'manage', channel = null, on
                     onClick={() => setType(opt.value)}
                     className={`flex-1 py-2.5 rounded-xl text-xs font-semibold border transition-all flex items-center justify-center gap-1 ${
                       type === opt.value
-                        ? 'bg-indigo-600 border-indigo-500 text-white shadow-lg shadow-indigo-500/20'
-                        : 'bg-white/5 border-white/10 text-white/40 hover:text-white/60'
+                        ? 'bg-indigo-600 border-indigo-500 text-white shadow-lg shadow-indigo-200'
+                        : 'bg-gray-100 border-gray-200 text-gray-400 hover:text-gray-500'
                     }`}
                   >
                     {opt.icon} {opt.label}
@@ -319,17 +319,17 @@ export default function ChannelManageModal({ mode = 'manage', channel = null, on
 
           {/* Admins (TeamManageModal 스타일) */}
           <div>
-            <label className="block text-white/50 text-xs font-medium mb-2">
+            <label className="block text-gray-500 text-xs font-medium mb-2">
               {t.channel.admins} <span className="text-red-400">*</span>
             </label>
-            <div className="min-h-[44px] p-2 bg-white/5 rounded-xl border border-white/10 flex flex-wrap gap-1.5 mb-3">
+            <div className="min-h-[44px] p-2 bg-gray-100 rounded-xl border border-gray-200 flex flex-wrap gap-1.5 mb-3">
               {admins.map(a => (
-                <div key={a.id} className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-indigo-500/20 border border-indigo-500/30 text-indigo-300 text-[11px] font-medium">
+                <div key={a.id} className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-indigo-100 border border-indigo-200 text-indigo-600 text-[11px] font-medium">
                   <span>{a.name}</span>
-                  <button onClick={() => handleRemoveUser(a.id, 'admin')} className="text-indigo-400/60 hover:text-red-400 transition-colors">×</button>
+                  <button onClick={() => handleRemoveUser(a.id, 'admin')} className="text-indigo-600/60 hover:text-red-400 transition-colors">×</button>
                 </div>
               ))}
-              {admins.length === 0 && <span className="text-white/20 text-xs px-1 py-1">{t.channel.noAdmins}</span>}
+              {admins.length === 0 && <span className="text-gray-300 text-xs px-1 py-1">{t.channel.noAdmins}</span>}
             </div>
             {searchTarget === 'admin' ? (
               <div className="relative">
@@ -340,17 +340,17 @@ export default function ChannelManageModal({ mode = 'manage', channel = null, on
                   autoFocus
                   placeholder={t.channel.addAdminsPlaceholder}
                   onBlur={() => { if (!searchQuery.trim()) { setSearchTarget(null); setSearchResults([]) } }}
-                  className="w-full bg-indigo-500/10 border border-indigo-500/30 rounded-xl px-4 py-3 text-white text-sm placeholder-white/25 focus:ring-1 focus:ring-indigo-500 outline-none"
+                  className="w-full bg-indigo-50 border border-indigo-200 rounded-xl px-4 py-3 text-gray-900 text-sm placeholder-gray-400 focus:ring-1 focus:ring-indigo-500 outline-none"
                 />
                 {searchQuery.trim() && (searchResults.length > 0 || isSearching) && (
-                  <div className="absolute left-0 right-0 top-full mt-1 bg-[#161428] border border-white/10 rounded-xl shadow-2xl z-20 max-h-48 overflow-y-auto">
-                    {isSearching && <div className="px-4 py-3 text-white/30 text-xs">{t.channel.searching}</div>}
+                  <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-gray-200 rounded-xl shadow-2xl z-20 max-h-48 overflow-y-auto">
+                    {isSearching && <div className="px-4 py-3 text-gray-400 text-xs">{t.channel.searching}</div>}
                     {searchResults.map(u => (
-                      <button key={u.id} onMouseDown={() => handleAddUser(u)} className="w-full px-4 py-2.5 text-left text-sm text-white hover:bg-white/8 border-b border-white/5 last:border-0 flex items-center gap-3">
+                      <button key={u.id} onMouseDown={() => handleAddUser(u)} className="w-full px-4 py-2.5 text-left text-sm text-gray-900 hover:bg-gray-200 border-b border-gray-100 last:border-0 flex items-center gap-3">
                         <div className="w-7 h-7 rounded-full bg-indigo-500 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">{u.name[0]}</div>
                         <div>
-                          <p className="font-medium text-xs text-white">{u.name}</p>
-                          <p className="text-white/40 text-[10px]">@{u.username}</p>
+                          <p className="font-medium text-xs text-gray-900">{u.name}</p>
+                          <p className="text-gray-400 text-[10px]">@{u.username}</p>
                         </div>
                       </button>
                     ))}
@@ -358,21 +358,21 @@ export default function ChannelManageModal({ mode = 'manage', channel = null, on
                 )}
               </div>
             ) : (
-              <button onClick={() => { setSearchTarget('admin'); setSearchQuery('') }} className="w-full py-3 rounded-xl border-2 border-dashed border-indigo-500/30 text-indigo-400 hover:border-indigo-500/60 hover:bg-indigo-500/10 transition-all text-sm font-semibold flex items-center justify-center gap-2">{t.channel.addAdmins}</button>
+              <button onClick={() => { setSearchTarget('admin'); setSearchQuery('') }} className="w-full py-3 rounded-xl border-2 border-dashed border-indigo-200 text-indigo-600 hover:border-indigo-500/60 hover:bg-indigo-50 transition-all text-sm font-semibold flex items-center justify-center gap-2">{t.channel.addAdmins}</button>
             )}
           </div>
 
           {/* Members (TeamManageModal 스타일) */}
           <div>
-            <label className="block text-white/50 text-xs font-medium mb-2">{t.channel.members}</label>
-            <div className="min-h-[44px] p-2 bg-white/5 rounded-xl border border-white/10 flex flex-wrap gap-1.5 mb-3">
+            <label className="block text-gray-500 text-xs font-medium mb-2">{t.channel.members}</label>
+            <div className="min-h-[44px] p-2 bg-gray-100 rounded-xl border border-gray-200 flex flex-wrap gap-1.5 mb-3">
               {members.map(m => (
-                <div key={m.id} className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-white/8 border border-white/10 text-white/60 text-[11px]">
+                <div key={m.id} className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-gray-200 border border-gray-200 text-gray-500 text-[11px]">
                   <span>{m.name}</span>
-                  <button onClick={() => handleRemoveUser(m.id, 'member')} className="text-white/30 hover:text-red-400 transition-colors">×</button>
+                  <button onClick={() => handleRemoveUser(m.id, 'member')} className="text-gray-400 hover:text-red-400 transition-colors">×</button>
                 </div>
               ))}
-              {members.length === 0 && <span className="text-white/20 text-xs px-1 py-1">{t.channel.noMembers}</span>}
+              {members.length === 0 && <span className="text-gray-300 text-xs px-1 py-1">{t.channel.noMembers}</span>}
             </div>
             {searchTarget === 'member' ? (
               <div className="relative">
@@ -383,17 +383,17 @@ export default function ChannelManageModal({ mode = 'manage', channel = null, on
                   autoFocus
                   placeholder={t.channel.addMembersPlaceholder}
                   onBlur={() => { if (!searchQuery.trim()) { setSearchTarget(null); setSearchResults([]) } }}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm placeholder-white/25 focus:ring-1 focus:ring-indigo-500/60 outline-none"
+                  className="w-full bg-gray-100 border border-gray-200 rounded-xl px-4 py-3 text-gray-900 text-sm placeholder-gray-400 focus:ring-1 focus:ring-indigo-500/60 outline-none"
                 />
                 {searchQuery.trim() && (searchResults.length > 0 || isSearching) && (
-                  <div className="absolute left-0 right-0 top-full mt-1 bg-[#161428] border border-white/10 rounded-xl shadow-2xl z-20 max-h-48 overflow-y-auto">
-                    {isSearching && <div className="px-4 py-3 text-white/30 text-xs">{t.channel.searching}</div>}
+                  <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-gray-200 rounded-xl shadow-2xl z-20 max-h-48 overflow-y-auto">
+                    {isSearching && <div className="px-4 py-3 text-gray-400 text-xs">{t.channel.searching}</div>}
                     {searchResults.map(u => (
-                      <button key={u.id} onMouseDown={() => handleAddUser(u)} className="w-full px-4 py-2.5 text-left text-sm text-white hover:bg-white/8 border-b border-white/5 last:border-0 flex items-center gap-3">
+                      <button key={u.id} onMouseDown={() => handleAddUser(u)} className="w-full px-4 py-2.5 text-left text-sm text-gray-900 hover:bg-gray-200 border-b border-gray-100 last:border-0 flex items-center gap-3">
                         <div className="w-7 h-7 rounded-full bg-indigo-500 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">{u.name[0]}</div>
                         <div>
-                          <p className="font-medium text-xs text-white">{u.name}</p>
-                          <p className="text-white/40 text-[10px]">@{u.username}</p>
+                          <p className="font-medium text-xs text-gray-900">{u.name}</p>
+                          <p className="text-gray-400 text-[10px]">@{u.username}</p>
                         </div>
                       </button>
                     ))}
@@ -401,21 +401,21 @@ export default function ChannelManageModal({ mode = 'manage', channel = null, on
                 )}
               </div>
             ) : (
-              <button onClick={() => { setSearchTarget('member'); setSearchQuery('') }} className="w-full py-3 rounded-xl border-2 border-dashed border-white/15 text-white/40 hover:border-white/30 hover:bg-white/5 hover:text-white/60 transition-all text-sm font-semibold flex items-center justify-center gap-2">{t.channel.addMembers}</button>
+              <button onClick={() => { setSearchTarget('member'); setSearchQuery('') }} className="w-full py-3 rounded-xl border-2 border-dashed border-gray-200 text-gray-400 hover:border-white/30 hover:bg-gray-100 hover:text-gray-500 transition-all text-sm font-semibold flex items-center justify-center gap-2">{t.channel.addMembers}</button>
             )}
           </div>
 
           {/* Channel Description (MD 편집) */}
           <div>
             <div className="flex items-center justify-between mb-2">
-              <label className="text-white/50 text-xs font-medium">{t.channel.description}</label>
-              <div className="flex gap-1 bg-white/5 rounded-lg p-0.5">
+              <label className="text-gray-500 text-xs font-medium">{t.channel.description}</label>
+              <div className="flex gap-1 bg-gray-100 rounded-lg p-0.5">
                 {[{ key: 'write', label: t.channel.descWrite }, { key: 'preview', label: t.channel.descPreview }].map(tab => (
                   <button
                     key={tab.key}
                     onClick={() => setDescTab(tab.key)}
                     className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all ${
-                      descTab === tab.key ? 'bg-indigo-600 text-white' : 'text-white/40 hover:text-white/70'
+                      descTab === tab.key ? 'bg-indigo-600 text-white' : 'text-gray-400 hover:text-gray-600'
                     }`}
                   >
                     {tab.label}
@@ -429,11 +429,11 @@ export default function ChannelManageModal({ mode = 'manage', channel = null, on
                 onChange={e => setDescription(e.target.value)}
                 rows={4}
                 placeholder={t.channel.descriptionPlaceholder}
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm placeholder-white/15 focus:ring-1 focus:ring-indigo-500 outline-none resize-none leading-relaxed font-mono"
+                className="w-full bg-gray-100 border border-gray-200 rounded-xl px-4 py-3 text-gray-900 text-sm placeholder-white/15 focus:ring-1 focus:ring-indigo-500 outline-none resize-none leading-relaxed font-mono"
               />
             ) : (
-              <div className="min-h-[100px] bg-white/5 border border-white/10 rounded-xl px-4 py-3">
-                {description.trim() ? <SimpleMDPreview text={description} /> : <p className="text-white/20 text-sm">{t.channel.descEmpty}</p>}
+              <div className="min-h-[100px] bg-gray-100 border border-gray-200 rounded-xl px-4 py-3">
+                {description.trim() ? <SimpleMDPreview text={description} /> : <p className="text-gray-300 text-sm">{t.channel.descEmpty}</p>}
               </div>
             )}
           </div>
@@ -441,7 +441,7 @@ export default function ChannelManageModal({ mode = 'manage', channel = null, on
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 bg-white/5 border-t border-white/10 flex items-center justify-end gap-3 flex-shrink-0">
+        <div className="px-6 py-4 bg-gray-100 border-t border-gray-200 flex items-center justify-end gap-3 flex-shrink-0">
           {isEdit && (
             <>
               <button
@@ -457,7 +457,7 @@ export default function ChannelManageModal({ mode = 'manage', channel = null, on
                 className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
                   isArchived
                     ? 'bg-amber-500/20 text-amber-500 cursor-not-allowed'
-                    : 'bg-amber-500/10 hover:bg-amber-500/20 text-amber-500'
+                    : 'bg-amber-50 hover:bg-amber-500/20 text-amber-500'
                 }`}
               >
                 {isArchived ? t.channel.unarchive : t.channel.archive}
@@ -465,11 +465,11 @@ export default function ChannelManageModal({ mode = 'manage', channel = null, on
             </>
           )}
           <div className="flex-1" />
-          <button onClick={onClose} className="px-4 py-2 text-white/40 text-xs font-bold hover:text-white transition-colors">{t.channel.cancel}</button>
+          <button onClick={onClose} className="px-4 py-2 text-gray-400 text-xs font-bold hover:text-gray-900 transition-colors">{t.channel.cancel}</button>
           <button
             onClick={handleSave}
             disabled={loading}
-            className="px-6 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-60 text-white text-xs font-bold shadow-lg shadow-indigo-500/20 active:scale-95 transition-all"
+            className="px-6 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-60 text-white text-xs font-bold shadow-lg shadow-indigo-200 active:scale-95 transition-all"
           >
             {loading ? t.channel.processing : t.channel.save}
           </button>
@@ -477,20 +477,20 @@ export default function ChannelManageModal({ mode = 'manage', channel = null, on
 
         {/* Delete Confirmation */}
         {showDeleteConfirm && (
-          <div className="absolute inset-0 z-30 bg-[#1e1c30]/95 flex flex-col items-center justify-center p-8 space-y-5">
+          <div className="absolute inset-0 z-30 bg-gray-50/95 flex flex-col items-center justify-center p-8 space-y-5">
             <div className="w-16 h-16 rounded-full bg-red-500/10 flex items-center justify-center text-red-500 text-3xl mb-2">⚠️</div>
-            <h3 className="text-white font-bold text-center text-lg">{t.channel.deleteConfirmTitle}</h3>
-            <p className="text-white/40 text-[11px] text-center mt-2">{t.channel.deleteConfirmHint(targetChannel.name)}</p>
+            <h3 className="text-gray-900 font-bold text-center text-lg">{t.channel.deleteConfirmTitle}</h3>
+            <p className="text-gray-400 text-[11px] text-center mt-2">{t.channel.deleteConfirmHint(targetChannel.name)}</p>
             <input
               type="text"
               value={deleteConfirmName}
               onChange={e => setDeleteConfirmName(e.target.value)}
               placeholder={t.channel.deleteConfirmPlaceholder}
-              className="w-full max-w-sm bg-black/40 border border-red-500/30 rounded-xl px-4 py-3 text-white text-sm focus:ring-1 focus:ring-red-500 outline-none text-center font-bold"
+              className="w-full max-w-sm bg-gray-100 border border-red-200 rounded-xl px-4 py-3 text-gray-900 text-sm focus:ring-1 focus:ring-red-500 outline-none text-center font-bold"
             />
             {error && <p className="text-red-400 text-xs">{error}</p>}
             <div className="flex gap-4 mt-4">
-              <button onClick={() => { setShowDeleteConfirm(false); setDeleteConfirmName(''); setError('') }} className="px-6 py-2 text-white/40 text-sm font-bold hover:text-white transition-colors">{t.channel.cancel}</button>
+              <button onClick={() => { setShowDeleteConfirm(false); setDeleteConfirmName(''); setError('') }} className="px-6 py-2 text-gray-400 text-sm font-bold hover:text-gray-900 transition-colors">{t.channel.cancel}</button>
               <button
                 onClick={handleDelete}
                 disabled={deleteConfirmName !== targetChannel.name || loading}

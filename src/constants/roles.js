@@ -13,10 +13,10 @@ export const ROLE_LABELS = {
 }
 
 export const ROLE_BADGE = {
-  site_admin:    'bg-red-500/15 text-red-400 border-red-500/25',
-  team_admin:    'bg-orange-500/15 text-orange-400 border-orange-500/25',
-  channel_admin: 'bg-blue-500/15 text-blue-400 border-blue-500/25',
-  user:          'bg-white/8 text-white/40 border-white/10',
+  site_admin:    'bg-red-100 text-red-600 border-red-200',
+  team_admin:    'bg-orange-100 text-orange-600 border-orange-200',
+  channel_admin: 'bg-blue-100 text-blue-600 border-blue-200',
+  user:          'bg-gray-100 text-gray-400 border-gray-200',
 }
 
 export const ROLE_OPTIONS = [

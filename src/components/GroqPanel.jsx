@@ -268,25 +268,25 @@ export default function GroqPanel() {
   }
 
   return (
-    <div className="w-80 flex-shrink-0 bg-[#161428] border-l border-white/5 flex flex-col h-full">
+    <div className="w-80 flex-shrink-0 bg-gray-50 border-l border-gray-200 flex flex-col h-full">
       {/* Panel header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-white/10 flex-shrink-0">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 flex-shrink-0">
         <div className="flex items-center gap-2">
-          <div className="w-6 h-6 rounded-md bg-gradient-to-br from-green-400 to-teal-500 flex items-center justify-center">
+          <div className="w-6 h-6 rounded-md bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center">
             <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
             </svg>
           </div>
-          <span className="text-white font-semibold text-sm">EasyStation AgenticAI</span>
+          <span className="text-gray-900 font-semibold text-sm">EasyStation AgenticAI</span>
           {loading && (
-            <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
+            <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
           )}
         </div>
         <div className="flex items-center gap-1">
           <button
             onClick={clearChat}
             title={t.ai.clearChat}
-            className="p-1.5 rounded-md text-white/30 hover:text-white/70 hover:bg-white/10 transition-colors"
+            className="p-1.5 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-200 transition-colors"
           >
             <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -296,11 +296,11 @@ export default function GroqPanel() {
       </div>
 
       {/* Model selector */}
-      <div className="px-3 py-2 border-b border-white/5 flex-shrink-0">
+      <div className="px-3 py-2 border-b border-gray-100 flex-shrink-0">
         <select
           value={selectedModel}
           onChange={e => setSelectedModel(e.target.value)}
-          className="w-full bg-white text-black text-xs rounded-md px-2 py-1.5 border border-white/10 focus:outline-none focus:ring-1 focus:ring-green-500 cursor-pointer font-medium"
+          className="w-full bg-white text-black text-xs rounded-md px-2 py-1.5 border border-gray-200 focus:outline-none focus:ring-1 focus:ring-green-500 cursor-pointer font-medium"
         >
           {GROQ_MODELS.map(m => (
             <option key={m.id} value={m.id} className="text-black bg-white">
@@ -316,7 +316,7 @@ export default function GroqPanel() {
           <div key={msg.id} className={`flex flex-col gap-1 ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
             <div className={`flex items-center gap-1.5 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
               {msg.role === 'assistant' ? (
-                <div className="w-5 h-5 rounded-md bg-gradient-to-br from-green-400 to-teal-500 flex items-center justify-center">
+                <div className="w-5 h-5 rounded-md bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center">
                   <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                   </svg>
@@ -326,16 +326,16 @@ export default function GroqPanel() {
                   U
                 </div>
               )}
-              <span className="text-white/30 text-xs">{formatTime(msg.time)}</span>
+              <span className="text-gray-400 text-xs">{formatTime(msg.time)}</span>
             </div>
             <div className={`px-3 py-2 rounded-xl text-xs leading-relaxed max-w-full ${msg.role === 'user'
                 ? 'bg-indigo-600 text-white rounded-tr-sm whitespace-pre-wrap'
                 : msg.isError
-                  ? 'bg-red-500/20 text-red-300 border border-red-500/30 rounded-tl-sm whitespace-pre-wrap'
-                  : 'bg-white/8 text-white/85 rounded-tl-sm border border-white/5'
+                  ? 'bg-red-50 text-red-600 border border-red-200 rounded-tl-sm whitespace-pre-wrap'
+                  : 'bg-gray-200 text-gray-700 rounded-tl-sm border border-gray-200'
               }`}>
               {msg.image && (
-                <div className="mb-2 w-64 h-64 overflow-hidden rounded-lg border border-white/10">
+                <div className="mb-2 w-64 h-64 overflow-hidden rounded-lg border border-gray-200">
                   <img
                     src={msg.image}
                     alt={t.ai.attachedImage}
@@ -344,7 +344,7 @@ export default function GroqPanel() {
                 </div>
               )}
               {msg.streaming && msg.content === '' && (
-                <span className="inline-block w-1.5 h-3.5 bg-white/50 rounded-sm animate-pulse" />
+                <span className="inline-block w-1.5 h-3.5 bg-gray-1000 rounded-sm animate-pulse" />
               )}
               {msg.role === 'assistant' && !msg.isError ? (
                 <ReactMarkdown
@@ -357,17 +357,17 @@ export default function GroqPanel() {
                     ul: ({ children }) => <ul className="list-disc pl-4 mb-1.5 space-y-0.5">{children}</ul>,
                     ol: ({ children }) => <ol className="list-decimal pl-4 mb-1.5 space-y-0.5">{children}</ol>,
                     li: ({ children }) => <li>{children}</li>,
-                    strong: ({ children }) => <strong className="font-semibold text-white">{children}</strong>,
-                    em: ({ children }) => <em className="italic text-white/70">{children}</em>,
+                    strong: ({ children }) => <strong className="font-semibold text-gray-900">{children}</strong>,
+                    em: ({ children }) => <em className="italic text-gray-600">{children}</em>,
                     code: ({ inline, children }) => inline
-                      ? <code className="bg-black/30 px-1 py-0.5 rounded text-green-300 font-mono">{children}</code>
+                      ? <code className="bg-gray-200 px-1 py-0.5 rounded text-green-300 font-mono">{children}</code>
                       : <pre className="bg-black/40 rounded-lg p-2 mt-1 mb-1.5 overflow-x-auto"><code className="text-green-300 font-mono text-[10px]">{children}</code></pre>,
-                    blockquote: ({ children }) => <blockquote className="border-l-2 border-white/30 pl-2 text-white/60 italic my-1">{children}</blockquote>,
-                    hr: () => <hr className="border-white/15 my-2" />,
-                    a: ({ href, children }) => <a href={href} target="_blank" rel="noreferrer" className="text-indigo-300 underline hover:text-indigo-200">{children}</a>,
+                    blockquote: ({ children }) => <blockquote className="border-l-2 border-white/30 pl-2 text-gray-500 italic my-1">{children}</blockquote>,
+                    hr: () => <hr className="border-gray-200 my-2" />,
+                    a: ({ href, children }) => <a href={href} target="_blank" rel="noreferrer" className="text-indigo-600 underline hover:text-indigo-600">{children}</a>,
                     table: ({ children }) => <div className="overflow-x-auto my-1.5"><table className="w-full text-[10px] border-collapse">{children}</table></div>,
-                    th: ({ children }) => <th className="border border-white/20 px-2 py-1 bg-white/10 font-semibold text-left">{children}</th>,
-                    td: ({ children }) => <td className="border border-white/10 px-2 py-1">{children}</td>,
+                    th: ({ children }) => <th className="border border-gray-300 px-2 py-1 bg-gray-200 font-semibold text-left">{children}</th>,
+                    td: ({ children }) => <td className="border border-gray-200 px-2 py-1">{children}</td>,
                   }}
                 >
                   {msg.content + (msg.streaming ? '▍' : '')}
@@ -381,14 +381,14 @@ export default function GroqPanel() {
                 {/* References section */}
                 {msg.references && msg.references.length > 0 && (
                   <div className="w-full mt-1 px-1">
-                    <div className="text-[10px] text-white/30 mb-1 font-medium">{t.ai.references}</div>
+                    <div className="text-[10px] text-gray-400 mb-1 font-medium">{t.ai.references}</div>
                     <div className="flex flex-col gap-1">
                       {msg.references.map((ref, i) => (
                         <button
                           key={i}
                           onClick={() => ref.channel_id && navigateToPost(ref.channel_id, ref.post_id, { commentId: ref.comment_id, attachmentId: ref.attachment_id })}
                           disabled={!ref.channel_id}
-                          className="w-full flex items-start gap-1.5 bg-white/5 rounded-lg px-2 py-1.5 border border-white/8 text-left transition-colors enabled:hover:bg-white/10 enabled:hover:border-white/15 disabled:opacity-40 disabled:cursor-not-allowed"
+                          className="w-full flex items-start gap-1.5 bg-gray-100 rounded-lg px-2 py-1.5 border border-gray-200 text-left transition-colors enabled:hover:bg-gray-200 enabled:hover:border-gray-200 disabled:opacity-40 disabled:cursor-not-allowed"
                           title={ref.channel_id ? t.ai.gotoChannel(ref.team, ref.channel) : t.ai.gotoAfterRetrain}
                         >
                           {ref.type === 'pdf' ? (
@@ -405,8 +405,8 @@ export default function GroqPanel() {
                             </svg>
                           )}
                           <div className="flex flex-col min-w-0">
-                            <span className="text-[10px] text-white/70 truncate leading-tight">{ref.label}</span>
-                            <span className="text-[9px] text-white/30 leading-tight">
+                            <span className="text-[10px] text-gray-600 truncate leading-tight">{ref.label}</span>
+                            <span className="text-[9px] text-gray-400 leading-tight">
                               {ref.team ? `${ref.team} · ` : ''}{ref.channel || ''}
                             </span>
                           </div>
@@ -418,14 +418,14 @@ export default function GroqPanel() {
                 <button
                   onClick={() => copyToClipboard(msg.id, msg.content)}
                   title={t.ai.copyAnswer}
-                  className="flex items-center gap-1 px-2 py-1 rounded-md text-white/25 hover:text-white/60 hover:bg-white/8 transition-all text-[10px]"
+                  className="flex items-center gap-1 px-2 py-1 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-200 transition-all text-[10px]"
                 >
                   {copiedId === msg.id ? (
                     <>
-                      <svg className="w-3 h-3 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <svg className="w-3 h-3 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                       </svg>
-                      <span className="text-green-400">{t.ai.copied}</span>
+                      <span className="text-blue-500">{t.ai.copied}</span>
                     </>
                   ) : (
                     <>
@@ -444,16 +444,16 @@ export default function GroqPanel() {
         {/* Typing indicator */}
         {loading && (
           <div className="flex items-start gap-2">
-            <div className="w-5 h-5 rounded-md bg-gradient-to-br from-green-400 to-teal-500 flex items-center justify-center flex-shrink-0 mt-1">
+            <div className="w-5 h-5 rounded-md bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center flex-shrink-0 mt-1">
               <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
               </svg>
             </div>
-            <div className="px-3 py-2.5 rounded-xl bg-white/8 border border-white/5 rounded-tl-sm">
+            <div className="px-3 py-2.5 rounded-xl bg-gray-200 border border-gray-100 rounded-tl-sm">
               <div className="flex gap-1 items-center">
-                <div className="w-1.5 h-1.5 rounded-full bg-white/40 animate-bounce [animation-delay:0ms]" />
-                <div className="w-1.5 h-1.5 rounded-full bg-white/40 animate-bounce [animation-delay:150ms]" />
-                <div className="w-1.5 h-1.5 rounded-full bg-white/40 animate-bounce [animation-delay:300ms]" />
+                <div className="w-1.5 h-1.5 rounded-full bg-gray-500 animate-bounce [animation-delay:0ms]" />
+                <div className="w-1.5 h-1.5 rounded-full bg-gray-500 animate-bounce [animation-delay:150ms]" />
+                <div className="w-1.5 h-1.5 rounded-full bg-gray-500 animate-bounce [animation-delay:300ms]" />
               </div>
             </div>
           </div>
@@ -462,17 +462,17 @@ export default function GroqPanel() {
       </div>
 
       {/* Input area */}
-      <div className="px-3 py-3 border-t border-white/10 flex-shrink-0">
+      <div className="px-3 py-3 border-t border-gray-200 flex-shrink-0">
         {/* Attached File Preview */}
         {attachedFile && (
-          <div className="mb-2 flex items-center justify-between bg-white/5 rounded-lg px-2 py-1.5 border border-white/10">
+          <div className="mb-2 flex items-center justify-between bg-gray-100 rounded-lg px-2 py-1.5 border border-gray-200">
             <div className="flex items-center gap-2 overflow-hidden">
-              <svg className="w-3.5 h-3.5 text-green-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="w-3.5 h-3.5 text-blue-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.414a4 4 0 00-5.656-5.656l-6.415 6.414a6 6 0 008.486 8.486L20.5 13" />
               </svg>
-              <span className="text-[10px] text-white/70 truncate">{attachedFile.name}</span>
+              <span className="text-[10px] text-gray-600 truncate">{attachedFile.name}</span>
             </div>
-            <button onClick={removeFile} className="text-white/30 hover:text-white/70">
+            <button onClick={removeFile} className="text-gray-400 hover:text-gray-600">
               <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
@@ -480,7 +480,7 @@ export default function GroqPanel() {
           </div>
         )}
 
-        <div className="flex items-end gap-2 bg-white/8 rounded-xl border border-white/10 px-2 py-2 focus-within:border-green-500/40 transition-colors">
+        <div className="flex items-end gap-2 bg-gray-200 rounded-xl border border-gray-200 px-2 py-2 focus-within:border-green-500/40 transition-colors">
           <input
             type="file"
             ref={fileInputRef}
@@ -491,7 +491,7 @@ export default function GroqPanel() {
             onClick={() => fileInputRef.current?.click()}
             disabled={loading}
             title={t.ai.attachFile}
-            className="flex-shrink-0 w-7 h-7 rounded-lg hover:bg-white/10 text-white/40 hover:text-white/70 flex items-center justify-center transition-colors self-end"
+            className="flex-shrink-0 w-7 h-7 rounded-lg hover:bg-gray-200 text-gray-400 hover:text-gray-600 flex items-center justify-center transition-colors self-end"
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.414a4 4 0 00-5.656-5.656l-6.415 6.414a6 6 0 008.486 8.486L20.5 13" />
@@ -505,7 +505,7 @@ export default function GroqPanel() {
             placeholder={t.ai.inputPlaceholder}
             rows={1}
             disabled={loading}
-            className="flex-1 bg-transparent text-white placeholder-white/30 text-xs resize-none focus:outline-none leading-relaxed min-h-[24px] max-h-24 overflow-y-auto disabled:opacity-50"
+            className="flex-1 bg-transparent text-gray-900 placeholder-white/30 text-xs resize-none focus:outline-none leading-relaxed min-h-[24px] max-h-24 overflow-y-auto disabled:opacity-50"
             onInput={e => {
               e.target.style.height = 'auto'
               e.target.style.height = e.target.scrollHeight + 'px'
@@ -514,18 +514,18 @@ export default function GroqPanel() {
           <button
             onClick={sendMessage}
             disabled={!input.trim() || loading}
-            className="flex-shrink-0 w-7 h-7 rounded-lg bg-green-600 disabled:bg-white/10 enabled:hover:bg-green-500 flex items-center justify-center transition-colors self-end"
+            className="flex-shrink-0 w-7 h-7 rounded-lg bg-green-600 disabled:bg-gray-200 enabled:hover:bg-green-500 flex items-center justify-center transition-colors self-end"
           >
             {loading ? (
               <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
             ) : (
-              <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="w-3.5 h-3.5 text-gray-900" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
               </svg>
             )}
           </button>
         </div>
-        <p className="text-white/15 text-xs mt-1 px-0.5">{t.ai.inputHint}</p>
+        <p className="text-gray-300 text-xs mt-1 px-0.5">{t.ai.inputHint}</p>
       </div>
     </div>
   )
