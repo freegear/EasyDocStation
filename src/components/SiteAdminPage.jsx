@@ -321,7 +321,7 @@ function FormField({ label, type = 'text', value, onChange, placeholder, require
 
 export default function SiteAdminPage({ onClose }) {
   const t = useT()
-  const { currentUser } = useAuth()
+  const { currentUser, setMaxAttachmentFileSize } = useAuth()
   const [users, setUsers] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -342,6 +342,7 @@ export default function SiteAdminPage({ onClose }) {
     htmlPreview: { width: 480, height: 270 }
   })
   const [lancedbPath, setLancedbPath] = useState('/Users/kevinim/Desktop/EasyDocStation/Database/LanceDB')
+  const [maxAttachmentFileSize, setMaxAttachmentFileSizeLocal] = useState(100)
   const [ragForm, setRagForm] = useState({ type: 'manual', time: '02:00', vectorSize: 1024, chunkSize: 800, chunkOverlap: 100 })
   const [agenticaiForm, setAgenticaiForm] = useState({ num_predict: 4096, num_ctx: 8192, history: 6 })
   const [savingConfig, setSavingConfig] = useState(false)
@@ -406,6 +407,9 @@ export default function SiteAdminPage({ onClose }) {
           num_ctx: data.agenticai.num_ctx || 8192,
           history: data.agenticai.history ?? 6
         })
+      }
+      if (data.maxAttachmentFileSize != null) {
+        setMaxAttachmentFileSizeLocal(data.maxAttachmentFileSize)
       }
     } catch (err) {
       console.error('Failed to load DB stats:', err)
@@ -475,6 +479,7 @@ export default function SiteAdminPage({ onClose }) {
         }
       } else if (activeTab === 'db') {
         configData['lancedb Database Path'] = lancedbPath
+        configData['MaxAttachmentFileSize'] = parseInt(maxAttachmentFileSize) || 100
       } else if (activeTab === 'rag') {
         configData.rag = {
           trainingType: ragForm.type,
@@ -496,6 +501,10 @@ export default function SiteAdminPage({ onClose }) {
         body: JSON.stringify(configData)
       })
       if (result.success) {
+        if (activeTab === 'db') {
+          // Sync maxAttachmentFileSize to AuthContext so ChatArea picks it up immediately
+          setMaxAttachmentFileSize(parseInt(maxAttachmentFileSize) || 100)
+        }
         if (activeTab === 'rag') {
           // vector size 변경 시 LanceDB 테이블 재초기화
           try {
@@ -630,6 +639,15 @@ export default function SiteAdminPage({ onClose }) {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
             </svg>
             {t.admin.navAgenticAI}
+          </button>
+          <button
+            onClick={() => setActiveTab('sns')}
+            className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${activeTab === 'sns' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20' : 'text-white/30 hover:text-white/60 hover:bg-white/5'}`}
+          >
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 3H3a2 2 0 00-2 2v14l4-4h16a2 2 0 002-2V5a2 2 0 00-2-2z" />
+            </svg>
+            {t.admin.navSns}
           </button>
           <button
             onClick={() => setActiveTab('reset')}
@@ -964,6 +982,48 @@ export default function SiteAdminPage({ onClose }) {
                     </div>
                   </div>
                 </div>
+
+                {/* Max Attachment File Size */}
+                <div className="bg-white/5 border border-white/10 rounded-2xl p-6 shadow-xl">
+                  <div className="flex items-start justify-between mb-6">
+                    <div>
+                      <h3 className="text-white font-bold text-base mb-1">{t.admin.maxAttachmentTitle}</h3>
+                      <p className="text-white/40 text-xs">{t.admin.maxAttachmentDesc}</p>
+                    </div>
+                    <div className="px-3 py-1 rounded-full bg-orange-500/10 border border-orange-500/20 text-orange-400 text-[10px] font-bold uppercase tracking-wider">
+                      Upload
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-8">
+                    <div className="space-y-4">
+                      <div>
+                        <p className="text-white/30 text-xs font-semibold uppercase tracking-wider mb-1.5">{t.admin.maxAttachmentLabel}</p>
+                        <div className="flex items-center gap-3">
+                          <input
+                            type="number"
+                            min="1"
+                            max="10240"
+                            value={maxAttachmentFileSize}
+                            onChange={e => setMaxAttachmentFileSizeLocal(e.target.value)}
+                            className="w-32 bg-black/30 rounded-xl px-4 py-3 border border-white/5 font-mono text-sm text-orange-300 focus:outline-none focus:border-orange-500/50 transition-colors text-right"
+                          />
+                          <span className="text-white/40 text-sm font-semibold">MB</span>
+                        </div>
+                        <p className="text-white/20 text-[10px] mt-1.5">{t.admin.maxAttachmentHint}</p>
+                      </div>
+                    </div>
+                    <div className="flex flex-col justify-center">
+                      <div className="text-center p-6 bg-white/3 rounded-3xl border border-white/5 relative overflow-hidden group">
+                        <div className="absolute inset-0 bg-orange-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                        <p className="text-white/40 text-xs font-semibold uppercase tracking-wider mb-2">{t.admin.maxAttachmentCurrent}</p>
+                        <p className="text-4xl font-black text-orange-400 tracking-tight">{maxAttachmentFileSize}</p>
+                        <p className="text-white/30 text-xs mt-2">MB</p>
+                        <div className="w-12 h-1 bg-orange-500/40 mx-auto mt-4 rounded-full" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
               </div>
             ) : (
               <div className="text-center py-24 text-white/20">
@@ -1398,6 +1458,23 @@ export default function SiteAdminPage({ onClose }) {
                   <p className="text-white/30 text-[10px]">{t.admin.agenticaiSettingNoteDesc}</p>
                 </div>
               </div>
+            </div>
+          </div>
+        ) : activeTab === 'sns' ? (
+          <div className="max-w-4xl mx-auto py-4">
+            <div className="flex items-center gap-3 mb-8">
+              <svg className="w-6 h-6 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 3H3a2 2 0 00-2 2v14l4-4h16a2 2 0 002-2V5a2 2 0 00-2-2z" />
+              </svg>
+              <h2 className="text-white font-bold text-lg">{t.admin.snsTitle}</h2>
+            </div>
+            <div className="bg-white/5 border border-white/10 rounded-2xl p-12 shadow-xl flex flex-col items-center justify-center text-center gap-6">
+              <div className="w-20 h-20 rounded-full bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center">
+                <svg className="w-10 h-10 text-indigo-400/60" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 3H3a2 2 0 00-2 2v14l4-4h16a2 2 0 002-2V5a2 2 0 00-2-2z" />
+                </svg>
+              </div>
+              <p className="text-white/50 text-base font-medium">{t.admin.snsComingSoon}</p>
             </div>
           </div>
         ) : activeTab === 'reset' ? (

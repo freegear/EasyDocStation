@@ -431,24 +431,25 @@ router.delete('/:id', requireAuth, async (req, res, next) => {
       )
       if (found.rows.length > 0) {
         const row = found.rows[0]
-        if (String(row.author_id) === String(req.user.id)) {
+        const isSiteAdmin = req.user.role === 'site_admin'
+        if (isSiteAdmin || String(row.author_id) === String(req.user.id)) {
           await client.execute(
             'DELETE FROM posts WHERE channel_id = ? AND created_at = ?',
             [row.channel_id, row.created_at], { prepare: true }
           )
-        // 해당 게시글의 댓글도 Cassandra에서 삭제
-        const cRows = await client.execute(
-          'SELECT post_id, created_at FROM comments WHERE post_id = ? ALLOW FILTERING',
-          [id], { prepare: true }
-        )
-        await Promise.all(cRows.rows.map(c =>
-          client.execute(
-            'DELETE FROM comments WHERE post_id = ? AND created_at = ?',
-            [c.post_id, c.created_at], { prepare: true }
+          // 해당 게시글의 댓글도 Cassandra에서 삭제
+          const cRows = await client.execute(
+            'SELECT post_id, created_at FROM comments WHERE post_id = ? ALLOW FILTERING',
+            [id], { prepare: true }
           )
-        ))
+          await Promise.all(cRows.rows.map(c =>
+            client.execute(
+              'DELETE FROM comments WHERE post_id = ? AND created_at = ?',
+              [c.post_id, c.created_at], { prepare: true }
+            )
+          ))
+        }
       }
-    }
     res.json({ success: true })
   } catch (err) {
     next(err)
@@ -467,7 +468,8 @@ router.put('/:id', requireAuth, async (req, res, next) => {
     )
     if (found.rows.length === 0) return res.status(404).json({ error: '게시글을 찾을 수 없습니다.' })
     const row = found.rows[0]
-    if (String(row.author_id) !== String(req.user.id)) return res.status(403).json({ error: '권한이 없습니다.' })
+    const isSiteAdmin = req.user.role === 'site_admin'
+    if (!isSiteAdmin && String(row.author_id) !== String(req.user.id)) return res.status(403).json({ error: '권한이 없습니다.' })
     await client.execute(
       'UPDATE posts SET content = ? WHERE channel_id = ? AND created_at = ?',
       [content, row.channel_id, row.created_at], { prepare: true }
@@ -535,7 +537,8 @@ router.put('/:postId/comments/:commentId', requireAuth, async (req, res, next) =
     )
     if (found.rows.length === 0) return res.status(404).json({ error: '댓글을 찾을 수 없습니다.' })
     const row = found.rows[0]
-    if (String(row.author_id) !== String(req.user.id)) return res.status(403).json({ error: '권한이 없습니다.' })
+    const isSiteAdmin = req.user.role === 'site_admin'
+    if (!isSiteAdmin && String(row.author_id) !== String(req.user.id)) return res.status(403).json({ error: '권한이 없습니다.' })
     await client.execute(
       'UPDATE comments SET content = ?, attachments = ? WHERE post_id = ? AND created_at = ?',
       [content, attachments, row.post_id, row.created_at], { prepare: true }
@@ -559,7 +562,8 @@ router.delete('/:postId/comments/:commentId', requireAuth, async (req, res, next
     )
     if (found.rows.length > 0) {
       const row = found.rows[0]
-      if (String(row.author_id) === String(req.user.id)) {
+      const isSiteAdmin = req.user.role === 'site_admin'
+      if (isSiteAdmin || String(row.author_id) === String(req.user.id)) {
         await client.execute(
           'DELETE FROM comments WHERE post_id = ? AND created_at = ?',
           [row.post_id, row.created_at], { prepare: true }

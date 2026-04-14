@@ -204,7 +204,8 @@ router.get('/stats', async (req, res) => {
         htmlPreview: config.htmlPreview || { width: 480, height: 270 }
       },
       rag: config.rag || { trainingType: 'manual', dailyTime: '02:00', vectorSize: 1024 },
-      agenticai: { num_predict: 4096, num_ctx: 8192, history: 6, ...(config.agenticai || {}) }
+      agenticai: { num_predict: 4096, num_ctx: 8192, history: 6, ...(config.agenticai || {}) },
+      maxAttachmentFileSize: config.MaxAttachmentFileSize ?? 100
     })
   } catch (err) {
     console.error('Admin Stats Error:', err)

@@ -690,7 +690,7 @@ function TableRow({ line }) {
 
 function ComposeBar({ onSubmit, isArchived }) {
   const t = useT()
-  const { currentUser } = useAuth()
+  const { currentUser, maxAttachmentFileSize } = useAuth()
   const { selectedChannel } = useChat()
   const [content, setContent] = useState('')
   const [files, setFiles] = useState([])
@@ -706,6 +706,13 @@ function ComposeBar({ onSubmit, isArchived }) {
     if (files.length + newFiles.length > 10) {
       alert(t.chat.maxFiles10)
       return
+    }
+    const limitBytes = (maxAttachmentFileSize ?? 100) * 1024 * 1024
+    for (const f of Array.from(newFiles)) {
+      if (f.size > limitBytes) {
+        alert(t.chat.fileTooLarge(maxAttachmentFileSize ?? 100))
+        return
+      }
     }
     if (newFiles.length > 0 && !content.trim()) {
       setContent(newFiles[0].name)
@@ -1082,7 +1089,7 @@ function PostCard({ post, onSelect, pinned, isSelected }) {
 function PostDetail({ post, channelId, onClose }) {
   const t = useT()
   const { addComment, incrementViews, deletePost, updatePost, deleteComment, updateComment, posts, refreshTeams, selectedChannel } = useChat()
-  const { currentUser } = useAuth()
+  const { currentUser, maxAttachmentFileSize } = useAuth()
   const [comment, setComment] = useState('')
   const [viewed, setViewed] = useState(false)
   const [showManageModal, setShowManageModal] = useState(false)
@@ -1110,6 +1117,13 @@ function PostDetail({ post, channelId, onClose }) {
     if (files.length + newFiles.length > 10) {
       alert(t.chat.maxFilesExceeded)
       return
+    }
+    const limitBytes = (maxAttachmentFileSize ?? 100) * 1024 * 1024
+    for (const f of Array.from(newFiles)) {
+      if (f.size > limitBytes) {
+        alert(t.chat.fileTooLarge(maxAttachmentFileSize ?? 100))
+        return
+      }
     }
     if (newFiles.length > 0 && !comment.trim()) {
       setComment(newFiles[0].name)
@@ -1156,7 +1170,8 @@ function PostDetail({ post, channelId, onClose }) {
   }, [])
 
   const freshPost = posts[channelId]?.find(p => p.id === post.id) || post
-  const isOwn = freshPost.author?.name === currentUser?.name
+  const isSiteAdmin = currentUser?.role === 'site_admin'
+  const isOwn = isSiteAdmin || freshPost.author?.name === currentUser?.name
 
   async function handleComment(e) {
     e.preventDefault()
@@ -1344,7 +1359,7 @@ function PostDetail({ post, channelId, onClose }) {
                         <span className="text-indigo-400/50 text-[10px]">@{c.author.username}</span>
                       )}
                       <span className="text-white/25 text-xs">{formatDate(c.createdAt, t)}</span>
-                      {c.author?.name === currentUser?.name && editingCommentId !== c.id && !selectedChannel?.is_archived && (
+                      {(isSiteAdmin || c.author?.name === currentUser?.name) && editingCommentId !== c.id && !selectedChannel?.is_archived && (
                         <div className="ml-auto flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                           <button onClick={() => startCommentEdit(c)} className="text-white/30 hover:text-white text-[10px] font-medium uppercase tracking-tight">{t.chat.edit}</button>
                           <button onClick={() => handleCommentDelete(c.id)} className="text-red-400/40 hover:text-red-400 text-[10px] font-medium uppercase tracking-tight">{t.chat.delete}</button>

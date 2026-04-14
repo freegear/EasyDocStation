@@ -121,3 +121,7 @@
 [2026-04-13T06:04:23.391Z] Success: thumbnails/1af124ea-5e99-4c96-a9ac-53a72096c5cc.png
 [2026-04-13T06:18:23.145Z] Generating for 5b0d2242-7ffa-4d72-8eac-2f9c70a34988: qlmanage -t -s 512 -o "/Users/kevinim/Desktop/EasyDocStation/Database/ObjectFile/thumbnails" "/Users/kevinim/Desktop/EasyDocStation/Database/ObjectFile/ch-1775906672629/5b0d2242-7ffa-4d72-8eac-2f9c70a34988/Invoice-GND3ICLV-0003.pdf"
 [2026-04-13T06:18:23.315Z] Success: thumbnails/5b0d2242-7ffa-4d72-8eac-2f9c70a34988.png
+[2026-04-13T23:45:44.866Z] Generating for ccd2c52a-d3cd-44f7-be36-65eb996b3228: qlmanage -t -s 512 -o "/Users/kevinim/Desktop/EasyDocStation/Database/ObjectFile/thumbnails" "/Users/kevinim/Desktop/EasyDocStation/Database/ObjectFile/ch-1775905647942/ccd2c52a-d3cd-44f7-be36-65eb996b3228/prototype 복사본.mp4"
+[2026-04-13T23:45:45.095Z] Success: thumbnails/ccd2c52a-d3cd-44f7-be36-65eb996b3228.png
+[2026-04-13T23:47:33.009Z] Generating for 4d07a576-e117-4468-a7ac-7909f72f905e: qlmanage -t -s 512 -o "/Users/kevinim/Desktop/EasyDocStation/Database/ObjectFile/thumbnails" "/Users/kevinim/Desktop/EasyDocStation/Database/ObjectFile/unknown/4d07a576-e117-4468-a7ac-7909f72f905e/prototype 복사본.mp4"
+[2026-04-13T23:47:33.214Z] Success: thumbnails/4d07a576-e117-4468-a7ac-7909f72f905e.png
