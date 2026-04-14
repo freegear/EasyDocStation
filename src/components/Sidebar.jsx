@@ -26,6 +26,7 @@ export default function Sidebar() {
   const { teams, setTeams, selectedTeam, selectedChannel, selectTeam, selectChannel, refreshTeams } = useChat()
   const { currentUser } = useAuth()
   const t = useT()
+  const [teamsCollapsed, setTeamsCollapsed] = useState(false)
   const [dmCollapsed, setDmCollapsed] = useState(false)
   const [channelsCollapsed, setChannelsCollapsed] = useState(false)
   const [showTeamModal, setShowTeamModal] = useState(false)
@@ -97,8 +98,14 @@ export default function Sidebar() {
     <aside className="w-64 flex-shrink-0 bg-gray-200 flex flex-col h-full border-r border-gray-100">
       {/* Team selector */}
       <div className="px-3 py-3 border-b border-gray-200">
-        <p className="text-gray-400 text-xs uppercase tracking-widest mb-2 px-2">{t.sidebar.teams}</p>
-        <div className="flex flex-col gap-1">
+        <button
+          className="flex items-center justify-between w-full px-2 py-1 text-gray-400 hover:text-gray-600 text-xs uppercase tracking-widest transition-colors mb-1"
+          onClick={() => setTeamsCollapsed(v => !v)}
+        >
+          <span>{t.sidebar.teams}</span>
+          <span className="text-base">{teamsCollapsed ? '▸' : '▾'}</span>
+        </button>
+        {!teamsCollapsed && <div className="flex flex-col gap-1">
           {teams.map(team => {
             const teamUnread = team.channels.reduce((s, c) => s + c.unread, 0)
             const isActive = team.id === selectedTeam.id
@@ -137,7 +144,7 @@ export default function Sidebar() {
               <span>{t.sidebar.addTeam}</span>
             </button>
           )}
-        </div>
+        </div>}
       </div>
 
       {/* Scrollable channels/DMs */}
