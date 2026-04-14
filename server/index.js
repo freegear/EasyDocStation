@@ -83,6 +83,18 @@ app.get('/api/config/agenticai', (req, res) => {
   }
 })
 
+app.get('/api/config/limits', (req, res) => {
+  try {
+    const fs = require('fs')
+    const path = require('path')
+    const configPath = path.resolve(__dirname, '../config.json')
+    const config = JSON.parse(fs.readFileSync(configPath, 'utf8'))
+    res.json({ maxAttachmentFileSize: config.MaxAttachmentFileSize ?? 100 })
+  } catch (e) {
+    res.json({ maxAttachmentFileSize: 100 })
+  }
+})
+
 app.use((err, req, res, next) => {
   console.error(err)
   res.status(500).json({ error: '서버 오류가 발생했습니다.' })

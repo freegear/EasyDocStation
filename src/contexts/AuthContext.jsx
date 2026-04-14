@@ -7,6 +7,7 @@ export function AuthProvider({ children }) {
   const [currentUser, setCurrentUser] = useState(null)
   const [language, setLanguage] = useState('ko')
   const [loading, setLoading] = useState(true)   // true while restoring session
+  const [maxAttachmentFileSize, setMaxAttachmentFileSize] = useState(100)
 
   // Restore session on app load
   useEffect(() => {
@@ -16,6 +17,14 @@ export function AuthProvider({ children }) {
       .then(user => setCurrentUser(user))
       .catch(() => clearToken())
       .finally(() => setLoading(false))
+  }, [])
+
+  // Load public config limits on startup
+  useEffect(() => {
+    fetch('/api/config/limits')
+      .then(r => r.json())
+      .then(data => { if (data.maxAttachmentFileSize) setMaxAttachmentFileSize(data.maxAttachmentFileSize) })
+      .catch(() => {})
   }, [])
 
   async function login(email, password) {
@@ -50,6 +59,8 @@ export function AuthProvider({ children }) {
       login,
       logout,
       updateProfile,
+      maxAttachmentFileSize,
+      setMaxAttachmentFileSize,
     }}>
       {children}
     </AuthContext.Provider>
