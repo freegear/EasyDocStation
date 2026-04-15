@@ -162,6 +162,74 @@ router.put('/:id', async (req, res) => {
   }
 })
 
+// PUT /api/events/series/:seriesId — 반복 이벤트 전체 수정 (본인만, 날짜 오프셋 유지)
+router.put('/series/:seriesId', async (req, res) => {
+  const userId = req.user.id
+  const { seriesId } = req.params
+  const { title, color, allDay, startDt, endDt, repeat, invitees, memo, securityLevel, remindDt, remindRepeat } = req.body
+
+  try {
+    // 시리즈의 첫 번째 이벤트 기준으로 날짜 오프셋 계산
+    const { rows: seriesRows } = await pool.query(
+      'SELECT * FROM calendar_events WHERE series_id=$1 AND owner_id=$2 ORDER BY id ASC',
+      [seriesId, userId]
+    )
+    if (seriesRows.length === 0) return res.status(404).json({ error: '이벤트를 찾을 수 없습니다.' })
+
+    // 새 startDt 기준으로 각 이벤트의 날짜 재생성
+    const baseOld = dtToDate(seriesRows[0].start_dt)
+    const baseNew = dtToDate(startDt)
+    const endOld  = dtToDate(seriesRows[0].end_dt)
+    const duration = dtToDate(endDt) - dtToDate(startDt)
+    const shift = baseNew - baseOld
+
+    const client = await pool.connect()
+    try {
+      await client.query('BEGIN')
+      const updated = []
+      for (const row of seriesRows) {
+        const oldStart = dtToDate(row.start_dt)
+        const newStart = new Date(oldStart.getTime() + shift)
+        const newEnd   = new Date(newStart.getTime() + duration)
+        const { rows: ur } = await client.query(
+          `UPDATE calendar_events SET
+             title=$1, color=$2, all_day=$3, start_dt=$4, end_dt=$5, repeat=$6,
+             invitees=$7, memo=$8, security_level=$9, remind_dt=$10, remind_repeat=$11,
+             updated_at=NOW()
+           WHERE id=$12 AND owner_id=$13
+           RETURNING *`,
+          [
+            title || '',
+            color || '#4f46e5',
+            allDay || false,
+            JSON.stringify(dateToDt(newStart, allDay || false, startDt)),
+            JSON.stringify(dateToDt(newEnd,   allDay || false, endDt)),
+            repeat || 'none',
+            JSON.stringify(invitees || []),
+            memo || '',
+            securityLevel || 0,
+            JSON.stringify(remindDt || {}),
+            remindRepeat || 'none',
+            row.id,
+            userId,
+          ]
+        )
+        if (ur[0]) updated.push(toClient(ur[0]))
+      }
+      await client.query('COMMIT')
+      res.json(updated)
+    } catch (err) {
+      await client.query('ROLLBACK')
+      throw err
+    } finally {
+      client.release()
+    }
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ error: '서버 오류가 발생했습니다.' })
+  }
+})
+
 // DELETE /api/events/series/:seriesId — 반복 이벤트 전체 삭제 (본인만)
 router.delete('/series/:seriesId', async (req, res) => {
   const userId = req.user.id

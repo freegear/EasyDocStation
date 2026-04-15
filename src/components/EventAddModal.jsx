@@ -89,6 +89,7 @@ export default function EventAddModal({ onClose, onAdd, onSave, onDelete, event:
 
   const [tab, setTab] = useState('event') // 'event' | 'reminder'
   const [showRepeatDeleteConfirm, setShowRepeatDeleteConfirm] = useState(false)
+  const [showRepeatSaveConfirm, setShowRepeatSaveConfirm] = useState(false)
 
   // 이벤트 탭 상태
   const [title, setTitle] = useState(editEvent?.title ?? '')
@@ -176,11 +177,15 @@ export default function EventAddModal({ onClose, onAdd, onSave, onDelete, event:
   function handleSubmit() {
     if (!title.trim()) { titleRef.current?.focus(); return }
     if (isEditMode) {
-      onSave?.({ ...editEvent, ...buildData() })
+      if (editEvent.repeat && editEvent.repeat !== 'none') {
+        setShowRepeatSaveConfirm(true)
+      } else {
+        onSave?.({ ...editEvent, ...buildData() }, 'single')
+        onClose()
+      }
     } else {
       onAdd?.(buildData())
     }
-    onClose()
   }
 
   function handleDelete() {
@@ -194,6 +199,46 @@ export default function EventAddModal({ onClose, onAdd, onSave, onDelete, event:
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={e => { if (e.target === e.currentTarget) onClose() }}>
+      {/* 반복 이벤트 수정 확인 팝업 */}
+      {showRepeatSaveConfirm && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50"
+          onKeyDown={e => { if (e.key === 'Escape') { setShowRepeatSaveConfirm(false); onClose() } }}
+          tabIndex={-1}
+          ref={el => el?.focus()}
+        >
+          <div className="bg-white rounded-2xl shadow-2xl w-[380px] overflow-hidden">
+            <div className="px-6 pt-6 pb-4">
+              <h3 className="text-base font-semibold text-gray-900 mb-2">반복 이벤트 수정</h3>
+              <p className="text-sm text-gray-600 leading-relaxed">
+                반복 등록된 이벤트입니다.<br />
+                해당 날짜만 수정하시겠습니까? 전체를 수정하시겠습니까?
+              </p>
+            </div>
+            <div className="flex items-center gap-2 px-6 pb-5">
+              <button
+                onClick={() => { setShowRepeatSaveConfirm(false); onSave?.({ ...editEvent, ...buildData() }, 'single'); onClose() }}
+                className="flex-1 px-3 py-2 rounded-lg text-sm font-medium border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors"
+              >
+                해당 날짜만
+              </button>
+              <button
+                onClick={() => { setShowRepeatSaveConfirm(false); onSave?.({ ...editEvent, ...buildData() }, 'all'); onClose() }}
+                className="flex-1 px-3 py-2 rounded-lg text-sm font-medium bg-indigo-600 text-white hover:bg-indigo-700 transition-colors"
+              >
+                전체
+              </button>
+              <button
+                onClick={() => { setShowRepeatSaveConfirm(false); onClose() }}
+                className="flex-1 px-3 py-2 rounded-lg text-sm font-medium border border-gray-200 text-gray-500 hover:bg-gray-50 transition-colors"
+              >
+                취소
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* 반복 이벤트 삭제 확인 팝업 */}
       {showRepeatDeleteConfirm && (
         <div

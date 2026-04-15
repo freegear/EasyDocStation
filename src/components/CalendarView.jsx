@@ -253,7 +253,7 @@ function WeekView({ date, events = [], onEventDoubleClick, onEventDragStart, onW
   }
 
   return (
-    <div className="flex flex-col h-full overflow-hidden">
+    <div className="flex flex-col h-full overflow-hidden calendar-scale-root">
       {/* Day headers */}
       <div className="grid border-b border-gray-200 bg-gray-50 flex-shrink-0" style={{ gridTemplateColumns: '56px repeat(7, 1fr)' }}>
         <div />
@@ -334,14 +334,13 @@ function WeekView({ date, events = [], onEventDoubleClick, onEventDragStart, onW
               <div
                 key={ci}
                 onDragOver={e => { e.preventDefault(); setDragOverDate(d) }}
-                onDragLeave={() => setDragOverDate(null)}
+                onDragLeave={e => { if (!e.currentTarget.contains(e.relatedTarget)) setDragOverDate(null) }}
                 onDrop={e => {
                   e.preventDefault()
                   setDragOverDate(null)
                   const { hour, minute } = calcDropTime(e.clientY)
                   onWeekDrop?.(d, hour, minute)
                 }}
-                onDragLeave={e => { if (!e.currentTarget.contains(e.relatedTarget)) setDragOverDate(null) }}
                 onDoubleClick={e => {
                   const { hour, minute } = calcClickTime(e.clientY)
                   onCellDoubleClick?.(d, hour, minute)
@@ -463,7 +462,7 @@ function DayView({ date, events = [], onEventDoubleClick, onEventDragStart, onTi
   }
 
   return (
-    <div className="flex flex-col h-full overflow-hidden">
+    <div className="flex flex-col h-full overflow-hidden calendar-scale-root">
       <div className="flex items-center gap-3 px-6 py-3 border-b border-gray-200 bg-gray-50 flex-shrink-0">
         <div className={`w-11 h-11 flex items-center justify-center rounded-xl text-lg font-bold
           ${isToday ? 'bg-indigo-600 text-white' : 'bg-gray-200 text-gray-700'}`}>
@@ -692,6 +691,7 @@ export default function CalendarView({ onClose }) {
   const [events, setEvents] = useState([])
   const [loading, setLoading] = useState(true)
   const [presetDts, setPresetDts] = useState(null) // { startDt, endDt }
+  const [pendingDragUpdate, setPendingDragUpdate] = useState(null) // { updated, prevEvents }
   // { id, mode: 'move' | 'resize-start' | 'resize-end' }
   const draggingRef = useRef(null)
 
@@ -708,23 +708,23 @@ export default function CalendarView({ onClose }) {
     const handleBeforePrint = () => {
       if (viewType !== 'day' && viewType !== 'week') return
       const area = document.getElementById('calendar-print-area')
+      const scaleRoot = area?.querySelector('.calendar-scale-root')
       const scroll = area?.querySelector('.time-grid-scroll')
-      const inner = area?.querySelector('.time-grid-inner')
-      if (!area || !scroll || !inner) return
-      const availH = area.clientHeight - scroll.offsetTop
-      const innerH = inner.scrollHeight
-      if (innerH <= 0) return
-      const scale = Math.min(1, availH / innerH)
-      inner.style.transform = `scale(${scale})`
-      inner.style.transformOrigin = 'top left'
-      scroll.style.height = `${innerH * scale}px`
+      if (!area || !scaleRoot || !scroll) return
+      const rootRect = scaleRoot.getBoundingClientRect()
+      const scrollRect = scroll.getBoundingClientRect()
+      const headersH = scrollRect.top - rootRect.top
+      const contentH = headersH + scroll.scrollHeight
+      if (contentH <= 0) return
+      const availH = rootRect.height
+      const scale = Math.min(1, availH / contentH)
+      scaleRoot.style.transform = `scale(${scale})`
+      scaleRoot.style.transformOrigin = 'top left'
     }
     const handleAfterPrint = () => {
       const area = document.getElementById('calendar-print-area')
-      const scroll = area?.querySelector('.time-grid-scroll')
-      const inner = area?.querySelector('.time-grid-inner')
-      if (inner) { inner.style.transform = ''; inner.style.transformOrigin = '' }
-      if (scroll) { scroll.style.height = '' }
+      const scaleRoot = area?.querySelector('.calendar-scale-root')
+      if (scaleRoot) { scaleRoot.style.transform = ''; scaleRoot.style.transformOrigin = '' }
     }
     window.addEventListener('beforeprint', handleBeforePrint)
     window.addEventListener('afterprint', handleAfterPrint)
@@ -767,7 +767,13 @@ export default function CalendarView({ onClose }) {
         return { ...ev, startDt: addDaysTodt(ev.startDt, diffDays), endDt: addDaysTodt(ev.endDt, diffDays) }
       })
       const updated = next.find(ev => ev.id === drag.id)
-      if (updated) apiFetch(`/events/${updated.id}`, { method: 'PUT', body: JSON.stringify(updated) }).catch(() => {})
+      if (updated) {
+        if (updated.repeat && updated.repeat !== 'none') {
+          setPendingDragUpdate({ updated, prevEvents: prev })
+        } else {
+          apiFetch(`/events/${updated.id}`, { method: 'PUT', body: JSON.stringify(updated) }).catch(() => {})
+        }
+      }
       return next
     })
   }
@@ -814,7 +820,13 @@ export default function CalendarView({ onClose }) {
         return { ...ev, startDt: newStartDt, endDt: newEndDt }
       })
       const updated = next.find(ev => ev.id === drag.id)
-      if (updated) apiFetch(`/events/${updated.id}`, { method: 'PUT', body: JSON.stringify(updated) }).catch(() => {})
+      if (updated) {
+        if (updated.repeat && updated.repeat !== 'none') {
+          setPendingDragUpdate({ updated, prevEvents: prev })
+        } else {
+          apiFetch(`/events/${updated.id}`, { method: 'PUT', body: JSON.stringify(updated) }).catch(() => {})
+        }
+      }
       return next
     })
   }
@@ -967,13 +979,22 @@ export default function CalendarView({ onClose }) {
             }
             setShowEventModal(false)
           }}
-          onSave={async (updated) => {
+          onSave={async (updated, mode) => {
             try {
-              const saved = await apiFetch(`/events/${updated.id}`, {
-                method: 'PUT',
-                body: JSON.stringify(updated),
-              })
-              setEvents(prev => prev.map(ev => ev.id === saved.id ? saved : ev))
+              if (mode === 'all' && updated.seriesId) {
+                const savedAll = await apiFetch(`/events/series/${updated.seriesId}`, {
+                  method: 'PUT',
+                  body: JSON.stringify(updated),
+                })
+                const savedMap = new Map(savedAll.map(ev => [ev.id, ev]))
+                setEvents(prev => prev.map(ev => savedMap.has(ev.id) ? savedMap.get(ev.id) : ev))
+              } else {
+                const saved = await apiFetch(`/events/${updated.id}`, {
+                  method: 'PUT',
+                  body: JSON.stringify(updated),
+                })
+                setEvents(prev => prev.map(ev => ev.id === saved.id ? saved : ev))
+              }
             } catch (e) {
               alert('이벤트 수정 실패: ' + e.message)
             }
@@ -994,6 +1015,68 @@ export default function CalendarView({ onClose }) {
             }
           }}
         />
+      )}
+
+      {/* 반복 이벤트 드래그 수정 확인 팝업 */}
+      {pendingDragUpdate && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50"
+          onKeyDown={e => {
+            if (e.key === 'Escape') {
+              setEvents(pendingDragUpdate.prevEvents)
+              setPendingDragUpdate(null)
+            }
+          }}
+          tabIndex={-1}
+          ref={el => el?.focus()}
+        >
+          <div className="bg-white rounded-2xl shadow-2xl w-[380px] overflow-hidden">
+            <div className="px-6 pt-6 pb-4">
+              <h3 className="text-base font-semibold text-gray-900 mb-2">반복 이벤트 수정</h3>
+              <p className="text-sm text-gray-600 leading-relaxed">
+                반복 등록된 이벤트입니다.<br />
+                해당 날짜만 수정하시겠습니까? 전체를 수정하시겠습니까?
+              </p>
+            </div>
+            <div className="flex items-center gap-2 px-6 pb-5">
+              <button
+                onClick={async () => {
+                  const { updated } = pendingDragUpdate
+                  setPendingDragUpdate(null)
+                  apiFetch(`/events/${updated.id}`, { method: 'PUT', body: JSON.stringify(updated) }).catch(() => {})
+                }}
+                className="flex-1 px-3 py-2 rounded-lg text-sm font-medium border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors"
+              >
+                해당 날짜만
+              </button>
+              <button
+                onClick={async () => {
+                  const { updated } = pendingDragUpdate
+                  setPendingDragUpdate(null)
+                  try {
+                    const savedAll = await apiFetch(`/events/series/${updated.seriesId}`, { method: 'PUT', body: JSON.stringify(updated) })
+                    const savedMap = new Map(savedAll.map(ev => [ev.id, ev]))
+                    setEvents(prev => prev.map(ev => savedMap.has(ev.id) ? savedMap.get(ev.id) : ev))
+                  } catch (e) {
+                    alert('이벤트 수정 실패: ' + e.message)
+                  }
+                }}
+                className="flex-1 px-3 py-2 rounded-lg text-sm font-medium bg-indigo-600 text-white hover:bg-indigo-700 transition-colors"
+              >
+                전체
+              </button>
+              <button
+                onClick={() => {
+                  setEvents(pendingDragUpdate.prevEvents)
+                  setPendingDragUpdate(null)
+                }}
+                className="flex-1 px-3 py-2 rounded-lg text-sm font-medium border border-gray-200 text-gray-500 hover:bg-gray-50 transition-colors"
+              >
+                취소
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )
