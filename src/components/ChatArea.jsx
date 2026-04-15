@@ -5,6 +5,7 @@ import { apiFetch, getToken } from '../lib/api'
 import config from '../config.json'
 import ChannelManageModal from './ChannelManageModal'
 import { useT } from '../i18n/useT'
+import { isTemplateContent, FORM_TEMPLATES } from '../templates/formTemplates'
 
 
 // ─── Helpers ──────────────────────────────────────────────────
@@ -639,6 +640,62 @@ function AttachmentList({ attachments, compact = false }) {
   )
 }
 
+// ─── Template renderer (HTML iframe) ──────────────────────────
+
+function TemplateRenderer({ html, onContentChange }) {
+  const iframeRef = useRef(null)
+  const { currentUser } = useAuth()
+  const userName = currentUser?.name || '사용자'
+  const userEmail = currentUser?.email || 'user@example.com'
+  const sealUrl = `${window.location.origin}/company/seal.png`
+  const logoUrl = `${window.location.origin}/company/logo.png`
+  const resolvedHtml = html
+    .replace(/\{\{USER_NAME\}\}/g, userName)
+    .replace(/\{\{USER_EMAIL\}\}/g, userEmail)
+    .replace(/\{\{SEAL_URL\}\}/g, sealUrl)
+    .replace(/\{\{LOGO_URL\}\}/g, logoUrl)
+
+  useEffect(() => {
+    function handleMessage(e) {
+      if (e.data?.type === 'templateFieldChanged' && onContentChange) {
+        onContentChange(e.data.field, e.data.value)
+      }
+    }
+    window.addEventListener('message', handleMessage)
+    return () => window.removeEventListener('message', handleMessage)
+  }, [onContentChange])
+
+  function handleLoad() {
+    try {
+      const doc = iframeRef.current?.contentDocument
+      if (doc) {
+        const h = doc.documentElement.scrollHeight
+        iframeRef.current.style.height = h + 'px'
+      }
+    } catch (_) {}
+  }
+
+  return (
+    <div className="rounded-xl border border-gray-200 overflow-hidden bg-white">
+      <div className="flex items-center gap-2 px-4 py-2 bg-gray-50 border-b border-gray-200 text-xs text-gray-500">
+        <svg className="w-3.5 h-3.5 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+        </svg>
+        <span>양식 템플릿</span>
+      </div>
+      <iframe
+        ref={iframeRef}
+        srcDoc={resolvedHtml}
+        sandbox="allow-scripts allow-same-origin allow-modals"
+        className="w-full border-0"
+        style={{ minHeight: 400 }}
+        onLoad={handleLoad}
+        title="form-template"
+      />
+    </div>
+  )
+}
+
 // ─── Content renderer ─────────────────────────────────────────
 
 function ContentRenderer({ text = '' }) {
@@ -697,6 +754,8 @@ function ComposeBar({ onSubmit, isArchived }) {
   const [dragOver, setDragOver] = useState(false)
   const [sending, setSending] = useState(false)
   const [focused, setFocused] = useState(false)
+  const [securityLevel, setSecurityLevel] = useState(Math.min(1, currentUser?.security_level ?? 0))
+  const maxSelectableLevel = currentUser?.role === 'site_admin' ? 4 : (currentUser?.security_level ?? 0)
 
   const contentRef = useRef(null)
   const fileInputRef = useRef(null)
@@ -779,7 +838,7 @@ function ComposeBar({ onSubmit, isArchived }) {
         attachmentIds.push(file_uuid)
       }
 
-      await onSubmit({ content: content.trim(), attachmentIds })
+      await onSubmit({ content: content.trim(), attachmentIds, security_level: securityLevel })
 
       files.forEach(f => URL.revokeObjectURL(f.url))
       setContent('')
@@ -899,6 +958,17 @@ function ComposeBar({ onSubmit, isArchived }) {
 
             <div className="flex-1" />
 
+            {/* Security Level */}
+            <select
+              value={securityLevel}
+              onChange={e => setSecurityLevel(Number(e.target.value))}
+              className="text-xs px-2 py-1 rounded-lg border border-gray-200 bg-white text-gray-600 focus:outline-none focus:border-indigo-300"
+            >
+              {(t.admin.securityLevels || []).map((label, i) => i <= maxSelectableLevel && (
+                <option key={i} value={i}>{label}</option>
+              ))}
+            </select>
+
             {/* Cancel + Send */}
             <button
               type="button"
@@ -916,7 +986,7 @@ function ComposeBar({ onSubmit, isArchived }) {
               {sending ? (
                 <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
               ) : (
-                <svg className="w-4 h-4 text-gray-900" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
                 </svg>
               )}
@@ -1020,11 +1090,32 @@ function PostList({ posts, onSelect, onSubmit, selectedPostId }) {
 
 function PostCard({ post, onSelect, pinned, isSelected }) {
   const t = useT()
-  const plain = (post.content || '')
+  const isTemplate = isTemplateContent(post.content)
+  const templateMeta = isTemplate
+    ? FORM_TEMPLATES.find(f => post.content.includes(`<title>${f.label}`))
+    : null
+  const plain = isTemplate ? [] : (post.content || '')
     .replace(/#{1,3} /g, '').replace(/\*\*/g, '').replace(/`/g, '')
     .split('\n').filter(l => l.trim() && !l.startsWith('|') && !l.startsWith('-'))
-  const leadLine = plain[0]?.slice(0, 100) || ''
-  const bodyPreview = plain.slice(1).join(' ').slice(0, 120)
+  const isQuotation = isTemplate && templateMeta?.id === 'quotation'
+  const quoteNo       = isQuotation ? (post.content.match(/data-type="no"[^>]*>([^<]+)</) || [])[1]?.trim() || null : null
+  const recvVal       = isQuotation ? (post.content.match(/data-field="recv"[^>]*>([^<]+)</) || [])[1]?.trim() || null : null
+  const estimateVal   = isQuotation ? (post.content.match(/data-field="estimate-name"[^>]*>([^<]+)</) || [])[1]?.trim() || null : null
+  const leadLine = isTemplate
+    ? (templateMeta
+        ? (() => {
+            if (isQuotation) {
+              const parts = [`${templateMeta.icon} ${templateMeta.label} 양식`]
+              if (quoteNo) parts.push(quoteNo)
+              if (recvVal) parts.push(recvVal)
+              if (estimateVal) parts.push(estimateVal)
+              return parts.join('-')
+            }
+            return `${templateMeta.icon} ${templateMeta.label} 양식`
+          })()
+        : '📄 양식 템플릿')
+    : (plain[0]?.slice(0, 100) || '')
+  const bodyPreview = isTemplate ? '' : plain.slice(1).join(' ').slice(0, 120)
   const attachCount = post.attachments?.length || 0
   const commentCount = post.comments?.length || 0
 
@@ -1098,11 +1189,15 @@ function PostDetail({ post, channelId, onClose }) {
   const [isEditingPost, setIsEditingPost] = useState(false)
   const [postContent, setPostContent] = useState('')
   const [postFiles, setPostFiles] = useState([])
-  
+  const [postSecurityLevel, setPostSecurityLevel] = useState(0)
+
   // Comment Edit State
   const [editingCommentId, setEditingCommentId] = useState(null)
   const [commentEditContent, setCommentEditContent] = useState('')
   const [commentEditFiles, setCommentEditFiles] = useState([])
+  const [commentEditSecurityLevel, setCommentEditSecurityLevel] = useState(0)
+
+  const [commentSecurityLevel, setCommentSecurityLevel] = useState(Math.min(1, currentUser?.security_level ?? 0))
 
   const [files, setFiles] = useState([])
   const [dragOver, setDragOver] = useState(false)
@@ -1172,6 +1267,7 @@ function PostDetail({ post, channelId, onClose }) {
   const freshPost = posts[channelId]?.find(p => p.id === post.id) || post
   const isSiteAdmin = currentUser?.role === 'site_admin'
   const isOwn = isSiteAdmin || freshPost.author?.name === currentUser?.name
+  const maxSelectableLevel = isSiteAdmin ? 4 : (currentUser?.security_level ?? 0)
 
   async function handleComment(e) {
     e.preventDefault()
@@ -1193,8 +1289,8 @@ function PostDetail({ post, channelId, onClose }) {
         attachmentIds.push(file_uuid)
       }
 
-      await addComment(channelId, post.id, comment.trim(), currentUser, attachmentIds)
-      
+      await addComment(channelId, post.id, comment.trim(), currentUser, attachmentIds, commentSecurityLevel)
+
       files.forEach(f => URL.revokeObjectURL(f.url))
       setComment('')
       setFiles([])
@@ -1210,6 +1306,7 @@ function PostDetail({ post, channelId, onClose }) {
   function startPostEdit() {
     setPostContent(freshPost.content)
     setPostFiles(freshPost.attachments || [])
+    setPostSecurityLevel(freshPost.security_level ?? currentUser?.security_level ?? 0)
     setIsEditingPost(true)
   }
 
@@ -1217,7 +1314,7 @@ function PostDetail({ post, channelId, onClose }) {
     setUploading(true)
     try {
       const attachments = [...postFiles]
-      updatePost(channelId, post.id, { content: postContent, attachments })
+      updatePost(channelId, post.id, { content: postContent, attachments, security_level: postSecurityLevel })
       setIsEditingPost(false)
     } catch (err) {
       alert(t.chat.saveError(err.message))
@@ -1235,6 +1332,7 @@ function PostDetail({ post, channelId, onClose }) {
     setEditingCommentId(c.id)
     setCommentEditContent(c.text)
     setCommentEditFiles(c.attachments || [])
+    setCommentEditSecurityLevel(c.security_level ?? currentUser?.security_level ?? 0)
   }
 
   function handleCommentDelete(cId) {
@@ -1244,7 +1342,7 @@ function PostDetail({ post, channelId, onClose }) {
   }
 
   function handleCommentUpdate(cId) {
-    updateComment(channelId, post.id, cId, { text: commentEditContent, attachments: commentEditFiles })
+    updateComment(channelId, post.id, cId, { text: commentEditContent, attachments: commentEditFiles, security_level: commentEditSecurityLevel })
     setEditingCommentId(null)
   }
 
@@ -1328,15 +1426,59 @@ function PostDetail({ post, channelId, onClose }) {
                 {postFiles.map(f => <FileChip key={f.id} file={f} onRemove={(id) => setPostFiles(prev => prev.filter(x => x.id !== id))} />)}
               </div>
             )}
-            <div className="flex justify-end gap-2">
-              <button onClick={() => setIsEditingPost(false)} className="px-3 py-1.5 rounded-lg text-gray-400 hover:text-gray-900 text-xs transition-colors">{t.chat.cancel}</button>
-              <button onClick={handlePostUpdate} className="px-4 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold transition-colors">{t.chat.savePost}</button>
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-1.5">
+                <label className="text-gray-400 text-[10px] font-medium whitespace-nowrap">{t.chat.securityLevelLabel}</label>
+                <select
+                  value={postSecurityLevel}
+                  onChange={e => setPostSecurityLevel(Number(e.target.value))}
+                  className="bg-gray-200 border border-gray-300 rounded-lg px-2 py-1 text-gray-700 text-[11px] focus:outline-none focus:ring-1 focus:ring-indigo-400 cursor-pointer"
+                >
+                  {t.admin.securityLevels.map((label, i) => i <= maxSelectableLevel && (
+                    <option key={i} value={i}>{label}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex items-center gap-2">
+                <button onClick={() => setIsEditingPost(false)} className="px-3 py-1.5 rounded-lg text-gray-400 hover:text-gray-900 text-xs transition-colors">{t.chat.cancel}</button>
+                <button onClick={handlePostUpdate} className="px-4 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold transition-colors">{t.chat.savePost}</button>
+              </div>
             </div>
           </div>
         ) : (
           <>
             <div className="mb-4">
-              <ContentRenderer text={freshPost.content} />
+              {isTemplateContent(freshPost.content) ? (
+                <TemplateRenderer
+                  html={freshPost.content}
+                  onContentChange={(field, value) => {
+                    let updatedContent = freshPost.content
+                    if (field === 'quoteNo') {
+                      updatedContent = updatedContent.replace(
+                        /(<span[^>]*data-type="no"[^>]*>)[^<]*(<\/span>)/,
+                        `$1${value}$2`
+                      )
+                    } else if (field === 'recv') {
+                      updatedContent = updatedContent.replace(
+                        /(<td[^>]*data-field="recv"[^>]*>)[^<]*(<\/td>)/,
+                        `$1${value}$2`
+                      )
+                    } else if (field === 'estimateName') {
+                      updatedContent = updatedContent.replace(
+                        /(<span[^>]*data-field="estimate-name"[^>]*>)[^<]*(<\/span>)/,
+                        `$1${value}$2`
+                      )
+                    }
+                    updatePost(channelId, post.id, {
+                      content: updatedContent,
+                      attachments: freshPost.attachments || [],
+                      security_level: freshPost.security_level ?? 0,
+                    })
+                  }}
+                />
+              ) : (
+                <ContentRenderer text={freshPost.content} />
+              )}
             </div>
             <AttachmentList attachments={freshPost.attachments} />
           </>
@@ -1380,9 +1522,23 @@ function PostDetail({ post, channelId, onClose }) {
                             {commentEditFiles.map(f => <FileChip key={f.id} file={f} onRemove={(id) => setCommentEditFiles(prev => prev.filter(x => x.id !== id))} />)}
                           </div>
                         )}
-                        <div className="flex justify-end gap-2 mt-2">
-                          <button onClick={() => setEditingCommentId(null)} className="text-gray-400 hover:text-gray-900 text-xs">{t.chat.cancel}</button>
-                          <button onClick={() => handleCommentUpdate(c.id)} className="text-indigo-600 hover:text-indigo-600 text-xs font-semibold">{t.chat.save}</button>
+                        <div className="flex items-center justify-between mt-2">
+                          <div className="flex items-center gap-1.5">
+                            <label className="text-gray-400 text-[10px] font-medium whitespace-nowrap">{t.chat.securityLevelLabel}</label>
+                            <select
+                              value={commentEditSecurityLevel}
+                              onChange={e => setCommentEditSecurityLevel(Number(e.target.value))}
+                              className="bg-gray-200 border border-gray-300 rounded-lg px-2 py-1 text-gray-700 text-[11px] focus:outline-none focus:ring-1 focus:ring-indigo-400 cursor-pointer"
+                            >
+                              {t.admin.securityLevels.map((label, i) => i <= maxSelectableLevel && (
+                                <option key={i} value={i}>{label}</option>
+                              ))}
+                            </select>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <button onClick={() => setEditingCommentId(null)} className="text-gray-400 hover:text-gray-900 text-xs">{t.chat.cancel}</button>
+                            <button onClick={() => handleCommentUpdate(c.id)} className="text-indigo-600 hover:text-indigo-600 text-xs font-semibold">{t.chat.save}</button>
+                          </div>
                         </div>
                       </div>
                     ) : (
@@ -1458,6 +1614,15 @@ function PostDetail({ post, channelId, onClose }) {
                   </svg>
                 </button>
                 <div className="flex-1" />
+                <select
+                  value={commentSecurityLevel}
+                  onChange={e => setCommentSecurityLevel(Number(e.target.value))}
+                  className="text-xs px-2 py-1 rounded-lg border border-gray-200 bg-white text-gray-600 focus:outline-none focus:border-indigo-300 mr-2"
+                >
+                  {(t.admin.securityLevels || []).map((label, i) => i <= maxSelectableLevel && (
+                    <option key={i} value={i}>{label}</option>
+                  ))}
+                </select>
                 <button type="submit" disabled={(!comment.trim() && files.length === 0) || uploading} className="px-3 py-1.5 rounded-lg bg-indigo-600 disabled:bg-gray-200 enabled:hover:bg-indigo-500 text-white text-xs font-semibold transition-colors flex items-center gap-2">
                   {uploading && <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
                   {uploading ? t.chat.sending : t.chat.addComment}

@@ -5,6 +5,7 @@ import { apiFetch } from '../lib/api'
 import TeamManageModal from './TeamManageModal'
 import ChannelManageModal from './ChannelManageModal'
 import { useT } from '../i18n/useT'
+import { FORM_TEMPLATES } from '../templates/formTemplates'
 
 function HashIcon() {
   return (
@@ -22,12 +23,13 @@ function LockIcon() {
   )
 }
 
-export default function Sidebar() {
-  const { teams, setTeams, selectedTeam, selectedChannel, selectTeam, selectChannel, refreshTeams } = useChat()
+export default function Sidebar({ showCalendar, onToggleCalendar, onCloseCalendar }) {
+  const { teams, setTeams, selectedTeam, selectedChannel, selectTeam, selectChannel, refreshTeams, addPost } = useChat()
   const { currentUser } = useAuth()
   const t = useT()
   const [teamsCollapsed, setTeamsCollapsed] = useState(false)
   const [dmCollapsed, setDmCollapsed] = useState(false)
+  const [formsCollapsed, setFormsCollapsed] = useState(false)
   const [channelsCollapsed, setChannelsCollapsed] = useState(false)
   const [showTeamModal, setShowTeamModal] = useState(false)
   const [editingTeam, setEditingTeam] = useState(null)
@@ -112,7 +114,7 @@ export default function Sidebar() {
             return (
               <button
                 key={team.id}
-                onClick={() => selectTeam(team)}
+                onClick={() => { selectTeam(team); onCloseCalendar?.() }}
                 onDoubleClick={() => {
                   if (!canManageTeam()) return
                   setEditingTeam(team)
@@ -169,7 +171,7 @@ export default function Sidebar() {
                 return (
                   <button
                     key={ch.id}
-                    onClick={() => selectChannel(ch)}
+                    onClick={() => { selectChannel(ch); onCloseCalendar?.() }}
                     onDoubleClick={() => {
                       if (!canManageChannel(ch)) return  // 권한 없으면 아무 동작 없음
                       setEditingChannel(ch)
@@ -248,10 +250,59 @@ export default function Sidebar() {
             </div>
           )}
         </div>
+
+        {/* Form Templates */}
+        <div className="mt-2">
+          <button
+            className="flex items-center justify-between w-full px-3 py-1.5 text-gray-400 hover:text-gray-600 text-xs uppercase tracking-widest transition-colors"
+            onClick={() => setFormsCollapsed(v => !v)}
+          >
+            <span>{t.sidebar.formTemplates}</span>
+            <span className="text-base">{formsCollapsed ? '▸' : '▾'}</span>
+          </button>
+
+          {!formsCollapsed && (
+            <div className="flex flex-col gap-0.5 px-2">
+              {FORM_TEMPLATES.map(form => (
+                <button
+                  key={form.id}
+                  onClick={async () => {
+                    if (!selectedChannel) return alert('채널을 먼저 선택해주세요.')
+                    try {
+                      await addPost(selectedChannel.id, { content: form.content, security_level: 1 })
+                    } catch (_) {}
+                  }}
+                  className="flex items-center gap-2.5 w-full px-2 py-1.5 rounded-md text-gray-500 hover:bg-gray-100 hover:text-gray-700 text-sm text-left transition-all"
+                >
+                  <span className="text-base leading-none">{form.icon}</span>
+                  <span className="truncate">{form.label}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Calendar button */}
+      <div className="px-3 pb-1 border-t border-gray-200 pt-2">
+        <button
+          onClick={onToggleCalendar}
+          className={`flex items-center gap-2.5 w-full px-2 py-2 rounded-lg text-sm text-left transition-all ${
+            showCalendar
+              ? 'bg-indigo-600 text-white shadow-lg'
+              : 'text-gray-500 hover:bg-gray-200 hover:text-gray-900'
+          }`}
+        >
+          <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+              d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+          </svg>
+          <span className="font-medium">캘린더</span>
+        </button>
       </div>
 
       {/* Version */}
-      <div className="px-4 py-2.5 border-t border-gray-100 mt-auto">
+      <div className="px-4 py-2 border-t border-gray-100">
         <p className="text-gray-300 text-[10px] text-center tracking-widest">
           EasyStation {appVersion && `v${appVersion}`}
         </p>

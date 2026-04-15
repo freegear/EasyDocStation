@@ -134,11 +134,11 @@ export function ChatProvider({ children }) {
     }
   }
 
-  async function addPost(channelId, { content, attachmentIds = [] }) {
+  async function addPost(channelId, { content, attachmentIds = [], security_level }) {
     try {
       await apiFetch('/posts', {
         method: 'POST',
-        body: JSON.stringify({ channelId, content, attachmentIds }),
+        body: JSON.stringify({ channelId, content, attachmentIds, security_level }),
       })
       const data = await apiFetch(`/posts?channelId=${channelId}`)
       setPosts(prev => ({ ...prev, [channelId]: data }))
@@ -149,11 +149,11 @@ export function ChatProvider({ children }) {
   }
 
   // ─── 댓글 추가 — DB에 저장 후 최신 목록 재조회 ──────────────
-  async function addComment(channelId, postId, text, user, attachmentIds = []) {
+  async function addComment(channelId, postId, text, user, attachmentIds = [], security_level) {
     try {
       await apiFetch(`/posts/${postId}/comments`, {
         method: 'POST',
-        body: JSON.stringify({ channelId, content: text, attachmentIds }),
+        body: JSON.stringify({ channelId, content: text, attachmentIds, security_level }),
       })
       const data = await apiFetch(`/posts?channelId=${channelId}`)
       setPosts(prev => ({ ...prev, [channelId]: data }))
@@ -184,11 +184,11 @@ export function ChatProvider({ children }) {
     }))
   }
 
-  async function updatePost(channelId, postId, { content, attachments }) {
+  async function updatePost(channelId, postId, { content, attachments, security_level }) {
     try {
       await apiFetch(`/posts/${postId}`, {
         method: 'PUT',
-        body: JSON.stringify({ content }),
+        body: JSON.stringify({ content, security_level }),
       })
     } catch (err) {
       console.error('update post error:', err)
@@ -196,7 +196,7 @@ export function ChatProvider({ children }) {
     setPosts(prev => ({
       ...prev,
       [channelId]: (prev[channelId] || []).map(p =>
-        p.id === postId ? { ...p, content, attachments, updatedAt: new Date().toISOString() } : p
+        p.id === postId ? { ...p, content, attachments, security_level, updatedAt: new Date().toISOString() } : p
       ),
     }))
   }
@@ -217,11 +217,11 @@ export function ChatProvider({ children }) {
   }
 
   // ─── 댓글 수정 — DB 업데이트 후 state 반영 ──────────────────
-  async function updateComment(channelId, postId, commentId, { text, attachments }) {
+  async function updateComment(channelId, postId, commentId, { text, attachments, security_level }) {
     try {
       await apiFetch(`/posts/${postId}/comments/${commentId}`, {
         method: 'PUT',
-        body: JSON.stringify({ content: text, attachments }),
+        body: JSON.stringify({ content: text, attachments, security_level }),
       })
     } catch (err) {
       console.error('update comment error:', err)
@@ -233,7 +233,7 @@ export function ChatProvider({ children }) {
           ...p,
           comments: (p.comments || []).map(c =>
             c.id === commentId
-              ? { ...c, content: text, text, attachments, updatedAt: new Date().toISOString() }
+              ? { ...c, content: text, text, attachments, security_level, updatedAt: new Date().toISOString() }
               : c
           )
         } : p

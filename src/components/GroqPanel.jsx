@@ -15,7 +15,7 @@ function formatTime(isoString) {
   return new Date(isoString).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })
 }
 
-export default function GroqPanel() {
+export default function GroqPanel({ width }) {
   const { navigateToPost } = useChat()
   const t = useT()
   const [copiedId, setCopiedId] = useState(null)
@@ -268,7 +268,7 @@ export default function GroqPanel() {
   }
 
   return (
-    <div className="w-80 flex-shrink-0 bg-gray-50 border-l border-gray-200 flex flex-col h-full">
+    <div className="flex-shrink-0 bg-gray-50 border-l border-gray-200 flex flex-col h-full" style={{ width: width ?? 320 }}>
       {/* Panel header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 flex-shrink-0">
         <div className="flex items-center gap-2">

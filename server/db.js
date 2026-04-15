@@ -66,6 +66,34 @@ async function initDb() {
           END LOOP;
         END $$;
       `)
+      // calendar_events 테이블 생성
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS calendar_events (
+          id            SERIAL        PRIMARY KEY,
+          owner_id      INTEGER       NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          title         TEXT          NOT NULL DEFAULT '',
+          color         VARCHAR(20)   NOT NULL DEFAULT '#4f46e5',
+          all_day       BOOLEAN       NOT NULL DEFAULT false,
+          start_dt      JSONB         NOT NULL DEFAULT '{}',
+          end_dt        JSONB         NOT NULL DEFAULT '{}',
+          repeat        VARCHAR(20)   NOT NULL DEFAULT 'none',
+          invitees      JSONB         NOT NULL DEFAULT '[]',
+          memo          TEXT          NOT NULL DEFAULT '',
+          security_level INTEGER      NOT NULL DEFAULT 0,
+          remind_dt     JSONB         NOT NULL DEFAULT '{}',
+          remind_repeat VARCHAR(20)   NOT NULL DEFAULT 'none',
+          series_id     VARCHAR(36),
+          created_at    TIMESTAMPTZ   NOT NULL DEFAULT NOW(),
+          updated_at    TIMESTAMPTZ   NOT NULL DEFAULT NOW()
+        );
+        CREATE INDEX IF NOT EXISTS idx_calendar_events_owner ON calendar_events(owner_id);
+        CREATE INDEX IF NOT EXISTS idx_calendar_events_series ON calendar_events(series_id);
+      `)
+      // series_id 컬럼 추가 (기존 테이블용)
+      await client.query(`
+        ALTER TABLE calendar_events ADD COLUMN IF NOT EXISTS series_id VARCHAR(36);
+        CREATE INDEX IF NOT EXISTS idx_calendar_events_series ON calendar_events(series_id);
+      `)
       // comments 테이블 생성 (없는 경우)
       await client.query(`
         CREATE TABLE IF NOT EXISTS comments (

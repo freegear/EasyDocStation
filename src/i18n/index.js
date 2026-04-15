@@ -21,6 +21,7 @@ export const translations = {
       teams: 'Teams', channels: 'Channels', directMessages: 'Direct Messages',
       addTeam: '팀 추가', addChannel: '채널 추가',
       channelManageTitle: '더블클릭하면 채널 관리',
+      formTemplates: '양식 모음',
     },
     chat: {
       selectChannel: '채널을 선택하세요',
@@ -34,6 +35,7 @@ export const translations = {
       noPostsTitle: '아직 게시글이 없습니다', noPostsDesc: '아래 입력창에 메시지를 입력해보세요!',
       pinnedPost: '고정된 게시글',
       edit: '수정', delete: '삭제', save: '저장', savePost: '저장하기', cancel: '취소',
+      securityLevel: '권한', securityLevelLabel: '열람 권한',
       justNow: '방금 전',
       minutesAgo: (n) => `${n}분 전`, hoursAgo: (n) => `${n}시간 전`, daysAgo: (n) => `${n}일 전`,
       download: '다운로드', videoDownload: '파일 다운로드',
@@ -325,6 +327,7 @@ export const translations = {
       teams: 'Teams', channels: 'Channels', directMessages: 'Direct Messages',
       addTeam: 'Add Team', addChannel: 'Add Channel',
       channelManageTitle: 'Double-click to manage channel',
+      formTemplates: 'Form Templates',
     },
     chat: {
       selectChannel: 'Select a channel',
@@ -338,6 +341,7 @@ export const translations = {
       noPostsTitle: 'No posts yet', noPostsDesc: 'Type a message in the input box below!',
       pinnedPost: 'Pinned',
       edit: 'Edit', delete: 'Delete', save: 'Save', savePost: 'Save', cancel: 'Cancel',
+      securityLevel: 'Permission', securityLevelLabel: 'Read Permission',
       justNow: 'Just now',
       minutesAgo: (n) => `${n}m ago`, hoursAgo: (n) => `${n}h ago`, daysAgo: (n) => `${n}d ago`,
       download: 'Download', videoDownload: 'Download File',
