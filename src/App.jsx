@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { ChatProvider, useChat } from './contexts/ChatContext'
 import TitleBar from './components/TitleBar'
@@ -9,12 +9,52 @@ import LoginScreen from './components/LoginScreen'
 import UserProfileModal from './components/UserProfileModal'
 import SiteAdminPage from './components/SiteAdminPage'
 import SearchResultsArea from './components/SearchResultsArea'
+import CalendarView from './components/CalendarView'
 
 function MainLayout() {
   const [showProfile, setShowProfile] = useState(false)
   const [showSiteAdmin, setShowSiteAdmin] = useState(false)
   const [searchSelectedPost, setSearchSelectedPost] = useState(null)
+  const [showCalendar, setShowCalendar] = useState(false)
   const { isSearchMode } = useChat()
+
+  const [groqWidth, setGroqWidth] = useState(320)
+  const [resizingGroq, setResizingGroq] = useState(false)
+  const mainRef = useRef(null)
+
+  const startGroqResize = useCallback((e) => {
+    e.preventDefault()
+    setResizingGroq(true)
+  }, [])
+
+  const stopGroqResize = useCallback(() => setResizingGroq(false), [])
+
+  const onGroqMouseMove = useCallback((e) => {
+    if (!resizingGroq || !mainRef.current) return
+    const rect = mainRef.current.getBoundingClientRect()
+    const newWidth = rect.right - e.clientX
+    if (newWidth >= 200 && newWidth <= 600) setGroqWidth(newWidth)
+  }, [resizingGroq])
+
+  useEffect(() => {
+    if (resizingGroq) {
+      window.addEventListener('mousemove', onGroqMouseMove)
+      window.addEventListener('mouseup', stopGroqResize)
+      document.body.style.cursor = 'col-resize'
+      document.body.style.userSelect = 'none'
+    } else {
+      window.removeEventListener('mousemove', onGroqMouseMove)
+      window.removeEventListener('mouseup', stopGroqResize)
+      document.body.style.cursor = ''
+      document.body.style.userSelect = ''
+    }
+    return () => {
+      window.removeEventListener('mousemove', onGroqMouseMove)
+      window.removeEventListener('mouseup', stopGroqResize)
+      document.body.style.cursor = ''
+      document.body.style.userSelect = ''
+    }
+  }, [resizingGroq, onGroqMouseMove, stopGroqResize])
 
   // 검색 결과 클릭 시 → 해당 채널이 selectChannel로 바뀌고,
   // ChatArea에 선택된 포스트 ID를 전달하여 자동 오픈
@@ -31,16 +71,33 @@ function MainLayout() {
         onOpenSiteAdmin={() => setShowSiteAdmin(true)}
         onSelectSearchResult={handleSearchSelect}
       />
-      <div className="flex flex-1 min-h-0">
-        <Sidebar />
-        
-        {isSearchMode ? (
+      <div ref={mainRef} className="flex flex-1 min-h-0">
+        <Sidebar
+          showCalendar={showCalendar}
+          onToggleCalendar={() => setShowCalendar(v => !v)}
+          onCloseCalendar={() => setShowCalendar(false)}
+        />
+
+        {showCalendar ? (
+          <CalendarView onClose={() => setShowCalendar(false)} />
+        ) : isSearchMode ? (
           <SearchResultsArea onSelectResult={handleSearchSelect} />
         ) : (
           <ChatArea autoOpenPostId={searchSelectedPost?.id} />
         )}
-        
-        <GroqPanel />
+
+        {/* Resize handle & GroqPanel: 캘린더 모드에서는 숨김 */}
+        {!showCalendar && (
+          <>
+            <div
+              onMouseDown={startGroqResize}
+              className="group relative w-1 flex-shrink-0 cursor-col-resize z-10"
+            >
+              <div className={`absolute inset-y-0 -left-1 -right-1 transition-colors group-hover:bg-indigo-500/30 ${resizingGroq ? 'bg-indigo-500/50' : ''}`} />
+            </div>
+            <GroqPanel width={groqWidth} />
+          </>
+        )}
       </div>
 
       {showProfile && <UserProfileModal onClose={() => setShowProfile(false)} />}

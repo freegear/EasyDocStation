@@ -326,12 +326,17 @@ router.get('/', requireAuth, async (req, res, next) => {
 // ─── POST /api/posts ──────────────────────────────────────────
 router.post('/', requireAuth, async (req, res, next) => {
   try {
-    const { channelId, content, attachmentIds } = req.body
+    const { channelId, content, attachmentIds, security_level } = req.body
     if (!channelId || !content) return res.status(400).json({ error: 'channelId and content are required' })
 
     if (attachmentIds && attachmentIds.length > 10) {
       return res.status(400).json({ error: '첨부파일은 최대 10개까지만 가능합니다.' })
     }
+
+    const isSiteAdmin = req.user.role === 'site_admin'
+    const userLevel = isSiteAdmin ? 4 : (req.user.security_level ?? 0)
+    const defaultLevel = Math.min(1, userLevel)
+    const safePostLevel = Math.min(Math.max(parseInt(security_level ?? defaultLevel) || 0, 0), userLevel)
 
     const postId = uuidv4()
     const authoredAt = new Date()
@@ -358,7 +363,7 @@ router.post('/', requireAuth, async (req, res, next) => {
           channelId, postId, req.user.id, content, authoredAt, authoredAt, 
           false, prevPostId, null, null, null,
           ...attCols,
-          req.user.security_level || 0
+          safePostLevel
         ],
         { prepare: true }
       )
@@ -390,7 +395,7 @@ router.post('/', requireAuth, async (req, res, next) => {
           channelId, postId, req.user.id, content, authoredAt, authoredAt,
           false, prevPostId, null, null, null,
           ...attCols,
-          req.user.security_level || 0
+          safePostLevel
         ]
       )
 
@@ -460,7 +465,7 @@ router.delete('/:id', requireAuth, async (req, res, next) => {
 router.put('/:id', requireAuth, async (req, res, next) => {
   try {
     const { id } = req.params
-    const { content } = req.body
+    const { content, security_level } = req.body
     if (!isConnected()) return res.status(503).json({ error: 'Cassandra 연결이 필요합니다.' })
     const found = await client.execute(
       'SELECT channel_id, created_at, author_id FROM posts WHERE id = ? ALLOW FILTERING',
@@ -470,10 +475,20 @@ router.put('/:id', requireAuth, async (req, res, next) => {
     const row = found.rows[0]
     const isSiteAdmin = req.user.role === 'site_admin'
     if (!isSiteAdmin && String(row.author_id) !== String(req.user.id)) return res.status(403).json({ error: '권한이 없습니다.' })
-    await client.execute(
-      'UPDATE posts SET content = ? WHERE channel_id = ? AND created_at = ?',
-      [content, row.channel_id, row.created_at], { prepare: true }
-    )
+    // security_level은 요청자의 레벨 이하만 허용
+    const userLevel = req.user.security_level ?? 0
+    const safeLevel = (security_level != null) ? Math.min(Math.max(parseInt(security_level) || 0, 0), userLevel) : undefined
+    if (safeLevel !== undefined) {
+      await client.execute(
+        'UPDATE posts SET content = ?, security_level = ? WHERE channel_id = ? AND created_at = ?',
+        [content, safeLevel, row.channel_id, row.created_at], { prepare: true }
+      )
+    } else {
+      await client.execute(
+        'UPDATE posts SET content = ? WHERE channel_id = ? AND created_at = ?',
+        [content, row.channel_id, row.created_at], { prepare: true }
+      )
+    }
     res.json({ success: true })
   } catch (err) {
     next(err)
@@ -494,11 +509,16 @@ router.get('/:id/comments', requireAuth, async (req, res, next) => {
 router.post('/:id/comments', requireAuth, async (req, res, next) => {
   try {
     const { id: postId } = req.params
-    const { content, attachmentIds = [], channelId } = req.body
+    const { content, attachmentIds = [], channelId, security_level } = req.body
     if (!content) return res.status(400).json({ error: 'content is required' })
     if (attachmentIds.length > 10) {
       return res.status(400).json({ error: '첨부파일은 최대 10개까지만 가능합니다.' })
     }
+
+    const isSiteAdmin = req.user.role === 'site_admin'
+    const userLevel = isSiteAdmin ? 4 : (req.user.security_level ?? 0)
+    const defaultLevel = Math.min(1, userLevel)
+    const safeCommentLevel = Math.min(Math.max(parseInt(security_level ?? defaultLevel) || 0, 0), userLevel)
 
     const commentId = `c-${uuidv4()}`
     const createdAt = new Date()
@@ -508,7 +528,7 @@ router.post('/:id/comments', requireAuth, async (req, res, next) => {
     await client.execute(
       `INSERT INTO comments (post_id, id, author_id, content, attachments, security_level, created_at)
        VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [postId, commentId, req.user.id, content, attachmentIds, req.user.security_level || 0, createdAt],
+      [postId, commentId, req.user.id, content, attachmentIds, safeCommentLevel, createdAt],
       { prepare: true }
     )
 
@@ -529,7 +549,7 @@ router.post('/:id/comments', requireAuth, async (req, res, next) => {
 router.put('/:postId/comments/:commentId', requireAuth, async (req, res, next) => {
   try {
     const { commentId } = req.params
-    const { content, attachments = [] } = req.body
+    const { content, attachments = [], security_level } = req.body
     if (!isConnected()) return res.status(503).json({ error: 'Cassandra 연결이 필요합니다.' })
     const found = await client.execute(
       'SELECT post_id, created_at, author_id FROM comments WHERE id = ? ALLOW FILTERING',
@@ -539,10 +559,19 @@ router.put('/:postId/comments/:commentId', requireAuth, async (req, res, next) =
     const row = found.rows[0]
     const isSiteAdmin = req.user.role === 'site_admin'
     if (!isSiteAdmin && String(row.author_id) !== String(req.user.id)) return res.status(403).json({ error: '권한이 없습니다.' })
-    await client.execute(
-      'UPDATE comments SET content = ?, attachments = ? WHERE post_id = ? AND created_at = ?',
-      [content, attachments, row.post_id, row.created_at], { prepare: true }
-    )
+    const userLevel = req.user.security_level ?? 0
+    const safeLevel = (security_level != null) ? Math.min(Math.max(parseInt(security_level) || 0, 0), userLevel) : undefined
+    if (safeLevel !== undefined) {
+      await client.execute(
+        'UPDATE comments SET content = ?, attachments = ?, security_level = ? WHERE post_id = ? AND created_at = ?',
+        [content, attachments, safeLevel, row.post_id, row.created_at], { prepare: true }
+      )
+    } else {
+      await client.execute(
+        'UPDATE comments SET content = ?, attachments = ? WHERE post_id = ? AND created_at = ?',
+        [content, attachments, row.post_id, row.created_at], { prepare: true }
+      )
+    }
     res.json({ success: true })
   } catch (err) {
     next(err)

@@ -39,7 +39,7 @@ function canAssignRole(requesterRole, targetRole) {
   return false
 }
 
-// GET /api/users/search — search users by username prefix
+// GET /api/users/search — search users by username or name prefix
 router.get('/search', async (req, res) => {
   const { q } = req.query
   if (!q) return res.json([])
@@ -47,8 +47,9 @@ router.get('/search', async (req, res) => {
   try {
     const { rows } = await pool.query(
       `SELECT id, username, name, email, role, is_active, image_url FROM users
-       WHERE username ILIKE $1
+       WHERE (username ILIKE $1 OR name ILIKE $1)
        AND is_active = true
+       ORDER BY username
        LIMIT 10`,
       [`${q}%`]
     )

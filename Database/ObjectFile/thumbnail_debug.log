@@ -125,3 +125,13 @@
 [2026-04-13T23:45:45.095Z] Success: thumbnails/ccd2c52a-d3cd-44f7-be36-65eb996b3228.png
 [2026-04-13T23:47:33.009Z] Generating for 4d07a576-e117-4468-a7ac-7909f72f905e: qlmanage -t -s 512 -o "/Users/kevinim/Desktop/EasyDocStation/Database/ObjectFile/thumbnails" "/Users/kevinim/Desktop/EasyDocStation/Database/ObjectFile/unknown/4d07a576-e117-4468-a7ac-7909f72f905e/prototype 복사본.mp4"
 [2026-04-13T23:47:33.214Z] Success: thumbnails/4d07a576-e117-4468-a7ac-7909f72f905e.png
+[2026-04-14T06:08:49.588Z] Generating for 73597128-c35d-482e-a2c5-90b48fe58b88: qlmanage -t -s 512 -o "/Users/kevinim/Desktop/EasyDocStation/Database/ObjectFile/thumbnails" "/Users/kevinim/Desktop/EasyDocStation/Database/ObjectFile/ch-1775994556529/73597128-c35d-482e-a2c5-90b48fe58b88/260413_PCB_드릴공정_AI관제_제안서_PPT_v0.6.pdf"
+[2026-04-14T06:08:49.724Z] Success: thumbnails/73597128-c35d-482e-a2c5-90b48fe58b88.png
+[2026-04-14T06:57:05.375Z] Generating for e9bb9406-51de-403b-813b-859004c25d7f: qlmanage -t -s 512 -o "/Users/kevinim/Desktop/EasyDocStation/Database/ObjectFile/thumbnails" "/Users/kevinim/Desktop/EasyDocStation/Database/ObjectFile/ch-1775990526455/e9bb9406-51de-403b-813b-859004c25d7f/2026-04-02_CoreEdge용역_계약서_Phase2_1.4.docx"
+[2026-04-14T06:57:05.616Z] Success: thumbnails/e9bb9406-51de-403b-813b-859004c25d7f.png
+[2026-04-14T09:49:35.132Z] Generating for 75677ed9-27fb-4516-a571-9e5be08c76c8: qlmanage -t -s 512 -o "/Users/kevinim/Desktop/EasyDocStation/Database/ObjectFile/thumbnails" "/Users/kevinim/Desktop/EasyDocStation/Database/ObjectFile/unknown/75677ed9-27fb-4516-a571-9e5be08c76c8/(주)실리콘큐브_연봉제근로계약서.docx"
+[2026-04-14T09:49:35.435Z] Success: thumbnails/75677ed9-27fb-4516-a571-9e5be08c76c8.png
+[2026-04-14T09:53:21.615Z] Generating for 89b81051-abe9-4b76-82d1-0bc159b879ff: qlmanage -t -s 512 -o "/Users/kevinim/Desktop/EasyDocStation/Database/ObjectFile/thumbnails" "/Users/kevinim/Desktop/EasyDocStation/Database/ObjectFile/ch-1775905647942/89b81051-abe9-4b76-82d1-0bc159b879ff/Invoice-GND3ICLV-0003.pdf"
+[2026-04-14T09:53:21.861Z] Success: thumbnails/89b81051-abe9-4b76-82d1-0bc159b879ff.png
+[2026-04-15T08:05:43.062Z] Generating for 9a5ea1b9-8c58-483e-aa39-a038d5ac9d6f: qlmanage -t -s 512 -o "/Users/kevinim/Desktop/EasyDocStation/Database/ObjectFile/thumbnails" "/Users/kevinim/Desktop/EasyDocStation/Database/ObjectFile/unknown/9a5ea1b9-8c58-483e-aa39-a038d5ac9d6f/KakaoTalk_Video_2026-04-14-11-45-52.mp4"
+[2026-04-15T08:05:43.382Z] Success: thumbnails/9a5ea1b9-8c58-483e-aa39-a038d5ac9d6f.png

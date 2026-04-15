@@ -1,0 +1,209 @@
+
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>출장보고서 (Business Trip Report)</title>
+    <style>
+        body {
+            font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif;
+            line-height: 1.6;
+            color: #333;
+            padding: 40px;
+            background-color: #f5f5f5;
+        }
+        .report-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: #fff;
+            padding: 50px;
+            border: 1px solid #ddd;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            position: relative;
+        }
+        .header h1 {
+            font-size: 28px;
+            letter-spacing: 15px;
+            margin: 0;
+            padding-bottom: 10px;
+            border-bottom: 3px double #333;
+            display: inline-block;
+        }
+        .approval-table {
+            float: right;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        .approval-table td {
+            border: 1px solid #333;
+            width: 70px;
+            height: 80px;
+            text-align: center;
+            font-size: 0.8em;
+            vertical-align: top;
+            padding-top: 5px;
+        }
+        .approval-table .title {
+            height: 25px;
+            background-color: #f9f9f9;
+        }
+        .info-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 30px;
+            clear: both;
+        }
+        .info-table th, .info-table td {
+            border: 1px solid #333;
+            padding: 12px;
+            text-align: left;
+        }
+        .info-table th {
+            background-color: #f2f2f2;
+            width: 20%;
+            font-weight: bold;
+        }
+        .content-section {
+            margin-bottom: 30px;
+        }
+        .content-section h3 {
+            border-left: 5px solid #333;
+            padding-left: 10px;
+            margin-bottom: 10px;
+            font-size: 18px;
+        }
+        .content-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .content-table th, .content-table td {
+            border: 1px solid #333;
+            padding: 15px;
+            vertical-align: top;
+        }
+        .content-table th {
+            background-color: #f2f2f2;
+            text-align: center;
+        }
+        .footer-text {
+            text-align: center;
+            margin-top: 50px;
+            font-weight: bold;
+        }
+        .no-print {
+            text-align: center;
+            margin-top: 30px;
+        }
+        button {
+            padding: 10px 25px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover { background-color: #45a049; }
+
+        @media print {
+            body { background-color: white; padding: 0; }
+            .report-container { border: none; box-shadow: none; width: 100%; }
+            .no-print { display: none; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="report-container">
+    <table class="approval-table">
+        <tr>
+            <td rowspan="2" style="width: 25px; vertical-align: middle; padding: 0;">결<br>재</td>
+            <td class="title">담당</td>
+            <td class="title">검토</td>
+            <td class="title">승인</td>
+        </tr>
+        <tr>
+            <td></td>
+            <td></td>
+            <td></td>
+        </tr>
+    </table>
+
+    <div class="header">
+        <h1>출 장 보 고 서</h1>
+    </div>
+
+    <table class="info-table">
+        <tr>
+            <th>성 명</th>
+            <td>홍길동</td>
+            <th>소 속</th>
+            <td>영업 1팀</td>
+        </tr>
+        <tr>
+            <th>출장 목적</th>
+            <td colspan="3">신규 프로젝트 기술 협의 및 사이트 실사</td>
+        </tr>
+        <tr>
+            <th>출장 기간</th>
+            <td colspan="3">2024년 05월 22일 ~ 2024년 05월 23일 (1박 2일)</td>
+        </tr>
+        <tr>
+            <th>출장지</th>
+            <td colspan="3">부산광역시 (OO테크 본사)</td>
+        </tr>
+    </table>
+
+    <div class="content-section">
+        <h3>1. 주요 수행 업무</h3>
+        <table class="content-table">
+            <tr>
+                <td>
+                    - 신규 자동화 라인 도입 관련 기술 사양 협의<br>
+                    - 현장 설치 환경 측정 및 인터뷰 진행<br>
+                    - 협력사 담당자 미팅 (현지 일정 조율)
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    <div class="content-section">
+        <h3>2. 출장 결과 및 성과</h3>
+        <table class="content-table">
+            <tr>
+                <td>
+                    - 기술 사양서 1차 합의 완료 (6월 중 최종 결정 예정)<br>
+                    - 기존 인프라 활용 방안 확인을 통한 비용 절감 가능성 확인<br>
+                    - 고객사 측의 긍정적인 도입 의지 확인
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    <div class="content-section">
+        <h3>3. 향후 계획 및 특이사항</h3>
+        <table class="content-table">
+            <tr>
+                <td>
+                    - 5/27일까지 현장 실사 데이터를 바탕으로 견적서 재검토<br>
+                    - 차주 수요일 화상 회의를 통한 후속 조치 논의
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    <p class="footer-text">위와 같이 출장 결과를 보고합니다.</p>
+    <p style="text-align: center;">2024년 05월 24일</p>
+    <p style="text-align: center;">보고자: 홍 길 동 (인)</p>
+</div>
+
+<div class="no-print">
+    <button onclick="window.print()">보고서 인쇄 및 PDF 저장</button>
+</div>
+
+</body>
+</html>

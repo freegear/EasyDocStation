@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>견적서 (Quotation)</title>
+    <style>
+        body {
+            font-family: 'Malgun Gothic', sans-serif;
+            margin: 0;
+            padding: 40px;
+            color: #333;
+        }
+        .quotation-box {
+            max-width: 800px;
+            margin: auto;
+            border: 1px solid #eee;
+            padding: 30px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            border-bottom: 3px solid #333;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 32px;
+            letter-spacing: 10px;
+        }
+        .info-section {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 30px;
+        }
+        .info-table {
+            border-collapse: collapse;
+            font-size: 0.9em;
+        }
+        .info-table td {
+            border: 1px solid #ccc;
+            padding: 8px;
+        }
+        .label {
+            background-color: #f9f9f9;
+            font-weight: bold;
+            width: 80px;
+            text-align: center;
+        }
+        .content-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 30px;
+        }
+        .content-table th {
+            background-color: #333;
+            color: white;
+            padding: 10px;
+            border: 1px solid #333;
+        }
+        .content-table td {
+            border: 1px solid #ccc;
+            padding: 10px;
+            text-align: center;
+        }
+        .total-section {
+            text-align: right;
+            font-size: 1.2em;
+            font-weight: bold;
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #f2f2f2;
+        }
+        .footer {
+            margin-top: 50px;
+            font-size: 0.9em;
+            color: #666;
+        }
+        @media print {
+            .no-print { display: none; }
+            body { padding: 0; }
+            .quotation-box { border: none; box-shadow: none; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="quotation-box">
+    <div class="header">
+        <h1>견 적 서</h1>
+        <div>No: 2024-0001</div>
+    </div>
+
+    <div class="info-section">
+        <table class="info-table">
+            <tr>
+                <td rowspan="4" class="label">공<br>급<br>받<br>는<br>자</td>
+                <td class="label">귀하</td>
+                <td style="width: 200px;">OOO 주식회사 귀중</td>
+            </tr>
+            <tr>
+                <td class="label">일자</td>
+                <td>2024년 05월 22일</td>
+            </tr>
+            <tr>
+                <td class="label">합계금액</td>
+                <td style="font-weight: bold;">₩ 1,100,000 (VAT포함)</td>
+            </tr>
+            <tr>
+                <td class="label">유효기간</td>
+                <td>견적후 30일 이내</td>
+            </tr>
+        </table>
+
+        <table class="info-table">
+            <tr>
+                <td rowspan="4" class="label">공<br>급<br>자</td>
+                <td class="label">등록번호</td>
+                <td style="width: 200px;">123-45-67890</td>
+            </tr>
+            <tr>
+                <td class="label">상호</td>
+                <td>디지털 에이전시</td>
+            </tr>
+            <tr>
+                <td class="label">대표자</td>
+                <td>홍길동 (인)</td>
+            </tr>
+            <tr>
+                <td class="label">주소</td>
+                <td>서울시 강남구 테헤란로 123</td>
+            </tr>
+        </table>
+    </div>
+
+    <table class="content-table">
+        <thead>
+            <tr>
+                <th>품명</th>
+                <th>규격</th>
+                <th>수량</th>
+                <th>단가</th>
+                <th>금액</th>
+                <th>비고</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>웹사이트 UI 디자인</td>
+                <td>메인+서브</td>
+                <td>1</td>
+                <td>500,000</td>
+                <td>500,000</td>
+                <td>-</td>
+            </tr>
+            <tr>
+                <td>프론트엔드 개발</td>
+                <td>반응형</td>
+                <td>1</td>
+                <td>500,000</td>
+                <td>500,000</td>
+                <td>-</td>
+            </tr>
+            <tr>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+            </tr>
+            <tr>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="total-section">
+        총 합계 금액: ₩ 1,100,000
+    </div>
+
+    <div class="footer">
+        <p>※ 위와 같이 견적합니다.</p>
+        <p>담당자: 홍길동 (010-1234-5678) / 이메일: email@address.com</p>
+    </div>
+</div>
+
+<div style="text-align: center; margin-top: 20px;" class="no-print">
+    <button onclick="window.print()" style="padding: 10px 20px; cursor: pointer;">PDF로 저장 / 인쇄하기</button>
+</div>
+
+</body>
+</html>
