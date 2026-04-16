@@ -33,16 +33,17 @@ except Exception as e:
     print(f"[ERROR] 입력 JSON 파싱 실패: {e}", file=sys.stderr)
     sys.exit(1)
 
-cfg      = payload.get("config", {})
-posts    = payload.get("posts", [])
-comments = payload.get("comments", [])
+cfg        = payload.get("config", {})
+posts      = payload.get("posts", [])
+comments   = payload.get("comments", [])
+delete_ids = payload.get("delete_ids", [])  # 학습 전에 LanceDB에서 삭제할 post_id 목록
 
 LANCEDB_PATH  = cfg.get("lancedb_path",  "/Users/kevinim/Desktop/EasyDocStation/Database/LanceDB")
 CHUNK_SIZE    = int(cfg.get("chunk_size",   800))
 CHUNK_OVERLAP = int(cfg.get("chunk_overlap", 100))
 VECTOR_SIZE   = int(cfg.get("vector_size",  1024))
 
-if not posts and not comments:
+if not posts and not comments and not delete_ids:
     print("[RAG] 학습할 데이터가 없습니다.")
     sys.exit(0)
 
@@ -108,6 +109,19 @@ def ensure_table(vector_size):
     return tbl
 
 table = ensure_table(VECTOR_SIZE)
+
+# ─── 기존 청크 삭제 (이벤트 수정 시 재학습용) ─────────────────
+if delete_ids:
+    for del_id in delete_ids:
+        try:
+            safe_id = str(del_id).replace("'", "''")
+            table.delete(f"metadata.post_id = '{safe_id}'")
+            print(f"[RAG] 기존 청크 삭제 완료: post_id={del_id}", flush=True)
+        except Exception as e:
+            print(f"[RAG] 청크 삭제 실패 (post_id={del_id}): {e}", file=sys.stderr)
+    if not posts and not comments:
+        print("[RAG] 삭제 전용 처리 완료")
+        sys.exit(0)
 
 # ─── 텍스트 분할기 ───────────────────────────────────────────
 text_splitter = RecursiveCharacterTextSplitter(

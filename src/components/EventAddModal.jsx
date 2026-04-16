@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { useT } from '../i18n/useT'
 import { apiFetch } from '../lib/api'
@@ -185,6 +185,7 @@ export default function EventAddModal({ onClose, onAdd, onSave, onDelete, event:
       }
     } else {
       onAdd?.(buildData())
+      onClose()
     }
   }
 

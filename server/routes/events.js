@@ -1,6 +1,7 @@
 const express = require('express')
 const { randomUUID } = require('crypto')
-const pool = require('../db')
+const db = require('../db')
+const { trainEventsImmediate, retrainEventImmediate, deleteEventFromRAG } = require('../rag')
 const requireAuth = require('../middleware/auth')
 
 const router = express.Router()
@@ -33,11 +34,9 @@ function generateOccurrences(startDt, endDt, repeat, allDay) {
   const startDate = dtToDate(startDt)
   const endDate   = dtToDate(endDt)
   const durationMs = endDate - startDate
-
   const maxCount = repeat === 'daily' ? 365 : repeat === 'weekly' ? 52 : repeat === 'yearly' ? 10 : 12
   const occurrences = []
   let current = new Date(startDate)
-
   for (let i = 0; i < maxCount; i++) {
     const occEnd = new Date(current.getTime() + durationMs)
     occurrences.push({
@@ -52,110 +51,49 @@ function generateOccurrences(startDt, endDt, repeat, allDay) {
   return occurrences
 }
 
+function parseDt(val) {
+  if (!val) return {}
+  return typeof val === 'string' ? JSON.parse(val) : val
+}
+
+function toClient(row) {
+  return {
+    id: row.id,
+    ownerId: row.owner_id,
+    title: row.title || '',
+    color: row.color || '#4f46e5',
+    allDay: row.all_day,
+    startDt: parseDt(row.start_dt),
+    endDt: parseDt(row.end_dt),
+    repeat: row.repeat || 'none',
+    invitees: parseDt(row.invitees) || [],
+    memo: row.memo || '',
+    securityLevel: row.security_level || 0,
+    remindDt: parseDt(row.remind_dt) || {},
+    remindRepeat: row.remind_repeat || 'none',
+    seriesId: row.series_id || null,
+  }
+}
+
 // GET /api/events — 내 이벤트 + 내가 초대된 이벤트
 router.get('/', async (req, res) => {
   const userId = req.user.id
   try {
-    const { rows } = await pool.query(
-      `SELECT * FROM calendar_events
-       WHERE owner_id = $1
-          OR invitees @> $2::jsonb
-       ORDER BY start_dt->>'year', start_dt->>'month', start_dt->>'day',
-                start_dt->>'hour', start_dt->>'minute'`,
-      [userId, JSON.stringify([{ id: userId }])]
+    const { rows: myRows } = await db.query(
+      'SELECT * FROM calendar_events WHERE owner_id = $1 ORDER BY created_at ASC',
+      [userId]
     )
-    res.json(rows.map(toClient))
-  } catch (err) {
-    console.error(err)
-    res.status(500).json({ error: '서버 오류가 발생했습니다.' })
-  }
-})
 
-// POST /api/events — 이벤트 생성 (반복이면 다중 row 삽입)
-router.post('/', async (req, res) => {
-  const userId = req.user.id
-  const { title, color, allDay, startDt, endDt, repeat, invitees, memo, securityLevel, remindDt, remindRepeat } = req.body
-  const isRepeat = repeat && repeat !== 'none'
-  const seriesId = isRepeat ? randomUUID() : null
+    const { rows: invitedRows } = await db.query(`
+      SELECT ce.* FROM calendar_invitations ci
+      JOIN calendar_events ce ON ce.id = ci.event_id
+      WHERE ci.invitee_id = $1 AND ce.owner_id != $1
+    `, [userId])
 
-  try {
-    const occurrences = isRepeat
-      ? generateOccurrences(startDt, endDt, repeat, allDay || false)
-      : [{ startDt, endDt }]
+    const myIds = new Set(myRows.map(r => r.id))
+    const filtered = invitedRows.filter(r => !myIds.has(r.id))
 
-    const client = await pool.connect()
-    try {
-      await client.query('BEGIN')
-      const created = []
-      for (const occ of occurrences) {
-        const { rows } = await client.query(
-          `INSERT INTO calendar_events
-             (owner_id, title, color, all_day, start_dt, end_dt, repeat, invitees, memo, security_level, remind_dt, remind_repeat, series_id)
-           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
-           RETURNING *`,
-          [
-            userId,
-            title || '',
-            color || '#4f46e5',
-            allDay || false,
-            JSON.stringify(occ.startDt || {}),
-            JSON.stringify(occ.endDt   || {}),
-            repeat || 'none',
-            JSON.stringify(invitees || []),
-            memo || '',
-            securityLevel || 0,
-            JSON.stringify(remindDt || {}),
-            remindRepeat || 'none',
-            seriesId,
-          ]
-        )
-        created.push(toClient(rows[0]))
-      }
-      await client.query('COMMIT')
-      res.status(201).json(created)
-    } catch (err) {
-      await client.query('ROLLBACK')
-      throw err
-    } finally {
-      client.release()
-    }
-  } catch (err) {
-    console.error(err)
-    res.status(500).json({ error: '서버 오류가 발생했습니다.' })
-  }
-})
-
-// PUT /api/events/:id — 이벤트 수정 (본인만, 단일 row)
-router.put('/:id', async (req, res) => {
-  const userId = req.user.id
-  const evId = parseInt(req.params.id)
-  const { title, color, allDay, startDt, endDt, repeat, invitees, memo, securityLevel, remindDt, remindRepeat } = req.body
-  try {
-    const { rows } = await pool.query(
-      `UPDATE calendar_events SET
-         title=$1, color=$2, all_day=$3, start_dt=$4, end_dt=$5, repeat=$6,
-         invitees=$7, memo=$8, security_level=$9, remind_dt=$10, remind_repeat=$11,
-         updated_at=NOW()
-       WHERE id=$12 AND owner_id=$13
-       RETURNING *`,
-      [
-        title || '',
-        color || '#4f46e5',
-        allDay || false,
-        JSON.stringify(startDt || {}),
-        JSON.stringify(endDt || {}),
-        repeat || 'none',
-        JSON.stringify(invitees || []),
-        memo || '',
-        securityLevel || 0,
-        JSON.stringify(remindDt || {}),
-        remindRepeat || 'none',
-        evId,
-        userId,
-      ]
-    )
-    if (!rows[0]) return res.status(404).json({ error: '이벤트를 찾을 수 없습니다.' })
-    res.json(toClient(rows[0]))
+    res.json([...myRows, ...filtered].map(toClient))
   } catch (err) {
     console.error(err)
     res.status(500).json({ error: '서버 오류가 발생했습니다.' })
@@ -163,66 +101,55 @@ router.put('/:id', async (req, res) => {
 })
 
 // PUT /api/events/series/:seriesId — 반복 이벤트 전체 수정 (본인만, 날짜 오프셋 유지)
+// ※ /:id 보다 먼저 등록해야 Express가 /series/xxx를 올바르게 라우팅함
 router.put('/series/:seriesId', async (req, res) => {
   const userId = req.user.id
   const { seriesId } = req.params
   const { title, color, allDay, startDt, endDt, repeat, invitees, memo, securityLevel, remindDt, remindRepeat } = req.body
-
   try {
-    // 시리즈의 첫 번째 이벤트 기준으로 날짜 오프셋 계산
-    const { rows: seriesRows } = await pool.query(
-      'SELECT * FROM calendar_events WHERE series_id=$1 AND owner_id=$2 ORDER BY id ASC',
-      [seriesId, userId]
+    const { rows: seriesRows } = await db.query(
+      'SELECT * FROM calendar_events WHERE owner_id = $1 AND series_id = $2 ORDER BY created_at ASC',
+      [userId, seriesId]
     )
     if (seriesRows.length === 0) return res.status(404).json({ error: '이벤트를 찾을 수 없습니다.' })
 
-    // 새 startDt 기준으로 각 이벤트의 날짜 재생성
-    const baseOld = dtToDate(seriesRows[0].start_dt)
+    const baseOld = dtToDate(parseDt(seriesRows[0].start_dt))
     const baseNew = dtToDate(startDt)
-    const endOld  = dtToDate(seriesRows[0].end_dt)
     const duration = dtToDate(endDt) - dtToDate(startDt)
     const shift = baseNew - baseOld
+    const now = new Date()
+    const updated = []
 
-    const client = await pool.connect()
-    try {
-      await client.query('BEGIN')
-      const updated = []
-      for (const row of seriesRows) {
-        const oldStart = dtToDate(row.start_dt)
-        const newStart = new Date(oldStart.getTime() + shift)
-        const newEnd   = new Date(newStart.getTime() + duration)
-        const { rows: ur } = await client.query(
-          `UPDATE calendar_events SET
-             title=$1, color=$2, all_day=$3, start_dt=$4, end_dt=$5, repeat=$6,
-             invitees=$7, memo=$8, security_level=$9, remind_dt=$10, remind_repeat=$11,
-             updated_at=NOW()
-           WHERE id=$12 AND owner_id=$13
-           RETURNING *`,
-          [
-            title || '',
-            color || '#4f46e5',
-            allDay || false,
-            JSON.stringify(dateToDt(newStart, allDay || false, startDt)),
-            JSON.stringify(dateToDt(newEnd,   allDay || false, endDt)),
-            repeat || 'none',
-            JSON.stringify(invitees || []),
-            memo || '',
-            securityLevel || 0,
-            JSON.stringify(remindDt || {}),
-            remindRepeat || 'none',
-            row.id,
-            userId,
-          ]
-        )
-        if (ur[0]) updated.push(toClient(ur[0]))
-      }
-      await client.query('COMMIT')
-      res.json(updated)
-    } catch (err) {
-      await client.query('ROLLBACK')
-      throw err
-    } finally {
-      client.release()
+    for (const row of seriesRows) {
+      const oldStart = dtToDate(parseDt(row.start_dt))
+      const newStart = new Date(oldStart.getTime() + shift)
+      const newEnd   = new Date(newStart.getTime() + duration)
+      const newStartDt = dateToDt(newStart, allDay || false, startDt)
+      const newEndDt   = dateToDt(newEnd,   allDay || false, endDt)
+
+      await db.query(`
+        UPDATE calendar_events SET
+          title=$1, color=$2, all_day=$3, start_dt=$4, end_dt=$5, repeat=$6,
+          invitees=$7, memo=$8, security_level=$9, remind_dt=$10, remind_repeat=$11, updated_at=$12
+        WHERE owner_id=$13 AND id=$14
+      `, [
+        title || '', color || '#4f46e5', allDay || false,
+        JSON.stringify(newStartDt), JSON.stringify(newEndDt), repeat || 'none',
+        JSON.stringify(invitees || []), memo || '', securityLevel || 0,
+        JSON.stringify(remindDt || {}), remindRepeat || 'none',
+        now, userId, row.id,
+      ])
+      updated.push(toClient({
+        ...row, title, color, all_day: allDay,
+        start_dt: newStartDt, end_dt: newEndDt, repeat,
+        invitees: invitees || [], memo, security_level: securityLevel,
+        remind_dt: remindDt || {}, remind_repeat: remindRepeat, series_id: seriesId,
+      }))
+    }
+    res.json(updated)
+
+    for (const ev of updated) {
+      retrainEventImmediate(ev.id, ev).catch(() => {})
     }
   } catch (err) {
     console.error(err)
@@ -235,12 +162,120 @@ router.delete('/series/:seriesId', async (req, res) => {
   const userId = req.user.id
   const { seriesId } = req.params
   try {
-    const { rowCount } = await pool.query(
-      'DELETE FROM calendar_events WHERE series_id=$1 AND owner_id=$2',
-      [seriesId, userId]
+    const { rows } = await db.query(
+      'SELECT id FROM calendar_events WHERE owner_id = $1 AND series_id = $2',
+      [userId, seriesId]
     )
-    if (rowCount === 0) return res.status(404).json({ error: '이벤트를 찾을 수 없습니다.' })
-    res.json({ success: true, deleted: rowCount })
+    if (rows.length === 0) return res.status(404).json({ error: '이벤트를 찾을 수 없습니다.' })
+
+    const deletedIds = rows.map(r => r.id)
+    await db.query(
+      'DELETE FROM calendar_events WHERE owner_id = $1 AND series_id = $2',
+      [userId, seriesId]
+    )
+    res.json({ success: true, deleted: deletedIds.length })
+
+    for (const id of deletedIds) {
+      deleteEventFromRAG(id).catch(() => {})
+    }
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ error: '서버 오류가 발생했습니다.' })
+  }
+})
+
+// POST /api/events — 이벤트 생성 (반복이면 다중 row 배치 삽입)
+router.post('/', async (req, res) => {
+  const userId = req.user.id
+  const { title, color, allDay, startDt, endDt, repeat, invitees, memo, securityLevel, remindDt, remindRepeat } = req.body
+  const isRepeat = repeat && repeat !== 'none'
+  const seriesId = isRepeat ? randomUUID() : null
+
+  try {
+    const occurrences = isRepeat
+      ? generateOccurrences(startDt, endDt, repeat, allDay || false)
+      : [{ startDt, endDt }]
+
+    const now = new Date()
+    const eventIds = occurrences.map(() => randomUUID())
+
+    // ── 배치 INSERT: 모든 occurrence를 한 번의 쿼리로 삽입 ──────
+    const cols = 16
+    const valueClauses = occurrences.map((_, i) =>
+      `($${i*cols+1},$${i*cols+2},$${i*cols+3},$${i*cols+4},$${i*cols+5},$${i*cols+6},$${i*cols+7},$${i*cols+8},$${i*cols+9},$${i*cols+10},$${i*cols+11},$${i*cols+12},$${i*cols+13},$${i*cols+14},$${i*cols+15},$${i*cols+16})`
+    ).join(',')
+    const params = occurrences.flatMap((occ, i) => [
+      eventIds[i], userId, title || '', color || '#4f46e5', allDay || false,
+      JSON.stringify(occ.startDt || {}), JSON.stringify(occ.endDt || {}),
+      repeat || 'none', JSON.stringify(invitees || []), memo || '',
+      securityLevel || 0, JSON.stringify(remindDt || {}), remindRepeat || 'none',
+      seriesId, now, now,
+    ])
+    const { rows } = await db.query(`
+      INSERT INTO calendar_events
+        (id, owner_id, title, color, all_day, start_dt, end_dt, repeat, invitees, memo,
+         security_level, remind_dt, remind_repeat, series_id, created_at, updated_at)
+      VALUES ${valueClauses}
+      RETURNING *
+    `, params)
+
+    const created = rows.map(toClient)
+
+    // ── 초대 테이블 기록 (invitees가 있을 때만) ─────────────────
+    const invList = invitees || []
+    if (invList.length > 0) {
+      for (let i = 0; i < eventIds.length; i++) {
+        for (const inv of invList) {
+          if (inv.id && inv.id !== userId) {
+            await db.query(
+              'INSERT INTO calendar_invitations (invitee_id, event_id, owner_id) VALUES ($1,$2,$3) ON CONFLICT DO NOTHING',
+              [inv.id, eventIds[i], userId]
+            )
+          }
+        }
+      }
+    }
+
+    res.status(201).json(created)
+
+    // ── RAG 학습: 모든 이벤트를 python 1번으로 처리 ────────────
+    trainEventsImmediate(created).catch(() => {})
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ error: '서버 오류가 발생했습니다.' })
+  }
+})
+
+// PUT /api/events/:id — 이벤트 수정 (본인만, 단일 row)
+router.put('/:id', async (req, res) => {
+  const userId = req.user.id
+  const evId = req.params.id
+  const { title, color, allDay, startDt, endDt, repeat, invitees, memo, securityLevel, remindDt, remindRepeat } = req.body
+  try {
+    const { rows } = await db.query(
+      'SELECT * FROM calendar_events WHERE owner_id = $1 AND id = $2',
+      [userId, evId]
+    )
+    if (!rows[0]) return res.status(404).json({ error: '이벤트를 찾을 수 없습니다.' })
+
+    const now = new Date()
+    const { rows: updated } = await db.query(`
+      UPDATE calendar_events SET
+        title=$1, color=$2, all_day=$3, start_dt=$4, end_dt=$5, repeat=$6,
+        invitees=$7, memo=$8, security_level=$9, remind_dt=$10, remind_repeat=$11, updated_at=$12
+      WHERE owner_id=$13 AND id=$14
+      RETURNING *
+    `, [
+      title || '', color || '#4f46e5', allDay || false,
+      JSON.stringify(startDt || {}), JSON.stringify(endDt || {}), repeat || 'none',
+      JSON.stringify(invitees || []), memo || '', securityLevel || 0,
+      JSON.stringify(remindDt || {}), remindRepeat || 'none',
+      now, userId, evId,
+    ])
+    const updatedEvent = toClient(updated[0])
+    res.json(updatedEvent)
+
+    retrainEventImmediate(evId, updatedEvent).catch(() => {})
   } catch (err) {
     console.error(err)
     res.status(500).json({ error: '서버 오류가 발생했습니다.' })
@@ -250,37 +285,22 @@ router.delete('/series/:seriesId', async (req, res) => {
 // DELETE /api/events/:id — 이벤트 삭제 (본인만)
 router.delete('/:id', async (req, res) => {
   const userId = req.user.id
-  const evId = parseInt(req.params.id)
+  const evId = req.params.id
   try {
-    const { rowCount } = await pool.query(
-      'DELETE FROM calendar_events WHERE id=$1 AND owner_id=$2',
-      [evId, userId]
+    const { rows } = await db.query(
+      'SELECT id FROM calendar_events WHERE owner_id = $1 AND id = $2',
+      [userId, evId]
     )
-    if (rowCount === 0) return res.status(404).json({ error: '이벤트를 찾을 수 없습니다.' })
+    if (!rows[0]) return res.status(404).json({ error: '이벤트를 찾을 수 없습니다.' })
+
+    await db.query('DELETE FROM calendar_events WHERE owner_id = $1 AND id = $2', [userId, evId])
     res.json({ success: true })
+
+    deleteEventFromRAG(evId).catch(() => {})
   } catch (err) {
     console.error(err)
     res.status(500).json({ error: '서버 오류가 발생했습니다.' })
   }
 })
-
-function toClient(row) {
-  return {
-    id: row.id,
-    ownerId: row.owner_id,
-    title: row.title,
-    color: row.color,
-    allDay: row.all_day,
-    startDt: row.start_dt,
-    endDt: row.end_dt,
-    repeat: row.repeat,
-    invitees: row.invitees,
-    memo: row.memo,
-    securityLevel: row.security_level,
-    remindDt: row.remind_dt,
-    remindRepeat: row.remind_repeat,
-    seriesId: row.series_id,
-  }
-}
 
 module.exports = router

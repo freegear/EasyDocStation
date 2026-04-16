@@ -220,9 +220,10 @@ function MonthView({ date, events = [], onEventDoubleClick, onEventDragStart, on
 
 // ─── Week View ───────────────────────────────────────────────
 
-function WeekView({ date, events = [], onEventDoubleClick, onEventDragStart, onWeekDrop, onCellDoubleClick }) {
+function WeekView({ date, events = [], onEventDoubleClick, onEventDragStart, onWeekDrop, onAllDayDrop, onCellDoubleClick }) {
   const today = new Date()
   const [dragOverDate, setDragOverDate] = useState(null)
+  const [dragOverAllDayDate, setDragOverAllDayDate] = useState(null)
   const weekStart = getWeekStart(date)
   const days = Array.from({ length: 7 }, (_, i) => {
     const d = new Date(weekStart)
@@ -280,12 +281,19 @@ function WeekView({ date, events = [], onEventDoubleClick, onEventDragStart, onW
         {days.map((d, i) => {
           const dayAllDayEvents = events.filter(ev => ev.allDay && eventOnDay(ev, d))
           const isTodayCol = isSameDay(d, today)
+          const isAllDayDragOver = dragOverAllDayDate && isSameDay(dragOverAllDayDate, d)
           return (
-            <div key={i} className={`border-l border-gray-100 px-0.5 py-0.5 min-h-[32px] ${isTodayCol ? 'bg-indigo-50/20' : ''}`}>
+            <div key={i}
+              className={`border-l border-gray-100 px-0.5 py-0.5 min-h-[32px] transition-colors
+                ${isAllDayDragOver ? 'bg-indigo-100/70 ring-2 ring-inset ring-indigo-400' : isTodayCol ? 'bg-indigo-50/20' : ''}`}
+              onDragOver={e => { e.preventDefault(); setDragOverAllDayDate(d) }}
+              onDragLeave={e => { if (!e.currentTarget.contains(e.relatedTarget)) setDragOverAllDayDate(null) }}
+              onDrop={e => { e.preventDefault(); setDragOverAllDayDate(null); onAllDayDrop?.(d) }}
+            >
               {dayAllDayEvents.map(ev => (
                 <div key={ev.id}
                   draggable
-                  onDragStart={e => { e.stopPropagation(); onEventDragStart?.(ev.id) }}
+                  onDragStart={e => { e.stopPropagation(); grabOffsetRef.current = 0; onEventDragStart?.(ev.id) }}
                   onDoubleClick={e => { e.stopPropagation(); onEventDoubleClick?.(ev) }}
                   className="text-[10px] font-medium text-white px-1.5 py-0.5 rounded mb-0.5 truncate cursor-grab active:cursor-grabbing hover:brightness-95"
                   style={{ backgroundColor: ev.color }}>
@@ -434,7 +442,7 @@ function WeekView({ date, events = [], onEventDoubleClick, onEventDragStart, onW
 
 // ─── Day View ────────────────────────────────────────────────
 
-function DayView({ date, events = [], onEventDoubleClick, onEventDragStart, onTimeDrop, onCellDoubleClick }) {
+function DayView({ date, events = [], onEventDoubleClick, onEventDragStart, onTimeDrop, onAllDayDrop, onCellDoubleClick }) {
   const today = new Date()
   const isToday = isSameDay(date, today)
   const currentH = today.getHours()
@@ -443,6 +451,7 @@ function DayView({ date, events = [], onEventDoubleClick, onEventDragStart, onTi
   const timedEvents = timedEventsForDay(events, date, DAY_SLOT_PX)
   const grabOffsetRef = useRef(0)
   const gridRef = useRef(null)
+  const [isDragOverAllDay, setIsDragOverAllDay] = useState(false)
 
   function handleTimedDragStart(e, evId, mode = 'move') {
     e.stopPropagation()
@@ -479,7 +488,13 @@ function DayView({ date, events = [], onEventDoubleClick, onEventDragStart, onTi
       {(() => {
         const dayAllDayEvents = events.filter(ev => ev.allDay && eventOnDay(ev, date))
         return (
-          <div className="flex border-b border-gray-200 bg-white flex-shrink-0 min-h-[32px] items-start">
+          <div
+            className={`flex border-b border-gray-200 flex-shrink-0 min-h-[32px] items-start transition-colors
+              ${isDragOverAllDay ? 'bg-indigo-100/70 ring-2 ring-inset ring-indigo-400' : 'bg-white'}`}
+            onDragOver={e => { e.preventDefault(); setIsDragOverAllDay(true) }}
+            onDragLeave={e => { if (!e.currentTarget.contains(e.relatedTarget)) setIsDragOverAllDay(false) }}
+            onDrop={e => { e.preventDefault(); setIsDragOverAllDay(false); onAllDayDrop?.(date) }}
+          >
             <div className="w-14 pr-3 text-right text-[10px] text-gray-400 leading-8 flex-shrink-0 select-none">하루종일</div>
             <div className="flex-1 px-1 py-1 flex flex-wrap gap-1">
               {dayAllDayEvents.length === 0 && (
@@ -488,7 +503,7 @@ function DayView({ date, events = [], onEventDoubleClick, onEventDragStart, onTi
               {dayAllDayEvents.map(ev => (
                 <div key={ev.id}
                   draggable
-                  onDragStart={e => { e.stopPropagation(); onEventDragStart?.(ev.id) }}
+                  onDragStart={e => { e.stopPropagation(); grabOffsetRef.current = 0; onEventDragStart?.(ev.id) }}
                   onDoubleClick={e => { e.stopPropagation(); onEventDoubleClick?.(ev) }}
                   className="text-[11px] font-medium text-white px-2 py-0.5 rounded truncate max-w-xs cursor-grab active:cursor-grabbing hover:brightness-95"
                   style={{ backgroundColor: ev.color }}>
@@ -695,6 +710,17 @@ export default function CalendarView({ onClose }) {
   // { id, mode: 'move' | 'resize-start' | 'resize-end' }
   const draggingRef = useRef(null)
 
+  // ESC 키로 캘린더 닫기
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key === 'Escape' && !showEventModal && !pendingDragUpdate) {
+        onClose?.()
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [onClose, showEventModal, pendingDragUpdate])
+
   // 캘린더 열릴 때 이벤트 로드
   useEffect(() => {
     apiFetch('/events')
@@ -718,13 +744,19 @@ export default function CalendarView({ onClose }) {
       if (contentH <= 0) return
       const availH = rootRect.height
       const scale = Math.min(1, availH / contentH)
+      // scale(s) 적용 시 가로 폭도 s배로 줄어들므로, width를 1/s배로 보정해 열이 전체 너비를 채우도록 함
       scaleRoot.style.transform = `scale(${scale})`
       scaleRoot.style.transformOrigin = 'top left'
+      scaleRoot.style.width = `${(1 / scale) * 100}%`
     }
     const handleAfterPrint = () => {
       const area = document.getElementById('calendar-print-area')
       const scaleRoot = area?.querySelector('.calendar-scale-root')
-      if (scaleRoot) { scaleRoot.style.transform = ''; scaleRoot.style.transformOrigin = '' }
+      if (scaleRoot) {
+        scaleRoot.style.transform = ''
+        scaleRoot.style.transformOrigin = ''
+        scaleRoot.style.width = ''
+      }
     }
     window.addEventListener('beforeprint', handleBeforePrint)
     window.addEventListener('afterprint', handleAfterPrint)
@@ -778,7 +810,7 @@ export default function CalendarView({ onClose }) {
     })
   }
 
-  // Day/Week time grid drop: handles move / resize-start / resize-end
+  // Day/Week time grid drop: handles move / resize / allDay→timed (18.5.6.1)
   // newDate = null means keep current date (day view), Date = move to that date (week view)
   function handleTimeGridDrop(newDate, newHour, newMinute) {
     const drag = draggingRef.current
@@ -789,6 +821,20 @@ export default function CalendarView({ onClose }) {
     setEvents(prev => {
       const next = prev.map(ev => {
         if (ev.id !== drag.id) return ev
+
+        // 18.5.6.1: allDay → timed
+        if (ev.allDay) {
+          const targetDate = newDate || new Date(ev.startDt.year, ev.startDt.month - 1, ev.startDt.day)
+          const newStartMin = Math.max(0, Math.min(23 * 60, dropMin))
+          const newEndMin = Math.min(newStartMin + 60, 24 * 60 - 1)
+          return {
+            ...ev,
+            allDay: false,
+            startDt: makeDt(targetDate, Math.floor(newStartMin / 60), newStartMin % 60),
+            endDt:   makeDt(targetDate, Math.floor(newEndMin / 60),   newEndMin % 60),
+          }
+        }
+
         const s = dtTo24h(ev.startDt)
         const e2 = dtTo24h(ev.endDt)
         const startMin = s.hour * 60 + s.minute
@@ -818,6 +864,35 @@ export default function CalendarView({ onClose }) {
           }
         }
         return { ...ev, startDt: newStartDt, endDt: newEndDt }
+      })
+      const updated = next.find(ev => ev.id === drag.id)
+      if (updated) {
+        if (updated.repeat && updated.repeat !== 'none') {
+          setPendingDragUpdate({ updated, prevEvents: prev })
+        } else {
+          apiFetch(`/events/${updated.id}`, { method: 'PUT', body: JSON.stringify(updated) }).catch(() => {})
+        }
+      }
+      return next
+    })
+  }
+
+  // 18.5.6.2: timed → allDay (하루종일 행으로 드롭)
+  function handleAllDayDrop(targetDate) {
+    const drag = draggingRef.current
+    if (!drag) return
+    draggingRef.current = null
+
+    setEvents(prev => {
+      const next = prev.map(ev => {
+        if (ev.id !== drag.id) return ev
+        // 18.5.6.2: timed → allDay, 또는 allDay → allDay 날짜 이동
+        return {
+          ...ev,
+          allDay: true,
+          startDt: { ...ev.startDt, year: targetDate.getFullYear(), month: targetDate.getMonth() + 1, day: targetDate.getDate() },
+          endDt:   { ...ev.endDt,   year: targetDate.getFullYear(), month: targetDate.getMonth() + 1, day: targetDate.getDate() },
+        }
       })
       const updated = next.find(ev => ev.id === drag.id)
       if (updated) {
@@ -947,8 +1022,8 @@ export default function CalendarView({ onClose }) {
           </div>
         )}
         {viewType === 'month' && <MonthView date={currentDate} events={events} onEventDoubleClick={handleEventDoubleClick} onEventDragStart={handleEventDragStart} onDayDrop={handleDayDrop} onCellDoubleClick={handleCellDoubleClick} />}
-        {viewType === 'week' && <WeekView date={currentDate} events={events} onEventDoubleClick={handleEventDoubleClick} onEventDragStart={handleEventDragStart} onWeekDrop={(date, h, m) => handleTimeGridDrop(date, h, m)} onCellDoubleClick={handleCellDoubleClick} />}
-        {viewType === 'day' && <DayView date={currentDate} events={events} onEventDoubleClick={handleEventDoubleClick} onEventDragStart={handleEventDragStart} onTimeDrop={(h, m) => handleTimeGridDrop(null, h, m)} onCellDoubleClick={handleCellDoubleClick} />}
+        {viewType === 'week' && <WeekView date={currentDate} events={events} onEventDoubleClick={handleEventDoubleClick} onEventDragStart={handleEventDragStart} onWeekDrop={(date, h, m) => handleTimeGridDrop(date, h, m)} onAllDayDrop={handleAllDayDrop} onCellDoubleClick={handleCellDoubleClick} />}
+        {viewType === 'day' && <DayView date={currentDate} events={events} onEventDoubleClick={handleEventDoubleClick} onEventDragStart={handleEventDragStart} onTimeDrop={(h, m) => handleTimeGridDrop(null, h, m)} onAllDayDrop={handleAllDayDrop} onCellDoubleClick={handleCellDoubleClick} />}
         {viewType === 'year' && (
           <YearView
             date={currentDate}

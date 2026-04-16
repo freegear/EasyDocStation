@@ -84,10 +84,89 @@ async function initCassandra() {
       )
     `)
 
+    await client.execute(`
+      CREATE TABLE IF NOT EXISTS calendar_events (
+        owner_id      int,
+        id            text,
+        title         text,
+        color         text,
+        all_day       boolean,
+        start_dt      text,
+        end_dt        text,
+        repeat        text,
+        invitees      text,
+        memo          text,
+        security_level int,
+        remind_dt     text,
+        remind_repeat text,
+        series_id     text,
+        created_at    timestamp,
+        updated_at    timestamp,
+        PRIMARY KEY (owner_id, id)
+      )
+    `)
+
+    await client.execute(`
+      CREATE TABLE IF NOT EXISTS calendar_invitations (
+        invitee_id int,
+        event_id   text,
+        owner_id   int,
+        PRIMARY KEY (invitee_id, event_id)
+      )
+    `)
+
+    await client.execute(`
+      CREATE TABLE IF NOT EXISTS expense_posts (
+        post_id         text PRIMARY KEY,
+        channel_id      text,
+        author_id       int,
+        security_level  int,
+        first_attachment_id text,
+        is_edited       boolean,
+        prev_post_id    text,
+        next_post_id    text,
+        parent_id       text,
+        created_at      timestamp,
+        updated_at      timestamp
+      )
+    `)
+
+    await client.execute(`
+      CREATE TABLE IF NOT EXISTS expense_attachments (
+        attachment_id      text PRIMARY KEY,
+        post_id            text,
+        file_url           text,
+        file_name          text,
+        order_index        int,
+        next_attachment_id text,
+        created_at         timestamp
+      )
+    `)
+
+    await client.execute(`
+      CREATE TABLE IF NOT EXISTS posts_by_id (
+        id text PRIMARY KEY,
+        channel_id text,
+        created_at timestamp,
+        author_id int
+      )
+    `)
+
+    await client.execute(`
+      CREATE TABLE IF NOT EXISTS comments_by_id (
+        id text PRIMARY KEY,
+        post_id text,
+        created_at timestamp,
+        author_id int
+      )
+    `)
+
     // 기존 테이블에 누락된 컬럼 추가 (마이그레이션)
     const migrations = [
       `ALTER TABLE ${keyspace}.posts ADD security_level int`,
       `ALTER TABLE ${keyspace}.comments ADD security_level int`,
+      `ALTER TABLE ${keyspace}.expense_posts ADD form_data text`,
+      `ALTER TABLE ${keyspace}.expense_posts ADD department text`,
     ]
     for (const cql of migrations) {
       try { await client.execute(cql) } catch (_) { /* 이미 존재하면 무시 */ }
@@ -98,6 +177,15 @@ async function initCassandra() {
     connected = false
     console.warn('⚠️ Cassandra 미연결 — PostgreSQL fallback 사용')
     console.warn('   Cassandra를 시작하려면: brew install cassandra && brew services start cassandra')
+    // 30초 후 자동 재연결 시도
+    setTimeout(async () => {
+      console.log('🔄 Cassandra 재연결 시도...')
+      try {
+        // 기존 클라이언트가 닫혀있으면 새 클라이언트로 교체
+        if (client.controlConnection && client.controlConnection.isShuttingDown) return
+        await initCassandra()
+      } catch (_) {}
+    }, 30000)
   }
 }
 

@@ -33,7 +33,7 @@ export default function GroqPanel({ width }) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const [attachedFile, setAttachedFile] = useState(null)
-  const [aiConfig, setAiConfig] = useState({ num_predict: 4096, num_ctx: 8192, history: 6 })
+  const [aiConfig, setAiConfig] = useState({ num_predict: 8192, num_ctx: 32768, history: 6 })
   const fileInputRef = useRef(null)
   const bottomRef = useRef(null)
   const textareaRef = useRef(null)
@@ -124,8 +124,8 @@ export default function GroqPanel({ width }) {
       console.warn('[RAG] 검색 실패:', e.message)
     }
 
-    // ── 2. RAG 데이터 없으면 AI 호출 없이 안내 메시지 반환 ──────
-    if (!ragContext) {
+    // ── 2. RAG 데이터 없으면 AI 호출 없이 안내 메시지 반환 (이미지 첨부 시 예외) ──────
+    if (!ragContext && !base64Data) {
       setMessages(prev => [...prev, {
         id: `a-${Date.now()}`,
         role: 'assistant',
@@ -138,8 +138,10 @@ export default function GroqPanel({ width }) {
       return
     }
 
-    // ── 3. API 전송용 메시지 구성 — RAG 데이터만 사용 ────────────
-    const contentWithContext = `아래 [참고 정보]에 있는 내용만을 근거로 답변하세요. 참고 정보에 없는 내용은 절대 추측하거나 일반 지식으로 보충하지 마세요.\n\n[참고 정보]\n${ragContext}\n\n[질문]\n${fullText}`
+    // ── 3. API 전송용 메시지 구성 — 이미지 첨부 시 RAG context 무시하고 직접 전송 ────────────
+    const contentWithContext = (ragContext && !base64Data)
+      ? `아래 [참고 정보]에 있는 내용만을 근거로 답변하세요. 참고 정보에 없는 내용은 절대 추측하거나 일반 지식으로 보충하지 마세요.\n\n[참고 정보]\n${ragContext}\n\n[질문]\n${fullText}`
+      : fullText
 
     const userApiMessage = { role: 'user', content: contentWithContext }
     if (base64Data) {

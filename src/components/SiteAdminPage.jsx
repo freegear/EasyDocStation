@@ -45,19 +45,21 @@ function UserFormModal({ user, onClose, onSave, teams = [] }) {
   const [form, setForm] = useState({
     username: user?.username ?? '',
     name: user?.name ?? '',
+    display_name: user?.display_name ?? '',
     email: user?.email ?? '',
     role: user?.role ?? 'user',
     password: '',
     confirmPassword: '',
     is_active: user?.is_active ?? true,
     image_url: user?.image_url ?? '',
+    stamp_picture: user?.stamp_picture ?? '',
     department_id: user?.department_id ?? '',
     security_level: user?.security_level ?? 0,
-    display_name: user?.display_name ?? '',
   })
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const fileInputRef = useRef(null)
+  const stampInputRef = useRef(null)
 
   const SECURITY_LEVEL_OPTIONS = t.admin.securityLevels.map((label, i) => ({ value: i, label }))
 
@@ -70,6 +72,15 @@ function UserFormModal({ user, onClose, onSave, teams = [] }) {
     if (!file) return
     const reader = new FileReader()
     reader.onload = ev => set('image_url', ev.target.result)
+    reader.readAsDataURL(file)
+    e.target.value = ''
+  }
+
+  function handleStampFile(e) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = ev => set('stamp_picture', ev.target.result)
     reader.readAsDataURL(file)
     e.target.value = ''
   }
@@ -102,9 +113,8 @@ function UserFormModal({ user, onClose, onSave, teams = [] }) {
       let result
       if (isEdit) {
         const body = {
-          name: form.name, email: form.email, role: form.role,
-          is_active: form.is_active, image_url: form.image_url,
-          display_name: form.display_name,
+          name: form.name, display_name: form.display_name, email: form.email, role: form.role,
+          is_active: form.is_active, image_url: form.image_url, stamp_picture: form.stamp_picture || null,
           department_id: deptDisabled ? null : (form.department_id || null),
           security_level: form.security_level,
         }
@@ -114,11 +124,11 @@ function UserFormModal({ user, onClose, onSave, teams = [] }) {
         result = await apiFetch('/users', {
           method: 'POST',
           body: JSON.stringify({
-            username: form.username, name: form.name, email: form.email,
+            username: form.username, name: form.name, display_name: form.display_name, email: form.email,
             password: form.password, role: form.role, image_url: form.image_url,
+            stamp_picture: form.stamp_picture || null,
             department_id: deptDisabled ? null : (form.department_id || null),
             security_level: form.security_level,
-            display_name: form.display_name,
             is_active: form.is_active,
           }),
         })
@@ -148,7 +158,7 @@ function UserFormModal({ user, onClose, onSave, teams = [] }) {
           {error && <div className="px-4 py-2.5 rounded-xl bg-red-500/10 border border-red-500/25 text-red-400 text-sm">{error}</div>}
 
           {/* 프로필 이미지 */}
-          <div className="flex items-center gap-4 py-2 border-b border-gray-100 mb-2">
+          <div className="flex items-center gap-4 py-2 border-b border-gray-100">
             <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleImageFile} />
             <button type="button" onClick={handleAvatarClick} className="relative group flex-shrink-0 rounded-full focus:outline-none">
               <Avatar name={form.name} imageUrl={form.image_url} size={16} />
@@ -174,6 +184,44 @@ function UserFormModal({ user, onClose, onSave, teams = [] }) {
               )}
               {!isEdit && (
                 <p className="text-gray-400 text-xs">{t.admin.clickToSelectImage}</p>
+              )}
+            </div>
+          </div>
+
+          {/* 개인 도장 이미지 */}
+          <div className="flex items-center gap-4 py-2 border-b border-gray-100 mb-2">
+            <input ref={stampInputRef} type="file" accept="image/*" className="hidden" onChange={handleStampFile} />
+            <button
+              type="button"
+              onClick={() => stampInputRef.current?.click()}
+              className="relative group flex-shrink-0 w-16 h-16 rounded-xl border-2 border-dashed border-gray-300 hover:border-indigo-400 bg-gray-50 hover:bg-indigo-50/40 transition-colors focus:outline-none flex items-center justify-center overflow-hidden"
+            >
+              {form.stamp_picture ? (
+                <>
+                  <img src={form.stamp_picture} alt="도장" className="w-full h-full object-contain" />
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                    <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                    </svg>
+                  </div>
+                </>
+              ) : (
+                <svg className="w-7 h-7 text-gray-300 group-hover:text-indigo-400 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4v16m8-8H4" />
+                </svg>
+              )}
+            </button>
+            <div className="flex-1">
+              <p className="text-gray-700 text-sm font-medium">개인 도장 이미지</p>
+              <p className="text-gray-400 text-xs mt-0.5">클릭하여 도장 이미지를 등록합니다</p>
+              {form.stamp_picture && (
+                <button
+                  type="button"
+                  onClick={() => set('stamp_picture', '')}
+                  className="mt-1 text-xs text-red-400 hover:text-red-600 transition-colors"
+                >
+                  삭제
+                </button>
               )}
             </div>
           </div>
@@ -238,6 +286,25 @@ function UserFormModal({ user, onClose, onSave, teams = [] }) {
               {pwEntered && pwMatch && form.password.length > 0 && <p className="text-green-400 text-xs mt-1.5 ml-1">{t.admin.pwMatch}</p>}
             </div>
           )}
+
+          {/* 권한 */}
+          <div>
+            <label className="block text-gray-500 text-xs font-medium mb-1.5">{t.admin.labelRole}</label>
+            <select
+              value={form.role}
+              onChange={e => set('role', e.target.value)}
+              className="w-full bg-gray-100 border border-gray-200 rounded-xl px-4 py-2.5 text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-300 transition-all"
+            >
+              {[
+                { value: 'user',          label: t.roles.user },
+                { value: 'channel_admin', label: t.roles.channel_admin },
+                { value: 'team_admin',    label: t.roles.team_admin },
+                { value: 'site_admin',    label: t.roles.site_admin },
+              ].map(o => (
+                <option key={o.value} value={o.value} className="bg-gray-50">{o.label}</option>
+              ))}
+            </select>
+          </div>
 
           {/* 보안 등급 */}
           <div>
@@ -345,6 +412,9 @@ export default function SiteAdminPage({ onClose }) {
   const [maxAttachmentFileSize, setMaxAttachmentFileSizeLocal] = useState(100)
   const [ragForm, setRagForm] = useState({ type: 'manual', time: '02:00', vectorSize: 1024, chunkSize: 800, chunkOverlap: 100 })
   const [agenticaiForm, setAgenticaiForm] = useState({ num_predict: 4096, num_ctx: 8192, history: 6 })
+  const [companyForm, setCompanyForm] = useState({ name: '', address: '', phone: '', homepage: '', fax: '', seal: '', logo: '' })
+  const companyFileInputRef = useRef(null)
+  const companyLogoInputRef = useRef(null)
   const [savingConfig, setSavingConfig] = useState(false)
   const [trainingStatus, setTrainingStatus] = useState(null) // 'running', 'done', null
   const [resetConfirmation, setResetConfirmation] = useState('')
@@ -411,6 +481,17 @@ export default function SiteAdminPage({ onClose }) {
       if (data.maxAttachmentFileSize != null) {
         setMaxAttachmentFileSizeLocal(data.maxAttachmentFileSize)
       }
+      if (data.company) {
+        setCompanyForm({
+          name:      data.company.name      || '',
+          address:   data.company.address   || '',
+          phone:     data.company.phone     || '',
+          homepage:  data.company.homepage  || '',
+          fax:       data.company.fax       || '',
+          seal:      data.company.seal      || '',
+          logo:      data.company.logo      || '',
+        })
+      }
     } catch (err) {
       console.error('Failed to load DB stats:', err)
     } finally {
@@ -419,8 +500,8 @@ export default function SiteAdminPage({ onClose }) {
   }
 
   useEffect(() => { loadUsers(); loadTeams() }, [])
-  useEffect(() => { 
-    if (activeTab === 'db' || activeTab === 'display' || activeTab === 'rag' || activeTab === 'agenticai') loadDbStats() 
+  useEffect(() => {
+    if (activeTab === 'db' || activeTab === 'display' || activeTab === 'rag' || activeTab === 'agenticai' || activeTab === 'company') loadDbStats()
   }, [activeTab])
 
   function handleSave(saved) {
@@ -493,6 +574,16 @@ export default function SiteAdminPage({ onClose }) {
           num_predict: parseInt(agenticaiForm.num_predict),
           num_ctx: parseInt(agenticaiForm.num_ctx),
           history: parseInt(agenticaiForm.history)
+        }
+      } else if (activeTab === 'company') {
+        configData.company = {
+          name:     companyForm.name.trim(),
+          address:  companyForm.address.trim(),
+          phone:    companyForm.phone.trim(),
+          homepage: companyForm.homepage.trim(),
+          fax:      companyForm.fax.trim(),
+          seal:     companyForm.seal || null,
+          logo:     companyForm.logo || null,
         }
       }
 
@@ -639,6 +730,15 @@ export default function SiteAdminPage({ onClose }) {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
             </svg>
             {t.admin.navAgenticAI}
+          </button>
+          <button
+            onClick={() => setActiveTab('company')}
+            className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${activeTab === 'company' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200' : 'text-gray-400 hover:text-gray-500 hover:bg-gray-100'}`}
+          >
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+            </svg>
+            {t.admin.navCompany}
           </button>
           <button
             onClick={() => setActiveTab('sns')}
@@ -1458,6 +1558,165 @@ export default function SiteAdminPage({ onClose }) {
                   <p className="text-gray-400 text-[10px]">{t.admin.agenticaiSettingNoteDesc}</p>
                 </div>
               </div>
+            </div>
+          </div>
+        ) : activeTab === 'company' ? (
+          <div className="max-w-2xl mx-auto py-4">
+            <div className="flex items-center justify-between mb-8">
+              <div>
+                <h2 className="text-gray-900 font-bold text-lg flex items-center gap-2">
+                  <svg className="w-5 h-5 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                  </svg>
+                  {t.admin.companyTabTitle}
+                </h2>
+                <p className="text-gray-400 text-xs mt-1">{t.admin.companyTabDesc}</p>
+              </div>
+              <button
+                onClick={handleSaveConfig}
+                disabled={savingConfig}
+                className="flex items-center gap-2 px-6 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-sm font-semibold transition-all shadow-lg shadow-indigo-200 active:scale-95"
+              >
+                {savingConfig ? t.admin.savingConfig : t.admin.saveSettings}
+              </button>
+            </div>
+
+            <div className="space-y-5">
+              {/* 회사 도장 */}
+              <div className="bg-gray-100 border border-gray-200 rounded-2xl p-6">
+                <label className="block text-gray-700 text-sm font-semibold mb-3">{t.admin.companySeal}</label>
+                <input
+                  ref={companyFileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={e => {
+                    const file = e.target.files?.[0]
+                    if (!file) return
+                    const reader = new FileReader()
+                    reader.onload = ev => setCompanyForm(p => ({ ...p, seal: ev.target.result }))
+                    reader.readAsDataURL(file)
+                    e.target.value = ''
+                  }}
+                />
+                <div className="flex items-center gap-5">
+                  <button
+                    type="button"
+                    onClick={() => companyFileInputRef.current?.click()}
+                    className="relative group w-24 h-24 rounded-xl border-2 border-dashed border-gray-300 hover:border-indigo-400 bg-gray-50 hover:bg-indigo-50/40 transition-colors flex items-center justify-center overflow-hidden flex-shrink-0"
+                  >
+                    {companyForm.seal ? (
+                      <>
+                        <img src={companyForm.seal} alt="회사 도장" className="w-full h-full object-contain" />
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-xl">
+                          <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                          </svg>
+                        </div>
+                      </>
+                    ) : (
+                      <svg className="w-8 h-8 text-gray-300 group-hover:text-indigo-400 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4v16m8-8H4" />
+                      </svg>
+                    )}
+                  </button>
+                  <div>
+                    <p className="text-gray-500 text-sm">{t.admin.companySealHint}</p>
+                    {companyForm.seal && (
+                      <button
+                        type="button"
+                        onClick={() => setCompanyForm(p => ({ ...p, seal: '' }))}
+                        className="mt-2 text-xs text-red-400 hover:text-red-600 transition-colors"
+                      >
+                        {t.admin.companySealDelete}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* 회사 로고 */}
+              <div className="bg-gray-100 border border-gray-200 rounded-2xl p-6">
+                <label className="block text-gray-700 text-sm font-semibold mb-3">{t.admin.companyLogo}</label>
+                <input
+                  ref={companyLogoInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={e => {
+                    const file = e.target.files?.[0]
+                    if (!file) return
+                    const reader = new FileReader()
+                    reader.onload = ev => setCompanyForm(p => ({ ...p, logo: ev.target.result }))
+                    reader.readAsDataURL(file)
+                    e.target.value = ''
+                  }}
+                />
+                <div className="flex items-center gap-5">
+                  <button
+                    type="button"
+                    onClick={() => companyLogoInputRef.current?.click()}
+                    className="relative group w-24 h-24 rounded-xl border-2 border-dashed border-gray-300 hover:border-indigo-400 bg-gray-50 hover:bg-indigo-50/40 transition-colors flex items-center justify-center overflow-hidden flex-shrink-0"
+                  >
+                    {companyForm.logo ? (
+                      <>
+                        <img src={companyForm.logo} alt="회사 로고" className="w-full h-full object-contain" />
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-xl">
+                          <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                          </svg>
+                        </div>
+                      </>
+                    ) : (
+                      <svg className="w-8 h-8 text-gray-300 group-hover:text-indigo-400 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4v16m8-8H4" />
+                      </svg>
+                    )}
+                  </button>
+                  <div>
+                    <p className="text-gray-500 text-sm">{t.admin.companyLogoHint}</p>
+                    {companyForm.logo && (
+                      <button
+                        type="button"
+                        onClick={() => setCompanyForm(p => ({ ...p, logo: '' }))}
+                        className="mt-2 text-xs text-red-400 hover:text-red-600 transition-colors"
+                      >
+                        {t.admin.companyLogoDelete}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* 텍스트 필드들 */}
+              {[
+                { key: 'name',     label: t.admin.companyName,     placeholder: 'SiliconCube' },
+                { key: 'address',  label: t.admin.companyAddress,  placeholder: '경기도 성남시 수정구 창업로 54...' },
+                { key: 'phone',    label: t.admin.companyPhone,    placeholder: '032-837-6270' },
+                { key: 'homepage', label: t.admin.companyHomepage, placeholder: 'www.example.co.kr' },
+                { key: 'fax',      label: t.admin.companyFax,      placeholder: '032-837-6271' },
+              ].map(({ key, label, placeholder }) => (
+                <div key={key} className="bg-gray-100 border border-gray-200 rounded-2xl p-5">
+                  <label className="block text-gray-700 text-sm font-semibold mb-2">{label}</label>
+                  {key === 'address' ? (
+                    <textarea
+                      value={companyForm[key]}
+                      onChange={e => setCompanyForm(p => ({ ...p, [key]: e.target.value }))}
+                      placeholder={placeholder}
+                      rows={2}
+                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-gray-900 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-300 transition-all resize-none"
+                    />
+                  ) : (
+                    <input
+                      type="text"
+                      value={companyForm[key]}
+                      onChange={e => setCompanyForm(p => ({ ...p, [key]: e.target.value }))}
+                      placeholder={placeholder}
+                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-gray-900 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-300 transition-all"
+                    />
+                  )}
+                </div>
+              ))}
             </div>
           </div>
         ) : activeTab === 'sns' ? (

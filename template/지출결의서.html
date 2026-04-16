@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>지출결의서(지급품의)</title>
+    <style>
+        body {
+            font-family: 'Malgun Gothic', sans-serif;
+            display: flex;
+            justify-content: center;
+            padding: 20px;
+            background-color: #f0f0f0;
+        }
+        .container {
+            width: 800px;
+            background-color: white;
+            padding: 40px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            text-align: center;
+            font-size: 32px;
+            margin-bottom: 30px;
+            text-decoration: none;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 10px;
+        }
+        th, td {
+            border: 1px solid black;
+            height: 30px;
+            padding: 5px;
+            font-size: 14px;
+        }
+        .header-table {
+            width: 300px;
+            float: left;
+        }
+        .approval-table {
+            width: 150px;
+            float: right;
+        }
+        .approval-table th {
+            width: 30px;
+            background-color: white;
+        }
+        .clear {
+            clear: both;
+        }
+        .bg-gray { background-color: #e0e0e0; font-weight: bold; text-align: center; }
+        .bg-yellow { background-color: #fff9c4; text-align: center; }
+        .bg-pink { background-color: #f8e0e0; }
+        .center { text-align: center; }
+        .right { text-align: right; }
+
+        .main-table th { background-color: #d9d9d9; }
+        .main-table tr { height: 35px; }
+        
+        .footer-label { background-color: white; font-weight: bold; text-align: center; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>지출결의서(지급품의)</h1>
+
+    <div style="margin-bottom: 20px;">
+        <table class="header-table">
+            <tr>
+                <td class="bg-gray" style="width: 80px;">문서번호</td>
+                <td></td>
+            </tr>
+            <tr>
+                <td class="bg-gray">작성일</td>
+                <td class="center">2026-04-16(목)</td>
+            </tr>
+            <tr>
+                <td class="bg-gray">작성부서</td>
+                <td class="center">(주)실리콘큐브</td>
+            </tr>
+            <tr>
+                <td class="bg-gray">작성자</td>
+                <td class="center">임종윤</td>
+            </tr>
+        </table>
+
+        <table class="approval-table">
+            <tr>
+                <th rowspan="3">결<br>재<br>선</th>
+                <td class="center" style="height: 20px; font-size: 12px;">대표이사</td>
+            </tr>
+            <tr>
+                <td class="center" style="height: 60px; vertical-align: middle;">임종윤</td>
+            </tr>
+            <tr>
+                <td style="height: 20px;"></td>
+            </tr>
+        </table>
+        <div class="clear"></div>
+        <div style="text-align: right; font-size: 12px; margin-top: -15px; margin-right: 155px;">[결재선]</div>
+    </div>
+
+    <table>
+        <tr>
+            <td class="bg-gray" style="width: 100px;">검토의견</td>
+            <td></td>
+        </tr>
+    </table>
+
+    <table class="main-table">
+        <tr>
+            <td class="bg-gray" style="width: 130px;">지급 요청일</td>
+            <td colspan="2" class="bg-yellow">당사 정기 결제일</td>
+        </tr>
+        <tr>
+            <th style="width: 130px;">거 래 처</th>
+            <th>사용내역 및 용도</th>
+            <th style="width: 150px;">금 액</th>
+        </tr>
+        <tr><td></td><td></td><td></td></tr>
+        <tr><td></td><td></td><td></td></tr>
+        <tr><td></td><td></td><td></td></tr>
+        <tr><td></td><td></td><td></td></tr>
+        <tr><td></td><td></td><td></td></tr>
+        <tr><td></td><td></td><td></td></tr>
+        <tr><td></td><td></td><td></td></tr>
+        <tr><td></td><td></td><td></td></tr>
+        
+        <tr>
+            <td colspan="2" class="footer-label">합 계</td>
+            <td class="bg-pink"></td>
+        </tr>
+        <tr>
+            <td colspan="2" class="footer-label">부가가치세</td>
+            <td class="bg-pink"></td>
+        </tr>
+        <tr>
+            <td colspan="2" class="footer-label">총 지출 합계</td>
+            <td class="bg-pink"></td>
+        </tr>
+    </table>
+</div>
+
+</body>
+</html>

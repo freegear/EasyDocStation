@@ -641,29 +641,76 @@ function AttachmentList({ attachments, compact = false }) {
 }
 
 // ─── Template renderer (HTML iframe) ──────────────────────────
+// 문서번호 캐시: postId별로 한 번만 발급 (컴포넌트 재마운트 시에도 재사용)
+const _expenseDocNoCache = {}
 
-function TemplateRenderer({ html, onContentChange }) {
+function TemplateRenderer({ html, postId, onContentChange, onSave }) {
   const iframeRef = useRef(null)
   const { currentUser } = useAuth()
   const userName = currentUser?.name || '사용자'
   const userEmail = currentUser?.email || 'user@example.com'
   const sealUrl = `${window.location.origin}/company/seal.png`
   const logoUrl = `${window.location.origin}/company/logo.png`
+  const [savedAttachments, setSavedAttachments] = useState([])
+  const [savedFormData, setSavedFormData] = useState(null)
+  const [reservedDocNo, setReservedDocNo] = useState(() => _expenseDocNoCache[postId] || null)
+
+  useEffect(() => {
+    if (!postId) return
+    apiFetch(`/expense/load?postId=${encodeURIComponent(postId)}`)
+      .then(data => {
+        setSavedAttachments(data.attachments || [])
+        setSavedFormData(data.formData || null)
+        const existingDocNo = data.formData?.docNo
+        if (existingDocNo) {
+          _expenseDocNoCache[postId] = existingDocNo
+          setReservedDocNo(existingDocNo)
+        } else if (!_expenseDocNoCache[postId]) {
+          // 신규 게시글 — 서버에서 문서번호 발급
+          apiFetch('/expense/next-doc-no')
+            .then(r => {
+              _expenseDocNoCache[postId] = r.docNo
+              setReservedDocNo(r.docNo)
+            })
+            .catch(() => {})
+        }
+      })
+      .catch(() => { setSavedAttachments([]); setSavedFormData(null) })
+  }, [postId])
+
+  const safePostId = (postId || '').replace(/'/g, "\\'")
+  const safeDocNo  = (reservedDocNo || '').replace(/'/g, "\\'")
+  const attachJson  = JSON.stringify(savedAttachments)
+  const formJson    = JSON.stringify(savedFormData)
   const resolvedHtml = html
     .replace(/\{\{USER_NAME\}\}/g, userName)
     .replace(/\{\{USER_EMAIL\}\}/g, userEmail)
     .replace(/\{\{SEAL_URL\}\}/g, sealUrl)
     .replace(/\{\{LOGO_URL\}\}/g, logoUrl)
+    .replace('</head>', `<script>var POST_ID='${safePostId}';var EXPENSE_DOC_NO='${safeDocNo}';var SAVED_ATTACHMENTS=${attachJson};var SAVED_FORM_DATA=${formJson};</script></head>`)
 
   useEffect(() => {
     function handleMessage(e) {
       if (e.data?.type === 'templateFieldChanged' && onContentChange) {
         onContentChange(e.data.field, e.data.value)
       }
+      if (e.data?.type === 'expenseSave' && onSave) {
+        onSave(e.data.data)
+          .then(() => {
+            iframeRef.current?.contentWindow?.postMessage(
+              { type: 'expenseSaveResult', success: true }, '*'
+            )
+          })
+          .catch((err) => {
+            iframeRef.current?.contentWindow?.postMessage(
+              { type: 'expenseSaveResult', success: false, error: err.message }, '*'
+            )
+          })
+      }
     }
     window.addEventListener('message', handleMessage)
     return () => window.removeEventListener('message', handleMessage)
-  }, [onContentChange])
+  }, [onContentChange, onSave])
 
   function handleLoad() {
     try {
@@ -1098,9 +1145,14 @@ function PostCard({ post, onSelect, pinned, isSelected }) {
     .replace(/#{1,3} /g, '').replace(/\*\*/g, '').replace(/`/g, '')
     .split('\n').filter(l => l.trim() && !l.startsWith('|') && !l.startsWith('-'))
   const isQuotation = isTemplate && templateMeta?.id === 'quotation'
+  const isExpense   = isTemplate && templateMeta?.id === 'expense-report'
   const quoteNo       = isQuotation ? (post.content.match(/data-type="no"[^>]*>([^<]+)</) || [])[1]?.trim() || null : null
   const recvVal       = isQuotation ? (post.content.match(/data-field="recv"[^>]*>([^<]+)</) || [])[1]?.trim() || null : null
   const estimateVal   = isQuotation ? (post.content.match(/data-field="estimate-name"[^>]*>([^<]+)</) || [])[1]?.trim() || null : null
+  const expDocNo      = isExpense ? (post.content.match(/data-field="expense-doc-no"[^>]*>([^<]+)</) || [])[1]?.trim() || '' : null
+  const expDocDate    = isExpense ? (post.content.match(/data-field="expense-doc-date"[^>]*>([^<]+)</) || [])[1]?.trim() || '' : null
+  const expAuthorRaw  = isExpense ? (post.content.match(/data-field="expense-author"[^>]*>([^<]+)</) || [])[1]?.trim() || '' : null
+  const expAuthor     = isExpense ? (expAuthorRaw === '{{USER_NAME}}' || !expAuthorRaw ? (post.author?.name || '') : expAuthorRaw) : null
   const leadLine = isTemplate
     ? (templateMeta
         ? (() => {
@@ -1109,6 +1161,13 @@ function PostCard({ post, onSelect, pinned, isSelected }) {
               if (quoteNo) parts.push(quoteNo)
               if (recvVal) parts.push(recvVal)
               if (estimateVal) parts.push(estimateVal)
+              return parts.join('-')
+            }
+            if (isExpense) {
+              const parts = [`${templateMeta.icon} 지출결의서`]
+              if (expAuthor) parts.push(expAuthor)
+              if (expDocDate) parts.push(expDocDate)
+              if (expDocNo) parts.push(expDocNo)
               return parts.join('-')
             }
             return `${templateMeta.icon} ${templateMeta.label} 양식`
@@ -1451,6 +1510,28 @@ function PostDetail({ post, channelId, onClose }) {
               {isTemplateContent(freshPost.content) ? (
                 <TemplateRenderer
                   html={freshPost.content}
+                  postId={post.id}
+                  onSave={(data) => apiFetch('/expense/save', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                      postId: post.id,
+                      channelId,
+                      securityLevel: freshPost.security_level ?? 1,
+                      docNo: data.docNo || '',
+                      formData: {
+                        docNo:          data.docNo || '',
+                        docDate:        data.docDate || '',
+                        author:         data.author || '',
+                        department:     data.department || '',
+                        payDate:        data.payDate || '',
+                        reviewOpinion:  data.reviewOpinion || '',
+                        rows:           data.rows || [],
+                        vat:            data.vat || '',
+                        grandTotal:     data.grandTotal || '',
+                      },
+                      attachments: data.attachments || [],
+                    }),
+                  })}
                   onContentChange={(field, value) => {
                     let updatedContent = freshPost.content
                     if (field === 'quoteNo') {
@@ -1466,6 +1547,26 @@ function PostDetail({ post, channelId, onClose }) {
                     } else if (field === 'estimateName') {
                       updatedContent = updatedContent.replace(
                         /(<span[^>]*data-field="estimate-name"[^>]*>)[^<]*(<\/span>)/,
+                        `$1${value}$2`
+                      )
+                    } else if (field === 'expense-doc-no') {
+                      updatedContent = updatedContent.replace(
+                        /(<td[^>]*data-field="expense-doc-no"[^>]*>)[^<]*(<\/td>)/,
+                        `$1${value}$2`
+                      )
+                    } else if (field === 'expense-doc-date') {
+                      updatedContent = updatedContent.replace(
+                        /(<td[^>]*data-field="expense-doc-date"[^>]*>)[^<]*(<\/td>)/,
+                        `$1${value}$2`
+                      )
+                    } else if (field === 'expense-author') {
+                      updatedContent = updatedContent.replace(
+                        /(<td[^>]*data-field="expense-author"[^>]*>)[^<]*(<\/td>)/,
+                        `$1${value}$2`
+                      )
+                    } else if (field === 'expense-department') {
+                      updatedContent = updatedContent.replace(
+                        /(<td[^>]*data-field="expense-department"[^>]*>)[^<]*(<\/td>)/,
                         `$1${value}$2`
                       )
                     }

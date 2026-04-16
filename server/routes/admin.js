@@ -205,7 +205,8 @@ router.get('/stats', async (req, res) => {
       },
       rag: config.rag || { trainingType: 'manual', dailyTime: '02:00', vectorSize: 1024 },
       agenticai: { num_predict: 4096, num_ctx: 8192, history: 6, ...(config.agenticai || {}) },
-      maxAttachmentFileSize: config.MaxAttachmentFileSize ?? 100
+      maxAttachmentFileSize: config.MaxAttachmentFileSize ?? 100,
+      company: config.company || {}
     })
   } catch (err) {
     console.error('Admin Stats Error:', err)

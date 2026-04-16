@@ -40,6 +40,12 @@ async function initDb() {
           IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='security_level') THEN
             ALTER TABLE users ADD COLUMN security_level INTEGER NOT NULL DEFAULT 0 CHECK (security_level BETWEEN 0 AND 4);
           END IF;
+          IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='stamp_picture') THEN
+            ALTER TABLE users ADD COLUMN stamp_picture TEXT;
+          END IF;
+          IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='display_name') THEN
+            ALTER TABLE users ADD COLUMN display_name TEXT;
+          END IF;
           -- posts 테이블 컬럼 추가
           IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='posts' AND column_name='security_level') THEN
             ALTER TABLE posts ADD COLUMN security_level INTEGER NOT NULL DEFAULT 0;
@@ -93,6 +99,36 @@ async function initDb() {
       await client.query(`
         ALTER TABLE calendar_events ADD COLUMN IF NOT EXISTS series_id VARCHAR(36);
         CREATE INDEX IF NOT EXISTS idx_calendar_events_series ON calendar_events(series_id);
+      `)
+      // calendar_events.id: SERIAL → TEXT(UUID) 마이그레이션
+      await client.query(`
+        DO $$
+        BEGIN
+          IF (SELECT data_type FROM information_schema.columns
+              WHERE table_name='calendar_events' AND column_name='id') = 'integer' THEN
+            ALTER TABLE calendar_events DROP CONSTRAINT calendar_events_pkey;
+            ALTER TABLE calendar_events ALTER COLUMN id DROP DEFAULT;
+            ALTER TABLE calendar_events ALTER COLUMN id TYPE TEXT USING gen_random_uuid()::text;
+            ALTER TABLE calendar_events ADD PRIMARY KEY (id);
+          END IF;
+        END $$;
+      `)
+      // calendar_invitations 테이블 생성 (PostgreSQL)
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS calendar_invitations (
+          invitee_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          event_id   TEXT    NOT NULL,
+          owner_id   INTEGER NOT NULL,
+          PRIMARY KEY (invitee_id, event_id)
+        );
+        CREATE INDEX IF NOT EXISTS idx_cal_inv_event ON calendar_invitations(event_id);
+      `)
+      // expense_doc_counter 테이블 생성 (날짜별 순번 관리)
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS expense_doc_counter (
+          date_key CHAR(8) PRIMARY KEY,
+          last_seq INTEGER NOT NULL DEFAULT 0
+        );
       `)
       // comments 테이블 생성 (없는 경우)
       await client.query(`

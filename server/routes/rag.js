@@ -31,8 +31,17 @@ function startRagServer() {
   })
   ragServerProc.stderr.on('data', d => {
     const msg = d.toString()
-    // sentence_transformers 초기화 로그 등 정상 stderr는 억제
-    if (!msg.includes('huggingface') && !msg.includes('tokenizer') && !msg.includes('Batches')) {
+    // 모델 초기화 과정의 정상 stderr 메시지는 억제
+    const IGNORE_PATTERNS = [
+      'huggingface', 'tokenizer', 'Batches',
+      'HF Hub', 'HF_TOKEN', 'unauthenticated',   // HF Hub 인증 경고 (정상)
+      'rate limits', 'faster downloads',           // HF Hub 속도 안내 (정상)
+      'Loading weights', 'FutureWarning',          // 모델 로드 경고 (정상)
+      'UserWarning', 'DeprecationWarning',         // Python 라이브러리 경고 (정상)
+      'warnings.warn',
+    ]
+    const isNoise = IGNORE_PATTERNS.some(p => msg.includes(p))
+    if (!isNoise) {
       process.stderr.write(`[RAG Server ERR] ${msg}`)
     }
   })

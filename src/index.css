@@ -52,11 +52,17 @@ html, body, #root {
   /* 이벤트 색상 배경 인쇄 허용 */
   * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
   /* 일/주 단위: 스크롤 해제 → JS beforeprint가 scale 적용 */
+  #calendar-print-area .calendar-scale-root {
+    overflow: visible !important;
+  }
   #calendar-print-area .time-grid-scroll {
     overflow: visible !important;
+    flex: none !important;
+    height: auto !important;
   }
   #calendar-print-area .time-grid-inner {
     transform-origin: top left !important;
+    width: 100% !important;
   }
   /* 페이지 여백 최소화 */
   @page { margin: 0.5cm; }
