@@ -10,12 +10,16 @@ import UserProfileModal from './components/UserProfileModal'
 import SiteAdminPage from './components/SiteAdminPage'
 import SearchResultsArea from './components/SearchResultsArea'
 import CalendarView from './components/CalendarView'
+import DirectMessageView, { NewConversationModal } from './components/DirectMessageView'
 
 function MainLayout() {
   const [showProfile, setShowProfile] = useState(false)
   const [showSiteAdmin, setShowSiteAdmin] = useState(false)
   const [searchSelectedPost, setSearchSelectedPost] = useState(null)
   const [showCalendar, setShowCalendar] = useState(false)
+  const [showDM, setShowDM] = useState(false)
+  const [activeDMConv, setActiveDMConv] = useState(null)
+  const [showNewDM, setShowNewDM] = useState(false)
   const { isSearchMode } = useChat()
 
   const [groqWidth, setGroqWidth] = useState(320)
@@ -74,34 +78,49 @@ function MainLayout() {
       <div ref={mainRef} className="flex flex-1 min-h-0">
         <Sidebar
           showCalendar={showCalendar}
-          onToggleCalendar={() => setShowCalendar(v => !v)}
+          onToggleCalendar={() => { setShowCalendar(v => !v); setShowDM(false) }}
           onCloseCalendar={() => setShowCalendar(false)}
+          showDM={showDM}
+          onToggleDM={() => setShowDM(v => !v)}
+          onOpenDM={(conv) => { setActiveDMConv(conv); setShowDM(true); setShowCalendar(false) }}
+          onNewDM={() => setShowNewDM(true)}
+          activeDMConvId={activeDMConv?.id}
         />
 
         {showCalendar ? (
           <CalendarView onClose={() => setShowCalendar(false)} />
+        ) : showDM && activeDMConv ? (
+          <DirectMessageView
+            conversation={activeDMConv}
+            onClose={() => { setShowDM(false); setActiveDMConv(null) }}
+            onConversationUpdated={(updated) => setActiveDMConv(updated)}
+          />
         ) : isSearchMode ? (
           <SearchResultsArea onSelectResult={handleSearchSelect} />
         ) : (
           <ChatArea autoOpenPostId={searchSelectedPost?.id} />
         )}
 
-        {/* Resize handle & GroqPanel: 캘린더 모드에서는 숨김 */}
-        {!showCalendar && (
-          <>
-            <div
-              onMouseDown={startGroqResize}
-              className="group relative w-1 flex-shrink-0 cursor-col-resize z-10"
-            >
-              <div className={`absolute inset-y-0 -left-1 -right-1 transition-colors group-hover:bg-indigo-500/30 ${resizingGroq ? 'bg-indigo-500/50' : ''}`} />
-            </div>
-            <GroqPanel width={groqWidth} />
-          </>
-        )}
+        {/* Resize handle & GroqPanel: 캘린더/DM 모드에서는 CSS로 숨김 (언마운트 X → state 유지) */}
+        <div style={{ display: (showCalendar || showDM) ? 'none' : 'contents' }}>
+          <div
+            onMouseDown={startGroqResize}
+            className="group relative w-1 flex-shrink-0 cursor-col-resize z-10"
+          >
+            <div className={`absolute inset-y-0 -left-1 -right-1 transition-colors group-hover:bg-indigo-500/30 ${resizingGroq ? 'bg-indigo-500/50' : ''}`} />
+          </div>
+          <GroqPanel width={groqWidth} />
+        </div>
       </div>
 
       {showProfile && <UserProfileModal onClose={() => setShowProfile(false)} />}
       {showSiteAdmin && <SiteAdminPage onClose={() => setShowSiteAdmin(false)} />}
+      {showNewDM && (
+        <NewConversationModal
+          onCreated={(conv) => { setShowNewDM(false); setActiveDMConv(conv); setShowDM(true); setShowCalendar(false) }}
+          onCancel={() => setShowNewDM(false)}
+        />
+      )}
     </div>
   )
 }

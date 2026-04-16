@@ -12,6 +12,7 @@ const postsRouter = require('./routes/posts')
 const ragRouter    = require('./routes/rag')
 const eventsRouter = require('./routes/events')
 const expenseRouter = require('./routes/expense')
+const dmRouter = require('./routes/dm')
 const { initCassandra } = require('./cassandra')
 const { initRag } = require('./rag')
 
@@ -40,6 +41,7 @@ app.use('/api/posts', postsRouter)
 app.use('/api/rag',    ragRouter)
 app.use('/api/events', eventsRouter)
 app.use('/api/expense', expenseRouter)
+app.use('/api/dm', dmRouter)
 
 // 공용 설정 API (관리자 설정값 조회용)
 app.get('/api/config/version', (req, res) => {

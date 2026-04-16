@@ -410,6 +410,8 @@ export default function SiteAdminPage({ onClose }) {
   })
   const [lancedbPath, setLancedbPath] = useState('/Users/kevinim/Desktop/EasyDocStation/Database/LanceDB')
   const [maxAttachmentFileSize, setMaxAttachmentFileSizeLocal] = useState(100)
+  const [dmRetentionDays, setDmRetentionDays] = useState(30)
+  const [dmUnlimited, setDmUnlimited] = useState(false)
   const [ragForm, setRagForm] = useState({ type: 'manual', time: '02:00', vectorSize: 1024, chunkSize: 800, chunkOverlap: 100 })
   const [agenticaiForm, setAgenticaiForm] = useState({ num_predict: 4096, num_ctx: 8192, history: 6 })
   const [companyForm, setCompanyForm] = useState({ name: '', address: '', phone: '', homepage: '', fax: '', seal: '', logo: '' })
@@ -480,6 +482,10 @@ export default function SiteAdminPage({ onClose }) {
       }
       if (data.maxAttachmentFileSize != null) {
         setMaxAttachmentFileSizeLocal(data.maxAttachmentFileSize)
+      }
+      if (data.DirectMessage) {
+        setDmRetentionDays(data.DirectMessage['보존 기한'] ?? 30)
+        setDmUnlimited(data.DirectMessage['무제한보관'] ?? false)
       }
       if (data.company) {
         setCompanyForm({
@@ -561,6 +567,10 @@ export default function SiteAdminPage({ onClose }) {
       } else if (activeTab === 'db') {
         configData['lancedb Database Path'] = lancedbPath
         configData['MaxAttachmentFileSize'] = parseInt(maxAttachmentFileSize) || 100
+        configData['DirectMessage'] = {
+          '보존 기한': Math.min(90, Math.max(5, parseInt(dmRetentionDays) || 30)),
+          '무제한보관': dmUnlimited
+        }
       } else if (activeTab === 'rag') {
         configData.rag = {
           trainingType: ragForm.type,
@@ -1119,6 +1129,63 @@ export default function SiteAdminPage({ onClose }) {
                         <p className="text-4xl font-black text-orange-600 tracking-tight">{maxAttachmentFileSize}</p>
                         <p className="text-gray-400 text-xs mt-2">MB</p>
                         <div className="w-12 h-1 bg-orange-500/40 mx-auto mt-4 rounded-full" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* DM Message Retention */}
+                <div className="bg-gray-100 border border-gray-200 rounded-2xl p-6 shadow-xl">
+                  <div className="flex items-start justify-between mb-6">
+                    <div>
+                      <h3 className="text-gray-900 font-bold text-base mb-1">메시지 유지 조건 설정</h3>
+                      <p className="text-gray-400 text-xs">다이렉트 메시지 첨부 파일 보존 기간을 설정합니다.</p>
+                    </div>
+                    <div className="px-3 py-1 rounded-full bg-indigo-50 border border-indigo-500/20 text-indigo-600 text-[10px] font-bold uppercase tracking-wider">
+                      DM
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-8">
+                    <div className="space-y-4">
+                      <div>
+                        <p className="text-gray-400 text-xs font-semibold uppercase tracking-wider mb-1.5">보존 기한 (일)</p>
+                        <div className="flex items-center gap-3">
+                          <input
+                            type="number"
+                            min="5"
+                            max="90"
+                            disabled={dmUnlimited}
+                            value={dmRetentionDays}
+                            onChange={e => setDmRetentionDays(e.target.value)}
+                            className="w-32 bg-gray-200 rounded-xl px-4 py-3 border border-gray-100 font-mono text-sm text-indigo-400 focus:outline-none focus:border-indigo-500/50 transition-colors text-right disabled:opacity-40"
+                          />
+                          <span className="text-gray-400 text-sm font-semibold">일</span>
+                        </div>
+                        <p className="text-gray-300 text-[10px] mt-1.5">최소 5일 ~ 최대 90일</p>
+                      </div>
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={dmUnlimited}
+                          onChange={e => setDmUnlimited(e.target.checked)}
+                          className="w-4 h-4 rounded accent-indigo-600"
+                        />
+                        <span className="text-gray-600 text-sm">무제한 (영구 보관)</span>
+                      </label>
+                    </div>
+                    <div className="flex flex-col justify-center">
+                      <div className="text-center p-6 bg-gray-50 rounded-3xl border border-gray-100 relative overflow-hidden group">
+                        <div className="absolute inset-0 bg-indigo-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                        <p className="text-gray-400 text-xs font-semibold uppercase tracking-wider mb-2">현재 설정</p>
+                        {dmUnlimited ? (
+                          <p className="text-2xl font-black text-indigo-600 tracking-tight">무제한</p>
+                        ) : (
+                          <>
+                            <p className="text-4xl font-black text-indigo-600 tracking-tight">{dmRetentionDays}</p>
+                            <p className="text-gray-400 text-xs mt-2">일</p>
+                          </>
+                        )}
+                        <div className="w-12 h-1 bg-indigo-500/40 mx-auto mt-4 rounded-full" />
                       </div>
                     </div>
                   </div>
