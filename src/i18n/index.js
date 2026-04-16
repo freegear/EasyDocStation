@@ -23,6 +23,13 @@ export const translations = {
       channelManageTitle: '더블클릭하면 채널 관리',
       formTemplates: '양식 모음',
     },
+    dm: {
+      read: '읽음',
+      readCount: (n) => `읽음 ${n}`,
+      unread: '읽지 않음',
+      readAccounts: (names) => `계정: ${names}`,
+      deletedMessage: '삭제된 메시지입니다.',
+    },
     chat: {
       selectChannel: '채널을 선택하세요',
       archivedChannel: '보관된 채널입니다',
@@ -346,6 +353,13 @@ export const translations = {
       addTeam: 'Add Team', addChannel: 'Add Channel',
       channelManageTitle: 'Double-click to manage channel',
       formTemplates: 'Form Templates',
+    },
+    dm: {
+      read: 'Read',
+      readCount: (n) => `Read ${n}`,
+      unread: 'Unread',
+      readAccounts: (names) => `Account: ${names}`,
+      deletedMessage: 'This message was deleted.',
     },
     chat: {
       selectChannel: 'Select a channel',

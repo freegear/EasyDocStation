@@ -172,6 +172,16 @@ async function initDb() {
         CREATE INDEX IF NOT EXISTS idx_dm_msg_conv ON dm_messages(conversation_id);
         CREATE INDEX IF NOT EXISTS idx_dm_msg_sender ON dm_messages(sender_id);
       `)
+      // dm_messages read_by 컬럼 추가 (읽음 추적)
+      await client.query(`
+        ALTER TABLE dm_messages ADD COLUMN IF NOT EXISTS read_by JSONB NOT NULL DEFAULT '[]';
+      `)
+      // dm_messages soft delete 컬럼 추가 (삭제 메시지 표현)
+      await client.query(`
+        ALTER TABLE dm_messages ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN NOT NULL DEFAULT false;
+        ALTER TABLE dm_messages ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;
+        ALTER TABLE dm_messages ADD COLUMN IF NOT EXISTS deleted_by INTEGER REFERENCES users(id) ON DELETE SET NULL;
+      `)
       console.log('✅ Database migration complete.')
     } finally {
       client.release()
