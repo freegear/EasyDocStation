@@ -145,6 +145,33 @@ async function initDb() {
         );
         CREATE INDEX IF NOT EXISTS idx_comments_post ON comments(post_id);
       `)
+      // dm_conversations 테이블 생성 (21. Direct Message)
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS dm_conversations (
+          id           VARCHAR(36)  PRIMARY KEY,
+          name         TEXT         NOT NULL DEFAULT '',
+          created_by   INTEGER      NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          participants JSONB        NOT NULL DEFAULT '[]',
+          created_at   TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+          updated_at   TIMESTAMPTZ  NOT NULL DEFAULT NOW()
+        );
+        CREATE INDEX IF NOT EXISTS idx_dm_conv_created ON dm_conversations(created_by);
+      `)
+      // dm_messages 테이블 생성
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS dm_messages (
+          id              VARCHAR(36)  PRIMARY KEY,
+          conversation_id VARCHAR(36)  NOT NULL REFERENCES dm_conversations(id) ON DELETE CASCADE,
+          sender_id       INTEGER      NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          content         TEXT         NOT NULL DEFAULT '',
+          attachments     JSONB        NOT NULL DEFAULT '[]',
+          is_edited       BOOLEAN      NOT NULL DEFAULT false,
+          created_at      TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+          updated_at      TIMESTAMPTZ  NOT NULL DEFAULT NOW()
+        );
+        CREATE INDEX IF NOT EXISTS idx_dm_msg_conv ON dm_messages(conversation_id);
+        CREATE INDEX IF NOT EXISTS idx_dm_msg_sender ON dm_messages(sender_id);
+      `)
       console.log('✅ Database migration complete.')
     } finally {
       client.release()

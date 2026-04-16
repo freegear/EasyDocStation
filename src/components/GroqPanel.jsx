@@ -11,6 +11,28 @@ const SYSTEM_PROMPT = `당신은 EasyStation의 AI 어시스턴트입니다.
 참고 정보에 없는 내용은 절대 추측하거나 일반 지식으로 보충하지 마세요.
 답변은 간결하고 명확하게 한국어로 작성하세요.`
 
+const TRANSLATION_SYSTEM_PROMPT = `당신은 전문 번역가입니다.
+사용자가 요청한 텍스트를 정확하고 자연스럽게 번역하세요.
+번역 이외의 내용은 추가하지 마세요.`
+
+// 번역 요청인지 감지 (RAG 검색 불필요한 경우)
+function isTranslationQuery(text) {
+  const t = text.toLowerCase()
+  return (
+    /번역/.test(text) ||
+    /translate/i.test(text) ||
+    /翻訳|翻译/.test(text) ||
+    /한(글|국어)로.{0,10}(바꿔|변환|옮겨)/.test(text) ||
+    /영어로.{0,10}(바꿔|변환|번역)/.test(text) ||
+    /일본어로.{0,10}(바꿔|변환|번역)/.test(text) ||
+    /중국어로.{0,10}(바꿔|변환|번역)/.test(text) ||
+    /を(日本語|韓国語|英語|中国語)に/.test(text) ||
+    /訳して/.test(text) ||
+    t.includes('translation') ||
+    t.includes('interpret')
+  )
+}
+
 function formatTime(isoString) {
   return new Date(isoString).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })
 }
@@ -110,36 +132,44 @@ export default function GroqPanel({ width }) {
     setLoading(true)
     setError(null)
 
-    // ── 1. RAG 검색 — LanceDB에서 관련 문서 검색 ────────────────
+    // ── 1. 번역 요청 감지 — 번역이면 RAG 검색 없이 바로 AI 호출 ──
+    const isTranslation = isTranslationQuery(text)
+
     let ragContext = ''
     let ragReferences = []
-    try {
-      const ragResult = await apiFetch('/rag/search', {
-        method: 'POST',
-        body: JSON.stringify({ query: text, limit: 3 }),
-      })
-      ragContext = ragResult.context || ''
-      ragReferences = ragResult.references || []
-    } catch (e) {
-      console.warn('[RAG] 검색 실패:', e.message)
+    if (!isTranslation && !base64Data) {
+      // ── 1-1. RAG 검색 — LanceDB에서 관련 문서 검색 ──────────
+      try {
+        const ragResult = await apiFetch('/rag/search', {
+          method: 'POST',
+          body: JSON.stringify({ query: text, limit: 3 }),
+        })
+        ragContext = ragResult.context || ''
+        ragReferences = ragResult.references || []
+      } catch (e) {
+        console.warn('[RAG] 검색 실패:', e.message)
+      }
+
+      // ── 1-2. RAG 데이터 없으면 안내 메시지 반환 ──────────────
+      if (!ragContext) {
+        setMessages(prev => [...prev, {
+          id: `a-${Date.now()}`,
+          role: 'assistant',
+          content: t.ai.noData,
+          references: [],
+          time: new Date().toISOString(),
+          model: selectedModel,
+        }])
+        setLoading(false)
+        return
+      }
     }
 
-    // ── 2. RAG 데이터 없으면 AI 호출 없이 안내 메시지 반환 (이미지 첨부 시 예외) ──────
-    if (!ragContext && !base64Data) {
-      setMessages(prev => [...prev, {
-        id: `a-${Date.now()}`,
-        role: 'assistant',
-        content: t.ai.noData,
-        references: [],
-        time: new Date().toISOString(),
-        model: selectedModel,
-      }])
-      setLoading(false)
-      return
-    }
-
-    // ── 3. API 전송용 메시지 구성 — 이미지 첨부 시 RAG context 무시하고 직접 전송 ────────────
-    const contentWithContext = (ragContext && !base64Data)
+    // ── 2. API 전송용 메시지 구성 ────────────────────────────────
+    // 번역 요청: RAG 없이 원문 그대로 전송
+    // 이미지 첨부: RAG context 무시하고 직접 전송
+    // 일반 질문: RAG context를 프롬프트에 포함
+    const contentWithContext = (ragContext && !base64Data && !isTranslation)
       ? `아래 [참고 정보]에 있는 내용만을 근거로 답변하세요. 참고 정보에 없는 내용은 절대 추측하거나 일반 지식으로 보충하지 마세요.\n\n[참고 정보]\n${ragContext}\n\n[질문]\n${fullText}`
       : fullText
 
@@ -173,7 +203,7 @@ export default function GroqPanel({ width }) {
         body: JSON.stringify({
           model: selectedModel,
           messages: [
-            { role: 'system', content: SYSTEM_PROMPT },
+            { role: 'system', content: isTranslation ? TRANSLATION_SYSTEM_PROMPT : SYSTEM_PROMPT },
             ...historyForApi,
             userApiMessage,
           ],

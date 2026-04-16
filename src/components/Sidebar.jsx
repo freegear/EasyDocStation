@@ -7,6 +7,15 @@ import ChannelManageModal from './ChannelManageModal'
 import { useT } from '../i18n/useT'
 import { FORM_TEMPLATES } from '../templates/formTemplates'
 
+function ChatBubbleIcon() {
+  return (
+    <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+        d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+    </svg>
+  )
+}
+
 function HashIcon() {
   return (
     <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -23,12 +32,11 @@ function LockIcon() {
   )
 }
 
-export default function Sidebar({ showCalendar, onToggleCalendar, onCloseCalendar }) {
+export default function Sidebar({ showCalendar, onToggleCalendar, onCloseCalendar, showDM, onToggleDM, onOpenDM, onNewDM, activeDMConvId }) {
   const { teams, setTeams, selectedTeam, selectedChannel, selectTeam, selectChannel, refreshTeams, addPost } = useChat()
   const { currentUser } = useAuth()
   const t = useT()
   const [teamsCollapsed, setTeamsCollapsed] = useState(false)
-  const [dmCollapsed, setDmCollapsed] = useState(false)
   const [formsCollapsed, setFormsCollapsed] = useState(false)
   const [channelsCollapsed, setChannelsCollapsed] = useState(false)
   const [showTeamModal, setShowTeamModal] = useState(false)
@@ -37,12 +45,20 @@ export default function Sidebar({ showCalendar, onToggleCalendar, onCloseCalenda
   const [channelModalMode, setChannelModalMode] = useState('add')
   const [editingChannel, setEditingChannel] = useState(null)
   const [appVersion, setAppVersion] = useState('')
+  const [dmConversations, setDmConversations] = useState([])
+  const [dmCollapsedList, setDmCollapsedList] = useState(false)
 
   useEffect(() => {
     apiFetch('/config/version')
       .then(data => setAppVersion(data.version || ''))
       .catch(() => {})
   }, [])
+
+  useEffect(() => {
+    apiFetch('/dm/conversations')
+      .then(data => setDmConversations(Array.isArray(data) ? data : []))
+      .catch(() => {})
+  }, [showDM])
 
   // 채널 관리 권한 체크
   // - site_admin: 모든 채널 관리 가능
@@ -98,59 +114,58 @@ export default function Sidebar({ showCalendar, onToggleCalendar, onCloseCalenda
 
   return (
     <aside className="w-64 flex-shrink-0 bg-gray-200 flex flex-col h-full border-r border-gray-100">
-      {/* Team selector */}
-      <div className="px-3 py-3 border-b border-gray-200">
-        <button
-          className="flex items-center justify-between w-full px-2 py-1 text-gray-400 hover:text-gray-600 text-xs uppercase tracking-widest transition-colors mb-1"
-          onClick={() => setTeamsCollapsed(v => !v)}
-        >
-          <span>{t.sidebar.teams}</span>
-          <span className="text-base">{teamsCollapsed ? '▸' : '▾'}</span>
-        </button>
-        {!teamsCollapsed && <div className="flex flex-col gap-1">
-          {teams.map(team => {
-            const teamUnread = team.channels.reduce((s, c) => s + c.unread, 0)
-            const isActive = team.id === selectedTeam.id
-            return (
-              <button
-                key={team.id}
-                onClick={() => { selectTeam(team); onCloseCalendar?.() }}
-                onDoubleClick={() => {
-                  if (!canManageTeam()) return
-                  setEditingTeam(team)
-                  setShowTeamModal(true)
-                }}
-                className={`flex items-center gap-2.5 w-full px-2 py-2 rounded-lg text-sm text-left transition-all ${isActive
-                    ? 'bg-indigo-600 text-white shadow-lg'
-                    : 'text-gray-500 hover:bg-gray-200 hover:text-gray-900'
-                  }`}
-              >
-                <span className="text-base">{team.icon}</span>
-                <span className="flex-1 font-medium truncate">{team.name}</span>
-                {teamUnread > 0 && !isActive && (
-                  <span className="bg-red-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center font-bold">
-                    {teamUnread}
-                  </span>
-                )}
-              </button>
-            )
-          })}
-
-          {/* Add Team Button: site_admin만 표시 */}
-          {canAddTeam() && (
-            <button
-              onClick={() => { setEditingTeam(null); setShowTeamModal(true) }}
-              className="flex items-center gap-2 w-full px-3 py-2 rounded-lg text-gray-400 hover:text-gray-500 hover:bg-gray-100 text-sm transition-all mt-1"
-            >
-              <span className="text-lg leading-none">+</span>
-              <span>{t.sidebar.addTeam}</span>
-            </button>
-          )}
-        </div>}
-      </div>
-
-      {/* Scrollable channels/DMs */}
+      {/* Scrollable: 팀 목록 + 채널/DM/서식 전체 포함 (9.6) */}
       <div className="flex-1 overflow-y-auto py-2">
+        {/* Team selector */}
+        <div className="px-3 pb-2 mb-1 border-b border-gray-300">
+          <button
+            className="flex items-center justify-between w-full px-2 py-1 text-gray-400 hover:text-gray-600 text-xs uppercase tracking-widest transition-colors mb-1"
+            onClick={() => setTeamsCollapsed(v => !v)}
+          >
+            <span>{t.sidebar.teams}</span>
+            <span className="text-base">{teamsCollapsed ? '▸' : '▾'}</span>
+          </button>
+          {!teamsCollapsed && <div className="flex flex-col gap-1">
+            {teams.map(team => {
+              const teamUnread = team.channels.reduce((s, c) => s + c.unread, 0)
+              const isActive = team.id === selectedTeam.id
+              return (
+                <button
+                  key={team.id}
+                  onClick={() => { selectTeam(team); onCloseCalendar?.() }}
+                  onDoubleClick={() => {
+                    if (!canManageTeam()) return
+                    setEditingTeam(team)
+                    setShowTeamModal(true)
+                  }}
+                  className={`flex items-center gap-2.5 w-full px-2 py-2 rounded-lg text-sm text-left transition-all ${isActive
+                      ? 'bg-indigo-600 text-white shadow-lg'
+                      : 'text-gray-500 hover:bg-gray-200 hover:text-gray-900'
+                    }`}
+                >
+                  <span className="text-base">{team.icon}</span>
+                  <span className="flex-1 font-medium truncate">{team.name}</span>
+                  {teamUnread > 0 && !isActive && (
+                    <span className="bg-red-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center font-bold">
+                      {teamUnread}
+                    </span>
+                  )}
+                </button>
+              )
+            })}
+
+            {/* Add Team Button: site_admin만 표시 */}
+            {canAddTeam() && (
+              <button
+                onClick={() => { setEditingTeam(null); setShowTeamModal(true) }}
+                className="flex items-center gap-2 w-full px-3 py-2 rounded-lg text-gray-400 hover:text-gray-500 hover:bg-gray-100 text-sm transition-all mt-1"
+              >
+                <span className="text-lg leading-none">+</span>
+                <span>{t.sidebar.addTeam}</span>
+              </button>
+            )}
+          </div>}
+        </div>
         {/* Channels section */}
         <div className="mb-2">
           <button
@@ -217,40 +232,6 @@ export default function Sidebar({ showCalendar, onToggleCalendar, onCloseCalenda
           )}
         </div>
 
-        {/* Direct Messages */}
-        <div>
-          <button
-            className="flex items-center justify-between w-full px-3 py-1.5 text-gray-400 hover:text-gray-600 text-xs uppercase tracking-widest transition-colors"
-            onClick={() => setDmCollapsed(v => !v)}
-          >
-            <span>{t.sidebar.directMessages}</span>
-            <span className="text-base">{dmCollapsed ? '▸' : '▾'}</span>
-          </button>
-
-          {!dmCollapsed && (
-            <div className="flex flex-col gap-0.5 px-2">
-              {selectedTeam.directMessages.map(dm => (
-                <button
-                  key={dm.id}
-                  className="flex items-center gap-2.5 w-full px-2 py-1.5 rounded-md text-gray-500 hover:bg-gray-100 hover:text-gray-700 text-sm text-left transition-all"
-                >
-                  <div className="relative flex-shrink-0">
-                    <div className="w-6 h-6 rounded-md bg-indigo-500 overflow-hidden flex items-center justify-center text-white text-[10px] font-bold">
-                      {dm.image_url ? (
-                        <img src={dm.image_url} alt={dm.name} className="w-full h-full object-cover" />
-                      ) : (
-                        dm.avatar
-                      )}
-                    </div>
-                    <div className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-gray-200 ${dm.online ? 'bg-green-400' : 'bg-gray-300'}`} />
-                  </div>
-                  <span className="truncate">{dm.name}</span>
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-
         {/* Form Templates */}
         <div className="mt-2">
           <button
@@ -264,7 +245,7 @@ export default function Sidebar({ showCalendar, onToggleCalendar, onCloseCalenda
           {!formsCollapsed && (
             <div className="flex flex-col gap-0.5 px-2">
               {FORM_TEMPLATES.map(form => {
-                const needsDoubleClick = form.id === 'expense-report'
+                const needsDoubleClick = true
                 const registerForm = async () => {
                   if (!selectedChannel) return alert('채널을 먼저 선택해주세요.')
                   try {
@@ -290,8 +271,50 @@ export default function Sidebar({ showCalendar, onToggleCalendar, onCloseCalenda
         </div>
       </div>
 
+      {/* Direct Message button */}
+      <div className="px-3 pt-2 border-t border-gray-200">
+        <button
+          onClick={onToggleDM}
+          onDoubleClick={() => { if (dmConversations.length > 0) onOpenDM?.(dmConversations[0]) }}
+          className={`flex items-center gap-2.5 w-full px-2 py-2 rounded-lg text-sm text-left transition-all ${
+            showDM
+              ? 'bg-indigo-600 text-white shadow-lg'
+              : 'text-gray-500 hover:bg-gray-200 hover:text-gray-900'
+          }`}
+        >
+          <ChatBubbleIcon />
+          <span className="font-medium flex-1">Direct Message</span>
+          <button
+            onMouseDown={e => e.stopPropagation()}
+            onClick={e => { e.stopPropagation(); onNewDM?.() }}
+            className={`text-lg leading-none px-1 rounded hover:bg-white/20 transition-colors ${showDM ? 'text-white/80' : 'text-gray-400'}`}
+            title="새 대화 시작"
+          >+</button>
+        </button>
+
+        {/* DM conversation list (collapsed/expanded) */}
+        {!dmCollapsedList && dmConversations.length > 0 && (
+          <div className="flex flex-col gap-0.5 mt-1 pb-1">
+            {dmConversations.slice(0, 8).map(conv => (
+              <button
+                key={conv.id}
+                onClick={() => onOpenDM?.(conv)}
+                className={`flex items-center gap-2 w-full px-2 py-1.5 rounded-md text-xs text-left transition-all ${
+                  activeDMConvId === conv.id
+                    ? 'bg-indigo-500/20 text-gray-900 font-medium'
+                    : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700'
+                }`}
+              >
+                <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 flex-shrink-0" />
+                <span className="truncate">{conv.name}</span>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
       {/* Calendar button */}
-      <div className="px-3 pb-1 border-t border-gray-200 pt-2">
+      <div className="px-3 pb-1 pt-1">
         <button
           onClick={onToggleCalendar}
           className={`flex items-center gap-2.5 w-full px-2 py-2 rounded-lg text-sm text-left transition-all ${

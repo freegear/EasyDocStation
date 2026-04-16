@@ -135,3 +135,5 @@
 [2026-04-14T09:53:21.861Z] Success: thumbnails/89b81051-abe9-4b76-82d1-0bc159b879ff.png
 [2026-04-15T08:05:43.062Z] Generating for 9a5ea1b9-8c58-483e-aa39-a038d5ac9d6f: qlmanage -t -s 512 -o "/Users/kevinim/Desktop/EasyDocStation/Database/ObjectFile/thumbnails" "/Users/kevinim/Desktop/EasyDocStation/Database/ObjectFile/unknown/9a5ea1b9-8c58-483e-aa39-a038d5ac9d6f/KakaoTalk_Video_2026-04-14-11-45-52.mp4"
 [2026-04-15T08:05:43.382Z] Success: thumbnails/9a5ea1b9-8c58-483e-aa39-a038d5ac9d6f.png
+[2026-04-16T06:33:53.455Z] Generating for 974e00f3-f924-4d86-a8d5-8415342a14b3: qlmanage -t -s 512 -o "/Users/kevinim/Desktop/EasyDocStation/Database/ObjectFile/thumbnails" "/Users/kevinim/Desktop/EasyDocStation/Database/ObjectFile/unknown/974e00f3-f924-4d86-a8d5-8415342a14b3/page_001_sequence (2).mp4"
+[2026-04-16T06:33:53.778Z] Success: thumbnails/974e00f3-f924-4d86-a8d5-8415342a14b3.png
