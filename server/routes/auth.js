@@ -11,14 +11,15 @@ function toPublicUser(u) {
     id: u.id,
     username: u.username,
     name: u.name,
+    display_name: u.display_name ?? null,
     email: u.email,
     role: u.role,
-    display_name: u.display_name,
     is_active: u.is_active,
     avatar: (u.display_name || u.name).split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2),
     image_url: u.image_url,
+    stamp_picture: u.stamp_picture ?? null,
     security_level: u.security_level || 0,
-    department_id: u.department_id,
+    department_id: u.department_id ?? null,
     last_login_at: u.last_login_at,
     created_at: u.created_at,
   }
@@ -109,7 +110,7 @@ router.get('/me', requireAuth, async (req, res) => {
 
 // PUT /api/auth/me — update own profile
 router.put('/me', requireAuth, async (req, res) => {
-  const { name, email, image_url, currentPassword, newPassword } = req.body
+  const { name, email, image_url, stamp_picture, currentPassword, newPassword } = req.body
   try {
     const { rows } = await pool.query('SELECT * FROM users WHERE id = $1', [req.user.id])
     const user = rows[0]
@@ -121,6 +122,7 @@ router.put('/me', requireAuth, async (req, res) => {
     if (name?.trim()) { sets.push(`name = $${i++}`); vals.push(name.trim()) }
     if (email?.trim()) { sets.push(`email = $${i++}`); vals.push(email.trim().toLowerCase()) }
     if (image_url !== undefined) { sets.push(`image_url = $${i++}`); vals.push(image_url) }
+    if (stamp_picture !== undefined) { sets.push(`stamp_picture = $${i++}`); vals.push(stamp_picture || null) }
 
     if (newPassword) {
       if (!currentPassword) return res.status(400).json({ error: '현재 비밀번호를 입력하세요.' })

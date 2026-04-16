@@ -132,13 +132,13 @@ router.get('/search', requireAuth, async (req, res, next) => {
       client.execute('SELECT * FROM comments ALLOW FILTERING', [], { prepare: true }),
     ])
 
-    const matchedPosts    = allPostsResult.rows.filter(r => r.content && r.content.toLowerCase().includes(lower))
-    const matchedComments = allCommentsResult.rows.filter(r => r.content && r.content.toLowerCase().includes(lower))
+    const matchedPosts    = allPostsResult.rows.filter(r => r.id != null && r.content && r.content.toLowerCase().includes(lower))
+    const matchedComments = allCommentsResult.rows.filter(r => r.id != null && r.content && r.content.toLowerCase().includes(lower))
 
     if (matchedPosts.length === 0 && matchedComments.length === 0) return res.json([])
 
     // ── 2. 댓글의 channel_id는 게시글에서 조회 ──────────────────
-    const postMap = new Map(allPostsResult.rows.map(p => [p.id.toString(), p]))
+    const postMap = new Map(allPostsResult.rows.filter(p => p.id != null).map(p => [p.id.toString(), p]))
 
     // ── 3. 필요한 channel_id / author_id 일괄 수집 ──────────────
     const channelIds = new Set([
@@ -228,7 +228,7 @@ router.get('/', requireAuth, async (req, res, next) => {
         [channelId], { prepare: true }
       )
 
-      const posts = await Promise.all(result.rows.map(async row => {
+      const posts = await Promise.all(result.rows.filter(row => row.id != null).map(async row => {
         const authorRes = await db.query(
           'SELECT id, name, username, image_url FROM users WHERE id = $1',
           [row.author_id]
@@ -368,16 +368,22 @@ router.post('/', requireAuth, async (req, res, next) => {
         { prepare: true }
       )
 
+      // ── 새 포스트를 posts_by_id 룩업 테이블에도 기록 ──────────────────────
+      await client.execute(
+        'INSERT INTO posts_by_id (id, channel_id, created_at, author_id) VALUES (?, ?, ?, ?)',
+        [postId, channelId, authoredAt, req.user.id], { prepare: true }
+      )
+
       // ── 1. 이전 게시글의 Next Post ID 업데이트 (Cassandra) ─────────────────────
       if (prevPostId) {
         const prevRow = await client.execute(
-          'SELECT created_at FROM posts WHERE id = ? ALLOW FILTERING',
+          'SELECT channel_id, created_at FROM posts_by_id WHERE id = ?',
           [prevPostId], { prepare: true }
         )
         if (prevRow.rows.length > 0) {
           await client.execute(
             'UPDATE posts SET next_post_id = ? WHERE channel_id = ? AND created_at = ?',
-            [postId, channelId, prevRow.rows[0].created_at], { prepare: true }
+            [postId, prevRow.rows[0].channel_id, prevRow.rows[0].created_at], { prepare: true }
           )
         }
       }
@@ -431,7 +437,7 @@ router.delete('/:id', requireAuth, async (req, res, next) => {
     // ── Cassandra 삭제 ────────────────────────────────────────
     if (!isConnected()) return res.status(503).json({ error: 'Cassandra 연결이 필요합니다.' })
       const found = await client.execute(
-        'SELECT channel_id, created_at, author_id FROM posts WHERE id = ? ALLOW FILTERING',
+        'SELECT channel_id, created_at, author_id FROM posts_by_id WHERE id = ?',
         [id], { prepare: true }
       )
       if (found.rows.length > 0) {
@@ -442,15 +448,19 @@ router.delete('/:id', requireAuth, async (req, res, next) => {
             'DELETE FROM posts WHERE channel_id = ? AND created_at = ?',
             [row.channel_id, row.created_at], { prepare: true }
           )
-          // 해당 게시글의 댓글도 Cassandra에서 삭제
+          await client.execute(
+            'DELETE FROM posts_by_id WHERE id = ?',
+            [id], { prepare: true }
+          )
+          // 해당 게시글의 댓글도 Cassandra에서 삭제 (post_id가 파티션 키이므로 ALLOW FILTERING 불필요)
           const cRows = await client.execute(
-            'SELECT post_id, created_at FROM comments WHERE post_id = ? ALLOW FILTERING',
+            'SELECT created_at FROM comments WHERE post_id = ?',
             [id], { prepare: true }
           )
           await Promise.all(cRows.rows.map(c =>
             client.execute(
               'DELETE FROM comments WHERE post_id = ? AND created_at = ?',
-              [c.post_id, c.created_at], { prepare: true }
+              [id, c.created_at], { prepare: true }
             )
           ))
         }
@@ -468,7 +478,7 @@ router.put('/:id', requireAuth, async (req, res, next) => {
     const { content, security_level } = req.body
     if (!isConnected()) return res.status(503).json({ error: 'Cassandra 연결이 필요합니다.' })
     const found = await client.execute(
-      'SELECT channel_id, created_at, author_id FROM posts WHERE id = ? ALLOW FILTERING',
+      'SELECT channel_id, created_at, author_id FROM posts_by_id WHERE id = ?',
       [id], { prepare: true }
     )
     if (found.rows.length === 0) return res.status(404).json({ error: '게시글을 찾을 수 없습니다.' })
@@ -532,6 +542,12 @@ router.post('/:id/comments', requireAuth, async (req, res, next) => {
       { prepare: true }
     )
 
+    // 새 댓글을 comments_by_id 룩업 테이블에도 기록
+    await client.execute(
+      'INSERT INTO comments_by_id (id, post_id, created_at, author_id) VALUES (?, ?, ?, ?)',
+      [commentId, postId, createdAt, req.user.id], { prepare: true }
+    )
+
     // 방금 등록한 댓글을 전체 정보와 함께 반환
     const comments = await fetchComments(postId)
     const newComment = comments.find(c => c.id === commentId)
@@ -552,7 +568,7 @@ router.put('/:postId/comments/:commentId', requireAuth, async (req, res, next) =
     const { content, attachments = [], security_level } = req.body
     if (!isConnected()) return res.status(503).json({ error: 'Cassandra 연결이 필요합니다.' })
     const found = await client.execute(
-      'SELECT post_id, created_at, author_id FROM comments WHERE id = ? ALLOW FILTERING',
+      'SELECT post_id, created_at, author_id FROM comments_by_id WHERE id = ?',
       [commentId], { prepare: true }
     )
     if (found.rows.length === 0) return res.status(404).json({ error: '댓글을 찾을 수 없습니다.' })
@@ -586,7 +602,7 @@ router.delete('/:postId/comments/:commentId', requireAuth, async (req, res, next
     // ── Cassandra 삭제 ────────────────────────────────────────
     if (!isConnected()) return res.status(503).json({ error: 'Cassandra 연결이 필요합니다.' })
     const found = await client.execute(
-      'SELECT post_id, created_at, author_id FROM comments WHERE id = ? ALLOW FILTERING',
+      'SELECT post_id, created_at, author_id FROM comments_by_id WHERE id = ?',
       [commentId], { prepare: true }
     )
     if (found.rows.length > 0) {
@@ -596,6 +612,10 @@ router.delete('/:postId/comments/:commentId', requireAuth, async (req, res, next
         await client.execute(
           'DELETE FROM comments WHERE post_id = ? AND created_at = ?',
           [row.post_id, row.created_at], { prepare: true }
+        )
+        await client.execute(
+          'DELETE FROM comments_by_id WHERE id = ?',
+          [commentId], { prepare: true }
         )
       }
     }

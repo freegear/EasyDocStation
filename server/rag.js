@@ -285,6 +285,288 @@ async function trainCommentImmediate(comment) {
   }
 }
 
+// ─── dt 객체 → 한국어 날짜 문자열 변환 (allDay 플래그에 따라 시간 포함 여부 결정) ─
+function dtToKorean(dt, includeTime = true) {
+  if (!dt || typeof dt !== 'object') return ''
+  const { year, month, day, ampm, hour, minute } = dt
+  if (!year) return ''
+  const dateStr = `${year}년 ${month}월 ${day}일`
+  if (!includeTime) return dateStr
+  const timeStr = (hour != null) ? ` ${ampm || ''} ${hour}시 ${String(minute || 0).padStart(2, '0')}분` : ''
+  return `${dateStr}${timeStr}`
+}
+
+// ─── 캘린더 이벤트 기존 청크 삭제만 수행 ────────────────────
+async function deleteEventFromRAG(eventId) {
+  try {
+    const cfg    = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'))
+    const ragCfg = cfg.rag || {}
+    const payload = {
+      config: {
+        lancedb_path:  cfg['lancedb Database Path'] || '/Users/kevinim/Desktop/EasyDocStation/Database/LanceDB',
+        chunk_size:    ragCfg.chunk_size    ?? 800,
+        chunk_overlap: ragCfg.chunk_overlap ?? 100,
+        vector_size:   ragCfg.vectorSize    ?? 1024,
+      },
+      delete_ids: [eventId],
+      posts: [],
+    }
+    await callPythonTrainer(payload)
+  } catch (e) {
+    console.error('[RAG] 캘린더 이벤트 삭제 오류:', e.message)
+  }
+}
+
+// ─── 캘린더 이벤트 수정 시: 기존 삭제 후 재학습 ──────────────
+async function retrainEventImmediate(oldEventId, newEvent) {
+  try {
+    const cfg    = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'))
+    const ragCfg = cfg.rag || {}
+
+    const allDay   = newEvent.allDay || newEvent.all_day || false
+    const startDt  = typeof newEvent.startDt === 'string' ? JSON.parse(newEvent.startDt) : (newEvent.startDt || {})
+    const endDt    = typeof newEvent.endDt   === 'string' ? JSON.parse(newEvent.endDt)   : (newEvent.endDt   || {})
+    const startStr = dtToKorean(startDt, !allDay)
+    const endStr   = dtToKorean(endDt,   !allDay)
+
+    const invitees = (() => {
+      try {
+        const arr = typeof newEvent.invitees === 'string' ? JSON.parse(newEvent.invitees) : (newEvent.invitees || [])
+        return arr.map(inv => inv.name || inv.id).join(', ')
+      } catch { return '' }
+    })()
+
+    const lines = [
+      `[캘린더 이벤트] ${newEvent.title || '(제목 없음)'}`,
+      `유형: ${allDay ? '하루종일 이벤트' : '시간 지정 이벤트'}`,
+      `시작: ${startStr}`,
+      `종료: ${endStr}`,
+    ]
+    if (invitees) lines.push(`참석자: ${invitees}`)
+    if (newEvent.memo) lines.push(`메모: ${newEvent.memo}`)
+    if (newEvent.repeat && newEvent.repeat !== 'none') lines.push(`반복: ${newEvent.repeat}`)
+    const content = lines.join('\n')
+
+    const payload = {
+      config: {
+        lancedb_path:  cfg['lancedb Database Path'] || '/Users/kevinim/Desktop/EasyDocStation/Database/LanceDB',
+        chunk_size:    ragCfg.chunk_size    ?? 800,
+        chunk_overlap: ragCfg.chunk_overlap ?? 100,
+        vector_size:   ragCfg.vectorSize    ?? 1024,
+      },
+      delete_ids: [oldEventId],   // 기존 청크 먼저 삭제
+      posts: [{
+        id:         newEvent.id,
+        channel_id: 'calendar',
+        content,
+        source:     'calendar_event',
+        pdfs:       [],
+        words:      [],
+      }],
+    }
+
+    console.log(`[RAG] 캘린더 이벤트 재학습 시작 — id=${newEvent.id} "${newEvent.title}"`)
+    await callPythonTrainer(payload)
+    state.lastTrained = new Date()
+    console.log(`[RAG] 캘린더 이벤트 재학습 완료 — id=${newEvent.id}`)
+  } catch (e) {
+    console.error('[RAG] 캘린더 이벤트 재학습 오류:', e.message)
+  }
+}
+
+// ─── 캘린더 이벤트 1건 즉시 RAG 학습 ─────────────────────────
+async function trainEventImmediate(event) {
+  try {
+    const cfg    = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'))
+    const ragCfg = cfg.rag || {}
+
+    const allDay   = event.allDay || event.all_day || false
+    const startDt  = typeof event.startDt === 'string' ? JSON.parse(event.startDt) : (event.startDt || {})
+    const endDt    = typeof event.endDt   === 'string' ? JSON.parse(event.endDt)   : (event.endDt   || {})
+
+    // allDay이면 날짜만, 시간 지정이면 날짜+시간 포함
+    const startStr = dtToKorean(startDt, !allDay)
+    const endStr   = dtToKorean(endDt,   !allDay)
+
+    const invitees = (() => {
+      try {
+        const arr = typeof event.invitees === 'string' ? JSON.parse(event.invitees) : (event.invitees || [])
+        return arr.map(inv => inv.name || inv.id).join(', ')
+      } catch { return '' }
+    })()
+
+    const lines = [
+      `[캘린더 이벤트] ${event.title || '(제목 없음)'}`,
+      `유형: ${allDay ? '하루종일 이벤트' : '시간 지정 이벤트'}`,
+      `시작: ${startStr}`,
+      `종료: ${endStr}`,
+    ]
+    if (invitees) lines.push(`참석자: ${invitees}`)
+    if (event.memo) lines.push(`메모: ${event.memo}`)
+    if (event.repeat && event.repeat !== 'none') lines.push(`반복: ${event.repeat}`)
+    const content = lines.join('\n')
+
+    const payload = {
+      config: {
+        lancedb_path:  cfg['lancedb Database Path'] || '/Users/kevinim/Desktop/EasyDocStation/Database/LanceDB',
+        chunk_size:    ragCfg.chunk_size    ?? 800,
+        chunk_overlap: ragCfg.chunk_overlap ?? 100,
+        vector_size:   ragCfg.vectorSize    ?? 1024,
+      },
+      posts: [{
+        id:         event.id,
+        channel_id: 'calendar',
+        content,
+        source:     'calendar_event',
+        pdfs:       [],
+        words:      [],
+      }],
+    }
+
+    console.log(`[RAG] 캘린더 이벤트 학습 시작 — id=${event.id} "${event.title}"`)
+    await callPythonTrainer(payload)
+    state.lastTrained = new Date()
+    console.log(`[RAG] 캘린더 이벤트 학습 완료 — id=${event.id}`)
+  } catch (e) {
+    console.error('[RAG] 캘린더 이벤트 임베딩 오류:', e.message)
+  }
+}
+
+// ─── 캘린더 이벤트 여러 건 일괄 RAG 학습 (python 1회 호출) ──────
+function buildEventPost(event) {
+  const allDay  = event.allDay || event.all_day || false
+  const startDt = typeof event.startDt === 'string' ? JSON.parse(event.startDt) : (event.startDt || {})
+  const endDt   = typeof event.endDt   === 'string' ? JSON.parse(event.endDt)   : (event.endDt   || {})
+  const startStr = dtToKorean(startDt, !allDay)
+  const endStr   = dtToKorean(endDt,   !allDay)
+  const invitees = (() => {
+    try {
+      const arr = typeof event.invitees === 'string' ? JSON.parse(event.invitees) : (event.invitees || [])
+      return arr.map(inv => inv.name || inv.id).join(', ')
+    } catch { return '' }
+  })()
+  const lines = [
+    `[캘린더 이벤트] ${event.title || '(제목 없음)'}`,
+    `유형: ${allDay ? '하루종일 이벤트' : '시간 지정 이벤트'}`,
+    `시작: ${startStr}`,
+    `종료: ${endStr}`,
+  ]
+  if (invitees) lines.push(`참석자: ${invitees}`)
+  if (event.memo) lines.push(`메모: ${event.memo}`)
+  if (event.repeat && event.repeat !== 'none') lines.push(`반복: ${event.repeat}`)
+  return { id: event.id, channel_id: 'calendar', content: lines.join('\n'), source: 'calendar_event', pdfs: [], words: [] }
+}
+
+async function trainEventsImmediate(events) {
+  if (!events || events.length === 0) return
+  try {
+    const cfg    = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'))
+    const ragCfg = cfg.rag || {}
+    const payload = {
+      config: {
+        lancedb_path:  cfg['lancedb Database Path'] || '/Users/kevinim/Desktop/EasyDocStation/Database/LanceDB',
+        chunk_size:    ragCfg.chunk_size    ?? 800,
+        chunk_overlap: ragCfg.chunk_overlap ?? 100,
+        vector_size:   ragCfg.vectorSize    ?? 1024,
+      },
+      posts: events.map(buildEventPost),
+    }
+    console.log(`[RAG] 캘린더 이벤트 일괄 학습 시작 — ${events.length}건`)
+    await callPythonTrainer(payload)
+    state.lastTrained = new Date()
+    console.log(`[RAG] 캘린더 이벤트 일괄 학습 완료 — ${events.length}건`)
+  } catch (e) {
+    console.error('[RAG] 캘린더 이벤트 일괄 학습 오류:', e.message)
+  }
+}
+
+// ─── 지출결의서 RAG 텍스트 빌더 ──────────────────────────────
+function buildExpenseContent(postId, formData) {
+  const f = formData || {}
+  const lines = [
+    `[지출결의서] 문서번호: ${f.docNo || ''}`,
+    `작성일: ${f.docDate || ''}`,
+    `작성자: ${f.author || ''}`,
+    `작성부서: ${f.department || ''}`,
+    `지급일자: ${f.payDate || ''}`,
+  ]
+  if (Array.isArray(f.rows) && f.rows.length > 0) {
+    lines.push('지출 내역:')
+    f.rows.forEach((row, i) => {
+      if (row.vendor || row.detail || row.amount) {
+        lines.push(`  ${i + 1}. 거래처: ${row.vendor || ''}, 사용내역: ${row.detail || ''}, 금액: ${row.amount || ''}`)
+      }
+    })
+  }
+  if (f.vat != null)        lines.push(`부가세: ${f.vat}`)
+  if (f.grandTotal != null) lines.push(`합계: ${f.grandTotal}`)
+  if (f.reviewOpinion)      lines.push(`검토의견: ${f.reviewOpinion}`)
+  return lines.join('\n')
+}
+
+// ─── 지출결의서 1건 즉시 RAG 학습 ────────────────────────────
+async function trainExpenseImmediate(postId, formData) {
+  try {
+    const cfg    = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'))
+    const ragCfg = cfg.rag || {}
+    const content = buildExpenseContent(postId, formData)
+    const payload = {
+      config: {
+        lancedb_path:  cfg['lancedb Database Path'] || '/Users/kevinim/Desktop/EasyDocStation/Database/LanceDB',
+        chunk_size:    ragCfg.chunk_size    ?? 800,
+        chunk_overlap: ragCfg.chunk_overlap ?? 100,
+        vector_size:   ragCfg.vectorSize    ?? 1024,
+      },
+      posts: [{
+        id:         postId,
+        channel_id: 'expense',
+        content,
+        source:     'expense_report',
+        pdfs:       [],
+        words:      [],
+      }],
+    }
+    console.log(`[RAG] 지출결의서 학습 시작 — id=${postId}`)
+    await callPythonTrainer(payload)
+    state.lastTrained = new Date()
+    console.log(`[RAG] 지출결의서 학습 완료 — id=${postId}`)
+  } catch (e) {
+    console.error('[RAG] 지출결의서 학습 오류:', e.message)
+  }
+}
+
+// ─── 지출결의서 수정 시: 기존 삭제 후 재학습 ─────────────────
+async function retrainExpenseImmediate(postId, formData) {
+  try {
+    const cfg    = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'))
+    const ragCfg = cfg.rag || {}
+    const content = buildExpenseContent(postId, formData)
+    const payload = {
+      config: {
+        lancedb_path:  cfg['lancedb Database Path'] || '/Users/kevinim/Desktop/EasyDocStation/Database/LanceDB',
+        chunk_size:    ragCfg.chunk_size    ?? 800,
+        chunk_overlap: ragCfg.chunk_overlap ?? 100,
+        vector_size:   ragCfg.vectorSize    ?? 1024,
+      },
+      delete_ids: [postId],
+      posts: [{
+        id:         postId,
+        channel_id: 'expense',
+        content,
+        source:     'expense_report',
+        pdfs:       [],
+        words:      [],
+      }],
+    }
+    console.log(`[RAG] 지출결의서 재학습 시작 — id=${postId}`)
+    await callPythonTrainer(payload)
+    state.lastTrained = new Date()
+    console.log(`[RAG] 지출결의서 재학습 완료 — id=${postId}`)
+  } catch (e) {
+    console.error('[RAG] 지출결의서 재학습 오류:', e.message)
+  }
+}
+
 // ─── 댓글 조회 (Cassandra, 시간 범위 필터) ───────────────────
 async function queryComments(since, until) {
   if (!isConnected()) return []
@@ -396,6 +678,12 @@ module.exports = {
   reloadRagConfig,
   trainPostImmediate,
   trainCommentImmediate,
+  trainEventImmediate,
+  trainEventsImmediate,
+  retrainEventImmediate,
+  deleteEventFromRAG,
+  trainExpenseImmediate,
+  retrainExpenseImmediate,
   runManualTraining,
   getState: () => ({ ...state, timer: undefined }),
 }

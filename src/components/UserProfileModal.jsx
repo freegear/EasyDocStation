@@ -1,16 +1,20 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useAuth } from '../contexts/AuthContext'
+import { useChat } from '../contexts/ChatContext'
 import { ROLE_LABELS, ROLE_BADGE } from '../constants/roles'
 import { useT } from '../i18n/useT'
 
 export default function UserProfileModal({ onClose }) {
   const { currentUser, updateProfile } = useAuth()
+  const { teams = [] } = useChat()
   const t = useT()
   const [tab, setTab] = useState('info')   // 'info' | 'password'
 
   const [name, setName] = useState(currentUser?.name ?? '')
   const [email, setEmail] = useState(currentUser?.email ?? '')
   const [imageUrl, setImageUrl] = useState(currentUser?.image_url ?? '')
+  const [stampPicture, setStampPicture] = useState(currentUser?.stamp_picture ?? '')
+  const stampInputRef = useRef(null)
 
   const [currentPw, setCurrentPw] = useState('')
   const [newPw, setNewPw] = useState('')
@@ -35,13 +39,32 @@ export default function UserProfileModal({ onClose }) {
     clearMessages()
     setSaving(true)
     try {
-      await updateProfile({ name, email, image_url: imageUrl })
+      await updateProfile({ name, email, image_url: imageUrl, stamp_picture: stampPicture || null })
       setSuccess(t.profile.successInfo)
     } catch (err) {
       setError(err.message)
     } finally {
       setSaving(false)
     }
+  }
+
+  async function handleStampUpload(e) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (!file.type.startsWith('image/')) { setError(t.profile.imageOnly); return }
+    setSaving(true)
+    clearMessages()
+    try {
+      const base64 = await resizeImageToBase64(file, 120, 120)
+      setStampPicture(base64)
+      await updateProfile({ stamp_picture: base64 })
+      setSuccess(t.profile.stampUploadSuccess)
+    } catch (err) {
+      setError(t.profile.imageUploadFail(err.message))
+    } finally {
+      setSaving(false)
+    }
+    e.target.value = ''
   }
 
   async function handleImageUpload(e) {
@@ -132,8 +155,9 @@ export default function UserProfileModal({ onClose }) {
 
         {/* Current user summary */}
         <div className="px-6 py-4 border-b border-gray-200 flex items-center gap-4">
-          <div className="relative group">
-            <div className="w-16 h-16 rounded-full bg-indigo-500 overflow-hidden flex items-center justify-center text-white font-bold text-xl flex-shrink-0 border-2 border-gray-200">
+          {/* 프로필 사진 */}
+          <div className="relative group flex-shrink-0">
+            <div className="w-16 h-16 rounded-full bg-indigo-500 overflow-hidden flex items-center justify-center text-white font-bold text-xl border-2 border-gray-200">
               {imageUrl ? (
                 <img src={imageUrl} alt={currentUser?.name} className="w-full h-full object-cover" />
               ) : (
@@ -148,12 +172,46 @@ export default function UserProfileModal({ onClose }) {
               <input type="file" className="hidden" accept="image/*" onChange={handleImageUpload} />
             </label>
           </div>
-          <div>
-            <p className="text-gray-900 font-semibold text-lg">{currentUser?.name}</p>
-            <p className="text-gray-400 text-sm">{currentUser?.email}</p>
-            <span className={`inline-block mt-1 px-2 py-0.5 rounded-md text-xs font-medium border ${roleBadge}`}>
-              {roleLabel}
-            </span>
+          {/* 도장 이미지 */}
+          <div className="relative group flex-shrink-0">
+            <input ref={stampInputRef} type="file" className="hidden" accept="image/*" onChange={handleStampUpload} />
+            <button
+              type="button"
+              onClick={() => stampInputRef.current?.click()}
+              title={t.profile.stampHint}
+              className="w-14 h-14 rounded-xl border-2 border-dashed border-gray-300 hover:border-indigo-400 bg-gray-50 hover:bg-indigo-50/40 transition-colors flex items-center justify-center overflow-hidden relative group"
+            >
+              {stampPicture ? (
+                <>
+                  <img src={stampPicture} alt="도장" className="w-full h-full object-contain" />
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-xl">
+                    <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 011.664.89l.812 1.22A2 2 0 0010.07 10H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                    </svg>
+                  </div>
+                </>
+              ) : (
+                <svg className="w-6 h-6 text-gray-300 group-hover:text-indigo-400 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4v16m8-8H4" />
+                </svg>
+              )}
+            </button>
+            <p className="text-center text-gray-400 text-[10px] mt-0.5 leading-tight">{t.profile.stampPicture}</p>
+          </div>
+          {/* 사용자 정보 */}
+          <div className="flex-1 min-w-0">
+            <p className="text-gray-900 font-semibold text-lg truncate">{currentUser?.name}</p>
+            <p className="text-gray-400 text-sm truncate">{currentUser?.email}</p>
+            <div className="flex items-center gap-2 mt-1 flex-wrap">
+              <span className={`inline-block px-2 py-0.5 rounded-md text-xs font-medium border ${roleBadge}`}>
+                {roleLabel}
+              </span>
+              {currentUser?.department_id && (
+                <span className="inline-block px-2 py-0.5 rounded-md text-xs font-medium bg-gray-100 text-gray-500 border border-gray-200">
+                  {teams.find(t => t.id === currentUser.department_id)?.name || currentUser.department_id}
+                </span>
+              )}
+            </div>
           </div>
         </div>
 
@@ -189,6 +247,42 @@ export default function UserProfileModal({ onClose }) {
               <Field label={t.profile.name} value={name} onChange={setName} placeholder={t.profile.name} />
               <Field label={t.profile.email} type="email" value={email} onChange={setEmail} placeholder="email@example.com" />
               <Field label={t.profile.username} value={currentUser?.username ?? ''} disabled />
+
+              {/* 권한 (읽기 전용) */}
+              <div>
+                <label className="block text-gray-500 text-xs font-medium mb-1.5">{t.profile.role}</label>
+                <div className="w-full bg-gray-100 border border-gray-200 rounded-xl px-4 py-2.5 text-gray-500 text-sm flex items-center gap-2">
+                  <span className={`px-2 py-0.5 rounded-md text-xs font-medium border ${roleBadge}`}>{roleLabel}</span>
+                </div>
+              </div>
+
+              {/* 부서 (읽기 전용) */}
+              <div>
+                <label className="block text-gray-500 text-xs font-medium mb-1.5">{t.profile.department}</label>
+                <div className="w-full bg-gray-100 border border-gray-200 rounded-xl px-4 py-2.5 text-gray-500 text-sm">
+                  {currentUser?.department_id
+                    ? (teams.find(tm => tm.id === currentUser.department_id)?.name || currentUser.department_id)
+                    : t.profile.noDepartment}
+                </div>
+              </div>
+
+              {/* 도장 이미지 삭제 버튼 */}
+              {stampPicture && (
+                <div className="flex items-center justify-between px-4 py-2.5 rounded-xl bg-gray-50 border border-gray-200">
+                  <span className="text-gray-600 text-sm">{t.profile.stampPicture}</span>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      setStampPicture('')
+                      await updateProfile({ stamp_picture: null }).catch(() => {})
+                    }}
+                    className="text-xs text-red-400 hover:text-red-600 transition-colors"
+                  >
+                    {t.profile.stampDelete}
+                  </button>
+                </div>
+              )}
+
               <button
                 type="submit"
                 disabled={saving}

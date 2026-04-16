@@ -9,7 +9,7 @@ export const USERS = [
 ]
 
 export const GROQ_MODELS = [
-  { id: 'gemma4:e4b', label: 'EasyDoc AgenticAI' },
+{ id: 'gemma4:e4b', label: 'EasyDoc AgenticAI' },
   { id: 'llava', label: 'Image Analysis' },
 ]
 

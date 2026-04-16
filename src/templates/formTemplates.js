@@ -637,6 +637,522 @@ body { font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif; margin: 
 </body>
 </html>`,
   },
+  {
+    id: 'expense-report',
+    label: '지출결의서',
+    icon: '💰',
+    content: `<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>지출결의서 (지급품의)</title>
+<style>
+* { box-sizing: border-box; }
+body { font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif; margin: 0; padding: 30px; color: #222; font-size: 13px; background: #f5f5f5; }
+.wrap { max-width: 800px; margin: auto; background: #fff; padding: 40px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+
+h1 { text-align: center; font-size: 28px; letter-spacing: 12px; margin-bottom: 24px; font-weight: bold; }
+
+.header-area { overflow: hidden; margin-bottom: 16px; }
+.header-left { float: left; }
+.header-right { float: right; }
+.clear { clear: both; }
+
+.meta-table { border-collapse: collapse; font-size: 13px; }
+.meta-table td { border: 1px solid #333; padding: 5px 10px; height: 30px; }
+.meta-table .lbl { background: #d9d9d9; font-weight: bold; width: 80px; text-align: center; }
+
+.approval-table { border-collapse: collapse; font-size: 12px; }
+.approval-table th { border: 1px solid #333; background: #f2f2f2; width: 28px; text-align: center; vertical-align: middle; font-size: 11px; line-height: 1.6; }
+.approval-table td { border: 1px solid #333; width: 100px; text-align: center; }
+.approval-table .ap-title { height: 22px; font-size: 11px; background: #f9f9f9; }
+.approval-table .ap-sign  { height: 64px; vertical-align: middle; }
+.approval-table .ap-date  { height: 22px; font-size: 10px; }
+
+.review-table { width: 100%; border-collapse: collapse; margin-bottom: 12px; }
+.review-table td { border: 1px solid #333; padding: 6px 10px; }
+.review-table .lbl { background: #d9d9d9; font-weight: bold; width: 80px; text-align: center; }
+
+.main-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.main-table th { background: #d9d9d9; border: 1px solid #333; padding: 7px 6px; text-align: center; font-weight: bold; }
+.main-table td { border: 1px solid #333; padding: 6px 8px; height: 34px; }
+.bg-yellow { background: #fff9c4 !important; }
+.bg-pink   { background: #f8e0e0 !important; }
+.foot-lbl  { font-weight: bold; text-align: center; background: #fff; }
+
+/* 편집 */
+.editable { cursor: pointer; position: relative; transition: background 0.12s; }
+.editable:hover { background: #eef2ff !important; outline: 1px dashed #818cf8; }
+.editable::after { content: '✏'; font-size: 8px; color: #a5b4fc; position: absolute; top: 1px; right: 2px; opacity: 0; }
+.editable:hover::after { opacity: 1; }
+/* 읽기 전용 문서번호 */
+.doc-no-readonly { background: #f3f4f6; color: #374151; font-weight: 600; letter-spacing: 0.03em; }
+
+/* 팝업 */
+#_popup { position: fixed; background: #fff; border: 2px solid #4f46e5; border-radius: 8px; padding: 7px 10px; box-shadow: 0 6px 20px rgba(79,70,229,0.2); z-index: 9999; display: flex; gap: 6px; align-items: center; }
+#_popup::after { content: ''; position: absolute; top: 100%; left: 14px; border: 5px solid transparent; border-top-color: #4f46e5; }
+#_popup input { border: none; outline: none; font-family: inherit; font-size: 0.88em; min-width: 180px; color: #1e1b4b; }
+#_popup textarea { border: none; outline: none; font-family: inherit; font-size: 0.88em; width: 320px; height: 80px; resize: vertical; color: #1e1b4b; }
+#_popup button { background: #4f46e5; color: #fff; border: none; border-radius: 4px; padding: 3px 10px; font-size: 0.8em; cursor: pointer; white-space: nowrap; align-self: flex-start; }
+#_popup button:hover { background: #4338ca; }
+
+/* OCR 버튼 */
+.ocr-bar { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+#ocr-btn { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; background: #4f46e5; color: #fff; border: none; border-radius: 6px; font-size: 12px; cursor: pointer; font-family: inherit; }
+#ocr-btn:hover { background: #4338ca; }
+#ocr-btn:disabled { background: #a5b4fc; cursor: not-allowed; }
+#ocr-status { font-size: 11px; color: #6b7280; }
+#ocr-img-preview { max-height: 60px; border-radius: 4px; border: 1px solid #ddd; display: none; }
+
+/* 첨부 이미지 페이지 */
+.attachment-pages-wrap { margin-top: 24px; display: flex; flex-direction: column; align-items: center; gap: 24px; }
+.document-page {
+  width: 800px; height: 1100px;
+  background-color: #fff;
+  border: 1px solid #000;
+  padding: 40px;
+  box-sizing: border-box;
+  box-shadow: 0 0 10px rgba(0,0,0,0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  page-break-before: always;
+}
+.document-page img { max-width: 720px; max-height: 1020px; width: auto; height: auto; object-fit: contain; display: block; }
+
+@page { margin: 0; }
+@media print {
+  .no-print { display: none; }
+  body { padding: 0 !important; background: #fff; }
+  .wrap { box-shadow: none; }
+  #_popup { display: none; }
+  .attachment-pages-wrap {
+    margin: 0 !important;
+    padding: 0 !important;
+    gap: 0 !important;
+  }
+  .document-page {
+    width: 210mm !important;
+    height: 297mm !important;
+    max-width: 210mm !important;
+    max-height: 297mm !important;
+    margin: 0 !important;
+    padding: 15mm !important;
+    box-sizing: border-box !important;
+    box-shadow: none !important;
+    border: none !important;
+    overflow: hidden !important;
+    page-break-before: always !important;
+    break-before: page !important;
+    page-break-after: avoid !important;
+    break-after: avoid !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+  .document-page img {
+    max-width: 180mm !important;
+    max-height: 267mm !important;
+    width: auto !important;
+    height: auto !important;
+    object-fit: contain !important;
+  }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>지출결의서(지급품의)</h1>
+
+  <div class="header-area">
+    <div class="header-left">
+      <table class="meta-table">
+        <tr><td class="lbl">문서번호</td><td class="doc-no-readonly" style="width:160px;" id="doc-no" data-field="expense-doc-no"></td></tr>
+        <tr><td class="lbl">작성일</td><td class="editable" id="doc-date" data-field="expense-doc-date" style="text-align:center;"></td></tr>
+        <tr><td class="lbl">작성부서</td><td class="editable" data-field="expense-department">{{COMPANY_NAME}}</td></tr>
+        <tr><td class="lbl">작성자</td><td class="editable" data-field="expense-author">{{USER_NAME}}</td></tr>
+      </table>
+    </div>
+    <div class="header-right">
+      <table class="approval-table">
+        <tr>
+          <th rowspan="3">결<br>재<br>인</th>
+          <td class="ap-title">대표이사</td>
+        </tr>
+        <tr><td class="ap-sign editable">{{USER_NAME}}</td></tr>
+        <tr><td class="ap-date editable"></td></tr>
+      </table>
+    </div>
+    <div class="clear"></div>
+  </div>
+
+  <table class="review-table">
+    <tr>
+      <td class="lbl">검토의견</td>
+      <td class="editable" id="review-opinion" style="height:36px;"></td>
+    </tr>
+  </table>
+
+  <!-- OCR 버튼 영역 -->
+  <div class="ocr-bar no-print">
+    <input type="file" id="ocr-file" accept="image/*" multiple style="display:none;" />
+    <button id="ocr-btn" onclick="document.getElementById('ocr-file').click()">
+      📷 영수증 이미지 인식
+    </button>
+    <img id="ocr-img-preview" alt="미리보기" />
+    <span id="ocr-status"></span>
+  </div>
+
+  <!-- 본문 테이블 -->
+  <table class="main-table" id="main-table">
+    <tr>
+      <td style="width:130px; font-weight:bold; text-align:center; background:#d9d9d9;">지급 요청일</td>
+      <td colspan="2" class="bg-yellow editable" id="pay-date" style="text-align:center;">비서 정기 결제일</td>
+    </tr>
+    <tr>
+      <th style="width:130px;">거 래 처</th>
+      <th>사용내역 및 용도</th>
+      <th style="width:150px;">금 액</th>
+    </tr>
+    <tr class="data-row"><td class="editable" data-col="vendor"></td><td class="editable" data-col="detail"></td><td class="editable amount" data-col="amount"></td></tr>
+    <tr class="data-row"><td class="editable" data-col="vendor"></td><td class="editable" data-col="detail"></td><td class="editable amount" data-col="amount"></td></tr>
+    <tr class="data-row"><td class="editable" data-col="vendor"></td><td class="editable" data-col="detail"></td><td class="editable amount" data-col="amount"></td></tr>
+    <tr class="data-row"><td class="editable" data-col="vendor"></td><td class="editable" data-col="detail"></td><td class="editable amount" data-col="amount"></td></tr>
+    <tr class="data-row"><td class="editable" data-col="vendor"></td><td class="editable" data-col="detail"></td><td class="editable amount" data-col="amount"></td></tr>
+    <tr class="data-row"><td class="editable" data-col="vendor"></td><td class="editable" data-col="detail"></td><td class="editable amount" data-col="amount"></td></tr>
+    <tr class="data-row"><td class="editable" data-col="vendor"></td><td class="editable" data-col="detail"></td><td class="editable amount" data-col="amount"></td></tr>
+    <tr class="data-row"><td class="editable" data-col="vendor"></td><td class="editable" data-col="detail"></td><td class="editable amount" data-col="amount"></td></tr>
+    <tr>
+      <td colspan="2" class="foot-lbl">합 계</td>
+      <td class="bg-pink" id="subtotal"></td>
+    </tr>
+    <tr>
+      <td colspan="2" class="foot-lbl">부가가치세</td>
+      <td class="bg-pink editable" id="vat-val"></td>
+    </tr>
+    <tr>
+      <td colspan="2" class="foot-lbl">이 지출 합계</td>
+      <td class="bg-pink" id="grand-total"></td>
+    </tr>
+  </table>
+
+</div>
+
+<div class="no-print" style="text-align:center;margin-top:20px;display:flex;justify-content:center;gap:10px;">
+  <button id="save-btn" onclick="var b=document.getElementById('save-btn');b.disabled=true;b.textContent='저장 중...';window.saveExpense();" style="padding:10px 24px;cursor:pointer;border:1px solid #4f46e5;border-radius:4px;background:#4f46e5;color:#fff;font-size:13px;">저장</button>
+  <button onclick="alert('지금은 구현되어 있지 않습니다.')" style="padding:10px 24px;cursor:pointer;border:1px solid #aaa;border-radius:4px;background:#fff;font-size:13px;">취소</button>
+  <button onclick="window.print()" style="padding:10px 24px;cursor:pointer;border:1px solid #aaa;border-radius:4px;background:#fff;font-size:13px;">PDF로 저장 / 인쇄하기</button>
+  <button onclick="alert('지금은 구현되어 있지 않습니다.')" style="padding:10px 24px;cursor:pointer;border:1px solid #4f46e5;border-radius:4px;background:#4f46e5;color:#fff;font-size:13px;">결재 상신</button>
+</div>
+
+<div class="attachment-pages-wrap" id="attachment-pages"></div>
+
+<script>
+(function() {
+  function parseNum(s) { return parseFloat((s || '0').replace(/[,\\s원\\-]/g, '')) || 0; }
+  function fmtNum(n)   { return n ? Math.round(n).toLocaleString('ko-KR') + ' 원' : ''; }
+
+  function recalcTotals() {
+    var total = 0;
+    document.querySelectorAll('.amount').forEach(function(el) { total += parseNum(el.textContent); });
+    var sub = document.getElementById('subtotal');
+    var vat = document.getElementById('vat-val');
+    var grand = document.getElementById('grand-total');
+    if (sub) sub.textContent = fmtNum(total);
+    var vatVal = parseNum(vat ? vat.textContent : '0');
+    if (grand) grand.textContent = fmtNum(total + vatVal);
+  }
+
+  function closePopup() { var p = document.getElementById('_popup'); if (p) p.remove(); }
+
+  function openInput(el) {
+    closePopup();
+    var isMultiline = el.innerHTML.indexOf('<br>') !== -1;
+    var popup = document.createElement('div');
+    popup.id = '_popup';
+    popup.style.alignItems = isMultiline ? 'flex-start' : 'center';
+    var field = isMultiline ? document.createElement('textarea') : document.createElement('input');
+    field.value = el.innerText.trim();
+    if (!isMultiline) field.style.minWidth = '200px';
+    var btn = document.createElement('button');
+    btn.textContent = '확인';
+    btn.onclick = function() {
+      el.textContent = isMultiline ? el.innerHTML = field.value.replace(/\\n/g,'<br>') && '' || field.value : field.value;
+      if (!isMultiline) el.textContent = field.value;
+      closePopup();
+      if (el.classList.contains('amount') || el.id === 'vat-val') recalcTotals();
+      var df = el.getAttribute('data-field');
+      if (df && (df === 'expense-doc-no' || df === 'expense-doc-date' || df === 'expense-author' || df === 'expense-department')) {
+        parent.postMessage({ type: 'templateFieldChanged', field: df, value: field.value }, '*');
+      }
+    };
+    popup.appendChild(field); popup.appendChild(btn);
+    document.body.appendChild(popup);
+    var rect = el.getBoundingClientRect();
+    var top = rect.top - (popup.offsetHeight || 42) - 10;
+    if (top < 4) top = rect.bottom + 10;
+    popup.style.top = top + 'px';
+    popup.style.left = Math.max(4, rect.left) + 'px';
+    field.focus(); if (field.select) field.select();
+    field.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') btn.onclick();
+      if (e.key === 'Escape') closePopup();
+    });
+    setTimeout(function() {
+      document.addEventListener('click', function h(e) {
+        if (!popup.contains(e.target) && e.target !== el) { closePopup(); document.removeEventListener('click', h); }
+      });
+    }, 0);
+  }
+
+  // ── 날짜 / 문서번호 초기화 ──────────────────────────────────
+  var dn = new Date();
+  var days = ['일','월','화','수','목','금','토'];
+  var dateStr = dn.getFullYear()+'-'+String(dn.getMonth()+1).padStart(2,'0')+'-'+String(dn.getDate()).padStart(2,'0')+'('+days[dn.getDay()]+')';
+  var docDate = document.getElementById('doc-date');
+  if (docDate && !docDate.textContent.trim()) {
+    docDate.textContent = dateStr;
+    parent.postMessage({ type: 'templateFieldChanged', field: 'expense-doc-date', value: dateStr }, '*');
+  }
+  var docNo = document.getElementById('doc-no');
+  if (docNo && !docNo.textContent.trim() && window.EXPENSE_DOC_NO) {
+    docNo.textContent = EXPENSE_DOC_NO;
+    parent.postMessage({ type: 'templateFieldChanged', field: 'expense-doc-no', value: EXPENSE_DOC_NO }, '*');
+  }
+
+  document.querySelectorAll('.editable').forEach(function(el) {
+    el.addEventListener('click', function(e) { e.stopPropagation(); openInput(el); });
+  });
+
+  // ── 저장된 폼 데이터 복원 ────────────────────────────────────
+  if (window.SAVED_FORM_DATA && typeof SAVED_FORM_DATA === 'object') {
+    var fd = SAVED_FORM_DATA;
+    function setEl(id, val) { var el = document.getElementById(id); if (el && val) el.textContent = val; }
+    function setQs(sel, val) { var el = document.querySelector(sel); if (el && val) el.textContent = val; }
+    setEl('doc-no',          fd.docNo);
+    setEl('doc-date',        fd.docDate);
+    setEl('pay-date',        fd.payDate);
+    setEl('review-opinion',  fd.reviewOpinion);
+    setEl('vat-val',         fd.vat);
+    setQs('[data-field="expense-author"]',     fd.author);
+    setQs('[data-field="expense-department"]', fd.department);
+
+    // 데이터 행 복원
+    if (Array.isArray(fd.rows) && fd.rows.length > 0) {
+      var dataRows = document.querySelectorAll('.data-row');
+      fd.rows.forEach(function(row, i) {
+        if (i >= dataRows.length) return;
+        var tr = dataRows[i];
+        var v = tr.querySelector('[data-col="vendor"]');
+        var d = tr.querySelector('[data-col="detail"]');
+        var a = tr.querySelector('[data-col="amount"]');
+        if (v) v.textContent = row.vendor || '';
+        if (d) d.textContent = row.detail || '';
+        if (a) a.textContent = row.amount || '';
+      });
+      recalcTotals();
+    }
+  }
+
+  // ── 저장된 첨부 이미지 복원 ─────────────────────────────────
+  if (window.SAVED_ATTACHMENTS && SAVED_ATTACHMENTS.length > 0) {
+    var attachPages = document.getElementById('attachment-pages');
+    SAVED_ATTACHMENTS.forEach(function(att) {
+      if (!att.url) return;
+      var page = document.createElement('div');
+      page.className = 'document-page';
+      var img = document.createElement('img');
+      img.src = att.url;
+      img.alt = att.fileName || '첨부 이미지';
+      page.appendChild(img);
+      if (attachPages) attachPages.appendChild(page);
+    });
+  }
+
+  // ── 첫 번째 빈 행 찾기 ─────────────────────────────────────
+  function findEmptyRow() {
+    var rows = document.querySelectorAll('.data-row');
+    for (var i = 0; i < rows.length; i++) {
+      var vendor = rows[i].querySelector('[data-col="vendor"]');
+      if (vendor && !vendor.textContent.trim()) return rows[i];
+    }
+    return null;
+  }
+
+  // ── 금액 문자열 정제 (- 제거, 숫자+콤마만 남김) ────────────
+  function cleanAmount(s) {
+    if (!s) return '';
+    var n = parseFloat(String(s).replace(/[^0-9.]/g, ''));
+    return isNaN(n) ? '' : Math.round(n).toLocaleString('ko-KR') + ' 원';
+  }
+
+  // ── 첨부 이미지 base64 목록 (저장 시 서버로 전송) ──────────────
+  var attachmentImages = []; // [{base64, fileName, mimeType}]
+
+  // ── 저장 결과 수신 ───────────────────────────────────────────
+  window.addEventListener('message', function(e) {
+    if (!e.data || e.data.type !== 'expenseSaveResult') return;
+    var btn = document.getElementById('save-btn');
+    if (!btn) return;
+    btn.disabled = false;
+    if (e.data.success) {
+      btn.textContent = '✅ 저장 완료';
+      btn.style.background = '#16a34a';
+      btn.style.borderColor = '#16a34a';
+      setTimeout(function() {
+        btn.textContent = '저장';
+        btn.style.background = '#4f46e5';
+        btn.style.borderColor = '#4f46e5';
+      }, 3000);
+    } else {
+      btn.textContent = '❌ 저장 실패';
+      btn.style.background = '#dc2626';
+      btn.style.borderColor = '#dc2626';
+      setTimeout(function() {
+        btn.textContent = '저장';
+        btn.style.background = '#4f46e5';
+        btn.style.borderColor = '#4f46e5';
+      }, 4000);
+    }
+  });
+
+  // ── 저장 버튼 (전역 노출 — inline onclick에서 접근 필요) ──────
+  window.saveExpense = function() {
+    var rows = [];
+    document.querySelectorAll('.data-row').forEach(function(row) {
+      var v = (row.querySelector('[data-col="vendor"]') || {}).textContent.trim() || '';
+      var d = (row.querySelector('[data-col="detail"]') || {}).textContent.trim() || '';
+      var a = (row.querySelector('[data-col="amount"]') || {}).textContent.trim() || '';
+      if (v || d || a) rows.push({ vendor: v, detail: d, amount: a });
+    });
+    var data = {
+      docNo:          (document.getElementById('doc-no') || {}).textContent.trim() || '',
+      docDate:        (document.getElementById('doc-date') || {}).textContent.trim() || '',
+      author:         (document.querySelector('[data-field="expense-author"]') || {}).textContent.trim() || '',
+      department:     (document.querySelector('[data-field="expense-department"]') || {}).textContent.trim() || '',
+      payDate:        (document.getElementById('pay-date') || {}).textContent.trim() || '',
+      reviewOpinion:  (document.getElementById('review-opinion') || {}).textContent.trim() || '',
+      rows:           rows,
+      subtotal:       (document.getElementById('subtotal') || {}).textContent.trim() || '',
+      vat:            (document.getElementById('vat-val') || {}).textContent.trim() || '',
+      grandTotal:     (document.getElementById('grand-total') || {}).textContent.trim() || '',
+      attachments:    attachmentImages,
+    };
+    parent.postMessage({ type: 'expenseSave', data: data }, '*');
+  }
+
+  // ── OCR: 이미지 → Ollama gemma4:e4b 호출 ───────────────────
+  var ocrFile  = document.getElementById('ocr-file');
+  var ocrBtn   = document.getElementById('ocr-btn');
+  var ocrStatus = document.getElementById('ocr-status');
+  var ocrPreview = document.getElementById('ocr-img-preview');
+
+  ocrFile.addEventListener('change', function() {
+    var files = Array.from(ocrFile.files);
+    if (!files.length) return;
+    ocrFile.value = '';
+
+    // 파일을 순서대로 처리 (OCR이 겹치지 않도록 순차 실행)
+    ocrBtn.disabled = true;
+    var chain = Promise.resolve();
+    files.forEach(function(file, idx) {
+      chain = chain.then(function() {
+        return processOneFile(file, idx + 1, files.length);
+      });
+    });
+    chain.finally(function() {
+      ocrBtn.disabled = false;
+      setTimeout(function() { setStatus(''); }, 3000);
+    });
+  });
+
+  function setStatus(msg, color) {
+    ocrStatus.textContent = msg;
+    ocrStatus.style.color = color || '#6b7280';
+  }
+
+  // 이미지 한 장 처리: 첨부 페이지 추가 + OCR
+  function processOneFile(file, current, total) {
+    return new Promise(function(resolve) {
+      var previewUrl = URL.createObjectURL(file);
+
+      // 마지막 파일만 상단 미리보기에 표시
+      ocrPreview.src = previewUrl;
+      ocrPreview.style.display = 'inline-block';
+
+      // 첨부 이미지 페이지 추가 (인쇄용 A4 사각형)
+      var attachPages = document.getElementById('attachment-pages');
+      if (attachPages) {
+        var page = document.createElement('div');
+        page.className = 'document-page';
+        var pageImg = document.createElement('img');
+        pageImg.src = previewUrl;
+        page.appendChild(pageImg);
+        attachPages.appendChild(page);
+      }
+
+      // base64 변환 후 OCR + 저장용 배열에 추가
+      var reader = new FileReader();
+      reader.onload = function(ev) {
+        var base64 = ev.target.result.split(',')[1];
+        attachmentImages.push({ base64: base64, fileName: file.name, mimeType: file.type || 'image/jpeg' });
+        runOCR(base64, current, total).then(resolve).catch(resolve); // 실패해도 다음 파일 진행
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  function runOCR(base64, current, total) {
+    var label = total > 1 ? ' (' + current + '/' + total + ')' : '';
+    setStatus('⏳ AI가 이미지를 분석 중입니다...' + label, '#4f46e5');
+
+    var prompt = '이 영수증 또는 카드 명세서 이미지를 분석하세요.\\n' +
+      '다음 JSON 형식으로만 응답하세요 (설명 없이 JSON만):' +
+      '{"상호":"상호명","사용내역":"구매내용 요약","금액":"숫자만(콤마포함, 기호없음)"}\\n' +
+      '금액에서 - 기호는 반드시 제거하세요.';
+
+    return fetch('http://localhost:11434/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'gemma4:e4b',
+        messages: [{ role: 'user', content: prompt, images: [base64] }],
+        stream: false,
+        options: { temperature: 0.1 }
+      })
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      var text = (data.message && data.message.content) || '';
+      var match = text.match(/\\{[^}]+\\}/);
+      if (!match) throw new Error('JSON 파싱 실패: ' + text);
+      var parsed = JSON.parse(match[0]);
+
+      var row = findEmptyRow();
+      if (!row) { setStatus('⚠️ 빈 행이 없습니다.' + label, '#f59e0b'); return; }
+
+      var vendorEl = row.querySelector('[data-col="vendor"]');
+      var detailEl = row.querySelector('[data-col="detail"]');
+      var amountEl = row.querySelector('[data-col="amount"]');
+
+      if (vendorEl && parsed['상호'])      vendorEl.textContent = parsed['상호'].trim();
+      if (detailEl && parsed['사용내역']) detailEl.textContent = parsed['사용내역'].trim();
+      if (amountEl && parsed['금액'])     amountEl.textContent = cleanAmount(parsed['금액']);
+
+      recalcTotals();
+      setStatus('✅ 인식 완료!' + label, '#16a34a');
+    })
+    .catch(function(err) {
+      setStatus('❌ 인식 실패' + label + ': ' + err.message, '#dc2626');
+    });
+  }
+})();
+</script>
+</body>
+</html>`,
+  },
 ]
 
 export function isTemplateContent(content) {

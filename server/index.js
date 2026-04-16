@@ -11,6 +11,7 @@ const filesRouter = require('./routes/files')
 const postsRouter = require('./routes/posts')
 const ragRouter    = require('./routes/rag')
 const eventsRouter = require('./routes/events')
+const expenseRouter = require('./routes/expense')
 const { initCassandra } = require('./cassandra')
 const { initRag } = require('./rag')
 
@@ -38,6 +39,7 @@ app.use('/api/files', filesRouter)
 app.use('/api/posts', postsRouter)
 app.use('/api/rag',    ragRouter)
 app.use('/api/events', eventsRouter)
+app.use('/api/expense', expenseRouter)
 
 // 공용 설정 API (관리자 설정값 조회용)
 app.get('/api/config/version', (req, res) => {
@@ -97,6 +99,18 @@ app.get('/api/config/limits', (req, res) => {
   }
 })
 
+app.get('/api/config/company', (req, res) => {
+  try {
+    const fs = require('fs')
+    const path = require('path')
+    const configPath = path.resolve(__dirname, '../config.json')
+    const config = JSON.parse(fs.readFileSync(configPath, 'utf8'))
+    res.json(config.company || {})
+  } catch (e) {
+    res.json({})
+  }
+})
+
 app.use((err, req, res, next) => {
   console.error(err)
   res.status(500).json({ error: '서버 오류가 발생했습니다.' })
@@ -108,9 +122,14 @@ const server = app.listen(PORT, () => {
 
 server.on('error', (err) => {
   if (err.code === 'EADDRINUSE') {
-    console.error(`❌ 포트 ${PORT} 이미 사용 중입니다.`)
-    console.error(`   해결: lsof -ti :${PORT} | xargs kill -9`)
-    process.exit(1)
+    console.warn(`⚠️  포트 ${PORT} 이미 사용 중 — 기존 프로세스 종료 후 재시작...`)
+    const { execSync } = require('child_process')
+    try {
+      execSync(`lsof -ti :${PORT} | xargs kill -9`, { stdio: 'ignore' })
+    } catch (_) {}
+    setTimeout(() => {
+      server.listen(PORT)
+    }, 500)
   } else {
     throw err
   }

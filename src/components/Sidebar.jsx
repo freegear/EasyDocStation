@@ -263,21 +263,28 @@ export default function Sidebar({ showCalendar, onToggleCalendar, onCloseCalenda
 
           {!formsCollapsed && (
             <div className="flex flex-col gap-0.5 px-2">
-              {FORM_TEMPLATES.map(form => (
-                <button
-                  key={form.id}
-                  onClick={async () => {
-                    if (!selectedChannel) return alert('채널을 먼저 선택해주세요.')
-                    try {
-                      await addPost(selectedChannel.id, { content: form.content, security_level: 1 })
-                    } catch (_) {}
-                  }}
-                  className="flex items-center gap-2.5 w-full px-2 py-1.5 rounded-md text-gray-500 hover:bg-gray-100 hover:text-gray-700 text-sm text-left transition-all"
-                >
-                  <span className="text-base leading-none">{form.icon}</span>
-                  <span className="truncate">{form.label}</span>
-                </button>
-              ))}
+              {FORM_TEMPLATES.map(form => {
+                const needsDoubleClick = form.id === 'expense-report'
+                const registerForm = async () => {
+                  if (!selectedChannel) return alert('채널을 먼저 선택해주세요.')
+                  try {
+                    await addPost(selectedChannel.id, { content: form.content, security_level: 1 })
+                  } catch (_) {}
+                }
+                return (
+                  <button
+                    key={form.id}
+                    onClick={needsDoubleClick ? undefined : registerForm}
+                    onDoubleClick={needsDoubleClick ? registerForm : undefined}
+                    title={needsDoubleClick ? '더블클릭하여 등록' : undefined}
+                    className="flex items-center gap-2.5 w-full px-2 py-1.5 rounded-md text-gray-500 hover:bg-gray-100 hover:text-gray-700 text-sm text-left transition-all"
+                  >
+                    <span className="text-base leading-none">{form.icon}</span>
+                    <span className="truncate">{form.label}</span>
+                    {needsDoubleClick && <span className="ml-auto text-[9px] text-gray-300 whitespace-nowrap">더블클릭</span>}
+                  </button>
+                )
+              })}
             </div>
           )}
         </div>
