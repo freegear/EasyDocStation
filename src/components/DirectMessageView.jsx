@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { apiFetch, getToken } from '../lib/api'
+import { useT } from '../i18n/useT'
 
 function uuidv4() {
   return crypto.randomUUID ? crypto.randomUUID() : ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c =>
@@ -36,6 +37,40 @@ function formatTime(iso) {
   if (!iso) return ''
   const d = new Date(iso)
   return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+}
+
+function isMessageEditable(createdAtIso, nowMs = Date.now()) {
+  if (!createdAtIso) return false
+  const createdAtMs = new Date(createdAtIso).getTime()
+  if (Number.isNaN(createdAtMs)) return false
+  return (nowMs - createdAtMs) <= (10 * 60 * 1000)
+}
+
+function sameReadBy(a, b) {
+  const arrA = Array.isArray(a) ? a : []
+  const arrB = Array.isArray(b) ? b : []
+  if (arrA.length !== arrB.length) return false
+  for (let i = 0; i < arrA.length; i += 1) {
+    if (arrA[i] !== arrB[i]) return false
+  }
+  return true
+}
+
+function sameMessages(prev, next) {
+  if (!Array.isArray(prev) || !Array.isArray(next)) return false
+  if (prev.length !== next.length) return false
+  for (let i = 0; i < prev.length; i += 1) {
+    const a = prev[i]
+    const b = next[i]
+    if (a.id !== b.id) return false
+    if (a.content !== b.content) return false
+    if (a.is_edited !== b.is_edited) return false
+    if (a.is_deleted !== b.is_deleted) return false
+    if (a.deleted_at !== b.deleted_at) return false
+    if (a.updated_at !== b.updated_at) return false
+    if (!sameReadBy(a.read_by, b.read_by)) return false
+  }
+  return true
 }
 
 function Avatar({ name, imageUrl, size = 8 }) {
@@ -313,9 +348,43 @@ function NewConversationModal({ onCreated, onCancel }) {
 }
 
 // ── MessageBubble ─────────────────────────────────────────────
-function MessageBubble({ msg, isMine, onEdit, onDelete }) {
+function MessageBubble({
+  msg,
+  isMine,
+  onEdit,
+  onDelete,
+  totalParticipants,
+  participantNameById,
+  readLabel,
+  readCountLabel,
+  unreadLabel,
+  readAccountsLabel,
+  deletedMessageLabel,
+}) {
   const [editMode, setEditMode] = useState(false)
   const [editContent, setEditContent] = useState(msg.content)
+  const [nowMs, setNowMs] = useState(() => Date.now())
+  const canEdit = isMine && isMessageEditable(msg.created_at, nowMs)
+  const readByOthers = (msg.read_by || []).filter(id => id !== msg.sender_id)
+  const readStatusText = readByOthers.length === 0
+    ? unreadLabel
+    : ((totalParticipants ?? 2) <= 2 ? readLabel : readCountLabel(readByOthers.length))
+  const readAccountNames = readByOthers
+    .map(id => participantNameById?.[id] || `${id}`)
+    .filter(Boolean)
+  const readAccountsText = readByOthers.length > 0 && readAccountNames.length > 0
+    ? readAccountsLabel(readAccountNames.join(', '))
+    : null
+
+  useEffect(() => {
+    const createdAtMs = new Date(msg.created_at).getTime()
+    if (Number.isNaN(createdAtMs)) return
+    const expiresAtMs = createdAtMs + (10 * 60 * 1000)
+    const waitMs = expiresAtMs - nowMs
+    if (waitMs <= 0) return
+    const timer = setTimeout(() => setNowMs(Date.now()), waitMs + 50)
+    return () => clearTimeout(timer)
+  }, [msg.created_at, nowMs])
 
   async function submitEdit() {
     if (!editContent.trim() && msg.attachments?.length === 0) return
@@ -354,56 +423,78 @@ function MessageBubble({ msg, isMine, onEdit, onDelete }) {
           {msg.is_edited && <span className="text-[10px] text-gray-300">(수정됨)</span>}
         </div>
 
-        <div className={`rounded-2xl px-4 py-2.5 text-sm shadow-sm ${
-          isMine
-            ? 'bg-indigo-600 text-white rounded-tr-sm'
-            : 'bg-white text-gray-800 border border-gray-100 rounded-tl-sm'
-        }`}>
-          {editMode ? (
-            <div className="flex flex-col gap-2">
-              <textarea
-                value={editContent}
-                onChange={e => setEditContent(e.target.value)}
-                onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submitEdit() } if (e.key === 'Escape') setEditMode(false) }}
-                className="bg-white/20 rounded-xl px-2 py-1 text-sm resize-none w-full focus:outline-none min-w-[200px]"
-                rows={2}
-                autoFocus
-              />
-              <div className="flex gap-1 justify-end">
-                <button onClick={() => setEditMode(false)} className="text-xs px-2 py-1 rounded-lg bg-white/20 hover:bg-white/30">취소</button>
-                <button onClick={submitEdit} className="text-xs px-2 py-1 rounded-lg bg-white/30 hover:bg-white/40 font-semibold">저장</button>
-              </div>
-            </div>
-          ) : (
-            <>
-              {msg.content && <p className="whitespace-pre-wrap">{msg.content}</p>}
-              {msg.attachments?.length > 0 && (
-                <div className={`flex flex-col gap-1 ${msg.content ? 'mt-2' : ''}`}>
-                  {msg.attachments.map((att, i) => (
-                    <button
-                      key={i}
-                      onDoubleClick={() => handleAttachmentDoubleClick(att, msg.attachments)}
-                      title="더블클릭하여 다운로드"
-                      className={`flex items-center gap-1.5 text-xs rounded-lg px-2 py-1 transition-colors ${
-                        isMine ? 'bg-white/20 hover:bg-white/30 text-white' : 'bg-gray-50 hover:bg-gray-100 text-gray-600 border border-gray-100'
-                      }`}
-                    >
-                      <ClipIcon />
-                      <span className="truncate max-w-[180px]">{att.filename}</span>
-                    </button>
-                  ))}
-                </div>
+        <div className="flex items-end gap-1.5">
+          {isMine && (
+            <div className="flex flex-col items-end gap-0.5">
+              <span className="text-[11px] font-semibold text-indigo-700 bg-indigo-50 border border-indigo-200 rounded-full px-2 py-0.5 whitespace-nowrap shadow-sm">
+                {readStatusText}
+              </span>
+              {readAccountsText && (
+                <span className="text-[10px] text-indigo-700/80 whitespace-nowrap">
+                  {readAccountsText}
+                </span>
               )}
-            </>
+            </div>
           )}
+          <div className={`rounded-2xl px-4 py-2.5 text-sm shadow-sm ${
+            isMine
+              ? 'bg-indigo-600 text-white rounded-tr-sm'
+              : 'bg-white text-gray-800 border border-gray-100 rounded-tl-sm'
+          }`}>
+            {editMode ? (
+              <div className="flex flex-col gap-2">
+                <textarea
+                  value={editContent}
+                  onChange={e => setEditContent(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submitEdit() } if (e.key === 'Escape') setEditMode(false) }}
+                  className="bg-white/20 rounded-xl px-2 py-1 text-sm resize-none w-full focus:outline-none min-w-[200px]"
+                  rows={2}
+                  autoFocus
+                />
+                <div className="flex gap-1 justify-end">
+                  <button onClick={() => setEditMode(false)} className="text-xs px-2 py-1 rounded-lg bg-white/20 hover:bg-white/30">취소</button>
+                  <button onClick={submitEdit} className="text-xs px-2 py-1 rounded-lg bg-white/30 hover:bg-white/40 font-semibold">저장</button>
+                </div>
+              </div>
+            ) : (
+              <>
+                {msg.is_deleted ? (
+                  <p className={`italic ${isMine ? 'text-white/85' : 'text-gray-400'}`}>
+                    {deletedMessageLabel}
+                  </p>
+                ) : (
+                  msg.content && <p className="whitespace-pre-wrap">{msg.content}</p>
+                )}
+                {msg.attachments?.length > 0 && (
+                  <div className={`flex flex-col gap-1 ${msg.content ? 'mt-2' : ''}`}>
+                    {msg.attachments.map((att, i) => (
+                      <button
+                        key={i}
+                        onDoubleClick={() => handleAttachmentDoubleClick(att, msg.attachments)}
+                        title="더블클릭하여 다운로드"
+                        className={`flex items-center gap-1.5 text-xs rounded-lg px-2 py-1 transition-colors ${
+                          isMine ? 'bg-white/20 hover:bg-white/30 text-white' : 'bg-gray-50 hover:bg-gray-100 text-gray-600 border border-gray-100'
+                        }`}
+                      >
+                        <ClipIcon />
+                        <span className="truncate max-w-[180px]">{att.filename}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
+          </div>
         </div>
 
-        {isMine && !editMode && (
-          <div className="flex gap-1 mt-1">
-            <button
-              onClick={() => { setEditContent(msg.content); setEditMode(true) }}
-              className="text-[10px] text-gray-300 hover:text-indigo-500 px-1 transition-colors"
-            >수정</button>
+        {isMine && !editMode && !msg.is_deleted && (
+          <div className="flex items-center gap-2 mt-1">
+            {canEdit && (
+              <button
+                onClick={() => { setEditContent(msg.content); setEditMode(true) }}
+                className="text-[10px] text-gray-300 hover:text-indigo-500 px-1 transition-colors"
+              >수정</button>
+            )}
             <button
               onClick={() => onDelete(msg.id)}
               className="text-[10px] text-gray-300 hover:text-red-500 px-1 transition-colors"
@@ -418,6 +509,7 @@ function MessageBubble({ msg, isMine, onEdit, onDelete }) {
 // ── DirectMessageView (main) ──────────────────────────────────
 export default function DirectMessageView({ conversation, onClose, onConversationUpdated }) {
   const { currentUser } = useAuth()
+  const t = useT()
   const [messages, setMessages] = useState([])
   const [input, setInput] = useState('')
   const [pendingFiles, setPendingFiles] = useState([]) // [{file, name}]
@@ -430,6 +522,15 @@ export default function DirectMessageView({ conversation, onClose, onConversatio
 
   useEffect(() => {
     if (conversation?.id) loadMessages()
+  }, [conversation?.id])
+
+  // 상대방 읽음 상태 반영용 주기 동기화
+  useEffect(() => {
+    if (!conversation?.id) return
+    const timer = setInterval(() => {
+      loadMessages()
+    }, 1500)
+    return () => clearInterval(timer)
   }, [conversation?.id])
 
   useEffect(() => {
@@ -446,10 +547,17 @@ export default function DirectMessageView({ conversation, onClose, onConversatio
   async function loadMessages() {
     try {
       const data = await apiFetch(`/dm/conversations/${conversation.id}/messages`)
-      setMessages(Array.isArray(data) ? data : [])
+      const nextMessages = Array.isArray(data) ? data : []
+      setMessages(prev => sameMessages(prev, nextMessages) ? prev : nextMessages)
+      // 불러오는 즉시 읽음 처리
+      markAsRead()
     } catch (e) {
       console.error('메시지 로드 실패:', e)
     }
+  }
+
+  function markAsRead() {
+    apiFetch(`/dm/conversations/${conversation.id}/read`, { method: 'POST' }).catch(() => {})
   }
 
   // msgId: 메시지 전송 전 미리 생성 — 모든 첨부파일이 같은 폴더에 저장됨
@@ -502,6 +610,7 @@ export default function DirectMessageView({ conversation, onClose, onConversatio
       setMessages(prev => [...prev, data])
       setInput('')
       setPendingFiles([])
+      markAsRead()
     } catch (e) {
       alert('전송 실패: ' + e.message)
     } finally {
@@ -511,6 +620,15 @@ export default function DirectMessageView({ conversation, onClose, onConversatio
 
   async function handleEdit(msgId, content) {
     try {
+      const target = messages.find(m => m.id === msgId)
+      if (target?.is_deleted) {
+        alert('이미 삭제된 메시지입니다.')
+        return
+      }
+      if (!isMessageEditable(target?.created_at)) {
+        alert('메시지 수정은 발신 후 10분 이내에만 가능합니다.')
+        return
+      }
       const data = await apiFetch(`/dm/conversations/${conversation.id}/messages/${msgId}`, {
         method: 'PUT',
         body: JSON.stringify({ content })
@@ -524,8 +642,8 @@ export default function DirectMessageView({ conversation, onClose, onConversatio
   async function handleDelete(msgId) {
     if (!window.confirm('메시지를 삭제하시겠습니까?')) return
     try {
-      await apiFetch(`/dm/conversations/${conversation.id}/messages/${msgId}`, { method: 'DELETE' })
-      setMessages(prev => prev.filter(m => m.id !== msgId))
+      const data = await apiFetch(`/dm/conversations/${conversation.id}/messages/${msgId}`, { method: 'DELETE' })
+      setMessages(prev => prev.map(m => m.id === msgId ? { ...m, ...data } : m))
     } catch (e) {
       alert('삭제 실패: ' + e.message)
     }
@@ -589,15 +707,25 @@ export default function DirectMessageView({ conversation, onClose, onConversatio
 
   const participants = conversation?.participant_details || []
   const participantIds = conversation?.participants || []
-  // 나 자신 제외한 상대방 목록
-  const otherParticipants = participants.filter(p => p.id !== currentUser?.id)
+  const participantNameById = Object.fromEntries(
+    participants.map(p => [p.id, p.display_name || p.username || `${p.id}`])
+  )
+  const readLabel = t?.dm?.read || '읽음'
+  const readCountLabel = t?.dm?.readCount || ((n) => `읽음 ${n}`)
+  const unreadLabel = t?.dm?.unread || '읽지 않음'
+  const readAccountsLabel = t?.dm?.readAccounts || ((names) => `계정: ${names}`)
+  const deletedMessageLabel = t?.dm?.deletedMessage || '삭제된 메시지입니다.'
+  // 참여자 전체 목록
+  const displayParticipants = participants
+  // 방장 여부
+  const isOwner = currentUser?.id === conversation?.created_by
 
   return (
     <div className="flex flex-col flex-1 min-h-0 bg-gray-50">
-      {/* ── Header: 창 이름 / 전송수신 상대방 / 닫기 ── */}
+      {/* ── Header: 창 이름 / 참여자 / 닫기 ── */}
       <div className="flex items-center gap-3 px-5 py-3 bg-white border-b border-gray-100 shadow-sm flex-shrink-0">
 
-        {/* 왼쪽: 창 이름 + 상대방 이름 */}
+        {/* 왼쪽: 창 이름 + 참여자 이름 */}
         <div className="flex-1 min-w-0">
           {/* 창 이름 영역 — 더블클릭으로 이름 변경 */}
           <h2
@@ -608,22 +736,37 @@ export default function DirectMessageView({ conversation, onClose, onConversatio
             {conversation?.name || '대화'}
           </h2>
 
-          {/* 전송/수신 상대방 이름 영역 — 클릭 시 삭제 확인 팝업 */}
-          {otherParticipants.length > 0 && (
+          {/* 참여자 이름 영역 */}
+          {displayParticipants.length > 0 && (
             <div className="flex items-center gap-1 mt-0.5 flex-wrap">
-              <span className="text-[10px] text-gray-300 uppercase tracking-wide mr-0.5">상대방</span>
-              {otherParticipants.map((p, i) => (
-                <span key={p.id} className="flex items-center gap-1">
-                  <button
-                    onClick={() => setRemovingParticipant(p)}
-                    title="클릭하여 삭제"
-                    className="text-xs text-gray-500 font-medium hover:text-red-500 hover:line-through transition-colors cursor-pointer"
-                  >
-                    {p.display_name || p.username}
-                  </button>
-                  {i < otherParticipants.length - 1 && <span className="text-gray-200 text-xs">·</span>}
-                </span>
-              ))}
+              <span className="text-[10px] text-gray-300 uppercase tracking-wide mr-0.5">참여자</span>
+              {displayParticipants.map((p, i) => {
+                const isCreator = p.id === conversation?.created_by
+                const isMe = p.id === currentUser?.id
+                const canRemove = isOwner && !isMe
+                return (
+                  <span key={p.id} className="flex items-center gap-0.5">
+                    {/* 방장 왕관 표시 */}
+                    {isCreator && <span title="방장" className="text-[11px] leading-none">👑</span>}
+                    {/* 방장만 클릭으로 삭제 가능 */}
+                    {canRemove ? (
+                      <button
+                        onClick={() => setRemovingParticipant(p)}
+                        title="클릭하여 삭제"
+                        className="text-xs text-gray-500 font-medium hover:text-red-500 hover:line-through transition-colors"
+                      >
+                        {p.display_name || p.username}
+                      </button>
+                    ) : (
+                      <span className="text-xs text-gray-500 font-medium">
+                        {p.display_name || p.username}
+                        {isMe ? ' (나)' : ''}
+                      </span>
+                    )}
+                    {i < displayParticipants.length - 1 && <span className="text-gray-200 text-xs ml-0.5">·</span>}
+                  </span>
+                )
+              })}
             </div>
           )}
         </div>
@@ -669,6 +812,13 @@ export default function DirectMessageView({ conversation, onClose, onConversatio
               isMine={msg.sender_id === currentUser?.id}
               onEdit={handleEdit}
               onDelete={handleDelete}
+              totalParticipants={participantIds.length}
+              participantNameById={participantNameById}
+              readLabel={readLabel}
+              readCountLabel={readCountLabel}
+              unreadLabel={unreadLabel}
+              readAccountsLabel={readAccountsLabel}
+              deletedMessageLabel={deletedMessageLabel}
             />
           ))
         )}

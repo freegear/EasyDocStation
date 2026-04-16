@@ -9,6 +9,8 @@ const router = express.Router()
 router.use(requireAuth)
 
 const CONFIG_PATH = path.resolve(__dirname, '../../config.json')
+const DM_EDIT_WINDOW_MS = 10 * 60 * 1000
+const ONE_DAY_MS = 24 * 60 * 60 * 1000
 
 function getStorageBase() {
   try {
@@ -16,6 +18,60 @@ function getStorageBase() {
     return cfg['ObjectFile Path'] || path.resolve(__dirname, '../../Database/ObjectFile')
   } catch { return path.resolve(__dirname, '../../Database/ObjectFile') }
 }
+
+function getDmRetentionConfig() {
+  try {
+    const cfg = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'))
+    const dm = cfg.DirectMessage || {}
+    const unlimited = Boolean(dm['무제한보관'])
+    const rawDays = Number.parseInt(dm['보존 기한'], 10)
+    const retentionDays = Number.isFinite(rawDays) ? Math.min(90, Math.max(1, rawDays)) : 30
+    return { unlimited, retentionDays }
+  } catch {
+    return { unlimited: false, retentionDays: 30 }
+  }
+}
+
+async function cleanupExpiredDmMessages() {
+  const { unlimited, retentionDays } = getDmRetentionConfig()
+  if (unlimited) return
+
+  try {
+    const { rows: expired } = await db.query(
+      `SELECT id, conversation_id
+       FROM dm_messages
+       WHERE created_at < NOW() - ($1::int * INTERVAL '1 day')`,
+      [retentionDays]
+    )
+    if (!expired.length) return
+
+    const storageBase = getStorageBase()
+    for (const msg of expired) {
+      const msgFolder = path.join(storageBase, 'DirectMessage', msg.conversation_id, msg.id)
+      try { fs.rmSync(msgFolder, { recursive: true, force: true }) } catch {}
+    }
+
+    const ids = expired.map(r => r.id)
+    await db.query('DELETE FROM dm_messages WHERE id = ANY($1::varchar[])', [ids])
+    console.log(`[DM] Retention cleanup complete: ${ids.length} messages removed.`)
+  } catch (err) {
+    console.error('[DM] Retention cleanup error:', err)
+  }
+}
+
+function scheduleDailyDmRetentionCleanup() {
+  const now = new Date()
+  const nextMidnight = new Date(now)
+  nextMidnight.setHours(24, 0, 0, 0)
+  const waitMs = Math.max(1000, nextMidnight.getTime() - now.getTime())
+
+  setTimeout(async () => {
+    await cleanupExpiredDmMessages()
+    setInterval(() => { cleanupExpiredDmMessages() }, ONE_DAY_MS)
+  }, waitMs)
+}
+
+scheduleDailyDmRetentionCleanup()
 
 // 참여자 배열에 내가 포함된 모든 대화 반환
 // GET /api/dm/conversations
@@ -169,9 +225,15 @@ router.delete('/conversations/:id/participants/:participantId', async (req, res)
     [id, JSON.stringify([userId])]
   )
   if (!conv[0]) return res.status(404).json({ error: '대화를 찾을 수 없습니다.' })
+  if (conv[0].created_by !== userId) {
+    return res.status(403).json({ error: '참여자 삭제는 방장만 할 수 있습니다.' })
+  }
 
   const current = conv[0].participants || []
   if (!current.includes(removeId)) return res.status(400).json({ error: '참여 중이지 않은 사용자입니다.' })
+  if (removeId === conv[0].created_by) {
+    return res.status(400).json({ error: '방장은 삭제할 수 없습니다.' })
+  }
   if (current.length <= 2) return res.status(400).json({ error: '최소 2명이 있어야 합니다.' })
 
   const updated = current.filter(p => p !== removeId)
@@ -220,6 +282,29 @@ router.get('/conversations/:id/messages', async (req, res) => {
   }
 })
 
+// 읽음 처리 — 대화의 내 미읽 메시지 전체를 읽음으로 표시
+// POST /api/dm/conversations/:id/read
+router.post('/conversations/:id/read', async (req, res) => {
+  const userId = req.user.id
+  const { id } = req.params
+
+  const { rows: conv } = await db.query(
+    'SELECT id FROM dm_conversations WHERE id = $1 AND participants @> $2::jsonb',
+    [id, JSON.stringify([userId])]
+  )
+  if (!conv[0]) return res.status(404).json({ error: '대화를 찾을 수 없습니다.' })
+
+  // 본인이 아직 read_by에 없는 메시지만 업데이트
+  await db.query(
+    `UPDATE dm_messages
+     SET read_by = read_by || $1::jsonb
+     WHERE conversation_id = $2
+       AND NOT (read_by @> $1::jsonb)`,
+    [JSON.stringify([userId]), id]
+  )
+  res.json({ success: true })
+})
+
 // 메시지 전송 (텍스트 + 첨부파일 메타데이터)
 // POST /api/dm/conversations/:id/messages
 router.post('/conversations/:id/messages', async (req, res) => {
@@ -245,10 +330,11 @@ router.post('/conversations/:id/messages', async (req, res) => {
   const msgId = (clientMsgId && UUID_RE.test(clientMsgId)) ? clientMsgId : uuidv4()
 
   try {
+    // 발신자는 보낸 즉시 읽음 처리
     const { rows } = await db.query(
-      `INSERT INTO dm_messages (id, conversation_id, sender_id, content, attachments)
-       VALUES ($1, $2, $3, $4, $5) RETURNING *`,
-      [msgId, id, userId, content?.trim() || '', JSON.stringify(atts)]
+      `INSERT INTO dm_messages (id, conversation_id, sender_id, content, attachments, read_by)
+       VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
+      [msgId, id, userId, content?.trim() || '', JSON.stringify(atts), JSON.stringify([userId])]
     )
     await db.query('UPDATE dm_conversations SET updated_at=NOW() WHERE id=$1', [id])
 
@@ -279,6 +365,11 @@ router.put('/conversations/:convId/messages/:msgId', async (req, res) => {
     [msgId, convId, userId]
   )
   if (!rows[0]) return res.status(404).json({ error: '메시지를 찾을 수 없습니다.' })
+  if (rows[0].is_deleted) return res.status(400).json({ error: '삭제된 메시지는 수정할 수 없습니다.' })
+  const createdAtMs = new Date(rows[0].created_at).getTime()
+  if (Date.now() - createdAtMs > DM_EDIT_WINDOW_MS) {
+    return res.status(403).json({ error: '메시지 수정은 발신 후 10분 이내에만 가능합니다.' })
+  }
 
   const { rows: updated } = await db.query(
     `UPDATE dm_messages SET content=$1, is_edited=true, updated_at=NOW()
@@ -299,6 +390,7 @@ router.delete('/conversations/:convId/messages/:msgId', async (req, res) => {
     [msgId, convId, userId]
   )
   if (!rows[0]) return res.status(404).json({ error: '메시지를 찾을 수 없습니다.' })
+  if (rows[0].is_deleted) return res.status(400).json({ error: '이미 삭제된 메시지입니다.' })
 
   // 첨부 파일 폴더 삭제 — 메시지 폴더 전체 삭제
   // 경로: ObjectFiles/DirectMessage/{conv_id}/{msg_id}/
@@ -306,8 +398,29 @@ router.delete('/conversations/:convId/messages/:msgId', async (req, res) => {
   const msgFolder = path.join(storageBase, 'DirectMessage', convId, msgId)
   try { fs.rmSync(msgFolder, { recursive: true, force: true }) } catch {}
 
-  await db.query('DELETE FROM dm_messages WHERE id=$1', [msgId])
-  res.json({ success: true })
+  const { rows: updated } = await db.query(
+    `UPDATE dm_messages
+     SET content = '',
+         attachments = '[]'::jsonb,
+         is_deleted = true,
+         deleted_at = NOW(),
+         deleted_by = $1,
+         is_edited = false,
+         updated_at = NOW()
+     WHERE id = $2
+     RETURNING *`,
+    [userId, msgId]
+  )
+
+  const { rows: full } = await db.query(
+    `SELECT m.*,
+       json_build_object('id', u.id, 'username', u.username, 'display_name', u.display_name, 'image_url', u.image_url) AS sender
+     FROM dm_messages m
+     JOIN users u ON u.id = m.sender_id
+     WHERE m.id = $1`,
+    [updated[0].id]
+  )
+  res.json(full[0])
 })
 
 // 파일 업로드 URL 발급 (DM 첨부용)

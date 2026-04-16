@@ -59,5 +59,9 @@
     "smtp_port": 587,
     "sender_email": "your-email@gmail.com",
     "sender_password": "your-app-password"
+  },
+  "DirectMessage": {
+    "보존 기한": 5,
+    "무제한보관": false
   }
 }
