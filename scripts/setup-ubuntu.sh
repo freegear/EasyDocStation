@@ -19,6 +19,7 @@ DB_PASS="${APP_DB_PASS:-easydocstation1234}"
 CLIENT_ORIGIN="${CLIENT_ORIGIN:-http://localhost:5173}"
 INSTALL_CASSANDRA="${INSTALL_CASSANDRA:-0}"
 INSTALL_OLLAMA="${INSTALL_OLLAMA:-0}"
+OLLAMA_MODEL="${OLLAMA_MODEL:-gemma4:e4b}"
 
 echo "[1/8] Ubuntu 패키지 설치"
 sudo apt-get update -y
@@ -117,6 +118,33 @@ if [[ "$INSTALL_OLLAMA" == "1" ]]; then
   echo "[5/8] Ollama 설치"
   if ! command -v ollama >/dev/null 2>&1; then
     curl -fsSL https://ollama.com/install.sh | sh
+  fi
+
+  echo "[5-1/8] Ollama 서버 준비"
+  if ! curl -fsS --max-time 2 http://127.0.0.1:11434/api/tags >/dev/null 2>&1; then
+    if command -v systemctl >/dev/null 2>&1 && systemctl list-unit-files | grep -q '^ollama\.service'; then
+      sudo systemctl enable ollama >/dev/null 2>&1 || true
+      sudo systemctl restart ollama
+    else
+      nohup ollama serve >/tmp/ollama-serve.log 2>&1 &
+      sleep 2
+    fi
+  fi
+
+  if ! curl -fsS --max-time 3 http://127.0.0.1:11434/api/tags >/dev/null 2>&1; then
+    echo "[WARN] Ollama 서버를 시작하지 못했습니다. 모델 설치는 건너뜁니다."
+  else
+    echo "[5-2/8] Ollama 모델 설치 (${OLLAMA_MODEL})"
+    if ! ollama pull "${OLLAMA_MODEL}"; then
+      echo "[WARN] ${OLLAMA_MODEL} pull 실패. gemma3:4b 기반 별칭을 생성합니다."
+      ollama pull gemma3:4b
+      tmp_modelfile="$(mktemp)"
+      cat > "${tmp_modelfile}" <<'EOF'
+FROM gemma3:4b
+EOF
+      ollama create "${OLLAMA_MODEL}" -f "${tmp_modelfile}"
+      rm -f "${tmp_modelfile}"
+    fi
   fi
 else
   echo "[5/8] Ollama 설치는 건너뜀 (INSTALL_OLLAMA=1 로 활성화 가능)"
