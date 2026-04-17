@@ -241,7 +241,7 @@ router.get('/stats', async (req, res) => {
       pathConfig: getDatabasePathConfig(config),
       display: buildDisplayConfig(config),
       rag: config.rag || { trainingType: 'manual', dailyTime: '02:00', vectorSize: 1024 },
-      agenticai: { num_predict: 4096, num_ctx: 8192, history: 6, ...(config.agenticai || {}) },
+      agenticai: { num_predict: 4096, num_ctx: 8192, history: 6, language: 'ko', ...(config.agenticai || {}) },
       maxAttachmentFileSize: config.MaxAttachmentFileSize ?? 100,
       DirectMessage: normalizeDirectMessageConfig(config.DirectMessage || {}),
       company: config.company || {}
@@ -282,7 +282,7 @@ router.get('/stats', async (req, res) => {
         pathConfig: getDatabasePathConfig(config),
         display: buildDisplayConfig(config),
         rag: config.rag || { trainingType: 'manual', dailyTime: '02:00', vectorSize: 1024 },
-        agenticai: { num_predict: 4096, num_ctx: 8192, history: 6, ...(config.agenticai || {}) },
+        agenticai: { num_predict: 4096, num_ctx: 8192, history: 6, language: 'ko', ...(config.agenticai || {}) },
         maxAttachmentFileSize: config.MaxAttachmentFileSize ?? 100,
         DirectMessage: normalizeDirectMessageConfig(config.DirectMessage || {}),
         company: config.company || {}

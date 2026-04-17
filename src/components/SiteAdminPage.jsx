@@ -433,7 +433,7 @@ export default function SiteAdminPage({ onClose }) {
   const [dmRetentionDays, setDmRetentionDays] = useState(30)
   const [dmUnlimited, setDmUnlimited] = useState(false)
   const [ragForm, setRagForm] = useState({ type: 'manual', time: '02:00', vectorSize: 1024, chunkSize: 800, chunkOverlap: 100 })
-  const [agenticaiForm, setAgenticaiForm] = useState({ num_predict: 4096, num_ctx: 8192, history: 6 })
+  const [agenticaiForm, setAgenticaiForm] = useState({ num_predict: 4096, num_ctx: 8192, history: 6, language: 'ko' })
   const [companyForm, setCompanyForm] = useState({ name: '', address: '', phone: '', homepage: '', fax: '', seal: '', logo: '' })
   const companyFileInputRef = useRef(null)
   const companyLogoInputRef = useRef(null)
@@ -506,7 +506,8 @@ export default function SiteAdminPage({ onClose }) {
         setAgenticaiForm({
           num_predict: data.agenticai.num_predict || 4096,
           num_ctx: data.agenticai.num_ctx || 8192,
-          history: data.agenticai.history ?? 6
+          history: data.agenticai.history ?? 6,
+          language: ['ko', 'ja', 'en', 'zh'].includes(data.agenticai.language) ? data.agenticai.language : 'ko'
         })
       }
       if (data.maxAttachmentFileSize != null) {
@@ -629,7 +630,8 @@ export default function SiteAdminPage({ onClose }) {
         configData.agenticai = {
           num_predict: parseInt(agenticaiForm.num_predict),
           num_ctx: parseInt(agenticaiForm.num_ctx),
-          history: parseInt(agenticaiForm.history)
+          history: parseInt(agenticaiForm.history),
+          language: agenticaiForm.language || 'ko'
         }
       } else if (activeTab === 'company') {
         configData.company = {
@@ -1723,6 +1725,41 @@ export default function SiteAdminPage({ onClose }) {
                       }`}
                     >
                       {n}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* default language */}
+              <div className="bg-gray-100 border border-gray-200 rounded-2xl p-8 shadow-xl">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center">
+                    <svg className="w-5 h-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5h12M9 3v2m1.048 9A18.022 18.022 0 016.412 9m6.088 9h7m-7 0a3 3 0 100-6 3 3 0 000 6zm0 0v3m0-3a3 3 0 01-3-3m3 3a3 3 0 003-3" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="text-gray-900 font-bold text-base">{t.admin.agenticaiLanguageTitle}</h3>
+                    <p className="text-gray-400 text-xs mt-0.5">{t.admin.agenticaiLanguageDesc}</p>
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-3">
+                  {[
+                    { value: 'ko', label: t.admin.agenticaiLangKo },
+                    { value: 'ja', label: t.admin.agenticaiLangJa },
+                    { value: 'en', label: t.admin.agenticaiLangEn },
+                    { value: 'zh', label: t.admin.agenticaiLangZh },
+                  ].map(opt => (
+                    <button
+                      key={opt.value}
+                      onClick={() => setAgenticaiForm(p => ({ ...p, language: opt.value }))}
+                      className={`px-5 py-2.5 rounded-xl text-sm font-bold transition-all border ${
+                        agenticaiForm.language === opt.value
+                          ? 'bg-amber-500/20 border-amber-500/60 text-amber-700 shadow-lg shadow-amber-500/10'
+                          : 'bg-gray-50 border-gray-100 text-gray-400 hover:text-gray-500 hover:border-gray-200'
+                      }`}
+                    >
+                      {opt.label}
                     </button>
                   ))}
                 </div>

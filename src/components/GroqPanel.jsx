@@ -7,19 +7,45 @@ import { useChat } from '../contexts/ChatContext'
 import { useAuth } from '../contexts/AuthContext'
 import { useT } from '../i18n/useT'
 
-const SYSTEM_PROMPT = `당신은 EasyStation의 AI 어시스턴트입니다.
-반드시 제공된 [참고 정보]에 있는 내용만을 근거로 답변하세요.
-참고 정보에 없는 내용은 절대 추측하거나 일반 지식으로 보충하지 마세요.
-답변은 간결하고 명확하게 한국어로 작성하세요.`
+const LANGUAGE_LABEL = {
+  ko: '한국어',
+  ja: '일본어',
+  en: '영어',
+  zh: '중국어',
+}
 
-const IMAGE_SYSTEM_PROMPT = `당신은 EasyStation의 AI 어시스턴트입니다.
+function resolveLanguageCode(value) {
+  return ['ko', 'ja', 'en', 'zh'].includes(value) ? value : 'ko'
+}
+
+function buildSystemPrompt(language) {
+  const lang = resolveLanguageCode(language)
+  const label = LANGUAGE_LABEL[lang]
+  return `당신은 EasyStation의 AI 어시스턴트입니다.
+반드시 제공된 [참고 정보]에 있는 내용만을 근거로 답변하세요.
+참고 정보에 없는 사실은 추측하거나 일반 지식으로 보충하지 마세요.
+단, 사용자가 요청한 언어/톤/역할(예: 일본어 답변, 엔지니어 톤)은 사실 판단과 무관한 표현 지시이므로 반영하세요.
+기본 답변 언어는 ${label}입니다.`
+}
+
+function buildImageSystemPrompt(language) {
+  const lang = resolveLanguageCode(language)
+  const label = LANGUAGE_LABEL[lang]
+  return `당신은 EasyStation의 AI 어시스턴트입니다.
 이미지가 첨부된 질문에서는 첨부된 이미지를 근거로 답변하세요.
 이미지에서 확인 가능한 사실만 설명하고, 보이지 않는 내용은 추측하지 마세요.
-답변은 간결하고 명확하게 한국어로 작성하세요.`
+사용자가 요청한 언어/톤/역할 지시는 반영하세요.
+기본 답변 언어는 ${label}입니다.`
+}
 
-const TRANSLATION_SYSTEM_PROMPT = `당신은 전문 번역가입니다.
+function buildTranslationSystemPrompt(language) {
+  const lang = resolveLanguageCode(language)
+  const label = LANGUAGE_LABEL[lang]
+  return `당신은 전문 번역가입니다.
 사용자가 요청한 텍스트를 정확하고 자연스럽게 번역하세요.
-번역 이외의 내용은 추가하지 마세요.`
+번역 이외의 내용은 추가하지 마세요.
+기본 응답 언어는 ${label}입니다.`
+}
 
 // 번역 요청인지 감지 (RAG 검색 불필요한 경우)
 function isTranslationQuery(text) {
@@ -135,7 +161,7 @@ export default function GroqPanel({ width }) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const [attachedFile, setAttachedFile] = useState(null)
-  const [aiConfig, setAiConfig] = useState({ num_predict: 8192, num_ctx: 32768, history: 6 })
+  const [aiConfig, setAiConfig] = useState({ num_predict: 8192, num_ctx: 32768, history: 6, language: 'ko' })
   const fileInputRef = useRef(null)
   const bottomRef = useRef(null)
   const textareaRef = useRef(null)
@@ -160,7 +186,7 @@ export default function GroqPanel({ width }) {
     async function fetchConfig() {
       try {
         const data = await apiFetch('/config/agenticai')
-        setAiConfig(data)
+        setAiConfig(prev => ({ ...prev, ...data, language: resolveLanguageCode(data?.language) }))
       } catch (e) {
         console.error('Failed to load AI config:', e)
       }
@@ -251,7 +277,7 @@ export default function GroqPanel({ width }) {
     // 이미지 첨부: RAG context 무시하고 직접 전송
     // 일반 질문: RAG context를 프롬프트에 포함
     const contentWithContext = (ragContext && !base64Data && !isTranslation)
-      ? `아래 [참고 정보]에 있는 내용만을 근거로 답변하세요. 참고 정보에 없는 내용은 절대 추측하거나 일반 지식으로 보충하지 마세요.\n\n[참고 정보]\n${ragContext}\n\n[질문]\n${fullText}`
+      ? `아래 [참고 정보]에 있는 사실만 근거로 답변하세요. 참고 정보에 없는 사실은 추측하지 마세요. 다만 언어/문체/역할 요청(예: 일본어로 답변)은 반영하세요.\n\n[참고 정보]\n${ragContext}\n\n[질문]\n${fullText}`
       : fullText
 
     const userApiMessage = { role: 'user', content: contentWithContext }
@@ -287,7 +313,10 @@ export default function GroqPanel({ width }) {
         body: JSON.stringify({
           model: selectedModel,
           messages: [
-            { role: 'system', content: isTranslation ? TRANSLATION_SYSTEM_PROMPT : (base64Data ? IMAGE_SYSTEM_PROMPT : SYSTEM_PROMPT) },
+            { role: 'system', content: isTranslation
+              ? buildTranslationSystemPrompt(aiConfig.language)
+              : (base64Data ? buildImageSystemPrompt(aiConfig.language) : buildSystemPrompt(aiConfig.language))
+            },
             ...historyForApi,
             userApiMessage,
           ],
