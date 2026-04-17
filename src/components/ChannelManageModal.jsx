@@ -3,6 +3,7 @@ import { useChat } from '../contexts/ChatContext'
 import { apiFetch } from '../lib/api'
 import { useAuth } from '../contexts/AuthContext'
 import { useT } from '../i18n/useT'
+import ConfirmDialog from './ConfirmDialog'
 
 // MD 미리보기를 간단히 처리하는 헬퍼 (TeamManageModal과 동일)
 function SimpleMDPreview({ text }) {
@@ -46,6 +47,7 @@ export default function ChannelManageModal({ mode = 'manage', channel = null, on
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [showArchiveConfirm, setShowArchiveConfirm] = useState(false)
   const [deleteConfirmName, setDeleteConfirmName] = useState('')
 
   const isSiteAdmin = currentUser?.role === 'site_admin'
@@ -56,11 +58,22 @@ export default function ChannelManageModal({ mode = 'manage', channel = null, on
 
   useEffect(() => {
     const handleEsc = (e) => {
-      if (e.key === 'Escape') onClose()
+      if (e.key !== 'Escape') return
+      if (showDeleteConfirm) {
+        setShowDeleteConfirm(false)
+        setDeleteConfirmName('')
+        setError('')
+        return
+      }
+      if (showArchiveConfirm) {
+        setShowArchiveConfirm(false)
+        return
+      }
+      onClose()
     }
     window.addEventListener('keydown', handleEsc)
     return () => window.removeEventListener('keydown', handleEsc)
-  }, [onClose])
+  }, [onClose, showDeleteConfirm, showArchiveConfirm])
 
   useEffect(() => {
     if (isEdit) {
@@ -166,9 +179,7 @@ export default function ChannelManageModal({ mode = 'manage', channel = null, on
     }
   }
 
-  const handleArchive = async () => {
-    if (!window.confirm(t.channel.archiveConfirm)) return
-    
+  const confirmArchive = async () => {
     setLoading(true)
     try {
       const payload = {
@@ -190,6 +201,7 @@ export default function ChannelManageModal({ mode = 'manage', channel = null, on
       setError(err.message)
     } finally {
       setLoading(false)
+      setShowArchiveConfirm(false)
     }
   }
 
@@ -452,7 +464,7 @@ export default function ChannelManageModal({ mode = 'manage', channel = null, on
                 {t.channel.delete}
               </button>
               <button
-                onClick={handleArchive}
+                onClick={() => setShowArchiveConfirm(true)}
                 disabled={loading || isArchived}
                 className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
                   isArchived
@@ -500,6 +512,18 @@ export default function ChannelManageModal({ mode = 'manage', channel = null, on
               </button>
             </div>
           </div>
+        )}
+
+        {showArchiveConfirm && (
+          <ConfirmDialog
+            title={t.channel.archive}
+            message={t.channel.archiveConfirm}
+            confirmText={t.channel.archive}
+            cancelText={t.channel.cancel}
+            loading={loading}
+            onConfirm={confirmArchive}
+            onCancel={() => setShowArchiveConfirm(false)}
+          />
         )}
       </div>
     </div>

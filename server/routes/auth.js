@@ -13,6 +13,7 @@ function toPublicUser(u) {
     name: u.name,
     display_name: u.display_name ?? null,
     email: u.email,
+    phone: u.phone ?? null,
     role: u.role,
     is_active: u.is_active,
     avatar: (u.display_name || u.name).split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2),
@@ -110,7 +111,7 @@ router.get('/me', requireAuth, async (req, res) => {
 
 // PUT /api/auth/me — update own profile
 router.put('/me', requireAuth, async (req, res) => {
-  const { name, email, image_url, stamp_picture, currentPassword, newPassword } = req.body
+  const { name, email, phone, image_url, stamp_picture, currentPassword, newPassword } = req.body
   try {
     const { rows } = await pool.query('SELECT * FROM users WHERE id = $1', [req.user.id])
     const user = rows[0]
@@ -121,6 +122,7 @@ router.put('/me', requireAuth, async (req, res) => {
 
     if (name?.trim()) { sets.push(`name = $${i++}`); vals.push(name.trim()) }
     if (email?.trim()) { sets.push(`email = $${i++}`); vals.push(email.trim().toLowerCase()) }
+    if (phone !== undefined) { sets.push(`phone = $${i++}`); vals.push(phone?.trim() || null) }
     if (image_url !== undefined) { sets.push(`image_url = $${i++}`); vals.push(image_url) }
     if (stamp_picture !== undefined) { sets.push(`stamp_picture = $${i++}`); vals.push(stamp_picture || null) }
 

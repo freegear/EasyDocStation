@@ -1,5 +1,5 @@
 {
-  "EasyDocStation Version": "0.1.0",
+  "EasyDocStation Version": "0.2.0",
   "imagePreview": {
     "width": 378,
     "height": 378
@@ -61,7 +61,7 @@
     "sender_password": "your-app-password"
   },
   "DirectMessage": {
-    "보존 기한": 5,
+    "보존 기한": 1,
     "무제한보관": false
   }
 }

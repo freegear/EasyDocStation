@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { apiFetch, getToken } from '../lib/api'
 import { useT } from '../i18n/useT'
+import ConfirmDialog from './ConfirmDialog'
 
 function uuidv4() {
   return crypto.randomUUID ? crypto.randomUUID() : ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c =>
@@ -172,6 +173,46 @@ function RemoveParticipantPopup({ participant, onConfirm, onCancel }) {
         <div className="flex gap-2 justify-center">
           <button onClick={onCancel} className="px-5 py-2 rounded-xl text-sm text-gray-500 hover:bg-gray-100 border border-gray-200">취소</button>
           <button ref={btnRef} onClick={onConfirm} className="px-5 py-2 rounded-xl text-sm bg-red-500 text-white hover:bg-red-600">삭제</button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function DeleteConversationDialog({ name, onConfirm, onCancel, deleting = false }) {
+  const btnRef = useRef(null)
+
+  useEffect(() => {
+    btnRef.current?.focus()
+    function onKey(e) { if (e.key === 'Escape' && !deleting) onCancel() }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [onCancel, deleting])
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+      <div className="bg-white rounded-2xl shadow-2xl p-6 w-80">
+        <h3 className="text-gray-900 font-bold text-base mb-2">Direct Message 창 삭제</h3>
+        <p className="text-gray-700 text-sm leading-relaxed">
+          현재 대화방 <span className="font-semibold">[{name || '대화'}]</span> 을(를) 삭제하시겠습니까?
+        </p>
+        <p className="text-gray-400 text-xs mt-1">삭제 후 복구할 수 없습니다.</p>
+        <div className="flex gap-2 justify-end mt-5">
+          <button
+            onClick={onCancel}
+            disabled={deleting}
+            className="px-4 py-2 rounded-xl text-sm text-gray-500 hover:bg-gray-100 disabled:text-gray-300 disabled:hover:bg-transparent"
+          >
+            취소
+          </button>
+          <button
+            ref={btnRef}
+            onClick={onConfirm}
+            disabled={deleting}
+            className="px-4 py-2 rounded-xl text-sm bg-red-500 text-white hover:bg-red-600 disabled:bg-red-300"
+          >
+            {deleting ? '삭제 중...' : '삭제'}
+          </button>
         </div>
       </div>
     </div>
@@ -396,6 +437,8 @@ function MessageBubble({
   const [editMode, setEditMode] = useState(false)
   const [editContent, setEditContent] = useState(msg.content)
   const [nowMs, setNowMs] = useState(() => Date.now())
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [pendingBatchDownload, setPendingBatchDownload] = useState(null)
   const canEdit = isMine && isMessageEditable(msg.created_at, nowMs)
   const readByOthers = (msg.read_by || []).filter(id => id !== msg.sender_id)
   const readStatusText = readByOthers.length === 0
@@ -437,8 +480,8 @@ function MessageBubble({
 
   function handleAttachmentDoubleClick(att, allAtts) {
     if (allAtts.length > 1) {
-      const yes = window.confirm('한꺼번에 다운 받으시겠습니까?')
-      if (yes) { allAtts.forEach(a => downloadFile(a)); return }
+      setPendingBatchDownload({ clicked: att, all: allAtts })
+      return
     }
     downloadFile(att)
   }
@@ -528,10 +571,40 @@ function MessageBubble({
               >수정</button>
             )}
             <button
-              onClick={() => onDelete(msg.id)}
+              onClick={() => setShowDeleteConfirm(true)}
               className="text-[10px] text-gray-300 hover:text-red-500 px-1 transition-colors"
             >삭제</button>
           </div>
+        )}
+        {showDeleteConfirm && (
+          <ConfirmDialog
+            title="메시지 삭제"
+            message="메시지를 삭제하시겠습니까?"
+            confirmText="삭제"
+            cancelText="취소"
+            danger
+            onConfirm={async () => {
+              await onDelete(msg.id)
+              setShowDeleteConfirm(false)
+            }}
+            onCancel={() => setShowDeleteConfirm(false)}
+          />
+        )}
+        {pendingBatchDownload && (
+          <ConfirmDialog
+            title="첨부파일 다운로드"
+            message="첨부파일이 여러 개입니다.\n한꺼번에 다운로드하시겠습니까?"
+            confirmText="전체 다운로드"
+            cancelText="현재 파일만"
+            onConfirm={() => {
+              pendingBatchDownload.all.forEach(a => downloadFile(a))
+              setPendingBatchDownload(null)
+            }}
+            onCancel={() => {
+              downloadFile(pendingBatchDownload.clicked)
+              setPendingBatchDownload(null)
+            }}
+          />
         )}
       </div>
     </div>
@@ -546,6 +619,8 @@ export default function DirectMessageView({ conversation, onClose, onConversatio
   const [input, setInput] = useState('')
   const [pendingFiles, setPendingFiles] = useState([]) // [{file, name}]
   const [sending, setSending] = useState(false)
+  const [deletingConversation, setDeletingConversation] = useState(false)
+  const [showDeleteConversationDialog, setShowDeleteConversationDialog] = useState(false)
   const [showRename, setShowRename] = useState(false)
   const [showAddParticipant, setShowAddParticipant] = useState(false)
   const [removingParticipant, setRemovingParticipant] = useState(null) // participant object
@@ -571,10 +646,12 @@ export default function DirectMessageView({ conversation, onClose, onConversatio
 
   // ESC to close
   useEffect(() => {
-    function onKey(e) { if (e.key === 'Escape' && !showRename && !showAddParticipant && !removingParticipant) onClose() }
+    function onKey(e) {
+      if (e.key === 'Escape' && !showRename && !showAddParticipant && !removingParticipant && !showDeleteConversationDialog) onClose()
+    }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [onClose, showRename, showAddParticipant, removingParticipant])
+  }, [onClose, showRename, showAddParticipant, removingParticipant, showDeleteConversationDialog])
 
   async function loadMessages() {
     try {
@@ -672,7 +749,6 @@ export default function DirectMessageView({ conversation, onClose, onConversatio
   }
 
   async function handleDelete(msgId) {
-    if (!window.confirm('메시지를 삭제하시겠습니까?')) return
     try {
       const data = await apiFetch(`/dm/conversations/${conversation.id}/messages/${msgId}`, { method: 'DELETE' })
       setMessages(prev => prev.map(m => m.id === msgId ? { ...m, ...data } : m))
@@ -721,6 +797,29 @@ export default function DirectMessageView({ conversation, onClose, onConversatio
       alert(e.message)
     } finally {
       setRemovingParticipant(null)
+    }
+  }
+
+  async function handleDeleteConversation() {
+    if (!conversation?.id || deletingConversation) return
+    if (!isOwner) {
+      alert('창 삭제는 방장만 할 수 있습니다.')
+      return
+    }
+
+    setDeletingConversation(true)
+    try {
+      const data = await apiFetch(`/dm/conversations/${conversation.id}`, { method: 'DELETE' })
+      if (data.error) {
+        alert(data.error)
+        return
+      }
+      onClose?.()
+    } catch (e) {
+      alert(e.message)
+    } finally {
+      setDeletingConversation(false)
+      setShowDeleteConversationDialog(false)
     }
   }
 
@@ -803,7 +902,7 @@ export default function DirectMessageView({ conversation, onClose, onConversatio
           )}
         </div>
 
-        {/* 오른쪽: 참여자 추가 + 닫기 버튼 */}
+        {/* 오른쪽: 참여자 추가 + 창 삭제 + 닫기 버튼 */}
         <div className="flex items-center gap-1 flex-shrink-0">
           {participantIds.length < 10 && (
             <button
@@ -814,6 +913,18 @@ export default function DirectMessageView({ conversation, onClose, onConversatio
               <PlusUserIcon />
             </button>
           )}
+          <button
+            onClick={() => setShowDeleteConversationDialog(true)}
+            disabled={deletingConversation || !isOwner}
+            className={`px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+              deletingConversation || !isOwner
+                ? 'text-gray-300 bg-gray-100 cursor-not-allowed'
+                : 'text-red-500 hover:text-white hover:bg-red-500 border border-red-200'
+            }`}
+            title={isOwner ? '현재 Direct Message 창 삭제' : '방장만 창 삭제 가능'}
+          >
+            창 삭제
+          </button>
           <button
             onClick={onClose}
             className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
@@ -919,6 +1030,14 @@ export default function DirectMessageView({ conversation, onClose, onConversatio
           participant={removingParticipant}
           onConfirm={handleRemoveParticipant}
           onCancel={() => setRemovingParticipant(null)}
+        />
+      )}
+      {showDeleteConversationDialog && (
+        <DeleteConversationDialog
+          name={conversation?.name}
+          deleting={deletingConversation}
+          onConfirm={handleDeleteConversation}
+          onCancel={() => setShowDeleteConversationDialog(false)}
         />
       )}
     </div>

@@ -51,6 +51,7 @@ CREATE TABLE IF NOT EXISTS users (
   password_hash VARCHAR(255) NOT NULL,
   name          VARCHAR(100) NOT NULL,
   email         VARCHAR(255) UNIQUE NOT NULL,
+  phone         VARCHAR(30),
   role          VARCHAR(20)  NOT NULL DEFAULT 'user'
                   CHECK (role IN ('site_admin', 'team_admin', 'channel_admin', 'user')),
   display_name  VARCHAR(100),

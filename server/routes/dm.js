@@ -178,6 +178,35 @@ router.put('/conversations/:id', async (req, res) => {
   res.json(rows[0])
 })
 
+// 대화(창) 삭제
+// DELETE /api/dm/conversations/:id
+router.delete('/conversations/:id', async (req, res) => {
+  const userId = req.user.id
+  const { id } = req.params
+
+  try {
+    const { rows: conv } = await db.query(
+      'SELECT id, created_by FROM dm_conversations WHERE id = $1 AND participants @> $2::jsonb',
+      [id, JSON.stringify([userId])]
+    )
+    if (!conv[0]) return res.status(404).json({ error: '대화를 찾을 수 없습니다.' })
+
+    if (conv[0].created_by !== userId) {
+      return res.status(403).json({ error: '창 삭제는 방장만 할 수 있습니다.' })
+    }
+
+    const storageBase = getStorageBase()
+    const convFolder = path.join(storageBase, 'DirectMessage', id)
+    try { fs.rmSync(convFolder, { recursive: true, force: true }) } catch {}
+
+    await db.query('DELETE FROM dm_conversations WHERE id = $1', [id])
+    return res.json({ success: true, id })
+  } catch (err) {
+    console.error(err)
+    return res.status(500).json({ error: '서버 오류' })
+  }
+})
+
 // 대화 참여자 추가
 // POST /api/dm/conversations/:id/participants
 router.post('/conversations/:id/participants', async (req, res) => {
