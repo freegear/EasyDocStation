@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { GROQ_MODELS, GROQ_API_KEY } from '../data/mockData'
-import { apiFetch } from '../lib/api'
+import { apiFetch, getToken } from '../lib/api'
 import { useChat } from '../contexts/ChatContext'
 import { useAuth } from '../contexts/AuthContext'
 import { useT } from '../i18n/useT'
@@ -278,9 +278,12 @@ export default function GroqPanel({ width }) {
 
     try {
       // 로컬 Ollama Native API 호출 (스트리밍)
-      const response = await fetch('http://localhost:11434/api/chat', {
+      const response = await fetch('/api/ai/chat', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(getToken() ? { Authorization: `Bearer ${getToken()}` } : {}),
+        },
         body: JSON.stringify({
           model: selectedModel,
           messages: [
