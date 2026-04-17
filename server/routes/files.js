@@ -66,9 +66,8 @@ router.post('/get-upload-url', requireAuth, async (req, res, next) => {
       user_id: req.user.id
     }, JWT_SECRET, { expiresIn: '15m' })
 
-    const host = req.get('host')
-    const protocol = req.protocol
-    const uploadUrl = `${protocol}://${host}/api/files/gateway/upload?token=${token}`
+    // Return relative URL so browser/dev-proxy origin mismatches do not break upload.
+    const uploadUrl = `/api/files/gateway/upload?token=${token}`
     
     res.json({ uploadUrl, file_uuid, key })
   } catch (err) {
@@ -150,9 +149,8 @@ router.get('/:id/get-download-url', requireAuth, async (req, res, next) => {
       user_id: req.user.id
     }, JWT_SECRET, { expiresIn: '30m' })
 
-    const host = req.get('host')
-    const protocol = req.protocol
-    const downloadUrl = `${protocol}://${host}/api/files/gateway/download?token=${token}`
+    // Return relative URL so browser/dev-proxy origin mismatches do not break download.
+    const downloadUrl = `/api/files/gateway/download?token=${token}`
     
     res.json({ downloadUrl })
   } catch (err) {

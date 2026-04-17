@@ -161,7 +161,6 @@ export function ChatProvider({ children }) {
       const data = await apiFetch(`/posts?channelId=${channelId}`)
       setPosts(prev => ({ ...prev, [channelId]: data }))
     } catch (err) {
-      alert('댓글 저장에 실패했습니다: ' + err.message)
       throw err
     }
   }

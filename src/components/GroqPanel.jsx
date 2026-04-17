@@ -43,6 +43,16 @@ function formatTime(isoString) {
   return new Date(isoString).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })
 }
 
+function normalizeGatewayUrl(url) {
+  if (!url) return url
+  try {
+    const parsed = new URL(url, window.location.origin)
+    return `${parsed.pathname}${parsed.search}${parsed.hash}`
+  } catch (_) {
+    return url
+  }
+}
+
 export default function GroqPanel({ width }) {
   const { navigateToPost, selectedChannel, addPost } = useChat()
   const { currentUser } = useAuth()
@@ -70,10 +80,10 @@ export default function GroqPanel({ width }) {
       body: JSON.stringify({
         filename: file.name,
         contentType: file.type || 'application/octet-stream',
-        channelName: selectedChannel?.name || 'general',
+        channelId: selectedChannel?.id,
       }),
     })
-    await fetch(uploadUrl, { method: 'PUT', body: file })
+    await fetch(normalizeGatewayUrl(uploadUrl), { method: 'PUT', body: file })
     return [file_uuid]
   }
 
