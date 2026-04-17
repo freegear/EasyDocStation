@@ -4,11 +4,17 @@ import remarkGfm from 'remark-gfm'
 import { GROQ_MODELS, GROQ_API_KEY } from '../data/mockData'
 import { apiFetch } from '../lib/api'
 import { useChat } from '../contexts/ChatContext'
+import { useAuth } from '../contexts/AuthContext'
 import { useT } from '../i18n/useT'
 
 const SYSTEM_PROMPT = `당신은 EasyStation의 AI 어시스턴트입니다.
 반드시 제공된 [참고 정보]에 있는 내용만을 근거로 답변하세요.
 참고 정보에 없는 내용은 절대 추측하거나 일반 지식으로 보충하지 마세요.
+답변은 간결하고 명확하게 한국어로 작성하세요.`
+
+const IMAGE_SYSTEM_PROMPT = `당신은 EasyStation의 AI 어시스턴트입니다.
+이미지가 첨부된 질문에서는 첨부된 이미지를 근거로 답변하세요.
+이미지에서 확인 가능한 사실만 설명하고, 보이지 않는 내용은 추측하지 마세요.
 답변은 간결하고 명확하게 한국어로 작성하세요.`
 
 const TRANSLATION_SYSTEM_PROMPT = `당신은 전문 번역가입니다.
@@ -38,15 +44,79 @@ function formatTime(isoString) {
 }
 
 export default function GroqPanel({ width }) {
-  const { navigateToPost } = useChat()
+  const { navigateToPost, selectedChannel, addPost } = useChat()
+  const { currentUser } = useAuth()
   const t = useT()
   const [copiedId, setCopiedId] = useState(null)
+  const [postingId, setPostingId] = useState(null)
+  const [noticeDialog, setNoticeDialog] = useState(null) // { title, message }
+
+  function openNotice(message, title = '알림') {
+    setNoticeDialog({ title, message })
+  }
 
   function copyToClipboard(id, text) {
     navigator.clipboard.writeText(text).then(() => {
       setCopiedId(id)
       setTimeout(() => setCopiedId(null), 2000)
     })
+  }
+
+  async function uploadQuestionImage(file) {
+    if (!file || !selectedChannel?.id) return []
+
+    const { uploadUrl, file_uuid } = await apiFetch('/files/get-upload-url', {
+      method: 'POST',
+      body: JSON.stringify({
+        filename: file.name,
+        contentType: file.type || 'application/octet-stream',
+        channelName: selectedChannel?.name || 'general',
+      }),
+    })
+    await fetch(uploadUrl, { method: 'PUT', body: file })
+    return [file_uuid]
+  }
+
+  async function registerAnswerToBoard(answerMsg, answerIndex) {
+    if (!answerMsg?.id || postingId) return
+    if (!selectedChannel?.id) {
+      openNotice(t.ai.postToBoardNoChannel)
+      return
+    }
+    if (selectedChannel?.is_archived) {
+      openNotice(t.ai.postToBoardArchived)
+      return
+    }
+
+    const answer = (answerMsg.content || '').trim()
+    if (!answer) return
+
+    const questionMsg = [...messages.slice(0, answerIndex)]
+      .reverse()
+      .find(m => m.role === 'user')
+    const question = questionMsg?.content?.trim() || ''
+    const questionImageFile = questionMsg?.questionImageFile || null
+
+    const content = [
+      '## AgenticAI Q&A',
+      question ? '\n### 질문\n' + question : '',
+      '\n### 답변\n' + answer,
+    ].filter(Boolean).join('\n')
+
+    setPostingId(answerMsg.id)
+    try {
+      const attachmentIds = questionImageFile ? await uploadQuestionImage(questionImageFile) : []
+      await addPost(selectedChannel.id, {
+        content,
+        attachmentIds,
+        security_level: currentUser?.security_level ?? 0,
+      }, { suppressAlert: true })
+      openNotice(t.ai.postToBoardSuccess, t.ai.postToBoard)
+    } catch (e) {
+      openNotice(t.ai.postToBoardFail(e.message), t.ai.postToBoard)
+    } finally {
+      setPostingId(null)
+    }
   }
 
   const [messages, setMessages] = useState([])
@@ -124,6 +194,7 @@ export default function GroqPanel({ width }) {
       content: fullText,
       time: new Date().toISOString(),
       image: imageUrl,
+      questionImageFile: isImage ? attachedFile : null,
     }
 
     setMessages(prev => [...prev, userMsg])
@@ -203,7 +274,7 @@ export default function GroqPanel({ width }) {
         body: JSON.stringify({
           model: selectedModel,
           messages: [
-            { role: 'system', content: isTranslation ? TRANSLATION_SYSTEM_PROMPT : SYSTEM_PROMPT },
+            { role: 'system', content: isTranslation ? TRANSLATION_SYSTEM_PROMPT : (base64Data ? IMAGE_SYSTEM_PROMPT : SYSTEM_PROMPT) },
             ...historyForApi,
             userApiMessage,
           ],
@@ -299,6 +370,15 @@ export default function GroqPanel({ width }) {
     setAttachedFile(null)
   }
 
+  useEffect(() => {
+    if (!noticeDialog) return
+    function onKey(e) {
+      if (e.key === 'Escape') setNoticeDialog(null)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [noticeDialog])
+
   return (
     <div className="flex-shrink-0 bg-gray-50 border-l border-gray-200 flex flex-col h-full" style={{ width: width ?? 320 }}>
       {/* Panel header */}
@@ -344,7 +424,7 @@ export default function GroqPanel({ width }) {
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto px-3 py-3 flex flex-col gap-3">
-        {messages.map(msg => (
+        {messages.map((msg, idx) => (
           <div key={msg.id} className={`flex flex-col gap-1 ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
             <div className={`flex items-center gap-1.5 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
               {msg.role === 'assistant' ? (
@@ -447,27 +527,42 @@ export default function GroqPanel({ width }) {
                     </div>
                   </div>
                 )}
-                <button
-                  onClick={() => copyToClipboard(msg.id, msg.content)}
-                  title={t.ai.copyAnswer}
-                  className="flex items-center gap-1 px-2 py-1 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-200 transition-all text-[10px]"
-                >
-                  {copiedId === msg.id ? (
-                    <>
-                      <svg className="w-3 h-3 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
-                      <span className="text-blue-500">{t.ai.copied}</span>
-                    </>
-                  ) : (
-                    <>
+                <div className="flex items-center gap-1">
+                  {!String(msg.id).startsWith('init') && Boolean(msg.content?.trim()) && (
+                    <button
+                      onClick={() => registerAnswerToBoard(msg, idx)}
+                      disabled={postingId === msg.id}
+                      title={t.ai.postToBoard}
+                      className="flex items-center gap-1 px-2 py-1 rounded-md text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 transition-all text-[10px] disabled:opacity-50"
+                    >
                       <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                       </svg>
-                      <span>{t.ai.copy}</span>
-                    </>
+                      <span>{postingId === msg.id ? t.ai.postingToBoard : t.ai.postToBoard}</span>
+                    </button>
                   )}
-                </button>
+                  <button
+                    onClick={() => copyToClipboard(msg.id, msg.content)}
+                    title={t.ai.copyAnswer}
+                    className="flex items-center gap-1 px-2 py-1 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-200 transition-all text-[10px]"
+                  >
+                    {copiedId === msg.id ? (
+                      <>
+                        <svg className="w-3 h-3 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                        <span className="text-blue-500">{t.ai.copied}</span>
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                        </svg>
+                        <span>{t.ai.copy}</span>
+                      </>
+                    )}
+                  </button>
+                </div>
               </>
             )}
           </div>
@@ -559,6 +654,23 @@ export default function GroqPanel({ width }) {
         </div>
         <p className="text-gray-300 text-xs mt-1 px-0.5">{t.ai.inputHint}</p>
       </div>
+
+      {noticeDialog && (
+        <div className="fixed inset-0 z-[95] bg-black/40 flex items-center justify-center px-4">
+          <div className="w-full max-w-sm bg-white border border-gray-200 rounded-2xl shadow-2xl p-5">
+            <h3 className="text-gray-900 font-bold text-base">{noticeDialog.title}</h3>
+            <p className="text-gray-700 text-sm mt-2 leading-relaxed whitespace-pre-wrap">{noticeDialog.message}</p>
+            <div className="flex justify-end mt-5">
+              <button
+                onClick={() => setNoticeDialog(null)}
+                className="px-4 py-2 rounded-xl bg-indigo-600 text-white hover:bg-indigo-700 text-sm"
+              >
+                확인
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
