@@ -7,6 +7,7 @@ const { spawn } = require('child_process')
 const db = require('../db')
 const requireAuth = require('../middleware/auth')
 const { getDatabasePath } = require('../databasePaths')
+const { getPythonExecutable } = require('../pythonRuntime')
 
 const CONFIG_PATH = path.resolve(__dirname, '../../config.json')
 const RAG_SERVER_PORT = 5001
@@ -26,7 +27,7 @@ function startRagServer() {
   if (ragServerDisabled) return
   const script = path.resolve(__dirname, '../rag_server.py')
   let fatalImportError = false
-  ragServerProc = spawn('python3', [script, String(RAG_SERVER_PORT)], {
+  ragServerProc = spawn(getPythonExecutable(), [script, String(RAG_SERVER_PORT)], {
     stdio: ['ignore', 'pipe', 'pipe']
   })
   ragServerProc.stdout.on('data', d => {
@@ -104,7 +105,7 @@ function callRagServer(payload) {
 function callPythonSearchDirect(payload) {
   return new Promise((resolve, reject) => {
     const script = path.resolve(__dirname, '../rag_search.py')
-    const proc = spawn('python3', [script], { timeout: 60000 })
+    const proc = spawn(getPythonExecutable(), [script], { timeout: 60000 })
     let out = '', err = ''
     proc.stdin.write(JSON.stringify(payload))
     proc.stdin.end()

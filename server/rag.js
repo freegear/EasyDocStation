@@ -13,6 +13,7 @@ const { spawn }             = require('child_process')
 const db                    = require('./db')
 const { client, isConnected } = require('./cassandra')
 const { getDatabasePath }   = require('./databasePaths')
+const { getPythonExecutable } = require('./pythonRuntime')
 
 const CONFIG_PATH = path.resolve(__dirname, '../config.json')
 
@@ -70,7 +71,7 @@ async function getDocumentPathsForPost(postId) {
 function callPythonTrainer(payload) {
   return new Promise((resolve, reject) => {
     const scriptPath = path.resolve(__dirname, 'rag_train.py')
-    const proc = spawn('python3', [scriptPath], { timeout: 600000 })
+    const proc = spawn(getPythonExecutable(), [scriptPath], { timeout: 600000 })
 
     proc.stdin.write(JSON.stringify(payload))
     proc.stdin.end()
