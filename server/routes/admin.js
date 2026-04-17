@@ -8,7 +8,8 @@ const { execFile } = require('child_process')
 const bcrypt = require('bcryptjs')
 const { client: cassandraClient } = require('../cassandra')
 const { runManualTraining, reloadRagConfig, getState: getRagState } = require('../rag')
-const { getDatabasePath } = require('../databasePaths')
+const { getDatabasePath, resolveAppBasePath } = require('../databasePaths')
+const { getPostgresDatabaseName } = require('../runtimeDbConfig')
 
 // ... (existing code helpers)
 
@@ -152,11 +153,20 @@ function normalizeDirectMessageConfig(dm = {}) {
   }
 }
 
+function getDatabasePathConfig(config = {}) {
+  return {
+    easyDocStationFolder: config.EasyDocStationFolder || resolveAppBasePath(config),
+    postgresqlPath: config['PostgreSQL Database Path'] || 'Database/PoseSQLDB',
+    cassandraPath: config['Cassandra Database Path'] || 'Database/CassandraDB',
+    objectFilePath: config['ObjectFile Path'] || 'Database/ObjectFile',
+    lancedbPath: config['lancedb Database Path'] || 'Database/LanceDB',
+  }
+}
+
 router.get('/stats', async (req, res) => {
   try {
     // 1. PostgreSQL DB Stats
-    // Get database name from connection string or default
-    const dbName = 'easydocstation'
+    const dbName = getPostgresDatabaseName()
     const dbSizeResult = await pool.query('SELECT pg_size_pretty(pg_database_size($1)) as size', [dbName])
     const dbLocResult = await pool.query("SHOW data_directory")
     
@@ -207,6 +217,7 @@ router.get('/stats', async (req, res) => {
         location: lancedbPath,
         size: formatBytes(lancedbSizeBytes),
       },
+      pathConfig: getDatabasePathConfig(config),
       display: {
         imagePreview: config.imagePreview || { width: 512, height: 512 },
         pptPreview: config.pptPreview || { width: 480, height: 270 },
@@ -248,6 +259,7 @@ router.get('/stats', async (req, res) => {
           location: uploadPath,
           size: formatBytes(uploadSizeBytes),
         },
+        pathConfig: getDatabasePathConfig(config),
         display: config.imagePreview || { width: 512, height: 512 },
         maxAttachmentFileSize: config.MaxAttachmentFileSize ?? 100,
         DirectMessage: normalizeDirectMessageConfig(config.DirectMessage || {}),

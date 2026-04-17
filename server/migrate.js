@@ -1,9 +1,8 @@
 const { Pool } = require('pg');
+const { getPostgresPoolOptions } = require('./runtimeDbConfig');
 require('dotenv').config();
 
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-});
+const pool = new Pool(getPostgresPoolOptions());
 
 async function migrate() {
   try {
