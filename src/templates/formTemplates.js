@@ -67,6 +67,7 @@ body { font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif; margin: 
 .editable:hover { background: #eef2ff !important; outline: 1px dashed #818cf8; }
 .editable::after { content: '✏'; font-size: 8px; color: #a5b4fc; position: absolute; top: 1px; right: 2px; opacity: 0; }
 .editable:hover::after { opacity: 1; }
+.doc-no-readonly { background: #f3f4f6; color: #374151; font-weight: 600; letter-spacing: 0.03em; }
 
 /* 팝업 */
 #_popup { position: fixed; background: #fff; border: 2px solid #4f46e5; border-radius: 8px; padding: 7px 10px; box-shadow: 0 6px 20px rgba(79,70,229,0.2); z-index: 9999; display: flex; gap: 6px; align-items: center; }
@@ -220,7 +221,7 @@ body { font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif; margin: 
 </div>
 
 <div class="no-print" style="text-align:center;margin-top:20px;">
-  <button onclick="window.print()" style="padding:10px 24px;cursor:pointer;border:1px solid #aaa;border-radius:4px;background:#fff;font-size:13px;">PDF로 저장 / 인쇄하기</button>
+  <button id="print-btn" onclick="window.printExpense()" style="padding:10px 24px;cursor:pointer;border:1px solid #aaa;border-radius:4px;background:#fff;font-size:13px;">PDF로 저장 / 인쇄하기</button>
 </div>
 
 <script>
@@ -435,6 +436,10 @@ body { font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif; margin: 
   <!-- 기본 정보 -->
   <table class="info-table">
     <tr>
+      <th>문서 번호</th>
+      <td colspan="3" class="doc-no-readonly" id="trip-doc-no"> </td>
+    </tr>
+    <tr>
       <th>성 명</th>
       <td class="editable">{{USER_NAME}}</td>
       <th>소 속</th>
@@ -542,7 +547,7 @@ body { font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif; margin: 
 </div>
 
 <div class="no-print" style="text-align:center;margin-top:24px;">
-  <button onclick="window.print()" style="padding:10px 24px;cursor:pointer;border:1px solid #aaa;border-radius:4px;background:#fff;font-size:13px;">PDF로 저장 / 인쇄하기</button>
+  <button id="print-btn" onclick="window.printExpense()" style="padding:10px 24px;cursor:pointer;border:1px solid #aaa;border-radius:4px;background:#fff;font-size:13px;">PDF로 저장 / 인쇄하기</button>
 </div>
 
 <script>
@@ -565,6 +570,11 @@ body { font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif; margin: 
 
   var reportDate = document.getElementById('report-date');
   if (reportDate) reportDate.textContent = fmt(today);
+  var tripDocNo = document.getElementById('trip-doc-no');
+  if (tripDocNo && !tripDocNo.textContent.trim() && window.TRIP_DOC_NO) {
+    tripDocNo.textContent = window.TRIP_DOC_NO;
+    window.parent.postMessage({ type: 'templateFieldChanged', field: 'trip-doc-no', value: window.TRIP_DOC_NO }, '*');
+  }
 
   /* 팝업 */
   function closePopup() {
@@ -1041,6 +1051,50 @@ h1 { text-align: center; font-size: 28px; letter-spacing: 12px; margin-bottom: 2
       attachments:    attachmentImages,
     };
     parent.postMessage({ type: 'expenseSave', data: data }, '*');
+  }
+
+  // ── 인쇄 버튼 (지출결의서 전용) ───────────────────────────────
+  // 첨부 이미지 로딩을 짧게 대기한 뒤 인쇄해서 누락 가능성을 줄인다.
+  window.printExpense = function() {
+    closePopup();
+    var btn = document.getElementById('print-btn');
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = '인쇄 준비 중...';
+    }
+
+    function runPrint() {
+      setTimeout(function() {
+        window.print();
+        if (btn) {
+          btn.disabled = false;
+          btn.textContent = 'PDF로 저장 / 인쇄하기';
+        }
+      }, 40);
+    }
+
+    var waitImgs = Array.from(document.querySelectorAll('.attachment-pages-wrap img'))
+      .filter(function(img) { return !img.complete; });
+
+    if (waitImgs.length === 0) {
+      runPrint();
+      return;
+    }
+
+    var remain = waitImgs.length;
+    waitImgs.forEach(function(img) {
+      function done() {
+        remain -= 1;
+        if (remain <= 0) runPrint();
+      }
+      img.addEventListener('load', done, { once: true });
+      img.addEventListener('error', done, { once: true });
+    });
+
+    // 네트워크 상태가 느릴 때도 인쇄 동작이 막히지 않게 타임아웃 보장
+    setTimeout(function() {
+      if (remain > 0) runPrint();
+    }, 1800);
   }
 
   // ── OCR: 이미지 → Ollama gemma4:e4b 호출 ───────────────────
