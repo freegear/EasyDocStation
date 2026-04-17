@@ -20,6 +20,9 @@ async function applyBaseSchema(client) {
       console.warn('⚠️ pgcrypto extension 생성 권한이 없어 건너뜁니다:', e.message)
     }
   } catch (err) {
+    if (err && err.code === '42501') {
+      console.error('권한 복구 가이드: sudo -u postgres psql -d <DB명> -c "GRANT USAGE, CREATE ON SCHEMA public TO <DB유저>; ALTER SCHEMA public OWNER TO <DB유저>;"')
+    }
     console.error('❌ Base schema apply error:', err.message)
     throw err
   }
