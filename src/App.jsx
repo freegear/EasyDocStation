@@ -20,7 +20,8 @@ function MainLayout() {
   const [showDM, setShowDM] = useState(false)
   const [activeDMConv, setActiveDMConv] = useState(null)
   const [showNewDM, setShowNewDM] = useState(false)
-  const { isSearchMode } = useChat()
+  const { isSearchMode, teams, navigateToPost } = useChat()
+  const deepLinkHandledRef = useRef(false)
 
   const [groqWidth, setGroqWidth] = useState(320)
   const [resizingGroq, setResizingGroq] = useState(false)
@@ -67,6 +68,31 @@ function MainLayout() {
     // 짧은 딜레이 후 초기화 (ChatArea가 받은 후)
     setTimeout(() => setSearchSelectedPost(null), 500)
   }
+
+  useEffect(() => {
+    if (deepLinkHandledRef.current) return
+    if (!Array.isArray(teams) || teams.length === 0) return
+
+    const params = new URLSearchParams(window.location.search)
+    const channelId = params.get('channelId')
+    const postId = params.get('postId')
+
+    deepLinkHandledRef.current = true
+    if (!channelId || !postId) return
+
+    setShowCalendar(false)
+    setShowDM(false)
+    setActiveDMConv(null)
+
+    navigateToPost(channelId, postId)
+      .finally(() => {
+        const url = new URL(window.location.href)
+        url.searchParams.delete('channelId')
+        url.searchParams.delete('postId')
+        const next = `${url.pathname}${url.search}${url.hash}`
+        window.history.replaceState({}, '', next)
+      })
+  }, [teams, navigateToPost])
 
   return (
     <div className="flex flex-col h-screen bg-gray-50 overflow-hidden">

@@ -643,6 +643,7 @@ function AttachmentList({ attachments, compact = false }) {
 // ─── Template renderer (HTML iframe) ──────────────────────────
 // 문서번호 캐시: postId별로 한 번만 발급 (컴포넌트 재마운트 시에도 재사용)
 const _expenseDocNoCache = {}
+const _tripDocNoCache = {}
 
 function TemplateRenderer({ html, postId, onContentChange, onSave }) {
   const iframeRef = useRef(null)
@@ -654,6 +655,8 @@ function TemplateRenderer({ html, postId, onContentChange, onSave }) {
   const [savedAttachments, setSavedAttachments] = useState([])
   const [savedFormData, setSavedFormData] = useState(null)
   const [reservedDocNo, setReservedDocNo] = useState(() => _expenseDocNoCache[postId] || null)
+  const [reservedTripDocNo, setReservedTripDocNo] = useState(() => _tripDocNoCache[postId] || null)
+  const isTripTemplate = html.includes('<title>출장보고서')
 
   useEffect(() => {
     if (!postId) return
@@ -678,8 +681,23 @@ function TemplateRenderer({ html, postId, onContentChange, onSave }) {
       .catch(() => { setSavedAttachments([]); setSavedFormData(null) })
   }, [postId])
 
+  useEffect(() => {
+    if (!postId || !isTripTemplate) return
+    if (_tripDocNoCache[postId]) {
+      setReservedTripDocNo(_tripDocNoCache[postId])
+      return
+    }
+    apiFetch('/trip/next-doc-no')
+      .then(r => {
+        _tripDocNoCache[postId] = r.docNo
+        setReservedTripDocNo(r.docNo)
+      })
+      .catch(() => {})
+  }, [postId, isTripTemplate])
+
   const safePostId = (postId || '').replace(/'/g, "\\'")
   const safeDocNo  = (reservedDocNo || '').replace(/'/g, "\\'")
+  const safeTripDocNo = (reservedTripDocNo || '').replace(/'/g, "\\'")
   const attachJson  = JSON.stringify(savedAttachments)
   const formJson    = JSON.stringify(savedFormData)
   const resolvedHtml = html
@@ -687,7 +705,7 @@ function TemplateRenderer({ html, postId, onContentChange, onSave }) {
     .replace(/\{\{USER_EMAIL\}\}/g, userEmail)
     .replace(/\{\{SEAL_URL\}\}/g, sealUrl)
     .replace(/\{\{LOGO_URL\}\}/g, logoUrl)
-    .replace('</head>', `<script>var POST_ID='${safePostId}';var EXPENSE_DOC_NO='${safeDocNo}';var SAVED_ATTACHMENTS=${attachJson};var SAVED_FORM_DATA=${formJson};</script></head>`)
+    .replace('</head>', `<script>var POST_ID='${safePostId}';var EXPENSE_DOC_NO='${safeDocNo}';var TRIP_DOC_NO='${safeTripDocNo}';var SAVED_ATTACHMENTS=${attachJson};var SAVED_FORM_DATA=${formJson};</script></head>`)
 
   useEffect(() => {
     function handleMessage(e) {
@@ -1243,6 +1261,10 @@ function PostDetail({ post, channelId, onClose }) {
   const [comment, setComment] = useState('')
   const [viewed, setViewed] = useState(false)
   const [showManageModal, setShowManageModal] = useState(false)
+  const [showSendToDMModal, setShowSendToDMModal] = useState(false)
+  const [dmConversations, setDmConversations] = useState([])
+  const [loadingDMConversations, setLoadingDMConversations] = useState(false)
+  const [sendingToDMId, setSendingToDMId] = useState(null)
   
   // Post Edit State
   const [isEditingPost, setIsEditingPost] = useState(false)
@@ -1328,6 +1350,33 @@ function PostDetail({ post, channelId, onClose }) {
   const isOwn = isSiteAdmin || freshPost.author?.name === currentUser?.name
   const maxSelectableLevel = isSiteAdmin ? 4 : (currentUser?.security_level ?? 0)
 
+  function extractQuotationDocNo(content = '') {
+    const m = content.match(/data-type=['"]no['"][^>]*>([^<]*)</i)
+    return (m?.[1] || '').trim()
+  }
+
+  function isQuotationTemplate(content = '') {
+    return isTemplateContent(content) && /<title>\s*견적서/i.test(content)
+  }
+
+  function extractExpenseDocNo(content = '') {
+    const m = content.match(/data-field=['"]expense-doc-no['"][^>]*>([^<]*)</i)
+    return (m?.[1] || '').trim()
+  }
+
+  function isExpenseTemplate(content = '') {
+    return isTemplateContent(content) && /data-field=['"]expense-doc-no['"]/i.test(content)
+  }
+
+  function extractTripDocNo(content = '') {
+    const m = content.match(/id=['"]trip-doc-no['"][^>]*>([^<]*)</i)
+    return (m?.[1] || '').trim()
+  }
+
+  function isTripTemplate(content = '') {
+    return isTemplateContent(content) && /id=['"]trip-doc-no['"]/i.test(content)
+  }
+
   async function handleComment(e) {
     e.preventDefault()
     if ((!comment.trim() && files.length === 0) || !currentUser) return
@@ -1386,6 +1435,59 @@ function PostDetail({ post, channelId, onClose }) {
     if (window.confirm(t.chat.deletePostConfirm)) { deletePost(channelId, post.id); onClose() }
   }
 
+  async function openSendToDMModal() {
+    setShowSendToDMModal(true)
+    setLoadingDMConversations(true)
+    try {
+      const data = await apiFetch('/dm/conversations')
+      setDmConversations(Array.isArray(data) ? data : [])
+    } catch (err) {
+      alert(err.message)
+      setShowSendToDMModal(false)
+    } finally {
+      setLoadingDMConversations(false)
+    }
+  }
+
+  async function handleSendPostLinkToDM(conv) {
+    if (!conv?.id || sendingToDMId) return
+    setSendingToDMId(conv.id)
+    try {
+      const defaultTitleLine = (freshPost.content || '')
+        .split('\n')
+        .map(v => v.trim())
+        .find(Boolean) || `${freshPost.author?.name || ''} 게시글`
+      const quoteDocNo = isQuotationTemplate(freshPost.content)
+        ? extractQuotationDocNo(freshPost.content)
+        : ''
+      const expenseDocNo = isExpenseTemplate(freshPost.content)
+        ? extractExpenseDocNo(freshPost.content)
+        : ''
+      const tripDocNo = isTripTemplate(freshPost.content)
+        ? extractTripDocNo(freshPost.content)
+        : ''
+      const titleLine = quoteDocNo || expenseDocNo || tripDocNo || defaultTitleLine
+      const postLink = `${window.location.origin}/?channelId=${encodeURIComponent(channelId)}&postId=${encodeURIComponent(post.id)}`
+      const message = [
+        '[게시글 링크]',
+        `제목: ${titleLine.slice(0, 120)}`,
+        `채널: ${selectedChannel?.name || channelId}`,
+        postLink,
+      ].join('\n')
+
+      await apiFetch(`/dm/conversations/${conv.id}/messages`, {
+        method: 'POST',
+        body: JSON.stringify({ content: message, attachments: [] }),
+      })
+      alert(t.chat.sendToDMSuccess)
+      setShowSendToDMModal(false)
+    } catch (err) {
+      alert(err.message)
+    } finally {
+      setSendingToDMId(null)
+    }
+  }
+
   // Handlers for Comment Edit/Delete
   function startCommentEdit(c) {
     setEditingCommentId(c.id)
@@ -1419,6 +1521,12 @@ function PostDetail({ post, channelId, onClose }) {
               <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
               {t.chat.delete}
             </button>
+            <button onClick={openSendToDMModal} className="flex items-center gap-1 text-indigo-600 hover:text-indigo-700 text-xs transition-colors">
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+              </svg>
+              {t.chat.sendToDM}
+            </button>
           </div>
         )}
         {isAdmin && (
@@ -1449,6 +1557,44 @@ function PostDetail({ post, channelId, onClose }) {
           onClose={() => setShowManageModal(false)} 
           onSave={() => refreshTeams()}
         />
+      )}
+
+      {showSendToDMModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="bg-white rounded-2xl shadow-2xl p-5 w-[420px] max-w-[92vw]">
+            <h3 className="text-gray-900 font-bold text-base mb-2">{t.chat.sendToDMTitle}</h3>
+            <p className="text-gray-400 text-xs mb-3">{t.chat.sendToDMHint}</p>
+            <div className="max-h-64 overflow-y-auto border border-gray-200 rounded-xl p-2">
+              {loadingDMConversations ? (
+                <p className="text-gray-400 text-sm text-center py-6">{t.admin.loading}</p>
+              ) : dmConversations.length === 0 ? (
+                <p className="text-gray-400 text-sm text-center py-6">{t.search.noResults}</p>
+              ) : (
+                dmConversations.map(conv => (
+                  <button
+                    key={conv.id}
+                    onClick={() => handleSendPostLinkToDM(conv)}
+                    disabled={sendingToDMId === conv.id}
+                    className="w-full text-left px-3 py-2 rounded-lg hover:bg-indigo-50 disabled:opacity-50"
+                  >
+                    <p className="text-sm text-gray-800 font-semibold truncate">{conv.name || '대화'}</p>
+                    <p className="text-[11px] text-gray-400 truncate">
+                      {(conv.participant_details || []).map(p => p.display_name || p.username).filter(Boolean).join(', ')}
+                    </p>
+                  </button>
+                ))
+              )}
+            </div>
+            <div className="flex justify-end mt-3">
+              <button
+                onClick={() => setShowSendToDMModal(false)}
+                className="px-4 py-2 rounded-xl text-sm text-gray-500 hover:bg-gray-100"
+              >
+                {t.chat.cancel}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       <div className="flex-1 overflow-y-auto overflow-x-hidden px-6 py-6">
@@ -1567,6 +1713,11 @@ function PostDetail({ post, channelId, onClose }) {
                     } else if (field === 'expense-department') {
                       updatedContent = updatedContent.replace(
                         /(<td[^>]*data-field="expense-department"[^>]*>)[^<]*(<\/td>)/,
+                        `$1${value}$2`
+                      )
+                    } else if (field === 'trip-doc-no') {
+                      updatedContent = updatedContent.replace(
+                        /(<td[^>]*id="trip-doc-no"[^>]*>)[^<]*(<\/td>)/,
                         `$1${value}$2`
                       )
                     }

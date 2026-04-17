@@ -39,6 +39,38 @@ function formatTime(iso) {
   return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
 }
 
+function renderTextWithLinks(text, isMine) {
+  const safeText = text || ''
+  const lines = safeText.split('\n')
+  const urlRegex = /(https?:\/\/[^\s]+)/g
+  const isUrl = (value) => /^https?:\/\/\S+$/.test(value)
+  const linkClass = isMine ? 'underline text-white/95' : 'underline text-indigo-600'
+
+  return lines.map((line, lineIdx) => {
+    const parts = line.split(urlRegex)
+    return (
+      <span key={`line-${lineIdx}`}>
+        {parts.map((part, idx) => {
+          if (!part) return null
+          if (isUrl(part)) {
+            return (
+              <a
+                key={`part-${lineIdx}-${idx}`}
+                href={part}
+                className={linkClass}
+              >
+                {part}
+              </a>
+            )
+          }
+          return <span key={`part-${lineIdx}-${idx}`}>{part}</span>
+        })}
+        {lineIdx < lines.length - 1 && <br />}
+      </span>
+    )
+  })
+}
+
 function isMessageEditable(createdAtIso, nowMs = Date.now()) {
   if (!createdAtIso) return false
   const createdAtMs = new Date(createdAtIso).getTime()
@@ -463,7 +495,7 @@ function MessageBubble({
                     {deletedMessageLabel}
                   </p>
                 ) : (
-                  msg.content && <p className="whitespace-pre-wrap">{msg.content}</p>
+                  msg.content && <p className="whitespace-pre-wrap break-words">{renderTextWithLinks(msg.content, isMine)}</p>
                 )}
                 {msg.attachments?.length > 0 && (
                   <div className={`flex flex-col gap-1 ${msg.content ? 'mt-2' : ''}`}>

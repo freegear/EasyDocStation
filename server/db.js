@@ -130,6 +130,13 @@ async function initDb() {
           last_seq INTEGER NOT NULL DEFAULT 0
         );
       `)
+      // trip_doc_counter 테이블 생성 (날짜별 순번 관리)
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS trip_doc_counter (
+          date_key CHAR(8) PRIMARY KEY,
+          last_seq INTEGER NOT NULL DEFAULT 0
+        );
+      `)
       // comments 테이블 생성 (없는 경우)
       await client.query(`
         CREATE TABLE IF NOT EXISTS comments (
