@@ -1633,6 +1633,7 @@ function PostDetail({ post, channelId, onClose }) {
 
   const [commentSecurityLevel, setCommentSecurityLevel] = useState(Math.min(1, currentUser?.security_level ?? 0))
   const [commentErrorDialog, setCommentErrorDialog] = useState(null)
+  const [dmNoticeDialog, setDmNoticeDialog] = useState(null)
 
   const [files, setFiles] = useState([])
   const [dragOver, setDragOver] = useState(false)
@@ -1837,7 +1838,7 @@ function PostDetail({ post, channelId, onClose }) {
         method: 'POST',
         body: JSON.stringify({ content: message, attachments: [] }),
       })
-      alert(t.chat.sendToDMSuccess)
+      setDmNoticeDialog(t.chat.sendToDMSuccess)
       setShowSendToDMModal(false)
     } catch (err) {
       alert(err.message)
@@ -1991,6 +1992,22 @@ function PostDetail({ post, channelId, onClose }) {
             <div className="flex justify-end mt-5">
               <button
                 onClick={() => setCommentErrorDialog(null)}
+                className="px-4 py-2 rounded-xl text-sm text-white bg-indigo-600 hover:bg-indigo-700"
+              >
+                {t.chat.ok}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {dmNoticeDialog && (
+        <div className="fixed inset-0 z-[95] flex items-center justify-center bg-black/45 px-4">
+          <div className="w-full max-w-sm rounded-2xl bg-white border border-gray-200 shadow-2xl p-5">
+            <h3 className="text-gray-900 font-bold text-base">알림</h3>
+            <p className="text-gray-600 text-sm mt-2 whitespace-pre-wrap leading-relaxed">{dmNoticeDialog}</p>
+            <div className="flex justify-end mt-5">
+              <button
+                onClick={() => setDmNoticeDialog(null)}
                 className="px-4 py-2 rounded-xl text-sm text-white bg-indigo-600 hover:bg-indigo-700"
               >
                 {t.chat.ok}
