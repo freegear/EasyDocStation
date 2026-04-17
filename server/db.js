@@ -1,13 +1,36 @@
 const { Pool } = require('pg')
+const fs = require('fs')
+const path = require('path')
 const { getPostgresPoolOptions } = require('./runtimeDbConfig')
 
 const pool = new Pool(getPostgresPoolOptions())
+
+const SCHEMA_PATH = path.resolve(__dirname, './schema.sql')
+
+async function applyBaseSchema(client) {
+  try {
+    if (!fs.existsSync(SCHEMA_PATH)) return
+    let schemaSql = fs.readFileSync(SCHEMA_PATH, 'utf8')
+    // Extension 권한이 없는 환경에서도 나머지 테이블 생성이 진행되도록 분리 처리
+    schemaSql = schemaSql.replace(/CREATE EXTENSION IF NOT EXISTS "pgcrypto";/gi, '')
+    await client.query(schemaSql)
+    try {
+      await client.query('CREATE EXTENSION IF NOT EXISTS "pgcrypto";')
+    } catch (e) {
+      console.warn('⚠️ pgcrypto extension 생성 권한이 없어 건너뜁니다:', e.message)
+    }
+  } catch (err) {
+    console.error('❌ Base schema apply error:', err.message)
+    throw err
+  }
+}
 
 // Auto-migration on startup
 async function initDb() {
   try {
     const client = await pool.connect()
     try {
+      await applyBaseSchema(client)
       // users 테이블 image_url 컬럼 추가
       await client.query(`
         DO $$
@@ -106,7 +129,12 @@ async function initDb() {
       await client.query(`
         DO $$
         BEGIN
-          IF (SELECT data_type FROM information_schema.columns
+          IF EXISTS (
+              SELECT 1
+              FROM pg_proc
+              WHERE proname = 'gen_random_uuid'
+            )
+            AND (SELECT data_type FROM information_schema.columns
               WHERE table_name='calendar_events' AND column_name='id') = 'integer' THEN
             ALTER TABLE calendar_events DROP CONSTRAINT calendar_events_pkey;
             ALTER TABLE calendar_events ALTER COLUMN id DROP DEFAULT;

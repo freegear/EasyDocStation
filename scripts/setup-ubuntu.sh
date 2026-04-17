@@ -52,6 +52,9 @@ SELECT 'CREATE DATABASE ${DB_NAME} OWNER ${DB_USER}'
 WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = '${DB_NAME}')\gexec
 SQL
 
+echo "[3-1/8] PostgreSQL 스키마 적용"
+PGPASSWORD="${DB_PASS}" psql -h localhost -U "${DB_USER}" -d "${DB_NAME}" -f "$ROOT_DIR/server/schema.sql" >/dev/null
+
 if [[ "$INSTALL_CASSANDRA" == "1" ]]; then
   echo "[4/8] Cassandra 설치/기동"
   if ! command -v cassandra >/dev/null 2>&1; then
