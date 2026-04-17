@@ -752,6 +752,7 @@ translations.ja = {
   },
   chat: {
     selectChannel: 'チャンネルを選択してください',
+    documentList: 'ドキュメント一覧',
     messagePlaceholder: 'メッセージを入力... (Shift+Enterで改行)',
     commentPlaceholder: 'コメントを入力...',
     attachFile: 'ファイル添付',

@@ -349,7 +349,7 @@ export default function Sidebar({ showCalendar, onToggleCalendar, onCloseCalenda
 
       {/* Version */}
       <div className="px-4 py-2 border-t border-gray-100">
-        <p className="text-sky-300 text-[10px] text-center tracking-widest">
+        <p className="text-blue-800 font-extrabold text-xs text-center tracking-widest">
           EasyStation {appVersion && `v${appVersion}`}
         </p>
       </div>
