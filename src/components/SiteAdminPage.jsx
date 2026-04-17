@@ -4,8 +4,10 @@ import { ROLE_LABELS, ROLE_BADGE, ROLE_OPTIONS } from '../constants/roles'
 import { useAuth } from '../contexts/AuthContext'
 import { useT } from '../i18n/useT'
 import GroqPanel from './GroqPanel'
+import ConfirmDialog from './ConfirmDialog'
 
 // ─── helpers ─────────────────────────────────────────────────
+const USERNAME_PATTERN = /^[A-Za-z][A-Za-z0-9_.]*$/
 
 function formatDate(iso) {
   if (!iso) return '-'
@@ -47,6 +49,7 @@ function UserFormModal({ user, onClose, onSave, teams = [] }) {
     name: user?.name ?? '',
     display_name: user?.display_name ?? '',
     email: user?.email ?? '',
+    phone: user?.phone ?? '',
     role: user?.role ?? 'user',
     password: '',
     confirmPassword: '',
@@ -96,6 +99,16 @@ function UserFormModal({ user, onClose, onSave, teams = [] }) {
   async function handleSubmit(e) {
     e.preventDefault()
     setError('')
+    let usernameToSave = form.username
+
+    if (!isEdit) {
+      const normalizedUsername = form.username.trim()
+      if (!USERNAME_PATTERN.test(normalizedUsername)) {
+        setError(t.admin.usernameRule)
+        return
+      }
+      usernameToSave = normalizedUsername
+    }
 
     if (form.password || !isEdit) {
       if (form.password.length < 6) {
@@ -113,7 +126,7 @@ function UserFormModal({ user, onClose, onSave, teams = [] }) {
       let result
       if (isEdit) {
         const body = {
-          name: form.name, display_name: form.display_name, email: form.email, role: form.role,
+          name: form.name, display_name: form.display_name, email: form.email, phone: form.phone, role: form.role,
           is_active: form.is_active, image_url: form.image_url, stamp_picture: form.stamp_picture || null,
           department_id: deptDisabled ? null : (form.department_id || null),
           security_level: form.security_level,
@@ -124,7 +137,7 @@ function UserFormModal({ user, onClose, onSave, teams = [] }) {
         result = await apiFetch('/users', {
           method: 'POST',
           body: JSON.stringify({
-            username: form.username, name: form.name, display_name: form.display_name, email: form.email,
+            username: usernameToSave, name: form.name, display_name: form.display_name, email: form.email, phone: form.phone,
             password: form.password, role: form.role, image_url: form.image_url,
             stamp_picture: form.stamp_picture || null,
             department_id: deptDisabled ? null : (form.department_id || null),
@@ -239,6 +252,9 @@ function UserFormModal({ user, onClose, onSave, teams = [] }) {
 
           {/* 이메일 */}
           <FormField label={t.admin.labelEmail} type="email" value={form.email} onChange={v => set('email', v)} placeholder="user@example.com" required />
+
+          {/* 전화번호 */}
+          <FormField label={t.admin.labelPhone} value={form.phone} onChange={v => set('phone', v)} placeholder={t.admin.placeholderPhone} />
 
           {/* 비밀번호 */}
           <FormField
@@ -419,6 +435,8 @@ export default function SiteAdminPage({ onClose }) {
   const companyLogoInputRef = useRef(null)
   const [savingConfig, setSavingConfig] = useState(false)
   const [trainingStatus, setTrainingStatus] = useState(null) // 'running', 'done', null
+  const [showRagTrainingConfirm, setShowRagTrainingConfirm] = useState(false)
+  const [pendingDeleteUser, setPendingDeleteUser] = useState(null)
   const [resetConfirmation, setResetConfirmation] = useState('')
   const [executingReset, setExecutingReset] = useState(false)
   const [teams, setTeams] = useState([])
@@ -509,6 +527,13 @@ export default function SiteAdminPage({ onClose }) {
   useEffect(() => {
     if (activeTab === 'db' || activeTab === 'display' || activeTab === 'rag' || activeTab === 'agenticai' || activeTab === 'company') loadDbStats()
   }, [activeTab])
+  useEffect(() => {
+    function handleEscClose(e) {
+      if (e.key === 'Escape') onClose?.()
+    }
+    window.addEventListener('keydown', handleEscClose)
+    return () => window.removeEventListener('keydown', handleEscClose)
+  }, [onClose])
 
   function handleSave(saved) {
     setUsers(prev => {
@@ -521,12 +546,18 @@ export default function SiteAdminPage({ onClose }) {
 
   async function handleDelete(user) {
     if (user.id === currentUser.id) return
-    if (!window.confirm(t.admin.deleteConfirm(user.name))) return
+    setPendingDeleteUser(user)
+  }
+
+  async function confirmDeleteUser() {
+    if (!pendingDeleteUser) return
     try {
-      await apiFetch(`/users/${user.id}`, { method: 'DELETE' })
-      setUsers(prev => prev.filter(u => u.id !== user.id))
+      await apiFetch(`/users/${pendingDeleteUser.id}`, { method: 'DELETE' })
+      setUsers(prev => prev.filter(u => u.id !== pendingDeleteUser.id))
     } catch (err) {
       alert(err.message)
+    } finally {
+      setPendingDeleteUser(null)
     }
   }
 
@@ -568,7 +599,7 @@ export default function SiteAdminPage({ onClose }) {
         configData['lancedb Database Path'] = lancedbPath
         configData['MaxAttachmentFileSize'] = parseInt(maxAttachmentFileSize) || 100
         configData['DirectMessage'] = {
-          '보존 기한': Math.min(90, Math.max(5, parseInt(dmRetentionDays) || 30)),
+          '보존 기한': Math.min(90, Math.max(1, parseInt(dmRetentionDays) || 30)),
           '무제한보관': dmUnlimited
         }
       } else if (activeTab === 'rag') {
@@ -627,7 +658,10 @@ export default function SiteAdminPage({ onClose }) {
   }
 
   async function handleStartTraining() {
-    if (!window.confirm(t.admin.ragTrainingConfirm)) return
+    setShowRagTrainingConfirm(true)
+  }
+
+  async function confirmStartTraining() {
     setTrainingStatus('running')
     try {
       // 실제 API 호출 시뮬레이션 또는 연동
@@ -637,6 +671,7 @@ export default function SiteAdminPage({ onClose }) {
       alert(t.admin.ragTrainingFailed(err.message))
     } finally {
       setTrainingStatus(null)
+      setShowRagTrainingConfirm(false)
     }
   }
 
@@ -1152,7 +1187,7 @@ export default function SiteAdminPage({ onClose }) {
                         <div className="flex items-center gap-3">
                           <input
                             type="number"
-                            min="5"
+                            min="1"
                             max="90"
                             disabled={dmUnlimited}
                             value={dmRetentionDays}
@@ -1161,7 +1196,7 @@ export default function SiteAdminPage({ onClose }) {
                           />
                           <span className="text-gray-400 text-sm font-semibold">일</span>
                         </div>
-                        <p className="text-gray-300 text-[10px] mt-1.5">최소 5일 ~ 최대 90일</p>
+                        <p className="text-gray-300 text-[10px] mt-1.5">최소 1일 ~ 최대 90일</p>
                       </div>
                       <label className="flex items-center gap-2 cursor-pointer">
                         <input
@@ -1874,6 +1909,28 @@ export default function SiteAdminPage({ onClose }) {
           onClose={() => { setShowForm(false); setEditUser(null) }}
           onSave={handleSave}
           teams={teams}
+        />
+      )}
+      {pendingDeleteUser && (
+        <ConfirmDialog
+          title={t.admin.delete}
+          message={t.admin.deleteConfirm(pendingDeleteUser.name)}
+          confirmText={t.admin.delete}
+          cancelText={t.admin.cancel}
+          danger
+          onConfirm={confirmDeleteUser}
+          onCancel={() => setPendingDeleteUser(null)}
+        />
+      )}
+      {showRagTrainingConfirm && (
+        <ConfirmDialog
+          title={t.admin.ragStartNow}
+          message={t.admin.ragTrainingConfirm}
+          confirmText={t.admin.ragStartNow}
+          cancelText={t.admin.cancel}
+          loading={trainingStatus === 'running'}
+          onConfirm={confirmStartTraining}
+          onCancel={() => setShowRagTrainingConfirm(false)}
         />
       )}
     </div>

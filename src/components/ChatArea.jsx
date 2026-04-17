@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { apiFetch, getToken } from '../lib/api'
 import config from '../config.json'
 import ChannelManageModal from './ChannelManageModal'
+import ConfirmDialog from './ConfirmDialog'
 import { useT } from '../i18n/useT'
 import { isTemplateContent, FORM_TEMPLATES } from '../templates/formTemplates'
 
@@ -733,7 +734,115 @@ function TemplateRenderer({ html, postId, onContentChange, onSave }) {
   function handleLoad() {
     try {
       const doc = iframeRef.current?.contentDocument
+      const win = iframeRef.current?.contentWindow
       if (doc) {
+        // 기존 저장 문서(구버전 템플릿)도 동일한 인쇄 동작을 사용하도록 강제
+        if (win) {
+          if (!doc.querySelector('style[data-print-guard="true"]')) {
+            const guardStyle = doc.createElement('style')
+            guardStyle.setAttribute('data-print-guard', 'true')
+            guardStyle.textContent = `
+              @media print {
+                .no-print, .ocr-bar, button, .btn, .actions, .template-actions {
+                  display: none !important;
+                }
+              }
+            `
+            doc.head?.appendChild(guardStyle)
+          }
+
+          win.printExpense = function printExpenseSafe() {
+            const styleText = Array.from(doc.querySelectorAll('style'))
+              .map(node => node.textContent || '')
+              .join('\n')
+
+            const root =
+              doc.querySelector('.wrap') ||
+              doc.querySelector('#paper') ||
+              doc.body
+
+            const rootClone = root?.cloneNode(true)
+            if (rootClone) {
+              rootClone.querySelectorAll('.no-print, .ocr-bar, button, .btn, .actions, .template-actions')
+                .forEach(el => el.remove())
+            }
+
+            const attachments = doc.querySelector('#attachment-pages')?.cloneNode(true)
+            if (attachments) {
+              attachments.querySelectorAll('.no-print, .ocr-bar, button, .btn, .actions, .template-actions')
+                .forEach(el => el.remove())
+            }
+
+            const printableHtml = `
+              <!doctype html>
+              <html>
+                <head>
+                  <meta charset="utf-8" />
+                  <title>Print</title>
+                  <style>
+                    ${styleText}
+                    @media print {
+                      .no-print, .ocr-bar, button, .btn, .actions, .template-actions {
+                        display: none !important;
+                      }
+                    }
+                  </style>
+                </head>
+                <body>
+                  ${rootClone?.outerHTML || ''}
+                  ${attachments?.outerHTML || ''}
+                </body>
+              </html>
+            `
+
+            const printWin = win.open('', '_blank', 'noopener,noreferrer,width=1100,height=900')
+            if (!printWin) {
+              win.print()
+              return
+            }
+
+            printWin.document.open()
+            printWin.document.write(printableHtml)
+            printWin.document.close()
+
+            const runPrint = () => {
+              try {
+                printWin.focus()
+                printWin.print()
+              } catch (_) {}
+            }
+
+            if (printWin.document.readyState === 'complete') {
+              setTimeout(runPrint, 120)
+            } else {
+              printWin.onload = () => setTimeout(runPrint, 120)
+            }
+          }
+
+          const printTriggers = Array.from(doc.querySelectorAll('button, a')).filter(node => {
+            const text = (node.textContent || '').trim()
+            const id = node.id || ''
+            const onclick = node.getAttribute('onclick') || ''
+            return (
+              /print/i.test(id) ||
+              /print/i.test(onclick) ||
+              /인쇄/.test(text) ||
+              /PDF/.test(text)
+            )
+          })
+
+          printTriggers.forEach(node => {
+            if (node.dataset.printBound === 'true') return
+            node.dataset.printBound = 'true'
+            node.removeAttribute('onclick')
+            node.addEventListener('click', (e) => {
+              e.preventDefault()
+              e.stopPropagation()
+              win.printExpense()
+            })
+          })
+        }
+
         const h = doc.documentElement.scrollHeight
         iframeRef.current.style.height = h + 'px'
       }
@@ -1069,7 +1178,7 @@ function ComposeBar({ onSubmit, isArchived }) {
 
 // ─── Post List ────────────────────────────────────────────────
 
-function PostList({ posts, onSelect, onSubmit, selectedPostId }) {
+function PostList({ posts, onSelect, onSubmit, selectedPostId, onOpenDocumentList }) {
   const t = useT()
   const { selectedChannel, selectedTeam, refreshTeams } = useChat()
   const pinnedPosts = posts.filter(p => p.pinned)
@@ -1102,18 +1211,30 @@ function PostList({ posts, onSelect, onSubmit, selectedPostId }) {
 
         <div className="flex-1" />
 
-        {isAdmin && (
+        <div className="flex items-center gap-2">
           <button
-            onClick={() => setShowManageModal(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-50 border border-indigo-200 text-indigo-600 hover:bg-indigo-100 transition-all text-xs font-semibold"
+            onClick={onOpenDocumentList}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-sky-50 border border-sky-200 text-sky-600 hover:bg-sky-100 transition-all text-xs font-semibold"
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
-            {t.channel.manageTitle}
+            {t.chat.documentList || '문서 목록'}
           </button>
-        )}
+
+          {isAdmin && (
+            <button
+              onClick={() => setShowManageModal(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-50 border border-indigo-200 text-indigo-600 hover:bg-indigo-100 transition-all text-xs font-semibold"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              {t.channel.manageTitle}
+            </button>
+          )}
+        </div>
       </div>
 
       {showManageModal && (
@@ -1149,6 +1270,226 @@ function PostList({ posts, onSelect, onSubmit, selectedPostId }) {
       </div>
 
       <ComposeBar onSubmit={onSubmit} isArchived={selectedChannel?.is_archived} />
+    </div>
+  )
+}
+
+function ChannelDocumentListPage({ posts, onBack, onOpenPost }) {
+  const t = useT()
+  const { selectedChannel, selectedTeam } = useChat()
+  const [docType, setDocType] = useState('all') // all | template | attachment
+  const [search, setSearch] = useState('')
+
+  function formatDocumentTime(iso) {
+    const d = new Date(iso)
+    if (Number.isNaN(d.getTime())) return ''
+    const yyyy = d.getFullYear()
+    const mm = String(d.getMonth() + 1).padStart(2, '0')
+    const dd = String(d.getDate()).padStart(2, '0')
+    const hh = String(d.getHours()).padStart(2, '0')
+    const min = String(d.getMinutes()).padStart(2, '0')
+    return `${yyyy}년 ${mm}월 ${dd}일 ${hh}시 ${min}분`
+  }
+
+  function isDateOnlyQuery(raw) {
+    return /^[\d\s\-./년월일시분:]+$/.test((raw || '').trim())
+  }
+
+  function parseDateSearch(raw) {
+    const text = (raw || '').trim()
+    if (!text) return null
+
+    const compactDigits = text.replace(/[^\d]/g, '')
+    if (/^\d{4}$/.test(compactDigits)) {
+      return { year: Number(compactDigits) }
+    }
+    if (/^\d{6}$/.test(compactDigits)) {
+      return { year: Number(compactDigits.slice(0, 4)), month: Number(compactDigits.slice(4, 6)) }
+    }
+    if (/^\d{8}$/.test(compactDigits)) {
+      return {
+        year: Number(compactDigits.slice(0, 4)),
+        month: Number(compactDigits.slice(4, 6)),
+        day: Number(compactDigits.slice(6, 8)),
+      }
+    }
+
+    const nums = (text.match(/\d+/g) || []).map(v => Number(v))
+    if (!nums.length) return null
+    if (String(nums[0]).length < 4) return null
+
+    const [year, month, day] = nums
+    const parsed = { year }
+    if (nums.length >= 2) parsed.month = month
+    if (nums.length >= 3) parsed.day = day
+    return parsed
+  }
+
+  function matchesDateSearch(iso, parsed) {
+    const d = new Date(iso)
+    if (Number.isNaN(d.getTime())) return false
+
+    const year = d.getFullYear()
+    const month = d.getMonth() + 1
+    const day = d.getDate()
+
+    if (year !== parsed.year) return false
+    if (parsed.month != null && month !== parsed.month) return false
+    if (parsed.day != null && day !== parsed.day) return false
+    return true
+  }
+
+  const documentItems = posts.flatMap(post => {
+    const items = []
+    const isTemplate = isTemplateContent(post.content)
+    const templateMeta = isTemplate
+      ? FORM_TEMPLATES.find(f => post.content.includes(`<title>${f.label}`))
+      : null
+
+    if (isTemplate) {
+      items.push({
+        key: `${post.id}-template`,
+        kind: 'template',
+        icon: templateMeta?.icon || '📄',
+        title: templateMeta ? `${templateMeta.label} 양식` : '양식 문서',
+        post,
+      })
+    }
+
+    const attachments = post.attachments || []
+    attachments.forEach((att, idx) => {
+      items.push({
+        key: `${post.id}-attachment-${idx}`,
+        kind: 'attachment',
+        icon: '📎',
+        title: att.name || `첨부파일 ${idx + 1}`,
+        post,
+      })
+    })
+
+    return items
+  })
+  .sort((a, b) => new Date(b.post.createdAt).getTime() - new Date(a.post.createdAt).getTime())
+
+  const filteredItems = documentItems.filter(item => {
+    if (docType !== 'all' && item.kind !== docType) return false
+    const raw = search.trim()
+    const q = raw.toLowerCase()
+    if (!raw) return true
+
+    const parsedDate = parseDateSearch(raw)
+    if (parsedDate && matchesDateSearch(item.post.createdAt, parsedDate)) return true
+    if (parsedDate && isDateOnlyQuery(raw)) return false
+
+    const authorName = (item.post.author?.name || '').toLowerCase()
+    const title = (item.title || '').toLowerCase()
+    return title.includes(q) || authorName.includes(q)
+  })
+
+  return (
+    <div className="flex-1 flex flex-col min-h-0 bg-gray-50">
+      <div className="flex items-center px-6 py-4 border-b border-gray-200 flex-shrink-0">
+        <div>
+          <div className="flex items-center gap-2">
+            <span className="text-gray-400 text-sm">#</span>
+            <h2 className="text-gray-900 font-bold text-base">{selectedChannel?.name}</h2>
+            <span className="text-sky-600 text-xs font-semibold">{t.chat.documentList || '문서 목록'}</span>
+          </div>
+          <p className="text-gray-400 text-xs mt-0.5">
+            {(selectedTeam?.name || '')} · {(t.chat.documentCount?.(filteredItems.length) || `문서 ${filteredItems.length}개`)}
+          </p>
+        </div>
+        <div className="flex-1" />
+        <button
+          onClick={onBack}
+          className="px-3 py-1.5 rounded-xl border border-gray-200 text-gray-600 hover:bg-gray-100 text-xs font-semibold transition-colors"
+        >
+          {t.search.back || '돌아가기'}
+        </button>
+      </div>
+
+      <div className="px-6 py-3 border-b border-gray-200 bg-white/70">
+        <div className="flex items-center gap-2 mb-2">
+          <button
+            onClick={() => setDocType('all')}
+            className={`px-2.5 py-1 rounded-lg text-xs font-semibold border transition-colors ${
+              docType === 'all'
+                ? 'bg-sky-50 text-sky-700 border-sky-200'
+                : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-100'
+            }`}
+          >
+            {t.chat.documentFilterAll || '전체'}
+          </button>
+          <button
+            onClick={() => setDocType('template')}
+            className={`px-2.5 py-1 rounded-lg text-xs font-semibold border transition-colors ${
+              docType === 'template'
+                ? 'bg-indigo-50 text-indigo-700 border-indigo-200'
+                : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-100'
+            }`}
+          >
+            {t.chat.templateDocument || '양식 문서'}
+          </button>
+          <button
+            onClick={() => setDocType('attachment')}
+            className={`px-2.5 py-1 rounded-lg text-xs font-semibold border transition-colors ${
+              docType === 'attachment'
+                ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-100'
+            }`}
+          >
+            {t.chat.attachmentDocument || '첨부 문서'}
+          </button>
+        </div>
+        <input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder={t.chat.documentSearchPlaceholder || '문서 제목 또는 작성자 검색...'}
+          className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:border-sky-300"
+        />
+      </div>
+
+      <div className="flex-1 overflow-y-auto px-6 py-4">
+        {filteredItems.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-full text-center py-16">
+            <div className="w-16 h-16 rounded-2xl bg-sky-50 border border-sky-200 flex items-center justify-center text-3xl mb-4">🗂️</div>
+            <h3 className="text-gray-900 font-semibold mb-1">{t.chat.documentList || '문서 목록'}</h3>
+            <p className="text-gray-400 text-sm">{t.chat.noDocumentsDesc || '이 채널에는 문서가 없습니다.'}</p>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-2">
+            {filteredItems.map(item => (
+              <button
+                key={item.key}
+                onClick={() => onOpenPost(item.post)}
+                className="w-full text-left px-4 py-3 rounded-xl border border-gray-200 bg-white hover:border-sky-200 hover:bg-sky-50/40 transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  <span className="text-base">{item.icon}</span>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm truncate">
+                      <span className="font-semibold text-gray-800">{item.title}</span>
+                      <span className="text-gray-900 font-medium"> · {item.post.author?.name || ''} · {formatDocumentTime(item.post.createdAt)}</span>
+                    </p>
+                  </div>
+                  {item.kind === 'attachment' && (
+                    <span className="text-[10px] text-gray-400 whitespace-nowrap mr-2">
+                      {item.size ? formatSize(item.size) : ''}
+                    </span>
+                  )}
+                  <span className={`text-[10px] px-2 py-0.5 rounded-full border ${
+                    item.kind === 'template'
+                      ? 'text-indigo-600 border-indigo-200 bg-indigo-50'
+                      : 'text-emerald-600 border-emerald-200 bg-emerald-50'
+                  }`}>
+                    {item.kind === 'template' ? (t.chat.templateDocument || '양식 문서') : (t.chat.attachmentDocument || '첨부 문서')}
+                  </span>
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   )
 }
@@ -1265,6 +1606,8 @@ function PostDetail({ post, channelId, onClose }) {
   const [dmConversations, setDmConversations] = useState([])
   const [loadingDMConversations, setLoadingDMConversations] = useState(false)
   const [sendingToDMId, setSendingToDMId] = useState(null)
+  const [showPostDeleteConfirm, setShowPostDeleteConfirm] = useState(false)
+  const [pendingDeleteCommentId, setPendingDeleteCommentId] = useState(null)
   
   // Post Edit State
   const [isEditingPost, setIsEditingPost] = useState(false)
@@ -1432,7 +1775,7 @@ function PostDetail({ post, channelId, onClose }) {
   }
 
   function handleDelete() {
-    if (window.confirm(t.chat.deletePostConfirm)) { deletePost(channelId, post.id); onClose() }
+    setShowPostDeleteConfirm(true)
   }
 
   async function openSendToDMModal() {
@@ -1497,9 +1840,7 @@ function PostDetail({ post, channelId, onClose }) {
   }
 
   function handleCommentDelete(cId) {
-    if (window.confirm(t.chat.deleteCommentConfirm)) {
-      deleteComment(channelId, post.id, cId)
-    }
+    setPendingDeleteCommentId(cId)
   }
 
   function handleCommentUpdate(cId) {
@@ -1521,13 +1862,15 @@ function PostDetail({ post, channelId, onClose }) {
               <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
               {t.chat.delete}
             </button>
-            <button onClick={openSendToDMModal} className="flex items-center gap-1 text-indigo-600 hover:text-indigo-700 text-xs transition-colors">
-              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
-              </svg>
-              {t.chat.sendToDM}
-            </button>
           </div>
+        )}
+        {!isEditingPost && !selectedChannel?.is_archived && (
+          <button onClick={openSendToDMModal} className="flex items-center gap-1 text-indigo-600 hover:text-indigo-700 text-xs transition-colors">
+            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+            </svg>
+            {t.chat.sendToDM}
+          </button>
         )}
         {isAdmin && (
           <button
@@ -1595,6 +1938,35 @@ function PostDetail({ post, channelId, onClose }) {
             </div>
           </div>
         </div>
+      )}
+      {showPostDeleteConfirm && (
+        <ConfirmDialog
+          title={t.chat.delete}
+          message={t.chat.deletePostConfirm}
+          confirmText={t.chat.delete}
+          cancelText={t.chat.cancel}
+          danger
+          onConfirm={() => {
+            deletePost(channelId, post.id)
+            setShowPostDeleteConfirm(false)
+            onClose()
+          }}
+          onCancel={() => setShowPostDeleteConfirm(false)}
+        />
+      )}
+      {pendingDeleteCommentId && (
+        <ConfirmDialog
+          title={t.chat.delete}
+          message={t.chat.deleteCommentConfirm}
+          confirmText={t.chat.delete}
+          cancelText={t.chat.cancel}
+          danger
+          onConfirm={() => {
+            deleteComment(channelId, post.id, pendingDeleteCommentId)
+            setPendingDeleteCommentId(null)
+          }}
+          onCancel={() => setPendingDeleteCommentId(null)}
+        />
       )}
 
       <div className="flex-1 overflow-y-auto overflow-x-hidden px-6 py-6">
@@ -1898,9 +2270,10 @@ function PostDetail({ post, channelId, onClose }) {
 // ─── Main ─────────────────────────────────────────────────────
 
 export default function ChatArea({ autoOpenPostId }) {
-  const { selectedChannel, posts, addPost, pendingOpenPostId } = useChat()
+  const { selectedChannel, posts, addPost, pendingOpenPostId, clearPendingPost } = useChat()
   const t = useT()
   const [selectedPost, setSelectedPost] = useState(null)
+  const [showDocumentList, setShowDocumentList] = useState(false)
   const [leftWidth, setLeftWidth] = useState(42) // percent
   const [resizing, setResizing] = useState(false)
   const containerRef = useRef(null)
@@ -1909,7 +2282,7 @@ export default function ChatArea({ autoOpenPostId }) {
   useEffect(() => {
     if (!autoOpenPostId) return
     const channelPosts = posts[selectedChannel?.id] || []
-    const target = channelPosts.find(p => p.id === autoOpenPostId)
+    const target = channelPosts.find(p => String(p.id) === String(autoOpenPostId))
     if (target) setSelectedPost(target)
   }, [autoOpenPostId, selectedChannel?.id, posts])
 
@@ -1917,12 +2290,12 @@ export default function ChatArea({ autoOpenPostId }) {
   useEffect(() => {
     if (!pendingOpenPostId) return
     const channelPosts = posts[selectedChannel?.id] || []
-    const target = channelPosts.find(p => p.id === pendingOpenPostId)
+    const target = channelPosts.find(p => String(p.id) === String(pendingOpenPostId))
     if (target) {
       setSelectedPost(target)
-      // clearPendingPost() // PostDetail 내부에서 스크롤 후 호출하도록 이동
+      clearPendingPost()
     }
-  }, [pendingOpenPostId, selectedChannel?.id, posts])
+  }, [pendingOpenPostId, selectedChannel?.id, posts, clearPendingPost])
 
   const startResizing = useCallback(() => {
     setResizing(true)
@@ -1966,7 +2339,19 @@ export default function ChatArea({ autoOpenPostId }) {
     if (!pendingOpenPostId) {
       setSelectedPost(null) 
     }
-  }, [selectedChannel?.id, pendingOpenPostId])
+    setShowDocumentList(false)
+  }, [selectedChannel?.id])
+
+  useEffect(() => {
+    if (!showDocumentList) return
+    function handleEscOnDocumentList(e) {
+      if (e.key === 'Escape') {
+        setShowDocumentList(false)
+      }
+    }
+    window.addEventListener('keydown', handleEscOnDocumentList)
+    return () => window.removeEventListener('keydown', handleEscOnDocumentList)
+  }, [showDocumentList])
 
   async function handleNewPost(data) {
     await addPost(selectedChannel.id, data)
@@ -1978,6 +2363,17 @@ export default function ChatArea({ autoOpenPostId }) {
 
   return (
     <div ref={containerRef} className="flex-1 flex min-w-0 bg-gray-50">
+      {showDocumentList ? (
+        <ChannelDocumentListPage
+          posts={channelPosts}
+          onBack={() => setShowDocumentList(false)}
+          onOpenPost={(post) => {
+            setSelectedPost(post)
+            setShowDocumentList(false)
+          }}
+        />
+      ) : (
+        <>
       {/* Left panel — post list (narrows when detail is open) */}
       <div 
         className={`flex flex-col min-h-0 bg-gray-50 ${selectedPost ? 'border-r border-gray-200' : 'flex-1'} ${resizing ? '' : 'transition-[width] duration-200'}`}
@@ -1988,6 +2384,10 @@ export default function ChatArea({ autoOpenPostId }) {
           selectedPostId={selectedPost?.id}
           onSelect={setSelectedPost}
           onSubmit={handleNewPost}
+          onOpenDocumentList={() => {
+            setSelectedPost(null)
+            setShowDocumentList(true)
+          }}
         />
       </div>
 
@@ -2010,6 +2410,8 @@ export default function ChatArea({ autoOpenPostId }) {
             onClose={() => setSelectedPost(null)}
           />
         </div>
+      )}
+        </>
       )}
     </div>
   )

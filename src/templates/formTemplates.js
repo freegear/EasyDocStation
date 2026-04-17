@@ -853,7 +853,7 @@ h1 { text-align: center; font-size: 28px; letter-spacing: 12px; margin-bottom: 2
 <div class="no-print" style="text-align:center;margin-top:20px;display:flex;justify-content:center;gap:10px;">
   <button id="save-btn" onclick="var b=document.getElementById('save-btn');b.disabled=true;b.textContent='저장 중...';window.saveExpense();" style="padding:10px 24px;cursor:pointer;border:1px solid #4f46e5;border-radius:4px;background:#4f46e5;color:#fff;font-size:13px;">저장</button>
   <button onclick="alert('지금은 구현되어 있지 않습니다.')" style="padding:10px 24px;cursor:pointer;border:1px solid #aaa;border-radius:4px;background:#fff;font-size:13px;">취소</button>
-  <button onclick="window.print()" style="padding:10px 24px;cursor:pointer;border:1px solid #aaa;border-radius:4px;background:#fff;font-size:13px;">PDF로 저장 / 인쇄하기</button>
+  <button id="print-btn" onclick="window.printExpense()" style="padding:10px 24px;cursor:pointer;border:1px solid #aaa;border-radius:4px;background:#fff;font-size:13px;">PDF로 저장 / 인쇄하기</button>
   <button onclick="alert('지금은 구현되어 있지 않습니다.')" style="padding:10px 24px;cursor:pointer;border:1px solid #4f46e5;border-radius:4px;background:#4f46e5;color:#fff;font-size:13px;">결재 상신</button>
 </div>
 
@@ -1065,11 +1065,49 @@ h1 { text-align: center; font-size: 28px; letter-spacing: 12px; margin-bottom: 2
 
     function runPrint() {
       setTimeout(function() {
-        window.print();
-        if (btn) {
-          btn.disabled = false;
-          btn.textContent = 'PDF로 저장 / 인쇄하기';
+        // 앱 전체가 아닌 지출결의서 문서 본문만 별도 창에서 인쇄
+        var wrapEl = document.querySelector('.wrap');
+        var attachmentEl = document.getElementById('attachment-pages');
+        var styleEl = document.querySelector('style');
+        if (!wrapEl || !styleEl) {
+          window.print();
+          if (btn) {
+            btn.disabled = false;
+            btn.textContent = 'PDF로 저장 / 인쇄하기';
+          }
+          return;
         }
+
+        var printWindow = window.open('', '_blank');
+        if (!printWindow) {
+          window.print();
+          if (btn) {
+            btn.disabled = false;
+            btn.textContent = 'PDF로 저장 / 인쇄하기';
+          }
+          return;
+        }
+
+        var printableHtml = '<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"><title>지출결의서 인쇄</title>'
+          + styleEl.outerHTML
+          + '</head><body>'
+          + wrapEl.outerHTML
+          + (attachmentEl ? attachmentEl.outerHTML : '')
+          + '</body></html>';
+
+        printWindow.document.open();
+        printWindow.document.write(printableHtml);
+        printWindow.document.close();
+        printWindow.focus();
+
+        setTimeout(function() {
+          printWindow.print();
+          printWindow.close();
+          if (btn) {
+            btn.disabled = false;
+            btn.textContent = 'PDF로 저장 / 인쇄하기';
+          }
+        }, 120);
       }, 40);
     }
 

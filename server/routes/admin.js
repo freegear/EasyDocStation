@@ -139,6 +139,18 @@ function formatBytes(bytes) {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
 }
 
+function normalizeDirectMessageConfig(dm = {}) {
+  const unlimited = Boolean(dm['무제한보관'])
+  const parsedDays = Number.parseInt(dm['보존 기한'], 10)
+  const retentionDays = Number.isFinite(parsedDays)
+    ? Math.min(90, Math.max(1, parsedDays))
+    : 30
+  return {
+    '보존 기한': retentionDays,
+    '무제한보관': unlimited
+  }
+}
+
 router.get('/stats', async (req, res) => {
   try {
     // 1. PostgreSQL DB Stats
@@ -206,6 +218,7 @@ router.get('/stats', async (req, res) => {
       rag: config.rag || { trainingType: 'manual', dailyTime: '02:00', vectorSize: 1024 },
       agenticai: { num_predict: 4096, num_ctx: 8192, history: 6, ...(config.agenticai || {}) },
       maxAttachmentFileSize: config.MaxAttachmentFileSize ?? 100,
+      DirectMessage: normalizeDirectMessageConfig(config.DirectMessage || {}),
       company: config.company || {}
     })
   } catch (err) {
@@ -234,7 +247,10 @@ router.get('/stats', async (req, res) => {
           location: uploadPath,
           size: formatBytes(uploadSizeBytes),
         },
-        display: config.imagePreview || { width: 512, height: 512 }
+        display: config.imagePreview || { width: 512, height: 512 },
+        maxAttachmentFileSize: config.MaxAttachmentFileSize ?? 100,
+        DirectMessage: normalizeDirectMessageConfig(config.DirectMessage || {}),
+        company: config.company || {}
       })
     } catch (innerErr) {
       res.status(500).json({ error: 'DB 정보를 가져오는 중 오류가 발생했습니다.' })

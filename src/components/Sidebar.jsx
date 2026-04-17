@@ -58,7 +58,7 @@ export default function Sidebar({ showCalendar, onToggleCalendar, onCloseCalenda
     apiFetch('/dm/conversations')
       .then(data => setDmConversations(Array.isArray(data) ? data : []))
       .catch(() => {})
-  }, [showDM])
+  }, [showDM, activeDMConvId])
 
   // 채널 관리 권한 체크
   // - site_admin: 모든 채널 관리 가능
@@ -273,24 +273,40 @@ export default function Sidebar({ showCalendar, onToggleCalendar, onCloseCalenda
 
       {/* Direct Message button */}
       <div className="px-3 pt-2 border-t border-gray-200">
-        <button
-          onClick={onToggleDM}
-          onDoubleClick={() => { if (dmConversations.length > 0) onOpenDM?.(dmConversations[0]) }}
-          className={`flex items-center gap-2.5 w-full px-2 py-2 rounded-lg text-sm text-left transition-all ${
-            showDM
-              ? 'bg-indigo-600 text-white shadow-lg'
-              : 'text-gray-500 hover:bg-gray-200 hover:text-gray-900'
-          }`}
-        >
-          <ChatBubbleIcon />
-          <span className="font-medium flex-1">Direct Message</span>
+        <div className="flex items-center gap-1.5">
           <button
-            onMouseDown={e => e.stopPropagation()}
-            onClick={e => { e.stopPropagation(); onNewDM?.() }}
-            className={`text-lg leading-none px-1 rounded hover:bg-white/20 transition-colors ${showDM ? 'text-white/80' : 'text-gray-400'}`}
-            title="새 대화 시작"
-          >+</button>
-        </button>
+            onClick={() => setDmCollapsedList(v => !v)}
+            onDoubleClick={() => {
+              if (dmConversations.length > 0) {
+                onOpenDM?.(dmConversations[0])
+                return
+              }
+              onNewDM?.()
+            }}
+            className={`flex items-center gap-2.5 flex-1 px-2 py-2 rounded-lg text-sm text-left transition-all ${
+              showDM
+                ? 'bg-indigo-600 text-white shadow-lg'
+                : 'text-gray-500 hover:bg-gray-200 hover:text-gray-900'
+            }`}
+            title="클릭: 대화 목록 접기/펼치기 · 더블클릭: Direct Message 페이지 열기"
+          >
+            <ChatBubbleIcon />
+            <span className="font-medium flex-1">Direct Message</span>
+            <span className={`text-xs ${showDM ? 'text-white/80' : 'text-gray-400'}`}>{dmCollapsedList ? '▸' : '▾'}</span>
+          </button>
+          <button
+            onClick={onNewDM}
+            className={`w-8 h-8 flex items-center justify-center rounded-lg text-lg leading-none transition-colors ${
+              showDM
+                ? 'text-white/85 bg-indigo-600 hover:bg-indigo-700'
+                : 'text-gray-500 hover:bg-gray-200 hover:text-gray-700'
+            }`}
+            title="새 Direct Message 창 만들기"
+            aria-label="새 Direct Message 창 만들기"
+          >
+            +
+          </button>
+        </div>
 
         {/* DM conversation list (collapsed/expanded) */}
         {!dmCollapsedList && dmConversations.length > 0 && (
@@ -333,7 +349,7 @@ export default function Sidebar({ showCalendar, onToggleCalendar, onCloseCalenda
 
       {/* Version */}
       <div className="px-4 py-2 border-t border-gray-100">
-        <p className="text-gray-300 text-[10px] text-center tracking-widest">
+        <p className="text-sky-300 text-[10px] text-center tracking-widest">
           EasyStation {appVersion && `v${appVersion}`}
         </p>
       </div>

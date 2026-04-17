@@ -12,6 +12,7 @@ export default function UserProfileModal({ onClose }) {
 
   const [name, setName] = useState(currentUser?.name ?? '')
   const [email, setEmail] = useState(currentUser?.email ?? '')
+  const [phone, setPhone] = useState(currentUser?.phone ?? '')
   const [imageUrl, setImageUrl] = useState(currentUser?.image_url ?? '')
   const [stampPicture, setStampPicture] = useState(currentUser?.stamp_picture ?? '')
   const stampInputRef = useRef(null)
@@ -39,7 +40,7 @@ export default function UserProfileModal({ onClose }) {
     clearMessages()
     setSaving(true)
     try {
-      await updateProfile({ name, email, image_url: imageUrl, stamp_picture: stampPicture || null })
+      await updateProfile({ name, email, phone, image_url: imageUrl, stamp_picture: stampPicture || null })
       setSuccess(t.profile.successInfo)
     } catch (err) {
       setError(err.message)
@@ -246,6 +247,7 @@ export default function UserProfileModal({ onClose }) {
             <form onSubmit={handleSaveInfo} className="flex flex-col gap-4">
               <Field label={t.profile.name} value={name} onChange={setName} placeholder={t.profile.name} />
               <Field label={t.profile.email} type="email" value={email} onChange={setEmail} placeholder="email@example.com" />
+              <Field label={t.profile.phone} value={phone} onChange={setPhone} placeholder={t.profile.phonePlaceholder} />
               <Field label={t.profile.username} value={currentUser?.username ?? ''} disabled />
 
               {/* 권한 (읽기 전용) */}

@@ -46,6 +46,9 @@ async function initDb() {
           IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='display_name') THEN
             ALTER TABLE users ADD COLUMN display_name TEXT;
           END IF;
+          IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='phone') THEN
+            ALTER TABLE users ADD COLUMN phone VARCHAR(30);
+          END IF;
           -- posts 테이블 컬럼 추가
           IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='posts' AND column_name='security_level') THEN
             ALTER TABLE posts ADD COLUMN security_level INTEGER NOT NULL DEFAULT 0;
