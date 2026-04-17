@@ -134,7 +134,8 @@ export function ChatProvider({ children }) {
     }
   }
 
-  async function addPost(channelId, { content, attachmentIds = [], security_level }) {
+  async function addPost(channelId, { content, attachmentIds = [], security_level }, options = {}) {
+    const { suppressAlert = false } = options
     try {
       await apiFetch('/posts', {
         method: 'POST',
@@ -143,7 +144,9 @@ export function ChatProvider({ children }) {
       const data = await apiFetch(`/posts?channelId=${channelId}`)
       setPosts(prev => ({ ...prev, [channelId]: data }))
     } catch (err) {
-      alert('게시글 저장에 실패했습니다: ' + err.message)
+      if (!suppressAlert) {
+        alert('게시글 저장에 실패했습니다: ' + err.message)
+      }
       throw err
     }
   }

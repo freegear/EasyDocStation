@@ -1626,6 +1626,7 @@ function PostDetail({ post, channelId, onClose }) {
   const [files, setFiles] = useState([])
   const [dragOver, setDragOver] = useState(false)
   const [uploading, setUploading] = useState(false)
+  const commentSubmittingRef = useRef(false)
   const commentsEndRef = useRef(null)
   const fileInputRef = useRef(null)
   const dragCounter = useRef(0)
@@ -1722,8 +1723,10 @@ function PostDetail({ post, channelId, onClose }) {
 
   async function handleComment(e) {
     e.preventDefault()
+    if (commentSubmittingRef.current) return
     if ((!comment.trim() && files.length === 0) || !currentUser) return
     
+    commentSubmittingRef.current = true
     setUploading(true)
     try {
       const attachmentIds = []
@@ -1750,6 +1753,7 @@ function PostDetail({ post, channelId, onClose }) {
       alert(t.chat.commentError(err.message))
     } finally {
       setUploading(false)
+      commentSubmittingRef.current = false
     }
   }
 
@@ -2217,7 +2221,13 @@ function PostDetail({ post, channelId, onClose }) {
                 placeholder={t.chat.commentPlaceholder}
                 rows={2}
                 className="w-full bg-transparent text-gray-700 placeholder-gray-400 text-sm px-4 pt-3 pb-2 resize-none focus:outline-none leading-relaxed"
-                onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleComment(e) } }}
+                onKeyDown={e => {
+                  if (e.nativeEvent.isComposing) return
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault()
+                    e.currentTarget.form?.requestSubmit()
+                  }
+                }}
               />
               {files.length > 0 && (
                 <div className="px-4 pb-2">
