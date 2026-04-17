@@ -30,6 +30,9 @@ async function applyBaseSchema(client) {
   } catch (err) {
     if (err && err.code === '42501') {
       console.error('권한 복구 가이드: sudo -u postgres psql -d <DB명> -c "GRANT USAGE, CREATE ON SCHEMA public TO <DB유저>; ALTER SCHEMA public OWNER TO <DB유저>;"')
+      console.error('테이블 owner 복구는 setup-ubuntu.sh를 다시 실행하면 자동 처리됩니다.')
+      console.warn('⚠️ 권한 부족으로 base schema 변경을 건너뜁니다. 기존 스키마로 계속 동작합니다.')
+      return
     }
     console.error('❌ Base schema apply error:', err.message)
     throw err
@@ -61,6 +64,19 @@ async function ensureDefaultUsers(client) {
   console.log('✅ Default users seeded (password: password123)')
 }
 
+async function runMigrationStep(client, label, sql) {
+  try {
+    await client.query(sql)
+  } catch (err) {
+    if (err && err.code === '42501') {
+      console.warn(`⚠️ [DB migration] ${label} 건너뜀(테이블 owner 권한 필요): ${err.message}`)
+      return false
+    }
+    throw err
+  }
+  return true
+}
+
 // Auto-migration on startup
 async function initDb() {
   try {
@@ -68,7 +84,7 @@ async function initDb() {
     try {
       await applyBaseSchema(client)
       // users 테이블 image_url 컬럼 추가
-      await client.query(`
+      await runMigrationStep(client, 'legacy columns backfill', `
         DO $$
         BEGIN
           IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='image_url') THEN
@@ -134,7 +150,7 @@ async function initDb() {
         END $$;
       `)
       // calendar_events 테이블 생성
-      await client.query(`
+      await runMigrationStep(client, 'create calendar_events', `
         CREATE TABLE IF NOT EXISTS calendar_events (
           id            SERIAL        PRIMARY KEY,
           owner_id      INTEGER       NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -157,12 +173,12 @@ async function initDb() {
         CREATE INDEX IF NOT EXISTS idx_calendar_events_series ON calendar_events(series_id);
       `)
       // series_id 컬럼 추가 (기존 테이블용)
-      await client.query(`
+      await runMigrationStep(client, 'calendar_events add series_id', `
         ALTER TABLE calendar_events ADD COLUMN IF NOT EXISTS series_id VARCHAR(36);
         CREATE INDEX IF NOT EXISTS idx_calendar_events_series ON calendar_events(series_id);
       `)
       // calendar_events.id: SERIAL → TEXT(UUID) 마이그레이션
-      await client.query(`
+      await runMigrationStep(client, 'calendar_events id type migration', `
         DO $$
         BEGIN
           IF EXISTS (
@@ -180,7 +196,7 @@ async function initDb() {
         END $$;
       `)
       // calendar_invitations 테이블 생성 (PostgreSQL)
-      await client.query(`
+      await runMigrationStep(client, 'create calendar_invitations', `
         CREATE TABLE IF NOT EXISTS calendar_invitations (
           invitee_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
           event_id   TEXT    NOT NULL,
@@ -190,21 +206,21 @@ async function initDb() {
         CREATE INDEX IF NOT EXISTS idx_cal_inv_event ON calendar_invitations(event_id);
       `)
       // expense_doc_counter 테이블 생성 (날짜별 순번 관리)
-      await client.query(`
+      await runMigrationStep(client, 'create expense_doc_counter', `
         CREATE TABLE IF NOT EXISTS expense_doc_counter (
           date_key CHAR(8) PRIMARY KEY,
           last_seq INTEGER NOT NULL DEFAULT 0
         );
       `)
       // trip_doc_counter 테이블 생성 (날짜별 순번 관리)
-      await client.query(`
+      await runMigrationStep(client, 'create trip_doc_counter', `
         CREATE TABLE IF NOT EXISTS trip_doc_counter (
           date_key CHAR(8) PRIMARY KEY,
           last_seq INTEGER NOT NULL DEFAULT 0
         );
       `)
       // comments 테이블 생성 (없는 경우)
-      await client.query(`
+      await runMigrationStep(client, 'create comments', `
         CREATE TABLE IF NOT EXISTS comments (
           id          VARCHAR(50)  PRIMARY KEY,
           post_id     VARCHAR(50)  NOT NULL,
@@ -219,7 +235,7 @@ async function initDb() {
         CREATE INDEX IF NOT EXISTS idx_comments_post ON comments(post_id);
       `)
       // dm_conversations 테이블 생성 (21. Direct Message)
-      await client.query(`
+      await runMigrationStep(client, 'create dm_conversations', `
         CREATE TABLE IF NOT EXISTS dm_conversations (
           id           VARCHAR(36)  PRIMARY KEY,
           name         TEXT         NOT NULL DEFAULT '',
@@ -231,7 +247,7 @@ async function initDb() {
         CREATE INDEX IF NOT EXISTS idx_dm_conv_created ON dm_conversations(created_by);
       `)
       // dm_messages 테이블 생성
-      await client.query(`
+      await runMigrationStep(client, 'create dm_messages', `
         CREATE TABLE IF NOT EXISTS dm_messages (
           id              VARCHAR(36)  PRIMARY KEY,
           conversation_id VARCHAR(36)  NOT NULL REFERENCES dm_conversations(id) ON DELETE CASCADE,
@@ -246,11 +262,11 @@ async function initDb() {
         CREATE INDEX IF NOT EXISTS idx_dm_msg_sender ON dm_messages(sender_id);
       `)
       // dm_messages read_by 컬럼 추가 (읽음 추적)
-      await client.query(`
+      await runMigrationStep(client, 'dm_messages add read_by', `
         ALTER TABLE dm_messages ADD COLUMN IF NOT EXISTS read_by JSONB NOT NULL DEFAULT '[]';
       `)
       // dm_messages soft delete 컬럼 추가 (삭제 메시지 표현)
-      await client.query(`
+      await runMigrationStep(client, 'dm_messages soft-delete columns', `
         ALTER TABLE dm_messages ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN NOT NULL DEFAULT false;
         ALTER TABLE dm_messages ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;
         ALTER TABLE dm_messages ADD COLUMN IF NOT EXISTS deleted_by INTEGER REFERENCES users(id) ON DELETE SET NULL;
@@ -261,6 +277,10 @@ async function initDb() {
       client.release()
     }
   } catch (err) {
+    if (err && err.code === '42501') {
+      console.warn('⚠️ DB migration 권한 부족(ownership). 서버는 계속 실행됩니다.')
+      return
+    }
     console.error('❌ Database initialization error:', err)
   }
 }
