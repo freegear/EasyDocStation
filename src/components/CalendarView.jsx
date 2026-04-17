@@ -707,8 +707,17 @@ export default function CalendarView({ onClose }) {
   const [loading, setLoading] = useState(true)
   const [presetDts, setPresetDts] = useState(null) // { startDt, endDt }
   const [pendingDragUpdate, setPendingDragUpdate] = useState(null) // { updated, prevEvents }
+  const [errorDialog, setErrorDialog] = useState(null) // { title, message }
   // { id, mode: 'move' | 'resize-start' | 'resize-end' }
   const draggingRef = useRef(null)
+
+  function openCalendarError(title, err) {
+    const raw = err?.message || '알 수 없는 오류'
+    const message = raw.includes('Failed to fetch')
+      ? '네트워크 연결 또는 서버 프록시 문제로 요청을 보낼 수 없습니다.\n백엔드(3001) 실행 상태와 Vite 프록시(/api) 연결을 확인해주세요.'
+      : raw
+    setErrorDialog({ title, message })
+  }
 
   // ESC 키로 캘린더 닫기
   useEffect(() => {
@@ -1050,7 +1059,7 @@ export default function CalendarView({ onClose }) {
               const newEvents = Array.isArray(created) ? created : [created]
               setEvents(prev => [...prev, ...newEvents])
             } catch (e) {
-              alert('이벤트 저장 실패: ' + e.message)
+              openCalendarError('이벤트 저장 실패', e)
             }
             setShowEventModal(false)
           }}
@@ -1071,7 +1080,7 @@ export default function CalendarView({ onClose }) {
                 setEvents(prev => prev.map(ev => ev.id === saved.id ? saved : ev))
               }
             } catch (e) {
-              alert('이벤트 수정 실패: ' + e.message)
+              openCalendarError('이벤트 수정 실패', e)
             }
             setShowEventModal(false)
             setEditingEvent(null)
@@ -1086,7 +1095,7 @@ export default function CalendarView({ onClose }) {
                 setEvents(prev => prev.filter(ev => ev.id !== id))
               }
             } catch (e) {
-              alert('이벤트 삭제 실패: ' + e.message)
+              openCalendarError('이벤트 삭제 실패', e)
             }
           }}
         />
@@ -1133,7 +1142,7 @@ export default function CalendarView({ onClose }) {
                     const savedMap = new Map(savedAll.map(ev => [ev.id, ev]))
                     setEvents(prev => prev.map(ev => savedMap.has(ev.id) ? savedMap.get(ev.id) : ev))
                   } catch (e) {
-                    alert('이벤트 수정 실패: ' + e.message)
+                    openCalendarError('이벤트 수정 실패', e)
                   }
                 }}
                 className="flex-1 px-3 py-2 rounded-lg text-sm font-medium bg-indigo-600 text-white hover:bg-indigo-700 transition-colors"
@@ -1148,6 +1157,22 @@ export default function CalendarView({ onClose }) {
                 className="flex-1 px-3 py-2 rounded-lg text-sm font-medium border border-gray-200 text-gray-500 hover:bg-gray-50 transition-colors"
               >
                 취소
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {errorDialog && (
+        <div className="fixed inset-0 z-[95] flex items-center justify-center bg-black/45 px-4">
+          <div className="w-full max-w-sm rounded-2xl bg-white border border-gray-200 shadow-2xl p-5">
+            <h3 className="text-gray-900 font-bold text-base">{errorDialog.title}</h3>
+            <p className="text-gray-600 text-sm mt-2 whitespace-pre-wrap leading-relaxed">{errorDialog.message}</p>
+            <div className="flex justify-end mt-5">
+              <button
+                onClick={() => setErrorDialog(null)}
+                className="px-4 py-2 rounded-xl text-sm text-white bg-indigo-600 hover:bg-indigo-700"
+              >
+                확인
               </button>
             </div>
           </div>
