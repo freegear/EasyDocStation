@@ -31,6 +31,28 @@ function getPostgresPoolOptions() {
     || pg.url
 
   if (connectionString) {
+    try {
+      const parsed = new URL(connectionString)
+      const protocol = parsed.protocol.replace(':', '')
+      if (protocol.startsWith('postgres')) {
+        const options = {
+          host: parsed.hostname || process.env.PGHOST || pg.host || 'localhost',
+          port: Number(parsed.port || process.env.PGPORT || pg.port || 5432),
+          database: (parsed.pathname || '').replace(/^\//, '') || process.env.PGDATABASE || pg.database || 'easydocstation',
+        }
+
+        const user = decodeURIComponent(parsed.username || '') || process.env.PGUSER || pg.user
+        if (user) options.user = user
+
+        // pg(SCRAM) expects password to be a string when auth is required.
+        const resolvedPassword = process.env.PGPASSWORD
+          ?? pg.password
+          ?? decodeURIComponent(parsed.password || '')
+        options.password = typeof resolvedPassword === 'string' ? resolvedPassword : ''
+
+        return options
+      }
+    } catch (_) {}
     return { connectionString }
   }
 
@@ -42,8 +64,8 @@ function getPostgresPoolOptions() {
 
   const user = process.env.PGUSER || pg.user
   if (user) options.user = user
-  const password = process.env.PGPASSWORD || pg.password
-  if (password) options.password = password
+  const password = process.env.PGPASSWORD ?? pg.password ?? ''
+  options.password = typeof password === 'string' ? password : ''
 
   return options
 }
