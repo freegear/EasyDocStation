@@ -7,12 +7,13 @@ const { client: cassClient, keyspace, isConnected } = require('../cassandra')
 const requireAuth = require('../middleware/auth')
 const { trainExpenseImmediate, retrainExpenseImmediate } = require('../rag')
 const db = require('../db')
+const { getDatabasePath } = require('../databasePaths')
 
 // ── 파일 저장 경로 (기존 ObjectFile 하위 expense/ 폴더) ───────────
 const configPath = path.resolve(__dirname, '../../config.json')
 let config = {}
 try { config = JSON.parse(fs.readFileSync(configPath, 'utf8')) } catch (_) {}
-const STORAGE_BASE = config['ObjectFile Path'] || path.join(__dirname, '../../Database/ObjectFile')
+const STORAGE_BASE = getDatabasePath(config, 'ObjectFile Path')
 const EXPENSE_DIR = path.join(STORAGE_BASE, 'expense')
 if (!fs.existsSync(EXPENSE_DIR)) fs.mkdirSync(EXPENSE_DIR, { recursive: true })
 

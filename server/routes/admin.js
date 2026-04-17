@@ -8,6 +8,7 @@ const { execFile } = require('child_process')
 const bcrypt = require('bcryptjs')
 const { client: cassandraClient } = require('../cassandra')
 const { runManualTraining, reloadRagConfig, getState: getRagState } = require('../rag')
+const { getDatabasePath } = require('../databasePaths')
 
 // ... (existing code helpers)
 
@@ -85,11 +86,11 @@ router.post('/reset', async (req, res) => {
     }
     
     // Clear ObjectFile
-    const uploadPath = config['ObjectFile Path'] || path.resolve(__dirname, '../../Database/ObjectFile')
+    const uploadPath = getDatabasePath(config, 'ObjectFile Path')
     deleteFolderContents(uploadPath)
     
     // Clear LanceDB
-    const lancedbPath = config['lancedb Database Path'] || path.resolve(__dirname, '../../Database/LanceDB')
+    const lancedbPath = getDatabasePath(config, 'lancedb Database Path')
     deleteFolderContents(lancedbPath)
 
     res.json({ success: true, message: '사이트가 초기화되었습니다. 다시 로그인해 주세요.' })
@@ -169,9 +170,9 @@ router.get('/stats', async (req, res) => {
     
     const configPath = path.resolve(__dirname, '../../config.json')
     const config = JSON.parse(fs.readFileSync(configPath, 'utf8'))
-    const uploadPath = config['ObjectFile Path'] || path.resolve(__dirname, '../uploads')
-    const cassandraPath = config['Cassandra Database Path'] || '/Users/kevinim/Desktop/EasyDocStation/Database/CassandraDB'
-    const lancedbPath = config['lancedb Database Path'] || '/Users/kevinim/Desktop/EasyDocStation/Database/LanceDB'
+    const uploadPath = getDatabasePath(config, 'ObjectFile Path')
+    const cassandraPath = getDatabasePath(config, 'Cassandra Database Path')
+    const lancedbPath = getDatabasePath(config, 'lancedb Database Path')
 
     if (!fs.existsSync(uploadPath)) {
       fs.mkdirSync(uploadPath, { recursive: true })
@@ -234,7 +235,7 @@ router.get('/stats', async (req, res) => {
         
       const configPath = path.resolve(__dirname, '../../config.json')
       const config = JSON.parse(fs.readFileSync(configPath, 'utf8'))
-      const uploadPath = config['ObjectFile Path'] || path.resolve(__dirname, '../uploads')
+      const uploadPath = getDatabasePath(config, 'ObjectFile Path')
       
       const uploadSizeBytes = getDirSize(uploadPath)
       
@@ -309,7 +310,7 @@ router.post('/rag/reinit-lancedb', async (req, res) => {
   try {
     const configPath = path.resolve(__dirname, '../../config.json')
     const config = JSON.parse(fs.readFileSync(configPath, 'utf8'))
-    const uri = config['lancedb Database Path'] || '/Users/kevinim/Desktop/EasyDocStation/Database/LanceDB'
+    const uri = getDatabasePath(config, 'lancedb Database Path')
     const dim = config.rag?.vectorSize || 1024
 
     const script = `

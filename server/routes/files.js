@@ -8,6 +8,7 @@ const { exec } = require('child_process')
 const { client, isConnected } = require('../cassandra')
 const db = require('../db')
 const requireAuth = require('../middleware/auth')
+const { getDatabasePath } = require('../databasePaths')
 
 // Load config for storage path
 const configPath = path.join(__dirname, '../../config.json')
@@ -18,7 +19,7 @@ try {
   console.error('Failed to load config.json for File Service')
 }
 
-const STORAGE_BASE = config['ObjectFile Path'] || path.join(__dirname, '../../Database/ObjectFile')
+const STORAGE_BASE = getDatabasePath(config, 'ObjectFile Path')
 const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret'
 
 // Ensure storage base exists

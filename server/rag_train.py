@@ -25,6 +25,7 @@ RAG 학습 스크립트
 import sys
 import json
 import os
+import platform
 
 # ─── 입력 파싱 ────────────────────────────────────────────────
 try:
@@ -38,7 +39,18 @@ posts      = payload.get("posts", [])
 comments   = payload.get("comments", [])
 delete_ids = payload.get("delete_ids", [])  # 학습 전에 LanceDB에서 삭제할 post_id 목록
 
-LANCEDB_PATH  = cfg.get("lancedb_path",  "/Users/kevinim/Desktop/EasyDocStation/Database/LanceDB")
+def default_lancedb_path():
+    env_lancedb = os.getenv("EASYDOC_LANCEDB_PATH", "").strip()
+    if env_lancedb:
+        return env_lancedb
+    env_db_base = os.getenv("EASYDOC_DB_BASE", "").strip()
+    if env_db_base:
+        return os.path.join(env_db_base, "LanceDB")
+    if platform.system().lower() == "linux":
+        return "/home/freegear/EasyDocStation/Database/LanceDB"
+    return os.path.abspath(os.path.join(os.path.dirname(__file__), "../Database/LanceDB"))
+
+LANCEDB_PATH  = cfg.get("lancedb_path") or default_lancedb_path()
 CHUNK_SIZE    = int(cfg.get("chunk_size",   800))
 CHUNK_OVERLAP = int(cfg.get("chunk_overlap", 100))
 VECTOR_SIZE   = int(cfg.get("vector_size",  1024))

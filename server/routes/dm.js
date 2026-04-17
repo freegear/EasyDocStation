@@ -4,6 +4,7 @@ const path = require('path')
 const { v4: uuidv4 } = require('uuid')
 const db = require('../db')
 const requireAuth = require('../middleware/auth')
+const { getDatabasePath } = require('../databasePaths')
 
 const router = express.Router()
 router.use(requireAuth)
@@ -15,8 +16,10 @@ const ONE_DAY_MS = 24 * 60 * 60 * 1000
 function getStorageBase() {
   try {
     const cfg = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'))
-    return cfg['ObjectFile Path'] || path.resolve(__dirname, '../../Database/ObjectFile')
-  } catch { return path.resolve(__dirname, '../../Database/ObjectFile') }
+    return getDatabasePath(cfg, 'ObjectFile Path')
+  } catch {
+    return getDatabasePath({}, 'ObjectFile Path')
+  }
 }
 
 function getDmRetentionConfig() {

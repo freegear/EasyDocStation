@@ -12,6 +12,7 @@ const path                  = require('path')
 const { spawn }             = require('child_process')
 const db                    = require('./db')
 const { client, isConnected } = require('./cassandra')
+const { getDatabasePath }   = require('./databasePaths')
 
 const CONFIG_PATH = path.resolve(__dirname, '../config.json')
 
@@ -40,7 +41,7 @@ function loadRagConfig() {
 async function getDocumentPathsForPost(postId) {
   try {
     const cfg         = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'))
-    const storageBase = cfg['ObjectFile Path'] || path.resolve(__dirname, '../uploads')
+    const storageBase = getDatabasePath(cfg, 'ObjectFile Path')
     const result = await db.query(
       `SELECT id, storage_path, content_type FROM attachments
        WHERE post_id = $1 AND status = 'COMPLETED'
@@ -112,7 +113,7 @@ async function runTraining(posts) {
 
   const payload = {
     config: {
-      lancedb_path:  cfg['lancedb Database Path'] || '/Users/kevinim/Desktop/EasyDocStation/Database/LanceDB',
+      lancedb_path:  getDatabasePath(cfg, 'lancedb Database Path'),
       chunk_size:    ragCfg.chunk_size    ?? 800,
       chunk_overlap: ragCfg.chunk_overlap ?? 100,
       vector_size:   ragCfg.vectorSize    ?? 1024,
@@ -209,7 +210,7 @@ async function getDocumentPathsByIds(attachmentIds) {
   if (!attachmentIds || attachmentIds.length === 0) return { pdfs: [], words: [] }
   try {
     const cfg         = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'))
-    const storageBase = cfg['ObjectFile Path'] || path.resolve(__dirname, '../uploads')
+    const storageBase = getDatabasePath(cfg, 'ObjectFile Path')
     const placeholders = attachmentIds.map((_, i) => `$${i + 1}`).join(', ')
     const result = await db.query(
       `SELECT id, storage_path, content_type FROM attachments
@@ -261,7 +262,7 @@ async function runCommentTraining(comments) {
 
   const payload = {
     config: {
-      lancedb_path:  cfg['lancedb Database Path'] || '/Users/kevinim/Desktop/EasyDocStation/Database/LanceDB',
+      lancedb_path:  getDatabasePath(cfg, 'lancedb Database Path'),
       chunk_size:    ragCfg.chunk_size    ?? 800,
       chunk_overlap: ragCfg.chunk_overlap ?? 100,
       vector_size:   ragCfg.vectorSize    ?? 1024,
@@ -303,7 +304,7 @@ async function deleteEventFromRAG(eventId) {
     const ragCfg = cfg.rag || {}
     const payload = {
       config: {
-        lancedb_path:  cfg['lancedb Database Path'] || '/Users/kevinim/Desktop/EasyDocStation/Database/LanceDB',
+        lancedb_path:  getDatabasePath(cfg, 'lancedb Database Path'),
         chunk_size:    ragCfg.chunk_size    ?? 800,
         chunk_overlap: ragCfg.chunk_overlap ?? 100,
         vector_size:   ragCfg.vectorSize    ?? 1024,
@@ -349,7 +350,7 @@ async function retrainEventImmediate(oldEventId, newEvent) {
 
     const payload = {
       config: {
-        lancedb_path:  cfg['lancedb Database Path'] || '/Users/kevinim/Desktop/EasyDocStation/Database/LanceDB',
+        lancedb_path:  getDatabasePath(cfg, 'lancedb Database Path'),
         chunk_size:    ragCfg.chunk_size    ?? 800,
         chunk_overlap: ragCfg.chunk_overlap ?? 100,
         vector_size:   ragCfg.vectorSize    ?? 1024,
@@ -408,7 +409,7 @@ async function trainEventImmediate(event) {
 
     const payload = {
       config: {
-        lancedb_path:  cfg['lancedb Database Path'] || '/Users/kevinim/Desktop/EasyDocStation/Database/LanceDB',
+        lancedb_path:  getDatabasePath(cfg, 'lancedb Database Path'),
         chunk_size:    ragCfg.chunk_size    ?? 800,
         chunk_overlap: ragCfg.chunk_overlap ?? 100,
         vector_size:   ragCfg.vectorSize    ?? 1024,
@@ -464,7 +465,7 @@ async function trainEventsImmediate(events) {
     const ragCfg = cfg.rag || {}
     const payload = {
       config: {
-        lancedb_path:  cfg['lancedb Database Path'] || '/Users/kevinim/Desktop/EasyDocStation/Database/LanceDB',
+        lancedb_path:  getDatabasePath(cfg, 'lancedb Database Path'),
         chunk_size:    ragCfg.chunk_size    ?? 800,
         chunk_overlap: ragCfg.chunk_overlap ?? 100,
         vector_size:   ragCfg.vectorSize    ?? 1024,
@@ -512,7 +513,7 @@ async function trainExpenseImmediate(postId, formData) {
     const content = buildExpenseContent(postId, formData)
     const payload = {
       config: {
-        lancedb_path:  cfg['lancedb Database Path'] || '/Users/kevinim/Desktop/EasyDocStation/Database/LanceDB',
+        lancedb_path:  getDatabasePath(cfg, 'lancedb Database Path'),
         chunk_size:    ragCfg.chunk_size    ?? 800,
         chunk_overlap: ragCfg.chunk_overlap ?? 100,
         vector_size:   ragCfg.vectorSize    ?? 1024,
@@ -543,7 +544,7 @@ async function retrainExpenseImmediate(postId, formData) {
     const content = buildExpenseContent(postId, formData)
     const payload = {
       config: {
-        lancedb_path:  cfg['lancedb Database Path'] || '/Users/kevinim/Desktop/EasyDocStation/Database/LanceDB',
+        lancedb_path:  getDatabasePath(cfg, 'lancedb Database Path'),
         chunk_size:    ragCfg.chunk_size    ?? 800,
         chunk_overlap: ragCfg.chunk_overlap ?? 100,
         vector_size:   ragCfg.vectorSize    ?? 1024,

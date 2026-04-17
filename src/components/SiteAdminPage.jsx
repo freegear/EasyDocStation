@@ -424,7 +424,7 @@ export default function SiteAdminPage({ onClose }) {
     moviePreview: { width: 480, height: 270 },
     htmlPreview: { width: 480, height: 270 }
   })
-  const [lancedbPath, setLancedbPath] = useState('/Users/kevinim/Desktop/EasyDocStation/Database/LanceDB')
+  const [lancedbPath, setLancedbPath] = useState('/home/freegear/EasyDocStation/Database/LanceDB')
   const [maxAttachmentFileSize, setMaxAttachmentFileSizeLocal] = useState(100)
   const [dmRetentionDays, setDmRetentionDays] = useState(30)
   const [dmUnlimited, setDmUnlimited] = useState(false)

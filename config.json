@@ -28,10 +28,10 @@
     "width": 480,
     "height": 270
   },
-  "PostgreSQL Database Path": "/Users/kevinim/Desktop/EasyDocStation/Database/PoseSQLDB",
-  "Cassandra Database Path": "/Users/kevinim/Desktop/EasyDocStation/Database/CassandraDB",
-  "ObjectFile Path": "/Users/kevinim/Desktop/EasyDocStation/Database/ObjectFile",
-  "lancedb Database Path": "/Users/kevinim/Desktop/EasyDocStation/Database/LanceDB",
+  "PostgreSQL Database Path": "/home/freegear/EasyDocStation/Database/PoseSQLDB",
+  "Cassandra Database Path": "/home/freegear/EasyDocStation/Database/CassandraDB",
+  "ObjectFile Path": "/home/freegear/EasyDocStation/Database/ObjectFile",
+  "lancedb Database Path": "/home/freegear/EasyDocStation/Database/LanceDB",
   "rag": {
     "trainingType": "immediate",
     "dailyTime": "02:00",
