@@ -145,3 +145,16 @@
 [2026-04-17T13:26:05.293Z] Success: thumbnails/ec87e889-1178-40f4-b6db-45d2be7b7d71.png
 [2026-04-17T13:26:16.059Z] Generating for 205cf039-bfa9-443b-87fa-d94b41988407: qlmanage -t -s 512 -o "/Users/kevinim/Desktop/EasyDocStation/Database/ObjectFile/thumbnails" "/Users/kevinim/Desktop/EasyDocStation/Database/ObjectFile/ch-1776243512826/205cf039-bfa9-443b-87fa-d94b41988407/2026 DFLUX DIGITAL SIGNAGE CATALOGUE.pdf"
 [2026-04-17T13:26:16.374Z] Success: thumbnails/205cf039-bfa9-443b-87fa-d94b41988407.png
+[2026-04-17T14:00:14.814Z] Generating for c467c224-f255-4f1f-bdce-b4008a0641f6: qlmanage -t -s 512 -o "/Users/kevinim/Desktop/EasyDocStation/Database/ObjectFile/thumbnails" "/Users/kevinim/Desktop/EasyDocStation/Database/ObjectFile/unknown/c467c224-f255-4f1f-bdce-b4008a0641f6/실리콘큐브_IR_DECK_260325_page-0001.jpg.pdf"
+[2026-04-17T14:00:14.994Z] Success: thumbnails/c467c224-f255-4f1f-bdce-b4008a0641f6.png
+[2026-04-17T14:00:15.005Z] Generating for 83491af7-a65f-47a4-a41f-7f22b849a883: qlmanage -t -s 512 -o "/Users/kevinim/Desktop/EasyDocStation/Database/ObjectFile/thumbnails" "/Users/kevinim/Desktop/EasyDocStation/Database/ObjectFile/unknown/83491af7-a65f-47a4-a41f-7f22b849a883/실리콘큐브_IR_DECK_260325_page-0001.pdf"
+[2026-04-17T14:00:15.100Z] Success: thumbnails/83491af7-a65f-47a4-a41f-7f22b849a883.png
+[2026-04-17T14:00:15.112Z] Generating for 7d2ad16f-249b-45d7-a7c7-8c465a7a4248: qlmanage -t -s 512 -o "/Users/kevinim/Desktop/EasyDocStation/Database/ObjectFile/thumbnails" "/Users/kevinim/Desktop/EasyDocStation/Database/ObjectFile/unknown/7d2ad16f-249b-45d7-a7c7-8c465a7a4248/실리콘큐브_IR_DECK_260325_page-0002.pdf"
+[2026-04-17T14:00:15.200Z] Success: thumbnails/7d2ad16f-249b-45d7-a7c7-8c465a7a4248.png
+[2026-04-17T15:12:49.483Z] Generating for 204628b8-a8e8-4321-9bda-0220551cb096: qlmanage -t -s 512 -o "/Users/kevinim/Desktop/EasyDocStation/Database/ObjectFile/thumbnails" "/Users/kevinim/Desktop/EasyDocStation/Database/ObjectFile/unknown/204628b8-a8e8-4321-9bda-0220551cb096/실리콘큐브_IR_DECK_260325_page-0017.pdf"
+[2026-04-17T15:13:24.785Z] Generating for 7023f131-62c3-492b-afc0-63a38c63854c: qlmanage -t -s 512 -o "/Users/kevinim/Desktop/EasyDocStation/Database/ObjectFile/thumbnails" "/Users/kevinim/Desktop/EasyDocStation/Database/ObjectFile/ch-1775905647942/7023f131-62c3-492b-afc0-63a38c63854c/1_견적서_셀콘_Zynq 펌웨어_250425 (1) (1).docx"
+[2026-04-17T15:13:25.008Z] Success: thumbnails/7023f131-62c3-492b-afc0-63a38c63854c.png
+[2026-04-17T15:13:25.020Z] Generating for 9e946980-77d6-4f3f-af84-61554aa81020: qlmanage -t -s 512 -o "/Users/kevinim/Desktop/EasyDocStation/Database/ObjectFile/thumbnails" "/Users/kevinim/Desktop/EasyDocStation/Database/ObjectFile/ch-1775905647942/9e946980-77d6-4f3f-af84-61554aa81020/1_견적서_셀콘_Zynq 펌웨어_250425 (1) (2).docx"
+[2026-04-17T15:13:25.158Z] Success: thumbnails/9e946980-77d6-4f3f-af84-61554aa81020.png
+[2026-04-17T15:13:25.175Z] Generating for 8bb071c3-beea-4225-8403-0265fff088a7: qlmanage -t -s 512 -o "/Users/kevinim/Desktop/EasyDocStation/Database/ObjectFile/thumbnails" "/Users/kevinim/Desktop/EasyDocStation/Database/ObjectFile/ch-1775905647942/8bb071c3-beea-4225-8403-0265fff088a7/1_견적서_셀콘_Zynq 펌웨어_250425 (1).docx"
+[2026-04-17T15:13:25.327Z] Success: thumbnails/8bb071c3-beea-4225-8403-0265fff088a7.png

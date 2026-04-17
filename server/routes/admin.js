@@ -10,6 +10,7 @@ const { client: cassandraClient } = require('../cassandra')
 const { runManualTraining, reloadRagConfig, getState: getRagState } = require('../rag')
 const { getDatabasePath, resolveAppBasePath } = require('../databasePaths')
 const { getPostgresDatabaseName } = require('../runtimeDbConfig')
+const { getPythonExecutable } = require('../pythonRuntime')
 
 // ... (existing code helpers)
 
@@ -332,7 +333,7 @@ data = [{"vector": [0.1] * ${dim}, "text": "init", "metadata": {"source": "syste
 table = db.create_table("my_rag_table", data=data, mode="overwrite")
 print(f"벡터 크기 ${dim}으로 재설정 완료: {table.count_rows()}건")
 `
-    execFile('python3', ['-c', script], { timeout: 30000 }, (err, stdout, stderr) => {
+    execFile(getPythonExecutable(), ['-c', script], { timeout: 30000 }, (err, stdout, stderr) => {
       if (err) {
         console.error('[LanceDB reinit error]', stderr)
         return res.status(500).json({ error: 'LanceDB 재초기화 실패: ' + (stderr || err.message) })
