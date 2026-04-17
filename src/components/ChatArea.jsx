@@ -35,6 +35,16 @@ function formatSize(bytes) {
   return (bytes / (1024 * 1024)).toFixed(1) + ' MB'
 }
 
+function normalizeGatewayUrl(url) {
+  if (!url) return url
+  try {
+    const parsed = new URL(url, window.location.origin)
+    return `${parsed.pathname}${parsed.search}${parsed.hash}`
+  } catch (_) {
+    return url
+  }
+}
+
 function getFileCategory(type, name) {
   if (type.startsWith('image/')) return 'image'
   if (type === 'application/pdf') return 'pdf'
@@ -1008,7 +1018,7 @@ function ComposeBar({ onSubmit, isArchived }) {
             channelId: selectedChannel.id,
           }),
         })
-        await fetch(uploadUrl, { method: 'PUT', body: fObj.file })
+        await fetch(normalizeGatewayUrl(uploadUrl), { method: 'PUT', body: fObj.file })
         attachmentIds.push(file_uuid)
       }
 
@@ -1622,6 +1632,7 @@ function PostDetail({ post, channelId, onClose }) {
   const [commentEditSecurityLevel, setCommentEditSecurityLevel] = useState(0)
 
   const [commentSecurityLevel, setCommentSecurityLevel] = useState(Math.min(1, currentUser?.security_level ?? 0))
+  const [commentErrorDialog, setCommentErrorDialog] = useState(null)
 
   const [files, setFiles] = useState([])
   const [dragOver, setDragOver] = useState(false)
@@ -1736,10 +1747,10 @@ function PostDetail({ post, channelId, onClose }) {
           body: JSON.stringify({
             filename: fObj.name,
             contentType: fObj.type,
-            channelName: selectedChannel?.name || 'general',
+            channelId: selectedChannel?.id,
           }),
         })
-        await fetch(uploadUrl, { method: 'PUT', body: fObj.file })
+        await fetch(normalizeGatewayUrl(uploadUrl), { method: 'PUT', body: fObj.file })
         attachmentIds.push(file_uuid)
       }
 
@@ -1750,7 +1761,7 @@ function PostDetail({ post, channelId, onClose }) {
       setFiles([])
       setTimeout(() => commentsEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 50)
     } catch (err) {
-      alert(t.chat.commentError(err.message))
+      setCommentErrorDialog(t.chat.commentError(err.message))
     } finally {
       setUploading(false)
       commentSubmittingRef.current = false
@@ -1971,6 +1982,22 @@ function PostDetail({ post, channelId, onClose }) {
           }}
           onCancel={() => setPendingDeleteCommentId(null)}
         />
+      )}
+      {commentErrorDialog && (
+        <div className="fixed inset-0 z-[95] flex items-center justify-center bg-black/45 px-4">
+          <div className="w-full max-w-sm rounded-2xl bg-white border border-gray-200 shadow-2xl p-5">
+            <h3 className="text-gray-900 font-bold text-base">{t.chat.errorTitle}</h3>
+            <p className="text-gray-600 text-sm mt-2 whitespace-pre-wrap leading-relaxed">{commentErrorDialog}</p>
+            <div className="flex justify-end mt-5">
+              <button
+                onClick={() => setCommentErrorDialog(null)}
+                className="px-4 py-2 rounded-xl text-sm text-white bg-indigo-600 hover:bg-indigo-700"
+              >
+                {t.chat.ok}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       <div className="flex-1 overflow-y-auto overflow-x-hidden px-6 py-6">
