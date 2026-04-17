@@ -6,6 +6,7 @@ const http = require('http')
 const { spawn } = require('child_process')
 const db = require('../db')
 const requireAuth = require('../middleware/auth')
+const { getDatabasePath } = require('../databasePaths')
 
 const CONFIG_PATH = path.resolve(__dirname, '../../config.json')
 const RAG_SERVER_PORT = 5001
@@ -200,7 +201,7 @@ router.post('/search', requireAuth, async (req, res) => {
 
     const payload = {
       config: {
-        lancedb_path: cfg['lancedb Database Path'] || '/Users/kevinim/Desktop/EasyDocStation/Database/LanceDB',
+        lancedb_path: getDatabasePath(cfg, 'lancedb Database Path'),
         vector_size: ragCfg.vectorSize ?? 1024,
       },
       query,

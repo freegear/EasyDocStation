@@ -7,6 +7,8 @@ stdout: JSON 배열 — [{"text": "...", "score": float, "metadata": {...}}, ...
 
 import sys
 import json
+import os
+import platform
 
 try:
     payload = json.loads(sys.stdin.read())
@@ -18,7 +20,18 @@ cfg   = payload.get("config", {})
 query = payload.get("query", "")
 limit = int(payload.get("limit", 3))
 
-LANCEDB_PATH = cfg.get("lancedb_path", "/Users/kevinim/Desktop/EasyDocStation/Database/LanceDB")
+def default_lancedb_path():
+    env_lancedb = os.getenv("EASYDOC_LANCEDB_PATH", "").strip()
+    if env_lancedb:
+        return env_lancedb
+    env_db_base = os.getenv("EASYDOC_DB_BASE", "").strip()
+    if env_db_base:
+        return os.path.join(env_db_base, "LanceDB")
+    if platform.system().lower() == "linux":
+        return "/home/freegear/EasyDocStation/Database/LanceDB"
+    return os.path.abspath(os.path.join(os.path.dirname(__file__), "../Database/LanceDB"))
+
+LANCEDB_PATH = cfg.get("lancedb_path") or default_lancedb_path()
 VECTOR_SIZE  = int(cfg.get("vector_size", 1024))
 
 if not query.strip():
@@ -34,7 +47,6 @@ device = 'mps' if torch.backends.mps.is_available() else 'cpu'
 embed_model = SentenceTransformer("BAAI/bge-m3", device=device)
 
 # LanceDB 연결 및 검색
-import os
 if not os.path.exists(LANCEDB_PATH):
     print(json.dumps([]))
     sys.exit(0)
