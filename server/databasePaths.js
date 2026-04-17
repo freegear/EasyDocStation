@@ -1,4 +1,5 @@
 const path = require('path')
+const fs = require('fs')
 
 const LINUX_DEFAULT_APP_BASE = '/home/freegear/EasyDocStation'
 
@@ -12,7 +13,10 @@ function getDefaultAppBasePath() {
     return envAppBase.trim()
   }
   if (process.platform === 'linux') {
-    return LINUX_DEFAULT_APP_BASE
+    if (fs.existsSync(LINUX_DEFAULT_APP_BASE)) {
+      return LINUX_DEFAULT_APP_BASE
+    }
+    return getProjectRoot()
   }
   return getProjectRoot()
 }
