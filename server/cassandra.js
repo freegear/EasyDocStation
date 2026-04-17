@@ -1,8 +1,10 @@
 const cassandra = require('cassandra-driver')
+const { getCassandraConfig } = require('./runtimeDbConfig')
 
-const contactPoints = ['127.0.0.1']
-const localDataCenter = 'datacenter1'
-const keyspace = 'easydocstation'
+const cassandraConfig = getCassandraConfig()
+const contactPoints = cassandraConfig.contactPoints
+const localDataCenter = cassandraConfig.localDataCenter
+const keyspace = cassandraConfig.keyspace
 
 const client = new cassandra.Client({
   contactPoints,
@@ -176,7 +178,7 @@ async function initCassandra() {
   } catch (err) {
     connected = false
     console.warn('⚠️ Cassandra 미연결 — PostgreSQL fallback 사용')
-    console.warn('   Cassandra를 시작하려면: brew install cassandra && brew services start cassandra')
+    console.warn(`   Cassandra 설정: contactPoints=${contactPoints.join(', ')} localDataCenter=${localDataCenter} keyspace=${keyspace}`)
     // 30초 후 자동 재연결 시도
     setTimeout(async () => {
       console.log('🔄 Cassandra 재연결 시도...')

@@ -5,16 +5,19 @@
 const { Pool } = require('pg')
 const cassandra = require('cassandra-driver')
 const { randomUUID } = require('crypto')
+const { getPostgresPoolOptions, getCassandraConfig } = require('./runtimeDbConfig')
 require('dotenv').config()
 
-const pool = new Pool({ connectionString: process.env.DATABASE_URL })
+const pool = new Pool(getPostgresPoolOptions())
+
+const cassandraConfig = getCassandraConfig()
 
 const cassClient = new cassandra.Client({
-  contactPoints: ['127.0.0.1'],
-  localDataCenter: 'datacenter1',
+  contactPoints: cassandraConfig.contactPoints,
+  localDataCenter: cassandraConfig.localDataCenter,
   queryOptions: { prepare: true },
 })
-const keyspace = 'easydocstation'
+const keyspace = cassandraConfig.keyspace
 
 async function migrate() {
   console.log('🔌 DB 연결 중...')

@@ -424,7 +424,11 @@ export default function SiteAdminPage({ onClose }) {
     moviePreview: { width: 480, height: 270 },
     htmlPreview: { width: 480, height: 270 }
   })
-  const [lancedbPath, setLancedbPath] = useState('/home/freegear/EasyDocStation/Database/LanceDB')
+  const [easyDocStationFolder, setEasyDocStationFolder] = useState('')
+  const [postgresPath, setPostgresPath] = useState('Database/PoseSQLDB')
+  const [cassandraPathConfig, setCassandraPathConfig] = useState('Database/CassandraDB')
+  const [objectFilePathConfig, setObjectFilePathConfig] = useState('Database/ObjectFile')
+  const [lancedbPath, setLancedbPath] = useState('Database/LanceDB')
   const [maxAttachmentFileSize, setMaxAttachmentFileSizeLocal] = useState(100)
   const [dmRetentionDays, setDmRetentionDays] = useState(30)
   const [dmUnlimited, setDmUnlimited] = useState(false)
@@ -480,6 +484,13 @@ export default function SiteAdminPage({ onClose }) {
       }
       if (data.lancedb?.location) {
         setLancedbPath(data.lancedb.location)
+      }
+      if (data.pathConfig) {
+        setEasyDocStationFolder(data.pathConfig.easyDocStationFolder || '')
+        setPostgresPath(data.pathConfig.postgresqlPath || 'Database/PoseSQLDB')
+        setCassandraPathConfig(data.pathConfig.cassandraPath || 'Database/CassandraDB')
+        setObjectFilePathConfig(data.pathConfig.objectFilePath || 'Database/ObjectFile')
+        setLancedbPath(data.pathConfig.lancedbPath || 'Database/LanceDB')
       }
       if (data.rag) {
         setRagForm(p => ({
@@ -596,7 +607,11 @@ export default function SiteAdminPage({ onClose }) {
           height: parseInt(displayForm.htmlPreview.height)
         }
       } else if (activeTab === 'db') {
-        configData['lancedb Database Path'] = lancedbPath
+        configData['EasyDocStationFolder'] = easyDocStationFolder.trim()
+        configData['PostgreSQL Database Path'] = postgresPath.trim()
+        configData['Cassandra Database Path'] = cassandraPathConfig.trim()
+        configData['ObjectFile Path'] = objectFilePathConfig.trim()
+        configData['lancedb Database Path'] = lancedbPath.trim()
         configData['MaxAttachmentFileSize'] = parseInt(maxAttachmentFileSize) || 100
         configData['DirectMessage'] = {
           '보존 기한': Math.min(90, Math.max(1, parseInt(dmRetentionDays) || 30)),
@@ -996,6 +1011,74 @@ export default function SiteAdminPage({ onClose }) {
               </div>
             ) : dbStats ? (
               <div className="space-y-6">
+                {/* EasyDocStation Folder + Relative DB Path Config */}
+                <div className="bg-gray-100 border border-gray-200 rounded-2xl p-6 shadow-xl">
+                  <div className="flex items-start justify-between mb-6">
+                    <div>
+                      <h3 className="text-gray-900 font-bold text-base mb-1">EasyDocStation Folder</h3>
+                      <p className="text-gray-400 text-xs">기준 경로와 DB 상대 경로를 설정합니다. 실제 경로는 기준 경로 + 상대 경로 방식으로 계산됩니다.</p>
+                    </div>
+                    <div className="px-3 py-1 rounded-full bg-sky-50 border border-sky-200 text-sky-700 text-[10px] font-bold uppercase tracking-wider">
+                      Path Rule
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div>
+                      <p className="text-gray-400 text-xs font-semibold uppercase tracking-wider mb-1.5">EasyDocStationFolder</p>
+                      <input
+                        type="text"
+                        value={easyDocStationFolder}
+                        onChange={e => setEasyDocStationFolder(e.target.value)}
+                        className="w-full bg-gray-200 rounded-xl px-4 py-3 border border-gray-100 font-mono text-xs text-gray-700 break-all leading-relaxed focus:outline-none focus:border-sky-500/50 transition-colors"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-gray-400 text-xs font-semibold uppercase tracking-wider mb-1.5">PostgreSQL Database Path</p>
+                        <input
+                          type="text"
+                          value={postgresPath}
+                          onChange={e => setPostgresPath(e.target.value)}
+                          className="w-full bg-gray-200 rounded-xl px-4 py-3 border border-gray-100 font-mono text-xs text-gray-700 break-all leading-relaxed focus:outline-none focus:border-sky-500/50 transition-colors"
+                        />
+                      </div>
+                      <div>
+                        <p className="text-gray-400 text-xs font-semibold uppercase tracking-wider mb-1.5">Cassandra Database Path</p>
+                        <input
+                          type="text"
+                          value={cassandraPathConfig}
+                          onChange={e => setCassandraPathConfig(e.target.value)}
+                          className="w-full bg-gray-200 rounded-xl px-4 py-3 border border-gray-100 font-mono text-xs text-gray-700 break-all leading-relaxed focus:outline-none focus:border-sky-500/50 transition-colors"
+                        />
+                      </div>
+                      <div>
+                        <p className="text-gray-400 text-xs font-semibold uppercase tracking-wider mb-1.5">ObjectFile Path</p>
+                        <input
+                          type="text"
+                          value={objectFilePathConfig}
+                          onChange={e => setObjectFilePathConfig(e.target.value)}
+                          className="w-full bg-gray-200 rounded-xl px-4 py-3 border border-gray-100 font-mono text-xs text-gray-700 break-all leading-relaxed focus:outline-none focus:border-sky-500/50 transition-colors"
+                        />
+                      </div>
+                      <div>
+                        <p className="text-gray-400 text-xs font-semibold uppercase tracking-wider mb-1.5">lancedb Database Path</p>
+                        <input
+                          type="text"
+                          value={lancedbPath}
+                          onChange={e => setLancedbPath(e.target.value)}
+                          className="w-full bg-gray-200 rounded-xl px-4 py-3 border border-gray-100 font-mono text-xs text-gray-700 break-all leading-relaxed focus:outline-none focus:border-sky-500/50 transition-colors"
+                        />
+                      </div>
+                    </div>
+
+                    <p className="text-gray-400 text-xs">
+                      예시: {`EasyDocStationFolder="/home/freegear/EasyDocStation/"`} + {`"Database/ObjectFile"`} = {`/home/freegear/EasyDocStation/Database/ObjectFile`}
+                    </p>
+                  </div>
+                </div>
+
                 {/* Postgres Stats */}
                 <div className="bg-gray-100 border border-gray-200 rounded-2xl p-6 shadow-xl">
                   <div className="flex items-start justify-between mb-6">
@@ -1108,13 +1191,9 @@ export default function SiteAdminPage({ onClose }) {
                     <div className="space-y-4">
                       <div>
                         <p className="text-gray-400 text-xs font-semibold uppercase tracking-wider mb-1.5">{t.admin.dbLancedbFolderLocation}</p>
-                        <input
-                          type="text"
-                          value={lancedbPath}
-                          onChange={e => setLancedbPath(e.target.value)}
-                          className="w-full bg-gray-200 rounded-xl px-4 py-3 border border-gray-100 font-mono text-xs text-teal-700 break-all leading-relaxed focus:outline-none focus:border-teal-500/50 transition-colors"
-                        />
-                        <p className="text-gray-300 text-[10px] mt-1.5">{t.admin.dbPathHint}</p>
+                        <div className="w-full bg-gray-200 rounded-xl px-4 py-3 border border-gray-100 font-mono text-xs text-teal-700 break-all leading-relaxed">
+                          {dbStats.lancedb?.location}
+                        </div>
                       </div>
                     </div>
                     <div className="space-y-10 flex flex-col justify-center">

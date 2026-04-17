@@ -28,10 +28,23 @@
     "width": 480,
     "height": 270
   },
-  "PostgreSQL Database Path": "/home/freegear/EasyDocStation/Database/PoseSQLDB",
-  "Cassandra Database Path": "/home/freegear/EasyDocStation/Database/CassandraDB",
-  "ObjectFile Path": "/home/freegear/EasyDocStation/Database/ObjectFile",
-  "lancedb Database Path": "/home/freegear/EasyDocStation/Database/LanceDB",
+  "EasyDocStationFolder": "/Users/kevinim/Desktop/EasyDocStation/",
+  "PostgreSQL Database Path": "Database/PoseSQLDB",
+  "Cassandra Database Path": "Database/CassandraDB",
+  "ObjectFile Path": "Database/ObjectFile",
+  "lancedb Database Path": "Database/LanceDB",
+  "PostgreSQL": {
+    "host": "localhost",
+    "port": 5432,
+    "database": "easydocstation"
+  },
+  "Cassandra": {
+    "contactPoints": [
+      "127.0.0.1"
+    ],
+    "localDataCenter": "datacenter1",
+    "keyspace": "easydocstation"
+  },
   "rag": {
     "trainingType": "immediate",
     "dailyTime": "02:00",

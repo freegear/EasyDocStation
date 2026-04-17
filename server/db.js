@@ -1,8 +1,7 @@
 const { Pool } = require('pg')
+const { getPostgresPoolOptions } = require('./runtimeDbConfig')
 
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-})
+const pool = new Pool(getPostgresPoolOptions())
 
 // Auto-migration on startup
 async function initDb() {
