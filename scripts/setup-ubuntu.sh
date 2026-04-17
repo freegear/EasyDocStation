@@ -64,8 +64,27 @@ BEGIN
   FOR r IN SELECT tablename FROM pg_tables WHERE schemaname='public' LOOP
     EXECUTE format('ALTER TABLE public.%I OWNER TO ${DB_USER}', r.tablename);
   END LOOP;
+  FOR r IN SELECT viewname FROM pg_views WHERE schemaname='public' LOOP
+    EXECUTE format('ALTER VIEW public.%I OWNER TO ${DB_USER}', r.viewname);
+  END LOOP;
+  FOR r IN SELECT matviewname FROM pg_matviews WHERE schemaname='public' LOOP
+    EXECUTE format('ALTER MATERIALIZED VIEW public.%I OWNER TO ${DB_USER}', r.matviewname);
+  END LOOP;
   FOR r IN SELECT sequence_name FROM information_schema.sequences WHERE sequence_schema='public' LOOP
     EXECUTE format('ALTER SEQUENCE public.%I OWNER TO ${DB_USER}', r.sequence_name);
+  END LOOP;
+END
+\$\$;
+DO \$\$
+DECLARE r RECORD;
+BEGIN
+  FOR r IN
+    SELECT p.proname, pg_get_function_identity_arguments(p.oid) AS args
+    FROM pg_proc p
+    JOIN pg_namespace n ON n.oid = p.pronamespace
+    WHERE n.nspname = 'public'
+  LOOP
+    EXECUTE format('ALTER FUNCTION public.%I(%s) OWNER TO ${DB_USER}', r.proname, r.args);
   END LOOP;
 END
 \$\$;
