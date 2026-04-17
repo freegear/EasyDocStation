@@ -19,9 +19,13 @@ function readConfig() {
 // ─── 영구 Python RAG 서버 관리 ────────────────────────────────
 let ragServerReady = false
 let ragServerProc  = null
+let ragServerDisabled = false
+let ragServerDisableReason = ''
 
 function startRagServer() {
+  if (ragServerDisabled) return
   const script = path.resolve(__dirname, '../rag_server.py')
+  let fatalImportError = false
   ragServerProc = spawn('python3', [script, String(RAG_SERVER_PORT)], {
     stdio: ['ignore', 'pipe', 'pipe']
   })
@@ -42,12 +46,22 @@ function startRagServer() {
       'warnings.warn',
     ]
     const isNoise = IGNORE_PATTERNS.some(p => msg.includes(p))
+    if (msg.includes("ModuleNotFoundError: No module named 'torch'")) {
+      fatalImportError = true
+      ragServerDisabled = true
+      ragServerDisableReason = "python module 'torch' is missing"
+    }
     if (!isNoise) {
       process.stderr.write(`[RAG Server ERR] ${msg}`)
     }
   })
   ragServerProc.on('close', code => {
     ragServerReady = false
+    ragServerProc = null
+    if (fatalImportError) {
+      console.warn(`[RAG Server] 비활성화됨: ${ragServerDisableReason}. RAG 검색은 subprocess fallback으로 동작합니다.`)
+      return
+    }
     if (code !== null) {  // 의도적 종료가 아닐 때만 재시작
       console.log(`[RAG Server] 프로세스 종료 (code=${code}), 5초 후 재시작...`)
       setTimeout(startRagServer, 5000)

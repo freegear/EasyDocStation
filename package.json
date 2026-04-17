@@ -4,7 +4,7 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "ollama:serve": "ollama serve",
+    "ollama:serve": "node scripts/ollama-serve-safe.mjs",
     "dev:frontend": "vite",
     "dev:backend": "npm run dev --prefix server",
     "dev": "concurrently -p \"[{name}]\" -n \"Ollama,FE,BE\" -c \"cyan,magenta,green\" \"npm run ollama:serve\" \"npm run dev:frontend\" \"npm run dev:backend\"",
