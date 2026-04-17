@@ -58,6 +58,17 @@ sudo -u postgres psql -d "${DB_NAME}" <<SQL
 GRANT CONNECT, TEMP ON DATABASE ${DB_NAME} TO ${DB_USER};
 GRANT USAGE, CREATE ON SCHEMA public TO ${DB_USER};
 ALTER SCHEMA public OWNER TO ${DB_USER};
+DO \$\$
+DECLARE r RECORD;
+BEGIN
+  FOR r IN SELECT tablename FROM pg_tables WHERE schemaname='public' LOOP
+    EXECUTE format('ALTER TABLE public.%I OWNER TO ${DB_USER}', r.tablename);
+  END LOOP;
+  FOR r IN SELECT sequence_name FROM information_schema.sequences WHERE sequence_schema='public' LOOP
+    EXECUTE format('ALTER SEQUENCE public.%I OWNER TO ${DB_USER}', r.sequence_name);
+  END LOOP;
+END
+\$\$;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public
   GRANT SELECT, INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER ON TABLES TO ${DB_USER};
 ALTER DEFAULT PRIVILEGES IN SCHEMA public
