@@ -136,6 +136,9 @@ PORT=3001
 CLIENT_ORIGIN=${CLIENT_ORIGIN}
 EOF
 
+echo "[8-1/8] 기본 사용자 시드 적용"
+npm run seed --prefix "$ROOT_DIR/server" >/dev/null || true
+
 echo
 echo "완료되었습니다."
 echo "다음 명령으로 실행하세요:"

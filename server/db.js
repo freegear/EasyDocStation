@@ -1,11 +1,19 @@
 const { Pool } = require('pg')
 const fs = require('fs')
 const path = require('path')
+const bcrypt = require('bcryptjs')
 const { getPostgresPoolOptions } = require('./runtimeDbConfig')
 
 const pool = new Pool(getPostgresPoolOptions())
 
 const SCHEMA_PATH = path.resolve(__dirname, './schema.sql')
+
+const DEFAULT_SEED_USERS = [
+  { username: 'kevin', name: 'Kevin Im', email: 'kevin@easydocstation.com', password: 'password123', role: 'site_admin' },
+  { username: 'alice', name: 'Alice Kim', email: 'alice@easydocstation.com', password: 'password123', role: 'team_admin' },
+  { username: 'bob', name: 'Bob Lee', email: 'bob@easydocstation.com', password: 'password123', role: 'channel_admin' },
+  { username: 'carol', name: 'Carol Park', email: 'carol@easydocstation.com', password: 'password123', role: 'user' },
+]
 
 async function applyBaseSchema(client) {
   try {
@@ -26,6 +34,31 @@ async function applyBaseSchema(client) {
     console.error('❌ Base schema apply error:', err.message)
     throw err
   }
+}
+
+async function ensureDefaultUsers(client) {
+  const { rows } = await client.query('SELECT COUNT(*)::int AS count FROM users')
+  const userCount = rows[0]?.count ?? 0
+  if (userCount > 0) return
+
+  for (const u of DEFAULT_SEED_USERS) {
+    const hash = await bcrypt.hash(u.password, 10)
+    await client.query(
+      `INSERT INTO users
+        (username, name, email, password_hash, role, is_active, failed_login_attempts)
+       VALUES ($1, $2, $3, $4, $5, true, 0)
+       ON CONFLICT (email) DO UPDATE
+         SET username = EXCLUDED.username,
+             name = EXCLUDED.name,
+             role = EXCLUDED.role,
+             password_hash = EXCLUDED.password_hash,
+             is_active = true,
+             failed_login_attempts = 0,
+             updated_at = NOW()`,
+      [u.username, u.name, u.email, hash, u.role]
+    )
+  }
+  console.log('✅ Default users seeded (password: password123)')
 }
 
 // Auto-migration on startup
@@ -222,6 +255,7 @@ async function initDb() {
         ALTER TABLE dm_messages ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;
         ALTER TABLE dm_messages ADD COLUMN IF NOT EXISTS deleted_by INTEGER REFERENCES users(id) ON DELETE SET NULL;
       `)
+      await ensureDefaultUsers(client)
       console.log('✅ Database migration complete.')
     } finally {
       client.release()
