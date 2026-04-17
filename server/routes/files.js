@@ -150,7 +150,9 @@ router.get('/:id/get-download-url', requireAuth, async (req, res, next) => {
       user_id: req.user.id
     }, JWT_SECRET, { expiresIn: '30m' })
 
-    const downloadUrl = `http://localhost:${process.env.PORT || 3001}/api/files/gateway/download?token=${token}`
+    const host = req.get('host')
+    const protocol = req.protocol
+    const downloadUrl = `${protocol}://${host}/api/files/gateway/download?token=${token}`
     
     res.json({ downloadUrl })
   } catch (err) {
@@ -203,8 +205,9 @@ router.put('/gateway/upload', async (req, res) => {
 
       // ─── 썸네일 생성 (응답 전에 완료 대기) ───────────────────
       const isThumbTarget = /\.(pdf|pptx|ppt|docx|doc|xlsx|xls|mp4|mov|avi|mkv|webm)$/i.test(decoded.key)
+      const canGenerateThumbnail = process.platform === 'darwin'
 
-      if (isThumbTarget) {
+      if (isThumbTarget && canGenerateThumbnail) {
         const logFile = path.join(STORAGE_BASE, 'thumbnail_debug.log')
         const cmd = `qlmanage -t -s 512 -o "${THUMBNAIL_BASE}" "${fullPath}"`
         fs.appendFileSync(logFile, `[${new Date().toISOString()}] Generating for ${decoded.file_uuid}: ${cmd}\n`)

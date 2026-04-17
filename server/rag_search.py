@@ -27,9 +27,15 @@ def default_lancedb_path():
     env_db_base = os.getenv("EASYDOC_DB_BASE", "").strip()
     if env_db_base:
         return os.path.join(env_db_base, "LanceDB")
+    env_station = os.getenv("EASYDOC_STATION_FOLDER", "").strip()
+    if env_station:
+        return os.path.join(env_station, "Database", "LanceDB")
+    repo_default = os.path.abspath(os.path.join(os.path.dirname(__file__), "../Database/LanceDB"))
     if platform.system().lower() == "linux":
-        return "/home/freegear/EasyDocStation/Database/LanceDB"
-    return os.path.abspath(os.path.join(os.path.dirname(__file__), "../Database/LanceDB"))
+        linux_default = "/home/freegear/EasyDocStation/Database/LanceDB"
+        if os.path.exists("/home/freegear/EasyDocStation"):
+            return linux_default
+    return repo_default
 
 LANCEDB_PATH = cfg.get("lancedb_path") or default_lancedb_path()
 VECTOR_SIZE  = int(cfg.get("vector_size", 1024))

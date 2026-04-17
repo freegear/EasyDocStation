@@ -155,7 +155,7 @@ function normalizeDirectMessageConfig(dm = {}) {
 
 function getDatabasePathConfig(config = {}) {
   return {
-    easyDocStationFolder: config.EasyDocStationFolder || resolveAppBasePath(config),
+    easyDocStationFolder: resolveAppBasePath(config),
     postgresqlPath: config['PostgreSQL Database Path'] || 'Database/PoseSQLDB',
     cassandraPath: config['Cassandra Database Path'] || 'Database/CassandraDB',
     objectFilePath: config['ObjectFile Path'] || 'Database/ObjectFile',

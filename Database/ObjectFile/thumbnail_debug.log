@@ -141,3 +141,7 @@
 [2026-04-17T12:48:54.792Z] Success: thumbnails/b69fe3ac-ea3c-4553-9288-edb4fa4d01f4.png
 [2026-04-17T12:48:54.804Z] Generating for 704c715d-0ab6-4d8f-b9e0-596cf25814b9: qlmanage -t -s 512 -o "/Users/kevinim/Desktop/EasyDocStation/Database/ObjectFile/thumbnails" "/Users/kevinim/Desktop/EasyDocStation/Database/ObjectFile/unknown/704c715d-0ab6-4d8f-b9e0-596cf25814b9/KURABO件に関するSCの意見_260415.docx"
 [2026-04-17T12:48:54.931Z] Success: thumbnails/704c715d-0ab6-4d8f-b9e0-596cf25814b9.png
+[2026-04-17T13:26:05.037Z] Generating for ec87e889-1178-40f4-b6db-45d2be7b7d71: qlmanage -t -s 512 -o "/Users/kevinim/Desktop/EasyDocStation/Database/ObjectFile/thumbnails" "/Users/kevinim/Desktop/EasyDocStation/Database/ObjectFile/unknown/ec87e889-1178-40f4-b6db-45d2be7b7d71/GPU특보단 명단(박우찬) (1).xlsx"
+[2026-04-17T13:26:05.293Z] Success: thumbnails/ec87e889-1178-40f4-b6db-45d2be7b7d71.png
+[2026-04-17T13:26:16.059Z] Generating for 205cf039-bfa9-443b-87fa-d94b41988407: qlmanage -t -s 512 -o "/Users/kevinim/Desktop/EasyDocStation/Database/ObjectFile/thumbnails" "/Users/kevinim/Desktop/EasyDocStation/Database/ObjectFile/ch-1776243512826/205cf039-bfa9-443b-87fa-d94b41988407/2026 DFLUX DIGITAL SIGNAGE CATALOGUE.pdf"
+[2026-04-17T13:26:16.374Z] Success: thumbnails/205cf039-bfa9-443b-87fa-d94b41988407.png
