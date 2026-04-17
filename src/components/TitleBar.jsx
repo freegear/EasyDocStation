@@ -8,6 +8,7 @@ import { useT } from '../i18n/useT'
 const LANGUAGES = [
   { code: 'ko', label: '한국어' },
   { code: 'en', label: 'English' },
+  { code: 'ja', label: '日本語' },
 ]
 
 // ─── Search Bar ───────────────────────────────────────────────
