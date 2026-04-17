@@ -164,20 +164,40 @@ function getDatabasePathConfig(config = {}) {
   }
 }
 
+function buildDisplayConfig(config = {}) {
+  return {
+    imagePreview: config.imagePreview || { width: 512, height: 512 },
+    pptPreview: config.pptPreview || { width: 480, height: 270 },
+    pptxPreview: config.pptxPreview || { width: 480, height: 270 },
+    excelPreview: config.excelPreview || { width: 480, height: 270 },
+    wordPreview: config.wordPreview || { width: 270, height: 480 },
+    moviePreview: config.moviePreview || { width: 480, height: 270 },
+    htmlPreview: config.htmlPreview || { width: 480, height: 270 }
+  }
+}
+
+async function getDbLocationSafe() {
+  try {
+    const dbLocResult = await pool.query("SHOW data_directory")
+    let dbLocation = dbLocResult.rows[0]?.data_directory || 'N/A'
+    try {
+      dbLocation = fs.realpathSync(dbLocation)
+    } catch (_) {}
+    return dbLocation
+  } catch (e) {
+    if (e && e.code === '42501') {
+      return '권한 필요 (pg_read_all_settings)'
+    }
+    return 'N/A'
+  }
+}
+
 router.get('/stats', async (req, res) => {
   try {
     // 1. PostgreSQL DB Stats
     const dbName = getPostgresDatabaseName()
     const dbSizeResult = await pool.query('SELECT pg_size_pretty(pg_database_size($1)) as size', [dbName])
-    const dbLocResult = await pool.query("SHOW data_directory")
-    
-    // Resolve symlink to show real physical path in UI
-    let dbLocation = dbLocResult.rows[0].data_directory
-    try {
-      dbLocation = fs.realpathSync(dbLocation)
-    } catch (e) {
-      console.warn('Failed to resolve DB symlink:', e)
-    }
+    const dbLocation = await getDbLocationSafe()
     
     const configPath = path.resolve(__dirname, '../../config.json')
     const config = JSON.parse(fs.readFileSync(configPath, 'utf8'))
@@ -219,15 +239,7 @@ router.get('/stats', async (req, res) => {
         size: formatBytes(lancedbSizeBytes),
       },
       pathConfig: getDatabasePathConfig(config),
-      display: {
-        imagePreview: config.imagePreview || { width: 512, height: 512 },
-        pptPreview: config.pptPreview || { width: 480, height: 270 },
-        pptxPreview: config.pptxPreview || { width: 480, height: 270 },
-        excelPreview: config.excelPreview || { width: 480, height: 270 },
-        wordPreview: config.wordPreview || { width: 270, height: 480 },
-        moviePreview: config.moviePreview || { width: 480, height: 270 },
-        htmlPreview: config.htmlPreview || { width: 480, height: 270 }
-      },
+      display: buildDisplayConfig(config),
       rag: config.rag || { trainingType: 'manual', dailyTime: '02:00', vectorSize: 1024 },
       agenticai: { num_predict: 4096, num_ctx: 8192, history: 6, ...(config.agenticai || {}) },
       maxAttachmentFileSize: config.MaxAttachmentFileSize ?? 100,
@@ -238,30 +250,39 @@ router.get('/stats', async (req, res) => {
     console.error('Admin Stats Error:', err)
     try {
       const dbSizeResult = await pool.query('SELECT pg_size_pretty(pg_database_size(current_database())) as size')
-      const dbLocResult = await pool.query("SHOW data_directory")
-      
-      let dbLocation = dbLocResult.rows[0].data_directory
-      try {
-        dbLocation = fs.realpathSync(dbLocation)
-      } catch (e) {}
+      const dbLocation = await getDbLocationSafe()
         
       const configPath = path.resolve(__dirname, '../../config.json')
       const config = JSON.parse(fs.readFileSync(configPath, 'utf8'))
       const uploadPath = getDatabasePath(config, 'ObjectFile Path')
+      const cassandraPath = getDatabasePath(config, 'Cassandra Database Path')
+      const lancedbPath = getDatabasePath(config, 'lancedb Database Path')
       
       const uploadSizeBytes = getDirSize(uploadPath)
+      const cassandraSizeBytes = getDirSize(cassandraPath)
+      const lancedbSizeBytes = getDirSize(lancedbPath)
       
       res.json({
         db: {
           location: dbLocation,
           size: dbSizeResult.rows[0].size,
         },
+        cassandra: {
+          location: cassandraPath,
+          size: formatBytes(cassandraSizeBytes),
+        },
         objects: {
           location: uploadPath,
           size: formatBytes(uploadSizeBytes),
         },
+        lancedb: {
+          location: lancedbPath,
+          size: formatBytes(lancedbSizeBytes),
+        },
         pathConfig: getDatabasePathConfig(config),
-        display: config.imagePreview || { width: 512, height: 512 },
+        display: buildDisplayConfig(config),
+        rag: config.rag || { trainingType: 'manual', dailyTime: '02:00', vectorSize: 1024 },
+        agenticai: { num_predict: 4096, num_ctx: 8192, history: 6, ...(config.agenticai || {}) },
         maxAttachmentFileSize: config.MaxAttachmentFileSize ?? 100,
         DirectMessage: normalizeDirectMessageConfig(config.DirectMessage || {}),
         company: config.company || {}
