@@ -4,7 +4,7 @@ const jwt = require('jsonwebtoken')
 const path = require('path')
 const fs = require('fs')
 const { v4: uuidv4 } = require('uuid')
-const { exec } = require('child_process')
+const { exec, execFile } = require('child_process')
 const { client, isConnected } = require('../cassandra')
 const db = require('../db')
 const requireAuth = require('../middleware/auth')
@@ -30,6 +30,97 @@ if (!fs.existsSync(STORAGE_BASE)) {
 const THUMBNAIL_BASE = path.join(STORAGE_BASE, 'thumbnails')
 if (!fs.existsSync(THUMBNAIL_BASE)) {
   fs.mkdirSync(THUMBNAIL_BASE, { recursive: true })
+}
+
+function appendThumbLog(logFile, message) {
+  try {
+    fs.appendFileSync(logFile, `[${new Date().toISOString()}] ${message}\n`)
+  } catch (_) {}
+}
+
+function execFileAsync(command, args) {
+  return new Promise((resolve, reject) => {
+    execFile(command, args, (err, stdout, stderr) => {
+      if (err) {
+        err.stdout = stdout
+        err.stderr = stderr
+        reject(err)
+        return
+      }
+      resolve({ stdout, stderr })
+    })
+  })
+}
+
+async function generateThumbnail(fileUuid, fullPath) {
+  const logFile = path.join(STORAGE_BASE, 'thumbnail_debug.log')
+  const ext = path.extname(fullPath).toLowerCase()
+  const uniqueThumbName = `${fileUuid}.png`
+  const finalThumbPath = path.join(THUMBNAIL_BASE, uniqueThumbName)
+  const thumbRelPath = path.join('thumbnails', uniqueThumbName)
+
+  try {
+    if (process.platform === 'darwin') {
+      const cmd = `qlmanage -t -s 512 -o "${THUMBNAIL_BASE}" "${fullPath}"`
+      appendThumbLog(logFile, `Generating (darwin): ${cmd}`)
+      await new Promise((resolve, reject) => {
+        exec(cmd, (err, _stdout, stderr) => {
+          if (err) {
+            err.stderr = stderr
+            reject(err)
+            return
+          }
+          resolve()
+        })
+      })
+      const generatedPath = path.join(THUMBNAIL_BASE, path.basename(fullPath) + '.png')
+      if (!fs.existsSync(generatedPath)) return null
+      fs.renameSync(generatedPath, finalThumbPath)
+      return thumbRelPath
+    }
+
+    if (process.platform !== 'linux') return null
+
+    const tmpDir = fs.mkdtempSync(path.join(THUMBNAIL_BASE, 'tmp-'))
+    try {
+      const pngBase = path.join(tmpDir, 'preview')
+      const pngPath = `${pngBase}.png`
+      const officeExts = new Set(['.doc', '.docx', '.ppt', '.pptx', '.xls', '.xlsx'])
+      const videoExts = new Set(['.mp4', '.mov', '.avi', '.mkv', '.webm'])
+
+      if (ext === '.pdf') {
+        appendThumbLog(logFile, `Generating (linux/pdf): ${fullPath}`)
+        await execFileAsync('pdftoppm', ['-png', '-singlefile', '-f', '1', '-scale-to', '512', fullPath, pngBase])
+      } else if (officeExts.has(ext)) {
+        appendThumbLog(logFile, `Generating (linux/office): ${fullPath}`)
+        await execFileAsync('libreoffice', ['--headless', '--convert-to', 'pdf', '--outdir', tmpDir, fullPath])
+        const converted = path.join(tmpDir, `${path.parse(fullPath).name}.pdf`)
+        const fallbackPdfName = fs.readdirSync(tmpDir).find(n => n.toLowerCase().endsWith('.pdf'))
+        const sourcePdf = fs.existsSync(converted)
+          ? converted
+          : (fallbackPdfName ? path.join(tmpDir, fallbackPdfName) : null)
+        if (!sourcePdf) return null
+        await execFileAsync('pdftoppm', ['-png', '-singlefile', '-f', '1', '-scale-to', '512', sourcePdf, pngBase])
+      } else if (videoExts.has(ext)) {
+        appendThumbLog(logFile, `Generating (linux/video): ${fullPath}`)
+        await execFileAsync('ffmpeg', ['-y', '-ss', '00:00:01', '-i', fullPath, '-frames:v', '1', '-vf', 'scale=512:-1', pngPath])
+      } else {
+        return null
+      }
+
+      if (!fs.existsSync(pngPath)) return null
+      fs.renameSync(pngPath, finalThumbPath)
+      return thumbRelPath
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true })
+    }
+  } catch (err) {
+    const reason = err.code === 'ENOENT'
+      ? `required command missing: ${err.path || 'unknown'}`
+      : (err.stderr || err.message || 'unknown error')
+    appendThumbLog(logFile, `Error for ${fileUuid}: ${reason}`)
+    return null
+  }
 }
 
 /**
@@ -201,52 +292,26 @@ router.put('/gateway/upload', async (req, res) => {
         WHERE id = $2
       `, [totalSize, decoded.file_uuid])
 
-      // ─── 썸네일 생성 (응답 전에 완료 대기) ───────────────────
+      // ─── 썸네일 생성 (macOS + Ubuntu) ─────────────────────────
       const isThumbTarget = /\.(pdf|pptx|ppt|docx|doc|xlsx|xls|mp4|mov|avi|mkv|webm)$/i.test(decoded.key)
-      const canGenerateThumbnail = process.platform === 'darwin'
-
-      if (isThumbTarget && canGenerateThumbnail) {
-        const logFile = path.join(STORAGE_BASE, 'thumbnail_debug.log')
-        const cmd = `qlmanage -t -s 512 -o "${THUMBNAIL_BASE}" "${fullPath}"`
-        fs.appendFileSync(logFile, `[${new Date().toISOString()}] Generating for ${decoded.file_uuid}: ${cmd}\n`)
-
-        await new Promise((resolve) => {
-          exec(cmd, async (err, _stdout, stderr) => {
-            if (err) {
-              fs.appendFileSync(logFile, `[${new Date().toISOString()}] Error: ${err.message}\nStderr: ${stderr}\n`)
-              console.error('[Thumbnail] Generation failed:', err)
-              return resolve()  // 실패해도 업로드는 성공 처리
+      if (isThumbTarget) {
+        const thumbRelPath = await generateThumbnail(decoded.file_uuid, fullPath)
+        if (thumbRelPath) {
+          try {
+            if (isConnected()) {
+              await client.execute(
+                'UPDATE attachments SET thumbnail_path = ? WHERE id = ?',
+                [thumbRelPath, decoded.file_uuid], { prepare: true }
+              )
             }
-
-            const originalBase = path.basename(fullPath)
-            const generatedPath = path.join(THUMBNAIL_BASE, originalBase + '.png')
-            const uniqueThumbName = `${decoded.file_uuid}.png`
-            const finalThumbPath = path.join(THUMBNAIL_BASE, uniqueThumbName)
-
-            if (fs.existsSync(generatedPath)) {
-              try {
-                fs.renameSync(generatedPath, finalThumbPath)
-                const thumbRelPath = path.join('thumbnails', uniqueThumbName)
-                if (isConnected()) {
-                  await client.execute(
-                    'UPDATE attachments SET thumbnail_path = ? WHERE id = ?',
-                    [thumbRelPath, decoded.file_uuid], { prepare: true }
-                  )
-                }
-                await db.query(
-                  'UPDATE attachments SET thumbnail_path = $1 WHERE id = $2',
-                  [thumbRelPath, decoded.file_uuid]
-                )
-                fs.appendFileSync(logFile, `[${new Date().toISOString()}] Success: ${thumbRelPath}\n`)
-              } catch (e) {
-                console.error('[Thumbnail] DB update failed:', e)
-              }
-            } else {
-              fs.appendFileSync(logFile, `[${new Date().toISOString()}] Generated file not found: ${generatedPath}\n`)
-            }
-            resolve()
-          })
-        })
+            await db.query(
+              'UPDATE attachments SET thumbnail_path = $1 WHERE id = $2',
+              [thumbRelPath, decoded.file_uuid]
+            )
+          } catch (e) {
+            console.error('[Thumbnail] DB update failed:', e)
+          }
+        }
       }
 
       res.status(200).send('Upload successful')
