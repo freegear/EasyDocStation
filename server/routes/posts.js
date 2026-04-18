@@ -117,6 +117,52 @@ async function fetchComments(postId) {
   }))
 }
 
+async function findPostLocator(postId) {
+  const byId = await client.execute(
+    'SELECT channel_id, created_at, author_id FROM posts_by_id WHERE id = ?',
+    [postId], { prepare: true }
+  )
+  if (byId.rows.length > 0) return byId.rows[0]
+
+  // Legacy data can exist in posts without posts_by_id lookup row.
+  const legacy = await client.execute(
+    'SELECT channel_id, created_at, author_id FROM posts WHERE id = ? ALLOW FILTERING',
+    [postId], { prepare: true }
+  )
+  if (legacy.rows.length === 0) return null
+
+  const row = legacy.rows[0]
+  // Self-heal lookup row for future update/delete calls.
+  await client.execute(
+    'INSERT INTO posts_by_id (id, channel_id, created_at, author_id) VALUES (?, ?, ?, ?)',
+    [postId, row.channel_id, row.created_at, row.author_id], { prepare: true }
+  )
+  return row
+}
+
+async function findCommentLocator(postId, commentId) {
+  const byId = await client.execute(
+    'SELECT post_id, created_at, author_id FROM comments_by_id WHERE id = ?',
+    [commentId], { prepare: true }
+  )
+  if (byId.rows.length > 0) return byId.rows[0]
+
+  // Legacy data can exist in comments without comments_by_id lookup row.
+  const legacy = await client.execute(
+    'SELECT post_id, created_at, author_id FROM comments WHERE post_id = ? AND id = ? ALLOW FILTERING',
+    [postId, commentId], { prepare: true }
+  )
+  if (legacy.rows.length === 0) return null
+
+  const row = legacy.rows[0]
+  // Self-heal lookup row for future update/delete calls.
+  await client.execute(
+    'INSERT INTO comments_by_id (id, post_id, created_at, author_id) VALUES (?, ?, ?, ?)',
+    [commentId, row.post_id, row.created_at, row.author_id], { prepare: true }
+  )
+  return row
+}
+
 // ─── GET /api/posts/search ────────────────────────────────────
 router.get('/search', requireAuth, async (req, res, next) => {
   try {
@@ -436,35 +482,42 @@ router.delete('/:id', requireAuth, async (req, res, next) => {
 
     // ── Cassandra 삭제 ────────────────────────────────────────
     if (!isConnected()) return res.status(503).json({ error: 'Cassandra 연결이 필요합니다.' })
-      const found = await client.execute(
-        'SELECT channel_id, created_at, author_id FROM posts_by_id WHERE id = ?',
-        [id], { prepare: true }
-      )
-      if (found.rows.length > 0) {
-        const row = found.rows[0]
-        const isSiteAdmin = req.user.role === 'site_admin'
-        if (isSiteAdmin || String(row.author_id) === String(req.user.id)) {
-          await client.execute(
-            'DELETE FROM posts WHERE channel_id = ? AND created_at = ?',
-            [row.channel_id, row.created_at], { prepare: true }
-          )
-          await client.execute(
-            'DELETE FROM posts_by_id WHERE id = ?',
-            [id], { prepare: true }
-          )
-          // 해당 게시글의 댓글도 Cassandra에서 삭제 (post_id가 파티션 키이므로 ALLOW FILTERING 불필요)
-          const cRows = await client.execute(
-            'SELECT created_at FROM comments WHERE post_id = ?',
-            [id], { prepare: true }
-          )
-          await Promise.all(cRows.rows.map(c =>
-            client.execute(
-              'DELETE FROM comments WHERE post_id = ? AND created_at = ?',
-              [id, c.created_at], { prepare: true }
-            )
-          ))
-        }
-      }
+
+    const row = await findPostLocator(id)
+    if (!row) return res.status(404).json({ error: '게시글을 찾을 수 없습니다.' })
+
+    const isSiteAdmin = req.user.role === 'site_admin'
+    if (!isSiteAdmin && String(row.author_id) !== String(req.user.id)) {
+      return res.status(403).json({ error: '권한이 없습니다.' })
+    }
+
+    await client.execute(
+      'DELETE FROM posts WHERE channel_id = ? AND created_at = ?',
+      [row.channel_id, row.created_at], { prepare: true }
+    )
+    await client.execute(
+      'DELETE FROM posts_by_id WHERE id = ?',
+      [id], { prepare: true }
+    )
+
+    // 해당 게시글의 댓글도 Cassandra에서 삭제
+    const cRows = await client.execute(
+      'SELECT id, created_at FROM comments WHERE post_id = ?',
+      [id], { prepare: true }
+    )
+    await Promise.all(cRows.rows.map(c =>
+      Promise.all([
+        client.execute(
+          'DELETE FROM comments WHERE post_id = ? AND created_at = ?',
+          [id, c.created_at], { prepare: true }
+        ),
+        client.execute(
+          'DELETE FROM comments_by_id WHERE id = ?',
+          [c.id], { prepare: true }
+        ),
+      ])
+    ))
+
     res.json({ success: true })
   } catch (err) {
     next(err)
@@ -477,12 +530,8 @@ router.put('/:id', requireAuth, async (req, res, next) => {
     const { id } = req.params
     const { content, security_level } = req.body
     if (!isConnected()) return res.status(503).json({ error: 'Cassandra 연결이 필요합니다.' })
-    const found = await client.execute(
-      'SELECT channel_id, created_at, author_id FROM posts_by_id WHERE id = ?',
-      [id], { prepare: true }
-    )
-    if (found.rows.length === 0) return res.status(404).json({ error: '게시글을 찾을 수 없습니다.' })
-    const row = found.rows[0]
+    const row = await findPostLocator(id)
+    if (!row) return res.status(404).json({ error: '게시글을 찾을 수 없습니다.' })
     const isSiteAdmin = req.user.role === 'site_admin'
     if (!isSiteAdmin && String(row.author_id) !== String(req.user.id)) return res.status(403).json({ error: '권한이 없습니다.' })
     // security_level은 요청자의 레벨 이하만 허용
@@ -564,15 +613,11 @@ router.post('/:id/comments', requireAuth, async (req, res, next) => {
 // ─── PUT /api/posts/:postId/comments/:commentId ───────────────
 router.put('/:postId/comments/:commentId', requireAuth, async (req, res, next) => {
   try {
-    const { commentId } = req.params
+    const { postId, commentId } = req.params
     const { content, attachments = [], security_level } = req.body
     if (!isConnected()) return res.status(503).json({ error: 'Cassandra 연결이 필요합니다.' })
-    const found = await client.execute(
-      'SELECT post_id, created_at, author_id FROM comments_by_id WHERE id = ?',
-      [commentId], { prepare: true }
-    )
-    if (found.rows.length === 0) return res.status(404).json({ error: '댓글을 찾을 수 없습니다.' })
-    const row = found.rows[0]
+    const row = await findCommentLocator(postId, commentId)
+    if (!row) return res.status(404).json({ error: '댓글을 찾을 수 없습니다.' })
     const isSiteAdmin = req.user.role === 'site_admin'
     if (!isSiteAdmin && String(row.author_id) !== String(req.user.id)) return res.status(403).json({ error: '권한이 없습니다.' })
     const userLevel = req.user.security_level ?? 0
@@ -601,24 +646,20 @@ router.delete('/:postId/comments/:commentId', requireAuth, async (req, res, next
     
     // ── Cassandra 삭제 ────────────────────────────────────────
     if (!isConnected()) return res.status(503).json({ error: 'Cassandra 연결이 필요합니다.' })
-    const found = await client.execute(
-      'SELECT post_id, created_at, author_id FROM comments_by_id WHERE id = ?',
+    const row = await findCommentLocator(postId, commentId)
+    if (!row) return res.status(404).json({ error: '댓글을 찾을 수 없습니다.' })
+    const isSiteAdmin = req.user.role === 'site_admin'
+    if (!isSiteAdmin && String(row.author_id) !== String(req.user.id)) {
+      return res.status(403).json({ error: '권한이 없습니다.' })
+    }
+    await client.execute(
+      'DELETE FROM comments WHERE post_id = ? AND created_at = ?',
+      [row.post_id, row.created_at], { prepare: true }
+    )
+    await client.execute(
+      'DELETE FROM comments_by_id WHERE id = ?',
       [commentId], { prepare: true }
     )
-    if (found.rows.length > 0) {
-      const row = found.rows[0]
-      const isSiteAdmin = req.user.role === 'site_admin'
-      if (isSiteAdmin || String(row.author_id) === String(req.user.id)) {
-        await client.execute(
-          'DELETE FROM comments WHERE post_id = ? AND created_at = ?',
-          [row.post_id, row.created_at], { prepare: true }
-        )
-        await client.execute(
-          'DELETE FROM comments_by_id WHERE id = ?',
-          [commentId], { prepare: true }
-        )
-      }
-    }
     res.json({ success: true })
   } catch (err) {
     next(err)

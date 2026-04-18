@@ -1255,6 +1255,68 @@ table.add(records)
 
 #################
 
+
+# 13.3.1.2 Unstructured.io 를 사용한 PDF 학습
+
+sudo apt-get update
+sudo apt-get install -y libmagic-dev poppler-utils tesseract-ocr libreoffice pandoc
+
+을 실행해서 Package를 설치한다.
+
+pip install "unstructured[all-docs]"
+
+을 실행하여 모든 의존성을 한번에 설치한다.
+
+
+# 13.3.1.3  핵심 코드 구현 (Python)
+
+------- Core code for RAG --------
+
+from unstructured.partition.pdf import partition_pdf
+
+# 1. PDF 분석 및 요소 분리
+# strategy="hi_res" 설정이 표와 이미지 분리의 핵심입니다.
+elements = partition_pdf(
+    filename="your_document.pdf",
+    
+    # 표 구조 인식 활성화
+    infer_table_structure=True, 
+    
+    # 텍스트/표/이미지 구분을 위한 고해상도 전략
+    strategy="hi_res",          
+    
+    # 이미지 추출 설정 (추출된 이미지는 지정된 폴더에 저장됨)
+    extract_images_in_pdf=True,
+    extract_image_block_output_dir="extracted_images",
+    
+    # 한국어 등 다국어 OCR이 필요한 경우 설정
+    languages=["kor", "eng"]
+)
+
+# 2. 결과 확인 및 분류
+for el in elements:
+    if el.category == "Table":
+        print(f"<<표 발견>>\n{el.metadata.text_as_html}") # HTML 형태로 표 구조 유지
+    elif el.category == "Image":
+        print(f"<<이미지 발견>>: {el.metadata.image_path}")
+    else:
+        print(f"[{el.category}]: {el.text}")
+
+-------
+# 13.3.1.4 분리 후 RAG 학습 전략
+
+추출된 데이터를 단순히 텍스트로 넣지 않고, 각자의 특성에 맞춰 처리해야 합니다.
+
+텍스트 (NarrativeText, Title): 일반적인 Chunking 후 벡터화합니다.
+
+표 (Table): el.metadata.text_as_html을 사용하여 HTML 태그가 포함된 데이터를 가져옵니다. LLM에게 이 HTML을 주며 **"이 표의 내용을 요약해달라"**고 한 뒤, 그 요약본을 임베딩합니다.
+
+이미지 (Image): 저장된 이미지 파일을 GPT-4o-mini 같은 멀티모달 모델에 입력하여 **"이미지에 대한 설명(Caption)"**을 생성합니다. 그 설명을 벡터 DB에 저장합니다.
+
+
+
+
+
 # 13.3.2 계시글의 학습 설정
 
 만약 계시글이 올라오고, 학습 옵션에서 "글이 올라오는 즉시 학습" 이 선택되어 있다면
@@ -2461,6 +2523,67 @@ AgenticAI로 질문하고, 답변한 결과를,
 
 계시판에 등록하기 버튼을 누르면,
 질문을 계시판의 글 제목으로 한다.
+
+
+
+
+#################################################################################
+# 23. RAG 학습 page
+
+# 23.1 학습 페이지로 이동
+
+사이트 관리 페이지
+RAG 학습 설정 버튼을 누르면 나오는 
+RAG 학습 옵션 설정 페이지에서 
+
+제일 밑에 부분에 
+
+RAG 학습 페이지 버튼을 추가한다.
+이 버튼을 누르면, "RAG" 학습 페이지로 이동한다.
+
+
+# 23.2 RAG 학습 페이지
+
+RAG 학습페이지에 업데이트를 한다.
+
+화면은 
+"학습 데이터 추가" 버튼이 있고
+그 밑으로 추가된 학습 데이터를 보여주는 영역이 있다.
+학습 데이터는 
+PDF , TXT , EXCEL , PPT, Image format 등이 있다. 
+
+
+만약 추가된 학습 데이터를 선택하면 
+"학습 데이터에서 삭제" 버튼이 활성화된다.
+"학습 데이터에서 삭제" 버튼이 눌려지면, 선택된 학습 대상 데이터가 삭제된다.
+
+"학습 데이터 추가" 버튼 옆에 "학습 시작" 버튼이 있다.
+
+학습 데이터 파일 이름에서 한글이 보이지 않는다.
+학습 데이터 이름에 한글도 보이도록 해줘
+
+
+# 23.2.1 학습 데이터 추가시 PopUp 박스 표시 
+
+학습 데이터 추가시 PopUp 박스 표시 할 때, 
+"학습 데이터가 추가되었습니다."
+창이 나타난다. 
+이것은 나타나지 않도록 해줘
+
+
+# 23.3 학습 시작
+
+"학습 시작" 버튼이 눌려지면 학습이 시작된다.
+"학습 대상 데이터"를 추가하면 하나씩 학습 진행한다.
+
+# 23.3.1 학습 데이터 보관
+
+학습 데이터를 ObjectsFolder로 이동하고, RAG에 사용하도로 한다.
+
+
+
+
+
 
 
 

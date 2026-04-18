@@ -1,5 +1,4 @@
 import { createContext, useContext, useState, useEffect, useRef } from 'react'
-import { TEAMS, POSTS } from '../data/mockData'
 import { apiFetch } from '../lib/api'
 
 const ChatContext = createContext(null)
@@ -177,13 +176,12 @@ export function ChatProvider({ children }) {
   async function deletePost(channelId, postId) {
     try {
       await apiFetch(`/posts/${postId}`, { method: 'DELETE' })
+      const data = await apiFetch(`/posts?channelId=${channelId}`)
+      setPosts(prev => ({ ...prev, [channelId]: data }))
     } catch (err) {
       console.error('delete post error:', err)
+      throw err
     }
-    setPosts(prev => ({
-      ...prev,
-      [channelId]: (prev[channelId] || []).filter(p => p.id !== postId),
-    }))
   }
 
   async function updatePost(channelId, postId, { content, attachments, security_level }) {
@@ -207,15 +205,12 @@ export function ChatProvider({ children }) {
   async function deleteComment(channelId, postId, commentId) {
     try {
       await apiFetch(`/posts/${postId}/comments/${commentId}`, { method: 'DELETE' })
+      const data = await apiFetch(`/posts?channelId=${channelId}`)
+      setPosts(prev => ({ ...prev, [channelId]: data }))
     } catch (err) {
       console.error('delete comment error:', err)
+      throw err
     }
-    setPosts(prev => ({
-      ...prev,
-      [channelId]: (prev[channelId] || []).map(p =>
-        p.id === postId ? { ...p, comments: (p.comments || []).filter(c => c.id !== commentId) } : p
-      ),
-    }))
   }
 
   // ─── 댓글 수정 — DB 업데이트 후 state 반영 ──────────────────
