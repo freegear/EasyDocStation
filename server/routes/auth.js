@@ -14,6 +14,10 @@ function toPublicUser(u) {
     display_name: u.display_name ?? null,
     email: u.email,
     phone: u.phone ?? null,
+    telegram_id: u.telegram_id ?? null,
+    kakaotalk_api_key: u.kakaotalk_api_key ?? null,
+    line_channel_access_token: u.line_channel_access_token ?? null,
+    use_sns_channel: u.use_sns_channel ?? null,
     role: u.role,
     is_active: u.is_active,
     avatar: (u.display_name || u.name).split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2),
@@ -111,7 +115,10 @@ router.get('/me', requireAuth, async (req, res) => {
 
 // PUT /api/auth/me — update own profile
 router.put('/me', requireAuth, async (req, res) => {
-  const { name, email, phone, image_url, stamp_picture, currentPassword, newPassword } = req.body
+  const {
+    name, display_name, email, phone, image_url, stamp_picture, currentPassword, newPassword,
+    telegram_id, kakaotalk_api_key, line_channel_access_token, use_sns_channel,
+  } = req.body
   try {
     const { rows } = await pool.query('SELECT * FROM users WHERE id = $1', [req.user.id])
     const user = rows[0]
@@ -121,8 +128,18 @@ router.put('/me', requireAuth, async (req, res) => {
     let i = 1
 
     if (name?.trim()) { sets.push(`name = $${i++}`); vals.push(name.trim()) }
+    if (display_name !== undefined) { sets.push(`display_name = $${i++}`); vals.push(display_name?.trim() || null) }
     if (email?.trim()) { sets.push(`email = $${i++}`); vals.push(email.trim().toLowerCase()) }
     if (phone !== undefined) { sets.push(`phone = $${i++}`); vals.push(phone?.trim() || null) }
+    if (telegram_id !== undefined) { sets.push(`telegram_id = $${i++}`); vals.push(telegram_id?.trim() || null) }
+    if (kakaotalk_api_key !== undefined) { sets.push(`kakaotalk_api_key = $${i++}`); vals.push(kakaotalk_api_key?.trim() || null) }
+    if (line_channel_access_token !== undefined) { sets.push(`line_channel_access_token = $${i++}`); vals.push(line_channel_access_token?.trim() || null) }
+    if (use_sns_channel !== undefined) {
+      if (use_sns_channel !== null && use_sns_channel !== '' && !['telegram', 'kakaotalk', 'line'].includes(use_sns_channel)) {
+        return res.status(400).json({ error: 'UseSNSChannel 값이 올바르지 않습니다.' })
+      }
+      sets.push(`use_sns_channel = $${i++}`); vals.push(use_sns_channel || null)
+    }
     if (image_url !== undefined) { sets.push(`image_url = $${i++}`); vals.push(image_url) }
     if (stamp_picture !== undefined) { sets.push(`stamp_picture = $${i++}`); vals.push(stamp_picture || null) }
 

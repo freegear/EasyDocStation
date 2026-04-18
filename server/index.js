@@ -54,9 +54,9 @@ app.get('/api/config/version', (req, res) => {
     const path = require('path')
     const configPath = path.resolve(__dirname, '../config.json')
     const config = JSON.parse(fs.readFileSync(configPath, 'utf8'))
-    res.json({ version: config['EasyDocStation Version'] || '0.3.0' })
+    res.json({ version: config['EasyDocStation Version'] || '0.0.1' })
   } catch (e) {
-    res.json({ version: '0.3.0' })
+    res.json({ version: '0.0.1' })
   }
 })
 

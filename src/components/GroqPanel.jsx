@@ -132,11 +132,17 @@ export default function GroqPanel({ width }) {
       .find(m => m.role === 'user')
     const question = questionMsg?.content?.trim() || ''
     const questionImageFile = questionMsg?.questionImageFile || null
+    const titleQuestion = question.replace(/\s*\[[^\]]*:\s*[^\]]*\]\s*$/, '').trim()
+    const postTitle = titleQuestion || 'AgenticAI 질문'
 
     const content = [
-      '## AgenticAI Q&A',
-      question ? '\n### 질문\n' + question : '',
-      '\n### 답변\n' + answer,
+      postTitle,
+      '',
+      '### 질문',
+      question || postTitle,
+      '',
+      '### 답변',
+      answer,
     ].filter(Boolean).join('\n')
 
     setPostingId(answerMsg.id)
