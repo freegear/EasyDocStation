@@ -214,13 +214,24 @@ export default function TeamManageModal({ team = null, onClose, onSave }) {
 
           {/* 관리자 */}
           <div>
-            <div className="flex justify-between items-center mb-2">
+            <div className="flex items-center justify-between mb-2">
               <label className="text-gray-500 text-xs font-medium">
                 {t.team.admins} <span className="text-red-400">*</span>
               </label>
+              {searchTarget !== 'admin' && (
+                <button
+                  onClick={() => { setSearchTarget('admin'); setSearchQuery('') }}
+                  className="flex items-center gap-1 px-2.5 py-1 rounded-lg border border-indigo-200 text-indigo-600 hover:bg-indigo-50 hover:border-indigo-400 transition-all text-xs font-semibold"
+                >
+                  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                  </svg>
+                  {t.team.addAdmins}
+                </button>
+              )}
             </div>
             {/* 관리자 태그 목록 */}
-            <div className="min-h-[44px] p-2 bg-gray-100 rounded-xl border border-gray-200 flex flex-wrap gap-1.5 mb-3">
+            <div className="min-h-[44px] p-2 bg-gray-100 rounded-xl border border-gray-200 flex flex-wrap gap-1.5 mb-2">
               {selectedAdmins.map(a => (
                 <div key={a.id} className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-indigo-100 border border-indigo-200 text-indigo-600 text-[11px] font-medium">
                   <span>{a.name}</span>
@@ -234,9 +245,9 @@ export default function TeamManageModal({ team = null, onClose, onSave }) {
                 <span className="text-gray-300 text-xs px-1 py-1">{t.team.noAdmins}</span>
               )}
             </div>
-            {/* 관리자 추가: 버튼 or 인라인 검색 */}
-            {searchTarget === 'admin' ? (
-              <div className="relative">
+            {/* 관리자 인라인 검색 */}
+            {searchTarget === 'admin' && (
+              <div className="relative mt-2">
                 <input
                   type="text"
                   value={searchQuery}
@@ -270,23 +281,26 @@ export default function TeamManageModal({ team = null, onClose, onSave }) {
                   <p className="text-gray-400 text-xs mt-1 px-1">{t.team.searchNoResults}</p>
                 )}
               </div>
-            ) : (
-              <button
-                onClick={() => { setSearchTarget('admin'); setSearchQuery('') }}
-                className="w-full py-3 rounded-xl border-2 border-dashed border-indigo-200 text-indigo-600 hover:border-indigo-500/60 hover:bg-indigo-50 transition-all text-sm font-semibold flex items-center justify-center gap-2"
-              >
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                </svg>
-                {t.team.addAdmins}
-              </button>
             )}
           </div>
 
           {/* 멤버 */}
           <div>
-            <label className="block text-gray-500 text-xs font-medium mb-2">{t.team.members}</label>
-            <div className="min-h-[44px] p-2 bg-gray-100 rounded-xl border border-gray-200 flex flex-wrap gap-1.5 mb-3">
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-gray-500 text-xs font-medium">{t.team.members}</label>
+              {searchTarget !== 'member' && (
+                <button
+                  onClick={() => { setSearchTarget('member'); setSearchQuery('') }}
+                  className="flex items-center gap-1 px-2.5 py-1 rounded-lg border border-gray-300 text-gray-500 hover:bg-gray-100 hover:border-gray-400 transition-all text-xs font-semibold"
+                >
+                  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                  </svg>
+                  {t.team.addMembers}
+                </button>
+              )}
+            </div>
+            <div className="min-h-[44px] p-2 bg-gray-100 rounded-xl border border-gray-200 flex flex-wrap gap-1.5 mb-2">
               {selectedMembers.map(m => (
                 <div key={m.id} className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-gray-200 border border-gray-200 text-gray-500 text-[11px]">
                   <span>{m.name}</span>
@@ -301,9 +315,9 @@ export default function TeamManageModal({ team = null, onClose, onSave }) {
               )}
             </div>
 
-            {/* 멤버 추가: 버튼 or 인라인 검색 */}
-            {searchTarget === 'member' ? (
-              <div className="relative">
+            {/* 멤버 인라인 검색 */}
+            {searchTarget === 'member' && (
+              <div className="relative mt-2">
                 <input
                   type="text"
                   value={searchQuery}
@@ -337,16 +351,6 @@ export default function TeamManageModal({ team = null, onClose, onSave }) {
                   <p className="text-gray-400 text-xs mt-1 px-1">{t.team.searchNoResults}</p>
                 )}
               </div>
-            ) : (
-              <button
-                onClick={() => { setSearchTarget('member'); setSearchQuery('') }}
-                className="w-full py-3 rounded-xl border-2 border-dashed border-gray-200 text-gray-400 hover:border-white/30 hover:bg-gray-100 hover:text-gray-500 transition-all text-sm font-semibold flex items-center justify-center gap-2"
-              >
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                </svg>
-                {t.team.addMembers}
-              </button>
             )}
           </div>
 

@@ -118,7 +118,6 @@ function UserFormModal({ user, onClose, onSave, teams = [] }) {
         { missing: !form.password.trim(), label: t.admin.passwordGroupTitle || t.admin.labelPasswordNew },
         { missing: !form.role, label: t.admin.labelRole },
         { missing: form.security_level === null || form.security_level === undefined || Number.isNaN(form.security_level), label: t.admin.labelSecurityLevel },
-        { missing: !deptDisabled && !form.department_id, label: t.admin.labelDepartment },
       ]
       const firstMissing = requiredChecks.find(item => item.missing)
       if (firstMissing) {
@@ -1173,7 +1172,7 @@ export default function SiteAdminPage({ onClose }) {
           </button>
           <button
             onClick={() => setActiveTab('reset')}
-            className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${activeTab === 'reset' ? 'bg-red-600 text-gray-900 shadow-lg shadow-red-500/20' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-200'}`}
+            className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${activeTab === 'reset' ? 'bg-red-600 text-white shadow-lg shadow-red-500/20' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-200'}`}
           >
             <svg className="w-5 h-5 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -2553,19 +2552,19 @@ export default function SiteAdminPage({ onClose }) {
                 </div>
 
                 <h2 className="text-3xl font-black text-gray-900 mb-4">{t.admin.resetSectionTitle}</h2>
-                <div className="space-y-4 px-6 mb-10 text-red-200/60 leading-relaxed font-medium">
+                <div className="space-y-4 px-6 mb-10 text-red-800 leading-relaxed font-medium">
                   <p>{t.admin.resetSectionDesc1}</p>
-                  <p className="text-red-400 font-bold underline decoration-red-500/30 underline-offset-8 text-lg">{t.admin.resetSectionDesc2}</p>
+                  <p className="text-red-600 font-bold text-lg">{t.admin.resetSectionDesc2}</p>
                 </div>
 
-                <div className="w-full bg-black/40 border border-gray-100 rounded-2xl p-8 mb-8">
-                  <p className="text-gray-400 text-sm mb-4">{t.admin.resetHint(t.admin.resetConfirmWord)}</p>
+                <div className="w-full bg-white border border-red-200 rounded-2xl p-8 mb-8">
+                  <p className="text-gray-600 text-sm mb-4">{t.admin.resetHint(t.admin.resetConfirmWord)}</p>
                   <input
                     type="text"
                     value={resetConfirmation}
                     onChange={e => setResetConfirmation(e.target.value)}
                     placeholder={t.admin.resetConfirmPlaceholder}
-                    className="w-full bg-gray-100 border border-gray-200 rounded-xl px-5 py-3.5 text-gray-900 text-lg font-bold placeholder-white/10 text-center focus:outline-none focus:border-red-500/50 focus:ring-1 focus:ring-red-500/50 transition-all"
+                    className="w-full bg-red-50 border border-red-300 rounded-xl px-5 py-3.5 text-gray-900 text-lg font-bold placeholder-red-300 text-center focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 transition-all"
                   />
                 </div>
 

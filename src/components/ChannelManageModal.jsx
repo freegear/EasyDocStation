@@ -248,52 +248,6 @@ export default function ChannelManageModal({ mode = 'manage', channel = null, on
             </div>
           )}
 
-          {/* DS.002 메타 정보 (읽기 전용) */}
-          <div className="bg-gray-50 border border-gray-200 rounded-2xl px-4 py-3 space-y-2.5">
-            <p className="text-gray-400 text-[10px] font-semibold uppercase tracking-widest mb-1">DS.002 {t.channel.manageTitle}</p>
-
-            {/* Channel ID */}
-            <div className="flex items-center gap-3">
-              <span className="text-gray-400 text-xs w-28 flex-shrink-0">Channel ID</span>
-              <span className="text-gray-500 text-xs font-mono">{isEdit ? targetChannel.id : t.channel.autoId}</span>
-            </div>
-
-            {/* Team ID */}
-            <div className="flex items-center gap-3">
-              <span className="text-gray-400 text-xs w-28 flex-shrink-0">Team ID</span>
-              <span className="text-gray-500 text-xs font-mono">{selectedTeam?.id ?? '-'}</span>
-              {selectedTeam?.name && <span className="text-gray-400 text-xs">({selectedTeam.name})</span>}
-            </div>
-
-            {/* Created At */}
-            {isEdit && (
-              <div className="flex items-center gap-3">
-                <span className="text-gray-400 text-xs w-28 flex-shrink-0">Created At</span>
-                <span className="text-gray-500 text-xs font-mono">
-                  {targetChannel.created_at
-                    ? new Date(targetChannel.created_at).toLocaleString('ko-KR')
-                    : '-'}
-                </span>
-              </div>
-            )}
-
-            {/* Root Post ID */}
-            <div className="flex items-center gap-3">
-              <span className="text-gray-400 text-xs w-28 flex-shrink-0">Root Post ID</span>
-              <span className={`text-xs font-mono ${isEdit && targetChannel.root_post_id ? 'text-indigo-600' : 'text-gray-400'}`}>
-                {isEdit ? (targetChannel.root_post_id ?? 'NULL') : 'NULL'}
-              </span>
-            </div>
-
-            {/* Tail Post ID */}
-            <div className="flex items-center gap-3">
-              <span className="text-gray-400 text-xs w-28 flex-shrink-0">Tail Post ID</span>
-              <span className={`text-xs font-mono ${isEdit && targetChannel.tail_post_id ? 'text-indigo-600' : 'text-gray-400'}`}>
-                {isEdit ? (targetChannel.tail_post_id ?? 'NULL') : 'NULL'}
-              </span>
-            </div>
-          </div>
-
           {/* 채널 이름 + Is Private */}
           <div className="grid grid-cols-2 gap-4">
             <div>
@@ -331,10 +285,15 @@ export default function ChannelManageModal({ mode = 'manage', channel = null, on
 
           {/* Admins (TeamManageModal 스타일) */}
           <div>
-            <label className="block text-gray-500 text-xs font-medium mb-2">
-              {t.channel.admins} <span className="text-red-400">*</span>
-            </label>
-            <div className="min-h-[44px] p-2 bg-gray-100 rounded-xl border border-gray-200 flex flex-wrap gap-1.5 mb-3">
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-gray-500 text-xs font-medium">
+                {t.channel.admins} <span className="text-red-400">*</span>
+              </label>
+              {searchTarget !== 'admin' && (
+                <button onClick={() => { setSearchTarget('admin'); setSearchQuery('') }} className="px-2.5 py-1 rounded-lg border border-indigo-200 text-indigo-600 hover:bg-indigo-50 transition-all text-xs font-semibold">{t.channel.addAdmins}</button>
+              )}
+            </div>
+            <div className="min-h-[44px] p-2 bg-gray-100 rounded-xl border border-gray-200 flex flex-wrap gap-1.5 mb-2">
               {admins.map(a => (
                 <div key={a.id} className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-indigo-100 border border-indigo-200 text-indigo-600 text-[11px] font-medium">
                   <span>{a.name}</span>
@@ -343,7 +302,7 @@ export default function ChannelManageModal({ mode = 'manage', channel = null, on
               ))}
               {admins.length === 0 && <span className="text-gray-300 text-xs px-1 py-1">{t.channel.noAdmins}</span>}
             </div>
-            {searchTarget === 'admin' ? (
+            {searchTarget === 'admin' && (
               <div className="relative">
                 <input
                   type="text"
@@ -369,15 +328,18 @@ export default function ChannelManageModal({ mode = 'manage', channel = null, on
                   </div>
                 )}
               </div>
-            ) : (
-              <button onClick={() => { setSearchTarget('admin'); setSearchQuery('') }} className="w-full py-3 rounded-xl border-2 border-dashed border-indigo-200 text-indigo-600 hover:border-indigo-500/60 hover:bg-indigo-50 transition-all text-sm font-semibold flex items-center justify-center gap-2">{t.channel.addAdmins}</button>
             )}
           </div>
 
           {/* Members (TeamManageModal 스타일) */}
           <div>
-            <label className="block text-gray-500 text-xs font-medium mb-2">{t.channel.members}</label>
-            <div className="min-h-[44px] p-2 bg-gray-100 rounded-xl border border-gray-200 flex flex-wrap gap-1.5 mb-3">
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-gray-500 text-xs font-medium">{t.channel.members}</label>
+              {searchTarget !== 'member' && (
+                <button onClick={() => { setSearchTarget('member'); setSearchQuery('') }} className="px-2.5 py-1 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-100 transition-all text-xs font-semibold">{t.channel.addMembers}</button>
+              )}
+            </div>
+            <div className="min-h-[44px] p-2 bg-gray-100 rounded-xl border border-gray-200 flex flex-wrap gap-1.5 mb-2">
               {members.map(m => (
                 <div key={m.id} className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-gray-200 border border-gray-200 text-gray-500 text-[11px]">
                   <span>{m.name}</span>
@@ -386,7 +348,7 @@ export default function ChannelManageModal({ mode = 'manage', channel = null, on
               ))}
               {members.length === 0 && <span className="text-gray-300 text-xs px-1 py-1">{t.channel.noMembers}</span>}
             </div>
-            {searchTarget === 'member' ? (
+            {searchTarget === 'member' && (
               <div className="relative">
                 <input
                   type="text"
@@ -412,8 +374,6 @@ export default function ChannelManageModal({ mode = 'manage', channel = null, on
                   </div>
                 )}
               </div>
-            ) : (
-              <button onClick={() => { setSearchTarget('member'); setSearchQuery('') }} className="w-full py-3 rounded-xl border-2 border-dashed border-gray-200 text-gray-400 hover:border-white/30 hover:bg-gray-100 hover:text-gray-500 transition-all text-sm font-semibold flex items-center justify-center gap-2">{t.channel.addMembers}</button>
             )}
           </div>
 
