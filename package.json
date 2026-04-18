@@ -10,6 +10,7 @@
     "dev": "concurrently -p \"[{name}]\" -n \"Ollama,FE,BE\" -c \"cyan,magenta,green\" \"npm run ollama:serve\" \"npm run dev:frontend\" \"npm run dev:backend\"",
     "dev:ubuntu": "bash scripts/dev-ubuntu.sh",
     "setup:ubuntu": "bash scripts/setup-ubuntu.sh",
+    "version:bump": "node scripts/bump-app-version.mjs",
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview"

@@ -52,6 +52,10 @@ CREATE TABLE IF NOT EXISTS users (
   name          VARCHAR(100) NOT NULL,
   email         VARCHAR(255) UNIQUE NOT NULL,
   phone         VARCHAR(30),
+  telegram_id   VARCHAR(100),
+  kakaotalk_api_key TEXT,
+  line_channel_access_token TEXT,
+  use_sns_channel VARCHAR(20) CHECK (use_sns_channel IN ('telegram', 'kakaotalk', 'line')),
   role          VARCHAR(20)  NOT NULL DEFAULT 'user'
                   CHECK (role IN ('site_admin', 'team_admin', 'channel_admin', 'user')),
   display_name  VARCHAR(100),
@@ -68,6 +72,14 @@ CREATE TABLE IF NOT EXISTS users (
 DO $$ BEGIN
   IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='failed_login_attempts')
   THEN ALTER TABLE users ADD COLUMN failed_login_attempts INTEGER NOT NULL DEFAULT 0; END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='telegram_id')
+  THEN ALTER TABLE users ADD COLUMN telegram_id VARCHAR(100); END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='kakaotalk_api_key')
+  THEN ALTER TABLE users ADD COLUMN kakaotalk_api_key TEXT; END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='line_channel_access_token')
+  THEN ALTER TABLE users ADD COLUMN line_channel_access_token TEXT; END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='use_sns_channel')
+  THEN ALTER TABLE users ADD COLUMN use_sns_channel VARCHAR(20); END IF;
 END $$;
 
 -- ─── Login history ───────────────────────────────────────────

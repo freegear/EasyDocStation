@@ -5,6 +5,7 @@ export default function ConfirmDialog({
   message = '',
   confirmText = '확인',
   cancelText = '취소',
+  hideCancel = false,
   danger = false,
   loading = false,
   onConfirm,
@@ -27,13 +28,15 @@ export default function ConfirmDialog({
         <h3 className="text-gray-900 font-bold text-base">{title}</h3>
         <p className="text-gray-600 text-sm mt-2 whitespace-pre-wrap leading-relaxed">{message}</p>
         <div className="flex justify-end gap-2 mt-5">
-          <button
-            onClick={onCancel}
-            disabled={loading}
-            className="px-4 py-2 rounded-xl text-sm text-gray-500 hover:bg-gray-100 disabled:text-gray-300 disabled:hover:bg-transparent"
-          >
-            {cancelText}
-          </button>
+          {!hideCancel && (
+            <button
+              onClick={onCancel}
+              disabled={loading}
+              className="px-4 py-2 rounded-xl text-sm text-gray-500 hover:bg-gray-100 disabled:text-gray-300 disabled:hover:bg-transparent"
+            >
+              {cancelText}
+            </button>
+          )}
           <button
             ref={confirmRef}
             onClick={onConfirm}

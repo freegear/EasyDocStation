@@ -50,6 +50,10 @@ function UserFormModal({ user, onClose, onSave, teams = [] }) {
     display_name: user?.display_name ?? '',
     email: user?.email ?? '',
     phone: user?.phone ?? '',
+    telegram_id: user?.telegram_id ?? '',
+    kakaotalk_api_key: user?.kakaotalk_api_key ?? '',
+    line_channel_access_token: user?.line_channel_access_token ?? '',
+    use_sns_channel: user?.use_sns_channel ?? '',
     role: user?.role ?? 'user',
     password: '',
     confirmPassword: '',
@@ -61,6 +65,7 @@ function UserFormModal({ user, onClose, onSave, teams = [] }) {
   })
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [requiredFieldDialogMessage, setRequiredFieldDialogMessage] = useState('')
   const fileInputRef = useRef(null)
   const stampInputRef = useRef(null)
 
@@ -95,11 +100,36 @@ function UserFormModal({ user, onClose, onSave, teams = [] }) {
 
   // security_level이 3 이상이면 department_id 의미 없음
   const deptDisabled = form.security_level >= 3
+  const isAddMode = !isEdit
+  const isUnifiedLayout = true
 
   async function handleSubmit(e) {
     e.preventDefault()
     setError('')
     let usernameToSave = form.username
+
+    if (isAddMode) {
+      const requiredChecks = [
+        { missing: !form.username.trim(), label: t.admin.labelUsername },
+        { missing: !form.name.trim(), label: t.admin.labelName },
+        { missing: !form.display_name.trim(), label: t.admin.labelDisplayName },
+        { missing: !form.email.trim(), label: t.admin.labelEmail },
+        { missing: !form.phone.trim(), label: t.admin.labelPhone },
+        { missing: !form.password.trim(), label: t.admin.passwordGroupTitle || t.admin.labelPasswordNew },
+        { missing: !form.role, label: t.admin.labelRole },
+        { missing: form.security_level === null || form.security_level === undefined || Number.isNaN(form.security_level), label: t.admin.labelSecurityLevel },
+        { missing: !deptDisabled && !form.department_id, label: t.admin.labelDepartment },
+      ]
+      const firstMissing = requiredChecks.find(item => item.missing)
+      if (firstMissing) {
+        setRequiredFieldDialogMessage(
+          t.admin.requiredFieldMissing
+            ? t.admin.requiredFieldMissing(firstMissing.label)
+            : `${firstMissing.label} 이 입력이 안되어 있습니다. 입력하여 주시기 바랍니다.`
+        )
+        return
+      }
+    }
 
     if (!isEdit) {
       const normalizedUsername = form.username.trim()
@@ -130,6 +160,10 @@ function UserFormModal({ user, onClose, onSave, teams = [] }) {
           is_active: form.is_active, image_url: form.image_url, stamp_picture: form.stamp_picture || null,
           department_id: deptDisabled ? null : (form.department_id || null),
           security_level: form.security_level,
+          telegram_id: form.telegram_id || null,
+          kakaotalk_api_key: form.kakaotalk_api_key || null,
+          line_channel_access_token: form.line_channel_access_token || null,
+          use_sns_channel: form.use_sns_channel || null,
         }
         if (form.password) body.password = form.password
         result = await apiFetch(`/users/${user.id}`, { method: 'PUT', body: JSON.stringify(body) })
@@ -143,6 +177,10 @@ function UserFormModal({ user, onClose, onSave, teams = [] }) {
             department_id: deptDisabled ? null : (form.department_id || null),
             security_level: form.security_level,
             is_active: form.is_active,
+            telegram_id: form.telegram_id || null,
+            kakaotalk_api_key: form.kakaotalk_api_key || null,
+            line_channel_access_token: form.line_channel_access_token || null,
+            use_sns_channel: form.use_sns_channel || null,
           }),
         })
       }
@@ -157,9 +195,9 @@ function UserFormModal({ user, onClose, onSave, teams = [] }) {
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center px-4">
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative w-full max-w-md bg-gray-50 rounded-3xl border border-gray-200 shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+      <div className={`relative w-full ${isUnifiedLayout ? 'max-w-5xl' : 'max-w-md'} bg-gray-50 rounded-3xl border border-gray-200 shadow-2xl overflow-hidden flex flex-col max-h-[90vh]`}>
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 flex-shrink-0">
-          <h3 className="text-gray-900 font-bold text-base">{isEdit ? t.admin.formTitleEdit : t.admin.formTitleAdd}</h3>
+          <h3 className="text-gray-900 font-bold text-base">{isEdit ? t.admin.formTitleEdit : (t.admin.newUserWindowTitle || t.admin.formTitleAdd)}</h3>
           <button onClick={onClose} className="w-8 h-8 rounded-lg text-gray-400 hover:text-gray-900 hover:bg-gray-200 flex items-center justify-center transition-colors">
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -167,24 +205,87 @@ function UserFormModal({ user, onClose, onSave, teams = [] }) {
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="px-6 py-5 flex flex-col gap-4 overflow-y-auto">
+        <form noValidate onSubmit={handleSubmit} className="px-6 py-5 flex flex-col gap-4 overflow-y-auto">
+          {!isEdit && (
+            <div className="px-4 py-3 rounded-xl bg-indigo-50 border border-indigo-200 text-indigo-700 text-sm font-medium">
+              {t.admin.newUserInputSectionTitle || t.admin.newUserWindowTitle || t.admin.formTitleAdd}
+            </div>
+          )}
           {error && <div className="px-4 py-2.5 rounded-xl bg-red-500/10 border border-red-500/25 text-red-400 text-sm">{error}</div>}
 
-          {/* 프로필 이미지 */}
-          <div className="flex items-center gap-4 py-2 border-b border-gray-100">
-            <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleImageFile} />
-            <button type="button" onClick={handleAvatarClick} className="relative group flex-shrink-0 rounded-full focus:outline-none">
-              <Avatar name={form.name} imageUrl={form.image_url} size={16} />
-              <div className="absolute inset-0 rounded-full bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                <svg className="w-5 h-5 text-gray-900" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
+          {isUnifiedLayout ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-2 border-b border-gray-100 mb-2">
+              {/* 프로필 이미지 */}
+              <div className="flex items-center gap-4 p-4 rounded-2xl bg-gray-50 border border-gray-200">
+                <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleImageFile} />
+                <button type="button" onClick={handleAvatarClick} className="relative group flex-shrink-0 rounded-full focus:outline-none">
+                  <Avatar name={form.name} imageUrl={form.image_url} size={32} />
+                  <div className="absolute inset-0 rounded-full bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                    <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                  </div>
+                </button>
+                <div className="flex-1">
+                  <p className="text-gray-700 text-sm font-medium">{t.admin.profileImageTitle || '프로필 이미지'}</p>
+                  <p className="text-gray-400 text-xs mt-0.5">{t.admin.clickToSelectImage}</p>
+                </div>
               </div>
-            </button>
-            <div className="flex-1 flex flex-col gap-2">
-              {isEdit && (
-                <>
+
+              {/* 개인 도장 이미지 */}
+              <div className="flex items-center gap-4 p-4 rounded-2xl bg-gray-50 border border-gray-200">
+                <input ref={stampInputRef} type="file" accept="image/*" className="hidden" onChange={handleStampFile} />
+                <button
+                  type="button"
+                  onClick={() => stampInputRef.current?.click()}
+                  className="relative group flex-shrink-0 w-32 h-32 rounded-xl border-2 border-dashed border-gray-300 hover:border-indigo-400 bg-gray-50 hover:bg-indigo-50/40 transition-colors focus:outline-none flex items-center justify-center overflow-hidden"
+                >
+                  {form.stamp_picture ? (
+                    <>
+                      <img src={form.stamp_picture} alt="도장" className="w-full h-full object-contain" />
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                        <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                        </svg>
+                      </div>
+                    </>
+                  ) : (
+                    <svg className="w-9 h-9 text-gray-300 group-hover:text-indigo-400 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4v16m8-8H4" />
+                    </svg>
+                  )}
+                </button>
+                <div className="flex-1">
+                  <p className="text-gray-700 text-sm font-medium">{t.admin.stampImageTitle || '개인 도장 이미지'}</p>
+                  <p className="text-gray-400 text-xs mt-0.5">{t.admin.stampImageHint || '클릭하여 도장 이미지를 등록합니다'}</p>
+                  {form.stamp_picture && (
+                    <button
+                      type="button"
+                      onClick={() => set('stamp_picture', '')}
+                      className="mt-1 text-xs text-red-400 hover:text-red-600 transition-colors"
+                    >
+                      {t.admin.deleteText || '삭제'}
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          ) : (
+            <>
+              {/* 프로필 이미지 */}
+              <div className="flex items-center gap-4 py-2 border-b border-gray-100">
+                <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleImageFile} />
+                <button type="button" onClick={handleAvatarClick} className="relative group flex-shrink-0 rounded-full focus:outline-none">
+                  <Avatar name={form.name} imageUrl={form.image_url} size={16} />
+                  <div className="absolute inset-0 rounded-full bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                    <svg className="w-5 h-5 text-gray-900" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                  </div>
+                </button>
+                <div className="flex-1 flex flex-col gap-2">
                   <div>
                     <label className="text-gray-400 text-xs font-medium block mb-0.5">User ID</label>
                     <div className="w-full bg-gray-100 border border-gray-200 rounded-xl px-4 py-2 text-gray-500 text-xs font-mono">{user.id}</div>
@@ -193,184 +294,312 @@ function UserFormModal({ user, onClose, onSave, teams = [] }) {
                     <label className="text-gray-400 text-xs font-medium block mb-0.5">User Name</label>
                     <div className="w-full bg-gray-100 border border-gray-200 rounded-xl px-4 py-2 text-gray-500 text-xs font-mono">{user.username}</div>
                   </div>
-                </>
-              )}
-              {!isEdit && (
-                <p className="text-gray-400 text-xs">{t.admin.clickToSelectImage}</p>
-              )}
-            </div>
-          </div>
+                </div>
+              </div>
 
-          {/* 개인 도장 이미지 */}
-          <div className="flex items-center gap-4 py-2 border-b border-gray-100 mb-2">
-            <input ref={stampInputRef} type="file" accept="image/*" className="hidden" onChange={handleStampFile} />
-            <button
-              type="button"
-              onClick={() => stampInputRef.current?.click()}
-              className="relative group flex-shrink-0 w-16 h-16 rounded-xl border-2 border-dashed border-gray-300 hover:border-indigo-400 bg-gray-50 hover:bg-indigo-50/40 transition-colors focus:outline-none flex items-center justify-center overflow-hidden"
-            >
-              {form.stamp_picture ? (
-                <>
-                  <img src={form.stamp_picture} alt="도장" className="w-full h-full object-contain" />
-                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                    <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                    </svg>
-                  </div>
-                </>
-              ) : (
-                <svg className="w-7 h-7 text-gray-300 group-hover:text-indigo-400 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4v16m8-8H4" />
-                </svg>
-              )}
-            </button>
-            <div className="flex-1">
-              <p className="text-gray-700 text-sm font-medium">개인 도장 이미지</p>
-              <p className="text-gray-400 text-xs mt-0.5">클릭하여 도장 이미지를 등록합니다</p>
-              {form.stamp_picture && (
+              {/* 개인 도장 이미지 */}
+              <div className="flex items-center gap-4 py-2 border-b border-gray-100 mb-2">
+                <input ref={stampInputRef} type="file" accept="image/*" className="hidden" onChange={handleStampFile} />
                 <button
                   type="button"
-                  onClick={() => set('stamp_picture', '')}
-                  className="mt-1 text-xs text-red-400 hover:text-red-600 transition-colors"
+                  onClick={() => stampInputRef.current?.click()}
+                  className="relative group flex-shrink-0 w-16 h-16 rounded-xl border-2 border-dashed border-gray-300 hover:border-indigo-400 bg-gray-50 hover:bg-indigo-50/40 transition-colors focus:outline-none flex items-center justify-center overflow-hidden"
                 >
-                  삭제
+                  {form.stamp_picture ? (
+                    <>
+                      <img src={form.stamp_picture} alt="도장" className="w-full h-full object-contain" />
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                        <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                        </svg>
+                      </div>
+                    </>
+                  ) : (
+                    <svg className="w-7 h-7 text-gray-300 group-hover:text-indigo-400 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4v16m8-8H4" />
+                    </svg>
+                  )}
                 </button>
-              )}
-            </div>
-          </div>
-
-          {/* 아이디 (신규만) */}
-          {!isEdit && (
-            <FormField label={t.admin.labelUsername} value={form.username} onChange={v => set('username', v)} placeholder="username" required />
+                <div className="flex-1">
+                  <p className="text-gray-700 text-sm font-medium">개인 도장 이미지</p>
+                  <p className="text-gray-400 text-xs mt-0.5">클릭하여 도장 이미지를 등록합니다</p>
+                  {form.stamp_picture && (
+                    <button
+                      type="button"
+                      onClick={() => set('stamp_picture', '')}
+                      className="mt-1 text-xs text-red-400 hover:text-red-600 transition-colors"
+                    >
+                      삭제
+                    </button>
+                  )}
+                </div>
+              </div>
+            </>
           )}
 
-          {/* 표시 이름 */}
-          <FormField label={t.admin.labelName} value={form.name} onChange={v => set('name', v)} placeholder={t.admin.placeholderName} required />
+          <div className={isUnifiedLayout ? 'grid grid-cols-1 md:grid-cols-2 gap-4' : 'space-y-4'}>
+            {/* 아이디 (신규만) */}
+            {!isEdit ? (
+              <FormField
+                label={t.admin.labelUsername}
+                value={form.username}
+                onChange={v => set('username', v)}
+                placeholder={t.admin.placeholderUsername || 'e.g. hong.gildong'}
+                required
+                requiredMark
+              />
+            ) : (
+              <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-gray-500 text-xs font-medium mb-1.5">User ID</label>
+                  <div className="w-full bg-gray-100 border border-gray-200 rounded-xl px-4 py-2.5 text-gray-500 text-sm font-mono">{user.id}</div>
+                </div>
+                <div>
+                  <label className="block text-gray-500 text-xs font-medium mb-1.5">{t.admin.labelUsername}</label>
+                  <div className="w-full bg-gray-100 border border-gray-200 rounded-xl px-4 py-2.5 text-gray-500 text-sm font-mono">{user.username}</div>
+                </div>
+              </div>
+            )}
 
-          {/* 디스플레이 이름 */}
-          <FormField label={t.admin.labelDisplayName} value={form.display_name} onChange={v => set('display_name', v)} placeholder={t.admin.placeholderDisplayName} required />
+            {/* 표시 이름 */}
+            <FormField
+              label={t.admin.labelName}
+              value={form.name}
+              onChange={v => set('name', v)}
+              placeholder={t.admin.placeholderName}
+              required={isAddMode}
+              requiredMark={isAddMode}
+            />
 
-          {/* 이메일 */}
-          <FormField label={t.admin.labelEmail} type="email" value={form.email} onChange={v => set('email', v)} placeholder="user@example.com" required />
+            {/* 디스플레이 이름 */}
+            <FormField
+              label={t.admin.labelDisplayName}
+              value={form.display_name}
+              onChange={v => set('display_name', v)}
+              placeholder={t.admin.placeholderDisplayName}
+              required={isAddMode}
+              requiredMark={isAddMode}
+            />
 
-          {/* 전화번호 */}
-          <FormField label={t.admin.labelPhone} value={form.phone} onChange={v => set('phone', v)} placeholder={t.admin.placeholderPhone} />
+            {/* 이메일 */}
+            <FormField
+              label={t.admin.labelEmail}
+              type="email"
+              value={form.email}
+              onChange={v => set('email', v)}
+              placeholder={t.admin.placeholderEmail || 'e.g. user@example.com'}
+              required={isAddMode}
+              requiredMark={isAddMode}
+            />
 
-          {/* 비밀번호 */}
-          <FormField
-            label={isEdit ? t.admin.labelPasswordEdit : t.admin.labelPasswordNew}
-            type="password"
-            value={form.password}
-            onChange={v => set('password', v)}
-            placeholder={isEdit ? t.admin.placeholderPasswordEdit : t.admin.placeholderPasswordNew}
-            required={!isEdit}
-          />
+            {/* 전화번호 */}
+            <FormField
+              label={t.admin.labelPhone}
+              value={form.phone}
+              onChange={v => set('phone', v)}
+              placeholder={t.admin.placeholderPhone}
+              required={isAddMode}
+              requiredMark={isAddMode}
+            />
 
-          {/* 비밀번호 재확인 */}
-          {(!isEdit || form.password.length > 0) && (
-            <div>
-              <label className="block text-gray-500 text-xs font-medium mb-1.5">{t.admin.labelPasswordConfirm}</label>
-              <div className="relative">
-                <input
+            {/* 비밀번호 설정 (신규 추가 시 그룹 박스) */}
+            {isAddMode ? (
+              <div className="md:col-span-2 p-4 rounded-2xl bg-gray-50 border border-gray-200">
+                <p className="text-gray-900 text-sm font-semibold mb-3">
+                  {t.admin.passwordGroupTitle || t.admin.labelPasswordNew}
+                  <span className="text-red-500 ml-1">(*)</span>
+                </p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <FormField
+                    label={t.admin.labelPasswordNew}
+                    type="password"
+                    value={form.password}
+                    onChange={v => set('password', v)}
+                    placeholder={t.admin.placeholderPasswordNew}
+                    required
+                  />
+                  <div>
+                    <label className="block text-gray-500 text-xs font-medium mb-1.5">{t.admin.labelPasswordConfirm}</label>
+                    <div className="relative">
+                      <input
+                        type="password"
+                        value={form.confirmPassword}
+                        onChange={e => set('confirmPassword', e.target.value)}
+                        placeholder={t.admin.placeholderPasswordConfirm}
+                        required
+                        className={`w-full bg-gray-100 border rounded-xl px-4 py-2.5 text-gray-900 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 transition-all pr-10 ${pwEntered
+                          ? pwMatch
+                            ? 'border-green-500/50 focus:ring-green-500/30 focus:border-green-500/50'
+                            : 'border-red-500/50 focus:ring-red-500/30 focus:border-red-500/50'
+                          : 'border-gray-200 focus:ring-indigo-500/40 focus:border-indigo-300'
+                        }`}
+                      />
+                      {pwEntered && (
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2">
+                          {pwMatch ? (
+                            <svg className="w-4 h-4 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                            </svg>
+                          ) : (
+                            <svg className="w-4 h-4 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          )}
+                        </span>
+                      )}
+                    </div>
+                    {pwEntered && !pwMatch && <p className="text-red-400 text-xs mt-1.5 ml-1">{t.admin.pwMismatch}</p>}
+                    {pwEntered && pwMatch && form.password.length > 0 && <p className="text-green-400 text-xs mt-1.5 ml-1">{t.admin.pwMatch}</p>}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div>
+                <FormField
+                  label={t.admin.labelPasswordEdit}
                   type="password"
-                  value={form.confirmPassword}
-                  onChange={e => set('confirmPassword', e.target.value)}
-                  placeholder={t.admin.placeholderPasswordConfirm}
-                  required={!isEdit}
-                  className={`w-full bg-gray-100 border rounded-xl px-4 py-2.5 text-gray-900 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 transition-all pr-10 ${pwEntered
-                    ? pwMatch
-                      ? 'border-green-500/50 focus:ring-green-500/30 focus:border-green-500/50'
-                      : 'border-red-500/50 focus:ring-red-500/30 focus:border-red-500/50'
-                    : 'border-gray-200 focus:ring-indigo-500/40 focus:border-indigo-300'
-                  }`}
+                  value={form.password}
+                  onChange={v => set('password', v)}
+                  placeholder={t.admin.placeholderPasswordEdit}
                 />
-                {pwEntered && (
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2">
-                    {pwMatch ? (
-                      <svg className="w-4 h-4 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-                      </svg>
-                    ) : (
-                      <svg className="w-4 h-4 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                    )}
-                  </span>
+                {form.password.length > 0 && (
+                  <div className="mt-4">
+                    <label className="block text-gray-500 text-xs font-medium mb-1.5">{t.admin.labelPasswordConfirm}</label>
+                    <div className="relative">
+                      <input
+                        type="password"
+                        value={form.confirmPassword}
+                        onChange={e => set('confirmPassword', e.target.value)}
+                        placeholder={t.admin.placeholderPasswordConfirm}
+                        className={`w-full bg-gray-100 border rounded-xl px-4 py-2.5 text-gray-900 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 transition-all pr-10 ${pwEntered
+                          ? pwMatch
+                            ? 'border-green-500/50 focus:ring-green-500/30 focus:border-green-500/50'
+                            : 'border-red-500/50 focus:ring-red-500/30 focus:border-red-500/50'
+                          : 'border-gray-200 focus:ring-indigo-500/40 focus:border-indigo-300'
+                        }`}
+                      />
+                      {pwEntered && (
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2">
+                          {pwMatch ? (
+                            <svg className="w-4 h-4 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                            </svg>
+                          ) : (
+                            <svg className="w-4 h-4 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          )}
+                        </span>
+                      )}
+                    </div>
+                    {pwEntered && !pwMatch && <p className="text-red-400 text-xs mt-1.5 ml-1">{t.admin.pwMismatch}</p>}
+                    {pwEntered && pwMatch && form.password.length > 0 && <p className="text-green-400 text-xs mt-1.5 ml-1">{t.admin.pwMatch}</p>}
+                  </div>
                 )}
               </div>
-              {pwEntered && !pwMatch && <p className="text-red-400 text-xs mt-1.5 ml-1">{t.admin.pwMismatch}</p>}
-              {pwEntered && pwMatch && form.password.length > 0 && <p className="text-green-400 text-xs mt-1.5 ml-1">{t.admin.pwMatch}</p>}
-            </div>
-          )}
-
-          {/* 권한 */}
-          <div>
-            <label className="block text-gray-500 text-xs font-medium mb-1.5">{t.admin.labelRole}</label>
-            <select
-              value={form.role}
-              onChange={e => set('role', e.target.value)}
-              className="w-full bg-gray-100 border border-gray-200 rounded-xl px-4 py-2.5 text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-300 transition-all"
-            >
-              {[
-                { value: 'user',          label: t.roles.user },
-                { value: 'channel_admin', label: t.roles.channel_admin },
-                { value: 'team_admin',    label: t.roles.team_admin },
-                { value: 'site_admin',    label: t.roles.site_admin },
-              ].map(o => (
-                <option key={o.value} value={o.value} className="bg-gray-50">{o.label}</option>
-              ))}
-            </select>
-          </div>
-
-          {/* 보안 등급 */}
-          <div>
-            <label className="block text-gray-500 text-xs font-medium mb-1.5">{t.admin.labelSecurityLevel}</label>
-            <select
-              value={form.security_level}
-              onChange={e => set('security_level', parseInt(e.target.value))}
-              className="w-full bg-gray-100 border border-gray-200 rounded-xl px-4 py-2.5 text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-300 transition-all"
-            >
-              {SECURITY_LEVEL_OPTIONS.map(o => (
-                <option key={o.value} value={o.value} className="bg-gray-50">{o.label}</option>
-              ))}
-            </select>
-            {form.security_level >= 3 && (
-              <p className="text-yellow-400/70 text-xs mt-1.5 ml-1">{t.admin.securityLevelWarning}</p>
             )}
+
+            {/* 권한 */}
+            <div>
+              <label className="block text-gray-500 text-xs font-medium mb-1.5">
+                {t.admin.labelRole}
+                {isAddMode && <span className="text-red-500 ml-1">(*)</span>}
+              </label>
+              <select
+                value={form.role}
+                onChange={e => set('role', e.target.value)}
+                required={isAddMode}
+                className="w-full bg-gray-100 border border-gray-200 rounded-xl px-4 py-2.5 text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-300 transition-all"
+              >
+                {[
+                  { value: 'user',          label: t.roles.user },
+                  { value: 'channel_admin', label: t.roles.channel_admin },
+                  { value: 'team_admin',    label: t.roles.team_admin },
+                  { value: 'site_admin',    label: t.roles.site_admin },
+                ].map(o => (
+                  <option key={o.value} value={o.value} className="bg-gray-50">{o.label}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* 보안 등급 */}
+            <div>
+              <label className="block text-gray-500 text-xs font-medium mb-1.5">
+                {t.admin.labelSecurityLevel}
+                {isAddMode && <span className="text-red-500 ml-1">(*)</span>}
+              </label>
+              <select
+                value={form.security_level}
+                onChange={e => set('security_level', parseInt(e.target.value))}
+                required={isAddMode}
+                className="w-full bg-gray-100 border border-gray-200 rounded-xl px-4 py-2.5 text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-300 transition-all"
+              >
+                {SECURITY_LEVEL_OPTIONS.map(o => (
+                  <option key={o.value} value={o.value} className="bg-gray-50">{o.label}</option>
+                ))}
+              </select>
+              {form.security_level >= 3 && (
+                <p className="text-yellow-400/70 text-xs mt-1.5 ml-1">{t.admin.securityLevelWarning}</p>
+              )}
+            </div>
+
+            {/* 부서 (Security Level < 3 일 때만 활성) */}
+            <div className={isUnifiedLayout ? 'md:col-span-2' : ''}>
+              <label className={`block text-xs font-medium mb-1.5 ${deptDisabled ? 'text-gray-300' : 'text-gray-500'}`}>
+                {t.admin.labelDepartment}
+                {isAddMode && <span className="text-red-500 ml-1">(*)</span>}
+              </label>
+              <select
+                value={form.department_id}
+                onChange={e => set('department_id', e.target.value)}
+                disabled={deptDisabled}
+                required={isAddMode && !deptDisabled}
+                className={`w-full bg-gray-100 border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-300 transition-all ${deptDisabled ? 'text-gray-300 cursor-not-allowed' : 'text-gray-900'}`}
+              >
+                <option value="" className="bg-gray-50">{t.admin.noDepartment}</option>
+                {teams.map(team => (
+                  <option key={team.id} value={team.id} className="bg-gray-50">{team.name}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* SNS 설정 (묶음 박스) */}
+            <div className={`${isUnifiedLayout ? 'md:col-span-2' : ''} p-4 rounded-2xl bg-gray-50 border border-gray-200`}>
+              <p className="text-gray-900 text-sm font-semibold mb-3">{t.admin.navSns}</p>
+              <div className={isUnifiedLayout ? 'grid grid-cols-1 md:grid-cols-2 gap-4' : 'space-y-4'}>
+                <FormField label={t.admin.labelTelegramId} value={form.telegram_id} onChange={v => set('telegram_id', v)} placeholder={t.admin.placeholderTelegramId} />
+                <FormField label={t.admin.labelKakaoTalkApiKey} value={form.kakaotalk_api_key} onChange={v => set('kakaotalk_api_key', v)} placeholder={t.admin.placeholderKakaoTalkApiKey} />
+                <FormField label={t.admin.labelLineChannelAccessToken} value={form.line_channel_access_token} onChange={v => set('line_channel_access_token', v)} placeholder={t.admin.placeholderLineChannelAccessToken} />
+                <div>
+                  <label className="block text-gray-500 text-xs font-medium mb-1.5">{t.admin.labelUseSnsChannel}</label>
+                  <select
+                    value={form.use_sns_channel}
+                    onChange={e => set('use_sns_channel', e.target.value)}
+                    className="w-full bg-gray-100 border border-gray-200 rounded-xl px-4 py-2.5 text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-300 transition-all"
+                  >
+                    <option value="" className="bg-gray-50">{t.admin.optionNone}</option>
+                    <option value="telegram" className="bg-gray-50">{t.admin.optionTelegram}</option>
+                    <option value="kakaotalk" className="bg-gray-50">{t.admin.optionKakaoTalk}</option>
+                    <option value="line" className="bg-gray-50">{t.admin.optionLineMessenger}</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {/* 계정 활성화 */}
+            <div className={`${isUnifiedLayout ? 'md:col-span-2' : ''} flex items-center justify-between py-2 px-4 rounded-xl bg-gray-50 border border-gray-200`}>
+              <span className="text-gray-600 text-sm">{t.admin.labelIsActive}</span>
+              <button
+                type="button"
+                onClick={() => set('is_active', !form.is_active)}
+                className={`w-10 h-5 rounded-full transition-colors relative ${form.is_active ? 'bg-indigo-500' : 'bg-gray-300'}`}
+              >
+                <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all ${form.is_active ? 'left-5' : 'left-0.5'}`} />
+              </button>
+            </div>
           </div>
 
-          {/* 부서 (Security Level < 3 일 때만 활성) */}
-          <div>
-            <label className={`block text-xs font-medium mb-1.5 ${deptDisabled ? 'text-gray-300' : 'text-gray-500'}`}>
-              {t.admin.labelDepartment}
-            </label>
-            <select
-              value={form.department_id}
-              onChange={e => set('department_id', e.target.value)}
-              disabled={deptDisabled}
-              className={`w-full bg-gray-100 border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-300 transition-all ${deptDisabled ? 'text-gray-300 cursor-not-allowed' : 'text-gray-900'}`}
-            >
-              <option value="" className="bg-gray-50">{t.admin.noDepartment}</option>
-              {teams.map(team => (
-                <option key={team.id} value={team.id} className="bg-gray-50">{team.name}</option>
-              ))}
-            </select>
-          </div>
-
-
-          {/* 계정 활성화 */}
-          <div className="flex items-center justify-between py-2 px-4 rounded-xl bg-gray-50 border border-gray-200">
-            <span className="text-gray-600 text-sm">{t.admin.labelIsActive}</span>
-            <button
-              type="button"
-              onClick={() => set('is_active', !form.is_active)}
-              className={`w-10 h-5 rounded-full transition-colors relative ${form.is_active ? 'bg-indigo-500' : 'bg-gray-300'}`}
-            >
-              <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all ${form.is_active ? 'left-5' : 'left-0.5'}`} />
-            </button>
-          </div>
-
-          <div className="flex gap-2 pt-1 pb-1">
+          <div className={`flex gap-2 pt-1 pb-1 ${isUnifiedLayout ? 'md:col-span-2' : ''}`}>
             <button type="button" onClick={onClose} className="flex-1 py-2.5 rounded-xl text-gray-500 hover:text-gray-700 text-sm border border-gray-200 hover:bg-gray-100 transition-colors">
               {t.admin.cancel}
             </button>
@@ -380,14 +609,27 @@ function UserFormModal({ user, onClose, onSave, teams = [] }) {
           </div>
         </form>
       </div>
+      {requiredFieldDialogMessage && (
+        <ConfirmDialog
+          title={t.admin.requiredFieldTitle || t.chat.errorTitle || '오류'}
+          message={requiredFieldDialogMessage}
+          confirmText={t.chat.ok || t.admin.close || '확인'}
+          cancelText={t.admin.close || t.chat.ok || '닫기'}
+          onConfirm={() => setRequiredFieldDialogMessage('')}
+          onCancel={() => setRequiredFieldDialogMessage('')}
+        />
+      )}
     </div>
   )
 }
 
-function FormField({ label, type = 'text', value, onChange, placeholder, required }) {
+function FormField({ label, type = 'text', value, onChange, placeholder, required, requiredMark = false }) {
   return (
     <div>
-      <label className="block text-gray-500 text-xs font-medium mb-1.5">{label}</label>
+      <label className="block text-gray-500 text-xs font-medium mb-1.5">
+        {label}
+        {requiredMark && <span className="text-red-500 ml-1">(*)</span>}
+      </label>
       <input
         type={type}
         value={value}
@@ -435,6 +677,11 @@ export default function SiteAdminPage({ onClose }) {
   const [ragForm, setRagForm] = useState({ type: 'manual', time: '02:00', vectorSize: 1024, chunkSize: 800, chunkOverlap: 100 })
   const [agenticaiForm, setAgenticaiForm] = useState({ num_predict: 4096, num_ctx: 8192, history: 6, language: 'ko' })
   const [companyForm, setCompanyForm] = useState({ name: '', address: '', phone: '', homepage: '', fax: '', seal: '', logo: '' })
+  const [snsForm, setSnsForm] = useState({
+    kakao: { enabled: false, apiKey: '' },
+    line: { enabled: false, channelAccessToken: '' },
+    telegram: { enabled: false, botName: '', botUserName: '', httpApiToken: '' },
+  })
   const companyFileInputRef = useRef(null)
   const companyLogoInputRef = useRef(null)
   const [savingConfig, setSavingConfig] = useState(false)
@@ -528,6 +775,24 @@ export default function SiteAdminPage({ onClose }) {
           logo:      data.company.logo      || '',
         })
       }
+      if (data.sns) {
+        setSnsForm({
+          kakao: {
+            enabled: Boolean(data.sns.kakao?.enabled),
+            apiKey: data.sns.kakao?.apiKey || '',
+          },
+          line: {
+            enabled: Boolean(data.sns.line?.enabled),
+            channelAccessToken: data.sns.line?.channelAccessToken || '',
+          },
+          telegram: {
+            enabled: Boolean(data.sns.telegram?.enabled),
+            botName: data.sns.telegram?.botName || '',
+            botUserName: data.sns.telegram?.botUserName || data.sns.telegram?.botId || '',
+            httpApiToken: data.sns.telegram?.httpApiToken || '',
+          },
+        })
+      }
     } catch (err) {
       console.error('Failed to load DB stats:', err)
     } finally {
@@ -537,7 +802,7 @@ export default function SiteAdminPage({ onClose }) {
 
   useEffect(() => { loadUsers(); loadTeams() }, [])
   useEffect(() => {
-    if (activeTab === 'db' || activeTab === 'display' || activeTab === 'rag' || activeTab === 'agenticai' || activeTab === 'company') loadDbStats()
+    if (activeTab === 'db' || activeTab === 'display' || activeTab === 'rag' || activeTab === 'agenticai' || activeTab === 'company' || activeTab === 'sns') loadDbStats()
   }, [activeTab])
   useEffect(() => {
     function handleEscClose(e) {
@@ -642,6 +907,23 @@ export default function SiteAdminPage({ onClose }) {
           fax:      companyForm.fax.trim(),
           seal:     companyForm.seal || null,
           logo:     companyForm.logo || null,
+        }
+      } else if (activeTab === 'sns') {
+        configData.sns = {
+          kakao: {
+            enabled: Boolean(snsForm.kakao.enabled),
+            apiKey: (snsForm.kakao.apiKey || '').trim(),
+          },
+          line: {
+            enabled: Boolean(snsForm.line.enabled),
+            channelAccessToken: (snsForm.line.channelAccessToken || '').trim(),
+          },
+          telegram: {
+            enabled: Boolean(snsForm.telegram.enabled),
+            botName: (snsForm.telegram.botName || '').trim(),
+            botUserName: (snsForm.telegram.botUserName || '').trim(),
+            httpApiToken: (snsForm.telegram.httpApiToken || '').trim(),
+          },
         }
       }
 
@@ -1939,19 +2221,120 @@ export default function SiteAdminPage({ onClose }) {
           </div>
         ) : activeTab === 'sns' ? (
           <div className="max-w-4xl mx-auto py-4">
-            <div className="flex items-center gap-3 mb-8">
-              <svg className="w-6 h-6 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 3H3a2 2 0 00-2 2v14l4-4h16a2 2 0 002-2V5a2 2 0 00-2-2z" />
-              </svg>
-              <h2 className="text-gray-900 font-bold text-lg">{t.admin.snsTitle}</h2>
-            </div>
-            <div className="bg-gray-100 border border-gray-200 rounded-2xl p-12 shadow-xl flex flex-col items-center justify-center text-center gap-6">
-              <div className="w-20 h-20 rounded-full bg-indigo-50 border border-indigo-200 flex items-center justify-center">
-                <svg className="w-10 h-10 text-indigo-600/60" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 3H3a2 2 0 00-2 2v14l4-4h16a2 2 0 002-2V5a2 2 0 00-2-2z" />
+            <div className="flex items-center justify-between mb-8">
+              <div className="flex items-center gap-3">
+                <svg className="w-6 h-6 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 3H3a2 2 0 00-2 2v14l4-4h16a2 2 0 002-2V5a2 2 0 00-2-2z" />
                 </svg>
+                <h2 className="text-gray-900 font-bold text-lg">{t.admin.snsTitle}</h2>
               </div>
-              <p className="text-gray-500 text-base font-medium">{t.admin.snsComingSoon}</p>
+              <button
+                onClick={handleSaveConfig}
+                disabled={savingConfig}
+                className="flex items-center gap-2 px-6 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-sm font-semibold transition-all shadow-lg shadow-indigo-200 active:scale-95"
+              >
+                {savingConfig ? t.admin.savingConfig : t.admin.saveSettings}
+              </button>
+            </div>
+
+            <div className="space-y-6">
+              <div className="bg-indigo-50 border border-indigo-200 rounded-2xl px-6 py-5">
+                <p className="text-indigo-700 text-sm font-medium">{t.admin.snsDescription}</p>
+              </div>
+
+              <div className="bg-gray-100 border border-gray-200 rounded-2xl p-6 shadow-xl">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h3 className="text-gray-900 font-bold text-base">{t.admin.snsKakaoTitle}</h3>
+                    <p className="text-gray-400 text-xs mt-1">{t.admin.snsKakaoDesc}</p>
+                  </div>
+                  <label className="flex items-center gap-2 text-sm text-gray-600">
+                    <input
+                      type="checkbox"
+                      checked={snsForm.kakao.enabled}
+                      onChange={e => setSnsForm(p => ({ ...p, kakao: { ...p.kakao, enabled: e.target.checked } }))}
+                      className="w-4 h-4 rounded accent-indigo-600"
+                    />
+                    {t.admin.snsEnabled}
+                  </label>
+                </div>
+                <label className="block text-gray-500 text-xs font-medium mb-1.5">{t.admin.snsApiKey}</label>
+                <input
+                  type="text"
+                  value={snsForm.kakao.apiKey}
+                  onChange={e => setSnsForm(p => ({ ...p, kakao: { ...p.kakao, apiKey: e.target.value } }))}
+                  placeholder={t.admin.snsApiKeyPlaceholder}
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-gray-900 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-300 transition-all"
+                />
+              </div>
+
+              <div className="bg-gray-100 border border-gray-200 rounded-2xl p-6 shadow-xl">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h3 className="text-gray-900 font-bold text-base">{t.admin.snsLineTitle}</h3>
+                    <p className="text-gray-400 text-xs mt-1">{t.admin.snsLineDesc}</p>
+                  </div>
+                  <label className="flex items-center gap-2 text-sm text-gray-600">
+                    <input
+                      type="checkbox"
+                      checked={snsForm.line.enabled}
+                      onChange={e => setSnsForm(p => ({ ...p, line: { ...p.line, enabled: e.target.checked } }))}
+                      className="w-4 h-4 rounded accent-indigo-600"
+                    />
+                    {t.admin.snsEnabled}
+                  </label>
+                </div>
+                <label className="block text-gray-500 text-xs font-medium mb-1.5">{t.admin.snsChannelAccessToken}</label>
+                <input
+                  type="text"
+                  value={snsForm.line.channelAccessToken}
+                  onChange={e => setSnsForm(p => ({ ...p, line: { ...p.line, channelAccessToken: e.target.value } }))}
+                  placeholder={t.admin.snsChannelAccessTokenPlaceholder}
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-gray-900 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-300 transition-all"
+                />
+              </div>
+
+              <div className="bg-gray-100 border border-gray-200 rounded-2xl p-6 shadow-xl">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h3 className="text-gray-900 font-bold text-base">{t.admin.snsTelegramTitle}</h3>
+                    <p className="text-gray-400 text-xs mt-1">{t.admin.snsTelegramDesc}</p>
+                  </div>
+                  <label className="flex items-center gap-2 text-sm text-gray-600">
+                    <input
+                      type="checkbox"
+                      checked={snsForm.telegram.enabled}
+                      onChange={e => setSnsForm(p => ({ ...p, telegram: { ...p.telegram, enabled: e.target.checked } }))}
+                      className="w-4 h-4 rounded accent-indigo-600"
+                    />
+                    {t.admin.snsEnabled}
+                  </label>
+                </div>
+                <label className="block text-gray-500 text-xs font-medium mb-1.5">{t.admin.snsTelegramBotName}</label>
+                <input
+                  type="text"
+                  value={snsForm.telegram.botName}
+                  onChange={e => setSnsForm(p => ({ ...p, telegram: { ...p.telegram, botName: e.target.value } }))}
+                  placeholder={t.admin.snsTelegramBotNamePlaceholder}
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-gray-900 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-300 transition-all"
+                />
+                <label className="block text-gray-500 text-xs font-medium mb-1.5 mt-3">{t.admin.snsTelegramBotUserName}</label>
+                <input
+                  type="text"
+                  value={snsForm.telegram.botUserName}
+                  onChange={e => setSnsForm(p => ({ ...p, telegram: { ...p.telegram, botUserName: e.target.value } }))}
+                  placeholder={t.admin.snsTelegramBotUserNamePlaceholder}
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-gray-900 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-300 transition-all"
+                />
+                <label className="block text-gray-500 text-xs font-medium mb-1.5 mt-3">{t.admin.snsTelegramHttpApiToken}</label>
+                <input
+                  type="text"
+                  value={snsForm.telegram.httpApiToken}
+                  onChange={e => setSnsForm(p => ({ ...p, telegram: { ...p.telegram, httpApiToken: e.target.value } }))}
+                  placeholder={t.admin.snsTelegramHttpApiTokenPlaceholder}
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-gray-900 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-300 transition-all"
+                />
+              </div>
             </div>
           </div>
         ) : activeTab === 'reset' ? (

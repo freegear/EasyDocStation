@@ -154,6 +154,27 @@ function normalizeDirectMessageConfig(dm = {}) {
   }
 }
 
+function normalizeSnsConfig(sns = {}) {
+  return {
+    kakao: {
+      enabled: Boolean(sns.kakao?.enabled),
+      apiKey: typeof sns.kakao?.apiKey === 'string' ? sns.kakao.apiKey : '',
+    },
+    line: {
+      enabled: Boolean(sns.line?.enabled),
+      channelAccessToken: typeof sns.line?.channelAccessToken === 'string' ? sns.line.channelAccessToken : '',
+    },
+    telegram: {
+      enabled: Boolean(sns.telegram?.enabled),
+      botName: typeof sns.telegram?.botName === 'string' ? sns.telegram.botName : '',
+      botUserName: typeof sns.telegram?.botUserName === 'string'
+        ? sns.telegram.botUserName
+        : (typeof sns.telegram?.botId === 'string' ? sns.telegram.botId : ''),
+      httpApiToken: typeof sns.telegram?.httpApiToken === 'string' ? sns.telegram.httpApiToken : '',
+    },
+  }
+}
+
 function getDatabasePathConfig(config = {}) {
   return {
     easyDocStationFolder: resolveAppBasePath(config),
@@ -244,7 +265,8 @@ router.get('/stats', async (req, res) => {
       agenticai: { num_predict: 4096, num_ctx: 8192, history: 6, language: 'ko', ...(config.agenticai || {}) },
       maxAttachmentFileSize: config.MaxAttachmentFileSize ?? 100,
       DirectMessage: normalizeDirectMessageConfig(config.DirectMessage || {}),
-      company: config.company || {}
+      company: config.company || {},
+      sns: normalizeSnsConfig(config.sns || {})
     })
   } catch (err) {
     console.error('Admin Stats Error:', err)
@@ -285,7 +307,8 @@ router.get('/stats', async (req, res) => {
         agenticai: { num_predict: 4096, num_ctx: 8192, history: 6, language: 'ko', ...(config.agenticai || {}) },
         maxAttachmentFileSize: config.MaxAttachmentFileSize ?? 100,
         DirectMessage: normalizeDirectMessageConfig(config.DirectMessage || {}),
-        company: config.company || {}
+        company: config.company || {},
+        sns: normalizeSnsConfig(config.sns || {})
       })
     } catch (innerErr) {
       res.status(500).json({ error: 'DB 정보를 가져오는 중 오류가 발생했습니다.' })

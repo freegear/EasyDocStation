@@ -11,9 +11,11 @@ import SiteAdminPage from './components/SiteAdminPage'
 import SearchResultsArea from './components/SearchResultsArea'
 import CalendarView from './components/CalendarView'
 import DirectMessageView, { NewConversationModal } from './components/DirectMessageView'
+import ConfirmDialog from './components/ConfirmDialog'
 
 function MainLayout() {
   const [showProfile, setShowProfile] = useState(false)
+  const [showProfileSavedDialog, setShowProfileSavedDialog] = useState(false)
   const [showSiteAdmin, setShowSiteAdmin] = useState(false)
   const [searchSelectedPost, setSearchSelectedPost] = useState(null)
   const [showCalendar, setShowCalendar] = useState(false)
@@ -139,12 +141,27 @@ function MainLayout() {
         </div>
       </div>
 
-      {showProfile && <UserProfileModal onClose={() => setShowProfile(false)} />}
+      {showProfile && (
+        <UserProfileModal
+          onClose={() => setShowProfile(false)}
+          onSaved={() => setShowProfileSavedDialog(true)}
+        />
+      )}
       {showSiteAdmin && <SiteAdminPage onClose={() => setShowSiteAdmin(false)} />}
       {showNewDM && (
         <NewConversationModal
           onCreated={(conv) => { setShowNewDM(false); setActiveDMConv(conv); setShowDM(true); setShowCalendar(false) }}
           onCancel={() => setShowNewDM(false)}
+        />
+      )}
+      {showProfileSavedDialog && (
+        <ConfirmDialog
+          title="확인"
+          message="사용자 정보가 저장되었습니다."
+          confirmText="확인"
+          hideCancel
+          onConfirm={() => setShowProfileSavedDialog(false)}
+          onCancel={() => setShowProfileSavedDialog(false)}
         />
       )}
     </div>
