@@ -27,6 +27,7 @@ function MainLayout() {
 
   const [groqWidth, setGroqWidth] = useState(320)
   const [resizingGroq, setResizingGroq] = useState(false)
+  const [showAgenticPanel, setShowAgenticPanel] = useState(true)
   const mainRef = useRef(null)
 
   const startGroqResize = useCallback((e) => {
@@ -102,6 +103,8 @@ function MainLayout() {
         onOpenProfile={() => setShowProfile(true)}
         onOpenSiteAdmin={() => setShowSiteAdmin(true)}
         onSelectSearchResult={handleSearchSelect}
+        showAgenticPanel={showAgenticPanel}
+        onToggleAgenticPanel={() => setShowAgenticPanel(v => !v)}
       />
       <div ref={mainRef} className="flex flex-1 min-h-0">
         <Sidebar
@@ -130,7 +133,7 @@ function MainLayout() {
         )}
 
         {/* Resize handle & GroqPanel: 캘린더/DM 모드에서는 CSS로 숨김 (언마운트 X → state 유지) */}
-        <div style={{ display: (showCalendar || showDM) ? 'none' : 'contents' }}>
+        <div style={{ display: (showCalendar || showDM || !showAgenticPanel) ? 'none' : 'contents' }}>
           <div
             onMouseDown={startGroqResize}
             className="group relative w-1 flex-shrink-0 cursor-col-resize z-10"

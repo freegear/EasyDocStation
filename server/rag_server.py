@@ -11,7 +11,7 @@ RAG 영구 검색 서버
 import sys
 import json
 import os
-from http.server import BaseHTTPRequestHandler, HTTPServer
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 PORT = int(sys.argv[1]) if len(sys.argv) > 1 else 5001
 
@@ -86,12 +86,26 @@ class RagHandler(BaseHTTPRequestHandler):
                     "text":  r["text"],
                     "score": float(r.get("_distance", 0)),
                     "metadata": {
-                        "post_id":       meta.get("post_id", ""),
-                        "chunk_id":      meta.get("chunk_id", 0),
-                        "type":          meta.get("type", ""),
-                        "channel_id":    meta.get("channel_id", ""),
-                        "attachment_id": meta.get("attachment_id", ""),
-                        "comment_id":    meta.get("comment_id", ""),
+                        "post_id":          meta.get("post_id", ""),
+                        "chunk_id":         meta.get("chunk_id", 0),
+                        "chunk_index":      meta.get("chunk_index", meta.get("chunk_id", 0)),
+                        "type":             meta.get("type", ""),
+                        "channel_id":       meta.get("channel_id", ""),
+                        "attachment_id":    meta.get("attachment_id", ""),
+                        "comment_id":       meta.get("comment_id", ""),
+                        "source":           meta.get("source", ""),
+                        "file_name":        meta.get("file_name", ""),
+                        "page_number":      meta.get("page_number", 0),
+                        "element_id":       meta.get("element_id", ""),
+                        "original_content": meta.get("original_content", ""),
+                        "img_path":         meta.get("img_path", ""),
+                        "doc_version":      meta.get("doc_version", ""),
+                        "file_hash":        meta.get("file_hash", ""),
+                        "amount_total":     meta.get("amount_total", 0),
+                        "amount_subtotal":  meta.get("amount_subtotal", 0),
+                        "amount_vat":       meta.get("amount_vat", 0),
+                        "currency":         meta.get("currency", ""),
+                        "amount_candidates": meta.get("amount_candidates", ""),
                     }
                 })
             self._respond(200, output)
@@ -110,7 +124,7 @@ class RagHandler(BaseHTTPRequestHandler):
 
 
 if __name__ == '__main__':
-    server = HTTPServer(('127.0.0.1', PORT), RagHandler)
+    server = ThreadingHTTPServer(('127.0.0.1', PORT), RagHandler)
     print(f"[RAG Server] 포트 {PORT} 에서 시작됨", flush=True)
     sys.stdout.flush()
     server.serve_forever()

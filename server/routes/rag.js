@@ -45,6 +45,11 @@ function writeRagDatasetIndex(items) {
   fs.writeFileSync(RAG_DATA_INDEX_PATH, JSON.stringify(items, null, 2), 'utf8')
 }
 
+function buildPgInClause(values = [], startIndex = 1) {
+  const placeholders = values.map((_, i) => `$${startIndex + i}`).join(', ')
+  return `(${placeholders})`
+}
+
 function makeDatasetId() {
   return `rag-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
 }
@@ -189,10 +194,10 @@ async function buildTrainerPostFromDataset(item) {
 
   if (isPdf) {
     post.content = `[RAG 학습 데이터] ${displayFilename}`
-    post.pdfs = [{ id: item.id, path: absPath }]
+    post.pdfs = [{ id: item.id, path: absPath, file_name: displayFilename }]
   } else if (isWord) {
     post.content = `[RAG 학습 데이터] ${displayFilename}`
-    post.words = [{ id: item.id, path: absPath }]
+    post.words = [{ id: item.id, path: absPath, file_name: displayFilename }]
   } else if (isText) {
     let text = ''
     try {
@@ -214,6 +219,7 @@ async function buildTrainerPostFromDataset(item) {
     payload: {
       config: {
         lancedb_path: getDatabasePath(cfg, 'lancedb Database Path'),
+        file_training_path: path.resolve(__dirname, '../../Database/ObjectFile/FileTrainingData'),
         chunk_size: ragCfg.chunk_size ?? 800,
         chunk_overlap: ragCfg.chunk_overlap ?? 100,
         vector_size: ragCfg.vectorSize ?? 1024,
@@ -267,7 +273,7 @@ function startRagServer() {
     ragServerReady = false
     ragServerProc = null
     if (fatalImportError) {
-      console.warn(`[RAG Server] 비활성화됨: ${ragServerDisableReason}. RAG 검색은 subprocess fallback으로 동작합니다.`)
+      console.warn(`[RAG Server] 비활성화됨: ${ragServerDisableReason}.`)
       return
     }
     if (code !== null) {  // 의도적 종료가 아닐 때만 재시작
@@ -308,115 +314,363 @@ function callRagServer(payload) {
   })
 }
 
-// ─── fallback: 서버 미준비 시 직접 subprocess 호출 ────────────
-function callPythonSearchDirect(payload) {
-  return new Promise((resolve, reject) => {
-    const script = path.resolve(__dirname, '../rag_search.py')
-    const proc = spawn(getPythonExecutable(), [script], { timeout: 60000 })
-    let out = '', err = ''
-    proc.stdin.write(JSON.stringify(payload))
-    proc.stdin.end()
-    proc.stdout.on('data', d => out += d)
-    proc.stderr.on('data', d => err += d)
-    proc.on('close', code => {
-      if (code !== 0) return reject(new Error(err || `exit ${code}`))
-      try { resolve(JSON.parse(out)) }
-      catch (e) { reject(new Error('검색 결과 파싱 실패')) }
-    })
-    proc.on('error', reject)
+function waitForRagServerReady(timeoutMs = 1200) {
+  if (ragServerReady) return Promise.resolve(true)
+  if (ragServerDisabled) return Promise.resolve(false)
+
+  const startedAt = Date.now()
+  return new Promise(resolve => {
+    const timer = setInterval(() => {
+      if (ragServerReady) {
+        clearInterval(timer)
+        resolve(true)
+        return
+      }
+      if (ragServerDisabled || Date.now() - startedAt >= timeoutMs) {
+        clearInterval(timer)
+        resolve(false)
+      }
+    }, 100)
   })
 }
 
-function callPythonSearch(payload) {
-  if (ragServerReady) return callRagServer(payload)
-  return callPythonSearchDirect(payload)
+async function callPythonSearch(payload) {
+  if (ragServerDisabled) return []
+  const ready = ragServerReady ? true : await waitForRagServerReady(1200)
+  if (!ready) return []
+
+  try {
+    return await callRagServer(payload)
+  } catch (e) {
+    ragServerReady = false
+    console.warn('[RAG] 서버 검색 실패, 이번 요청은 빈 결과로 처리:', e.message)
+    return []
+  }
+}
+
+function isAmountQuery(query = '') {
+  return /(금액|합계|총액|소계|부가세|vat|견적\s*비용|견적\s*금액|얼마)/i.test(String(query || ''))
+}
+
+function isCommandQuery(query = '') {
+  return /(명령어|커맨드|cli|command|설정\s*명령|show\s+\S+|snmp|config|configure|실행\s*명령)/i.test(String(query || ''))
+}
+
+function asNum(value) {
+  const n = Number(value)
+  return Number.isFinite(n) ? n : 0
+}
+
+function amountDocScore(doc) {
+  const meta = doc?.metadata || {}
+  const text = String(doc?.text || '')
+  const type = String(meta.type || '').toLowerCase()
+  const distance = asNum(doc?.score)
+  let score = -distance
+
+  if (type === 'amount_summary') score += 100
+  if (asNum(meta.amount_total) > 0) score += 40
+  if (asNum(meta.amount_subtotal) > 0) score += 20
+  if (asNum(meta.amount_vat) > 0) score += 20
+  if (/(합계|총액|소계|부가세|vat|원)/i.test(text)) score += 15
+
+  return score
+}
+
+function hasAmountSignal(doc) {
+  const meta = doc?.metadata || {}
+  const type = String(meta.type || '').toLowerCase()
+  const text = String(doc?.text || '')
+  return (
+    type === 'amount_summary' ||
+    asNum(meta.amount_total) > 0 ||
+    asNum(meta.amount_subtotal) > 0 ||
+    asNum(meta.amount_vat) > 0 ||
+    /(합계|총액|소계|부가세|vat|공급가액|총\s*금액|원)/i.test(text)
+  )
+}
+
+function hasCommandSignal(doc) {
+  const text = String(doc?.text || '')
+  return (
+    /(snmp-server|show\s+snmp|show\s+\S+|no\s+snmp-server|community|trap-source|enable\s+traps)/i.test(text) ||
+    /(명령어|CLI|설정 예제)/i.test(text)
+  )
+}
+
+function normalizeMatchToken(value = '') {
+  return String(value || '').toLowerCase().replace(/[^a-z0-9가-힣]/g, '')
+}
+
+function extractSourceHints(query = '', preferredSources = []) {
+  const hints = new Set()
+  const src = String(query || '')
+  const directFiles = src.match(/[A-Za-z0-9가-힣_.()\-]+\.(pdf|docx|doc|pptx|xlsx|csv|txt|md)/gi) || []
+  for (const item of directFiles) hints.add(item)
+
+  const cSeries = src.match(/\bC\d{3,}\b/gi) || []
+  for (const item of cSeries) hints.add(item)
+
+  const manualWords = src.match(/[A-Za-z0-9가-힣_.()\-]{2,}(?:매뉴얼|manual|시리즈|series)/gi) || []
+  for (const item of manualWords) hints.add(item)
+
+  for (const item of (Array.isArray(preferredSources) ? preferredSources : [])) {
+    if (item) hints.add(String(item))
+  }
+
+  const normalized = [...hints]
+    .map(normalizeMatchToken)
+    .filter(v => v.length >= 2)
+  return [...new Set(normalized)]
+}
+
+function sourceHintBoost(doc, sourceHints = []) {
+  if (!Array.isArray(sourceHints) || sourceHints.length === 0) return 0
+  const meta = doc?.metadata || {}
+  const source = normalizeMatchToken(`${meta.source || ''} ${meta.file_name || ''}`)
+  if (!source) return 0
+
+  let boost = 0
+  for (const hint of sourceHints) {
+    if (!hint) continue
+    if (source.includes(hint)) boost += 35
+    else if (hint.includes(source) && source.length >= 5) boost += 15
+  }
+  return Math.min(boost, 80)
+}
+
+function amountDocBonus(doc) {
+  const base = -asNum(doc?.score)
+  return amountDocScore(doc) - base
+}
+
+function commandDocBonus(doc) {
+  const text = String(doc?.text || '')
+  let score = 0
+  if (/(snmp-server|show\s+snmp|no\s+snmp-server)/i.test(text)) score += 70
+  if (/(show\s+\S+|no\s+\S+)/i.test(text)) score += 25
+  if (/(명령어:|CLI|설정 예제|SNMPv1\/2c|SNMPv3|Trap)/i.test(text)) score += 20
+  return score
+}
+
+function buildSearchResultKey(item = {}) {
+  const m = item?.metadata || {}
+  const textHead = String(item?.text || '').slice(0, 80)
+  return [
+    m.post_id || '',
+    m.type || '',
+    m.attachment_id || '',
+    m.comment_id || '',
+    m.page_number || 0,
+    m.chunk_index ?? m.chunk_id ?? 0,
+    textHead,
+  ].join(':')
+}
+
+function mergeUniqueResults(...arrays) {
+  const out = []
+  const seen = new Set()
+  for (const arr of arrays) {
+    if (!Array.isArray(arr)) continue
+    for (const item of arr) {
+      const key = buildSearchResultKey(item)
+      if (seen.has(key)) continue
+      seen.add(key)
+      out.push(item)
+    }
+  }
+  return out
 }
 
 // ─── 참고문헌 정보 DB 조회 (병렬 처리) ──────────────────────
 async function enrichReferences(results) {
+  function classifyRefType(rawType = '') {
+    const t = String(rawType || '').toLowerCase()
+    if (t.includes('comment')) return 'comment'
+    if (t === 'amount_summary') return 'amount'
+    if (t === 'table') return 'table'
+    if (t === 'image') return 'image'
+    if (t === 'word') return 'word'
+    if (t === 'text') return 'text'
+    return 'post'
+  }
+
   const seen = new Set()
   const unique = []
   for (const r of results) {
-    const { post_id, type, channel_id: metaChannelId, attachment_id, comment_id } = r.metadata
+    const {
+      post_id,
+      type,
+      channel_id: metaChannelId,
+      attachment_id,
+      comment_id,
+      source,
+      file_name,
+      page_number,
+    } = r.metadata
     if (!post_id || post_id === '') continue
-    const key = `${post_id}:${type}:${attachment_id || ''}:${comment_id || ''}`
+    const key = `${post_id}:${type}:${attachment_id || ''}:${comment_id || ''}:${page_number || 0}`
     if (seen.has(key)) continue
     seen.add(key)
-    unique.push({ r, post_id, type, metaChannelId, attachment_id, comment_id })
+    unique.push({ r, post_id, type, metaChannelId, attachment_id, comment_id, source, file_name, page_number })
   }
 
-  const settled = await Promise.all(unique.map(async ({ r, post_id, type, metaChannelId, attachment_id, comment_id }) => {
-    try {
-      // ── channel_id가 메타데이터에 없으면 DB에서 조회 ──
-      let channelId = metaChannelId
-      if (!channelId) {
-        try {
-          const cass = require('../cassandra')
-          if (cass.isConnected()) {
-            const pRes = await cass.client.execute(
-              'SELECT channel_id FROM posts WHERE id = ? ALLOW FILTERING',
-              [post_id], { prepare: true }
-            )
-            if (pRes.rows.length > 0) channelId = pRes.rows[0].channel_id
-          }
-        } catch (_) {}
-        if (!channelId) {
-          const aRes = await db.query('SELECT channel_id FROM attachments WHERE post_id = $1 LIMIT 1', [post_id])
-          if (aRes.rowCount > 0) channelId = aRes.rows[0].channel_id
+  if (unique.length === 0) return []
+
+  const attachmentIds = [...new Set(unique.map(u => u.attachment_id).filter(Boolean))]
+  const postIdsNeedChannel = [...new Set(unique.filter(u => !u.metaChannelId).map(u => u.post_id).filter(Boolean))]
+
+  const attachmentMap = new Map()
+  const postChannelMap = new Map()
+  const attachmentPostChannelMap = new Map()
+
+  try {
+    if (attachmentIds.length > 0) {
+      const inClause = buildPgInClause(attachmentIds)
+      const sql = `SELECT id, filename, channel_id, post_id FROM attachments WHERE id IN ${inClause}`
+      const res = await db.query(sql, attachmentIds)
+      for (const row of res.rows || []) {
+        attachmentMap.set(String(row.id), {
+          filename: row.filename || '',
+          channel_id: row.channel_id || '',
+          post_id: row.post_id || '',
+        })
+      }
+    }
+
+    if (postIdsNeedChannel.length > 0) {
+      const postInClause = buildPgInClause(postIdsNeedChannel)
+      const postSql = `SELECT id, channel_id FROM posts WHERE id IN ${postInClause}`
+      const postRes = await db.query(postSql, postIdsNeedChannel)
+      for (const row of postRes.rows || []) {
+        if (row.id && row.channel_id) postChannelMap.set(String(row.id), String(row.channel_id))
+      }
+
+      const attInClause = buildPgInClause(postIdsNeedChannel)
+      const attSql = `SELECT post_id, channel_id FROM attachments WHERE post_id IN ${attInClause}`
+      const attRes = await db.query(attSql, postIdsNeedChannel)
+      for (const row of attRes.rows || []) {
+        if (row.post_id && row.channel_id && !attachmentPostChannelMap.has(String(row.post_id))) {
+          attachmentPostChannelMap.set(String(row.post_id), String(row.channel_id))
         }
       }
+    }
+  } catch (e) {
+    console.error('[RAG] 참고문헌 사전 조회 오류:', e.message)
+  }
 
-      // ── 채널/팀 이름 + 첨부파일 이름을 병렬 조회 ──
-      const [chRes, fileRes] = await Promise.all([
-        channelId
-          ? db.query(
-              `SELECT c.name AS channel_name, t.name AS team_name
-               FROM channels c LEFT JOIN teams t ON t.id = c.team_id
-               WHERE c.id = $1 LIMIT 1`,
-              [channelId]
-            )
-          : Promise.resolve({ rowCount: 0, rows: [] }),
-        type === 'pdf' && attachment_id
-          ? db.query(`SELECT filename FROM attachments WHERE id = $1 LIMIT 1`, [attachment_id])
-          : Promise.resolve({ rowCount: 0, rows: [] }),
-      ])
+  const channelIds = [...new Set(unique.map(u => {
+    const postId = String(u.post_id || '')
+    const attachmentInfo = u.attachment_id ? attachmentMap.get(String(u.attachment_id)) : null
+    return (
+      u.metaChannelId ||
+      postChannelMap.get(postId) ||
+      attachmentPostChannelMap.get(postId) ||
+      attachmentInfo?.channel_id ||
+      ''
+    )
+  }).filter(Boolean))]
 
-      const channelName = chRes.rowCount > 0 ? (chRes.rows[0].channel_name || '') : ''
-      const teamName    = chRes.rowCount > 0 ? (chRes.rows[0].team_name    || '') : ''
-
-      const baseRef = {
-        channel: channelName,
-        channel_id: channelId || '',
-        team: teamName,
-        post_id,
-        attachment_id: attachment_id || '',
-        comment_id: comment_id || '',
-      }
-
-      if (type === 'pdf') {
-        const label = fileRes.rowCount > 0 ? fileRes.rows[0].filename : '첨부 문서'
-        return { ...baseRef, type: 'pdf', label }
-      } else if (type === 'comment') {
-        const preview = (r.text || '').slice(0, 60).replace(/\n/g, ' ')
-        return { ...baseRef, type: 'comment', label: preview + ((r.text?.length ?? 0) > 60 ? '…' : '') }
-      } else {
-        const preview = (r.text || '').slice(0, 60).replace(/\n/g, ' ')
-        return { ...baseRef, type: 'post', label: preview + ((r.text?.length ?? 0) > 60 ? '…' : '') }
+  const channelInfoMap = new Map()
+  if (channelIds.length > 0) {
+    try {
+      const inClause = buildPgInClause(channelIds)
+      const sql = `
+        SELECT c.id, c.name AS channel_name, t.name AS team_name
+        FROM channels c
+        LEFT JOIN teams t ON t.id = c.team_id
+        WHERE c.id IN ${inClause}
+      `
+      const res = await db.query(sql, channelIds)
+      for (const row of res.rows || []) {
+        channelInfoMap.set(String(row.id), {
+          channel_name: row.channel_name || '',
+          team_name: row.team_name || '',
+        })
       }
     } catch (e) {
-      console.error('[RAG] 참고문헌 조회 오류:', e.message)
-      return null
+      console.error('[RAG] 채널 정보 조회 오류:', e.message)
     }
-  }))
+  }
 
-  return settled.filter(Boolean)
+  const refs = unique.map(({ r, post_id, type, metaChannelId, attachment_id, comment_id, source, file_name, page_number }) => {
+    const postId = String(post_id || '')
+    const attachmentInfo = attachment_id ? attachmentMap.get(String(attachment_id)) : null
+    const channelId = (
+      metaChannelId ||
+      postChannelMap.get(postId) ||
+      attachmentPostChannelMap.get(postId) ||
+      attachmentInfo?.channel_id ||
+      ''
+    )
+    const channelInfo = channelInfoMap.get(String(channelId)) || {}
+    const mappedType = classifyRefType(type)
+    const fileLabel = attachmentInfo?.filename || file_name || source || ''
+    const pageLabel = Number(page_number || 0) > 0 ? `p.${Number(page_number)}` : ''
+    const baseRef = {
+      channel: channelInfo.channel_name || '',
+      channel_id: channelId || '',
+      team: channelInfo.team_name || '',
+      post_id: post_id || '',
+      attachment_id: attachment_id || '',
+      comment_id: comment_id || '',
+      page_number: Number(page_number || 0),
+      source: source || file_name || '',
+      file_name: file_name || source || '',
+    }
+
+    if (mappedType === 'comment') {
+      const preview = (r.text || '').slice(0, 60).replace(/\n/g, ' ')
+      return {
+        ...baseRef,
+        type: 'comment',
+        label: preview + ((r.text?.length ?? 0) > 60 ? '…' : ''),
+      }
+    }
+
+    if (mappedType === 'amount') {
+      const total = asNum(r.metadata?.amount_total)
+      const label = [fileLabel || '문서', total > 0 ? `합계 ${total.toLocaleString('ko-KR')}원` : '', 'AMOUNT'].filter(Boolean).join(' · ')
+      return { ...baseRef, type: 'amount', label }
+    }
+
+    if (mappedType === 'table' || mappedType === 'image' || mappedType === 'text' || mappedType === 'word') {
+      const typeLabel = mappedType.toUpperCase()
+      const label = [fileLabel || '문서', pageLabel, typeLabel].filter(Boolean).join(' · ')
+      return { ...baseRef, type: mappedType, label }
+    }
+
+    if (type === 'pdf') {
+      const label = [fileLabel || '첨부 문서', pageLabel].filter(Boolean).join(' · ')
+      return { ...baseRef, type: 'pdf', label }
+    }
+
+    const preview = (r.text || '').slice(0, 60).replace(/\n/g, ' ')
+    return {
+      ...baseRef,
+      type: 'post',
+      label: preview + ((r.text?.length ?? 0) > 60 ? '…' : ''),
+    }
+  })
+
+  return refs.filter(Boolean)
 }
 
 // ─── POST /api/rag/search ─────────────────────────────────────
 router.post('/search', requireAuth, async (req, res) => {
   try {
-    const { query, limit = 3 } = req.body
+    const { query, limit = 3, preferred_sources: preferredSources = [] } = req.body
     if (!query?.trim()) return res.json({ context: '', references: [] })
+    const amountQuery = isAmountQuery(query)
+    const commandQuery = isCommandQuery(query)
+    const sourceHints = extractSourceHints(query, preferredSources)
+    const requestedLimit = Math.max(1, Number(limit) || 3)
+    const effectiveRequestedLimit = commandQuery ? Math.max(requestedLimit, 8) : requestedLimit
+    const firstPassLimit = Math.max(
+      effectiveRequestedLimit,
+      amountQuery ? 4 : 0,
+      commandQuery ? 8 : 0,
+    )
 
     const cfg = readConfig()
     const ragCfg = cfg.rag || {}
@@ -427,10 +681,38 @@ router.post('/search', requireAuth, async (req, res) => {
         vector_size: ragCfg.vectorSize ?? 1024,
       },
       query,
-      limit,
+      limit: firstPassLimit,
     }
 
-    const results = await callPythonSearch(payload)
+    let results = await callPythonSearch(payload)
+
+    if (amountQuery) {
+      const baseResults = Array.isArray(results) ? results : []
+      const needsSecondPass = baseResults.length < Math.max(6, effectiveRequestedLimit * 2) || !baseResults.some(hasAmountSignal)
+      if (needsSecondPass) {
+        const secondPassLimit = Math.max(effectiveRequestedLimit * 4, 16)
+        const amountHintQuery = `${query}\n합계 총액 공급가액 부가세 VAT 견적 금액 원`
+        const [r2, r3] = await Promise.all([
+          callPythonSearch({ ...payload, limit: secondPassLimit }),
+          callPythonSearch({ ...payload, query: amountHintQuery, limit: secondPassLimit }),
+        ])
+        results = mergeUniqueResults(baseResults, r2, r3)
+      }
+    }
+
+    if (commandQuery) {
+      const baseResults = Array.isArray(results) ? results : []
+      const needsSecondPass = baseResults.length < Math.max(12, effectiveRequestedLimit * 2) || !baseResults.some(hasCommandSignal)
+      if (needsSecondPass) {
+        const secondPassLimit = Math.max(effectiveRequestedLimit * 4, 24)
+        const commandHintQuery = `${query}\nCLI 명령어 command show configure config snmp-server no snmp-server`
+        const [r2, r3] = await Promise.all([
+          callPythonSearch({ ...payload, limit: secondPassLimit }),
+          callPythonSearch({ ...payload, query: commandHintQuery, limit: secondPassLimit }),
+        ])
+        results = mergeUniqueResults(baseResults, r2, r3)
+      }
+    }
 
     if (!Array.isArray(results) || results.length === 0) {
       return res.json({ context: '', references: [] })
@@ -442,8 +724,45 @@ router.post('/search', requireAuth, async (req, res) => {
       return res.json({ context: '', references: [] })
     }
 
-    const context = validResults.map(r => r.text).join('\n\n')
-    const references = await enrichReferences(validResults)
+    let rankedResults = validResults
+    if (amountQuery || commandQuery || sourceHints.length > 0) {
+      rankedResults = [...validResults].sort((a, b) => {
+        const baseA = -asNum(a?.score)
+        const baseB = -asNum(b?.score)
+        let scoreA = baseA
+        let scoreB = baseB
+        if (amountQuery) {
+          scoreA += amountDocBonus(a)
+          scoreB += amountDocBonus(b)
+        }
+        if (commandQuery) {
+          scoreA += commandDocBonus(a)
+          scoreB += commandDocBonus(b)
+        }
+        if (sourceHints.length > 0) {
+          scoreA += sourceHintBoost(a, sourceHints)
+          scoreB += sourceHintBoost(b, sourceHints)
+        }
+        return scoreB - scoreA
+      })
+    }
+    const finalResults = rankedResults.slice(0, effectiveRequestedLimit)
+
+    const context = finalResults.map((r) => {
+      const meta = r.metadata || {}
+      const source = meta.source || meta.file_name || 'unknown'
+      const page = Number(meta.page_number || 0)
+      const type = meta.type || 'text'
+      const total = asNum(meta.amount_total)
+      const subtotal = asNum(meta.amount_subtotal)
+      const vat = asNum(meta.amount_vat)
+      const amountPart = (total > 0 || subtotal > 0 || vat > 0)
+        ? ` / amount_total: ${total || 0} / amount_subtotal: ${subtotal || 0} / amount_vat: ${vat || 0}`
+        : ''
+      const header = `[source: ${source}${page > 0 ? ` / page: ${page}` : ''} / type: ${type}${amountPart}]`
+      return `${header}\n${r.text}`
+    }).join('\n\n')
+    const references = await enrichReferences(finalResults)
 
     res.json({ context, references })
   } catch (err) {

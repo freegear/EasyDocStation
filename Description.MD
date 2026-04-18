@@ -86,7 +86,7 @@ Description.MD
 - 13.2.2 config.json에 저장
 - 13.2.3 데이터베이스 및 오브젝트 관리 페이지에
 - 13.2.4 LanceDB 설치
-- 13.2.5  lancedb를 초기화
+- 13.2.5 lancedb를 초기화
 - 13.2.6 RAG 학습 옵션 설정
 - 13.2.7 청크 크기 설정
 - 13.3 RAG 학습
@@ -361,6 +361,13 @@ TEAMS를 클릭하면 팀 목록을 보여주거나 숨겨주어야 한다.
 1) 이미지이면 이미지를 image preview로 지정된 크기만큼 보여준다.
 2) pdf 파일이면 pdf 파일의 첫 페이지만 보여준다.
 다른 object이면, 우선 Object 이름과 다운로드 버튼을 보여준다.
+
+# 1.2.2.1 MD 포멧
+
+게시글이 MD 포멧일 경우 그 포멧대로 보여준다.
+안에 코드가 있을 경우 코드 양식대로 보여준다.
+'''으로 지원한다'''
+
 
 # 1.2.3 게시판 글 등록한 사람의 정보 보여주기
 메시지를 등록한 사람의 정보가 해당 정보를 보여준다.
@@ -1305,13 +1312,35 @@ for el in elements:
 -------
 # 13.3.1.4 분리 후 RAG 학습 전략
 
-추출된 데이터를 단순히 텍스트로 넣지 않고, 각자의 특성에 맞춰 처리해야 합니다.
+
+우선 추출된 데이터를 단순히 텍스트로 넣지 않고, 각자의 특성에 맞춰 처리해야 합니다.
 
 텍스트 (NarrativeText, Title): 일반적인 Chunking 후 벡터화합니다.
 
 표 (Table): el.metadata.text_as_html을 사용하여 HTML 태그가 포함된 데이터를 가져옵니다. LLM에게 이 HTML을 주며 **"이 표의 내용을 요약해달라"**고 한 뒤, 그 요약본을 임베딩합니다.
 
 이미지 (Image): 저장된 이미지 파일을 GPT-4o-mini 같은 멀티모달 모델에 입력하여 **"이미지에 대한 설명(Caption)"**을 생성합니다. 그 설명을 벡터 DB에 저장합니다.
+
+
+# 13.3.1.4 분리 후 RAG 학습 전략
+
+
+우선 추출된 데이터를 단순히 텍스트로 넣지 않고, 각자의 특성에 맞춰 처리해야 합니다.
+
+텍스트 (NarrativeText, Title): 일반적인 Chunking 후 벡터화합니다.
+
+표 (Table): el.metadata.text_as_html을 사용하여 HTML 태그가 포함된 데이터를 가져옵니다. LLM에게 이 HTML을 주며 **"이 표의 내용을 요약해달라"**고 한 뒤, 그 요약본을 임베딩합니다.
+
+이미지 (Image): 저장된 이미지 파일을 GPT-4o-mini 같은 멀티모달 모델에 입력하여 **"이미지에 대한 설명(Caption)"**을 생성합니다. 그 설명을 벡터 DB에 저장합니다.
+
+
+이것을 진행하면서, 학습 데이터를 PDF 페이지와 연동해서 관리하고 싶다.
+예를 들어서 PDF파일의 14페이지에 표가 있으면 그 표를 학습하고 난 뒤에 
+나중에 RAG를 쿼리하면, 
+해당 파일의 14페이지 표를 참조했다는 정보를 받고 싶다. 
+이미지도 같은 방식이다.
+
+이런 방식으로 구현가능하게 할 수 있는 학습 과정과 방식을 정의해줘
 
 
 
@@ -1610,6 +1639,13 @@ EasyDoc AgenticAI
 의 답변 창에서 MD 포멧으로 나온다 이것을 md가 반영된 것으로 화면에 나타나도록 해줘
 
 
+# 14.6 EasyStation AgenticAI Panel
+
+이것은 항상 고정식인데, 
+메인 페이지의 제목 행에 열을 나누는 버튼을 추가한다.
+이 버튼은 EasyStation AgenticAI Panel 을 보이거나 숨기게 할 수 있다. 
+보일때에는 파란색으로, 안 보일때에는 회색으로 버튼 색을 설정한다.
+이 버튼의 위치는 언어 선택과 검색의 중간에 추가한다.
 
 
 
@@ -2580,10 +2616,572 @@ PDF , TXT , EXCEL , PPT, Image format 등이 있다.
 
 학습 데이터를 ObjectsFolder로 이동하고, RAG에 사용하도로 한다.
 
+#######################################################################################
+# 24. RAG 학습
+
+# 24.1 다시 RAG 학습을 한다.
+
+다시 RAG 학습을 한다.
+
+# 24.2 Unstructured.io (전문 파서)
+
+# 24.2.1 PDF
+
+PDF를 받으면, 이것을 학습한다.
+
+# 24.2.1.1 데이터 추출 및 메타데이터 설계 (Extraction Phase)
+
+partition_pdf를 실행하면 결과값인 elements 객체 내부에 페이지 정보가 포함됩니다. 이 정보를 유실하지 않고 저장하는 것이 핵심입니다.
+추출 로직:
+- Text/Table/Image 객체를 추출할 때, el.metadata.page_number 값을 반드시 함께 가져옵니다.
+- 표(Table): HTML 소스 또는 Markdown과 함께 page_number를 저장합니다.
+- 이미지(Image): 저장된 이미지 파일 경로와 page_number를 매핑합니다.
+
+# 24.2.1.2 데이터 처리 및 인덱싱 (Processing Phase)
+
+각 요소를 벡터 DB에 저장할 때, **'검색용 텍스트'**와 **'참조용 메타데이터'**를 분리하여 구성합니다.
+데이터 타입	Vector (검색용 콘텐츠)	Metadata (필수 저장 정보)
+텍스트	분할된 텍스트 조각	{file_name, page_num, type: "text"}
+표	표 요약본 (LLM 생성)	{file_name, page_num, type: "table", original_html: "..."}
+이미지	이미지 설명 (Caption)	{file_name, page_num, type: "image", img_path: "..."}
+
+# 24.2.1.3 구현 프로세스 정의 (Workflow)
+
+단계 1: 페이지 번호를 포함한 파싱
+
+'''
+elements = partition_pdf(
+    filename="manual.pdf",
+    strategy="hi_res",
+    infer_table_structure=True,
+    extract_images_in_pdf=True,
+    # ... 기타 설정
+)
+
+documents = []
+for el in elements:
+    # 메타데이터 구성
+    metadata = {
+        "source": "manual.pdf",
+        "page_number": el.metadata.page_number, # 14페이지 정보 유지
+        "type": el.category
+    }
+    
+    content = ""
+    if el.category == "Table":
+        # 표는 요약본을 생성하여 검색 효율을 높임 (Summary-based Retrieval)
+        content = generate_table_summary(el.metadata.text_as_html)
+        metadata["original_content"] = el.metadata.text_as_html # 원본 보관
+    elif el.category == "Image":
+        content = generate_image_caption(el.metadata.image_path)
+    else:
+        content = el.text
+
+    documents.append(Document(page_content=content, metadata=metadata))
+'''
+
+단계 2: 벡터 DB 저장
+
+documents 리스트를 ChromaDB나 FAISS 같은 벡터 데이터베이스에 저장합니다. 이때 각 Document 객체는 본문(content)과 메타데이터(metadata)를 한 쌍으로 가집니다.
+
+2-1. 환경 설정 (설치)
+
+pip install langchain-lancedb lancedb langchain-openai
+
+2-2.코드 구현: 문서 데이터 인덱싱
+
+앞서 추출한 요소(Text, Table, Image)에 page_number 메타데이터를 포함하여 Document 객체를 생성하고, LanceDB에 저장하는 코드입니다.
+
+'''
+import lancedb
+from langchain_community.vectorstores import LanceDB
+from langchain_openai import OpenAIEmbeddings
+from langchain.schema import Document
+
+# 1. 임베딩 모델 준비
+embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
+
+# 2. 로컬 LanceDB 인스턴스 생성
+db = lancedb.connect("./lancedb_storage") # 데이터가 저장될 로컬 경로
+table = db.create_table("my_rag_data", data=[{"vector": [0.0]*1536, "text": "init", "metadata": {"page": 0}}], mode="overwrite")
+
+# 3. 문서 준비 (페이지 정보를 메타데이터에 포함)
+docs = [
+    Document(
+        page_content="엔진 오일 교체 주기는 10,000km입니다.", 
+        metadata={"source": "manual.pdf", "page": 14, "type": "table"}
+    ),
+    Document(
+        page_content="오일 필터는 엔진 하단부에 위치합니다.", 
+        metadata={"source": "manual.pdf", "page": 15, "type": "image"}
+    )
+]
+
+# 4. LanceDB에 저장 (VectorStore 생성)
+vector_store = LanceDB.from_documents(
+    docs, 
+    embeddings, 
+    connection=table
+)
+'''
+
+단계 3: 쿼리 및 출처 표시 (Retrieval & Attribution)
+
+사용자가 질문했을 때 검색 결과에서 메타데이터를 추출하여 사용자에게 보여줍니다.
+- 검색: 질문과 유사한 Top-K 문서 조각을 찾습니다.
+- 출처 추출: 검색된 결과 객체의 metadata['page_number']와 metadata['source']를 확인합니다.
+- 답변 생성: LLM에게 정보를 전달할 때 "아래 정보를 참고하여 답하되, 출처를 명시해줘"라고 요청합니다.
+- 저장된 데이터에서 질문과 관련된 내용을 찾고, 메타데이터에 담긴 페이지 정보를 추출하는 로직입니다.
+
+'''
+# 검색기 설정
+retriever = vector_store.as_retriever(search_kwargs={"k": 2})
+
+# 쿼리 수행
+query = "엔진 오일은 언제 교체해야 해?"
+results = retriever.get_relevant_documents(query)
+
+# 결과 출력 및 페이지 정보 확인
+for doc in results:
+    print(f"답변 내용: {doc.page_content}")
+    print(f"출처: {doc.metadata['source']}, 페이지: {doc.metadata['page']}")
+'''
 
 
+# 24.3 Indexing (LangChain)
+
+# 24.3.1 Indexing의 목적
+
+Indexing은 원본 문서(PDF, DOCX, HTML 등)를 LLM이 바로 사용 가능한 검색 인덱스로 변환하는 과정이다. LangChain 관점에서 Indexing은 보통 다음 순서로 구성된다: 문서 로딩 → 구조 분석/정제 → 청크 분할 → 임베딩 생성 → Vector Store 저장. LangChain의 RAG 문서도 Indexing을 “데이터를 수집하여 인덱스에 적재하는 별도 파이프라인”으로 설명한다.
+
+본 프로젝트에서는 PDF를 Unstructured.io로 먼저 파싱하고, 그 결과를 LangChain Document 객체로 변환한 뒤, LanceDB에 저장하는 방식을 사용한다. 이때 핵심은 검색용 본문(page_content) 과 출처 확인용 메타데이터(metadata) 를 분리하는 것이다. Vector Store 문서에서도 문서와 메타데이터를 함께 저장하고, 이후 검색 시 메타데이터 필터링이 가능하다고 안내한다
+
+# 24.3.2 Indexing 데이터 모델 설계
+
+LangChain에서 인덱싱의 기본 단위는 Document 객체이다. 각 Document는 page_content와 metadata를 가지며, 검색은 주로 page_content를 대상으로 수행하고, metadata는 출처 표시, 필터링, 후처리에 사용한다. LangChain의 retrieval/knowledge base 예제 역시 문서를 이 형태로 다루며, 이후 vector store에 적재한다.
+
+권장 메타데이터 구조는 다음과 같다
+
+'''
+metadata = {
+    "source": "manual.pdf",
+    "file_name": "manual.pdf",
+    "page_number": 14,
+    "type": "table",      # text | table | image
+    "chunk_index": 3,
+    "element_id": "tbl-14-01"
+}
+'''
+
+여기서 page_number, source, type은 필수 항목으로 보는 것이 좋다. 특히 PDF 기반 RAG에서는 검색 정확도 못지않게 답변의 출처 페이지를 다시 보여주는 능력이 중요하므로, 페이지 번호를 인덱싱 단계에서 반드시 보존해야 한다. 메타데이터 필터링은 vector store의 일반적인 기능으로 제공된다
+
+# 24.3.3 청크 분할 전략
+
+인덱싱 품질은 벡터 DB 종류보다 청크 분할 전략의 영향을 크게 받는다. LangChain의 semantic search 튜토리얼도 문서를 그대로 넣기보다 적절한 길이로 나누는 흐름을 사용한다. 긴 문서를 그대로 임베딩하면 검색 시 불필요한 정보가 많이 섞이고, 너무 짧게 나누면 문맥이 끊긴다.
+
+실무에서는 보통 다음 기준을 적용한다.
+
+일반 텍스트: chunk_size=500~1000, chunk_overlap=50~150
+표(Table): 표 전체를 하나의 단위로 보거나, 요약본을 별도 청크로 생성
+이미지(Image): 캡션 또는 설명문을 하나의 청크로 저장
+절/소제목 구조가 분명한 문서: 제목 단위로 먼저 나눈 뒤 세부 분할
+
+LangChain에서는 RecursiveCharacterTextSplitter 같은 splitter를 통해 이러한 분할을 수행한다. 이 splitter는 여러 구분자를 우선순위대로 사용해 텍스트를 비교적 자연스럽게 나누는 용도로 널리 쓰인다.
+
+예시:
+'''
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+
+splitter = RecursiveCharacterTextSplitter(
+    chunk_size=800,
+    chunk_overlap=100
+)
+chunks = splitter.split_documents(documents)
+'''
+
+# 24.3.4 텍스트 / 표 / 이미지 인덱싱 분리 전략
+
+PDF를 전문 파싱할 경우, 텍스트·표·이미지를 같은 방식으로 저장하면 검색 효율이 떨어질 수 있다. 따라서 각 타입별로 인덱싱 전략을 다르게 가져가는 것이 좋다.
+
+1) 텍스트(Text)
+
+텍스트는 원문을 적절한 크기로 분할한 뒤 그대로 임베딩한다. 검색 질의와 의미적으로 가장 직접적으로 연결되기 때문이다. LangChain의 knowledge base 예제도 일반 문서 텍스트를 분할 후 임베딩하여 vector store에 넣는 기본 패턴을 사용한다.
+
+'''
+Document(
+    page_content="엔진 오일 교체 주기는 10,000km입니다.",
+    metadata={"source": "manual.pdf", "page_number": 14, "type": "text"}
+)
+'''
+
+2) 표(Table)
+
+표는 원본 HTML이나 Markdown을 그대로 넣기보다, 표의 의미를 설명하는 요약본을 검색용 본문으로 두는 것이 유리하다. 원본 표는 메타데이터나 별도 저장소에 보관하고, 검색된 뒤 상세 표를 다시 보여주는 방식이 적합하다. 이는 LangChain 자체 규칙이라기보다 RAG 인덱싱의 일반적인 설계 원칙이며, LangChain은 이런 내용을 Document + metadata 형태로 저장하기 쉽게 해준다.
+
+'''
+Document(
+    page_content="이 표는 엔진 오일 교체 주기와 점검 항목을 설명한다. 일반 주행 기준 교체 주기는 10,000km이다.",
+    metadata={
+        "source": "manual.pdf",
+        "page_number": 14,
+        "type": "table",
+        "original_html": "<table>...</table>"
+    }
+)
+'''
+
+3) 이미지(Image)
+
+이미지는 직접 임베딩하지 않고, 이미지 설명문(caption) 을 생성해 텍스트처럼 저장하는 방식이 일반적이다. 저장된 이미지 파일 경로나 OCR 결과, 캡션 결과를 메타데이터에 함께 넣으면 이후 답변 시 원본 이미지를 다시 참조할 수 있다. LangChain retrieval 흐름은 결국 Document 텍스트를 반환하므로, 이미지도 검색 시점에는 설명문 기반 retrieval이 실용적이다.
+
+'''
+Document(
+    page_content="이 이미지는 엔진 하단부의 오일 필터 위치를 보여준다.",
+    metadata={
+        "source": "manual.pdf",
+        "page_number": 15,
+        "type": "image",
+        "img_path": "./images/manual_p15_img1.png"
+    }
+)
+'''
+
+# 24.3.5 LangChain + LanceDB 인덱싱 구현
+
+LangChain은 vector store를 공통 인터페이스로 다루며, LanceDB 역시 그중 하나로 연결할 수 있다. Vector store 문서에서는 일반적으로 add_documents, delete, similarity_search 같은 메서드를 공통적으로 사용한다고 설명한다
 
 
+설치 예시는 다음과 같다.
+'''
+pip install lancedb langchain-community langchain-openai langchain-text-splitters
+'''
+
+구현 예시는 다음과 같다.
+
+'''
+import lancedb
+from langchain_community.vectorstores import LanceDB
+from langchain_openai import OpenAIEmbeddings
+from langchain_core.documents import Document
+
+# 1. 임베딩 모델 준비
+embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
+
+# 2. LanceDB 로컬 연결
+db = lancedb.connect("./lancedb_storage")
+
+# 3. LangChain Document 준비
+docs = [
+    Document(
+        page_content="엔진 오일 교체 주기는 10,000km입니다.",
+        metadata={
+            "source": "manual.pdf",
+            "file_name": "manual.pdf",
+            "page_number": 14,
+            "type": "table"
+        }
+    ),
+    Document(
+        page_content="이 이미지는 오일 필터의 위치를 보여준다.",
+        metadata={
+            "source": "manual.pdf",
+            "file_name": "manual.pdf",
+            "page_number": 15,
+            "type": "image",
+            "img_path": "./images/manual_p15_img1.png"
+        }
+    )
+]
+
+# 4. Vector Store 생성 및 저장
+vector_store = LanceDB.from_documents(
+    documents=docs,
+    embedding=embeddings,
+    uri="./lancedb_storage",
+    table_name="my_rag_data"
+)
+'''
+
+LangChain의 vector store 통합 문서는 from_documents(...) 형태로 문서를 바로 저장할 수 있음을 보여주고, LanceDB 통합도 같은 패턴을 따른다
+
+# 24.3.6 증분 인덱싱과 재인덱싱
+
+운영 환경에서는 매번 전체 PDF를 다시 인덱싱하기보다, 변경된 문서만 다시 처리하는 증분 인덱싱이 중요하다. 현재 LangChain v1에서는 과거의 별도 Indexing API가 langchain-classic으로 이동했기 때문에, 새 프로젝트에서는 보통 애플리케이션 차원에서 문서 버전 관리 + 삭제 후 재삽입 방식으로 증분 인덱싱을 구현하는 편이 단순하다.
+
+권장 방식은 다음과 같다.
+
+파일 해시값 또는 수정 시각을 관리한다.
+변경된 파일만 다시 파싱한다.
+해당 파일에 속한 기존 chunk를 삭제한다.
+새 chunk를 다시 add_documents() 한다.
+
+예시 메타데이터:
+'''
+metadata = {
+    "source": "manual.pdf",
+    "page_number": 14,
+    "type": "text",
+    "doc_version": "2026-04-18T08:00:00",
+    "file_hash": "a1b2c3d4"
+}
+'''
+
+이 구조를 쓰면 나중에 source=manual.pdf 또는 file_hash 기준으로 재색인 범위를 통제하기 쉽다. 메타데이터 필터링은 vector store 검색과 유지보수 양쪽에 모두 유용하다
+
+
+# 24.3.7 Indexing 단계의 품질 관리 기준
+인덱싱이 끝났다고 바로 Retrieval 품질이 보장되지는 않는다. 최소한 다음 항목을 점검해야 한다.
+
+- page_number 누락 여부
+- 표 원본 HTML 저장 여부
+- 이미지 파일 경로 유효성
+- 텍스트 청크 길이 과다/과소 여부
+- 중복 chunk 삽입 여부
+- 문서 타입별 검색 적합성
+
+LangChain의 retrieval 개념 문서는 RAG 품질이 단순히 LLM 호출보다 검색 가능한 지식 베이스를 어떻게 구성했는지에 크게 의존한다고 전제한다. 따라서 Indexing은 단순 저장이 아니라, Retrieval 품질을 미리 설계하는 단계로 이해해야 한다.
+
+
+# 24.4 Retrieval (LangChain)
+
+# 24.4.1 Retrieval의 목적
+
+Retrieval은 사용자의 질문이 들어왔을 때, 인덱싱된 문서 중에서 질문과 가장 관련 있는 문서 조각(Document chunks) 을 찾아오는 과정이다. LangChain 문서에 따르면 retriever는 문자열 질의를 입력받아 Document 목록을 반환하는 인터페이스이며, vector store에서 쉽게 생성할 수 있다.
+
+즉, Indexing이 “찾을 수 있도록 저장하는 단계”라면, Retrieval은 “실제로 찾아오는 단계”이다. 검색된 결과에는 page_content뿐 아니라 metadata가 함께 오므로, 답변 생성 시 출처 파일명과 페이지 번호를 함께 제시할 수 있다. 이는 RAG에서 신뢰성과 추적 가능성을 높이는 핵심 요소다.
+
+# 24.4.2 기본 Retrieval 흐름
+
+LangChain에서 가장 일반적인 Retrieval 흐름은 다음과 같다.
+
+- Vector Store를 Retriever로 변환
+- 사용자 질문 입력
+- 유사 문서 Top-K 검색
+- 검색 결과의 본문과 메타데이터 추출
+- LLM에 전달할 context 구성
+- 출처를 포함한 최종 답변 생성
+
+Vector store 통합 문서에서는 as_retriever()를 통해 retriever를 만들 수 있고, retrieval 문서에서는 이렇게 가져온 문서를 LLM 추론에 붙이는 흐름을 설명한다
+
+예시:
+'''
+retriever = vector_store.as_retriever(search_kwargs={"k": 3})
+results = retriever.invoke("엔진 오일은 언제 교체해야 하나?")
+'''
+
+# 24.4.3 기본 Similarity Retrieval
+
+가장 단순한 방법은 similarity search이다. 질문을 임베딩한 뒤, 벡터 공간에서 가장 가까운 문서 조각을 Top-K로 반환한다. 이는 대부분의 vector store가 지원하는 기본 검색 방식이다. LangChain의 vector store 문서와 여러 통합 문서는 similarity_search 또는 retriever 기반 유사 검색을 기본 예제로 제시한다.
+
+'''
+retriever = vector_store.as_retriever(
+    search_type="similarity",
+    search_kwargs={"k": 3}
+)
+
+docs = retriever.invoke("엔진 오일 교체 주기")
+for doc in docs:
+    print(doc.page_content)
+    print(doc.metadata)
+'''
+이 방식은 단순하고 빠르지만, 서로 매우 비슷한 청크만 여러 개 반환될 수 있다는 단점이 있다. 예를 들어 같은 페이지의 비슷한 문장이 여러 청크에 중복 포함된 경우, 결과 다양성이 떨어질 수 있다
+
+
+# 24.4.4 MMR 기반 Retrieval
+
+이 문제를 줄이기 위해 LangChain은 MMR(Maximal Marginal Relevance) 기반 검색 옵션을 제공한다. MMR은 질의와의 관련성뿐 아니라, 이미 선택된 문서와 얼마나 중복되지 않는지도 함께 고려해 결과를 고른다. LangChain의 vector store 예시에서도 as_retriever(search_type="mmr", ...) 형태를 제공한다.
+
+'''
+retriever = vector_store.as_retriever(
+    search_type="mmr",
+    search_kwargs={"k": 4, "fetch_k": 10}
+)
+'''
+
+docs = retriever.invoke("엔진 오일 교체와 필터 위치를 알려줘")
+
+실무에서는 PDF 매뉴얼처럼 유사 문장이 반복되는 문서에 MMR이 특히 유용하다. 같은 주제를 말하더라도 서로 다른 페이지나 다른 타입(text/table/image)의 근거를 함께 끌어올 수 있기 때문이다. 이는 vector retrieval 품질을 높이는 대표적인 설정이다.
+
+# 24.4.5 Score Threshold 기반 Retrieval
+
+검색 결과가 항상 의미 있는 것은 아니다. 따라서 유사도가 너무 낮은 문서는 제외하는 threshold 기반 Retrieval도 유용하다. LangChain 문서에서는 일부 vector store에서 search_type="similarity_score_threshold" 와 score_threshold 설정을 지원하는 예시를 제공한다. 다만 지원 여부와 점수 체계는 저장소별로 다를 수 있다.
+
+''' 
+retriever = vector_store.as_retriever(
+    search_type="similarity_score_threshold",
+    search_kwargs={"score_threshold": 0.75, "k": 5}
+)
+'''
+
+이 방식은 “문서에 답이 없으면 억지로 답하지 않기” 정책과 잘 맞는다. 검색 점수가 일정 기준 아래이면, 이후 LLM 단계에서 “제공된 문서에서 관련 내용을 찾지 못했다”고 응답하도록 설계할 수 있다. Retrieval 단계에서 불필요한 노이즈를 줄이는 효과가 있다.
+
+# 24.4.6 메타데이터 필터링 Retrieval
+
+PDF 기반 RAG에서는 단순 유사도 검색만으로는 부족할 때가 많다. 특정 파일, 특정 페이지 범위, 특정 문서 타입만 대상으로 검색하고 싶을 수 있다. LangChain의 vector store 문서는 메타데이터 필터링을 일반 기능으로 소개하며, 예시로 filter={"source": "tweets"} 같은 형태를 보여준다. 다만 실제 필터 문법은 저장소마다 다를 수 있다.
+
+예시:
+'''
+retriever = vector_store.as_retriever(
+    search_kwargs={
+        "k": 3,
+        "filter": {"type": "table"}
+    }
+)
+
+docs = retriever.invoke("엔진 오일 교체 주기")
+'''
+
+이 방식은 다음 경우에 특히 유용하다.
+
+- 표만 우선 검색하고 싶을 때
+- 이미지 설명만 별도로 찾고 싶을 때
+- 특정 PDF 파일만 대상으로 제한하고 싶을 때
+- 최신 버전 문서만 검색하고 싶을 때
+
+메타데이터 필터링은 Retrieval의 정확도를 높이는 가장 실용적인 방법 중 하나다.
+
+# 24.4.7 Retrieval 결과 후처리
+
+Retriever가 문서를 찾은 뒤에는 그대로 LLM에 넘기기보다, 후처리를 거치는 것이 좋다. 대표적인 후처리는 다음과 같다.
+
+1) 중복 제거
+
+동일 페이지, 동일 문장, 거의 같은 표 요약이 여러 번 검색될 수 있다. 이때 (source, page_number, chunk_index) 기준으로 중복을 제거한다.
+
+2) 타입별 정렬
+
+text, table, image가 함께 검색되었다면, 질문 유형에 따라 우선순위를 다르게 둘 수 있다. 예를 들어 “표에 따르면” 같은 질문은 table을 먼저 배치하는 것이 좋다.
+
+3) 출처 문자열 생성
+
+LLM 프롬프트에 넣기 전에 아래와 같이 출처를 포함한 context 문자열로 정리한다.
+
+'''
+contexts = []
+for doc in docs:
+    context = f"""
+[출처: {doc.metadata['source']} / 페이지: {doc.metadata['page_number']} / 유형: {doc.metadata['type']}]
+{doc.page_content}
+"""
+    contexts.append(context)
+
+final_context = "\n\n".join(contexts)
+'''
+
+Retrieval 문서에서 retriever의 출력은 Document 목록이며, 후속 체인이나 LLM 입력용으로 조합하는 것이 일반적인 사용 패턴이다.
+
+
+# 24.4.8 질문-응답용 프롬프트 연결
+
+검색이 끝나면, 검색 결과를 LLM에 전달해 답변을 생성한다. 이 단계에서는 다음 원칙이 중요하다.
+
+- 검색된 문서만 근거로 답변할 것
+- 확실하지 않으면 모른다고 말할 것
+- 출처 파일명과 페이지 번호를 명시할 것
+
+예시:
+'''
+from langchain_openai import ChatOpenAI
+
+llm = ChatOpenAI(model="gpt-4.1-mini")
+
+prompt = f"""
+너는 PDF 매뉴얼 질의응답 시스템이다.
+아래 문서를 근거로만 답변하라.
+문서에 없는 내용은 추측하지 말고 '문서에서 확인되지 않음'이라고 답하라.
+반드시 출처(source)와 페이지(page_number)를 함께 표시하라.
+
+문서:
+{final_context}
+
+질문:
+엔진 오일은 언제 교체해야 하나?
+"""
+
+response = llm.invoke(prompt)
+print(response.content)
+'''
+
+LangChain의 retrieval/RAG 문서는 Retrieval과 Generation을 분리해서 설명하며, 검색된 문맥을 모델 추론에 넣는 것이 RAG의 핵심이라고 설명한다
+
+
+# 24.4.9 고급 Retrieval 전략
+
+현재 LangChain 생태계에서는 기본 similarity retrieval 외에도 여러 고급 retriever 개념을 제공한다. 다만 최신 v1 기준으로 일부 예전 retriever와 indexing 관련 기능은 langchain-classic 또는 레퍼런스 문서 쪽에서 확인해야 한다.
+
+실무에서 고려할 만한 전략은 다음과 같다.
+
+1) Parent-Child Retrieval
+
+작은 청크로 검색하되, 최종 전달은 더 큰 상위 문맥(parent document)으로 주는 방식이다. 짧은 청크의 검색 정확도와 긴 문맥의 이해력을 함께 노릴 수 있다. 특히 PDF 매뉴얼처럼 단락 단위 이해가 필요한 문서에 적합하다.
+
+2) Multi-Vector Retrieval
+
+하나의 원문에 대해 여러 표현(원문, 요약문, 질문형 문장 등)을 따로 인덱싱해 검색 성능을 높이는 방식이다. 표 요약, 이미지 캡션, 절 제목 요약 등을 함께 넣는 현재 구조와 잘 맞는다.
+
+3) Contextual Compression Retrieval
+
+먼저 관련 문서를 넓게 가져오고, 이후 LLM 또는 압축기를 이용해 질문과 관련된 부분만 압축해서 전달하는 방식이다. 긴 PDF에서 불필요한 문맥을 줄이고 토큰 비용을 절감할 때 유용하다.
+
+4) Ensemble Retrieval
+
+벡터 검색과 키워드 검색을 함께 조합하는 방식이다. 매뉴얼 번호, 부품명, 에러코드처럼 정확한 문자열 일치가 중요한 경우에 효과적이다.
+
+# 24.4.10 Retrieval 구현 예시
+
+아래는 현재 구조에 맞는 기본 검색 예시이다.
+
+- 1. Retriever 생성
+retriever = vector_store.as_retriever(
+    search_type="mmr",
+    search_kwargs={"k": 3, "fetch_k": 10}
+)
+
+- 2. 질의
+query = "엔진 오일은 언제 교체해야 해?"
+docs = retriever.invoke(query)
+
+- 3. 결과 출력
+for doc in docs:
+    print("내용:", doc.page_content)
+    print("출처:", doc.metadata.get("source"))
+    print("페이지:", doc.metadata.get("page_number"))
+    print("유형:", doc.metadata.get("type"))
+    print("-" * 50)
+
+이 방식은 LangChain이 권장하는 retriever 인터페이스와 일치하며, vector store를 retriever로 바꿔 일관된 검색 API로 사용할 수 있게 해준다.
+
+# 24.4.11 Retrieval 단계의 평가 기준
+
+Retrieval은 단순히 문서를 찾는 기능이 아니라, 최종 답변 품질을 좌우하는 핵심 모듈이다. 따라서 다음 기준으로 평가해야 한다.
+
+질문과 관련 있는 문서가 Top-K 안에 들어오는가
+출처 페이지가 정확한가
+서로 중복된 청크가 과도하게 반환되지 않는가
+표/이미지/텍스트가 질문 의도에 맞게 검색되는가
+문서에 없는 질문에 대해 낮은 점수로 걸러지는가
+
+LangChain의 retrieval 개념 문서도 RAG에서 Retrieval이 별도 핵심 단계이며, 단순 저장보다 “질문 시 필요한 문서를 잘 찾아오는가”가 중요하다는 점을 전제로 한다
+
+
+# 24.4.12 
+기존의 RAG VECOTR 관리와 
+EasyStation AgenticAI Panel을 연동 코드를 검토해서 작성해줘
+
+
+#######################################################################################
+
+# 25. 언어 설정
+
+# 25.1 언어 설정 버튼 위치
+
+다국어 언어 설정 버튼의 위치는
+
+페인페이지 제목행에서 사용자 정보 보다 오른쪽에 배열한다.
+
+# 25.1.1 다국어 설정 버튼 모양
+
+지금은 글로 되어 있는데, 국기로 바꾸어줘
 
 
 
@@ -2915,6 +3513,14 @@ Updated At	TIMESTAMPTZ	마지막 수정 일시	2026-04-17T14:35:00Z
 
 # ToDo 16. 음성인식에 의한 회의록...
 
+
+
+
+###############
+AgenticAI를 답변을 빨리 하게  하는 방법
+
+현재 답변이 너무 느리다. 
+코드를 검토해서 빨리 할 수 있는 부분이 있는지 알려줘
 
 
 

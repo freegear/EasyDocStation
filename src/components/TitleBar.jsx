@@ -6,9 +6,9 @@ import { ROLE_LABELS, ROLE_BADGE } from '../constants/roles'
 import { useT } from '../i18n/useT'
 
 const LANGUAGES = [
-  { code: 'ko', label: '한국어' },
-  { code: 'en', label: 'English' },
-  { code: 'ja', label: '日本語' },
+  { code: 'ko', label: '한국어', flag: '🇰🇷' },
+  { code: 'en', label: 'English', flag: '🇺🇸' },
+  { code: 'ja', label: '日本語', flag: '🇯🇵' },
 ]
 
 // ─── Search Bar ───────────────────────────────────────────────
@@ -171,7 +171,7 @@ function SearchBar({ onSelectResult }) {
 }
 
 // ─── TitleBar ─────────────────────────────────────────────────
-export default function TitleBar({ onOpenProfile, onOpenSiteAdmin, onSelectSearchResult }) {
+export default function TitleBar({ onOpenProfile, onOpenSiteAdmin, onSelectSearchResult, showAgenticPanel = true, onToggleAgenticPanel }) {
   const { currentUser, language, setLanguage, logout } = useAuth()
   const t = useT()
   const [menuOpen, setMenuOpen] = useState(false)
@@ -214,22 +214,23 @@ export default function TitleBar({ onOpenProfile, onOpenSiteAdmin, onSelectSearc
         {/* Search bar */}
         <SearchBar onSelectResult={onSelectSearchResult} />
 
-        {/* Language toggle button */}
-        <div className="flex items-center bg-gray-100 border border-gray-200 rounded-lg overflow-hidden flex-shrink-0">
-          {LANGUAGES.map(lang => (
-            <button
-              key={lang.code}
-              onClick={() => setLanguage(lang.code)}
-              className={`px-2.5 py-1 text-xs font-medium transition-all ${
-                language === lang.code
-                  ? 'bg-indigo-600 text-white'
-                  : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'
-              }`}
-            >
-              {lang.label}
-            </button>
-          ))}
-        </div>
+        {/* AgenticAI panel split toggle (between search and language) */}
+        <button
+          type="button"
+          onClick={onToggleAgenticPanel}
+          title={showAgenticPanel ? 'EasyStation AgenticAI Panel 숨기기' : 'EasyStation AgenticAI Panel 보이기'}
+          className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-semibold transition-colors ${
+            showAgenticPanel
+              ? 'bg-blue-600 border-blue-600 text-white hover:bg-blue-700'
+              : 'bg-gray-200 border-gray-300 text-gray-600 hover:bg-gray-300'
+          }`}
+        >
+          <svg className="w-3.5 h-3.5" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+            <rect x="2.5" y="3" width="15" height="14" rx="2" />
+            <line x1="11" y1="3" x2="11" y2="17" />
+          </svg>
+          <span className="hidden lg:inline">AI Panel</span>
+        </button>
 
         {/* User avatar + popup trigger */}
         {currentUser && (
@@ -325,6 +326,25 @@ export default function TitleBar({ onOpenProfile, onOpenSiteAdmin, onSelectSearc
             )}
           </div>
         )}
+
+        {/* Language toggle button (to the right of user info) */}
+        <div className="flex items-center bg-gray-100 border border-gray-200 rounded-lg overflow-hidden flex-shrink-0">
+          {LANGUAGES.map(lang => (
+            <button
+              key={lang.code}
+              onClick={() => setLanguage(lang.code)}
+              title={lang.label}
+              aria-label={lang.label}
+              className={`px-2 py-1.5 text-base leading-none transition-all ${
+                language === lang.code
+                  ? 'bg-indigo-600 ring-1 ring-indigo-500'
+                  : 'hover:bg-gray-200'
+              }`}
+            >
+              <span className="inline-block align-middle">{lang.flag}</span>
+            </button>
+          ))}
+        </div>
       </div>
     </header>
   )
