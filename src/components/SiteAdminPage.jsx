@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { apiFetch } from '../lib/api'
+import { apiFetch, getToken } from '../lib/api'
 import { ROLE_LABELS, ROLE_BADGE, ROLE_OPTIONS } from '../constants/roles'
 import { useAuth } from '../contexts/AuthContext'
 import { useT } from '../i18n/useT'
@@ -675,6 +675,10 @@ export default function SiteAdminPage({ onClose }) {
   const [dmRetentionDays, setDmRetentionDays] = useState(30)
   const [dmUnlimited, setDmUnlimited] = useState(false)
   const [ragForm, setRagForm] = useState({ type: 'manual', time: '02:00', vectorSize: 1024, chunkSize: 800, chunkOverlap: 100 })
+  const [ragDatasets, setRagDatasets] = useState([])
+  const [ragDatasetSelectedIds, setRagDatasetSelectedIds] = useState([])
+  const [ragDatasetUploading, setRagDatasetUploading] = useState(false)
+  const [ragDatasetTraining, setRagDatasetTraining] = useState(false)
   const [agenticaiForm, setAgenticaiForm] = useState({ num_predict: 4096, num_ctx: 8192, history: 6, language: 'ko' })
   const [companyForm, setCompanyForm] = useState({ name: '', address: '', phone: '', homepage: '', fax: '', seal: '', logo: '' })
   const [snsForm, setSnsForm] = useState({
@@ -684,6 +688,7 @@ export default function SiteAdminPage({ onClose }) {
   })
   const companyFileInputRef = useRef(null)
   const companyLogoInputRef = useRef(null)
+  const ragDatasetFileInputRef = useRef(null)
   const [savingConfig, setSavingConfig] = useState(false)
   const [trainingStatus, setTrainingStatus] = useState(null) // 'running', 'done', null
   const [showRagTrainingConfirm, setShowRagTrainingConfirm] = useState(false)
@@ -800,9 +805,82 @@ export default function SiteAdminPage({ onClose }) {
     }
   }
 
+  async function loadRagDatasets() {
+    try {
+      const data = await apiFetch('/rag/datasets')
+      const items = Array.isArray(data?.items) ? data.items : []
+      setRagDatasets(items)
+      setRagDatasetSelectedIds(prev => prev.filter(id => items.some(it => it.id === id)))
+    } catch (err) {
+      alert(err.message)
+    }
+  }
+
+  async function handleAddRagDatasets(files) {
+    if (!files || files.length === 0) return
+    setRagDatasetUploading(true)
+    try {
+      const formData = new FormData()
+      for (const file of files) formData.append('files', file)
+      formData.append('originalNames', JSON.stringify(files.map(file => file.name)))
+      const res = await fetch('/api/rag/datasets/upload', {
+        method: 'POST',
+        headers: {
+          ...(getToken() ? { Authorization: `Bearer ${getToken()}` } : {}),
+        },
+        body: formData,
+      })
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}))
+        throw new Error(errData.error || `HTTP ${res.status}`)
+      }
+      await loadRagDatasets()
+    } catch (err) {
+      alert(err.message)
+    } finally {
+      setRagDatasetUploading(false)
+    }
+  }
+
+  async function handleDeleteSelectedRagDatasets() {
+    if (ragDatasetSelectedIds.length === 0) return
+    try {
+      await apiFetch('/rag/datasets/delete', {
+        method: 'POST',
+        body: JSON.stringify({ ids: ragDatasetSelectedIds }),
+      })
+      await loadRagDatasets()
+      setRagDatasetSelectedIds([])
+    } catch (err) {
+      alert(err.message)
+    }
+  }
+
+  async function handleStartRagDatasetTraining() {
+    if (ragDatasets.length === 0) {
+      alert(t.admin.ragNoDataset || '학습 대상 데이터가 없습니다.')
+      return
+    }
+    setRagDatasetTraining(true)
+    try {
+      const ids = ragDatasets.map(item => item.id)
+      const result = await apiFetch('/rag/datasets/train', {
+        method: 'POST',
+        body: JSON.stringify({ ids }),
+      })
+      await loadRagDatasets()
+      alert((t.admin.ragTrainingDonePrefix || '학습 완료: ') + `${result?.total ?? ids.length}건`)
+    } catch (err) {
+      alert(err.message)
+    } finally {
+      setRagDatasetTraining(false)
+    }
+  }
+
   useEffect(() => { loadUsers(); loadTeams() }, [])
   useEffect(() => {
     if (activeTab === 'db' || activeTab === 'display' || activeTab === 'rag' || activeTab === 'agenticai' || activeTab === 'company' || activeTab === 'sns') loadDbStats()
+    if (activeTab === 'rag-learning') loadRagDatasets()
   }, [activeTab])
   useEffect(() => {
     function handleEscClose(e) {
@@ -1808,7 +1886,132 @@ export default function SiteAdminPage({ onClose }) {
                 </div>
               </div>
 
+              {/* RAG 학습 페이지 이동 */}
+              <div className="bg-gray-100 border border-gray-200 rounded-2xl p-6 shadow-xl">
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <h3 className="text-gray-900 font-bold text-base">{t.admin.ragLearningPageTitle || 'RAG 학습 페이지'}</h3>
+                    <p className="text-gray-400 text-xs mt-0.5">{t.admin.ragLearningPageDesc || '학습 데이터 추가/삭제 후 학습을 시작합니다.'}</p>
+                  </div>
+                  <button
+                    onClick={() => setActiveTab('rag-learning')}
+                    className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold transition-all"
+                  >
+                    {t.admin.ragLearningPageButton || 'RAG 학습 페이지'}
+                  </button>
+                </div>
+              </div>
 
+
+            </div>
+          </div>
+        ) : activeTab === 'rag-learning' ? (
+          <div className="max-w-5xl mx-auto py-4">
+            <div className="flex items-center justify-between mb-8">
+              <h2 className="text-gray-900 font-bold text-lg flex items-center gap-2">
+                <svg className="w-5 h-5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6M7 4h10a2 2 0 012 2v12a2 2 0 01-2 2H7a2 2 0 01-2-2V6a2 2 0 012-2z" />
+                </svg>
+                {t.admin.ragLearningPageTitle || 'RAG 학습 페이지'}
+              </h2>
+              <button
+                onClick={() => setActiveTab('rag')}
+                className="px-4 py-2 rounded-xl border border-gray-200 text-gray-600 hover:text-gray-900 hover:bg-gray-100 text-sm"
+              >
+                {t.admin.backToRagSettings || 'RAG 설정으로 돌아가기'}
+              </button>
+            </div>
+
+            <div className="bg-gray-100 border border-gray-200 rounded-2xl p-6 shadow-xl">
+              <div className="flex items-center gap-3 mb-6">
+                <input
+                  ref={ragDatasetFileInputRef}
+                  type="file"
+                  multiple
+                  className="hidden"
+                  accept=".pdf,.txt,.md,.csv,.xls,.xlsx,.ppt,.pptx,.png,.jpg,.jpeg,.gif,.webp,.doc,.docx"
+                  onChange={async (e) => {
+                    const files = Array.from(e.target.files || [])
+                    e.target.value = ''
+                    await handleAddRagDatasets(files)
+                  }}
+                />
+                <button
+                  onClick={() => ragDatasetFileInputRef.current?.click()}
+                  disabled={ragDatasetUploading}
+                  className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-sm font-semibold"
+                >
+                  {ragDatasetUploading ? (t.admin.ragAddingData || '추가 중...') : (t.admin.ragAddData || '학습 데이터 추가')}
+                </button>
+                <button
+                  onClick={handleStartRagDatasetTraining}
+                  disabled={ragDatasetTraining || ragDatasets.length === 0}
+                  className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-sm font-semibold"
+                >
+                  {ragDatasetTraining ? (t.admin.ragTrainingNow || '학습 중...') : (t.admin.ragStartTraining || '학습 시작')}
+                </button>
+                <button
+                  onClick={handleDeleteSelectedRagDatasets}
+                  disabled={ragDatasetSelectedIds.length === 0}
+                  className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-500 disabled:opacity-50 text-white text-sm font-semibold"
+                >
+                  {t.admin.ragDeleteFromData || '학습 데이터에서 삭제'}
+                </button>
+              </div>
+
+              <div className="rounded-2xl border border-gray-200 overflow-hidden bg-gray-50">
+                <table className="w-full text-sm">
+                  <thead className="bg-gray-100 border-b border-gray-200">
+                    <tr>
+                      <th className="px-4 py-3 text-left w-12"></th>
+                      <th className="px-4 py-3 text-left">{t.admin.ragDataName || '학습 데이터'}</th>
+                      <th className="px-4 py-3 text-left w-28">{t.admin.ragDataType || '형식'}</th>
+                      <th className="px-4 py-3 text-left w-24">{t.admin.ragDataSize || '크기'}</th>
+                      <th className="px-4 py-3 text-left w-32">{t.admin.ragDataStatus || '상태'}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {ragDatasets.length === 0 ? (
+                      <tr>
+                        <td colSpan={5} className="px-4 py-10 text-center text-gray-400">
+                          {t.admin.ragNoDataset || '학습 데이터가 없습니다.'}
+                        </td>
+                      </tr>
+                    ) : ragDatasets.map(item => {
+                      const selected = ragDatasetSelectedIds.includes(item.id)
+                      return (
+                        <tr
+                          key={item.id}
+                          className={`border-b border-gray-200 last:border-b-0 ${selected ? 'bg-indigo-50/60' : ''}`}
+                          onClick={() => {
+                            setRagDatasetSelectedIds(prev => (
+                              prev.includes(item.id)
+                                ? prev.filter(id => id !== item.id)
+                                : [...prev, item.id]
+                            ))
+                          }}
+                        >
+                          <td className="px-4 py-3">
+                            <input type="checkbox" readOnly checked={selected} />
+                          </td>
+                          <td className="px-4 py-3 text-gray-800">{item.filename}</td>
+                          <td className="px-4 py-3 text-gray-500 uppercase">{item.ext || '-'}</td>
+                          <td className="px-4 py-3 text-gray-500">{((item.size || 0) / 1024).toFixed(1)} KB</td>
+                          <td className="px-4 py-3">
+                            {item.status === 'trained' ? (
+                              <span className="text-emerald-600 font-medium">trained</span>
+                            ) : item.status === 'failed' ? (
+                              <span className="text-red-600 font-medium">failed</span>
+                            ) : (
+                              <span className="text-gray-500 font-medium">ready</span>
+                            )}
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         ) : activeTab === 'display' ? (

@@ -1963,7 +1963,9 @@ function PostDetail({ post, channelId, onClose }) {
           cancelText={t.chat.cancel}
           danger
           onConfirm={() => {
-            deletePost(channelId, post.id)
+            deletePost(channelId, post.id).catch((err) => {
+              setCommentErrorDialog(`게시글 삭제에 실패했습니다: ${err.message}`)
+            })
             setShowPostDeleteConfirm(false)
             onClose()
           }}
@@ -1978,7 +1980,9 @@ function PostDetail({ post, channelId, onClose }) {
           cancelText={t.chat.cancel}
           danger
           onConfirm={() => {
-            deleteComment(channelId, post.id, pendingDeleteCommentId)
+            deleteComment(channelId, post.id, pendingDeleteCommentId).catch((err) => {
+              setCommentErrorDialog(`댓글 삭제에 실패했습니다: ${err.message}`)
+            })
             setPendingDeleteCommentId(null)
           }}
           onCancel={() => setPendingDeleteCommentId(null)}
