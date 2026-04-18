@@ -65,6 +65,16 @@ function isTranslationQuery(text) {
   )
 }
 
+function isCommandQuery(text = '') {
+  return /(명령어|커맨드|cli|command|snmp|show\s+\S+|config|configure)/i.test(String(text || ''))
+}
+
+function extractSourceHints(text = '') {
+  const src = String(text || '')
+  const matches = src.match(/[A-Za-z0-9가-힣_.()\-]+\.(pdf|docx|doc|pptx|xlsx|csv|txt|md)/gi) || []
+  return [...new Set(matches.map(v => v.trim()).filter(Boolean))]
+}
+
 function formatTime(isoString) {
   return new Date(isoString).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })
 }
@@ -167,7 +177,7 @@ export default function GroqPanel({ width }) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const [attachedFile, setAttachedFile] = useState(null)
-  const [aiConfig, setAiConfig] = useState({ num_predict: 8192, num_ctx: 32768, history: 6, language: 'ko' })
+  const [aiConfig, setAiConfig] = useState({ num_predict: 2048, num_ctx: 8192, history: 6, language: 'ko' })
   const fileInputRef = useRef(null)
   const bottomRef = useRef(null)
   const textareaRef = useRef(null)
@@ -253,9 +263,11 @@ export default function GroqPanel({ width }) {
     if (!isTranslation && !base64Data) {
       // ── 1-1. RAG 검색 — LanceDB에서 관련 문서 검색 ──────────
       try {
+        const dynamicLimit = isCommandQuery(text) ? 8 : 3
+        const preferredSources = extractSourceHints(text)
         const ragResult = await apiFetch('/rag/search', {
           method: 'POST',
-          body: JSON.stringify({ query: text, limit: 3 }),
+          body: JSON.stringify({ query: text, limit: dynamicLimit, preferred_sources: preferredSources }),
         })
         ragContext = ragResult.context || ''
         ragReferences = ragResult.references || []
@@ -551,9 +563,14 @@ export default function GroqPanel({ width }) {
                           className="w-full flex items-start gap-1.5 bg-gray-100 rounded-lg px-2 py-1.5 border border-gray-200 text-left transition-colors enabled:hover:bg-gray-200 enabled:hover:border-gray-200 disabled:opacity-40 disabled:cursor-not-allowed"
                           title={ref.channel_id ? t.ai.gotoChannel(ref.team, ref.channel) : t.ai.gotoAfterRetrain}
                         >
-                          {ref.type === 'pdf' ? (
+                          {ref.type === 'pdf' || ref.type === 'table' || ref.type === 'word' ? (
                             <svg className="w-3 h-3 text-red-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                            </svg>
+                          ) : ref.type === 'image' ? (
+                            <svg className="w-3 h-3 text-emerald-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7a2 2 0 012-2h14a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2V7z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 11h.01M21 15l-5-5L5 21" />
                             </svg>
                           ) : ref.type === 'comment' ? (
                             <svg className="w-3 h-3 text-yellow-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -568,6 +585,7 @@ export default function GroqPanel({ width }) {
                             <span className="text-[10px] text-gray-600 truncate leading-tight">{ref.label}</span>
                             <span className="text-[9px] text-gray-400 leading-tight">
                               {ref.team ? `${ref.team} · ` : ''}{ref.channel || ''}
+                              {ref.page_number > 0 ? `${ref.channel ? ' · ' : ''}p.${ref.page_number}` : ''}
                             </span>
                           </div>
                         </button>

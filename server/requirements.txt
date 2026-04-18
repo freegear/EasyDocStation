@@ -6,3 +6,5 @@ langchain-community
 langchain-text-splitters
 pyarrow
 docx2txt
+unstructured[pdf]
+pytesseract

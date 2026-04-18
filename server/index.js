@@ -21,6 +21,16 @@ const { initRag } = require('./rag')
 const app = express()
 const PORT = process.env.PORT || 3001
 
+function normalizeAgenticAiConfig(ai = {}) {
+  const language = ['ko', 'ja', 'en', 'zh'].includes(ai?.language) ? ai.language : 'ko'
+  return {
+    num_predict: Number.isFinite(Number(ai?.num_predict)) ? Number(ai.num_predict) : 4096,
+    num_ctx: Number.isFinite(Number(ai?.num_ctx)) ? Number(ai.num_ctx) : 8192,
+    history: Number.isFinite(Number(ai?.history)) ? Number(ai.history) : 6,
+    language,
+  }
+}
+
 // Initialize Cassandra
 initCassandra()
 
@@ -86,8 +96,8 @@ app.get('/api/config/agenticai', (req, res) => {
     const path = require('path')
     const configPath = path.resolve(__dirname, '../config.json')
     const config = JSON.parse(fs.readFileSync(configPath, 'utf8'))
-    const ai = config.agenticai || {}
-    res.json({ num_predict: 4096, num_ctx: 8192, history: 6, language: 'ko', ...ai })
+    const ai = normalizeAgenticAiConfig(config.agenticai || {})
+    res.json(ai)
   } catch (e) {
     res.json({ num_predict: 4096, num_ctx: 8192, history: 6, language: 'ko' })
   }

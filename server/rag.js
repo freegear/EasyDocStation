@@ -44,7 +44,7 @@ async function getDocumentPathsForPost(postId) {
     const cfg         = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'))
     const storageBase = getDatabasePath(cfg, 'ObjectFile Path')
     const result = await db.query(
-      `SELECT id, storage_path, content_type FROM attachments
+      `SELECT id, storage_path, content_type, filename FROM attachments
        WHERE post_id = $1 AND status = 'COMPLETED'
          AND content_type IN (
            'application/pdf',
@@ -56,7 +56,7 @@ async function getDocumentPathsForPost(postId) {
     const pdfs  = []
     const words = []
     for (const r of result.rows) {
-      const item = { id: r.id, path: path.join(storageBase, r.storage_path) }
+      const item = { id: r.id, path: path.join(storageBase, r.storage_path), file_name: r.filename || '' }
       if (r.content_type === 'application/pdf') pdfs.push(item)
       else words.push(item)
     }
@@ -71,6 +71,7 @@ async function getDocumentPathsForPost(postId) {
 function callPythonTrainer(payload) {
   return new Promise((resolve, reject) => {
     const scriptPath = path.resolve(__dirname, 'rag_train.py')
+    const startedAt = Date.now()
     const proc = spawn(getPythonExecutable(), [scriptPath], { timeout: 600000 })
 
     proc.stdin.write(JSON.stringify(payload))
@@ -79,9 +80,13 @@ function callPythonTrainer(payload) {
     proc.stdout.on('data', d => process.stdout.write(d))
     proc.stderr.on('data', d => process.stderr.write(d))
 
-    proc.on('close', code => {
-      if (code === 0) resolve()
-      else reject(new Error(`rag_train.py 종료 코드: ${code}`))
+    proc.on('close', (code, signal) => {
+      const elapsedSec = ((Date.now() - startedAt) / 1000).toFixed(1)
+      if (code === 0) {
+        resolve()
+      } else {
+        reject(new Error(`rag_train.py 종료 코드: ${code} (signal=${signal || 'none'}, ${elapsedSec}s)`))
+      }
     })
     proc.on('error', reject)
   })
@@ -115,6 +120,7 @@ async function runTraining(posts) {
   const payload = {
     config: {
       lancedb_path:  getDatabasePath(cfg, 'lancedb Database Path'),
+      file_training_path: path.resolve(__dirname, '../Database/ObjectFile/FileTrainingData'),
       chunk_size:    ragCfg.chunk_size    ?? 800,
       chunk_overlap: ragCfg.chunk_overlap ?? 100,
       vector_size:   ragCfg.vectorSize    ?? 1024,
@@ -214,7 +220,7 @@ async function getDocumentPathsByIds(attachmentIds) {
     const storageBase = getDatabasePath(cfg, 'ObjectFile Path')
     const placeholders = attachmentIds.map((_, i) => `$${i + 1}`).join(', ')
     const result = await db.query(
-      `SELECT id, storage_path, content_type FROM attachments
+      `SELECT id, storage_path, content_type, filename FROM attachments
        WHERE id IN (${placeholders}) AND status = 'COMPLETED'
          AND content_type IN (
            'application/pdf',
@@ -225,7 +231,7 @@ async function getDocumentPathsByIds(attachmentIds) {
     )
     const pdfs = [], words = []
     for (const r of result.rows) {
-      const item = { id: r.id, path: path.join(storageBase, r.storage_path) }
+      const item = { id: r.id, path: path.join(storageBase, r.storage_path), file_name: r.filename || '' }
       if (r.content_type === 'application/pdf') pdfs.push(item)
       else words.push(item)
     }
@@ -264,6 +270,7 @@ async function runCommentTraining(comments) {
   const payload = {
     config: {
       lancedb_path:  getDatabasePath(cfg, 'lancedb Database Path'),
+      file_training_path: path.resolve(__dirname, '../Database/ObjectFile/FileTrainingData'),
       chunk_size:    ragCfg.chunk_size    ?? 800,
       chunk_overlap: ragCfg.chunk_overlap ?? 100,
       vector_size:   ragCfg.vectorSize    ?? 1024,
@@ -272,9 +279,17 @@ async function runCommentTraining(comments) {
     comments: commentsWithDocs,
   }
 
+  const startedAt = Date.now()
   console.log(`[RAG] 댓글 학습 시작 — ${comments.length}개 댓글`)
-  await callPythonTrainer(payload)
-  console.log('[RAG] 댓글 학습 완료')
+  try {
+    await callPythonTrainer(payload)
+    const elapsedSec = ((Date.now() - startedAt) / 1000).toFixed(1)
+    console.log(`[RAG] 댓글 학습 완료 — ${comments.length}개 댓글 (${elapsedSec}s)`)
+  } catch (e) {
+    const elapsedSec = ((Date.now() - startedAt) / 1000).toFixed(1)
+    console.error(`[RAG] 댓글 학습 실패 — ${comments.length}개 댓글 (${elapsedSec}s): ${e.message}`)
+    throw e
+  }
 }
 
 // ─── 댓글 1건 즉시 임베딩 (업로드 시 항상 실행) ─────────────

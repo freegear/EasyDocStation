@@ -3,6 +3,8 @@ import { useChat } from '../contexts/ChatContext'
 import { useAuth } from '../contexts/AuthContext'
 import { apiFetch, getToken } from '../lib/api'
 import config from '../config.json'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 import ChannelManageModal from './ChannelManageModal'
 import ConfirmDialog from './ConfirmDialog'
 import { useT } from '../i18n/useT'
@@ -883,48 +885,56 @@ function TemplateRenderer({ html, postId, onContentChange, onSave }) {
 // ─── Content renderer ─────────────────────────────────────────
 
 function ContentRenderer({ text = '' }) {
-  const lines = (text || '').split('\n')
+  const normalized = normalizeMarkdownCodeFence(text || '')
   return (
-    <div className="space-y-1.5">
-      {lines.map((line, i) => {
-        if (line.startsWith('## ')) return <h2 key={i} className="text-gray-900 font-bold text-base mt-4 mb-1 first:mt-0">{line.slice(3)}</h2>
-        if (line.startsWith('### ')) return <h3 key={i} className="text-gray-900 font-semibold text-sm mt-3 mb-1">{line.slice(4)}</h3>
-        if (line.startsWith('- [ ] ')) return (
-          <div key={i} className="flex items-center gap-2 text-gray-700 text-sm">
-            <input type="checkbox" disabled className="rounded" />
-            <span>{line.slice(6)}</span>
-          </div>
-        )
-        if (line.startsWith('- ')) return <li key={i} className="text-gray-700 text-sm ml-4 list-disc">{renderInline(line.slice(2))}</li>
-        if (/^\d+\./.test(line)) return <li key={i} className="text-gray-700 text-sm ml-4 list-decimal">{renderInline(line.replace(/^\d+\.\s*/, ''))}</li>
-        if (line.startsWith('```')) return null
-        if (line.startsWith('|')) return <TableRow key={i} line={line} />
-        if (line.startsWith('---')) return <hr key={i} className="border-gray-200 my-2" />
-        if (!line.trim()) return <div key={i} className="h-1.5" />
-        return <p key={i} className="text-gray-700 text-sm leading-relaxed">{renderInline(line)}</p>
-      })}
+    <div className="text-gray-700 text-sm leading-relaxed break-words">
+      <ReactMarkdown
+        remarkPlugins={[remarkGfm]}
+        components={{
+          p: ({ children }) => <p className="my-1.5 text-gray-700 text-sm leading-relaxed">{children}</p>,
+          h1: ({ children }) => <h1 className="mt-4 mb-2 text-gray-900 font-bold text-lg">{children}</h1>,
+          h2: ({ children }) => <h2 className="mt-4 mb-2 text-gray-900 font-bold text-base">{children}</h2>,
+          h3: ({ children }) => <h3 className="mt-3 mb-1.5 text-gray-900 font-semibold text-sm">{children}</h3>,
+          ul: ({ children }) => <ul className="list-disc pl-5 my-1.5 space-y-1">{children}</ul>,
+          ol: ({ children }) => <ol className="list-decimal pl-5 my-1.5 space-y-1">{children}</ol>,
+          li: ({ children }) => <li className="text-gray-700 text-sm">{children}</li>,
+          hr: () => <hr className="border-gray-200 my-3" />,
+          table: ({ children }) => (
+            <div className="overflow-x-auto my-2">
+              <table className="min-w-full border border-gray-200 rounded-lg overflow-hidden text-xs">{children}</table>
+            </div>
+          ),
+          thead: ({ children }) => <thead className="bg-gray-100 text-gray-900">{children}</thead>,
+          tbody: ({ children }) => <tbody>{children}</tbody>,
+          tr: ({ children }) => <tr className="border-b border-gray-200">{children}</tr>,
+          th: ({ children }) => <th className="px-3 py-2 text-left font-semibold">{children}</th>,
+          td: ({ children }) => <td className="px-3 py-2 text-gray-700">{children}</td>,
+          code: ({ inline, children }) => inline
+            ? <code className="bg-gray-200 text-indigo-600 px-1 rounded text-xs font-mono">{children}</code>
+            : (
+              <pre className="bg-gray-900 text-gray-100 rounded-xl p-3 my-2 overflow-x-auto border border-gray-700">
+                <code className="font-mono text-xs leading-relaxed">{children}</code>
+              </pre>
+            ),
+        }}
+      >
+        {normalized}
+      </ReactMarkdown>
     </div>
   )
 }
 
-function renderInline(text) {
-  return text.split(/(\*\*[^*]+\*\*|`[^`]+`)/).map((part, i) => {
-    if (part.startsWith('**') && part.endsWith('**'))
-      return <strong key={i} className="text-gray-900 font-semibold">{part.slice(2, -2)}</strong>
-    if (part.startsWith('`') && part.endsWith('`'))
-      return <code key={i} className="bg-gray-200 text-indigo-600 px-1 rounded text-xs font-mono">{part.slice(1, -1)}</code>
-    return part
-  })
-}
-
-function TableRow({ line }) {
-  if (line.replace(/\|/g, '').replace(/-/g, '').trim() === '') return null
-  const cells = line.split('|').filter((_, i, a) => i > 0 && i < a.length - 1).map(c => c.trim())
-  return (
-    <tr className="border-b border-gray-100">
-      {cells.map((c, i) => <td key={i} className="px-3 py-1.5 text-gray-600 text-xs">{c}</td>)}
-    </tr>
-  )
+function normalizeMarkdownCodeFence(text) {
+  // Support triple single-quote fence as requested:
+  // '''js ... '''  -> ```js ... ```
+  const lines = (text || '').split('\n')
+  return lines.map((line) => {
+    const trimmed = line.trim()
+    if (trimmed.startsWith("'''")) {
+      return line.replace("'''", '```')
+    }
+    return line
+  }).join('\n')
 }
 
 // ─── Compose bar with file attach ────────────────────────────

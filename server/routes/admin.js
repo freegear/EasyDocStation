@@ -175,6 +175,16 @@ function normalizeSnsConfig(sns = {}) {
   }
 }
 
+function normalizeAgenticAiConfig(ai = {}) {
+  const language = ['ko', 'ja', 'en', 'zh'].includes(ai?.language) ? ai.language : 'ko'
+  return {
+    num_predict: Number.isFinite(Number(ai?.num_predict)) ? Number(ai.num_predict) : 4096,
+    num_ctx: Number.isFinite(Number(ai?.num_ctx)) ? Number(ai.num_ctx) : 8192,
+    history: Number.isFinite(Number(ai?.history)) ? Number(ai.history) : 6,
+    language,
+  }
+}
+
 function getDatabasePathConfig(config = {}) {
   return {
     easyDocStationFolder: resolveAppBasePath(config),
@@ -262,7 +272,7 @@ router.get('/stats', async (req, res) => {
       pathConfig: getDatabasePathConfig(config),
       display: buildDisplayConfig(config),
       rag: config.rag || { trainingType: 'manual', dailyTime: '02:00', vectorSize: 1024 },
-      agenticai: { num_predict: 4096, num_ctx: 8192, history: 6, language: 'ko', ...(config.agenticai || {}) },
+      agenticai: normalizeAgenticAiConfig(config.agenticai || {}),
       maxAttachmentFileSize: config.MaxAttachmentFileSize ?? 100,
       DirectMessage: normalizeDirectMessageConfig(config.DirectMessage || {}),
       company: config.company || {},
@@ -304,7 +314,7 @@ router.get('/stats', async (req, res) => {
         pathConfig: getDatabasePathConfig(config),
         display: buildDisplayConfig(config),
         rag: config.rag || { trainingType: 'manual', dailyTime: '02:00', vectorSize: 1024 },
-        agenticai: { num_predict: 4096, num_ctx: 8192, history: 6, language: 'ko', ...(config.agenticai || {}) },
+        agenticai: normalizeAgenticAiConfig(config.agenticai || {}),
         maxAttachmentFileSize: config.MaxAttachmentFileSize ?? 100,
         DirectMessage: normalizeDirectMessageConfig(config.DirectMessage || {}),
         company: config.company || {},
@@ -326,6 +336,9 @@ router.put('/config', requireSiteAdmin, async (req, res) => {
     const newConfig = {
       ...currentConfig,
       ...req.body
+    }
+    if (Object.prototype.hasOwnProperty.call(newConfig, 'agenticai')) {
+      newConfig.agenticai = normalizeAgenticAiConfig(newConfig.agenticai || {})
     }
     
     fs.writeFileSync(configPath, JSON.stringify(newConfig, null, 2), 'utf8')
