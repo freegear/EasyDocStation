@@ -8,6 +8,7 @@ const { execFile } = require('child_process')
 const bcrypt = require('bcryptjs')
 const { client: cassandraClient } = require('../cassandra')
 const { runManualTraining, reloadRagConfig, getState: getRagState } = require('../rag')
+const ragRouter = require('./rag')
 const { getDatabasePath, resolveAppBasePath } = require('../databasePaths')
 const { getPostgresDatabaseName } = require('../runtimeDbConfig')
 const { getPythonExecutable } = require('../pythonRuntime')
@@ -21,84 +22,108 @@ router.post('/reset', async (req, res) => {
     return res.status(400).json({ error: '초기화 문구가 정확하지 않습니다.' })
   }
 
+  const deleteFolderContents = (folder) => {
+    if (!fs.existsSync(folder)) return
+    fs.readdirSync(folder).forEach((file) => {
+      const curPath = path.join(folder, file)
+      if (fs.lstatSync(curPath).isDirectory()) {
+        deleteFolderContents(curPath)
+        try { fs.rmdirSync(curPath) } catch (_) {}
+      } else {
+        try { fs.unlinkSync(curPath) } catch (_) {}
+      }
+    })
+  }
+
   try {
-    // 1. PostgreSQL Clean
-    // Tables order to avoid FK issues: 
-    // comments, attachments, posts, team_members, channel_members, channels, teams, users (except siteadmin)
+    // ── 1. PostgreSQL 전체 초기화 ──────────────────────────────
     await pool.query('BEGIN')
-    
-    // Clear transactional data
+
+    // 15.3.5 Direct Message 삭제
+    await pool.query('DELETE FROM dm_messages')
+    await pool.query('DELETE FROM dm_conversations')
+
+    // 15.3.6 캘린더 이벤트 삭제
+    await pool.query('DELETE FROM calendar_invitations')
+    await pool.query('DELETE FROM calendar_events')
+
+    // 게시글/댓글/첨부 삭제
     await pool.query('DELETE FROM comments')
     await pool.query('DELETE FROM attachments')
     await pool.query('DELETE FROM posts')
-    await pool.query('DELETE FROM team_members')
+
+    // 기타 사용자 연결 테이블
+    await pool.query('DELETE FROM channel_last_read')
+    await pool.query('DELETE FROM login_history')
+    await pool.query('DELETE FROM expense_doc_counter')
+    await pool.query('DELETE FROM trip_doc_counter')
+
+    // 15.3.3 채널 삭제
+    await pool.query('DELETE FROM channel_admins')
     await pool.query('DELETE FROM channel_members')
     await pool.query('DELETE FROM channels')
+
+    // 15.3.2 팀 삭제
+    await pool.query('DELETE FROM team_admins')
+    await pool.query('DELETE FROM team_members')
     await pool.query('DELETE FROM teams')
-    
-    // Manage siteadmin user
-    const adminPasswordHash = await bcrypt.hash('siteadmin1234', 10)
-    
-    // Delete all users except siteadmin
-    await pool.query("DELETE FROM users WHERE username != 'siteadmin'")
-    
-    // Upsert siteadmin
-    const siteAdminCheck = await pool.query("SELECT id FROM users WHERE username = 'siteadmin'")
-    if (siteAdminCheck.rowCount > 0) {
+
+    // 15.3.1 사용자 삭제 — kevin@easydocstation.com 제외
+    await pool.query("DELETE FROM users WHERE email != 'kevin@easydocstation.com'")
+
+    // 관리자 계정 비밀번호 초기화 (암호: gundam)
+    const adminPasswordHash = await bcrypt.hash('gundam', 10)
+    const adminCheck = await pool.query("SELECT id FROM users WHERE email = 'kevin@easydocstation.com'")
+    if (adminCheck.rowCount > 0) {
       await pool.query(
-        "UPDATE users SET password_hash = $1, role = 'site_admin', is_active = true WHERE username = 'siteadmin'",
+        "UPDATE users SET password_hash = $1, role = 'site_admin', is_active = true WHERE email = 'kevin@easydocstation.com'",
         [adminPasswordHash]
       )
     } else {
       await pool.query(
         "INSERT INTO users (username, name, email, password_hash, role, is_active) VALUES ($1, $2, $3, $4, $5, $6)",
-        ['siteadmin', 'Site Admin', 'admin@example.com', adminPasswordHash, 'site_admin', true]
+        ['kevin', 'Site Admin', 'kevin@easydocstation.com', adminPasswordHash, 'site_admin', true]
       )
     }
-    
+
     await pool.query('COMMIT')
 
-    // 2. Cassandra Clean
+    // ── 2. Cassandra 전체 초기화 ───────────────────────────────
     const { isConnected: isCassandraConnected } = require('../cassandra')
     if (isCassandraConnected()) {
-      try {
-        await cassandraClient.execute('TRUNCATE posts')
-        await cassandraClient.execute('TRUNCATE comments')
-      } catch (e) {
-        console.error('Cassandra clear error:', e.message)
+      const cassandraTables = [
+        'posts', 'comments', 'attachments',
+        'calendar_events', 'calendar_invitations',
+        'expense_posts', 'expense_attachments',
+        'posts_by_id', 'comments_by_id',
+      ]
+      for (const tbl of cassandraTables) {
+        try { await cassandraClient.execute(`TRUNCATE ${tbl}`) }
+        catch (e) { console.error(`[Reset] Cassandra TRUNCATE ${tbl}:`, e.message) }
       }
     }
 
-    // 3. Storage & DB Folders Clean
+    // ── 3. 파일 스토리지 초기화 ────────────────────────────────
     const configPath = path.resolve(__dirname, '../../config.json')
     const config = JSON.parse(fs.readFileSync(configPath, 'utf8'))
-    
-    const deleteFolderContents = (folder) => {
-      if (fs.existsSync(folder)) {
-        fs.readdirSync(folder).forEach((file) => {
-          const curPath = path.join(folder, file)
-          if (fs.lstatSync(curPath).isDirectory()) {
-            deleteFolderContents(curPath)
-            fs.rmdirSync(curPath)
-          } else {
-            fs.unlinkSync(curPath)
-          }
-        })
-      }
-    }
-    
-    // Clear ObjectFile
-    const uploadPath = getDatabasePath(config, 'ObjectFile Path')
-    deleteFolderContents(uploadPath)
-    
-    // Clear LanceDB
-    const lancedbPath = getDatabasePath(config, 'lancedb Database Path')
-    deleteFolderContents(lancedbPath)
+
+    // 15.3.4 ObjectFile (첨부파일 전체)
+    deleteFolderContents(getDatabasePath(config, 'ObjectFile Path'))
+
+    // 15.3.4 LanceDB (RAG 벡터 DB)
+    deleteFolderContents(getDatabasePath(config, 'lancedb Database Path'))
+
+    // RAG 학습 분리 데이터 (FileTrainingData)
+    const fileTrainingPath = path.resolve(__dirname, '../../Database/ObjectFile/FileTrainingData')
+    deleteFolderContents(fileTrainingPath)
+
+    // ── 4. RAG 서버 재시작 — 메모리 캐시 및 DB 연결 초기화 ───────
+    try { await ragRouter.restartRagServer() } catch (e) { console.error('[Reset] RAG 서버 재시작 오류:', e.message) }
 
     res.json({ success: true, message: '사이트가 초기화되었습니다. 다시 로그인해 주세요.' })
   } catch (err) {
-    await pool.query('ROLLBACK')
-    console.error('Reset Error:', err)
+    try { await pool.query('ROLLBACK') } catch (_) {}
+    console.error('[Reset Error]', err)
     res.status(500).json({ error: '초기화 작업 중 오류가 발생했습니다: ' + err.message })
   }
 })

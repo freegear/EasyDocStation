@@ -624,6 +624,8 @@ export default function DirectMessageView({ conversation, onClose, onConversatio
   const [showRename, setShowRename] = useState(false)
   const [showAddParticipant, setShowAddParticipant] = useState(false)
   const [removingParticipant, setRemovingParticipant] = useState(null) // participant object
+  const [isDragging, setIsDragging] = useState(false)
+  const dragCounterRef = useRef(0)
   const messagesEndRef = useRef(null)
   const fileInputRef = useRef(null)
 
@@ -836,6 +838,38 @@ export default function DirectMessageView({ conversation, onClose, onConversatio
     setPendingFiles(prev => prev.filter((_, idx) => idx !== i))
   }
 
+  function handleDragEnter(e) {
+    e.preventDefault()
+    e.stopPropagation()
+    dragCounterRef.current += 1
+    if (e.dataTransfer.types.includes('Files')) setIsDragging(true)
+  }
+
+  function handleDragLeave(e) {
+    e.preventDefault()
+    e.stopPropagation()
+    dragCounterRef.current -= 1
+    if (dragCounterRef.current === 0) setIsDragging(false)
+  }
+
+  function handleDragOver(e) {
+    e.preventDefault()
+    e.stopPropagation()
+  }
+
+  function handleDrop(e) {
+    e.preventDefault()
+    e.stopPropagation()
+    dragCounterRef.current = 0
+    setIsDragging(false)
+    const files = Array.from(e.dataTransfer.files || [])
+    if (files.length === 0) return
+    setPendingFiles(prev => {
+      const combined = [...prev, ...files.map(f => ({ file: f, name: f.name }))]
+      return combined.slice(0, 10)
+    })
+  }
+
   const participants = conversation?.participant_details || []
   const participantIds = conversation?.participants || []
   const participantNameById = Object.fromEntries(
@@ -969,7 +1003,18 @@ export default function DirectMessageView({ conversation, onClose, onConversatio
       </div>
 
       {/* Input area */}
-      <div className="flex-shrink-0 bg-white border-t border-gray-100 px-4 py-3">
+      <div
+        className={`flex-shrink-0 bg-white border-t border-gray-100 px-4 py-3 relative transition-colors ${isDragging ? 'bg-indigo-50 border-indigo-300' : ''}`}
+        onDragEnter={handleDragEnter}
+        onDragLeave={handleDragLeave}
+        onDragOver={handleDragOver}
+        onDrop={handleDrop}
+      >
+        {isDragging && (
+          <div className="absolute inset-0 flex items-center justify-center rounded-t-xl border-2 border-dashed border-indigo-400 bg-indigo-50/90 z-10 pointer-events-none">
+            <p className="text-indigo-500 font-semibold text-sm">파일을 놓으면 첨부됩니다</p>
+          </div>
+        )}
         {pendingFiles.length > 0 && (
           <div className="flex flex-wrap gap-1.5 mb-2">
             {pendingFiles.map((f, i) => (

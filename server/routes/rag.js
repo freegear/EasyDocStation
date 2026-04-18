@@ -327,7 +327,7 @@ function startRagServer() {
           return
         }
       }
-      if (code !== null) {  // 의도적 종료가 아닐 때만 재시작
+      if (!ragServerDisabled) {  // 비활성화(torch 미설치 등)가 아닌 한 항상 재시작 (SIGTERM 포함)
         console.log(`[RAG Server] 프로세스 종료 (code=${code}), 5초 후 재시작...`)
         setTimeout(startRagServer, 5000)
       }
@@ -1432,4 +1432,24 @@ router.post('/datasets/train', requireAuth, async (req, res) => {
   }
 })
 
+// RAG 서버 프로세스를 강제 종료하고 재시작 (리셋 후 캐시 초기화용)
+// close 핸들러의 자동 재시작(5초)에 맡기지 않고 즉시 재시작한다.
+function restartRagServer() {
+  return new Promise((resolve) => {
+    if (ragServerProc) {
+      ragServerProc.once('close', () => {
+        ragServerProc = null
+        ragServerReady = false
+        startRagServer()
+        resolve()
+      })
+      ragServerProc.kill('SIGTERM')
+    } else {
+      startRagServer()
+      resolve()
+    }
+  })
+}
+
 module.exports = router
+module.exports.restartRagServer = restartRagServer
