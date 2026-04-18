@@ -1,7 +1,7 @@
 torch
 sentence-transformers
 lancedb
-pypdf
+pdfplumber
 langchain-community
 langchain-text-splitters
 pyarrow

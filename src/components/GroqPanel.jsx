@@ -69,6 +69,14 @@ function isCommandQuery(text = '') {
   return /(명령어|커맨드|cli|command|snmp|show\s+\S+|config|configure)/i.test(String(text || ''))
 }
 
+function isTemporalQuery(text = '') {
+  return /(언제|일시|시간|날짜|시각|기한|기간|몇\s*시|작업\s*희망|예정\s*일시)/i.test(String(text || ''))
+}
+
+function isEnumerationQuery(text = '') {
+  return /(포인트|항목|목록|가지|종류|설명|내용|특징|요소|이유|방법|단계|순서|뭐|무엇|어떤|어떻게)/i.test(String(text || ''))
+}
+
 function extractSourceHints(text = '') {
   const src = String(text || '')
   const matches = src.match(/[A-Za-z0-9가-힣_.()\-]+\.(pdf|docx|doc|pptx|xlsx|csv|txt|md)/gi) || []
@@ -263,7 +271,7 @@ export default function GroqPanel({ width }) {
     if (!isTranslation && !base64Data) {
       // ── 1-1. RAG 검색 — LanceDB에서 관련 문서 검색 ──────────
       try {
-        const dynamicLimit = isCommandQuery(text) ? 8 : 3
+        const dynamicLimit = isCommandQuery(text) || isTemporalQuery(text) ? 10 : isEnumerationQuery(text) ? 8 : 5
         const preferredSources = extractSourceHints(text)
         const ragResult = await apiFetch('/rag/search', {
           method: 'POST',

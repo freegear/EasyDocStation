@@ -15,10 +15,30 @@ const RAG_SERVER_PORT = 5001
 const RAG_DATA_DIR = path.resolve(__dirname, '../../Database/RAGTrainingData')
 const RAG_DATA_INDEX_PATH = path.join(RAG_DATA_DIR, 'index.json')
 const RAG_DATA_TMP_DIR = path.join(RAG_DATA_DIR, 'tmp')
+const FILE_TRAINING_BASE_PATH = path.resolve(__dirname, '../../Database/ObjectFile/FileTrainingData')
 
 function readConfig() {
   try { return JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8')) }
   catch (e) { return {} }
+}
+
+function normalizeTrainerTimeoutMs(ragCfg = {}) {
+  const sec = Number(ragCfg.trainer_timeout_sec)
+  const safeSec = Number.isFinite(sec) && sec > 0 ? sec : 1800
+  return Math.max(60, Math.floor(safeSec)) * 1000
+}
+
+function buildTrainerConfig(cfg, ragCfg) {
+  return {
+    lancedb_path: getDatabasePath(cfg, 'lancedb Database Path'),
+    file_training_path: path.resolve(__dirname, '../../Database/ObjectFile/FileTrainingData'),
+    chunk_size: ragCfg.chunk_size ?? 800,
+    chunk_overlap: ragCfg.chunk_overlap ?? 100,
+    vector_size: ragCfg.vectorSize ?? 1024,
+    trainer_timeout_sec: ragCfg.trainer_timeout_sec ?? 1800,
+    pdf_parse_strategy: ragCfg.pdf_parse_strategy ?? 'fast',
+    pdf_parse_timeout_sec: ragCfg.pdf_parse_timeout_sec ?? 180,
+  }
 }
 
 function ensureRagDatasetStore() {
@@ -136,7 +156,8 @@ const ragDatasetUpload = multer({
 function callPythonTrainer(payload) {
   return new Promise((resolve, reject) => {
     const scriptPath = path.resolve(__dirname, '../rag_train.py')
-    const proc = spawn(getPythonExecutable(), [scriptPath], { timeout: 600000 })
+    const timeoutMs = normalizeTrainerTimeoutMs(payload?.config || {})
+    const proc = spawn(getPythonExecutable(), [scriptPath], { timeout: timeoutMs })
 
     proc.stdin.write(JSON.stringify(payload))
     proc.stdin.end()
@@ -217,13 +238,7 @@ async function buildTrainerPostFromDataset(item) {
 
   return {
     payload: {
-      config: {
-        lancedb_path: getDatabasePath(cfg, 'lancedb Database Path'),
-        file_training_path: path.resolve(__dirname, '../../Database/ObjectFile/FileTrainingData'),
-        chunk_size: ragCfg.chunk_size ?? 800,
-        chunk_overlap: ragCfg.chunk_overlap ?? 100,
-        vector_size: ragCfg.vectorSize ?? 1024,
-      },
+      config: buildTrainerConfig(cfg, ragCfg),
       posts: [post],
       comments: [],
     }
@@ -236,51 +251,101 @@ let ragServerProc  = null
 let ragServerDisabled = false
 let ragServerDisableReason = ''
 
+function probeRagServerHealth(timeoutMs = 700) {
+  return new Promise(resolve => {
+    const req = http.request({
+      hostname: '127.0.0.1',
+      port: RAG_SERVER_PORT,
+      path: '/',
+      method: 'GET',
+      timeout: timeoutMs,
+    }, res => {
+      res.resume()
+      resolve(res.statusCode === 200)
+    })
+    req.on('error', () => resolve(false))
+    req.on('timeout', () => {
+      req.destroy()
+      resolve(false)
+    })
+    req.end()
+  })
+}
+
 function startRagServer() {
   if (ragServerDisabled) return
-  const script = path.resolve(__dirname, '../rag_server.py')
-  let fatalImportError = false
-  ragServerProc = spawn(getPythonExecutable(), [script, String(RAG_SERVER_PORT)], {
-    stdio: ['ignore', 'pipe', 'pipe']
-  })
-  ragServerProc.stdout.on('data', d => {
-    const msg = d.toString()
-    process.stdout.write(`[RAG Server] ${msg}`)
-    if (msg.includes('시작됨')) ragServerReady = true
-  })
-  ragServerProc.stderr.on('data', d => {
-    const msg = d.toString()
-    // 모델 초기화 과정의 정상 stderr 메시지는 억제
-    const IGNORE_PATTERNS = [
-      'huggingface', 'tokenizer', 'Batches',
-      'HF Hub', 'HF_TOKEN', 'unauthenticated',   // HF Hub 인증 경고 (정상)
-      'rate limits', 'faster downloads',           // HF Hub 속도 안내 (정상)
-      'Loading weights', 'FutureWarning',          // 모델 로드 경고 (정상)
-      'UserWarning', 'DeprecationWarning',         // Python 라이브러리 경고 (정상)
-      'warnings.warn',
-    ]
-    const isNoise = IGNORE_PATTERNS.some(p => msg.includes(p))
-    if (msg.includes("ModuleNotFoundError: No module named 'torch'")) {
-      fatalImportError = true
-      ragServerDisabled = true
-      ragServerDisableReason = "python module 'torch' is missing"
-    }
-    if (!isNoise) {
-      process.stderr.write(`[RAG Server ERR] ${msg}`)
-    }
-  })
-  ragServerProc.on('close', code => {
-    ragServerReady = false
-    ragServerProc = null
-    if (fatalImportError) {
-      console.warn(`[RAG Server] 비활성화됨: ${ragServerDisableReason}.`)
-      return
-    }
-    if (code !== null) {  // 의도적 종료가 아닐 때만 재시작
-      console.log(`[RAG Server] 프로세스 종료 (code=${code}), 5초 후 재시작...`)
-      setTimeout(startRagServer, 5000)
-    }
-  })
+  if (ragServerProc) return
+
+  const spawnNewRagServer = () => {
+    const script = path.resolve(__dirname, '../rag_server.py')
+    let fatalImportError = false
+    let addressInUseError = false
+    ragServerProc = spawn(getPythonExecutable(), [script, String(RAG_SERVER_PORT)], {
+      stdio: ['ignore', 'pipe', 'pipe']
+    })
+    ragServerProc.stdout.on('data', d => {
+      const msg = d.toString()
+      process.stdout.write(`[RAG Server] ${msg}`)
+      if (msg.includes('시작됨')) ragServerReady = true
+    })
+    ragServerProc.stderr.on('data', d => {
+      const msg = d.toString()
+      // 모델 초기화 과정의 정상 stderr 메시지는 억제
+      const IGNORE_PATTERNS = [
+        'huggingface', 'tokenizer', 'Batches',
+        'HF Hub', 'HF_TOKEN', 'unauthenticated',   // HF Hub 인증 경고 (정상)
+        'rate limits', 'faster downloads',           // HF Hub 속도 안내 (정상)
+        'Loading weights', 'FutureWarning',          // 모델 로드 경고 (정상)
+        'UserWarning', 'DeprecationWarning',         // Python 라이브러리 경고 (정상)
+        'warnings.warn',
+      ]
+      const isNoise = IGNORE_PATTERNS.some(p => msg.includes(p))
+      if (msg.includes("ModuleNotFoundError: No module named 'torch'")) {
+        fatalImportError = true
+        ragServerDisabled = true
+        ragServerDisableReason = "python module 'torch' is missing"
+      }
+      if (msg.includes('Address already in use') || msg.includes('Errno 48')) {
+        addressInUseError = true
+      }
+      if (!isNoise) {
+        process.stderr.write(`[RAG Server ERR] ${msg}`)
+      }
+    })
+    ragServerProc.on('close', async code => {
+      ragServerReady = false
+      ragServerProc = null
+      if (fatalImportError) {
+        console.warn(`[RAG Server] 비활성화됨: ${ragServerDisableReason}.`)
+        return
+      }
+      if (addressInUseError) {
+        const alive = await probeRagServerHealth(1000)
+        if (alive) {
+          ragServerReady = true
+          console.log('[RAG Server] 포트 사용 중인 기존 서버를 재사용합니다.')
+          return
+        }
+      }
+      if (code !== null) {  // 의도적 종료가 아닐 때만 재시작
+        console.log(`[RAG Server] 프로세스 종료 (code=${code}), 5초 후 재시작...`)
+        setTimeout(startRagServer, 5000)
+      }
+    })
+  }
+
+  // 이미 다른 프로세스가 RAG 서버(5001)를 점유하고 정상 응답하면 재기동하지 않는다.
+  probeRagServerHealth(700)
+    .then(ok => {
+      if (ok) {
+        ragServerReady = true
+        return
+      }
+      spawnNewRagServer()
+    })
+    .catch(() => {
+      spawnNewRagServer()
+    })
 }
 
 startRagServer()
@@ -314,14 +379,21 @@ function callRagServer(payload) {
   })
 }
 
-function waitForRagServerReady(timeoutMs = 1200) {
+function waitForRagServerReady(timeoutMs = 7000) {
   if (ragServerReady) return Promise.resolve(true)
   if (ragServerDisabled) return Promise.resolve(false)
 
   const startedAt = Date.now()
   return new Promise(resolve => {
-    const timer = setInterval(() => {
+    const timer = setInterval(async () => {
       if (ragServerReady) {
+        clearInterval(timer)
+        resolve(true)
+        return
+      }
+      const alive = await probeRagServerHealth(300)
+      if (alive) {
+        ragServerReady = true
         clearInterval(timer)
         resolve(true)
         return
@@ -336,7 +408,7 @@ function waitForRagServerReady(timeoutMs = 1200) {
 
 async function callPythonSearch(payload) {
   if (ragServerDisabled) return []
-  const ready = ragServerReady ? true : await waitForRagServerReady(1200)
+  const ready = ragServerReady ? true : await waitForRagServerReady(7000)
   if (!ready) return []
 
   try {
@@ -354,6 +426,10 @@ function isAmountQuery(query = '') {
 
 function isCommandQuery(query = '') {
   return /(명령어|커맨드|cli|command|설정\s*명령|show\s+\S+|snmp|config|configure|실행\s*명령)/i.test(String(query || ''))
+}
+
+function isTemporalQuery(query = '') {
+  return /(언제|일시|시간|날짜|시각|기한|기간|몇\s*시|작업\s*희망|예정\s*일시)/i.test(String(query || ''))
 }
 
 function asNum(value) {
@@ -395,6 +471,14 @@ function hasCommandSignal(doc) {
   return (
     /(snmp-server|show\s+snmp|show\s+\S+|no\s+snmp-server|community|trap-source|enable\s+traps)/i.test(text) ||
     /(명령어|CLI|설정 예제)/i.test(text)
+  )
+}
+
+function hasTemporalSignal(doc) {
+  const text = String(doc?.text || '')
+  return (
+    /(작업\s*희망\s*일시|예정\s*일시|시행일자|일시)/i.test(text) ||
+    /(\d{4}\s*년\s*\d{1,2}\s*월\s*\d{1,2}\s*일|\d{1,2}:\d{2}\s*~\s*\d{1,2}:\d{2})/.test(text)
   )
 }
 
@@ -453,6 +537,53 @@ function commandDocBonus(doc) {
   return score
 }
 
+function temporalDocBonus(doc) {
+  const text = String(doc?.text || '')
+  let score = 0
+  if (/(작업\s*희망\s*일시|예정\s*일시)/i.test(text)) score += 95
+  if (/(\d{4}\s*년\s*\d{1,2}\s*월\s*\d{1,2}\s*일|\d{1,2}:\d{2}\s*~\s*\d{1,2}:\d{2})/.test(text)) score += 80
+  if (/(시행일자|일시|시간)/i.test(text)) score += 25
+  return score
+}
+
+function getElementIndex(meta = {}) {
+  const elementId = String(meta.element_id || '')
+  const byElementId = elementId.match(/-(\d+)$/)
+  if (byElementId) return Number(byElementId[1])
+  const byChunk = Number(meta.chunk_index ?? meta.chunk_id)
+  if (Number.isFinite(byChunk)) return byChunk
+  return null
+}
+
+function expandTemporalNeighbors(selectedResults = [], allRanked = []) {
+  const out = [...selectedResults]
+  const seen = new Set(out.map(buildSearchResultKey))
+
+  for (const item of selectedResults) {
+    const text = String(item?.text || '')
+    if (!/(작업\s*희망\s*일시|예정\s*일시)/i.test(text)) continue
+    const meta = item?.metadata || {}
+    const src = String(meta.source || meta.file_name || '')
+    const page = Number(meta.page_number || 0)
+    const baseIdx = getElementIndex(meta)
+    if (!src || baseIdx == null) continue
+
+    for (const cand of allRanked) {
+      const cMeta = cand?.metadata || {}
+      const cSrc = String(cMeta.source || cMeta.file_name || '')
+      const cPage = Number(cMeta.page_number || 0)
+      if (cSrc !== src || cPage !== page) continue
+      const cIdx = getElementIndex(cMeta)
+      if (cIdx == null || Math.abs(cIdx - baseIdx) !== 1) continue
+      const key = buildSearchResultKey(cand)
+      if (seen.has(key)) continue
+      seen.add(key)
+      out.push(cand)
+    }
+  }
+  return out
+}
+
 function buildSearchResultKey(item = {}) {
   const m = item?.metadata || {}
   const textHead = String(item?.text || '').slice(0, 80)
@@ -479,6 +610,293 @@ function mergeUniqueResults(...arrays) {
       out.push(item)
     }
   }
+  return out
+}
+
+function safeTrainingPathPart(value, fallback) {
+  const raw = String(value || '').trim()
+  const normalized = (raw || fallback || '').normalize('NFC')
+  return normalized
+    .replace(/[\\/]/g, '_')
+    .replace(/\s+/g, '_')
+    .replace(/[^\w\-.()가-힣]+/g, '')
+    .slice(0, 120) || fallback
+}
+
+function buildTrainingTextJsonPath(meta = {}) {
+  const postKey = safeTrainingPathPart(meta.post_id, 'post_unknown')
+  const commentKey = safeTrainingPathPart(meta.comment_id, 'no_comment')
+  const attachKey = safeTrainingPathPart(meta.attachment_id, 'no_attachment')
+  const sourceName = meta.source || meta.file_name || 'source'
+  const sourceKey = safeTrainingPathPart(sourceName, 'source')
+  return path.join(FILE_TRAINING_BASE_PATH, postKey, commentKey, attachKey, sourceKey, 'text.json')
+}
+
+function normalizeNameForPathMatch(value = '') {
+  return String(value || '')
+    .normalize('NFKC')
+    .replace(/\.(pdf|docx?|xlsx?)$/i, '')
+    .replace(/\s+/g, '')
+    .replace(/[_\-()]/g, '')
+    .toLowerCase()
+}
+
+function resolveTrainingTextJsonPath(meta = {}) {
+  const direct = buildTrainingTextJsonPath(meta)
+  if (fs.existsSync(direct)) return direct
+
+  const postKey = safeTrainingPathPart(meta.post_id, 'post_unknown')
+  const commentKey = safeTrainingPathPart(meta.comment_id, 'no_comment')
+  const attachKey = safeTrainingPathPart(meta.attachment_id, 'no_attachment')
+  const baseDir = path.join(FILE_TRAINING_BASE_PATH, postKey, commentKey, attachKey)
+  if (!fs.existsSync(baseDir)) return ''
+
+  const targetNames = [meta.source, meta.file_name]
+    .map(v => normalizeNameForPathMatch(v))
+    .filter(Boolean)
+
+  let dirEntries = []
+  try {
+    dirEntries = fs.readdirSync(baseDir, { withFileTypes: true })
+  } catch (_) {
+    return ''
+  }
+
+  const scoredCandidates = dirEntries
+    .filter(entry => entry.isDirectory())
+    .map(entry => {
+      const dirName = entry.name || ''
+      const dirNorm = normalizeNameForPathMatch(dirName)
+      let score = 0
+      for (const target of targetNames) {
+        if (!target) continue
+        if (dirNorm === target) score = Math.max(score, 100)
+        else if (dirNorm.includes(target) || target.includes(dirNorm)) score = Math.max(score, 70)
+      }
+      return { dirName, score }
+    })
+    .sort((a, b) => b.score - a.score)
+
+  for (const candidate of scoredCandidates) {
+    const jsonPath = path.join(baseDir, candidate.dirName, 'text.json')
+    if (fs.existsSync(jsonPath)) return jsonPath
+  }
+
+  return ''
+}
+
+function parseElementIndex(elementId = '') {
+  const m = String(elementId || '').match(/-(\d+)$/)
+  return m ? Number(m[1]) : null
+}
+
+function buildNeighborResult(base, neighborRecord) {
+  const meta = base?.metadata || {}
+  return {
+    text: String(neighborRecord?.search_content || ''),
+    score: Number(base?.score ?? 0),
+    metadata: {
+      post_id: meta.post_id || '',
+      chunk_id: meta.chunk_id ?? 0,
+      chunk_index: meta.chunk_index ?? meta.chunk_id ?? 0,
+      type: neighborRecord?.type || meta.type || 'text',
+      channel_id: meta.channel_id || '',
+      attachment_id: meta.attachment_id || '',
+      comment_id: meta.comment_id || '',
+      source: neighborRecord?.source || meta.source || '',
+      file_name: neighborRecord?.file_name || meta.file_name || '',
+      page_number: neighborRecord?.page_number ?? meta.page_number ?? 0,
+      element_id: neighborRecord?.element_id || '',
+      original_content: meta.original_content || '',
+      img_path: meta.img_path || '',
+      doc_version: meta.doc_version || '',
+      file_hash: neighborRecord?.file_hash || meta.file_hash || '',
+      amount_total: meta.amount_total || 0,
+      amount_subtotal: meta.amount_subtotal || 0,
+      amount_vat: meta.amount_vat || 0,
+      currency: meta.currency || '',
+      amount_candidates: meta.amount_candidates || '',
+    },
+  }
+}
+
+const trainingTextJsonIndexCache = {
+  scannedAt: 0,
+  files: [],
+}
+
+function listTrainingTextJsonFiles() {
+  const now = Date.now()
+  if (trainingTextJsonIndexCache.files.length > 0 && (now - trainingTextJsonIndexCache.scannedAt) < 15000) {
+    return trainingTextJsonIndexCache.files
+  }
+
+  const out = []
+  if (!fs.existsSync(FILE_TRAINING_BASE_PATH)) return out
+
+  const stack = [FILE_TRAINING_BASE_PATH]
+  while (stack.length > 0) {
+    const dir = stack.pop()
+    let entries = []
+    try {
+      entries = fs.readdirSync(dir, { withFileTypes: true })
+    } catch (_) {
+      continue
+    }
+    for (const entry of entries) {
+      const full = path.join(dir, entry.name)
+      if (entry.isDirectory()) {
+        stack.push(full)
+      } else if (entry.isFile() && entry.name === 'text.json') {
+        out.push(full)
+      }
+    }
+  }
+
+  trainingTextJsonIndexCache.scannedAt = now
+  trainingTextJsonIndexCache.files = out
+  return out
+}
+
+function expandTemporalNeighborsBySourceScan(item, seen) {
+  const out = []
+  const meta = item?.metadata || {}
+  const sourceToken = normalizeNameForPathMatch(meta.source || meta.file_name)
+  if (!sourceToken) return out
+
+  const allJsonFiles = listTrainingTextJsonFiles()
+  if (allJsonFiles.length === 0) return out
+
+  const matchedFiles = allJsonFiles.filter(p => normalizeNameForPathMatch(path.basename(path.dirname(p))).includes(sourceToken))
+  for (const jsonPath of matchedFiles) {
+    try {
+      const records = JSON.parse(fs.readFileSync(jsonPath, 'utf8'))
+      if (!Array.isArray(records)) continue
+      for (let i = 0; i < records.length; i += 1) {
+        const rowText = String(records[i]?.search_content || '')
+        if (!/(작업\s*희망\s*일시|예정\s*일시)/i.test(rowText)) continue
+        for (const nearIndex of [i - 1, i + 1]) {
+          if (nearIndex < 0 || nearIndex >= records.length) continue
+          const near = records[nearIndex]
+          const nearText = String(near?.search_content || '')
+          if (!/(\d{4}\s*년\s*\d{1,2}\s*월\s*\d{1,2}\s*일|\d{1,2}:\d{2})/.test(nearText)) continue
+          const candidate = buildNeighborResult(item, near)
+          const key = buildSearchResultKey(candidate)
+          if (seen.has(key)) continue
+          seen.add(key)
+          out.push(candidate)
+        }
+      }
+    } catch (_) {}
+  }
+
+  return out
+}
+
+function expandTemporalNeighborsFromTrainingData(results = []) {
+  const out = [...results]
+  const seen = new Set(out.map(buildSearchResultKey))
+
+  for (const item of results) {
+    const text = String(item?.text || '')
+    if (!/(작업\s*희망\s*일시|예정\s*일시)/i.test(text)) continue
+    const meta = item?.metadata || {}
+    const baseIdx = parseElementIndex(meta.element_id)
+
+    const jsonPath = resolveTrainingTextJsonPath(meta)
+    if (!fs.existsSync(jsonPath)) continue
+
+    try {
+      const raw = fs.readFileSync(jsonPath, 'utf8')
+      const records = JSON.parse(raw)
+      if (!Array.isArray(records)) continue
+      const itemTextNorm = String(item?.text || '').trim()
+      const fallbackMatchedIndexes = []
+      if (baseIdx == null && itemTextNorm) {
+        for (let i = 0; i < records.length; i += 1) {
+          const recText = String(records[i]?.search_content || '').trim()
+          if (recText && recText === itemTextNorm) fallbackMatchedIndexes.push(i)
+        }
+      }
+
+      let addedCount = 0
+      for (let i = 0; i < records.length; i += 1) {
+        const rec = records[i]
+        const idx = parseElementIndex(rec?.element_id)
+        if (baseIdx != null) {
+          if (idx == null || Math.abs(idx - baseIdx) !== 1) continue
+        } else {
+          // element_id 없는 구버전 청크 대비: 라벨 텍스트가 나온 위치 기준 인접 레코드 사용
+          if (fallbackMatchedIndexes.length === 0) continue
+          const nearMatched = fallbackMatchedIndexes.some(m => Math.abs(i - m) === 1)
+          if (!nearMatched) continue
+        }
+        const candidate = buildNeighborResult(item, rec)
+        const key = buildSearchResultKey(candidate)
+        if (seen.has(key)) continue
+        seen.add(key)
+        out.push(candidate)
+        addedCount += 1
+      }
+
+      if (addedCount === 0) {
+        const byScan = expandTemporalNeighborsBySourceScan(item, seen)
+        out.push(...byScan)
+      }
+    } catch (_) {}
+  }
+
+  return out
+}
+
+function hasDateOrTimeSignal(text = '') {
+  const s = String(text || '')
+  return /(\d{4}\s*년\s*\d{1,2}\s*월\s*\d{1,2}\s*일|\d{1,2}:\d{2})/.test(s)
+}
+
+function buildTemporalFallbackContextFromReferences(references = []) {
+  const out = []
+  const seen = new Set()
+  const sourceSeen = new Set()
+
+  for (const ref of references) {
+    const sourceToken = normalizeNameForPathMatch(ref?.source || ref?.file_name)
+    if (!sourceToken || sourceSeen.has(sourceToken)) continue
+    sourceSeen.add(sourceToken)
+
+    const jsonPath = resolveTrainingTextJsonPath({
+      post_id: ref?.post_id || '',
+      comment_id: ref?.comment_id || '',
+      attachment_id: ref?.attachment_id || '',
+      source: ref?.source || ref?.file_name || '',
+      file_name: ref?.file_name || ref?.source || '',
+    })
+    if (!jsonPath || !fs.existsSync(jsonPath)) continue
+
+    try {
+      const records = JSON.parse(fs.readFileSync(jsonPath, 'utf8'))
+      if (!Array.isArray(records)) continue
+      for (let i = 0; i < records.length; i += 1) {
+        const rowText = String(records[i]?.search_content || '')
+        if (!/(작업\s*희망\s*일시|예정\s*일시)/i.test(rowText)) continue
+        const nearIndexes = [i + 1, i - 1]
+        for (const nearIndex of nearIndexes) {
+          if (nearIndex < 0 || nearIndex >= records.length) continue
+          const near = records[nearIndex]
+          const nearText = String(near?.search_content || '')
+          if (!hasDateOrTimeSignal(nearText)) continue
+          const itemKey = `${sourceToken}:${nearText}`
+          if (seen.has(itemKey)) continue
+          seen.add(itemKey)
+          const sourceLabel = near?.source || ref?.source || ref?.file_name || 'unknown'
+          const page = Number(near?.page_number || ref?.page_number || 0)
+          const type = near?.type || ref?.type || 'text'
+          out.push(`[source: ${sourceLabel}${page > 0 ? ` / page: ${page}` : ''} / type: ${type}]\n${nearText}`)
+        }
+      }
+    } catch (_) {}
+  }
+
   return out
 }
 
@@ -656,6 +1074,38 @@ async function enrichReferences(results) {
   return refs.filter(Boolean)
 }
 
+// 벡터 검색이 놓친 같은 페이지의 나머지 청크를 text.json에서 직접 보강
+function expandPageContextFromTrainingData(results) {
+  const expanded = [...results]
+  const seenTexts = new Set(results.map(r => String(r.text || '').trim()).filter(Boolean))
+
+  for (const item of results) {
+    const meta = item?.metadata || {}
+    if (!['text', 'table'].includes(meta.type)) continue
+    const pageNumber = Number(meta.page_number || 0)
+    if (!pageNumber) continue
+
+    const jsonPath = resolveTrainingTextJsonPath(meta)
+    if (!jsonPath) continue
+
+    let records
+    try {
+      records = JSON.parse(fs.readFileSync(jsonPath, 'utf8'))
+      if (!Array.isArray(records)) continue
+    } catch (_) { continue }
+
+    for (const rec of records) {
+      if (Number(rec.page_number || 0) !== pageNumber) continue
+      const recText = String(rec.search_content || '').trim()
+      if (!recText || seenTexts.has(recText)) continue
+      seenTexts.add(recText)
+      expanded.push({ text: recText, score: item.score, metadata: { ...meta, element_id: rec.element_id || '' } })
+    }
+  }
+
+  return expanded
+}
+
 // ─── POST /api/rag/search ─────────────────────────────────────
 router.post('/search', requireAuth, async (req, res) => {
   try {
@@ -663,13 +1113,19 @@ router.post('/search', requireAuth, async (req, res) => {
     if (!query?.trim()) return res.json({ context: '', references: [] })
     const amountQuery = isAmountQuery(query)
     const commandQuery = isCommandQuery(query)
+    const temporalQuery = isTemporalQuery(query)
     const sourceHints = extractSourceHints(query, preferredSources)
     const requestedLimit = Math.max(1, Number(limit) || 3)
-    const effectiveRequestedLimit = commandQuery ? Math.max(requestedLimit, 8) : requestedLimit
+    const effectiveRequestedLimit = commandQuery
+      ? Math.max(requestedLimit, 8)
+      : temporalQuery
+      ? Math.max(requestedLimit, 8)
+      : requestedLimit
     const firstPassLimit = Math.max(
       effectiveRequestedLimit,
       amountQuery ? 4 : 0,
       commandQuery ? 8 : 0,
+      temporalQuery ? 12 : 0,
     )
 
     const cfg = readConfig()
@@ -714,18 +1170,32 @@ router.post('/search', requireAuth, async (req, res) => {
       }
     }
 
+    if (temporalQuery) {
+      const baseResults = Array.isArray(results) ? results : []
+      const needsSecondPass = baseResults.length < Math.max(12, effectiveRequestedLimit * 2) || !baseResults.some(hasTemporalSignal)
+      if (needsSecondPass) {
+        const secondPassLimit = Math.max(effectiveRequestedLimit * 4, 24)
+        const temporalHintQuery = `${query}\n작업 희망 일시 예정 일시 날짜 시간 시행일자 년 월 일 시 분`
+        const [r2, r3] = await Promise.all([
+          callPythonSearch({ ...payload, limit: secondPassLimit }),
+          callPythonSearch({ ...payload, query: temporalHintQuery, limit: secondPassLimit }),
+        ])
+        results = mergeUniqueResults(baseResults, r2, r3)
+      }
+    }
+
     if (!Array.isArray(results) || results.length === 0) {
       return res.json({ context: '', references: [] })
     }
 
     // init 레코드 제외
-    const validResults = results.filter(r => r.text !== '__init__')
+    const validResults = mergeUniqueResults(results.filter(r => r.text !== '__init__'))
     if (validResults.length === 0) {
       return res.json({ context: '', references: [] })
     }
 
     let rankedResults = validResults
-    if (amountQuery || commandQuery || sourceHints.length > 0) {
+    if (amountQuery || commandQuery || temporalQuery || sourceHints.length > 0) {
       rankedResults = [...validResults].sort((a, b) => {
         const baseA = -asNum(a?.score)
         const baseB = -asNum(b?.score)
@@ -739,6 +1209,10 @@ router.post('/search', requireAuth, async (req, res) => {
           scoreA += commandDocBonus(a)
           scoreB += commandDocBonus(b)
         }
+        if (temporalQuery) {
+          scoreA += temporalDocBonus(a)
+          scoreB += temporalDocBonus(b)
+        }
         if (sourceHints.length > 0) {
           scoreA += sourceHintBoost(a, sourceHints)
           scoreB += sourceHintBoost(b, sourceHints)
@@ -746,9 +1220,25 @@ router.post('/search', requireAuth, async (req, res) => {
         return scoreB - scoreA
       })
     }
-    const finalResults = rankedResults.slice(0, effectiveRequestedLimit)
+    let finalResults = rankedResults.slice(0, effectiveRequestedLimit)
+    if (temporalQuery) {
+      finalResults = expandTemporalNeighbors(finalResults, rankedResults)
+      finalResults = expandTemporalNeighborsFromTrainingData(finalResults)
+      finalResults = mergeUniqueResults(finalResults)
+      finalResults = [...finalResults].sort((a, b) => {
+        const temporalA = temporalDocBonus(a)
+        const temporalB = temporalDocBonus(b)
+        if (temporalA !== temporalB) return temporalB - temporalA
+        const baseA = -asNum(a?.score)
+        const baseB = -asNum(b?.score)
+        return baseB - baseA
+      }).slice(0, Math.max(effectiveRequestedLimit, 12))
+    }
 
-    const context = finalResults.map((r) => {
+    // 벡터 검색 결과에서 누락된 같은 페이지 내용을 text.json으로 보강 (재학습 없이 즉시 효과)
+    finalResults = mergeUniqueResults(expandPageContextFromTrainingData(finalResults))
+
+    let context = finalResults.map((r) => {
       const meta = r.metadata || {}
       const source = meta.source || meta.file_name || 'unknown'
       const page = Number(meta.page_number || 0)
@@ -763,6 +1253,13 @@ router.post('/search', requireAuth, async (req, res) => {
       return `${header}\n${r.text}`
     }).join('\n\n')
     const references = await enrichReferences(finalResults)
+
+    if (temporalQuery && !hasDateOrTimeSignal(context)) {
+      const temporalFallbackBlocks = buildTemporalFallbackContextFromReferences(references)
+      if (temporalFallbackBlocks.length > 0) {
+        context = `${temporalFallbackBlocks.join('\n\n')}\n\n${context}`
+      }
+    }
 
     res.json({ context, references })
   } catch (err) {

@@ -53,7 +53,7 @@ class RagHandler(BaseHTTPRequestHandler):
 
         cfg          = payload.get("config", {})
         query        = payload.get("query", "")
-        limit        = int(payload.get("limit", 3))
+        limit        = int(payload.get("limit", 5))
         lancedb_path = cfg.get("lancedb_path", "")
 
         if not query.strip() or not lancedb_path:

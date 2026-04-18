@@ -119,6 +119,21 @@ function PinIcon() {
   )
 }
 
+function TrainingStatusBadge({ status }) {
+  if (!status) return null
+  const isTraining = status === 'training'
+  return (
+    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold border ${
+      isTraining
+        ? 'text-amber-700 border-amber-200 bg-amber-50'
+        : 'text-emerald-700 border-emerald-200 bg-emerald-50'
+    }`}>
+      <span className={`w-1.5 h-1.5 rounded-full ${isTraining ? 'bg-amber-500' : 'bg-emerald-500'}`} />
+      {isTraining ? '학습중' : '학습완료'}
+    </span>
+  )
+}
+
 // ─── File Chips (shared between compose & detail) ─────────────
 
 function FileChip({ file, onRemove }) {
@@ -1556,6 +1571,7 @@ function PostCard({ post, onSelect, pinned, isSelected }) {
   const bodyPreview = isTemplate ? '' : plain.slice(1).join(' ').slice(0, 120)
   const attachCount = post.attachments?.length || 0
   const commentCount = post.comments?.length || 0
+  const trainingStatus = post.training_status || null
 
   return (
     <button
@@ -1607,6 +1623,11 @@ function PostCard({ post, onSelect, pinned, isSelected }) {
           </div>
           {/* Body preview (second line onward) */}
           {bodyPreview && <p className="text-gray-400 text-xs leading-relaxed line-clamp-2">{bodyPreview}</p>}
+          {trainingStatus && (
+            <div className="mt-2">
+              <TrainingStatusBadge status={trainingStatus} />
+            </div>
+          )}
         </div>
       </div>
     </button>
@@ -1715,6 +1736,7 @@ function PostDetail({ post, channelId, onClose }) {
   const isSiteAdmin = currentUser?.role === 'site_admin'
   const isOwn = isSiteAdmin || freshPost.author?.name === currentUser?.name
   const maxSelectableLevel = isSiteAdmin ? 4 : (currentUser?.security_level ?? 0)
+  const postTrainingStatus = freshPost.training_status || null
 
   function extractQuotationDocNo(content = '') {
     const m = content.match(/data-type=['"]no['"][^>]*>([^<]*)</i)
@@ -2045,6 +2067,11 @@ function PostDetail({ post, channelId, onClose }) {
               <p className="text-gray-400 text-xs mt-1" title={formatFull(freshPost.createdAt)}>
                 {t.chat.postedAt}: {formatFull(freshPost.createdAt)}
               </p>
+              {postTrainingStatus && (
+                <div className="mt-2">
+                  <TrainingStatusBadge status={postTrainingStatus} />
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -2194,6 +2221,11 @@ function PostDetail({ post, channelId, onClose }) {
                         </div>
                       )}
                     </div>
+                    {c.training_status && (
+                      <div className="mb-2">
+                        <TrainingStatusBadge status={c.training_status} />
+                      </div>
+                    )}
 
                     {editingCommentId === c.id ? (
                       <div className="mt-1">

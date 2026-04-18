@@ -50,7 +50,10 @@
     "dailyTime": "02:00",
     "vectorSize": 1024,
     "chunk_size": 800,
-    "chunk_overlap": 100
+    "chunk_overlap": 100,
+    "trainer_timeout_sec": 1800,
+    "pdf_parse_strategy": "fast",
+    "pdf_parse_timeout_sec": 180
   },
   "agenticai": {
     "num_predict": 2048,

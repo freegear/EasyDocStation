@@ -5,6 +5,12 @@ const { client, isConnected } = require('../cassandra')
 const db = require('../db')
 const requireAuth = require('../middleware/auth')
 const { trainPostImmediate, trainCommentImmediate } = require('../rag')
+const {
+  markTrainingStarted,
+  markTrainingCompleted,
+  clearTrainingStatus,
+  getTrainingStatus,
+} = require('../trainingStatus')
 
 // ─── Helper: UUIDs → enriched attachment objects ──────────────
 async function enrichAttachments(ids) {
@@ -78,6 +84,7 @@ async function fetchComments(postId) {
           },
           createdAt: row.created_at,
           updatedAt: row.created_at, // Cassandra comments table doesn't have updated_at yet
+          ...getTrainingStatus('comment', row.id),
         }
       }))
     } catch (err) {
@@ -113,6 +120,7 @@ async function fetchComments(postId) {
       },
       createdAt: row.created_at,
       updatedAt: row.updated_at,
+      ...getTrainingStatus('comment', row.id),
     }
   }))
 }
@@ -304,6 +312,7 @@ router.get('/', requireAuth, async (req, res, next) => {
           },
           createdAt: row.created_at,
           comments,
+          ...getTrainingStatus('post', row.id.toString()),
           security_level: row.security_level || 0,
           tags: [], pinned: false, views: 0,
         }
@@ -358,6 +367,7 @@ router.get('/', requireAuth, async (req, res, next) => {
         },
         createdAt: row.created_at,
         comments,
+        ...getTrainingStatus('post', row.id),
         security_level: row.security_level || 0,
         tags: [], pinned: false, views: row.views || 0,
       }
@@ -467,7 +477,12 @@ router.post('/', requireAuth, async (req, res, next) => {
     await linkAttachments(postId, ids)
 
     // 업로드 즉시 LanceDB 임베딩 (비동기, 응답에 영향 없음)
-    trainPostImmediate({ id: postId, channel_id: channelId, content, created_at: authoredAt })
+    markTrainingStarted('post', postId)
+    ;(async () => {
+      const success = await trainPostImmediate({ id: postId, channel_id: channelId, content, created_at: authoredAt })
+      if (success) markTrainingCompleted('post', postId)
+      else clearTrainingStatus('post', postId)
+    })()
 
     res.status(201).json({ id: postId, channelId, content, authoredAt })
   } catch (err) {
@@ -602,7 +617,12 @@ router.post('/:id/comments', requireAuth, async (req, res, next) => {
     const newComment = comments.find(c => c.id === commentId)
 
     // 업로드 즉시 LanceDB 임베딩 (비동기, 응답에 영향 없음)
-    trainCommentImmediate({ id: commentId, post_id: postId, channel_id: channelId || '', content, attachmentIds })
+    markTrainingStarted('comment', commentId)
+    ;(async () => {
+      const success = await trainCommentImmediate({ id: commentId, post_id: postId, channel_id: channelId || '', content, attachmentIds })
+      if (success) markTrainingCompleted('comment', commentId)
+      else clearTrainingStatus('comment', commentId)
+    })()
 
     res.status(201).json(newComment)
   } catch (err) {
