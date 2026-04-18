@@ -38,6 +38,25 @@ function loadRagConfig() {
   }
 }
 
+function normalizeTrainerTimeoutMs(ragCfg = {}) {
+  const sec = Number(ragCfg.trainer_timeout_sec)
+  const safeSec = Number.isFinite(sec) && sec > 0 ? sec : 1800
+  return Math.max(60, Math.floor(safeSec)) * 1000
+}
+
+function buildTrainerConfig(cfg, ragCfg) {
+  return {
+    lancedb_path: getDatabasePath(cfg, 'lancedb Database Path'),
+    file_training_path: path.resolve(__dirname, '../Database/ObjectFile/FileTrainingData'),
+    chunk_size: ragCfg.chunk_size ?? 800,
+    chunk_overlap: ragCfg.chunk_overlap ?? 100,
+    vector_size: ragCfg.vectorSize ?? 1024,
+    trainer_timeout_sec: ragCfg.trainer_timeout_sec ?? 1800,
+    pdf_parse_strategy: ragCfg.pdf_parse_strategy ?? 'fast',
+    pdf_parse_timeout_sec: ragCfg.pdf_parse_timeout_sec ?? 180,
+  }
+}
+
 // ─── 문서 첨부파일 경로 조회 (PDF + Word) ────────────────────
 async function getDocumentPathsForPost(postId) {
   try {
@@ -68,11 +87,12 @@ async function getDocumentPathsForPost(postId) {
 }
 
 // ─── Python 학습 스크립트 호출 ────────────────────────────────
-function callPythonTrainer(payload) {
+function callPythonTrainer(payload, options = {}) {
   return new Promise((resolve, reject) => {
     const scriptPath = path.resolve(__dirname, 'rag_train.py')
     const startedAt = Date.now()
-    const proc = spawn(getPythonExecutable(), [scriptPath], { timeout: 600000 })
+    const timeoutMs = options.timeoutMs || normalizeTrainerTimeoutMs(payload?.config || {})
+    const proc = spawn(getPythonExecutable(), [scriptPath], { timeout: timeoutMs })
 
     proc.stdin.write(JSON.stringify(payload))
     proc.stdin.end()
@@ -118,13 +138,7 @@ async function runTraining(posts) {
   )
 
   const payload = {
-    config: {
-      lancedb_path:  getDatabasePath(cfg, 'lancedb Database Path'),
-      file_training_path: path.resolve(__dirname, '../Database/ObjectFile/FileTrainingData'),
-      chunk_size:    ragCfg.chunk_size    ?? 800,
-      chunk_overlap: ragCfg.chunk_overlap ?? 100,
-      vector_size:   ragCfg.vectorSize    ?? 1024,
-    },
+    config: buildTrainerConfig(cfg, ragCfg),
     posts: postsWithPdfs,
   }
 
@@ -207,8 +221,10 @@ async function trainPostImmediate(post) {
   try {
     await runTraining([post])
     state.lastTrained = new Date()
+    return true
   } catch (e) {
     console.error('[RAG] 게시글 임베딩 오류:', e.message)
+    return false
   }
 }
 
@@ -268,13 +284,7 @@ async function runCommentTraining(comments) {
   )
 
   const payload = {
-    config: {
-      lancedb_path:  getDatabasePath(cfg, 'lancedb Database Path'),
-      file_training_path: path.resolve(__dirname, '../Database/ObjectFile/FileTrainingData'),
-      chunk_size:    ragCfg.chunk_size    ?? 800,
-      chunk_overlap: ragCfg.chunk_overlap ?? 100,
-      vector_size:   ragCfg.vectorSize    ?? 1024,
-    },
+    config: buildTrainerConfig(cfg, ragCfg),
     posts:    [],
     comments: commentsWithDocs,
   }
@@ -297,8 +307,10 @@ async function trainCommentImmediate(comment) {
   try {
     await runCommentTraining([comment])
     state.lastTrained = new Date()
+    return true
   } catch (e) {
     console.error('[RAG] 댓글 임베딩 오류:', e.message)
+    return false
   }
 }
 
@@ -319,12 +331,7 @@ async function deleteEventFromRAG(eventId) {
     const cfg    = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'))
     const ragCfg = cfg.rag || {}
     const payload = {
-      config: {
-        lancedb_path:  getDatabasePath(cfg, 'lancedb Database Path'),
-        chunk_size:    ragCfg.chunk_size    ?? 800,
-        chunk_overlap: ragCfg.chunk_overlap ?? 100,
-        vector_size:   ragCfg.vectorSize    ?? 1024,
-      },
+      config: buildTrainerConfig(cfg, ragCfg),
       delete_ids: [eventId],
       posts: [],
     }
@@ -365,12 +372,7 @@ async function retrainEventImmediate(oldEventId, newEvent) {
     const content = lines.join('\n')
 
     const payload = {
-      config: {
-        lancedb_path:  getDatabasePath(cfg, 'lancedb Database Path'),
-        chunk_size:    ragCfg.chunk_size    ?? 800,
-        chunk_overlap: ragCfg.chunk_overlap ?? 100,
-        vector_size:   ragCfg.vectorSize    ?? 1024,
-      },
+      config: buildTrainerConfig(cfg, ragCfg),
       delete_ids: [oldEventId],   // 기존 청크 먼저 삭제
       posts: [{
         id:         newEvent.id,
@@ -424,12 +426,7 @@ async function trainEventImmediate(event) {
     const content = lines.join('\n')
 
     const payload = {
-      config: {
-        lancedb_path:  getDatabasePath(cfg, 'lancedb Database Path'),
-        chunk_size:    ragCfg.chunk_size    ?? 800,
-        chunk_overlap: ragCfg.chunk_overlap ?? 100,
-        vector_size:   ragCfg.vectorSize    ?? 1024,
-      },
+      config: buildTrainerConfig(cfg, ragCfg),
       posts: [{
         id:         event.id,
         channel_id: 'calendar',
@@ -480,12 +477,7 @@ async function trainEventsImmediate(events) {
     const cfg    = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'))
     const ragCfg = cfg.rag || {}
     const payload = {
-      config: {
-        lancedb_path:  getDatabasePath(cfg, 'lancedb Database Path'),
-        chunk_size:    ragCfg.chunk_size    ?? 800,
-        chunk_overlap: ragCfg.chunk_overlap ?? 100,
-        vector_size:   ragCfg.vectorSize    ?? 1024,
-      },
+      config: buildTrainerConfig(cfg, ragCfg),
       posts: events.map(buildEventPost),
     }
     console.log(`[RAG] 캘린더 이벤트 일괄 학습 시작 — ${events.length}건`)
@@ -528,12 +520,7 @@ async function trainExpenseImmediate(postId, formData) {
     const ragCfg = cfg.rag || {}
     const content = buildExpenseContent(postId, formData)
     const payload = {
-      config: {
-        lancedb_path:  getDatabasePath(cfg, 'lancedb Database Path'),
-        chunk_size:    ragCfg.chunk_size    ?? 800,
-        chunk_overlap: ragCfg.chunk_overlap ?? 100,
-        vector_size:   ragCfg.vectorSize    ?? 1024,
-      },
+      config: buildTrainerConfig(cfg, ragCfg),
       posts: [{
         id:         postId,
         channel_id: 'expense',
@@ -559,12 +546,7 @@ async function retrainExpenseImmediate(postId, formData) {
     const ragCfg = cfg.rag || {}
     const content = buildExpenseContent(postId, formData)
     const payload = {
-      config: {
-        lancedb_path:  getDatabasePath(cfg, 'lancedb Database Path'),
-        chunk_size:    ragCfg.chunk_size    ?? 800,
-        chunk_overlap: ragCfg.chunk_overlap ?? 100,
-        vector_size:   ragCfg.vectorSize    ?? 1024,
-      },
+      config: buildTrainerConfig(cfg, ragCfg),
       delete_ids: [postId],
       posts: [{
         id:         postId,

@@ -18,6 +18,29 @@ export function ChatProvider({ children }) {
     refreshTeams()
   }, [])
 
+  // 현재 채널 게시글 목록 주기 갱신 (학습 상태 변화 반영)
+  useEffect(() => {
+    if (!selectedChannel?.id) return undefined
+    let cancelled = false
+    const channelId = selectedChannel.id
+
+    async function refreshChannelPosts() {
+      try {
+        const data = await apiFetch(`/posts?channelId=${channelId}`)
+        if (cancelled) return
+        setPosts(prev => ({ ...prev, [channelId]: data }))
+      } catch (err) {
+        console.error('Failed to refresh channel posts:', err)
+      }
+    }
+
+    const interval = setInterval(refreshChannelPosts, 5000)
+    return () => {
+      cancelled = true
+      clearInterval(interval)
+    }
+  }, [selectedChannel?.id])
+
   // 30초마다 안읽은 글 수 갱신 (다른 사용자가 올린 새 게시글 반영)
   useEffect(() => {
     const interval = setInterval(refreshUnread, 30000)

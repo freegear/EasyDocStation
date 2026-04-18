@@ -74,6 +74,8 @@ DOC_VERSION   = datetime.now(timezone.utc).isoformat()
 OCR_MODEL     = cfg.get("ocr_model") or os.getenv("EASYDOC_OCR_MODEL", "gemma4:e4b")
 OCR_MAX_PAGES = int(cfg.get("ocr_max_pages", os.getenv("EASYDOC_OCR_MAX_PAGES", "30")))
 OCR_LANG      = cfg.get("ocr_lang") or os.getenv("EASYDOC_OCR_LANG", "kor+eng")
+PDF_PARSE_STRATEGY = str(cfg.get("pdf_parse_strategy", os.getenv("EASYDOC_PDF_PARSE_STRATEGY", "fast"))).strip().lower()
+PDF_PARSE_TIMEOUT_SEC = int(cfg.get("pdf_parse_timeout_sec", os.getenv("EASYDOC_PDF_PARSE_TIMEOUT_SEC", "180")))
 OLLAMA_HOST   = os.getenv("OLLAMA_HOST", "127.0.0.1")
 OLLAMA_PORT   = int(os.getenv("OLLAMA_PORT", "11434"))
 OLLAMA_CHAT_URL = f"http://{OLLAMA_HOST}:{OLLAMA_PORT}/api/chat"
@@ -84,7 +86,7 @@ if not posts and not comments and not delete_ids:
     sys.exit(0)
 
 # ─── 라이브러리 로드 ──────────────────────────────────────────
-from pypdf import PdfReader
+import pdfplumber
 from langchain_community.document_loaders import Docx2txtLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from sentence_transformers import SentenceTransformer
@@ -320,15 +322,29 @@ def metadata_base(post_id, channel_id, attachment_id, comment_id, source, file_n
     }
 
 
+def build_context_prefix(meta):
+    parts = []
+    if meta.get("file_name"):
+        parts.append(meta["file_name"])
+    if meta.get("page_number"):
+        parts.append(f"{meta['page_number']}페이지")
+    return f"[{' / '.join(parts)}]\n" if parts else ""
+
+
 def append_text_chunks(records, text, base_meta, chunk_prefix=""):
     body = (text or "").strip()
     if not body:
         return 0
+
+    # 각 청크 앞에 문서명+페이지 컨텍스트를 붙여 임베딩 — 검색 정확도 향상
+    # text 필드에는 원본만 저장하고, 임베딩은 컨텍스트 포함 텍스트로 생성
+    ctx_prefix = build_context_prefix(base_meta)
     chunks = text_splitter.split_text(body)
     if not chunks:
         return 0
 
-    vectors = embed_model.encode(chunks, batch_size=16, show_progress_bar=False)
+    embed_inputs = [f"{ctx_prefix}{c}" if ctx_prefix else c for c in chunks]
+    vectors = embed_model.encode(embed_inputs, batch_size=16, show_progress_bar=False)
     for i, (chunk, vector) in enumerate(zip(chunks, vectors)):
         m = dict(base_meta)
         m["chunk_id"] = i
@@ -427,16 +443,33 @@ def format_amount_won(value):
 
 def load_pdf_fallback_text(file_path):
     try:
-        reader = PdfReader(file_path)
         pages = []
-        for idx, page in enumerate(reader.pages):
-            extracted = page.extract_text() or ""
-            txt = extracted.strip()
-            if txt:
-                pages.append({"page_number": idx + 1, "text": txt})
+        with pdfplumber.open(file_path) as pdf:
+            for idx, page in enumerate(pdf.pages):
+                # layout=True preserves reading order for multi-column/slide layouts
+                text = (page.extract_text(layout=True) or "").strip()
+                if not text:
+                    text = (page.extract_text() or "").strip()
+
+                table_texts = []
+                try:
+                    for table in (page.extract_tables() or []):
+                        rows = []
+                        for row in table:
+                            row_text = " | ".join(cell or "" for cell in row)
+                            if row_text.strip():
+                                rows.append(row_text)
+                        if rows:
+                            table_texts.append("\n".join(rows))
+                except Exception:
+                    pass
+
+                combined = (text + ("\n" + "\n\n".join(table_texts) if table_texts else "")).strip()
+                if combined:
+                    pages.append({"page_number": idx + 1, "text": combined})
         return pages
     except Exception as e:
-        print(f"[RAG] PDF 읽기 실패 ({file_path}): {e}", file=sys.stderr)
+        print(f"[RAG] pdfplumber PDF 읽기 실패 ({file_path}): {e}", file=sys.stderr)
         return []
 
 
@@ -538,10 +571,8 @@ def ocr_pdf_with_tesseract(file_path):
 
 
 def load_pdf_elements(file_path):
-    try:
-        from unstructured.partition.pdf import partition_pdf  # optional
-
-        print(f"[RAG] PDF 파싱 시작 (Unstructured hi_res): {os.path.basename(file_path)}", flush=True)
+    def _parse_unstructured(partition_pdf, strategy, infer_table, extract_images):
+        print(f"[RAG] PDF 파싱 시작 (Unstructured {strategy}): {os.path.basename(file_path)}", flush=True)
         started_at = time.time()
         stop_event = threading.Event()
 
@@ -549,16 +580,26 @@ def load_pdf_elements(file_path):
             while not stop_event.wait(10):
                 elapsed = int(time.time() - started_at)
                 print(f"[RAG] PDF 파싱 진행중: {os.path.basename(file_path)} ({elapsed}s 경과)", flush=True)
+                if elapsed >= max(10, PDF_PARSE_TIMEOUT_SEC):
+                    print(
+                        f"[RAG] PDF 파싱 권장시간({PDF_PARSE_TIMEOUT_SEC}s) 초과: {os.path.basename(file_path)}",
+                        flush=True,
+                    )
+                    break
 
         hb = threading.Thread(target=_heartbeat, daemon=True)
         hb.start()
         try:
-            elements = partition_pdf(
-                filename=file_path,
-                strategy="hi_res",
-                infer_table_structure=True,
-                extract_images_in_pdf=True,
-            )
+            kwargs = {
+                "filename": file_path,
+                "strategy": strategy,
+                "infer_table_structure": infer_table,
+                "extract_images_in_pdf": extract_images,
+            }
+            langs = [x.strip() for x in str(OCR_LANG).replace("+", ",").split(",") if x.strip()]
+            if langs:
+                kwargs["languages"] = langs
+            elements = partition_pdf(**kwargs)
         finally:
             stop_event.set()
             hb.join(timeout=0.1)
@@ -587,10 +628,35 @@ def load_pdf_elements(file_path):
         if parsed:
             elapsed = time.time() - started_at
             print(
-                f"[RAG] PDF 파싱 완료 (Unstructured): {os.path.basename(file_path)} / elements={len(parsed)} / {elapsed:.1f}s",
+                f"[RAG] PDF 파싱 완료 (Unstructured {strategy}): {os.path.basename(file_path)} / elements={len(parsed)} / {elapsed:.1f}s",
                 flush=True,
             )
-            return parsed
+        return parsed
+
+    try:
+        from unstructured.partition.pdf import partition_pdf  # optional
+        requested = PDF_PARSE_STRATEGY or "fast"
+        if requested in ("off", "fallback", "none"):
+            raise RuntimeError("Unstructured PDF 파싱 비활성화 설정")
+
+        if requested == "auto":
+            strategies = [("fast", False, False), ("hi_res", True, False)]
+        elif requested == "hi_res":
+            strategies = [("hi_res", True, False), ("fast", False, False)]
+        else:
+            # default: fast
+            strategies = [("fast", False, False)]
+
+        for strategy, infer_table, extract_images in strategies:
+            try:
+                parsed = _parse_unstructured(partition_pdf, strategy, infer_table, extract_images)
+                if parsed:
+                    return parsed
+            except Exception as e:
+                print(
+                    f"[RAG] Unstructured PDF 파싱 실패 ({os.path.basename(file_path)}, strategy={strategy}): {e}",
+                    flush=True,
+                )
     except Exception as e:
         print(f"[RAG] Unstructured PDF 파싱 실패, fallback 사용 ({os.path.basename(file_path)}): {e}", flush=True)
 
@@ -627,6 +693,10 @@ def ingest_pdf(records, *, post_id, channel_id, attachment_id, comment_id, pdf_p
     split_records = {"text": [], "table": [], "image": []}
     split_base_dir = build_file_training_dir(post_id, comment_id, attachment_id, source_name)
     amount_signal_texts = []
+
+    # 슬라이드/페이지 단위로 텍스트 요소를 병합: 제목과 내용이 같은 청크에 포함되도록
+    from collections import defaultdict
+    page_text_buckets = defaultdict(list)  # page_number → [text fragments]
 
     local_chunks = 0
     for idx, el in enumerate(elements):
@@ -708,7 +778,13 @@ def ingest_pdf(records, *, post_id, channel_id, attachment_id, comment_id, pdf_p
         content = normalize_text(text)
         if not content:
             continue
-        amount_signal_texts.append(content)
+        # 같은 페이지의 텍스트 요소를 버킷에 누적 (나중에 페이지 단위로 병합 처리)
+        page_text_buckets[page_number].append(content)
+
+    # 페이지 단위로 병합된 텍스트를 청킹 — 제목과 내용이 함께 임베딩됨
+    for page_number, fragments in sorted(page_text_buckets.items()):
+        merged = "\n".join(fragments)
+        amount_signal_texts.append(merged)
         split_records["text"].append({
             "post_id": str(post_id or ""),
             "comment_id": str(comment_id or ""),
@@ -717,8 +793,8 @@ def ingest_pdf(records, *, post_id, channel_id, attachment_id, comment_id, pdf_p
             "file_name": source_name,
             "type": "text",
             "page_number": page_number,
-            "element_id": f"txt-{page_number}-{idx}",
-            "search_content": content,
+            "element_id": f"txt-p{page_number}",
+            "search_content": merged,
             "file_hash": file_hash,
             "saved_at": DOC_VERSION,
         })
@@ -733,9 +809,9 @@ def ingest_pdf(records, *, post_id, channel_id, attachment_id, comment_id, pdf_p
         )
         meta["type"] = "text"
         meta["page_number"] = page_number
-        meta["element_id"] = f"txt-{page_number}-{idx}"
-        apply_amount_meta(meta, content)
-        local_chunks += append_text_chunks(records, content, meta, chunk_prefix=meta["element_id"])
+        meta["element_id"] = f"txt-p{page_number}"
+        apply_amount_meta(meta, merged)
+        local_chunks += append_text_chunks(records, merged, meta, chunk_prefix=meta["element_id"])
 
     # 금액 질의 대응 강화를 위한 요약 청크 생성
     merged_amount_text = "\n".join(amount_signal_texts).strip()
