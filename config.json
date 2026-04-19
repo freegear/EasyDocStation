@@ -36,7 +36,7 @@
     "width": 480,
     "height": 270
   },
-  "EasyDocStationFolder": ".",
+  "EasyDocStationFolder": "/Users/kevinim/Desktop/EasyDocStation",
   "PostgreSQL Database Path": "Database/PoseSQLDB",
   "Cassandra Database Path": "Database/CassandraDB",
   "ObjectFile Path": "Database/ObjectFile",
@@ -67,7 +67,7 @@
     "history": 6,
     "language": "ko"
   },
-  "MaxAttachmentFileSize": 100,
+  "MaxAttachmentFileSize": 200,
   "company": {
     "name": "SiliconCube",
     "address": "대한민국 경기도 성남시 수정구 창업로 54, 판교 테크노밸리 2호, LH 비즈니스 성장 지원 센터 7층 733~735호, 우편번호 13449",

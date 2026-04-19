@@ -104,8 +104,7 @@ function getPreviewDimensions(f, moviePreviewOverride, htmlPreviewOverride, pdfP
   const type = (f.type || '').toLowerCase()
   const isPdf = type === 'application/pdf' || /\.pdf($|\?)/i.test(name)
   if (isTxtFile(f)) return txtPreviewOverride || config.txtPreview || { width: 270, height: 480 }
-  if (name.endsWith('.pptx')) return config.pptxPreview || config.imagePreview
-  if (name.endsWith('.ppt')) return config.pptPreview || config.imagePreview
+  if (name.endsWith('.pptx') || name.endsWith('.ppt')) return config.pptPreview || config.imagePreview
   if (name.endsWith('.xlsx') || name.endsWith('.xls')) return config.excelPreview || config.imagePreview
   if (name.endsWith('.docx') || name.endsWith('.doc')) return config.wordPreview || config.imagePreview
   if (isPdf) return pdfPreviewOverride || config.pdfPreview || { width: 480, height: 270 }
@@ -456,7 +455,7 @@ function VideoPlayer({ file, fileUrl, onClose }) {
   )
 }
 
-function PdfModalViewer({ fileId, onClose }) {
+function PdfModalViewer({ fileId, sourceUrl, onClose }) {
   const canvasRef = useRef(null)
   const [pdfDoc, setPdfDoc] = useState(null)
   const [totalPages, setTotalPages] = useState(0)
@@ -493,14 +492,14 @@ function PdfModalViewer({ fileId, onClose }) {
   }, [totalPages, onClose])
 
   useEffect(() => {
-    if (!fileId) return
+    if (!fileId && !sourceUrl) return
     let cancelled = false
     setLoading(true)
     setError(false)
 
     ;(async () => {
       try {
-        const url = `/api/files/view/${fileId}?auth_token=${getToken()}`
+        const url = sourceUrl || `/api/files/view/${fileId}?auth_token=${getToken()}`
         const resp = await fetch(url)
         if (!resp.ok) throw new Error('fetch failed')
         const arrayBuffer = await resp.arrayBuffer()
@@ -525,7 +524,7 @@ function PdfModalViewer({ fileId, onClose }) {
     })()
 
     return () => { cancelled = true }
-  }, [fileId])
+  }, [fileId, sourceUrl])
 
   useEffect(() => {
     if (!pdfDoc || !canvasRef.current) return
@@ -599,11 +598,15 @@ function PdfModalViewer({ fileId, onClose }) {
 
 function FilePreviewModal({ file, fileUrl, onClose }) {
   const [failed, setFailed] = useState(false)
+  const category = getFileCategory(file?.type || '', file?.name || '')
+  const isSlide = category === 'slide'
   const isPdf = (file?.type || '').toLowerCase() === 'application/pdf' || /\.pdf($|\?)/i.test((file?.name || '').toLowerCase())
   const isTxt = isTxtFile(file || {})
   const [txtLoading, setTxtLoading] = useState(false)
   const [txtError, setTxtError] = useState(false)
   const [txtContent, setTxtContent] = useState('')
+  const slidePreviewPdfUrl = file?.id ? `/api/files/view/${file.id}?preview=pdf&auth_token=${getToken()}` : null
+  const openInNewUrl = isSlide ? (slidePreviewPdfUrl || fileUrl) : fileUrl
 
   useEffect(() => {
     const onKey = e => { if (e.key === 'Escape') onClose() }
@@ -649,7 +652,7 @@ function FilePreviewModal({ file, fileUrl, onClose }) {
           <p className="text-sm text-gray-700 truncate pr-4">{file?.name || ''}</p>
           <div className="flex items-center gap-2">
             <a
-              href={fileUrl}
+              href={openInNewUrl}
               target="_blank"
               rel="noreferrer"
               className="text-xs px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white transition-colors"
@@ -687,6 +690,8 @@ function FilePreviewModal({ file, fileUrl, onClose }) {
               </pre>
             )}
           </div>
+        ) : isSlide ? (
+          <PdfModalViewer sourceUrl={slidePreviewPdfUrl} onClose={onClose} />
         ) : !failed ? (
           <iframe
             src={fileUrl}
@@ -865,7 +870,8 @@ function AttachmentList({ attachments, compact = false }) {
             const previewH = Number(dims?.height) || 270
             const isPdf = category === 'pdf'
             const isTxt = isTxtFile(f)
-            const shouldClampCompact = compact && !isPdf && !isTxt
+            const isSlide = category === 'slide'
+            const shouldClampCompact = compact && !isPdf && !isTxt && !isSlide
             const MAX_W = shouldClampCompact ? 180 : Infinity
             const MAX_THUMB_H = shouldClampCompact ? 140 : Infinity
             const w = Math.min(previewW, MAX_W)

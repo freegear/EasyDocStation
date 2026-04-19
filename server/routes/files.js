@@ -31,6 +31,10 @@ const THUMBNAIL_BASE = path.join(STORAGE_BASE, 'thumbnails')
 if (!fs.existsSync(THUMBNAIL_BASE)) {
   fs.mkdirSync(THUMBNAIL_BASE, { recursive: true })
 }
+const PREVIEW_BASE = path.join(STORAGE_BASE, 'previews')
+if (!fs.existsSync(PREVIEW_BASE)) {
+  fs.mkdirSync(PREVIEW_BASE, { recursive: true })
+}
 
 function appendThumbLog(logFile, message) {
   try {
@@ -123,6 +127,38 @@ async function generateThumbnail(fileUuid, fullPath) {
   }
 }
 
+async function convertOfficeToPdf(fileUuid, fullPath) {
+  const ext = path.extname(fullPath).toLowerCase()
+  const officeExts = new Set(['.ppt', '.pptx', '.doc', '.docx', '.xls', '.xlsx'])
+  if (!officeExts.has(ext)) return null
+
+  const previewPdfPath = path.join(PREVIEW_BASE, `${fileUuid}.pdf`)
+  try {
+    if (fs.existsSync(previewPdfPath)) {
+      const sourceMtime = fs.statSync(fullPath).mtimeMs
+      const previewMtime = fs.statSync(previewPdfPath).mtimeMs
+      if (previewMtime >= sourceMtime) return previewPdfPath
+    }
+
+    const tmpDir = fs.mkdtempSync(path.join(PREVIEW_BASE, 'tmp-'))
+    try {
+      await execFileAsync('libreoffice', ['--headless', '--convert-to', 'pdf', '--outdir', tmpDir, fullPath])
+      const expected = path.join(tmpDir, `${path.parse(fullPath).name}.pdf`)
+      const fallbackPdfName = fs.readdirSync(tmpDir).find(n => n.toLowerCase().endsWith('.pdf'))
+      const sourcePdf = fs.existsSync(expected)
+        ? expected
+        : (fallbackPdfName ? path.join(tmpDir, fallbackPdfName) : null)
+      if (!sourcePdf || !fs.existsSync(sourcePdf)) return null
+      fs.copyFileSync(sourcePdf, previewPdfPath)
+      return previewPdfPath
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true })
+    }
+  } catch (err) {
+    return null
+  }
+}
+
 /**
  * 단계 1 & 2: Mock Presigned URL 생성 (Upload)
  * POST /api/files/get-upload-url
@@ -190,6 +226,7 @@ router.get('/view/:id', requireAuth, async (req, res, next) => {
 
     let fullPath = path.join(STORAGE_BASE, file.storage_path)
     let contentType = file.content_type || 'application/octet-stream'
+    const originalExt = path.extname(file.filename || file.storage_path || '').toLowerCase()
 
     // 썸네일 요청 처리
     if (req.query.thumbnail === 'true' && file.thumbnail_path) {
@@ -200,11 +237,26 @@ router.get('/view/:id', requireAuth, async (req, res, next) => {
       }
     }
 
+    // PPT/PPTX 등 오피스 문서를 PDF로 변환해 실제 페이지 미리보기 제공
+    if (req.query.preview === 'pdf') {
+      const convertedPdfPath = await convertOfficeToPdf(id, fullPath)
+      if (!convertedPdfPath) {
+        return res.status(500).send('미리보기 PDF 변환에 실패했습니다.')
+      }
+      fullPath = convertedPdfPath
+      contentType = 'application/pdf'
+      const base = (file.filename || 'preview')
+      const safePdfName = base.replace(/\.(pptx|ppt|docx|doc|xlsx|xls)$/i, '.pdf')
+      res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(safePdfName)}"`)
+    }
+
     if (!fs.existsSync(fullPath)) return res.status(404).send('파일을 찾을 수 없습니다.')
 
     res.setHeader('Content-Type', contentType)
-    if (!contentType.startsWith('image/') && !contentType.startsWith('video/')) {
+    if (!req.query.preview && !contentType.startsWith('image/') && !contentType.startsWith('video/')) {
       res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(file.filename)}"`)
+    } else if (!req.query.preview && (originalExt === '.ppt' || originalExt === '.pptx')) {
+      res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(file.filename)}"`)
     }
     fs.createReadStream(fullPath).pipe(res)
   } catch (err) {
