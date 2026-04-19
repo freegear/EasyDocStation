@@ -20,6 +20,7 @@ CLIENT_ORIGIN="${CLIENT_ORIGIN:-http://localhost:5173}"
 INSTALL_CASSANDRA="${INSTALL_CASSANDRA:-0}"
 INSTALL_OLLAMA="${INSTALL_OLLAMA:-0}"
 OLLAMA_MODEL="${OLLAMA_MODEL:-gemma4:e4b}"
+INSTALL_HIRES_DEPS="${INSTALL_HIRES_DEPS:-0}"
 
 echo "[1/8] Ubuntu 패키지 설치"
 sudo apt-get update -y
@@ -160,8 +161,12 @@ echo "[7/8] Python venv 및 RAG 의존성 설치"
 python3 -m venv --clear "$ROOT_DIR/.venv"
 source "$ROOT_DIR/.venv/bin/activate"
 python -m pip install -U pip wheel packaging "setuptools<82"
-# 불필요한 오디오/비전 패키지의 torch 버전 핀 충돌 제거
-python -m pip uninstall -y torchaudio torchvision >/dev/null 2>&1 || true
+# 오디오 패키지는 미사용이므로 충돌 방지 차원에서 제거
+python -m pip uninstall -y torchaudio >/dev/null 2>&1 || true
+# 기본 설치에서는 torchvision 제거(hi_res 의존성은 DGX 스크립트에서 설치)
+if [[ "$INSTALL_HIRES_DEPS" != "1" ]]; then
+  python -m pip uninstall -y torchvision timm >/dev/null 2>&1 || true
+fi
 python -m pip install -r "$ROOT_DIR/server/requirements.txt"
 python - <<'PY'
 import torch
