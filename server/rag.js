@@ -52,7 +52,7 @@ function buildTrainerConfig(cfg, ragCfg) {
     chunk_overlap: ragCfg.chunk_overlap ?? 100,
     vector_size: ragCfg.vectorSize ?? 1024,
     trainer_timeout_sec: ragCfg.trainer_timeout_sec ?? 1800,
-    pdf_parse_strategy: ragCfg.pdf_parse_strategy ?? 'fast',
+    pdf_parse_strategy: ragCfg.pdf_parse_strategy ?? 'auto',
     pdf_parse_timeout_sec: ragCfg.pdf_parse_timeout_sec ?? 180,
   }
 }
@@ -94,6 +94,7 @@ function callPythonTrainer(payload, options = {}) {
     const timeoutMs = options.timeoutMs || normalizeTrainerTimeoutMs(payload?.config || {})
     const proc = spawn(getPythonExecutable(), [scriptPath], { timeout: timeoutMs })
 
+    proc.stdin.on('error', () => {})
     proc.stdin.write(JSON.stringify(payload))
     proc.stdin.end()
 
@@ -112,6 +113,13 @@ function callPythonTrainer(payload, options = {}) {
   })
 }
 
+// ─── 학습 제외 조건: 첨부 없고 100자 미만 ────────────────────
+const RAG_MIN_CONTENT_LENGTH = 100
+
+function shouldSkipTraining(content, pdfs, words) {
+  return pdfs.length === 0 && words.length === 0 && (content || '').length < RAG_MIN_CONTENT_LENGTH
+}
+
 // ─── 실제 학습 로직 ───────────────────────────────────────────
 async function runTraining(posts) {
   if (posts.length === 0) {
@@ -123,7 +131,7 @@ async function runTraining(posts) {
   const ragCfg = cfg.rag || {}
 
   // 각 게시글의 PDF + Word 첨부파일 경로를 함께 전달
-  const postsWithPdfs = await Promise.all(
+  const postsWithPdfs = (await Promise.all(
     posts.map(async post => {
       const { pdfs, words } = await getDocumentPathsForPost(post.id)
       return {
@@ -135,14 +143,25 @@ async function runTraining(posts) {
         words,
       }
     })
-  )
+  )).filter(p => {
+    if (shouldSkipTraining(p.content, p.pdfs, p.words)) {
+      console.log(`[RAG] 학습 제외 (게시글): ${p.id} — 첨부파일 없음, ${(p.content || '').length}자`)
+      return false
+    }
+    return true
+  })
+
+  if (postsWithPdfs.length === 0) {
+    console.log('[RAG] 학습 제외 후 학습할 게시글이 없습니다.')
+    return
+  }
 
   const payload = {
     config: buildTrainerConfig(cfg, ragCfg),
     posts: postsWithPdfs,
   }
 
-  console.log(`[RAG] 학습 시작 — ${posts.length}개 게시글`)
+  console.log(`[RAG] 학습 시작 — ${postsWithPdfs.length}개 게시글 (제외: ${posts.length - postsWithPdfs.length}개)`)
   await callPythonTrainer(payload)
   console.log('[RAG] 학습 완료')
 }
@@ -269,7 +288,7 @@ async function runCommentTraining(comments) {
   const ragCfg = cfg.rag || {}
 
   // 각 댓글의 PDF + Word 첨부파일 경로 조회
-  const commentsWithDocs = await Promise.all(
+  const commentsWithDocs = (await Promise.all(
     comments.map(async c => {
       const { pdfs, words } = await getDocumentPathsByIds(c.attachmentIds || [])
       return {
@@ -281,7 +300,18 @@ async function runCommentTraining(comments) {
         words,
       }
     })
-  )
+  )).filter(c => {
+    if (shouldSkipTraining(c.content, c.pdfs, c.words)) {
+      console.log(`[RAG] 학습 제외 (댓글): ${c.id} — 첨부파일 없음, ${(c.content || '').length}자`)
+      return false
+    }
+    return true
+  })
+
+  if (commentsWithDocs.length === 0) {
+    console.log('[RAG] 학습 제외 후 학습할 댓글이 없습니다.')
+    return
+  }
 
   const payload = {
     config: buildTrainerConfig(cfg, ragCfg),
@@ -290,7 +320,7 @@ async function runCommentTraining(comments) {
   }
 
   const startedAt = Date.now()
-  console.log(`[RAG] 댓글 학습 시작 — ${comments.length}개 댓글`)
+  console.log(`[RAG] 댓글 학습 시작 — ${commentsWithDocs.length}개 댓글 (제외: ${comments.length - commentsWithDocs.length}개)`)
   try {
     await callPythonTrainer(payload)
     const elapsedSec = ((Date.now() - startedAt) / 1000).toFixed(1)

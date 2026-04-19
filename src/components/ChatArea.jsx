@@ -47,6 +47,37 @@ function normalizeGatewayUrl(url) {
   }
 }
 
+function extractHttpUrls(text = '') {
+  const urls = new Set()
+
+  const markdownLinkPattern = /\[[^\]]+\]\((https?:\/\/[^\s)]+)\)/gi
+  const rawUrlPattern = /https?:\/\/[^\s<>"'`]+/gi
+
+  const normalizeUrl = (candidate) => {
+    if (!candidate) return null
+    let cleaned = candidate.trim().replace(/[),.;!?]+$/g, '')
+    try {
+      const parsed = new URL(cleaned)
+      if (!/^https?:$/i.test(parsed.protocol)) return null
+      return parsed.toString()
+    } catch {
+      return null
+    }
+  }
+
+  let match
+  while ((match = markdownLinkPattern.exec(text)) !== null) {
+    const normalized = normalizeUrl(match[1])
+    if (normalized) urls.add(normalized)
+  }
+  while ((match = rawUrlPattern.exec(text)) !== null) {
+    const normalized = normalizeUrl(match[0])
+    if (normalized) urls.add(normalized)
+  }
+
+  return Array.from(urls)
+}
+
 function getFileCategory(type, name) {
   if (type.startsWith('image/')) return 'image'
   if (type === 'application/pdf') return 'pdf'
@@ -62,12 +93,15 @@ function getFileCategory(type, name) {
   return 'file'
 }
 
-function getPreviewDimensions(f, moviePreviewOverride, htmlPreviewOverride) {
+function getPreviewDimensions(f, moviePreviewOverride, htmlPreviewOverride, pdfPreviewOverride) {
   const name = (f.name || '').toLowerCase()
+  const type = (f.type || '').toLowerCase()
+  const isPdf = type === 'application/pdf' || /\.pdf($|\?)/i.test(name)
   if (name.endsWith('.pptx')) return config.pptxPreview || config.imagePreview
   if (name.endsWith('.ppt')) return config.pptPreview || config.imagePreview
   if (name.endsWith('.xlsx') || name.endsWith('.xls')) return config.excelPreview || config.imagePreview
   if (name.endsWith('.docx') || name.endsWith('.doc')) return config.wordPreview || config.imagePreview
+  if (isPdf) return pdfPreviewOverride || config.pdfPreview || { width: 480, height: 270 }
   if (/\.(avi|mov|mp4)$/i.test(name)) return moviePreviewOverride || config.moviePreview || config.imagePreview
   if (/\.html?$/i.test(name)) return htmlPreviewOverride || config.htmlPreview || { width: 480, height: 270 }
   return config.imagePreview
@@ -356,20 +390,227 @@ function VideoPlayer({ file, fileUrl, onClose }) {
   )
 }
 
+function PdfModalViewer({ fileId, onClose }) {
+  const canvasRef = useRef(null)
+  const [pdfDoc, setPdfDoc] = useState(null)
+  const [totalPages, setTotalPages] = useState(0)
+  const [page, setPage] = useState(1)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(false)
+  const [renderWidth, setRenderWidth] = useState(() => Math.min(Math.max(window.innerWidth - 120, 360), 1100))
+
+  useEffect(() => {
+    const onResize = () => setRenderWidth(Math.min(Math.max(window.innerWidth - 120, 360), 1100))
+    window.addEventListener('resize', onResize)
+    return () => window.removeEventListener('resize', onResize)
+  }, [])
+
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key === 'Escape') {
+        e.preventDefault()
+        onClose?.()
+        return
+      }
+      if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+        e.preventDefault()
+        setPage(p => Math.min(totalPages || 1, p + 1))
+        return
+      }
+      if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+        e.preventDefault()
+        setPage(p => Math.max(1, p - 1))
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [totalPages, onClose])
+
+  useEffect(() => {
+    if (!fileId) return
+    let cancelled = false
+    setLoading(true)
+    setError(false)
+
+    ;(async () => {
+      try {
+        const url = `/api/files/view/${fileId}?auth_token=${getToken()}`
+        const resp = await fetch(url)
+        if (!resp.ok) throw new Error('fetch failed')
+        const arrayBuffer = await resp.arrayBuffer()
+        if (cancelled) return
+
+        const pdfjsLib = await import('pdfjs-dist')
+        pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
+          'pdfjs-dist/build/pdf.worker.min.mjs', import.meta.url
+        ).href
+
+        const doc = await pdfjsLib.getDocument({ data: arrayBuffer }).promise
+        if (cancelled) return
+        setPdfDoc(doc)
+        setTotalPages(doc.numPages || 0)
+        setPage(1)
+      } catch {
+        if (!cancelled) {
+          setError(true)
+          setLoading(false)
+        }
+      }
+    })()
+
+    return () => { cancelled = true }
+  }, [fileId])
+
+  useEffect(() => {
+    if (!pdfDoc || !canvasRef.current) return
+    let cancelled = false
+    setLoading(true)
+    setError(false)
+
+    ;(async () => {
+      try {
+        const p = await pdfDoc.getPage(page)
+        if (cancelled) return
+        const naturalW = p.getViewport({ scale: 1 }).width
+        const viewport = p.getViewport({ scale: renderWidth / naturalW })
+
+        const canvas = canvasRef.current
+        if (!canvas) return
+        const ctx = canvas.getContext('2d')
+        canvas.width = viewport.width
+        canvas.height = viewport.height
+        await p.render({ canvasContext: ctx, viewport }).promise
+        if (!cancelled) setLoading(false)
+      } catch {
+        if (!cancelled) {
+          setError(true)
+          setLoading(false)
+        }
+      }
+    })()
+
+    return () => { cancelled = true }
+  }, [pdfDoc, page, renderWidth])
+
+  if (error) {
+    return <div className="h-full flex items-center justify-center text-gray-500">PDF 미리보기를 불러오지 못했습니다.</div>
+  }
+
+  return (
+    <div className="h-full flex flex-col">
+      <div className="h-11 border-b border-gray-200 bg-gray-50 flex items-center justify-center gap-3 text-sm text-gray-700">
+        <button
+          type="button"
+          onClick={() => setPage(p => Math.max(1, p - 1))}
+          disabled={page <= 1 || loading}
+          className="px-3 py-1.5 rounded-lg border border-gray-300 disabled:opacity-40"
+        >
+          이전
+        </button>
+        <span>{totalPages > 0 ? `${page} / ${totalPages}` : '-'}</span>
+        <button
+          type="button"
+          onClick={() => setPage(p => Math.min(totalPages || 1, p + 1))}
+          disabled={page >= totalPages || loading}
+          className="px-3 py-1.5 rounded-lg border border-gray-300 disabled:opacity-40"
+        >
+          다음
+        </button>
+      </div>
+      <div className="flex-1 overflow-auto bg-gray-100 p-4">
+        <div className="mx-auto relative" style={{ width: renderWidth, maxWidth: '100%' }}>
+          {loading && (
+            <div className="absolute inset-0 flex items-center justify-center bg-white/80 rounded">
+              <div className="w-6 h-6 border-2 border-gray-300 border-t-red-400 rounded-full animate-spin" />
+            </div>
+          )}
+          <canvas ref={canvasRef} className="w-full rounded border border-gray-200 bg-white shadow-sm" />
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function FilePreviewModal({ file, fileUrl, onClose }) {
+  const [failed, setFailed] = useState(false)
+  const isPdf = (file?.type || '').toLowerCase() === 'application/pdf' || /\.pdf($|\?)/i.test((file?.name || '').toLowerCase())
+
+  useEffect(() => {
+    const onKey = e => { if (e.key === 'Escape') onClose() }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [onClose])
+
+  return (
+    <div
+      className="fixed inset-0 z-[200] flex items-center justify-center bg-black/85 backdrop-blur-sm px-4"
+      onClick={onClose}
+    >
+      <div
+        className="relative w-full max-w-6xl h-[85vh] rounded-2xl overflow-hidden border border-gray-200 bg-white shadow-2xl"
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="h-11 px-4 border-b border-gray-200 bg-gray-50 flex items-center justify-between">
+          <p className="text-sm text-gray-700 truncate pr-4">{file?.name || ''}</p>
+          <div className="flex items-center gap-2">
+            <a
+              href={fileUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="text-xs px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white transition-colors"
+            >
+              새 창에서 열기
+            </a>
+            <button
+              type="button"
+              onClick={onClose}
+              className="w-8 h-8 rounded-lg bg-gray-200 hover:bg-gray-300 text-gray-700 flex items-center justify-center transition-colors"
+              aria-label="미리보기 닫기"
+              title="닫기"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        </div>
+        {isPdf ? (
+          <PdfModalViewer fileId={file?.id} onClose={onClose} />
+        ) : !failed ? (
+          <iframe
+            src={fileUrl}
+            title={`file-preview-${file?.id || file?.name || 'file'}`}
+            className="w-full h-[calc(85vh-44px)]"
+            style={{ border: 'none', background: '#fff' }}
+            onError={() => setFailed(true)}
+          />
+        ) : (
+          <div className="h-[calc(85vh-44px)] flex items-center justify-center text-gray-500 text-sm">
+            미리보기를 불러올 수 없습니다.
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 // ─── Attachment list in post detail ──────────────────────────
 
 function AttachmentList({ attachments, compact = false }) {
   const t = useT()
   const [moviePreviewSize, setMoviePreviewSize] = useState(config.moviePreview || { width: 480, height: 270 })
   const [htmlPreviewSize, setHtmlPreviewSize] = useState(config.htmlPreview || { width: 480, height: 270 })
+  const [pdfPreviewSize, setPdfPreviewSize] = useState(config.pdfPreview || { width: 480, height: 270 })
   const [lightboxFile, setLightboxFile] = useState(null)
   const [videoFile, setVideoFile] = useState(null)
+  const [previewFile, setPreviewFile] = useState(null)
 
   useEffect(() => {
     apiFetch('/config/display')
       .then(data => {
         if (data.moviePreview) setMoviePreviewSize(data.moviePreview)
         if (data.htmlPreview) setHtmlPreviewSize(data.htmlPreview)
+        if (data.pdfPreview) setPdfPreviewSize(data.pdfPreview)
       })
       .catch(() => {})
   }, [])
@@ -401,11 +642,10 @@ function AttachmentList({ attachments, compact = false }) {
     setVideoFile(f)
   }
 
-  // 일반 파일 클릭 → 브라우저 새 탭
+  // 일반 파일 클릭 → 미리보기 모달
   function handleFileClick(e, f) {
     e.preventDefault()
-    const url = fileUrl(f)
-    if (url) window.open(url, '_blank')
+    setPreviewFile(f)
   }
 
   // 네이티브 앱으로 열기 (별도 버튼)
@@ -448,6 +688,13 @@ function AttachmentList({ attachments, compact = false }) {
           onClose={() => setVideoFile(null)}
         />
       )}
+      {previewFile && fileUrl(previewFile) && (
+        <FilePreviewModal
+          file={previewFile}
+          fileUrl={fileUrl(previewFile)}
+          onClose={() => setPreviewFile(null)}
+        />
+      )}
 
       <div className="mt-6 border-t border-gray-200 pt-5">
         <h4 className="text-gray-500 text-xs font-semibold uppercase tracking-widest mb-3 flex items-center gap-1.5">
@@ -460,11 +707,14 @@ function AttachmentList({ attachments, compact = false }) {
         <div className="flex flex-wrap gap-3">
           {attachments.map(f => {
             const category = getFileCategory(f.type || '', f.name || '')
-            const dims = getPreviewDimensions(f, moviePreviewSize, htmlPreviewSize)
-            const MAX_W = compact ? 180 : Infinity
-            const MAX_THUMB_H = compact ? 140 : 240
-            const w = Math.min(dims.width, MAX_W)
-            const h = Math.min(dims.height, MAX_THUMB_H)
+            const dims = getPreviewDimensions(f, moviePreviewSize, htmlPreviewSize, pdfPreviewSize)
+            const previewW = Number(dims?.width) || 480
+            const previewH = Number(dims?.height) || 270
+            const isPdf = category === 'pdf'
+            const MAX_W = compact && !isPdf ? 180 : Infinity
+            const MAX_THUMB_H = compact && !isPdf ? 140 : Infinity
+            const w = Math.min(previewW, MAX_W)
+            const h = Math.min(previewH, MAX_THUMB_H)
 
             // ── Video → 비디오 플레이어 모달 ──────────────────
             if (category === 'video') {
@@ -542,8 +792,8 @@ function AttachmentList({ attachments, compact = false }) {
                     onClick={e => handleFileClick(e, f)}
                   >
                     <img src={tUrl} alt={f.name}
-                      className="block group-hover:opacity-90 transition-opacity bg-gray-100"
-                      style={{ width: w, height: h, maxWidth: '100%', objectFit: 'cover' }}
+                      className="block group-hover:opacity-90 transition-opacity bg-white"
+                      style={{ width: w, height: h, maxWidth: '100%', objectFit: 'contain' }}
                       onError={e => { e.target.style.display = 'none' }}
                     />
                     <div className="px-3 py-2 flex items-center justify-between bg-gray-50">
@@ -899,8 +1149,81 @@ function TemplateRenderer({ html, postId, onContentChange, onSave }) {
 
 // ─── Content renderer ─────────────────────────────────────────
 
+function LinkPreviewCards({ links = [] }) {
+  const [htmlPreviewSize, setHtmlPreviewSize] = useState(config.htmlPreview || { width: 480, height: 270 })
+  const safeLinks = links.filter(Boolean).slice(0, 1)
+
+  useEffect(() => {
+    if (safeLinks.length === 0) return
+    apiFetch('/config/display')
+      .then(data => {
+        if (data?.htmlPreview?.width && data?.htmlPreview?.height) {
+          setHtmlPreviewSize(data.htmlPreview)
+        }
+      })
+      .catch(() => {})
+  }, [safeLinks.length])
+
+  if (safeLinks.length === 0) return null
+
+  const width = Number(htmlPreviewSize.width) || 480
+  const height = Number(htmlPreviewSize.height) || 270
+  const baseViewportWidth = 1366
+  const baseViewportHeight = 768
+  const previewScale = Math.min(width / baseViewportWidth, height / baseViewportHeight)
+
+  return (
+    <div className="mt-3 space-y-3">
+      {safeLinks.map((url) => (
+        <a
+          key={url}
+          href={url}
+          target="_blank"
+          rel="noreferrer"
+          className="block rounded-xl border border-gray-200 overflow-hidden hover:border-indigo-300 transition-colors bg-white"
+          style={{ width: '100%', maxWidth: width }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="px-3 py-2 bg-gray-50 border-b border-gray-200 text-xs text-indigo-600 truncate">
+            {url}
+          </div>
+          <div
+            style={{
+              width: '100%',
+              height,
+              position: 'relative',
+              overflow: 'hidden',
+              background: '#fff',
+            }}
+          >
+            <iframe
+              src={url}
+              title={`link-preview-${url}`}
+              loading="lazy"
+              sandbox="allow-same-origin"
+              style={{
+                width: baseViewportWidth,
+                height: baseViewportHeight,
+                border: 'none',
+                position: 'absolute',
+                left: '50%',
+                top: '50%',
+                transformOrigin: 'center center',
+                transform: `translate(-50%, -50%) scale(${previewScale})`,
+                pointerEvents: 'none',
+                background: '#fff',
+              }}
+            />
+          </div>
+        </a>
+      ))}
+    </div>
+  )
+}
+
 function ContentRenderer({ text = '' }) {
   const normalized = normalizeMarkdownCodeFence(text || '')
+  const links = extractHttpUrls(text || '')
   return (
     <div className="text-gray-700 text-sm leading-relaxed break-words">
       <ReactMarkdown
@@ -935,6 +1258,7 @@ function ContentRenderer({ text = '' }) {
       >
         {normalized}
       </ReactMarkdown>
+      <LinkPreviewCards links={links} />
     </div>
   )
 }
@@ -1642,7 +1966,6 @@ function PostDetail({ post, channelId, onClose }) {
   const { currentUser, maxAttachmentFileSize } = useAuth()
   const [comment, setComment] = useState('')
   const [viewed, setViewed] = useState(false)
-  const [showManageModal, setShowManageModal] = useState(false)
   const [showSendToDMModal, setShowSendToDMModal] = useState(false)
   const [dmConversations, setDmConversations] = useState([])
   const [loadingDMConversations, setLoadingDMConversations] = useState(false)
@@ -1920,18 +2243,6 @@ function PostDetail({ post, channelId, onClose }) {
             {t.chat.sendToDM}
           </button>
         )}
-        {isAdmin && (
-          <button
-            onClick={() => setShowManageModal(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-50 border border-indigo-200 text-indigo-600 hover:bg-indigo-100 transition-all text-xs font-semibold"
-          >
-            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-            </svg>
-            {t.chat.manageChannel}
-          </button>
-        )}
         {/* Close right panel */}
         <button
           onClick={onClose}
@@ -1942,13 +2253,6 @@ function PostDetail({ post, channelId, onClose }) {
           </svg>
         </button>
       </div>
-
-      {showManageModal && (
-        <ChannelManageModal 
-          onClose={() => setShowManageModal(false)} 
-          onSave={() => refreshTeams()}
-        />
-      )}
 
       {showSendToDMModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">

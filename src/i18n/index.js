@@ -224,9 +224,9 @@ export const translations = {
       add: '추가',
       // SiteAdminPage
       deleteConfirm: (name) => `'${name}' 계정을 삭제하시겠습니까?`,
-      settingsSaved: '설정이 저장되었습니다.',
+      settingsSaved: '잘 저장되었습니다. 감사합니다.',
       lancedbReinitComplete: 'LanceDB 재초기화 완료',
-      settingsSavedWithReinit: (msg) => `설정이 저장되었습니다.\n${msg}`,
+      settingsSavedWithReinit: () => '잘 저장되었습니다. 감사합니다.',
       settingsReinitFailed: (msg) => `설정은 저장되었으나 LanceDB 재초기화 실패:\n${msg}`,
       settingsSaveFailed: (msg) => `저장 실패: ${msg}`,
       ragTrainingConfirm: '지금 RAG 학습을 시작하시겠습니까? 데이터양에 따라 시간이 소요될 수 있습니다.',
@@ -357,6 +357,11 @@ export const translations = {
       ragChunkSizeLabel: '한 청크당 글자 수',
       ragChunkUnit: '글자',
       ragChunkOverlapLabel: '청크 간 중복 영역 글자 수',
+      ragLearningOptionsTitle: 'RAG 학습 옵션',
+      ragLearningOptionsDesc: 'PDF 학습 전략 옵션을 선택합니다.',
+      ragPdfStrategyLabel: 'PDF 학습 전략 옵션',
+      ragPdfStrategyAutoDesc: '컨텐츠에 따라서 학습 채널을 가변하는 옵션입니다.',
+      ragPdfStrategyFastDesc: '빠르게 학습하는 옵션입니다.',
       // Display tab
       displayTabTitle: '전역 디스플레이 설정',
       displaySaveBtn: '저장',
@@ -390,6 +395,8 @@ export const translations = {
       // PreviewSettingCard titles/descriptions
       previewImageTitle: 'Image Preview 설정',
       previewImageDesc: '게시판 및 채팅 영역에서 이미지가 표시될 때 적용되는 기본 규격입니다.',
+      previewPdfTitle: 'PDF Preview 설정',
+      previewPdfDesc: 'PDF 파일의 미리보기 규격입니다.',
       previewPptTitle: 'PPT Preview 설정',
       previewPptDesc: 'PPT 파일의 미리보기 규격입니다.',
       previewPptxTitle: 'PPTX Preview 설정',
@@ -765,6 +772,11 @@ export const translations = {
       ragChunkSizeLabel: 'Characters per chunk',
       ragChunkUnit: 'chars',
       ragChunkOverlapLabel: 'Overlap characters between chunks',
+      ragLearningOptionsTitle: 'RAG Learning Options',
+      ragLearningOptionsDesc: 'Choose the PDF learning strategy option.',
+      ragPdfStrategyLabel: 'PDF Learning Strategy',
+      ragPdfStrategyAutoDesc: 'Automatically adjusts the learning channel based on content.',
+      ragPdfStrategyFastDesc: 'Uses a faster learning option.',
       // Display tab
       displayTabTitle: 'Global Display Settings',
       displaySaveBtn: 'Save',
@@ -800,6 +812,8 @@ export const translations = {
       // PreviewSettingCard titles/descriptions
       previewImageTitle: 'Image Preview Settings',
       previewImageDesc: 'Default dimensions for images displayed in boards and chat.',
+      previewPdfTitle: 'PDF Preview Settings',
+      previewPdfDesc: 'Preview dimensions for PDF files.',
       previewPptTitle: 'PPT Preview Settings',
       previewPptDesc: 'Preview dimensions for PPT files.',
       previewPptxTitle: 'PPTX Preview Settings',

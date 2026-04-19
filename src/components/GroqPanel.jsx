@@ -24,6 +24,7 @@ function buildSystemPrompt(language) {
   return `당신은 EasyStation의 AI 어시스턴트입니다.
 반드시 제공된 [참고 정보]에 있는 내용만을 근거로 답변하세요.
 참고 정보에 없는 사실은 추측하거나 일반 지식으로 보충하지 마세요.
+[AI 이미지 분석 (Gemma Vision)]으로 표시된 블록은 문서 이미지를 Gemma 비전 모델이 분석한 설명문입니다. 이 내용도 근거로 활용하세요.
 단, 사용자가 요청한 언어/톤/역할(예: 일본어 답변, 엔지니어 톤)은 사실 판단과 무관한 표현 지시이므로 반영하세요.
 기본 답변 언어는 ${label}입니다.`
 }
@@ -81,6 +82,25 @@ function extractSourceHints(text = '') {
   const src = String(text || '')
   const matches = src.match(/[A-Za-z0-9가-힣_.()\-]+\.(pdf|docx|doc|pptx|xlsx|csv|txt|md)/gi) || []
   return [...new Set(matches.map(v => v.trim()).filter(Boolean))]
+}
+
+function normalizeRetrievalConfig(cfg = {}) {
+  const searchTypeRaw = String(cfg?.search_type || cfg?.searchType || 'mmr').toLowerCase()
+  const search_type = ['similarity', 'mmr', 'similarity_score_threshold'].includes(searchTypeRaw)
+    ? searchTypeRaw
+    : 'mmr'
+  const k = Number.isFinite(Number(cfg?.k)) ? Math.max(1, Math.min(20, Number(cfg.k))) : 8
+  const fetch_k = Number.isFinite(Number(cfg?.fetch_k ?? cfg?.fetchK))
+    ? Math.max(k, Math.min(80, Number(cfg.fetch_k ?? cfg.fetchK)))
+    : Math.max(24, k * 3)
+  const score_threshold = Number.isFinite(Number(cfg?.score_threshold ?? cfg?.scoreThreshold))
+    ? Math.max(0, Math.min(1, Number(cfg.score_threshold ?? cfg.scoreThreshold)))
+    : 0
+  const mmr_lambda = Number.isFinite(Number(cfg?.mmr_lambda ?? cfg?.mmrLambda))
+    ? Math.max(0, Math.min(1, Number(cfg.mmr_lambda ?? cfg.mmrLambda)))
+    : 0.7
+  const filter = cfg?.filter && typeof cfg.filter === 'object' ? cfg.filter : {}
+  return { search_type, k, fetch_k, score_threshold, mmr_lambda, filter }
 }
 
 function formatTime(isoString) {
@@ -186,6 +206,7 @@ export default function GroqPanel({ width }) {
   const [error, setError] = useState(null)
   const [attachedFile, setAttachedFile] = useState(null)
   const [aiConfig, setAiConfig] = useState({ num_predict: 2048, num_ctx: 8192, history: 6, language: 'ko' })
+  const [ragRetrieval, setRagRetrieval] = useState(normalizeRetrievalConfig({}))
   const fileInputRef = useRef(null)
   const bottomRef = useRef(null)
   const textareaRef = useRef(null)
@@ -209,8 +230,12 @@ export default function GroqPanel({ width }) {
   useEffect(() => {
     async function fetchConfig() {
       try {
-        const data = await apiFetch('/config/agenticai')
-        setAiConfig(prev => ({ ...prev, ...data, language: resolveLanguageCode(data?.language) }))
+        const [aiData, ragRetrievalData] = await Promise.all([
+          apiFetch('/config/agenticai'),
+          apiFetch('/config/rag-retrieval').catch(() => ({})),
+        ])
+        setAiConfig(prev => ({ ...prev, ...aiData, language: resolveLanguageCode(aiData?.language) }))
+        setRagRetrieval(normalizeRetrievalConfig(ragRetrievalData))
       } catch (e) {
         console.error('Failed to load AI config:', e)
       }
@@ -273,9 +298,19 @@ export default function GroqPanel({ width }) {
       try {
         const dynamicLimit = isCommandQuery(text) || isTemporalQuery(text) ? 10 : isEnumerationQuery(text) ? 8 : 5
         const preferredSources = extractSourceHints(text)
+        const retrievalPayload = {
+          ...ragRetrieval,
+          k: Math.max(dynamicLimit, ragRetrieval.k || dynamicLimit),
+          fetch_k: Math.max((ragRetrieval.fetch_k || dynamicLimit * 3), dynamicLimit * 3),
+        }
         const ragResult = await apiFetch('/rag/search', {
           method: 'POST',
-          body: JSON.stringify({ query: text, limit: dynamicLimit, preferred_sources: preferredSources }),
+          body: JSON.stringify({
+            query: text,
+            limit: dynamicLimit,
+            preferred_sources: preferredSources,
+            retrieval: retrievalPayload,
+          }),
         })
         ragContext = ragResult.context || ''
         ragReferences = ragResult.references || []
@@ -589,12 +624,28 @@ export default function GroqPanel({ width }) {
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                             </svg>
                           )}
-                          <div className="flex flex-col min-w-0">
-                            <span className="text-[10px] text-gray-600 truncate leading-tight">{ref.label}</span>
+                          <div className="flex flex-col min-w-0 w-full">
+                            <div className="flex items-center gap-1">
+                              <span className="text-[10px] text-gray-600 truncate leading-tight flex-1">{ref.label}</span>
+                              {ref.type === 'image' && (
+                                <span className="text-[8px] bg-emerald-100 text-emerald-700 px-1 py-0.5 rounded font-medium flex-shrink-0">Gemma AI</span>
+                              )}
+                            </div>
                             <span className="text-[9px] text-gray-400 leading-tight">
                               {ref.team ? `${ref.team} · ` : ''}{ref.channel || ''}
                               {ref.page_number > 0 ? `${ref.channel ? ' · ' : ''}p.${ref.page_number}` : ''}
                             </span>
+                            {ref.type === 'image' && ref.img_path && (
+                              <div className="mt-1.5 rounded overflow-hidden border border-emerald-200 bg-gray-50" style={{ width: '100%', maxHeight: 80 }}>
+                                <img
+                                  src={`/api/rag/image?path=${encodeURIComponent(ref.img_path)}`}
+                                  alt={ref.label}
+                                  className="w-full object-contain"
+                                  style={{ maxHeight: 80 }}
+                                  onError={e => { e.currentTarget.parentElement.style.display = 'none' }}
+                                />
+                              </div>
+                            )}
                           </div>
                         </button>
                       ))}

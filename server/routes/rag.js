@@ -36,7 +36,7 @@ function buildTrainerConfig(cfg, ragCfg) {
     chunk_overlap: ragCfg.chunk_overlap ?? 100,
     vector_size: ragCfg.vectorSize ?? 1024,
     trainer_timeout_sec: ragCfg.trainer_timeout_sec ?? 1800,
-    pdf_parse_strategy: ragCfg.pdf_parse_strategy ?? 'fast',
+    pdf_parse_strategy: ragCfg.pdf_parse_strategy ?? 'auto',
     pdf_parse_timeout_sec: ragCfg.pdf_parse_timeout_sec ?? 180,
   }
 }
@@ -239,6 +239,7 @@ async function buildTrainerPostFromDataset(item) {
   return {
     payload: {
       config: buildTrainerConfig(cfg, ragCfg),
+      delete_ids: [item.id],   // 재학습 시 기존 벡터 먼저 삭제
       posts: [post],
       comments: [],
     }
@@ -432,6 +433,10 @@ function isTemporalQuery(query = '') {
   return /(언제|일시|시간|날짜|시각|기한|기간|몇\s*시|작업\s*희망|예정\s*일시)/i.test(String(query || ''))
 }
 
+function isEnumerationQuery(query = '') {
+  return /(핵심|포인트|항목|목록|가지|종류|설명|내용|특징|요소|이유|방법|단계|순서)/i.test(String(query || ''))
+}
+
 function asNum(value) {
   const n = Number(value)
   return Number.isFinite(n) ? n : 0
@@ -479,6 +484,14 @@ function hasTemporalSignal(doc) {
   return (
     /(작업\s*희망\s*일시|예정\s*일시|시행일자|일시)/i.test(text) ||
     /(\d{4}\s*년\s*\d{1,2}\s*월\s*\d{1,2}\s*일|\d{1,2}:\d{2}\s*~\s*\d{1,2}:\d{2})/.test(text)
+  )
+}
+
+function hasEnumerationSignal(doc) {
+  const text = String(doc?.text || '')
+  return (
+    /(핵심\s*투자\s*포인트|why\s*invest\s*now|핵심\s*포인트|핵심\s*요약)/i.test(text) ||
+    /(^|\n)\s*([0-9]+[.)]|[-•]|①|②|③|④|⑤)\s*/.test(text)
   )
 }
 
@@ -543,6 +556,15 @@ function temporalDocBonus(doc) {
   if (/(작업\s*희망\s*일시|예정\s*일시)/i.test(text)) score += 95
   if (/(\d{4}\s*년\s*\d{1,2}\s*월\s*\d{1,2}\s*일|\d{1,2}:\d{2}\s*~\s*\d{1,2}:\d{2})/.test(text)) score += 80
   if (/(시행일자|일시|시간)/i.test(text)) score += 25
+  return score
+}
+
+function enumerationDocBonus(doc) {
+  const text = String(doc?.text || '')
+  let score = 0
+  if (/(핵심\s*투자\s*포인트|why\s*invest\s*now)/i.test(text)) score += 95
+  if (/(핵심|포인트|요약|투자)/i.test(text)) score += 30
+  if (/(^|\n)\s*([0-9]+[.)]|[-•]|①|②|③|④|⑤)\s*/.test(text)) score += 35
   return score
 }
 
@@ -611,6 +633,116 @@ function mergeUniqueResults(...arrays) {
     }
   }
   return out
+}
+
+function parseRetrievalOptions(raw = {}, fallbackLimit = 5) {
+  const searchTypeRaw = String(raw?.search_type || raw?.searchType || 'similarity').toLowerCase()
+  const searchType = ['similarity', 'mmr', 'similarity_score_threshold'].includes(searchTypeRaw)
+    ? searchTypeRaw
+    : 'similarity'
+  const kRaw = Number(raw?.k)
+  const k = Number.isFinite(kRaw) ? Math.max(1, Math.min(20, Math.floor(kRaw))) : Math.max(1, Math.min(20, fallbackLimit))
+  const fetchKRaw = Number(raw?.fetch_k ?? raw?.fetchK)
+  const fetchK = Number.isFinite(fetchKRaw) ? Math.max(k, Math.min(120, Math.floor(fetchKRaw))) : Math.max(k, Math.min(120, k * 3))
+  const thresholdRaw = Number(raw?.score_threshold ?? raw?.scoreThreshold)
+  const scoreThreshold = Number.isFinite(thresholdRaw) ? Math.max(0, Math.min(1, thresholdRaw)) : 0
+  const mmrLambdaRaw = Number(raw?.mmr_lambda ?? raw?.mmrLambda)
+  const mmrLambda = Number.isFinite(mmrLambdaRaw) ? Math.max(0, Math.min(1, mmrLambdaRaw)) : 0.7
+  const filter = raw?.filter && typeof raw.filter === 'object' ? raw.filter : {}
+  return { searchType, k, fetchK, scoreThreshold, mmrLambda, filter }
+}
+
+function tokenSetFromText(text = '') {
+  const normalized = String(text || '')
+    .toLowerCase()
+    .replace(/[^\w가-힣\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+  if (!normalized) return new Set()
+  const tokens = normalized.split(' ').filter(t => t.length >= 2)
+  return new Set(tokens)
+}
+
+function jaccardSimilarity(aSet, bSet) {
+  if (!aSet?.size || !bSet?.size) return 0
+  let intersection = 0
+  for (const t of aSet) {
+    if (bSet.has(t)) intersection += 1
+  }
+  const union = aSet.size + bSet.size - intersection
+  return union > 0 ? intersection / union : 0
+}
+
+function applySimilarityScoreThreshold(results = [], scoreThreshold = 0) {
+  if (!(scoreThreshold > 0)) return results
+  return results.filter(item => {
+    const distance = asNum(item?.score)
+    const relevance = 1 / (1 + Math.max(0, distance))
+    return relevance >= scoreThreshold
+  })
+}
+
+function applyMetadataFilter(results = [], filter = {}) {
+  if (!filter || typeof filter !== 'object') return results
+  const types = Array.isArray(filter.type)
+    ? filter.type.map(v => String(v || '').toLowerCase()).filter(Boolean)
+    : (filter.type ? [String(filter.type).toLowerCase()] : [])
+  const sourceToken = normalizeMatchToken(filter.source || filter.file_name || '')
+  const pageFrom = Number(filter.page_from ?? filter.pageFrom)
+  const pageTo = Number(filter.page_to ?? filter.pageTo)
+  const channelId = String(filter.channel_id || '').trim()
+  const attachmentId = String(filter.attachment_id || '').trim()
+  const postId = String(filter.post_id || '').trim()
+  const commentId = String(filter.comment_id || '').trim()
+  const fileHash = String(filter.file_hash || '').trim()
+  const docVersion = String(filter.doc_version || '').trim()
+
+  return results.filter(item => {
+    const meta = item?.metadata || {}
+    const type = String(meta.type || '').toLowerCase()
+    const source = normalizeMatchToken(`${meta.source || ''} ${meta.file_name || ''}`)
+    const page = Number(meta.page_number || 0)
+    if (types.length > 0 && !types.includes(type)) return false
+    if (sourceToken && !source.includes(sourceToken)) return false
+    if (Number.isFinite(pageFrom) && page > 0 && page < pageFrom) return false
+    if (Number.isFinite(pageTo) && page > 0 && page > pageTo) return false
+    if (channelId && String(meta.channel_id || '') !== channelId) return false
+    if (attachmentId && String(meta.attachment_id || '') !== attachmentId) return false
+    if (postId && String(meta.post_id || '') !== postId) return false
+    if (commentId && String(meta.comment_id || '') !== commentId) return false
+    if (fileHash && String(meta.file_hash || '') !== fileHash) return false
+    if (docVersion && String(meta.doc_version || '') !== docVersion) return false
+    return true
+  })
+}
+
+function selectByMmr(results = [], k = 5, lambda = 0.7) {
+  if (!Array.isArray(results) || results.length <= 1) return results.slice(0, k)
+  const clampedLambda = Math.max(0, Math.min(1, lambda))
+  const prepared = results.map(item => ({ item, tokenSet: tokenSetFromText(item?.text || ''), relevance: 1 / (1 + Math.max(0, asNum(item?.score))) }))
+  const selected = []
+  const remaining = [...prepared]
+
+  while (selected.length < k && remaining.length > 0) {
+    let bestIdx = 0
+    let bestScore = -Infinity
+    for (let i = 0; i < remaining.length; i += 1) {
+      const cand = remaining[i]
+      let redundancy = 0
+      for (const sel of selected) {
+        redundancy = Math.max(redundancy, jaccardSimilarity(cand.tokenSet, sel.tokenSet))
+      }
+      const mmr = clampedLambda * cand.relevance - (1 - clampedLambda) * redundancy
+      if (mmr > bestScore) {
+        bestScore = mmr
+        bestIdx = i
+      }
+    }
+    selected.push(remaining[bestIdx])
+    remaining.splice(bestIdx, 1)
+  }
+
+  return selected.map(v => v.item)
 }
 
 function safeTrainingPathPart(value, fallback) {
@@ -1052,7 +1184,12 @@ async function enrichReferences(results) {
       return { ...baseRef, type: 'amount', label }
     }
 
-    if (mappedType === 'table' || mappedType === 'image' || mappedType === 'text' || mappedType === 'word') {
+    if (mappedType === 'image') {
+      const label = [fileLabel || '문서', pageLabel, 'IMAGE (Gemma AI)'].filter(Boolean).join(' · ')
+      return { ...baseRef, type: 'image', label, img_path: r.metadata?.img_path || '' }
+    }
+
+    if (mappedType === 'table' || mappedType === 'text' || mappedType === 'word') {
       const typeLabel = mappedType.toUpperCase()
       const label = [fileLabel || '문서', pageLabel, typeLabel].filter(Boolean).join(' · ')
       return { ...baseRef, type: mappedType, label }
@@ -1109,23 +1246,30 @@ function expandPageContextFromTrainingData(results) {
 // ─── POST /api/rag/search ─────────────────────────────────────
 router.post('/search', requireAuth, async (req, res) => {
   try {
-    const { query, limit = 3, preferred_sources: preferredSources = [] } = req.body
+    const { query, limit = 3, preferred_sources: preferredSources = [], retrieval: retrievalRaw = {} } = req.body
     if (!query?.trim()) return res.json({ context: '', references: [] })
     const amountQuery = isAmountQuery(query)
     const commandQuery = isCommandQuery(query)
     const temporalQuery = isTemporalQuery(query)
+    const enumerationQuery = isEnumerationQuery(query)
     const sourceHints = extractSourceHints(query, preferredSources)
-    const requestedLimit = Math.max(1, Number(limit) || 3)
+    const clientLimit = Math.max(1, Number(limit) || 3)
+    const retrievalOptions = parseRetrievalOptions(retrievalRaw, clientLimit)
+    const requestedLimit = Math.max(clientLimit, retrievalOptions.k)
     const effectiveRequestedLimit = commandQuery
       ? Math.max(requestedLimit, 8)
       : temporalQuery
       ? Math.max(requestedLimit, 8)
+      : enumerationQuery
+      ? Math.max(requestedLimit, 8)
       : requestedLimit
     const firstPassLimit = Math.max(
+      retrievalOptions.fetchK,
       effectiveRequestedLimit,
       amountQuery ? 4 : 0,
       commandQuery ? 8 : 0,
       temporalQuery ? 12 : 0,
+      enumerationQuery ? 12 : 0,
     )
 
     const cfg = readConfig()
@@ -1184,18 +1328,34 @@ router.post('/search', requireAuth, async (req, res) => {
       }
     }
 
+    if (enumerationQuery) {
+      const baseResults = Array.isArray(results) ? results : []
+      const needsSecondPass = baseResults.length < Math.max(12, effectiveRequestedLimit * 2) || !baseResults.some(hasEnumerationSignal)
+      if (needsSecondPass) {
+        const secondPassLimit = Math.max(effectiveRequestedLimit * 4, 24)
+        const enumHintQuery = `${query}\n핵심 투자 포인트 WHY INVEST NOW 핵심 요약 1) 2) 3) 4) 5)`
+        const [r2, r3] = await Promise.all([
+          callPythonSearch({ ...payload, limit: secondPassLimit }),
+          callPythonSearch({ ...payload, query: enumHintQuery, limit: secondPassLimit }),
+        ])
+        results = mergeUniqueResults(baseResults, r2, r3)
+      }
+    }
+
     if (!Array.isArray(results) || results.length === 0) {
       return res.json({ context: '', references: [] })
     }
 
     // init 레코드 제외
-    const validResults = mergeUniqueResults(results.filter(r => r.text !== '__init__'))
+    let validResults = mergeUniqueResults(results.filter(r => r.text !== '__init__'))
+    validResults = applyMetadataFilter(validResults, retrievalOptions.filter)
+    validResults = applySimilarityScoreThreshold(validResults, retrievalOptions.searchType === 'similarity_score_threshold' ? retrievalOptions.scoreThreshold : 0)
     if (validResults.length === 0) {
       return res.json({ context: '', references: [] })
     }
 
     let rankedResults = validResults
-    if (amountQuery || commandQuery || temporalQuery || sourceHints.length > 0) {
+    if (amountQuery || commandQuery || temporalQuery || enumerationQuery || sourceHints.length > 0) {
       rankedResults = [...validResults].sort((a, b) => {
         const baseA = -asNum(a?.score)
         const baseB = -asNum(b?.score)
@@ -1213,6 +1373,10 @@ router.post('/search', requireAuth, async (req, res) => {
           scoreA += temporalDocBonus(a)
           scoreB += temporalDocBonus(b)
         }
+        if (enumerationQuery) {
+          scoreA += enumerationDocBonus(a)
+          scoreB += enumerationDocBonus(b)
+        }
         if (sourceHints.length > 0) {
           scoreA += sourceHintBoost(a, sourceHints)
           scoreB += sourceHintBoost(b, sourceHints)
@@ -1220,7 +1384,9 @@ router.post('/search', requireAuth, async (req, res) => {
         return scoreB - scoreA
       })
     }
-    let finalResults = rankedResults.slice(0, effectiveRequestedLimit)
+    let finalResults = retrievalOptions.searchType === 'mmr'
+      ? selectByMmr(rankedResults.slice(0, retrievalOptions.fetchK), effectiveRequestedLimit, retrievalOptions.mmrLambda)
+      : rankedResults.slice(0, effectiveRequestedLimit)
     if (temporalQuery) {
       finalResults = expandTemporalNeighbors(finalResults, rankedResults)
       finalResults = expandTemporalNeighborsFromTrainingData(finalResults)
@@ -1249,6 +1415,12 @@ router.post('/search', requireAuth, async (req, res) => {
       const amountPart = (total > 0 || subtotal > 0 || vat > 0)
         ? ` / amount_total: ${total || 0} / amount_subtotal: ${subtotal || 0} / amount_vat: ${vat || 0}`
         : ''
+
+      if (type === 'image') {
+        const header = `[AI 이미지 분석 (Gemma Vision) - source: ${source}${page > 0 ? ` / page: ${page}` : ''}]`
+        return `${header}\n${r.text}`
+      }
+
       const header = `[source: ${source}${page > 0 ? ` / page: ${page}` : ''} / type: ${type}${amountPart}]`
       return `${header}\n${r.text}`
     }).join('\n\n')
@@ -1267,6 +1439,36 @@ router.post('/search', requireAuth, async (req, res) => {
     // 검색 실패 시 RAG 없이 진행할 수 있도록 빈 결과 반환
     res.json({ context: '', references: [] })
   }
+})
+
+// ─── GET /api/rag/image ──────────────────────────────────────
+// Gemma 이미지 설명에 사용된 원본 이미지 파일 서빙 (참조 패널 썸네일용)
+router.get('/image', requireAuth, (req, res) => {
+  const imgPath = String(req.query.path || '').trim()
+  if (!imgPath) return res.status(400).json({ error: 'path 파라미터가 필요합니다.' })
+
+  let resolved
+  try {
+    resolved = path.resolve(imgPath)
+  } catch (_) {
+    return res.status(400).json({ error: '잘못된 경로입니다.' })
+  }
+
+  // 보안: FileTrainingData 하위 또는 /tmp 하위만 허용
+  const ALLOWED_BASES = [
+    FILE_TRAINING_BASE_PATH,
+    path.resolve('/tmp'),
+    path.resolve('/var/folders'),
+  ]
+  const isAllowed = ALLOWED_BASES.some(base => resolved.startsWith(base))
+  if (!isAllowed) return res.status(403).json({ error: '접근이 허용되지 않은 경로입니다.' })
+  if (!fs.existsSync(resolved)) return res.status(404).json({ error: '이미지 파일이 존재하지 않습니다.' })
+
+  const ext = path.extname(resolved).toLowerCase()
+  const mimeMap = { '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.gif': 'image/gif', '.webp': 'image/webp' }
+  res.setHeader('Content-Type', mimeMap[ext] || 'image/png')
+  res.setHeader('Cache-Control', 'private, max-age=3600')
+  fs.createReadStream(resolved).pipe(res)
 })
 
 // ─── GET /api/rag/datasets ───────────────────────────────────
@@ -1399,6 +1601,47 @@ router.post('/datasets/delete', requireAuth, async (req, res) => {
     res.json({ deleted })
   } catch (e) {
     res.status(500).json({ error: `학습 데이터 삭제 실패: ${e.message}` })
+  }
+})
+
+// ─── POST /api/rag/datasets/reset-vectors ─────────────────────
+// LanceDB 벡터 전체 삭제 + FileTrainingData 전체 삭제 + 인덱스 상태 초기화
+router.post('/datasets/reset-vectors', requireAuth, async (req, res) => {
+  try {
+    const cfg = readConfig()
+    const lancedbPath = getDatabasePath(cfg, 'lancedb Database Path')
+
+    // 1. LanceDB 폴더 내용 전체 삭제 (my_rag_table 포함)
+    if (fs.existsSync(lancedbPath)) {
+      for (const entry of fs.readdirSync(lancedbPath)) {
+        const entryPath = path.join(lancedbPath, entry)
+        try {
+          fs.rmSync(entryPath, { recursive: true, force: true })
+        } catch (_) {}
+      }
+    }
+
+    // 2. FileTrainingData 전체 삭제
+    if (fs.existsSync(FILE_TRAINING_BASE_PATH)) {
+      fs.rmSync(FILE_TRAINING_BASE_PATH, { recursive: true, force: true })
+      fs.mkdirSync(FILE_TRAINING_BASE_PATH, { recursive: true })
+    }
+
+    // 3. RAG 데이터셋 인덱스의 status를 모두 'ready'로 초기화
+    const items = readRagDatasetIndex()
+    items.forEach(item => {
+      item.status = 'ready'
+      delete item.trained_at
+      delete item.error
+    })
+    writeRagDatasetIndex(items)
+
+    res.json({ ok: true, message: '벡터 데이터 전체 초기화 완료' })
+
+    // 4. RAG 서버 재시작 (메모리 캐시 초기화) — 응답 후 비동기로 실행
+    setImmediate(() => { try { restartRagServer() } catch (_) {} })
+  } catch (e) {
+    res.status(500).json({ error: `초기화 실패: ${e.message}` })
   }
 })
 
