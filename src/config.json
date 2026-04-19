@@ -7,6 +7,10 @@
     "width": 480,
     "height": 270
   },
+  "txtPreview": {
+    "width": 270,
+    "height": 480
+  },
   "pptPreview": {
     "width": 480,
     "height": 270

@@ -4,7 +4,7 @@ const { v4: uuidv4 } = require('uuid')
 const { client, isConnected } = require('../cassandra')
 const db = require('../db')
 const requireAuth = require('../middleware/auth')
-const { trainPostImmediate, trainCommentImmediate } = require('../rag')
+const { trainPostImmediate, retrainPostImmediate, trainCommentImmediate, retrainCommentImmediate } = require('../rag')
 const {
   markTrainingStarted,
   markTrainingCompleted,
@@ -563,6 +563,15 @@ router.put('/:id', requireAuth, async (req, res, next) => {
         [content, row.channel_id, row.created_at], { prepare: true }
       )
     }
+
+    // 수정 즉시: 기존 벡터 삭제 후 재학습 (비동기, 응답 비차단)
+    markTrainingStarted('post', id)
+    ;(async () => {
+      const success = await retrainPostImmediate({ id, channel_id: row.channel_id, content })
+      if (success) markTrainingCompleted('post', id)
+      else clearTrainingStatus('post', id)
+    })()
+
     res.json({ success: true })
   } catch (err) {
     next(err)
@@ -635,6 +644,9 @@ router.put('/:postId/comments/:commentId', requireAuth, async (req, res, next) =
   try {
     const { postId, commentId } = req.params
     const { content, attachments = [], security_level } = req.body
+    const attachmentIds = (Array.isArray(attachments) ? attachments : [])
+      .map(item => (typeof item === 'object' ? item.id : item))
+      .filter(Boolean)
     if (!isConnected()) return res.status(503).json({ error: 'Cassandra 연결이 필요합니다.' })
     const row = await findCommentLocator(postId, commentId)
     if (!row) return res.status(404).json({ error: '댓글을 찾을 수 없습니다.' })
@@ -645,14 +657,28 @@ router.put('/:postId/comments/:commentId', requireAuth, async (req, res, next) =
     if (safeLevel !== undefined) {
       await client.execute(
         'UPDATE comments SET content = ?, attachments = ?, security_level = ? WHERE post_id = ? AND created_at = ?',
-        [content, attachments, safeLevel, row.post_id, row.created_at], { prepare: true }
+        [content, attachmentIds, safeLevel, row.post_id, row.created_at], { prepare: true }
       )
     } else {
       await client.execute(
         'UPDATE comments SET content = ?, attachments = ? WHERE post_id = ? AND created_at = ?',
-        [content, attachments, row.post_id, row.created_at], { prepare: true }
+        [content, attachmentIds, row.post_id, row.created_at], { prepare: true }
       )
     }
+
+    // 수정 즉시: 기존 벡터 삭제 후 재학습 (비동기, 응답 비차단)
+    markTrainingStarted('comment', commentId)
+    ;(async () => {
+      const success = await retrainCommentImmediate({
+        id: commentId,
+        post_id: postId,
+        content,
+        attachmentIds,
+      })
+      if (success) markTrainingCompleted('comment', commentId)
+      else clearTrainingStatus('comment', commentId)
+    })()
+
     res.json({ success: true })
   } catch (err) {
     next(err)

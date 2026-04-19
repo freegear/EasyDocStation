@@ -79,6 +79,8 @@ function MainLayout() {
     const params = new URLSearchParams(window.location.search)
     const channelId = params.get('channelId')
     const postId = params.get('postId')
+    const commentId = params.get('commentId')
+    const attachmentId = params.get('attachmentId')
 
     deepLinkHandledRef.current = true
     if (!channelId || !postId) return
@@ -87,15 +89,25 @@ function MainLayout() {
     setShowDM(false)
     setActiveDMConv(null)
 
-    navigateToPost(channelId, postId)
+    navigateToPost(channelId, postId, { commentId, attachmentId })
       .finally(() => {
         const url = new URL(window.location.href)
         url.searchParams.delete('channelId')
         url.searchParams.delete('postId')
+        url.searchParams.delete('commentId')
+        url.searchParams.delete('attachmentId')
         const next = `${url.pathname}${url.search}${url.hash}`
         window.history.replaceState({}, '', next)
       })
   }, [teams, navigateToPost])
+
+  useEffect(() => {
+    function handleOpenAgenticPanel() {
+      setShowAgenticPanel(true)
+    }
+    window.addEventListener('open-agentic-panel', handleOpenAgenticPanel)
+    return () => window.removeEventListener('open-agentic-panel', handleOpenAgenticPanel)
+  }, [])
 
   return (
     <div className="flex flex-col h-screen bg-gray-50 overflow-hidden">

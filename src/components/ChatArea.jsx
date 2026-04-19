@@ -93,10 +93,17 @@ function getFileCategory(type, name) {
   return 'file'
 }
 
-function getPreviewDimensions(f, moviePreviewOverride, htmlPreviewOverride, pdfPreviewOverride) {
+function isTxtFile(file = {}) {
+  const name = (file.name || '').toLowerCase()
+  const type = (file.type || '').toLowerCase()
+  return type === 'text/plain' || /\.txt($|\?)/i.test(name)
+}
+
+function getPreviewDimensions(f, moviePreviewOverride, htmlPreviewOverride, pdfPreviewOverride, txtPreviewOverride) {
   const name = (f.name || '').toLowerCase()
   const type = (f.type || '').toLowerCase()
   const isPdf = type === 'application/pdf' || /\.pdf($|\?)/i.test(name)
+  if (isTxtFile(f)) return txtPreviewOverride || config.txtPreview || { width: 270, height: 480 }
   if (name.endsWith('.pptx')) return config.pptxPreview || config.imagePreview
   if (name.endsWith('.ppt')) return config.pptPreview || config.imagePreview
   if (name.endsWith('.xlsx') || name.endsWith('.xls')) return config.excelPreview || config.imagePreview
@@ -267,6 +274,65 @@ function PdfPagePreview({ fileId, width = 400 }) {
         ref={canvasRef}
         className={`rounded-xl w-full ${loading ? 'opacity-0' : 'opacity-100'} transition-opacity`}
       />
+    </div>
+  )
+}
+
+function TextPlainPreview({ src, width, height }) {
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(false)
+  const [content, setContent] = useState('')
+
+  useEffect(() => {
+    if (!src) return
+    let cancelled = false
+    setLoading(true)
+    setError(false)
+    setContent('')
+
+    ;(async () => {
+      try {
+        const resp = await fetch(src)
+        if (!resp.ok) throw new Error('fetch failed')
+        const text = await resp.text()
+        if (cancelled) return
+        setContent(text || '')
+        setLoading(false)
+      } catch {
+        if (cancelled) return
+        setError(true)
+        setLoading(false)
+      }
+    })()
+
+    return () => { cancelled = true }
+  }, [src])
+
+  if (error) {
+    return (
+      <div
+        className="bg-gray-50 border-b border-gray-200 flex items-center justify-center text-gray-400 text-xs"
+        style={{ width, height }}
+      >
+        TXT 미리보기 불가
+      </div>
+    )
+  }
+
+  return (
+    <div
+      className="bg-gray-50 border-b border-gray-200 overflow-auto"
+      style={{ width, height }}
+    >
+      {loading ? (
+        <div className="w-full h-full flex items-center justify-center">
+          <div className="w-5 h-5 border-2 border-gray-300 border-t-indigo-500 rounded-full animate-spin" />
+        </div>
+      ) : (
+        <pre className="text-[11px] leading-5 text-gray-700 p-3 whitespace-pre-wrap break-words font-mono min-h-full">
+          {content}
+        </pre>
+      )}
     </div>
   )
 }
@@ -534,12 +600,41 @@ function PdfModalViewer({ fileId, onClose }) {
 function FilePreviewModal({ file, fileUrl, onClose }) {
   const [failed, setFailed] = useState(false)
   const isPdf = (file?.type || '').toLowerCase() === 'application/pdf' || /\.pdf($|\?)/i.test((file?.name || '').toLowerCase())
+  const isTxt = isTxtFile(file || {})
+  const [txtLoading, setTxtLoading] = useState(false)
+  const [txtError, setTxtError] = useState(false)
+  const [txtContent, setTxtContent] = useState('')
 
   useEffect(() => {
     const onKey = e => { if (e.key === 'Escape') onClose() }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [onClose])
+
+  useEffect(() => {
+    if (!isTxt || !fileUrl) return
+    let cancelled = false
+    setTxtLoading(true)
+    setTxtError(false)
+    setTxtContent('')
+
+    ;(async () => {
+      try {
+        const resp = await fetch(fileUrl)
+        if (!resp.ok) throw new Error('fetch failed')
+        const text = await resp.text()
+        if (cancelled) return
+        setTxtContent(text || '')
+        setTxtLoading(false)
+      } catch {
+        if (cancelled) return
+        setTxtError(true)
+        setTxtLoading(false)
+      }
+    })()
+
+    return () => { cancelled = true }
+  }, [isTxt, fileUrl])
 
   return (
     <div
@@ -576,6 +671,22 @@ function FilePreviewModal({ file, fileUrl, onClose }) {
         </div>
         {isPdf ? (
           <PdfModalViewer fileId={file?.id} onClose={onClose} />
+        ) : isTxt ? (
+          <div className="h-[calc(85vh-44px)] overflow-auto bg-gray-50">
+            {txtLoading ? (
+              <div className="w-full h-full flex items-center justify-center">
+                <div className="w-6 h-6 border-2 border-gray-300 border-t-indigo-500 rounded-full animate-spin" />
+              </div>
+            ) : txtError ? (
+              <div className="w-full h-full flex items-center justify-center text-gray-500 text-sm">
+                TXT 미리보기를 불러올 수 없습니다.
+              </div>
+            ) : (
+              <pre className="p-4 text-sm leading-6 text-gray-700 whitespace-pre-wrap break-words font-mono">
+                {txtContent}
+              </pre>
+            )}
+          </div>
         ) : !failed ? (
           <iframe
             src={fileUrl}
@@ -601,6 +712,7 @@ function AttachmentList({ attachments, compact = false }) {
   const [moviePreviewSize, setMoviePreviewSize] = useState(config.moviePreview || { width: 480, height: 270 })
   const [htmlPreviewSize, setHtmlPreviewSize] = useState(config.htmlPreview || { width: 480, height: 270 })
   const [pdfPreviewSize, setPdfPreviewSize] = useState(config.pdfPreview || { width: 480, height: 270 })
+  const [txtPreviewSize, setTxtPreviewSize] = useState(config.txtPreview || { width: 270, height: 480 })
   const [lightboxFile, setLightboxFile] = useState(null)
   const [videoFile, setVideoFile] = useState(null)
   const [previewFile, setPreviewFile] = useState(null)
@@ -611,6 +723,7 @@ function AttachmentList({ attachments, compact = false }) {
         if (data.moviePreview) setMoviePreviewSize(data.moviePreview)
         if (data.htmlPreview) setHtmlPreviewSize(data.htmlPreview)
         if (data.pdfPreview) setPdfPreviewSize(data.pdfPreview)
+        if (data.txtPreview) setTxtPreviewSize(data.txtPreview)
       })
       .catch(() => {})
   }, [])
@@ -660,6 +773,34 @@ function AttachmentList({ attachments, compact = false }) {
     }
   }
 
+  function triggerBrowserDownload(url, filename) {
+    if (!url) return
+    const a = document.createElement('a')
+    a.href = url
+    if (filename) a.download = filename
+    a.rel = 'noreferrer'
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+  }
+
+  async function downloadFile(e, f) {
+    e.preventDefault()
+    e.stopPropagation()
+    if (!f?.id || f.url?.startsWith('blob:')) {
+      triggerBrowserDownload(fileUrl(f), f?.name)
+      return
+    }
+    try {
+      const data = await apiFetch(`/files/${f.id}/get-download-url`)
+      if (data?.downloadUrl) {
+        triggerBrowserDownload(data.downloadUrl, f?.name)
+        return
+      }
+    } catch {}
+    triggerBrowserDownload(fileUrl(f), f?.name)
+  }
+
   const NativeOpenBtn = ({ f }) => (
     <button
       title={t.chat.openInApp}
@@ -668,6 +809,18 @@ function AttachmentList({ attachments, compact = false }) {
     >
       <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+      </svg>
+    </button>
+  )
+
+  const DownloadBtn = ({ f }) => (
+    <button
+      title={t.chat.download}
+      onClick={e => downloadFile(e, f)}
+      className="flex-shrink-0 p-1 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-200 transition-colors"
+    >
+      <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v10m0 0l-4-4m4 4l4-4M4 20h16" />
       </svg>
     </button>
   )
@@ -707,12 +860,14 @@ function AttachmentList({ attachments, compact = false }) {
         <div className="flex flex-wrap gap-3">
           {attachments.map(f => {
             const category = getFileCategory(f.type || '', f.name || '')
-            const dims = getPreviewDimensions(f, moviePreviewSize, htmlPreviewSize, pdfPreviewSize)
+            const dims = getPreviewDimensions(f, moviePreviewSize, htmlPreviewSize, pdfPreviewSize, txtPreviewSize)
             const previewW = Number(dims?.width) || 480
             const previewH = Number(dims?.height) || 270
             const isPdf = category === 'pdf'
-            const MAX_W = compact && !isPdf ? 180 : Infinity
-            const MAX_THUMB_H = compact && !isPdf ? 140 : Infinity
+            const isTxt = isTxtFile(f)
+            const shouldClampCompact = compact && !isPdf && !isTxt
+            const MAX_W = shouldClampCompact ? 180 : Infinity
+            const MAX_THUMB_H = shouldClampCompact ? 140 : Infinity
             const w = Math.min(previewW, MAX_W)
             const h = Math.min(previewH, MAX_THUMB_H)
 
@@ -752,6 +907,7 @@ function AttachmentList({ attachments, compact = false }) {
                     <div className="flex items-center gap-1 ml-2 flex-shrink-0">
                       <span className="text-gray-400 text-xs">{formatSize(f.size)}</span>
                       <NativeOpenBtn f={f} />
+                      <DownloadBtn f={f} />
                     </div>
                   </div>
                 </div>
@@ -775,6 +931,7 @@ function AttachmentList({ attachments, compact = false }) {
                     <div className="flex items-center gap-1 ml-2 flex-shrink-0">
                       <span className="text-gray-400 text-xs">{formatSize(f.size)}</span>
                       <NativeOpenBtn f={f} />
+                      <DownloadBtn f={f} />
                     </div>
                   </div>
                 </div>
@@ -804,6 +961,7 @@ function AttachmentList({ attachments, compact = false }) {
                       <div className="flex items-center gap-1 flex-shrink-0">
                         <span className="text-gray-400 text-xs">{formatSize(f.size)}</span>
                         <NativeOpenBtn f={f} />
+                        <DownloadBtn f={f} />
                       </div>
                     </div>
                   </div>
@@ -824,6 +982,7 @@ function AttachmentList({ attachments, compact = false }) {
                     <div className="flex items-center gap-1 flex-shrink-0">
                       <span className="text-gray-400 text-xs">{formatSize(f.size)}</span>
                       <NativeOpenBtn f={f} />
+                      <DownloadBtn f={f} />
                     </div>
                   </div>
                 </div>
@@ -864,6 +1023,30 @@ function AttachmentList({ attachments, compact = false }) {
                     <div className="flex items-center gap-1 ml-2 flex-shrink-0">
                       <span className="text-gray-400 text-xs">{formatSize(f.size)}</span>
                       <NativeOpenBtn f={f} />
+                      <DownloadBtn f={f} />
+                    </div>
+                  </div>
+                </div>
+              )
+            }
+
+            if (isTxtFile(f)) {
+              return (
+                <div key={f.id}
+                  className="rounded-2xl overflow-hidden border border-gray-200 hover:border-gray-300 transition-colors group cursor-pointer flex-shrink-0"
+                  style={{ width: w, maxWidth: '100%' }}
+                  onClick={e => handleFileClick(e, f)}
+                >
+                  <TextPlainPreview src={fileUrl(f)} width={w} height={h} />
+                  <div className="px-3 py-2 flex items-center justify-between bg-gray-50">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <FileTypeIcon category="text" className="w-4 h-4 flex-shrink-0" />
+                      <span className="text-gray-500 text-xs font-medium truncate">{f.name}</span>
+                    </div>
+                    <div className="flex items-center gap-1 ml-2 flex-shrink-0">
+                      <span className="text-gray-400 text-xs">{formatSize(f.size)}</span>
+                      <NativeOpenBtn f={f} />
+                      <DownloadBtn f={f} />
                     </div>
                   </div>
                 </div>
@@ -892,6 +1075,7 @@ function AttachmentList({ attachments, compact = false }) {
                     <div className="flex items-center gap-1 ml-2 flex-shrink-0">
                       <span className="text-gray-400 text-xs">{formatSize(f.size)}</span>
                       <NativeOpenBtn f={f} />
+                      <DownloadBtn f={f} />
                     </div>
                   </div>
                 </div>
@@ -909,6 +1093,7 @@ function AttachmentList({ attachments, compact = false }) {
                   <p className="text-gray-400 text-xs">{formatSize(f.size)}</p>
                 </div>
                 <NativeOpenBtn f={f} />
+                <DownloadBtn f={f} />
               </div>
             )
           })}
@@ -1962,7 +2147,7 @@ function PostCard({ post, onSelect, pinned, isSelected }) {
 
 function PostDetail({ post, channelId, onClose }) {
   const t = useT()
-  const { addComment, incrementViews, deletePost, updatePost, deleteComment, updateComment, posts, refreshTeams, selectedChannel } = useChat()
+  const { addComment, incrementViews, deletePost, updatePost, deleteComment, updateComment, posts, selectedChannel, openInAgenticAI } = useChat()
   const { currentUser, maxAttachmentFileSize } = useAuth()
   const [comment, setComment] = useState('')
   const [viewed, setViewed] = useState(false)
@@ -2163,6 +2348,50 @@ function PostDetail({ post, channelId, onClose }) {
     }
   }
 
+  function buildAgenticPostTarget() {
+    const postLink = `${window.location.origin}/?channelId=${encodeURIComponent(channelId)}&postId=${encodeURIComponent(post.id)}`
+    const titleLine = (freshPost.content || '')
+      .split('\n')
+      .map(v => v.trim())
+      .find(Boolean) || `${freshPost.author?.name || ''} 게시글`
+    return {
+      type: 'post',
+      channelId,
+      postId: post.id,
+      commentId: '',
+      label: titleLine.slice(0, 120),
+      link: postLink,
+      channelName: selectedChannel?.name || channelId,
+    }
+  }
+
+  function buildAgenticCommentTarget(commentObj) {
+    const postLink = `${window.location.origin}/?channelId=${encodeURIComponent(channelId)}&postId=${encodeURIComponent(post.id)}&commentId=${encodeURIComponent(commentObj?.id || '')}`
+    const textLine = (commentObj?.text || commentObj?.content || '')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .slice(0, 120)
+    return {
+      type: 'comment',
+      channelId,
+      postId: post.id,
+      commentId: commentObj?.id || '',
+      label: textLine || `${commentObj?.author?.name || ''} 댓글`,
+      link: postLink,
+      channelName: selectedChannel?.name || channelId,
+    }
+  }
+
+  function handleSendPostToAgenticAI() {
+    openInAgenticAI(buildAgenticPostTarget())
+    window.dispatchEvent(new Event('open-agentic-panel'))
+  }
+
+  function handleSendCommentToAgenticAI(commentObj) {
+    openInAgenticAI(buildAgenticCommentTarget(commentObj))
+    window.dispatchEvent(new Event('open-agentic-panel'))
+  }
+
   async function handleSendPostLinkToDM(conv) {
     if (!conv?.id || sendingToDMId) return
     setSendingToDMId(conv.id)
@@ -2214,9 +2443,17 @@ function PostDetail({ post, channelId, onClose }) {
     setPendingDeleteCommentId(cId)
   }
 
-  function handleCommentUpdate(cId) {
-    updateComment(channelId, post.id, cId, { text: commentEditContent, attachments: commentEditFiles, security_level: commentEditSecurityLevel })
-    setEditingCommentId(null)
+  async function handleCommentUpdate(cId) {
+    try {
+      await updateComment(channelId, post.id, cId, {
+        text: commentEditContent,
+        attachments: commentEditFiles,
+        security_level: commentEditSecurityLevel,
+      })
+      setEditingCommentId(null)
+    } catch (err) {
+      setCommentErrorDialog(`댓글 수정에 실패했습니다: ${err.message}`)
+    }
   }
 
   return (
@@ -2236,12 +2473,20 @@ function PostDetail({ post, channelId, onClose }) {
           </div>
         )}
         {!isEditingPost && !selectedChannel?.is_archived && (
-          <button onClick={openSendToDMModal} className="flex items-center gap-1 text-indigo-600 hover:text-indigo-700 text-xs transition-colors">
-            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
-            </svg>
-            {t.chat.sendToDM}
-          </button>
+          <div className="flex items-center gap-2">
+            <button onClick={handleSendPostToAgenticAI} className="flex items-center gap-1 text-sky-600 hover:text-sky-700 text-xs transition-colors">
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
+              {t.chat.sendToAgenticAI || 'AgenticAI로 보내기'}
+            </button>
+            <button onClick={openSendToDMModal} className="flex items-center gap-1 text-indigo-600 hover:text-indigo-700 text-xs transition-colors">
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+              </svg>
+              {t.chat.sendToDM}
+            </button>
+          </div>
         )}
         {/* Close right panel */}
         <button
@@ -2518,10 +2763,15 @@ function PostDetail({ post, channelId, onClose }) {
                         <span className="text-indigo-600/50 text-[10px]">@{c.author.username}</span>
                       )}
                       <span className="text-gray-400 text-xs">{formatDate(c.createdAt, t)}</span>
-                      {(isSiteAdmin || c.author?.name === currentUser?.name) && editingCommentId !== c.id && !selectedChannel?.is_archived && (
+                      {editingCommentId !== c.id && !selectedChannel?.is_archived && (
                         <div className="ml-auto flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button onClick={() => handleSendCommentToAgenticAI(c)} className="text-sky-600 hover:text-sky-700 text-[10px] font-medium uppercase tracking-tight">{t.chat.sendToAgenticAI || 'AgenticAI'}</button>
+                          {(isSiteAdmin || c.author?.name === currentUser?.name) && (
+                            <>
                           <button onClick={() => startCommentEdit(c)} className="text-gray-400 hover:text-gray-900 text-[10px] font-medium uppercase tracking-tight">{t.chat.edit}</button>
                           <button onClick={() => handleCommentDelete(c.id)} className="text-red-400 hover:text-red-400 text-[10px] font-medium uppercase tracking-tight">{t.chat.delete}</button>
+                            </>
+                          )}
                         </div>
                       )}
                     </div>

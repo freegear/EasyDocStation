@@ -238,33 +238,27 @@ export function ChatProvider({ children }) {
 
   // ─── 댓글 수정 — DB 업데이트 후 state 반영 ──────────────────
   async function updateComment(channelId, postId, commentId, { text, attachments, security_level }) {
+    const attachmentIds = (attachments || [])
+      .map(item => (typeof item === 'object' ? item.id : item))
+      .filter(Boolean)
     try {
       await apiFetch(`/posts/${postId}/comments/${commentId}`, {
         method: 'PUT',
-        body: JSON.stringify({ content: text, attachments, security_level }),
+        body: JSON.stringify({ content: text, attachments: attachmentIds, security_level }),
       })
+      const data = await apiFetch(`/posts?channelId=${channelId}`)
+      setPosts(prev => ({ ...prev, [channelId]: data }))
     } catch (err) {
       console.error('update comment error:', err)
+      throw err
     }
-    setPosts(prev => ({
-      ...prev,
-      [channelId]: (prev[channelId] || []).map(p =>
-        p.id === postId ? {
-          ...p,
-          comments: (p.comments || []).map(c =>
-            c.id === commentId
-              ? { ...c, content: text, text, attachments, security_level, updatedAt: new Date().toISOString() }
-              : c
-          )
-        } : p
-      ),
-    }))
   }
 
   // ─── RAG 참고 문서 클릭 시 해당 채널+게시글로 이동 ──────────
   const [pendingOpenPostId, setPendingOpenPostId] = useState(null)
   const [pendingOpenCommentId, setPendingOpenCommentId] = useState(null)
   const [pendingOpenAttachmentId, setPendingOpenAttachmentId] = useState(null)
+  const [agenticTarget, setAgenticTarget] = useState(null)
 
   async function navigateToPost(channelId, postId, meta = {}) {
     // teams에서 channelId에 해당하는 채널 객체를 찾아 이동
@@ -285,6 +279,18 @@ export function ChatProvider({ children }) {
     setPendingOpenPostId(null)
     setPendingOpenCommentId(null)
     setPendingOpenAttachmentId(null)
+  }
+
+  function openInAgenticAI(target) {
+    if (!target || !target.postId || !target.channelId) return
+    setAgenticTarget({
+      ...target,
+      setAt: new Date().toISOString(),
+    })
+  }
+
+  function clearAgenticTarget() {
+    setAgenticTarget(null)
   }
 
   const [isSearchMode, setIsSearchMode] = useState(false)
@@ -344,6 +350,9 @@ export function ChatProvider({ children }) {
       pendingOpenAttachmentId,
       navigateToPost,
       clearPendingPost,
+      agenticTarget,
+      openInAgenticAI,
+      clearAgenticTarget,
     }}>
       {children}
     </ChatContext.Provider>

@@ -96,6 +96,7 @@ app.get('/api/config/display', (req, res) => {
     res.json({
       imagePreview:  config.imagePreview  || { width: 512, height: 512 },
       pdfPreview:    config.pdfPreview    || { width: 480, height: 270 },
+      txtPreview:    config.txtPreview    || { width: 270, height: 480 },
       pptPreview:    config.pptPreview    || { width: 480, height: 270 },
       pptxPreview:   config.pptxPreview   || { width: 480, height: 270 },
       excelPreview:  config.excelPreview  || { width: 480, height: 270 },
@@ -104,7 +105,11 @@ app.get('/api/config/display', (req, res) => {
       htmlPreview:   config.htmlPreview   || { width: 480, height: 270 },
     })
   } catch (e) {
-    res.json({ pdfPreview: { width: 480, height: 270 }, moviePreview: { width: 480, height: 270 } })
+    res.json({
+      pdfPreview: { width: 480, height: 270 },
+      moviePreview: { width: 480, height: 270 },
+      txtPreview: { width: 270, height: 480 },
+    })
   }
 })
 
