@@ -18,7 +18,7 @@ else
 fi
 
 echo "[1/3] Ubuntu 기본 설치 스크립트 실행"
-bash "$ROOT_DIR/scripts/setup-ubuntu.sh"
+INSTALL_HIRES_DEPS=1 bash "$ROOT_DIR/scripts/setup-ubuntu.sh"
 
 if [[ ! -x "$PYTHON_ENV_DIR/bin/python3" ]]; then
   echo "[ERROR] Python venv를 찾을 수 없습니다: $PYTHON_ENV_DIR"
@@ -39,16 +39,27 @@ else
   fi
 fi
 
-# torch 설치 후 불필요한 고정 의존 패키지 정리
-python -m pip uninstall -y torchaudio torchvision >/dev/null 2>&1 || true
+# torch 설치 후 불필요한 오디오 패키지 제거
+python -m pip uninstall -y torchaudio >/dev/null 2>&1 || true
+
+echo "[2-1/3] Unstructured hi_res 의존성 설치 (torchvision, timm)"
+if ! python -m pip install torchvision --index-url "$TORCH_INDEX_URL" --extra-index-url https://pypi.org/simple; then
+  echo "[WARN] CUDA 인덱스 torchvision 설치 실패. PyPI로 재시도합니다."
+  python -m pip install torchvision --index-url https://pypi.org/simple
+fi
+python -m pip install -U timm
 
 echo "[3/3] CUDA 동작 검증"
 python - <<'PY'
 import torch
+import torchvision
+import timm
 from packaging.version import Version
 min_ver = Version("2.6")
 torch_ver = Version(torch.__version__.split("+")[0])
 print(f"torch={torch.__version__}")
+print(f"torchvision={torchvision.__version__}")
+print(f"timm={timm.__version__}")
 print(f"cuda_available={torch.cuda.is_available()}")
 if torch_ver < min_ver:
     raise SystemExit(f"[ERROR] torch 버전이 낮습니다: {torch.__version__} (<2.6)")
