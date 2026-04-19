@@ -27,7 +27,8 @@ sudo DEBIAN_FRONTEND=noninteractive apt-get install -y \
   curl ca-certificates gnupg lsb-release software-properties-common \
   python3-full python3-venv python3-pip build-essential pkg-config libpq-dev \
   postgresql postgresql-contrib \
-  poppler-utils ffmpeg libreoffice
+  poppler-utils ffmpeg libreoffice \
+  tesseract-ocr tesseract-ocr-eng tesseract-ocr-kor
 
 if ! command -v node >/dev/null 2>&1; then
   echo "[INFO] Node.js 설치"
@@ -156,9 +157,11 @@ npm install
 npm install --prefix server
 
 echo "[7/8] Python venv 및 RAG 의존성 설치"
-python3 -m venv "$ROOT_DIR/.venv"
+python3 -m venv --clear "$ROOT_DIR/.venv"
 source "$ROOT_DIR/.venv/bin/activate"
-python -m pip install -U pip setuptools wheel packaging
+python -m pip install -U pip wheel packaging "setuptools<82"
+# 불필요한 오디오/비전 패키지의 torch 버전 핀 충돌 제거
+python -m pip uninstall -y torchaudio torchvision >/dev/null 2>&1 || true
 python -m pip install -r "$ROOT_DIR/server/requirements.txt"
 python - <<'PY'
 import torch
