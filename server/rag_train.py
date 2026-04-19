@@ -19,6 +19,7 @@ import io
 import base64
 import time
 import threading
+import shutil
 from datetime import datetime, timezone
 
 # ─── 입력 파싱 ────────────────────────────────────────────────
@@ -822,6 +823,9 @@ def ocr_pdf_with_gemma(file_path):
 
 
 def ocr_pdf_with_tesseract(file_path):
+    if shutil.which("tesseract") is None:
+        print("[RAG] Tesseract OCR fallback 건너뜀: tesseract 바이너리를 찾을 수 없습니다.", flush=True)
+        return []
     try:
         from pdf2image import convert_from_path
     except Exception as e:
@@ -857,6 +861,10 @@ def ocr_pdf_with_tesseract(file_path):
 
 
 def load_pdf_elements(file_path):
+    tesseract_available = shutil.which("tesseract") is not None
+    if not tesseract_available:
+        print("[RAG] tesseract 미설치 감지: Unstructured hi_res/OCR 품질이 제한됩니다. fast 전략 우선 사용", flush=True)
+
     def _parse_unstructured(partition_pdf, strategy, infer_table, extract_images, target_pages=None):
         print(f"[RAG] PDF 파싱 시작 (Unstructured {strategy}): {os.path.basename(file_path)}", flush=True)
         started_at = time.time()
@@ -1069,6 +1077,9 @@ def load_pdf_elements(file_path):
                 fast_parsed = _parse_unstructured(partition_pdf, "fast", False, False)
                 if fast_parsed:
                     fast_parsed = _enrich_table_text(fast_parsed)
+                    if not tesseract_available:
+                        print("[RAG] AUTO 전략: tesseract 미설치로 hi_res 건너뜀, fast 결과 사용", flush=True)
+                        return fast_parsed
                     complex_pages = _detect_complex_pages_from_fast(fast_parsed)
                     if not complex_pages:
                         print("[RAG] AUTO 전략: 복잡 페이지 없음, fast 결과 사용", flush=True)
@@ -1091,12 +1102,12 @@ def load_pdf_elements(file_path):
                         return merged
             except Exception as e:
                 print(f"[RAG] AUTO 전략 실패, 일반 전략 fallback: {e}", flush=True)
-            strategies = [("hi_res", True, True), ("fast", False, False)]
+            strategies = [("hi_res", True, True), ("fast", False, False)] if tesseract_available else [("fast", False, False)]
         elif requested == "fast":
             strategies = [("fast", False, False)]
         else:
             # default: hi_res — 이미지 추출 활성화 (슬라이드 덱 이미지/표 감지)
-            strategies = [("hi_res", True, True), ("fast", False, False)]
+            strategies = [("hi_res", True, True), ("fast", False, False)] if tesseract_available else [("fast", False, False)]
 
         for strategy, infer_table, extract_images in strategies:
             try:

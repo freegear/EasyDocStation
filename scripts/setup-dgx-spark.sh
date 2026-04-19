@@ -27,8 +27,8 @@ fi
 
 echo "[2/3] PyTorch CUDA 빌드 설치"
 source "$PYTHON_ENV_DIR/bin/activate"
-python -m pip install -U pip setuptools wheel packaging
 python -m pip uninstall -y torch torchvision torchaudio >/dev/null 2>&1 || true
+python -m pip install -U pip wheel packaging "setuptools<82"
 
 if [[ -n "$TORCH_VERSION" ]]; then
   python -m pip install "torch==${TORCH_VERSION}" --index-url "$TORCH_INDEX_URL" --extra-index-url https://pypi.org/simple
@@ -38,6 +38,9 @@ else
     python -m pip install "torch>=${TORCH_MIN_VERSION},<3" --index-url https://pypi.org/simple
   fi
 fi
+
+# torch 설치 후 불필요한 고정 의존 패키지 정리
+python -m pip uninstall -y torchaudio torchvision >/dev/null 2>&1 || true
 
 echo "[3/3] CUDA 동작 검증"
 python - <<'PY'
