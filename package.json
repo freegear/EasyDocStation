@@ -6,7 +6,7 @@
   "scripts": {
     "ollama:serve": "node scripts/ollama-serve-safe.mjs",
     "dev:frontend": "vite",
-    "dev:backend": "PYTHON_BIN=$PWD/.venv/bin/python3 npm run dev --prefix server",
+    "dev:backend": "PYTHON_BIN=/opt/miniconda3/envs/InterStellar/bin/python3 npm run dev --prefix server",
     "dev": "concurrently -p \"[{name}]\" -n \"Ollama,FE,BE\" -c \"cyan,magenta,green\" \"npm run ollama:serve\" \"npm run dev:frontend\" \"npm run dev:backend\"",
     "dev:ubuntu": "bash scripts/dev-ubuntu.sh",
     "setup:ubuntu": "bash scripts/setup-ubuntu.sh",

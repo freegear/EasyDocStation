@@ -11,6 +11,7 @@ RAG 영구 검색 서버
 import sys
 import json
 import os
+import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 PORT = int(sys.argv[1]) if len(sys.argv) > 1 else 5001
@@ -24,6 +25,7 @@ device = 'mps' if torch.backends.mps.is_available() else 'cpu'
 print(f"[RAG Server] 임베딩 모델 로드 중 (device={device})...", flush=True)
 embed_model = SentenceTransformer("BAAI/bge-m3", device=device)
 print("[RAG Server] 임베딩 모델 로드 완료", flush=True)
+_embed_lock = threading.Lock()
 
 # DB 연결 캐시 (모델만 캐시, 테이블은 매번 열어 최신 데이터 반영)
 _db_cache = {}
@@ -49,6 +51,34 @@ class RagHandler(BaseHTTPRequestHandler):
             payload = json.loads(body)
         except Exception as e:
             self._respond(400, {"error": str(e)})
+            return
+
+        action = str(payload.get("action") or "").strip().lower()
+        if self.path == '/embed' or action == 'embed':
+            texts = payload.get("texts") or []
+            if not isinstance(texts, list):
+                self._respond(400, {"error": "texts must be a list"})
+                return
+            if not texts:
+                self._respond(200, {"vectors": []})
+                return
+            try:
+                batch_size = int(payload.get("batch_size", 16))
+            except Exception:
+                batch_size = 16
+            if batch_size <= 0:
+                batch_size = 16
+            try:
+                with _embed_lock:
+                    vectors = embed_model.encode(
+                        [str(t or "") for t in texts],
+                        batch_size=batch_size,
+                        show_progress_bar=False,
+                    )
+                self._respond(200, {"vectors": vectors.tolist()})
+            except Exception as e:
+                print(f"[RAG Server] 임베딩 오류: {e}", flush=True)
+                self._respond(500, {"error": str(e)})
             return
 
         cfg          = payload.get("config", {})

@@ -1,4 +1,4 @@
-require('dotenv').config()
+require('dotenv').config({ override: true })
 const express = require('express')
 const cors = require('cors')
 
@@ -29,6 +29,23 @@ function normalizeAgenticAiConfig(ai = {}) {
     history: Number.isFinite(Number(ai?.history)) ? Number(ai.history) : 6,
     language,
   }
+}
+
+function normalizeRagRetrievalConfig(retrieval = {}) {
+  const searchTypeRaw = String(retrieval?.search_type || retrieval?.searchType || 'mmr').toLowerCase()
+  const searchType = ['similarity', 'mmr', 'similarity_score_threshold'].includes(searchTypeRaw)
+    ? searchTypeRaw
+    : 'mmr'
+  const k = Number.isFinite(Number(retrieval?.k)) ? Math.max(1, Math.min(20, Number(retrieval.k))) : 8
+  const fetchK = Number.isFinite(Number(retrieval?.fetch_k ?? retrieval?.fetchK))
+    ? Math.max(k, Math.min(80, Number(retrieval.fetch_k ?? retrieval.fetchK)))
+    : Math.max(k, 24)
+  const threshold = Number(retrieval?.score_threshold ?? retrieval?.scoreThreshold)
+  const score_threshold = Number.isFinite(threshold) ? Math.max(0, Math.min(1, threshold)) : 0
+  const mmrLambdaRaw = Number(retrieval?.mmr_lambda ?? retrieval?.mmrLambda)
+  const mmr_lambda = Number.isFinite(mmrLambdaRaw) ? Math.max(0, Math.min(1, mmrLambdaRaw)) : 0.7
+  const filter = retrieval?.filter && typeof retrieval.filter === 'object' ? retrieval.filter : {}
+  return { search_type: searchType, k, fetch_k: fetchK, score_threshold, mmr_lambda, filter }
 }
 
 // Initialize Cassandra
@@ -78,6 +95,7 @@ app.get('/api/config/display', (req, res) => {
     const config = JSON.parse(fs.readFileSync(configPath, 'utf8'))
     res.json({
       imagePreview:  config.imagePreview  || { width: 512, height: 512 },
+      pdfPreview:    config.pdfPreview    || { width: 480, height: 270 },
       pptPreview:    config.pptPreview    || { width: 480, height: 270 },
       pptxPreview:   config.pptxPreview   || { width: 480, height: 270 },
       excelPreview:  config.excelPreview  || { width: 480, height: 270 },
@@ -86,7 +104,7 @@ app.get('/api/config/display', (req, res) => {
       htmlPreview:   config.htmlPreview   || { width: 480, height: 270 },
     })
   } catch (e) {
-    res.json({ moviePreview: { width: 480, height: 270 } })
+    res.json({ pdfPreview: { width: 480, height: 270 }, moviePreview: { width: 480, height: 270 } })
   }
 })
 
@@ -100,6 +118,19 @@ app.get('/api/config/agenticai', (req, res) => {
     res.json(ai)
   } catch (e) {
     res.json({ num_predict: 4096, num_ctx: 8192, history: 6, language: 'ko' })
+  }
+})
+
+app.get('/api/config/rag-retrieval', (req, res) => {
+  try {
+    const fs = require('fs')
+    const path = require('path')
+    const configPath = path.resolve(__dirname, '../config.json')
+    const config = JSON.parse(fs.readFileSync(configPath, 'utf8'))
+    const retrieval = normalizeRagRetrievalConfig(config?.rag?.retrieval || {})
+    res.json(retrieval)
+  } catch (e) {
+    res.json(normalizeRagRetrievalConfig({}))
   }
 })
 

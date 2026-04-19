@@ -1,8 +1,12 @@
 {
-  "EasyDocStation Version": "0.3.5",
+  "EasyDocStation Version": "0.3.8",
   "imagePreview": {
     "width": 378,
     "height": 378
+  },
+  "pdfPreview": {
+    "width": 480,
+    "height": 270
   },
   "pptPreview": {
     "width": 480,
@@ -51,14 +55,13 @@
     "vectorSize": 1024,
     "chunk_size": 800,
     "chunk_overlap": 100,
-    "trainer_timeout_sec": 1800,
-    "pdf_parse_strategy": "fast",
-    "pdf_parse_timeout_sec": 180
+    "pdf_parse_strategy": "fast"
   },
   "agenticai": {
     "num_predict": 2048,
     "num_ctx": 4096,
-    "history": 6
+    "history": 6,
+    "language": "ko"
   },
   "MaxAttachmentFileSize": 100,
   "company": {

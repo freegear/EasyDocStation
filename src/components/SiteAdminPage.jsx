@@ -658,6 +658,7 @@ export default function SiteAdminPage({ onClose }) {
   const [dbLoading, setDbLoading] = useState(false)
   const [displayForm, setDisplayForm] = useState({
     imagePreview: { width: 512, height: 512 },
+    pdfPreview: { width: 480, height: 270 },
     pptPreview: { width: 480, height: 270 },
     pptxPreview: { width: 480, height: 270 },
     excelPreview: { width: 480, height: 270 },
@@ -673,11 +674,13 @@ export default function SiteAdminPage({ onClose }) {
   const [maxAttachmentFileSize, setMaxAttachmentFileSizeLocal] = useState(100)
   const [dmRetentionDays, setDmRetentionDays] = useState(30)
   const [dmUnlimited, setDmUnlimited] = useState(false)
-  const [ragForm, setRagForm] = useState({ type: 'manual', time: '02:00', vectorSize: 1024, chunkSize: 800, chunkOverlap: 100 })
+  const [ragForm, setRagForm] = useState({ type: 'manual', time: '02:00', vectorSize: 1024, chunkSize: 800, chunkOverlap: 100, pdfParseStrategy: 'auto' })
   const [ragDatasets, setRagDatasets] = useState([])
   const [ragDatasetSelectedIds, setRagDatasetSelectedIds] = useState([])
   const [ragDatasetUploading, setRagDatasetUploading] = useState(false)
   const [ragDatasetTraining, setRagDatasetTraining] = useState(false)
+  const [showRagResetConfirm, setShowRagResetConfirm] = useState(false)
+  const [ragResetting, setRagResetting] = useState(false)
   const [agenticaiForm, setAgenticaiForm] = useState({ num_predict: 4096, num_ctx: 8192, history: 6, language: 'ko' })
   const [companyForm, setCompanyForm] = useState({ name: '', address: '', phone: '', homepage: '', fax: '', seal: '', logo: '' })
   const [snsForm, setSnsForm] = useState({
@@ -685,12 +688,16 @@ export default function SiteAdminPage({ onClose }) {
     line: { enabled: false, channelAccessToken: '' },
     telegram: { enabled: false, botName: '', botUserName: '', httpApiToken: '' },
   })
+  const [ragTableDragOver, setRagTableDragOver] = useState(false)
+  const ragTableDragCounter = useRef(0)
   const companyFileInputRef = useRef(null)
   const companyLogoInputRef = useRef(null)
   const ragDatasetFileInputRef = useRef(null)
   const [savingConfig, setSavingConfig] = useState(false)
+  const [saveConfigDialogMessage, setSaveConfigDialogMessage] = useState('')
   const [trainingStatus, setTrainingStatus] = useState(null) // 'running', 'done', null
   const [showRagTrainingConfirm, setShowRagTrainingConfirm] = useState(false)
+  const [ragTrainingDoneMessage, setRagTrainingDoneMessage] = useState(null)
   const [pendingDeleteUser, setPendingDeleteUser] = useState(null)
   const [resetConfirmation, setResetConfirmation] = useState('')
   const [executingReset, setExecutingReset] = useState(false)
@@ -725,6 +732,7 @@ export default function SiteAdminPage({ onClose }) {
       if (data.display) {
         setDisplayForm({
           imagePreview: data.display.imagePreview || { width: 512, height: 512 },
+          pdfPreview: data.display.pdfPreview || { width: 480, height: 270 },
           pptPreview: data.display.pptPreview || { width: 480, height: 270 },
           pptxPreview: data.display.pptxPreview || { width: 480, height: 270 },
           excelPreview: data.display.excelPreview || { width: 480, height: 270 },
@@ -744,13 +752,15 @@ export default function SiteAdminPage({ onClose }) {
         setLancedbPath(data.pathConfig.lancedbPath || 'Database/LanceDB')
       }
       if (data.rag) {
+        const pdfParseStrategy = ['auto', 'fast'].includes(data.rag.pdf_parse_strategy) ? data.rag.pdf_parse_strategy : 'auto'
         setRagForm(p => ({
           ...p,
           type: data.rag.trainingType || p.type,
           time: data.rag.dailyTime || p.time,
           vectorSize: data.rag.vectorSize || p.vectorSize,
           chunkSize: data.rag.chunk_size ?? p.chunkSize,
-          chunkOverlap: data.rag.chunk_overlap ?? p.chunkOverlap
+          chunkOverlap: data.rag.chunk_overlap ?? p.chunkOverlap,
+          pdfParseStrategy
         }))
       }
       if (data.agenticai) {
@@ -855,20 +865,35 @@ export default function SiteAdminPage({ onClose }) {
     }
   }
 
+  async function handleRagResetVectors() {
+    setRagResetting(true)
+    try {
+      await apiFetch('/rag/datasets/reset-vectors', { method: 'POST' })
+      await loadRagDatasets()
+      setRagTrainingDoneMessage(t.admin.ragResetDone || '학습 벡터 데이터가 모두 초기화되었습니다.')
+    } catch (err) {
+      alert(err.message)
+    } finally {
+      setRagResetting(false)
+      setShowRagResetConfirm(false)
+    }
+  }
+
   async function handleStartRagDatasetTraining() {
-    if (ragDatasets.length === 0) {
-      alert(t.admin.ragNoDataset || '학습 대상 데이터가 없습니다.')
+    const untrainedItems = ragDatasets.filter(item => item.status !== 'trained')
+    if (untrainedItems.length === 0) {
+      setRagTrainingDoneMessage(t.admin.ragAllTrained || '모든 파일이 이미 학습되었습니다.')
       return
     }
     setRagDatasetTraining(true)
     try {
-      const ids = ragDatasets.map(item => item.id)
+      const ids = untrainedItems.map(item => item.id)
       const result = await apiFetch('/rag/datasets/train', {
         method: 'POST',
         body: JSON.stringify({ ids }),
       })
       await loadRagDatasets()
-      alert((t.admin.ragTrainingDonePrefix || '학습 완료: ') + `${result?.total ?? ids.length}건`)
+      setRagTrainingDoneMessage((t.admin.ragTrainingDonePrefix || '학습 완료: ') + `${result?.total ?? ids.length}건`)
     } catch (err) {
       alert(err.message)
     } finally {
@@ -925,6 +950,10 @@ export default function SiteAdminPage({ onClose }) {
           width: parseInt(displayForm.imagePreview.width),
           height: parseInt(displayForm.imagePreview.height)
         }
+        configData.pdfPreview = {
+          width: parseInt(displayForm.pdfPreview.width),
+          height: parseInt(displayForm.pdfPreview.height)
+        }
         configData.pptPreview = {
           width: parseInt(displayForm.pptPreview.width),
           height: parseInt(displayForm.pptPreview.height)
@@ -966,7 +995,8 @@ export default function SiteAdminPage({ onClose }) {
           dailyTime: ragForm.time,
           vectorSize: parseInt(ragForm.vectorSize),
           chunk_size: parseInt(ragForm.chunkSize),
-          chunk_overlap: parseInt(ragForm.chunkOverlap)
+          chunk_overlap: parseInt(ragForm.chunkOverlap),
+          pdf_parse_strategy: ragForm.pdfParseStrategy === 'fast' ? 'fast' : 'auto'
         }
       } else if (activeTab === 'agenticai') {
         configData.agenticai = {
@@ -1017,17 +1047,17 @@ export default function SiteAdminPage({ onClose }) {
           // vector size 변경 시 LanceDB 테이블 재초기화
           try {
             const reinit = await apiFetch('/admin/rag/reinit-lancedb', { method: 'POST' })
-            alert(t.admin.settingsSavedWithReinit(reinit.message || t.admin.lancedbReinitComplete))
+            setSaveConfigDialogMessage(t.admin.settingsSavedWithReinit(reinit.message || t.admin.lancedbReinitComplete))
           } catch (reinitErr) {
-            alert(t.admin.settingsReinitFailed(reinitErr.message))
+            setSaveConfigDialogMessage(t.admin.settingsReinitFailed(reinitErr.message))
           }
         } else {
-          alert(t.admin.settingsSaved)
+          setSaveConfigDialogMessage(t.admin.settingsSaved)
         }
         loadDbStats()
       }
     } catch (err) {
-      alert(t.admin.settingsSaveFailed(err.message))
+      setSaveConfigDialogMessage(t.admin.settingsSaveFailed(err.message))
     } finally {
       setSavingConfig(false)
     }
@@ -1885,6 +1915,54 @@ export default function SiteAdminPage({ onClose }) {
                 </div>
               </div>
 
+              {/* RAG 학습 옵션 */}
+              <div className="bg-gray-100 border border-gray-200 rounded-2xl p-8 shadow-xl">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-10 h-10 rounded-xl bg-cyan-50 border border-cyan-200 flex items-center justify-center">
+                    <svg className="w-5 h-5 text-cyan-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999A7 7 0 103 15z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="text-gray-900 font-bold text-base">{t.admin.ragLearningOptionsTitle || 'RAG 학습 옵션'}</h3>
+                    <p className="text-gray-400 text-xs mt-0.5">{t.admin.ragLearningOptionsDesc || 'PDF 학습 전략 옵션을 선택합니다.'}</p>
+                  </div>
+                </div>
+                <div>
+                  <p className="text-gray-400 text-xs font-semibold uppercase tracking-wider mb-3">
+                    {t.admin.ragPdfStrategyLabel || 'PDF 학습 전략 옵션'}
+                  </p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <label className={`flex items-start gap-3 rounded-xl border p-4 cursor-pointer transition-all ${ragForm.pdfParseStrategy === 'auto' ? 'bg-cyan-50 border-cyan-300' : 'bg-gray-50 border-gray-100 hover:border-gray-200'}`}>
+                      <input
+                        type="radio"
+                        name="pdfParseStrategy"
+                        checked={ragForm.pdfParseStrategy === 'auto'}
+                        onChange={() => setRagForm(p => ({ ...p, pdfParseStrategy: 'auto' }))}
+                        className="mt-0.5 w-4 h-4 text-cyan-700 bg-gray-100 border-gray-300 focus:ring-cyan-500"
+                      />
+                      <div>
+                        <p className="text-gray-900 font-semibold text-sm">auto</p>
+                        <p className="text-gray-400 text-xs mt-1">{t.admin.ragPdfStrategyAutoDesc || '컨텐츠에 따라서 학습 채널을 가변하는 옵션입니다.'}</p>
+                      </div>
+                    </label>
+                    <label className={`flex items-start gap-3 rounded-xl border p-4 cursor-pointer transition-all ${ragForm.pdfParseStrategy === 'fast' ? 'bg-cyan-50 border-cyan-300' : 'bg-gray-50 border-gray-100 hover:border-gray-200'}`}>
+                      <input
+                        type="radio"
+                        name="pdfParseStrategy"
+                        checked={ragForm.pdfParseStrategy === 'fast'}
+                        onChange={() => setRagForm(p => ({ ...p, pdfParseStrategy: 'fast' }))}
+                        className="mt-0.5 w-4 h-4 text-cyan-700 bg-gray-100 border-gray-300 focus:ring-cyan-500"
+                      />
+                      <div>
+                        <p className="text-gray-900 font-semibold text-sm">fast</p>
+                        <p className="text-gray-400 text-xs mt-1">{t.admin.ragPdfStrategyFastDesc || '빠르게 학습하는 옵션입니다.'}</p>
+                      </div>
+                    </label>
+                  </div>
+                </div>
+              </div>
+
               {/* RAG 학습 페이지 이동 */}
               <div className="bg-gray-100 border border-gray-200 rounded-2xl p-6 shadow-xl">
                 <div className="flex items-center justify-between gap-4">
@@ -1944,7 +2022,7 @@ export default function SiteAdminPage({ onClose }) {
                 </button>
                 <button
                   onClick={handleStartRagDatasetTraining}
-                  disabled={ragDatasetTraining || ragDatasets.length === 0}
+                  disabled={ragDatasetTraining || ragDatasets.filter(item => item.status !== 'trained').length === 0}
                   className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-sm font-semibold"
                 >
                   {ragDatasetTraining ? (t.admin.ragTrainingNow || '학습 중...') : (t.admin.ragStartTraining || '학습 시작')}
@@ -1956,13 +2034,55 @@ export default function SiteAdminPage({ onClose }) {
                 >
                   {t.admin.ragDeleteFromData || '학습 데이터에서 삭제'}
                 </button>
+                <button
+                  onClick={() => setShowRagResetConfirm(true)}
+                  disabled={ragResetting || ragDatasets.length === 0}
+                  className="ml-auto px-4 py-2 rounded-xl bg-orange-600 hover:bg-orange-500 disabled:opacity-50 text-white text-sm font-semibold"
+                >
+                  {ragResetting ? '초기화 중...' : (t.admin.ragResetVectors || '학습 벡터 초기화')}
+                </button>
               </div>
 
-              <div className="rounded-2xl border border-gray-200 overflow-hidden bg-gray-50">
+              <div
+                className={`rounded-2xl border-2 overflow-hidden bg-gray-50 relative transition-colors ${ragTableDragOver ? 'border-dashed border-indigo-400 bg-indigo-50/40' : 'border-gray-200'}`}
+                onDragEnter={e => {
+                  e.preventDefault(); e.stopPropagation()
+                  ragTableDragCounter.current += 1
+                  if (e.dataTransfer.types.includes('Files')) setRagTableDragOver(true)
+                }}
+                onDragLeave={e => {
+                  e.preventDefault(); e.stopPropagation()
+                  ragTableDragCounter.current -= 1
+                  if (ragTableDragCounter.current === 0) setRagTableDragOver(false)
+                }}
+                onDragOver={e => { e.preventDefault(); e.stopPropagation() }}
+                onDrop={async e => {
+                  e.preventDefault(); e.stopPropagation()
+                  ragTableDragCounter.current = 0
+                  setRagTableDragOver(false)
+                  const files = Array.from(e.dataTransfer.files || [])
+                  if (files.length > 0) await handleAddRagDatasets(files)
+                }}
+              >
+                {ragTableDragOver && (
+                  <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
+                    <p className="text-indigo-500 font-semibold text-sm bg-white/80 px-4 py-2 rounded-xl shadow">파일을 놓으면 학습 데이터에 추가됩니다</p>
+                  </div>
+                )}
                 <table className="w-full text-sm">
                   <thead className="bg-gray-100 border-b border-gray-200">
                     <tr>
-                      <th className="px-4 py-3 text-left w-12"></th>
+                      <th className="px-4 py-3 text-left w-12">
+                        <input
+                          type="checkbox"
+                          checked={ragDatasets.length > 0 && ragDatasetSelectedIds.length === ragDatasets.length}
+                          ref={el => { if (el) el.indeterminate = ragDatasetSelectedIds.length > 0 && ragDatasetSelectedIds.length < ragDatasets.length }}
+                          onChange={e => {
+                            setRagDatasetSelectedIds(e.target.checked ? ragDatasets.map(item => item.id) : [])
+                          }}
+                          onClick={e => e.stopPropagation()}
+                        />
+                      </th>
                       <th className="px-4 py-3 text-left">{t.admin.ragDataName || '학습 데이터'}</th>
                       <th className="px-4 py-3 text-left w-28">{t.admin.ragDataType || '형식'}</th>
                       <th className="px-4 py-3 text-left w-24">{t.admin.ragDataSize || '크기'}</th>
@@ -2047,6 +2167,13 @@ export default function SiteAdminPage({ onClose }) {
                   description={t.admin.previewImageDesc}
                   value={displayForm.imagePreview}
                   onChange={(val) => setDisplayForm(p => ({ ...p, imagePreview: val }))}
+                />
+
+                <PreviewSettingCard
+                  title={t.admin.previewPdfTitle}
+                  description={t.admin.previewPdfDesc}
+                  value={displayForm.pdfPreview}
+                  onChange={(val) => setDisplayForm(p => ({ ...p, pdfPreview: val }))}
                 />
 
                 <div className="grid grid-cols-2 gap-6">
@@ -2632,6 +2759,38 @@ export default function SiteAdminPage({ onClose }) {
           loading={trainingStatus === 'running'}
           onConfirm={confirmStartTraining}
           onCancel={() => setShowRagTrainingConfirm(false)}
+        />
+      )}
+      {ragTrainingDoneMessage && (
+        <ConfirmDialog
+          title={t.admin.ragStartTraining || 'RAG 학습'}
+          message={ragTrainingDoneMessage}
+          confirmText={t.admin.confirm || '확인'}
+          hideCancel
+          onConfirm={() => setRagTrainingDoneMessage(null)}
+          onCancel={() => setRagTrainingDoneMessage(null)}
+        />
+      )}
+      {showRagResetConfirm && (
+        <ConfirmDialog
+          title={t.admin.ragResetVectors || '학습 벡터 초기화'}
+          message={t.admin.ragResetConfirm || '학습된 모든 벡터 데이터를 삭제합니다.\n파일 목록은 유지되며 상태가 "ready"로 초기화됩니다.\n계속하시겠습니까?'}
+          confirmText={t.admin.ragResetVectors || '초기화'}
+          cancelText={t.admin.cancel || '취소'}
+          danger
+          loading={ragResetting}
+          onConfirm={handleRagResetVectors}
+          onCancel={() => setShowRagResetConfirm(false)}
+        />
+      )}
+      {saveConfigDialogMessage && (
+        <ConfirmDialog
+          title={t.admin.saveSettings || '설정 저장'}
+          message={saveConfigDialogMessage}
+          confirmText={t.admin.confirm || '확인'}
+          hideCancel
+          onConfirm={() => setSaveConfigDialogMessage('')}
+          onCancel={() => setSaveConfigDialogMessage('')}
         />
       )}
     </div>

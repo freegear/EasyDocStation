@@ -3,6 +3,10 @@
     "width": 512,
     "height": 512
   },
+  "pdfPreview": {
+    "width": 480,
+    "height": 270
+  },
   "pptPreview": {
     "width": 480,
     "height": 270
