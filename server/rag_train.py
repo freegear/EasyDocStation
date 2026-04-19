@@ -429,6 +429,7 @@ def table_source_for_storage(html, text):
 
 def describe_image_with_gemma(image_path, source_name="", page_number=0):
     """Gemma 비전 모델로 이미지를 분석해 의미 있는 설명 텍스트를 반환한다."""
+    started_at = time.time()
     fallback = f"{source_name or '문서'}의 {page_number}페이지 이미지"
     if not image_path or not os.path.isfile(image_path):
         return fallback
@@ -461,10 +462,15 @@ def describe_image_with_gemma(image_path, source_name="", page_number=0):
             data = res.json() if res.content else {}
             description = ((data.get("message") or {}).get("content") or "").strip()
             if description:
-                print(f"[RAG] Gemma 이미지 설명 완료 (page={page_number}): {len(description)}자", flush=True)
+                elapsed = time.time() - started_at
+                print(
+                    f"[RAG] Gemma 이미지 설명 완료 (page={page_number}, {elapsed:.1f}s): {len(description)}자",
+                    flush=True,
+                )
                 return description
     except Exception as e:
-        print(f"[RAG] Gemma 이미지 설명 실패 (page={page_number}): {e}", file=sys.stderr)
+        elapsed = time.time() - started_at
+        print(f"[RAG] Gemma 이미지 설명 실패 (page={page_number}, {elapsed:.1f}s): {e}", file=sys.stderr)
     return fallback
 
 
