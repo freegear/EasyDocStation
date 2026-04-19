@@ -57,6 +57,11 @@ function buildTrainerConfig(cfg, ragCfg) {
   }
 }
 
+function normalizePdfParseStrategy(ragCfg = {}) {
+  const raw = String(ragCfg.pdf_parse_strategy ?? 'auto').trim().toLowerCase()
+  return raw || 'auto'
+}
+
 const DOC_CONTENT_TYPES = [
   'application/pdf',
   'application/msword',
@@ -733,8 +738,10 @@ function initRag() {
   const cfg = loadRagConfig()
   state.trainingType = cfg.trainingType || 'manual'
   state.dailyTime    = cfg.dailyTime    || '02:00'
+  const pdfParseStrategy = normalizePdfParseStrategy(cfg)
 
   console.log(`[RAG] 초기화 — 학습 방식: ${state.trainingType}${state.trainingType === 'daily' ? ` (매일 ${state.dailyTime})` : ''}`)
+  console.log(`[RAG] 초기화 — PDF 파싱 모드: ${pdfParseStrategy.toUpperCase()}`)
 
   if (state.trainingType === 'daily') {
     scheduleDailyAt(state.dailyTime)
