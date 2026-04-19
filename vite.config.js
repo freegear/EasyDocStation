@@ -5,6 +5,13 @@ export default defineConfig({
   plugins: [react()],
   server: {
     host: '0.0.0.0',
+    watch: {
+      ignored: [
+        '**/.venv/**',
+        '**/Database/**',
+        '**/server/__pycache__/**',
+      ],
+    },
     proxy: {
       '/api': {
         target: 'http://localhost:3001',

@@ -34,6 +34,18 @@ TORCH_VERSION=2.6.0 TORCH_INDEX_URL=https://download.pytorch.org/whl/cu124 npm r
 npm run dev:dgx-spark
 ```
 
+설치 검증:
+
+```bash
+.venv/bin/python -c "import torch; print(torch.__version__, torch.cuda.is_available())"
+```
+
+`torch` 버전이 `2.6` 미만이면 다시 설치:
+
+```bash
+npm run setup:dgx-spark
+```
+
 추가 옵션:
 - `EASYDOC_RAG_DEVICE=auto|cuda|cpu|mps` (기본: `auto`)
 - `INSTALL_CASSANDRA=1`, `INSTALL_OLLAMA=1` (기본: 0)

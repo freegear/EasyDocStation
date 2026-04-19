@@ -306,6 +306,11 @@ function startRagServer() {
         ragServerDisabled = true
         ragServerDisableReason = "python module 'torch' is missing"
       }
+      if (msg.includes('require users to upgrade torch to at least v2.6')) {
+        fatalImportError = true
+        ragServerDisabled = true
+        ragServerDisableReason = "python package 'torch>=2.6' is required"
+      }
       if (msg.includes('Address already in use') || msg.includes('Errno 48')) {
         addressInUseError = true
       }

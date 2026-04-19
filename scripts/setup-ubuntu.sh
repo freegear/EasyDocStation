@@ -158,8 +158,16 @@ npm install --prefix server
 echo "[7/8] Python venv 및 RAG 의존성 설치"
 python3 -m venv "$ROOT_DIR/.venv"
 source "$ROOT_DIR/.venv/bin/activate"
-python -m pip install -U pip setuptools wheel
+python -m pip install -U pip setuptools wheel packaging
 python -m pip install -r "$ROOT_DIR/server/requirements.txt"
+python - <<'PY'
+import torch
+from packaging.version import Version
+ver = Version(torch.__version__.split("+")[0])
+print(f"[INFO] installed torch={torch.__version__}")
+if ver < Version("2.6"):
+    raise SystemExit("[ERROR] torch>=2.6 이 필요합니다. scripts/setup-dgx-spark.sh 를 실행해 CUDA torch를 재설치하세요.")
+PY
 deactivate
 
 echo "[8/8] 프로젝트 설정 파일 자동 구성"
