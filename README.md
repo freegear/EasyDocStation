@@ -15,6 +15,30 @@ npm run setup:ubuntu
 INSTALL_CASSANDRA=1 INSTALL_OLLAMA=1 APP_DB_USER=freegear APP_DB_PASS='your-pass' APP_DB_NAME=easydocstation npm run setup:ubuntu
 ```
 
+### DGX Spark 설치/실행 (GPU 가속)
+DGX Spark 환경에서는 아래 명령을 권장합니다.
+
+```bash
+npm run setup:dgx-spark
+```
+
+필요시 CUDA PyTorch 버전/인덱스 지정:
+
+```bash
+TORCH_VERSION=2.6.0 TORCH_INDEX_URL=https://download.pytorch.org/whl/cu124 npm run setup:dgx-spark
+```
+
+실행:
+
+```bash
+npm run dev:dgx-spark
+```
+
+추가 옵션:
+- `EASYDOC_RAG_DEVICE=auto|cuda|cpu|mps` (기본: `auto`)
+- `INSTALL_CASSANDRA=1`, `INSTALL_OLLAMA=1` (기본: 0)
+- `APP_DB_USER`, `APP_DB_PASS`, `APP_DB_NAME`, `CLIENT_ORIGIN`
+
 설치 스크립트가 자동으로 수행하는 내용:
 - PostgreSQL 설치/기동 및 DB/계정 생성
 - (옵션) Cassandra/Ollama 설치
@@ -48,4 +72,3 @@ npm run dev:ubuntu
 ```bash
 npm run dev
 ```
-
