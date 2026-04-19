@@ -118,7 +118,7 @@ function normalizeGatewayUrl(url) {
 }
 
 export default function GroqPanel({ width }) {
-  const { navigateToPost, selectedChannel, addPost } = useChat()
+  const { navigateToPost, selectedChannel, addPost, addComment, agenticTarget, clearAgenticTarget, teams } = useChat()
   const { currentUser } = useAuth()
   const t = useT()
   const [copiedId, setCopiedId] = useState(null)
@@ -136,15 +136,23 @@ export default function GroqPanel({ width }) {
     })
   }
 
-  async function uploadQuestionImage(file) {
-    if (!file || !selectedChannel?.id) return []
+  function findChannelById(channelId) {
+    for (const team of (teams || [])) {
+      const channel = (team.channels || []).find(c => String(c.id) === String(channelId))
+      if (channel) return channel
+    }
+    return null
+  }
+
+  async function uploadQuestionImage(file, channelId) {
+    if (!file || !channelId) return []
 
     const { uploadUrl, file_uuid } = await apiFetch('/files/get-upload-url', {
       method: 'POST',
       body: JSON.stringify({
         filename: file.name,
         contentType: file.type || 'application/octet-stream',
-        channelId: selectedChannel?.id,
+        channelId,
       }),
     })
     await fetch(normalizeGatewayUrl(uploadUrl), { method: 'PUT', body: file })
@@ -153,11 +161,15 @@ export default function GroqPanel({ width }) {
 
   async function registerAnswerToBoard(answerMsg, answerIndex) {
     if (!answerMsg?.id || postingId) return
-    if (!selectedChannel?.id) {
+    const hasTarget = Boolean(agenticTarget?.postId && agenticTarget?.channelId)
+    const targetChannelId = hasTarget ? agenticTarget.channelId : selectedChannel?.id
+    const targetPostId = hasTarget ? agenticTarget.postId : ''
+    const targetChannel = targetChannelId ? findChannelById(targetChannelId) : null
+    if (!targetChannelId) {
       openNotice(t.ai.postToBoardNoChannel)
       return
     }
-    if (selectedChannel?.is_archived) {
+    if (targetChannel?.is_archived) {
       openNotice(t.ai.postToBoardArchived)
       return
     }
@@ -185,13 +197,25 @@ export default function GroqPanel({ width }) {
 
     setPostingId(answerMsg.id)
     try {
-      const attachmentIds = questionImageFile ? await uploadQuestionImage(questionImageFile) : []
-      await addPost(selectedChannel.id, {
-        content,
-        attachmentIds,
-        security_level: currentUser?.security_level ?? 0,
-      }, { suppressAlert: true })
-      openNotice(t.ai.postToBoardSuccess, t.ai.postToBoard)
+      const attachmentIds = questionImageFile ? await uploadQuestionImage(questionImageFile, targetChannelId) : []
+      if (hasTarget && targetPostId) {
+        await addComment(
+          targetChannelId,
+          targetPostId,
+          content,
+          currentUser,
+          attachmentIds,
+          currentUser?.security_level ?? 0
+        )
+        openNotice(t.ai.postToBoardTargetSuccess || '질문/답변이 대상 링크의 댓글로 등록되었습니다.', t.ai.postToBoard)
+      } else {
+        await addPost(targetChannelId, {
+          content,
+          attachmentIds,
+          security_level: currentUser?.security_level ?? 0,
+        }, { suppressAlert: true })
+        openNotice(t.ai.postToBoardSuccess, t.ai.postToBoard)
+      }
     } catch (e) {
       openNotice(t.ai.postToBoardFail(e.message), t.ai.postToBoard)
     } finally {
@@ -298,10 +322,17 @@ export default function GroqPanel({ width }) {
       try {
         const dynamicLimit = isCommandQuery(text) || isTemporalQuery(text) ? 10 : isEnumerationQuery(text) ? 8 : 5
         const preferredSources = extractSourceHints(text)
+        const scopeFilter = {}
+        if (agenticTarget?.postId) scopeFilter.post_id = String(agenticTarget.postId)
+        if (agenticTarget?.commentId) scopeFilter.comment_id = String(agenticTarget.commentId)
         const retrievalPayload = {
           ...ragRetrieval,
           k: Math.max(dynamicLimit, ragRetrieval.k || dynamicLimit),
           fetch_k: Math.max((ragRetrieval.fetch_k || dynamicLimit * 3), dynamicLimit * 3),
+          filter: {
+            ...(ragRetrieval.filter || {}),
+            ...scopeFilter,
+          },
         }
         const ragResult = await apiFetch('/rag/search', {
           method: 'POST',
@@ -341,7 +372,11 @@ export default function GroqPanel({ width }) {
       ? `아래 [참고 정보]에 있는 사실만 근거로 답변하세요. 참고 정보에 없는 사실은 추측하지 마세요. 다만 언어/문체/역할 요청(예: 일본어로 답변)은 반영하세요.\n\n[참고 정보]\n${ragContext}\n\n[질문]\n${fullText}`
       : fullText
 
-    const userApiMessage = { role: 'user', content: contentWithContext }
+    const scopedContentWithContext = agenticTarget
+      ? `${contentWithContext}\n\n[대상 링크]\n${agenticTarget.link || ''}\n[대상 범위]\n${agenticTarget.type === 'comment' ? '댓글 단일 범위' : '게시글 범위'}`
+      : contentWithContext
+
+    const userApiMessage = { role: 'user', content: scopedContentWithContext }
     if (base64Data) {
       userApiMessage.images = [base64Data] // Ollama 멀티모달 형식
     }
@@ -715,6 +750,29 @@ export default function GroqPanel({ width }) {
 
       {/* Input area */}
       <div className="px-3 py-3 border-t border-gray-200 flex-shrink-0">
+        {agenticTarget && (
+          <div className="mb-2 px-2.5 py-2 border border-sky-100 rounded-lg bg-sky-50/60">
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0">
+                <p className="text-[10px] font-semibold text-sky-700">{t.ai.targetLinkLabel || '대상 링크'}</p>
+                <p className="text-[11px] text-gray-700 truncate">{agenticTarget.label || (agenticTarget.type === 'comment' ? '댓글' : '게시글')}</p>
+                <a href={agenticTarget.link} target="_blank" rel="noreferrer" className="text-[10px] text-sky-600 underline truncate block">
+                  {agenticTarget.link}
+                </a>
+              </div>
+              <button
+                onClick={clearAgenticTarget}
+                title={t.ai.clearTargetLink || '대상 링크 해제'}
+                className="p-1 rounded-md text-gray-400 hover:text-gray-600 hover:bg-white/80"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Attached File Preview */}
         {attachedFile && (
           <div className="mb-2 flex items-center justify-between bg-gray-100 rounded-lg px-2 py-1.5 border border-gray-200">

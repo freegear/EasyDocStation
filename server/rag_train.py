@@ -32,6 +32,8 @@ cfg        = payload.get("config", {})
 posts      = payload.get("posts", [])
 comments   = payload.get("comments", [])
 delete_ids = payload.get("delete_ids", [])
+delete_post_ids = payload.get("delete_post_ids", [])
+delete_comment_ids = payload.get("delete_comment_ids", [])
 
 def default_lancedb_path():
     env_lancedb = os.getenv("EASYDOC_LANCEDB_PATH", "").strip()
@@ -99,7 +101,7 @@ EMBED_SERVER_RETRIES = int(
 )
 AMOUNT_RE = re.compile(r"(?<!\d)(\d{1,3}(?:,\d{3})+|\d{5,})(?:\s*원)?")
 
-if not posts and not comments and not delete_ids:
+if not posts and not comments and not delete_ids and not delete_post_ids and not delete_comment_ids:
     print("[RAG] 학습할 데이터가 없습니다.")
     sys.exit(0)
 
@@ -259,15 +261,35 @@ def ensure_table(vector_size):
 
 table = ensure_table(VECTOR_SIZE)
 
-if delete_ids:
-    for del_id in delete_ids:
+delete_post_targets = []
+delete_post_targets.extend(delete_ids if isinstance(delete_ids, list) else [])
+delete_post_targets.extend(delete_post_ids if isinstance(delete_post_ids, list) else [])
+delete_post_targets = list(dict.fromkeys([str(v) for v in delete_post_targets if v is not None and str(v).strip() != ""]))
+
+delete_comment_targets = list(dict.fromkeys([
+    str(v) for v in (delete_comment_ids if isinstance(delete_comment_ids, list) else [])
+    if v is not None and str(v).strip() != ""
+]))
+
+if delete_post_targets:
+    for del_id in delete_post_targets:
         try:
             safe_id = str(del_id).replace("'", "''")
             table.delete(f"metadata.post_id = '{safe_id}'")
             print(f"[RAG] 기존 청크 삭제 완료: post_id={del_id}", flush=True)
         except Exception as e:
             print(f"[RAG] 청크 삭제 실패 (post_id={del_id}): {e}", file=sys.stderr)
-    if not posts and not comments:
+
+if delete_comment_targets:
+    for del_id in delete_comment_targets:
+        try:
+            safe_id = str(del_id).replace("'", "''")
+            table.delete(f"metadata.comment_id = '{safe_id}'")
+            print(f"[RAG] 기존 청크 삭제 완료: comment_id={del_id}", flush=True)
+        except Exception as e:
+            print(f"[RAG] 청크 삭제 실패 (comment_id={del_id}): {e}", file=sys.stderr)
+
+if (delete_post_targets or delete_comment_targets) and (not posts and not comments):
         print("[RAG] 삭제 전용 처리 완료")
         sys.exit(0)
 
@@ -1330,6 +1352,53 @@ def ingest_word(records, *, post_id, channel_id, attachment_id, comment_id, word
     return count
 
 
+def load_txt_file(file_path):
+    try:
+        with open(file_path, "rb") as f:
+            raw = f.read()
+    except Exception as e:
+        print(f"[RAG] TXT 읽기 실패 ({file_path}): {e}", file=sys.stderr)
+        return ""
+
+    for enc in ("utf-8-sig", "utf-8", "cp949", "euc-kr"):
+        try:
+            return raw.decode(enc).strip()
+        except Exception:
+            continue
+    return raw.decode("latin-1", errors="ignore").strip()
+
+
+def ingest_txt(records, *, post_id, channel_id, attachment_id, comment_id, txt_path, file_name):
+    if not txt_path or not os.path.isfile(txt_path):
+        if txt_path:
+            print(f"[RAG] TXT 파일 없음: {txt_path}", file=sys.stderr)
+        return 0
+
+    text = load_txt_file(txt_path)
+    if not text:
+        return 0
+
+    source_name = file_name or os.path.basename(txt_path)
+    file_hash = calc_file_hash(txt_path)
+
+    meta = metadata_base(
+        post_id=post_id,
+        channel_id=channel_id,
+        attachment_id=attachment_id,
+        comment_id=comment_id,
+        source=source_name,
+        file_name=source_name,
+        file_hash=file_hash,
+    )
+    meta["type"] = "txt"
+    meta["page_number"] = 0
+    meta["element_id"] = f"txt-{attachment_id or post_id or comment_id}"
+
+    count = append_text_chunks(records, text, meta, chunk_prefix=meta["element_id"])
+    print(f"[RAG] TXT 학습 완료: {os.path.basename(txt_path)} ({count}청크)", flush=True)
+    return count
+
+
 def ingest_plain_text(records, *, post_id, channel_id, comment_id, content, source_type):
     body = (content or "").strip()
     if not body:
@@ -1358,10 +1427,12 @@ def count_training_steps(posts, comments):
         steps += 1
         steps += len(post.get("pdfs", []) or [])
         steps += len(post.get("words", []) or [])
+        steps += len(post.get("txts", []) or [])
     for comment in comments:
         steps += 1
         steps += len(comment.get("pdfs", []) or [])
         steps += len(comment.get("words", []) or [])
+        steps += len(comment.get("txts", []) or [])
     return max(steps, 1)
 
 
@@ -1437,6 +1508,19 @@ for post in posts:
         )
         progress.step(label="게시글 Word")
 
+    # TXT 첨부
+    for txt_info in post.get("txts", []):
+        total_chunks += ingest_txt(
+            records,
+            post_id=post_id,
+            channel_id=channel_id,
+            attachment_id=txt_info.get("id") or "",
+            comment_id="",
+            txt_path=txt_info.get("path") or "",
+            file_name=txt_info.get("file_name") or "",
+        )
+        progress.step(label="게시글 TXT")
+
 for comment in comments:
     comment_id = comment.get("id", "unknown")
     post_id = comment.get("post_id", "")
@@ -1481,6 +1565,19 @@ for comment in comments:
             file_name=word_info.get("file_name") or "",
         )
         progress.step(label="댓글 Word")
+
+    # 댓글 TXT
+    for txt_info in comment.get("txts", []):
+        total_chunks += ingest_txt(
+            records,
+            post_id=post_id,
+            channel_id=channel_id,
+            attachment_id=txt_info.get("id") or "",
+            comment_id=comment_id,
+            txt_path=txt_info.get("path") or "",
+            file_name=txt_info.get("file_name") or "",
+        )
+        progress.step(label="댓글 TXT")
 
 
 if records:

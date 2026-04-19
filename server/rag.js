@@ -57,32 +57,47 @@ function buildTrainerConfig(cfg, ragCfg) {
   }
 }
 
-// ─── 문서 첨부파일 경로 조회 (PDF + Word) ────────────────────
+const DOC_CONTENT_TYPES = [
+  'application/pdf',
+  'application/msword',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'text/plain',
+]
+
+function isTxtAttachment(row = {}) {
+  const ct = String(row.content_type || '').toLowerCase()
+  const filename = String(row.filename || '').toLowerCase()
+  return ct === 'text/plain' || filename.endsWith('.txt')
+}
+
+// ─── 문서 첨부파일 경로 조회 (PDF + Word + TXT) ───────────────
 async function getDocumentPathsForPost(postId) {
   try {
     const cfg         = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'))
     const storageBase = getDatabasePath(cfg, 'ObjectFile Path')
+    const contentTypePlaceholders = DOC_CONTENT_TYPES.map((_, idx) => `$${idx + 2}`).join(', ')
     const result = await db.query(
       `SELECT id, storage_path, content_type, filename FROM attachments
        WHERE post_id = $1 AND status = 'COMPLETED'
-         AND content_type IN (
-           'application/pdf',
-           'application/msword',
-           'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+         AND (
+           content_type IN (${contentTypePlaceholders})
+           OR LOWER(filename) LIKE '%.txt'
          )`,
-      [postId]
+      [postId, ...DOC_CONTENT_TYPES]
     )
     const pdfs  = []
     const words = []
+    const txts = []
     for (const r of result.rows) {
       const item = { id: r.id, path: path.join(storageBase, r.storage_path), file_name: r.filename || '' }
       if (r.content_type === 'application/pdf') pdfs.push(item)
+      else if (isTxtAttachment(r)) txts.push(item)
       else words.push(item)
     }
-    return { pdfs, words }
+    return { pdfs, words, txts }
   } catch (e) {
     console.error('[RAG] 문서 경로 조회 실패:', e.message)
-    return { pdfs: [], words: [] }
+    return { pdfs: [], words: [], txts: [] }
   }
 }
 
@@ -116,12 +131,12 @@ function callPythonTrainer(payload, options = {}) {
 // ─── 학습 제외 조건: 첨부 없고 100자 미만 ────────────────────
 const RAG_MIN_CONTENT_LENGTH = 100
 
-function shouldSkipTraining(content, pdfs, words) {
-  return pdfs.length === 0 && words.length === 0 && (content || '').length < RAG_MIN_CONTENT_LENGTH
+function shouldSkipTraining(content, pdfs, words, txts = []) {
+  return pdfs.length === 0 && words.length === 0 && txts.length === 0 && (content || '').length < RAG_MIN_CONTENT_LENGTH
 }
 
 // ─── 실제 학습 로직 ───────────────────────────────────────────
-async function runTraining(posts) {
+async function runTraining(posts, options = {}) {
   if (posts.length === 0) {
     console.log('[RAG] 학습할 게시글이 없습니다.')
     return
@@ -130,10 +145,10 @@ async function runTraining(posts) {
   const cfg = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'))
   const ragCfg = cfg.rag || {}
 
-  // 각 게시글의 PDF + Word 첨부파일 경로를 함께 전달
+  // 각 게시글의 PDF + Word + TXT 첨부파일 경로를 함께 전달
   const postsWithPdfs = (await Promise.all(
     posts.map(async post => {
-      const { pdfs, words } = await getDocumentPathsForPost(post.id)
+      const { pdfs, words, txts } = await getDocumentPathsForPost(post.id)
       return {
         id:         post.id,
         channel_id: post.channel_id || '',
@@ -141,10 +156,11 @@ async function runTraining(posts) {
         source:     'post',
         pdfs,
         words,
+        txts,
       }
     })
   )).filter(p => {
-    if (shouldSkipTraining(p.content, p.pdfs, p.words)) {
+    if (shouldSkipTraining(p.content, p.pdfs, p.words, p.txts)) {
       console.log(`[RAG] 학습 제외 (게시글): ${p.id} — 첨부파일 없음, ${(p.content || '').length}자`)
       return false
     }
@@ -159,6 +175,9 @@ async function runTraining(posts) {
   const payload = {
     config: buildTrainerConfig(cfg, ragCfg),
     posts: postsWithPdfs,
+  }
+  if (Array.isArray(options.deletePostIds) && options.deletePostIds.length > 0) {
+    payload.delete_post_ids = options.deletePostIds
   }
 
   console.log(`[RAG] 학습 시작 — ${postsWithPdfs.length}개 게시글 (제외: ${posts.length - postsWithPdfs.length}개)`)
@@ -247,38 +266,51 @@ async function trainPostImmediate(post) {
   }
 }
 
+// ─── 게시글 수정 시: 기존 삭제 후 재학습 ──────────────────────
+async function retrainPostImmediate(post) {
+  try {
+    await runTraining([post], { deletePostIds: [post.id] })
+    state.lastTrained = new Date()
+    return true
+  } catch (e) {
+    console.error('[RAG] 게시글 재학습 오류:', e.message)
+    return false
+  }
+}
+
 // ─── 댓글 첨부파일 경로 조회 (attachment ID 목록으로 직접 조회) ─
 async function getDocumentPathsByIds(attachmentIds) {
-  if (!attachmentIds || attachmentIds.length === 0) return { pdfs: [], words: [] }
+  if (!attachmentIds || attachmentIds.length === 0) return { pdfs: [], words: [], txts: [] }
   try {
     const cfg         = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'))
     const storageBase = getDatabasePath(cfg, 'ObjectFile Path')
     const placeholders = attachmentIds.map((_, i) => `$${i + 1}`).join(', ')
+    const contentTypePlaceholders = DOC_CONTENT_TYPES.map((_, i) => `$${attachmentIds.length + i + 1}`).join(', ')
     const result = await db.query(
       `SELECT id, storage_path, content_type, filename FROM attachments
        WHERE id IN (${placeholders}) AND status = 'COMPLETED'
-         AND content_type IN (
-           'application/pdf',
-           'application/msword',
-           'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+         AND (
+           content_type IN (${contentTypePlaceholders})
+           OR LOWER(filename) LIKE '%.txt'
          )`,
-      attachmentIds
+      [...attachmentIds, ...DOC_CONTENT_TYPES]
     )
-    const pdfs = [], words = []
+    const pdfs = [], words = [], txts = []
     for (const r of result.rows) {
       const item = { id: r.id, path: path.join(storageBase, r.storage_path), file_name: r.filename || '' }
       if (r.content_type === 'application/pdf') pdfs.push(item)
+      else if (isTxtAttachment(r)) txts.push(item)
       else words.push(item)
     }
-    return { pdfs, words }
+    return { pdfs, words, txts }
   } catch (e) {
     console.error('[RAG] 댓글 문서 경로 조회 실패:', e.message)
-    return { pdfs: [], words: [] }
+    return { pdfs: [], words: [], txts: [] }
   }
 }
 
 // ─── 댓글 학습 (Python에 comments 배열 전달) ─────────────────
-async function runCommentTraining(comments) {
+async function runCommentTraining(comments, options = {}) {
   if (comments.length === 0) {
     console.log('[RAG] 학습할 댓글이 없습니다.')
     return
@@ -287,10 +319,10 @@ async function runCommentTraining(comments) {
   const cfg    = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'))
   const ragCfg = cfg.rag || {}
 
-  // 각 댓글의 PDF + Word 첨부파일 경로 조회
+  // 각 댓글의 PDF + Word + TXT 첨부파일 경로 조회
   const commentsWithDocs = (await Promise.all(
     comments.map(async c => {
-      const { pdfs, words } = await getDocumentPathsByIds(c.attachmentIds || [])
+      const { pdfs, words, txts } = await getDocumentPathsByIds(c.attachmentIds || [])
       return {
         id:            c.id,
         post_id:       c.post_id,
@@ -298,10 +330,11 @@ async function runCommentTraining(comments) {
         content:       c.content || '',
         pdfs,
         words,
+        txts,
       }
     })
   )).filter(c => {
-    if (shouldSkipTraining(c.content, c.pdfs, c.words)) {
+    if (shouldSkipTraining(c.content, c.pdfs, c.words, c.txts)) {
       console.log(`[RAG] 학습 제외 (댓글): ${c.id} — 첨부파일 없음, ${(c.content || '').length}자`)
       return false
     }
@@ -317,6 +350,9 @@ async function runCommentTraining(comments) {
     config: buildTrainerConfig(cfg, ragCfg),
     posts:    [],
     comments: commentsWithDocs,
+  }
+  if (Array.isArray(options.deleteCommentIds) && options.deleteCommentIds.length > 0) {
+    payload.delete_comment_ids = options.deleteCommentIds
   }
 
   const startedAt = Date.now()
@@ -340,6 +376,18 @@ async function trainCommentImmediate(comment) {
     return true
   } catch (e) {
     console.error('[RAG] 댓글 임베딩 오류:', e.message)
+    return false
+  }
+}
+
+// ─── 댓글 수정 시: 기존 삭제 후 재학습 ────────────────────────
+async function retrainCommentImmediate(comment) {
+  try {
+    await runCommentTraining([comment], { deleteCommentIds: [comment.id] })
+    state.lastTrained = new Date()
+    return true
+  } catch (e) {
+    console.error('[RAG] 댓글 재학습 오류:', e.message)
     return false
   }
 }
@@ -558,6 +606,7 @@ async function trainExpenseImmediate(postId, formData) {
         source:     'expense_report',
         pdfs:       [],
         words:      [],
+        txts:       [],
       }],
     }
     console.log(`[RAG] 지출결의서 학습 시작 — id=${postId}`)
@@ -585,6 +634,7 @@ async function retrainExpenseImmediate(postId, formData) {
         source:     'expense_report',
         pdfs:       [],
         words:      [],
+        txts:       [],
       }],
     }
     console.log(`[RAG] 지출결의서 재학습 시작 — id=${postId}`)
@@ -602,13 +652,13 @@ async function queryComments(since, until) {
 
   let cql, params
   if (since && until) {
-    cql    = 'SELECT id, post_id, author_id, content, created_at FROM comments WHERE created_at >= ? AND created_at <= ? ALLOW FILTERING'
+    cql    = 'SELECT id, post_id, author_id, content, attachments, created_at FROM comments WHERE created_at >= ? AND created_at <= ? ALLOW FILTERING'
     params = [since, until]
   } else if (since) {
-    cql    = 'SELECT id, post_id, author_id, content, created_at FROM comments WHERE created_at > ? ALLOW FILTERING'
+    cql    = 'SELECT id, post_id, author_id, content, attachments, created_at FROM comments WHERE created_at > ? ALLOW FILTERING'
     params = [since]
   } else {
-    cql    = 'SELECT id, post_id, author_id, content, created_at FROM comments ALLOW FILTERING'
+    cql    = 'SELECT id, post_id, author_id, content, attachments, created_at FROM comments ALLOW FILTERING'
     params = []
   }
   const result = await client.execute(cql, params, { prepare: true })
@@ -618,6 +668,7 @@ async function queryComments(since, until) {
     channel_id: '',   // Cassandra comments 테이블에 channel_id 없음, RAG에서 빈값 허용
     author_id:  r.author_id,
     content:    r.content,
+    attachmentIds: Array.isArray(r.attachments) ? r.attachments.filter(Boolean) : [],
     created_at: r.created_at,
   }))
 }
@@ -706,7 +757,9 @@ module.exports = {
   initRag,
   reloadRagConfig,
   trainPostImmediate,
+  retrainPostImmediate,
   trainCommentImmediate,
+  retrainCommentImmediate,
   trainEventImmediate,
   trainEventsImmediate,
   retrainEventImmediate,

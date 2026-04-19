@@ -659,6 +659,7 @@ export default function SiteAdminPage({ onClose }) {
   const [displayForm, setDisplayForm] = useState({
     imagePreview: { width: 512, height: 512 },
     pdfPreview: { width: 480, height: 270 },
+    txtPreview: { width: 270, height: 480 },
     pptPreview: { width: 480, height: 270 },
     pptxPreview: { width: 480, height: 270 },
     excelPreview: { width: 480, height: 270 },
@@ -733,6 +734,7 @@ export default function SiteAdminPage({ onClose }) {
         setDisplayForm({
           imagePreview: data.display.imagePreview || { width: 512, height: 512 },
           pdfPreview: data.display.pdfPreview || { width: 480, height: 270 },
+          txtPreview: data.display.txtPreview || { width: 270, height: 480 },
           pptPreview: data.display.pptPreview || { width: 480, height: 270 },
           pptxPreview: data.display.pptxPreview || { width: 480, height: 270 },
           excelPreview: data.display.excelPreview || { width: 480, height: 270 },
@@ -953,6 +955,10 @@ export default function SiteAdminPage({ onClose }) {
         configData.pdfPreview = {
           width: parseInt(displayForm.pdfPreview.width),
           height: parseInt(displayForm.pdfPreview.height)
+        }
+        configData.txtPreview = {
+          width: parseInt(displayForm.txtPreview.width),
+          height: parseInt(displayForm.txtPreview.height)
         }
         configData.pptPreview = {
           width: parseInt(displayForm.pptPreview.width),
@@ -2174,6 +2180,13 @@ export default function SiteAdminPage({ onClose }) {
                   description={t.admin.previewPdfDesc}
                   value={displayForm.pdfPreview}
                   onChange={(val) => setDisplayForm(p => ({ ...p, pdfPreview: val }))}
+                />
+
+                <PreviewSettingCard
+                  title={t.admin.previewTxtTitle}
+                  description={t.admin.previewTxtDesc}
+                  value={displayForm.txtPreview}
+                  onChange={(val) => setDisplayForm(p => ({ ...p, txtPreview: val }))}
                 />
 
                 <div className="grid grid-cols-2 gap-6">

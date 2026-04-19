@@ -224,6 +224,7 @@ function buildDisplayConfig(config = {}) {
   return {
     imagePreview: config.imagePreview || { width: 512, height: 512 },
     pdfPreview: config.pdfPreview || { width: 480, height: 270 },
+    txtPreview: config.txtPreview || { width: 270, height: 480 },
     pptPreview: config.pptPreview || { width: 480, height: 270 },
     pptxPreview: config.pptxPreview || { width: 480, height: 270 },
     excelPreview: config.excelPreview || { width: 480, height: 270 },
