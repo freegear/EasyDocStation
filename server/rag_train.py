@@ -122,8 +122,16 @@ def get_local_embed_model():
         return _local_embed_model
     import torch
     from sentence_transformers import SentenceTransformer
+    forced_device = (os.getenv("EASYDOC_RAG_DEVICE", "auto") or "auto").strip().lower()
+    if forced_device not in ("", "auto"):
+        device = forced_device
+    elif torch.cuda.is_available():
+        device = "cuda"
+    elif hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
+        device = "mps"
+    else:
+        device = "cpu"
     model_name = "BAAI/bge-m3"
-    device = "mps" if torch.backends.mps.is_available() else "cpu"
     print(f"[RAG] (fallback) 로컬 임베딩 모델 로드 중: {model_name} (device={device}) ...", flush=True)
     _local_embed_model = SentenceTransformer(model_name, device=device)
     print(f"[RAG] (fallback) 로컬 임베딩 모델 로드 완료 (device={device})", flush=True)

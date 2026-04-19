@@ -48,8 +48,18 @@ import torch
 from sentence_transformers import SentenceTransformer
 import lancedb
 
+def resolve_device():
+    forced = (os.getenv("EASYDOC_RAG_DEVICE", "auto") or "auto").strip().lower()
+    if forced not in ("", "auto"):
+        return forced
+    if torch.cuda.is_available():
+        return "cuda"
+    if hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
+        return "mps"
+    return "cpu"
+
 # 임베딩 모델 로드
-device = 'mps' if torch.backends.mps.is_available() else 'cpu'
+device = resolve_device()
 embed_model = SentenceTransformer("BAAI/bge-m3", device=device)
 
 # LanceDB 연결 및 검색

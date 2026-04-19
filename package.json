@@ -6,14 +6,16 @@
   "scripts": {
     "ollama:serve": "node scripts/ollama-serve-safe.mjs",
     "dev:frontend": "vite",
-    "dev:backend": "PYTHON_BIN=/opt/miniconda3/envs/InterStellar/bin/python3 npm run dev --prefix server",
+    "dev:backend": "PYTHON_BIN=${PYTHON_BIN:-python3} npm run dev --prefix server",
     "dev": "concurrently -p \"[{name}]\" -n \"Ollama,FE,BE\" -c \"cyan,magenta,green\" \"npm run ollama:serve\" \"npm run dev:frontend\" \"npm run dev:backend\"",
     "dev:ubuntu": "bash scripts/dev-ubuntu.sh",
     "setup:ubuntu": "bash scripts/setup-ubuntu.sh",
     "version:bump": "node scripts/bump-app-version.mjs",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "setup:dgx-spark": "bash scripts/setup-dgx-spark.sh",
+    "dev:dgx-spark": "bash scripts/dev-dgx-spark.sh"
   },
   "dependencies": {
     "html2canvas": "^1.4.1",
