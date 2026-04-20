@@ -1572,6 +1572,14 @@ function ComposeBar({ onSubmit, isArchived }) {
     handleDrop(e)
   }
 
+  function handleTextareaDragOver(e) {
+    if (!dataTransferHasFiles(e.dataTransfer)) return
+    e.preventDefault()
+    e.stopPropagation()
+    if (e.dataTransfer) e.dataTransfer.dropEffect = 'copy'
+    setDragOver(true)
+  }
+
   async function handleSend() {
     if (!content.trim() && files.length === 0) { contentRef.current?.focus(); return }
     setSending(true)
@@ -1676,6 +1684,8 @@ function ComposeBar({ onSubmit, isArchived }) {
             onChange={e => setContent(e.target.value)}
             onFocus={() => setFocused(true)}
             onKeyDown={handleKeyDown}
+            onDragOver={handleTextareaDragOver}
+            onDrop={handleTextareaDrop}
             placeholder={t.chat.messagePlaceholder}
             rows={1}
             className="flex-1 bg-transparent text-gray-800 placeholder-gray-400 text-sm leading-relaxed resize-none focus:outline-none pt-0.5"
@@ -2278,6 +2288,25 @@ function PostDetail({ post, channelId, onClose }) {
     if (dataTransferHasFiles(e.dataTransfer) && e.dataTransfer.files?.length) {
       addFiles(e.dataTransfer.files)
     }
+  }
+
+  function handleTextareaDrop(e) {
+    if (!dataTransferHasFiles(e.dataTransfer)) return
+    e.preventDefault()
+    e.stopPropagation()
+    dragCounter.current = 0
+    setDragOver(false)
+    if (e.dataTransfer.files?.length) {
+      addFiles(e.dataTransfer.files)
+    }
+  }
+
+  function handleTextareaDragOver(e) {
+    if (!dataTransferHasFiles(e.dataTransfer)) return
+    e.preventDefault()
+    e.stopPropagation()
+    if (e.dataTransfer) e.dataTransfer.dropEffect = 'copy'
+    setDragOver(true)
   }
 
   useEffect(() => {
@@ -2916,6 +2945,7 @@ function PostDetail({ post, channelId, onClose }) {
                 placeholder={t.chat.commentPlaceholder}
                 rows={2}
                 className="w-full bg-transparent text-gray-700 placeholder-gray-400 text-sm px-4 pt-3 pb-2 resize-none focus:outline-none leading-relaxed"
+                onDragOver={handleTextareaDragOver}
                 onDrop={handleTextareaDrop}
                 onKeyDown={e => {
                   if (e.nativeEvent.isComposing) return
