@@ -117,6 +117,20 @@ function normalizeGatewayUrl(url) {
   }
 }
 
+function dataTransferHasFiles(dataTransfer) {
+  if (!dataTransfer) return false
+  const { types, items, files } = dataTransfer
+  if (types) {
+    if (typeof types.includes === 'function' && types.includes('Files')) return true
+    if (typeof types.contains === 'function' && types.contains('Files')) return true
+    for (const type of Array.from(types)) {
+      if (type === 'Files') return true
+    }
+  }
+  if (items && Array.from(items).some(item => item?.kind === 'file')) return true
+  return Boolean(files && files.length > 0)
+}
+
 export default function GroqPanel({ width }) {
   const { navigateToPost, selectedChannel, addPost, addComment, agenticTarget, clearAgenticTarget, teams } = useChat()
   const { currentUser } = useAuth()
@@ -229,11 +243,13 @@ export default function GroqPanel({ width }) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const [attachedFile, setAttachedFile] = useState(null)
+  const [dragOver, setDragOver] = useState(false)
   const [aiConfig, setAiConfig] = useState({ num_predict: 2048, num_ctx: 8192, history: 6, language: 'ko' })
   const [ragRetrieval, setRagRetrieval] = useState(normalizeRetrievalConfig({}))
   const fileInputRef = useRef(null)
   const bottomRef = useRef(null)
   const textareaRef = useRef(null)
+  const dragCounterRef = useRef(0)
 
   useEffect(() => {
     if (messages.length === 0) {
@@ -495,6 +511,47 @@ export default function GroqPanel({ width }) {
 
   function removeFile() {
     setAttachedFile(null)
+  }
+
+  function attachDroppedFile(fileList) {
+    if (!fileList?.length) return
+    setAttachedFile(fileList[0])
+  }
+
+  function handleDragEnter(e) {
+    e.preventDefault()
+    if (!dataTransferHasFiles(e.dataTransfer)) return
+    dragCounterRef.current += 1
+    setDragOver(true)
+  }
+
+  function handleDragLeave(e) {
+    e.preventDefault()
+    dragCounterRef.current = Math.max(0, dragCounterRef.current - 1)
+    if (dragCounterRef.current === 0) setDragOver(false)
+  }
+
+  function handleDragOver(e) {
+    e.preventDefault()
+    if (!dataTransferHasFiles(e.dataTransfer)) return
+    if (e.dataTransfer) e.dataTransfer.dropEffect = 'copy'
+    setDragOver(true)
+  }
+
+  function handleDrop(e) {
+    e.preventDefault()
+    dragCounterRef.current = 0
+    setDragOver(false)
+    if (dataTransferHasFiles(e.dataTransfer) && e.dataTransfer.files?.length) {
+      attachDroppedFile(e.dataTransfer.files)
+    }
+  }
+
+  function handleTextareaDrop(e) {
+    if (!dataTransferHasFiles(e.dataTransfer)) return
+    e.preventDefault()
+    e.stopPropagation()
+    handleDrop(e)
   }
 
   function clearChat() {
@@ -790,7 +847,25 @@ export default function GroqPanel({ width }) {
           </div>
         )}
 
-        <div className="flex items-end gap-2 bg-gray-200 rounded-xl border border-gray-200 px-2 py-2 focus-within:border-green-500/40 transition-colors">
+        <div
+          className={`flex items-end gap-2 rounded-xl border px-2 py-2 transition-colors relative overflow-hidden ${
+            dragOver
+              ? 'border-green-500/60 bg-green-50 shadow-sm shadow-green-200'
+              : 'bg-gray-200 border-gray-200 focus-within:border-green-500/40'
+          }`}
+          onDragEnter={handleDragEnter}
+          onDragLeave={handleDragLeave}
+          onDragOver={handleDragOver}
+          onDrop={handleDrop}
+        >
+          {dragOver && (
+            <div className="absolute inset-0 z-10 flex flex-col items-center justify-center pointer-events-none">
+              <svg className="w-7 h-7 text-green-600 mb-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.414a4 4 0 00-5.656-5.656l-6.415 6.414a6 6 0 008.486 8.486L20.5 13" />
+              </svg>
+              <p className="text-green-700 text-[11px] font-semibold">{t.chat.dropFile}</p>
+            </div>
+          )}
           <input
             type="file"
             ref={fileInputRef}
@@ -812,6 +887,8 @@ export default function GroqPanel({ width }) {
             value={input}
             onChange={e => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
+            onDragOver={handleDragOver}
+            onDrop={handleTextareaDrop}
             placeholder={t.ai.inputPlaceholder}
             rows={1}
             disabled={loading}
@@ -823,7 +900,7 @@ export default function GroqPanel({ width }) {
           />
           <button
             onClick={sendMessage}
-            disabled={!input.trim() || loading}
+            disabled={(!input.trim() && !attachedFile) || loading}
             className="flex-shrink-0 w-7 h-7 rounded-lg bg-green-600 disabled:bg-gray-200 enabled:hover:bg-green-500 flex items-center justify-center transition-colors self-end"
           >
             {loading ? (
