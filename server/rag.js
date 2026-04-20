@@ -59,7 +59,8 @@ function buildTrainerConfig(cfg, ragCfg) {
 
 function normalizePdfParseStrategy(ragCfg = {}) {
   const raw = String(ragCfg.pdf_parse_strategy ?? 'auto').trim().toLowerCase()
-  return raw || 'auto'
+  if (['auto', 'fast', 'hi-res'].includes(raw)) return raw
+  return 'auto'
 }
 
 const DOC_CONTENT_TYPES = [

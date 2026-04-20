@@ -362,6 +362,7 @@ export const translations = {
       ragPdfStrategyLabel: 'PDF 학습 전략 옵션',
       ragPdfStrategyAutoDesc: '컨텐츠에 따라서 학습 채널을 가변하는 옵션입니다.',
       ragPdfStrategyFastDesc: '빠르게 학습하는 옵션입니다.',
+      ragPdfStrategyHiResDesc: '정확도를 우선하여 고해상도 파싱으로 학습합니다.',
       // Display tab
       displayTabTitle: '전역 디스플레이 설정',
       displaySaveBtn: '저장',
@@ -779,6 +780,7 @@ export const translations = {
       ragPdfStrategyLabel: 'PDF Learning Strategy',
       ragPdfStrategyAutoDesc: 'Automatically adjusts the learning channel based on content.',
       ragPdfStrategyFastDesc: 'Uses a faster learning option.',
+      ragPdfStrategyHiResDesc: 'Uses high-resolution parsing to prioritize accuracy.',
       // Display tab
       displayTabTitle: 'Global Display Settings',
       displaySaveBtn: 'Save',
