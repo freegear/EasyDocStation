@@ -132,7 +132,16 @@ function dataTransferHasFiles(dataTransfer) {
 }
 
 export default function GroqPanel({ width }) {
-  const { navigateToPost, selectedChannel, addPost, addComment, agenticTarget, clearAgenticTarget, teams } = useChat()
+  const {
+    navigateToPost,
+    selectedChannel,
+    addPost,
+    addComment,
+    agenticTarget,
+    clearAgenticTarget,
+    teams,
+    activePostSelection,
+  } = useChat()
   const { currentUser } = useAuth()
   const t = useT()
   const [copiedId, setCopiedId] = useState(null)
@@ -175,9 +184,9 @@ export default function GroqPanel({ width }) {
 
   async function registerAnswerToBoard(answerMsg, answerIndex) {
     if (!answerMsg?.id || postingId) return
-    const hasTarget = Boolean(agenticTarget?.postId && agenticTarget?.channelId)
-    const targetChannelId = hasTarget ? agenticTarget.channelId : selectedChannel?.id
-    const targetPostId = hasTarget ? agenticTarget.postId : ''
+    const hasSelectedPost = Boolean(activePostSelection?.postId && activePostSelection?.channelId)
+    const targetChannelId = hasSelectedPost ? activePostSelection.channelId : selectedChannel?.id
+    const targetPostId = hasSelectedPost ? activePostSelection.postId : ''
     const targetChannel = targetChannelId ? findChannelById(targetChannelId) : null
     if (!targetChannelId) {
       openNotice(t.ai.postToBoardNoChannel)
@@ -212,7 +221,7 @@ export default function GroqPanel({ width }) {
     setPostingId(answerMsg.id)
     try {
       const attachmentIds = questionImageFile ? await uploadQuestionImage(questionImageFile, targetChannelId) : []
-      if (hasTarget && targetPostId) {
+      if (hasSelectedPost && targetPostId) {
         await addComment(
           targetChannelId,
           targetPostId,

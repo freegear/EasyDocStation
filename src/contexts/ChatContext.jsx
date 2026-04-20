@@ -259,6 +259,7 @@ export function ChatProvider({ children }) {
   const [pendingOpenCommentId, setPendingOpenCommentId] = useState(null)
   const [pendingOpenAttachmentId, setPendingOpenAttachmentId] = useState(null)
   const [agenticTarget, setAgenticTarget] = useState(null)
+  const [activePostSelection, setActivePostSelection] = useState({ channelId: null, postId: null })
 
   async function navigateToPost(channelId, postId, meta = {}) {
     // teams에서 channelId에 해당하는 채널 객체를 찾아 이동
@@ -291,6 +292,18 @@ export function ChatProvider({ children }) {
 
   function clearAgenticTarget() {
     setAgenticTarget(null)
+  }
+
+  function setSelectedPostContext(channelId, postId) {
+    if (!channelId || !postId) {
+      setActivePostSelection({ channelId: null, postId: null })
+      return
+    }
+    setActivePostSelection({ channelId, postId })
+  }
+
+  function clearSelectedPostContext() {
+    setActivePostSelection({ channelId: null, postId: null })
   }
 
   const [isSearchMode, setIsSearchMode] = useState(false)
@@ -353,6 +366,9 @@ export function ChatProvider({ children }) {
       agenticTarget,
       openInAgenticAI,
       clearAgenticTarget,
+      activePostSelection,
+      setSelectedPostContext,
+      clearSelectedPostContext,
     }}>
       {children}
     </ChatContext.Provider>
