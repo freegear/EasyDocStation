@@ -754,7 +754,9 @@ export default function SiteAdminPage({ onClose }) {
         setLancedbPath(data.pathConfig.lancedbPath || 'Database/LanceDB')
       }
       if (data.rag) {
-        const pdfParseStrategy = ['auto', 'fast'].includes(data.rag.pdf_parse_strategy) ? data.rag.pdf_parse_strategy : 'auto'
+        const pdfParseStrategy = ['auto', 'fast', 'hi-res'].includes(data.rag.pdf_parse_strategy)
+          ? data.rag.pdf_parse_strategy
+          : 'auto'
         setRagForm(p => ({
           ...p,
           type: data.rag.trainingType || p.type,
@@ -1009,7 +1011,9 @@ export default function SiteAdminPage({ onClose }) {
           vectorSize: parseInt(ragForm.vectorSize),
           chunk_size: parseInt(ragForm.chunkSize),
           chunk_overlap: parseInt(ragForm.chunkOverlap),
-          pdf_parse_strategy: ragForm.pdfParseStrategy === 'fast' ? 'fast' : 'auto'
+          pdf_parse_strategy: ['auto', 'fast', 'hi-res'].includes(ragForm.pdfParseStrategy)
+            ? ragForm.pdfParseStrategy
+            : 'auto'
         }
       } else if (activeTab === 'agenticai') {
         configData.agenticai = {
@@ -1970,6 +1974,19 @@ export default function SiteAdminPage({ onClose }) {
                       <div>
                         <p className="text-gray-900 font-semibold text-sm">fast</p>
                         <p className="text-gray-400 text-xs mt-1">{t.admin.ragPdfStrategyFastDesc || '빠르게 학습하는 옵션입니다.'}</p>
+                      </div>
+                    </label>
+                    <label className={`flex items-start gap-3 rounded-xl border p-4 cursor-pointer transition-all ${ragForm.pdfParseStrategy === 'hi-res' ? 'bg-cyan-50 border-cyan-300' : 'bg-gray-50 border-gray-100 hover:border-gray-200'}`}>
+                      <input
+                        type="radio"
+                        name="pdfParseStrategy"
+                        checked={ragForm.pdfParseStrategy === 'hi-res'}
+                        onChange={() => setRagForm(p => ({ ...p, pdfParseStrategy: 'hi-res' }))}
+                        className="mt-0.5 accent-cyan-600"
+                      />
+                      <div>
+                        <p className="text-gray-900 font-semibold text-sm">hi-res</p>
+                        <p className="text-gray-400 text-xs mt-1">{t.admin.ragPdfStrategyHiResDesc || '정확도를 우선하여 고해상도 파싱으로 학습합니다.'}</p>
                       </div>
                     </label>
                   </div>
