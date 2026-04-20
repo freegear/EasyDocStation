@@ -47,6 +47,21 @@ function normalizeGatewayUrl(url) {
   }
 }
 
+function dataTransferHasFiles(dataTransfer) {
+  if (!dataTransfer) return false
+
+  const { types, items, files } = dataTransfer
+  if (types) {
+    if (typeof types.includes === 'function' && types.includes('Files')) return true
+    if (typeof types.contains === 'function' && types.contains('Files')) return true
+    for (const type of Array.from(types)) {
+      if (type === 'Files') return true
+    }
+  }
+  if (items && Array.from(items).some(item => item?.kind === 'file')) return true
+  return Boolean(files && files.length > 0)
+}
+
 function extractHttpUrls(text = '') {
   const urls = new Set()
 
@@ -1526,20 +1541,28 @@ function ComposeBar({ onSubmit, isArchived }) {
 
   function handleDragEnter(e) {
     e.preventDefault()
+    if (!dataTransferHasFiles(e.dataTransfer)) return
     dragCounter.current++
-    if (e.dataTransfer.types.includes('Files')) setDragOver(true)
+    setDragOver(true)
   }
   function handleDragLeave(e) {
     e.preventDefault()
-    dragCounter.current--
+    dragCounter.current = Math.max(0, dragCounter.current - 1)
     if (dragCounter.current === 0) setDragOver(false)
   }
-  function handleDragOver(e) { e.preventDefault() }
+  function handleDragOver(e) {
+    e.preventDefault()
+    if (!dataTransferHasFiles(e.dataTransfer)) return
+    if (e.dataTransfer) e.dataTransfer.dropEffect = 'copy'
+    setDragOver(true)
+  }
   function handleDrop(e) {
     e.preventDefault()
     dragCounter.current = 0
     setDragOver(false)
-    if (e.dataTransfer.files?.length) addFiles(e.dataTransfer.files)
+    if (dataTransferHasFiles(e.dataTransfer) && e.dataTransfer.files?.length) {
+      addFiles(e.dataTransfer.files)
+    }
   }
 
   async function handleSend() {
@@ -2226,20 +2249,28 @@ function PostDetail({ post, channelId, onClose }) {
 
   function handleDragEnter(e) {
     e.preventDefault()
+    if (!dataTransferHasFiles(e.dataTransfer)) return
     dragCounter.current++
-    if (e.dataTransfer.types.includes('Files')) setDragOver(true)
+    setDragOver(true)
   }
   function handleDragLeave(e) {
     e.preventDefault()
-    dragCounter.current--
+    dragCounter.current = Math.max(0, dragCounter.current - 1)
     if (dragCounter.current === 0) setDragOver(false)
   }
-  function handleDragOver(e) { e.preventDefault() }
+  function handleDragOver(e) {
+    e.preventDefault()
+    if (!dataTransferHasFiles(e.dataTransfer)) return
+    if (e.dataTransfer) e.dataTransfer.dropEffect = 'copy'
+    setDragOver(true)
+  }
   function handleDrop(e) {
     e.preventDefault()
     dragCounter.current = 0
     setDragOver(false)
-    if (e.dataTransfer.files?.length) addFiles(e.dataTransfer.files)
+    if (dataTransferHasFiles(e.dataTransfer) && e.dataTransfer.files?.length) {
+      addFiles(e.dataTransfer.files)
+    }
   }
 
   useEffect(() => {
