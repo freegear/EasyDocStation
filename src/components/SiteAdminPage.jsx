@@ -910,11 +910,18 @@ export default function SiteAdminPage({ onClose }) {
   }, [activeTab])
   useEffect(() => {
     function handleEscClose(e) {
-      if (e.key === 'Escape') onClose?.()
+      if (e.key !== 'Escape') return
+      if (showForm) {
+        e.preventDefault()
+        setShowForm(false)
+        setEditUser(null)
+        return
+      }
+      onClose?.()
     }
     window.addEventListener('keydown', handleEscClose)
     return () => window.removeEventListener('keydown', handleEscClose)
-  }, [onClose])
+  }, [onClose, showForm])
 
   function handleSave(saved) {
     setUsers(prev => {
