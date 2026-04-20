@@ -125,12 +125,19 @@ function isImagePreviewTarget(file = {}) {
   )
 }
 
-function getPreviewDimensions(f, moviePreviewOverride, htmlPreviewOverride, pdfPreviewOverride, txtPreviewOverride) {
+function getPreviewDimensions(
+  f,
+  imagePreviewOverride,
+  moviePreviewOverride,
+  htmlPreviewOverride,
+  pdfPreviewOverride,
+  txtPreviewOverride
+) {
   const name = (f.name || '').toLowerCase()
   const type = (f.type || '').toLowerCase()
   const isPdf = type === 'application/pdf' || /\.pdf($|\?)/i.test(name)
   if (isTxtFile(f)) return txtPreviewOverride || config.txtPreview || { width: 270, height: 480 }
-  if (isImagePreviewTarget(f)) return config.imagePreview
+  if (isImagePreviewTarget(f)) return imagePreviewOverride || config.imagePreview || { width: 512, height: 512 }
   if (name.endsWith('.pptx') || name.endsWith('.ppt')) return config.pptPreview || config.imagePreview
   if (name.endsWith('.xlsx') || name.endsWith('.xls')) return config.excelPreview || config.imagePreview
   if (name.endsWith('.docx') || name.endsWith('.doc')) return config.wordPreview || config.imagePreview
@@ -741,6 +748,7 @@ function FilePreviewModal({ file, fileUrl, onClose }) {
 
 function AttachmentList({ attachments, compact = false }) {
   const t = useT()
+  const [imagePreviewSize, setImagePreviewSize] = useState(config.imagePreview || { width: 512, height: 512 })
   const [moviePreviewSize, setMoviePreviewSize] = useState(config.moviePreview || { width: 480, height: 270 })
   const [htmlPreviewSize, setHtmlPreviewSize] = useState(config.htmlPreview || { width: 480, height: 270 })
   const [pdfPreviewSize, setPdfPreviewSize] = useState(config.pdfPreview || { width: 480, height: 270 })
@@ -752,6 +760,7 @@ function AttachmentList({ attachments, compact = false }) {
   useEffect(() => {
     apiFetch('/config/display')
       .then(data => {
+        if (data.imagePreview) setImagePreviewSize(data.imagePreview)
         if (data.moviePreview) setMoviePreviewSize(data.moviePreview)
         if (data.htmlPreview) setHtmlPreviewSize(data.htmlPreview)
         if (data.pdfPreview) setPdfPreviewSize(data.pdfPreview)
@@ -892,7 +901,14 @@ function AttachmentList({ attachments, compact = false }) {
         <div className="flex flex-wrap gap-3">
           {attachments.map(f => {
             const category = getFileCategory(f.type || '', f.name || '')
-            const dims = getPreviewDimensions(f, moviePreviewSize, htmlPreviewSize, pdfPreviewSize, txtPreviewSize)
+            const dims = getPreviewDimensions(
+              f,
+              imagePreviewSize,
+              moviePreviewSize,
+              htmlPreviewSize,
+              pdfPreviewSize,
+              txtPreviewSize
+            )
             const previewW = Number(dims?.width) || 480
             const previewH = Number(dims?.height) || 270
             const isPdf = category === 'pdf'
