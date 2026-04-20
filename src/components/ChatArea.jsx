@@ -3006,7 +3006,15 @@ function PostDetail({ post, channelId, onClose }) {
 // ─── Main ─────────────────────────────────────────────────────
 
 export default function ChatArea({ autoOpenPostId }) {
-  const { selectedChannel, posts, addPost, pendingOpenPostId, clearPendingPost } = useChat()
+  const {
+    selectedChannel,
+    posts,
+    addPost,
+    pendingOpenPostId,
+    clearPendingPost,
+    setSelectedPostContext,
+    clearSelectedPostContext,
+  } = useChat()
   const t = useT()
   const [selectedPost, setSelectedPost] = useState(null)
   const [showDocumentList, setShowDocumentList] = useState(false)
@@ -3077,6 +3085,20 @@ export default function ChatArea({ autoOpenPostId }) {
     }
     setShowDocumentList(false)
   }, [selectedChannel?.id])
+
+  useEffect(() => {
+    if (selectedPost?.id && selectedChannel?.id) {
+      setSelectedPostContext(selectedChannel.id, selectedPost.id)
+      return
+    }
+    clearSelectedPostContext()
+  }, [selectedPost?.id, selectedChannel?.id, setSelectedPostContext, clearSelectedPostContext])
+
+  useEffect(() => {
+    return () => {
+      clearSelectedPostContext()
+    }
+  }, [clearSelectedPostContext])
 
   useEffect(() => {
     if (!showDocumentList) return
