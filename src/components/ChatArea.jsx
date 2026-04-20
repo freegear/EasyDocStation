@@ -1565,6 +1565,13 @@ function ComposeBar({ onSubmit, isArchived }) {
     }
   }
 
+  function handleTextareaDrop(e) {
+    if (!dataTransferHasFiles(e.dataTransfer)) return
+    e.preventDefault()
+    e.stopPropagation()
+    handleDrop(e)
+  }
+
   async function handleSend() {
     if (!content.trim() && files.length === 0) { contentRef.current?.focus(); return }
     setSending(true)
@@ -2875,7 +2882,14 @@ function PostDetail({ post, channelId, onClose }) {
       <div className="flex-shrink-0 border-t border-gray-200 px-6 py-3 bg-white">
         <input ref={fileInputRef} type="file" multiple className="hidden" onChange={e => { if(e.target.files?.length) addFiles(e.target.files); e.target.value = '' }} />
         {!selectedChannel?.is_archived ? (
-          <form onSubmit={handleComment} className="flex items-start gap-3">
+          <form
+            onSubmit={handleComment}
+            className="flex items-start gap-3"
+            onDragEnter={handleDragEnter}
+            onDragLeave={handleDragLeave}
+            onDragOver={handleDragOver}
+            onDrop={handleDrop}
+          >
             {currentUser && <Avatar letters={currentUser.avatar} imageUrl={currentUser.image_url} size="sm" />}
             <div
               onDragEnter={handleDragEnter}
@@ -2902,6 +2916,7 @@ function PostDetail({ post, channelId, onClose }) {
                 placeholder={t.chat.commentPlaceholder}
                 rows={2}
                 className="w-full bg-transparent text-gray-700 placeholder-gray-400 text-sm px-4 pt-3 pb-2 resize-none focus:outline-none leading-relaxed"
+                onDrop={handleTextareaDrop}
                 onKeyDown={e => {
                   if (e.nativeEvent.isComposing) return
                   if (e.key === 'Enter' && !e.shiftKey) {
