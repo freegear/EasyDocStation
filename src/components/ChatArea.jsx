@@ -114,11 +114,23 @@ function isTxtFile(file = {}) {
   return type === 'text/plain' || /\.txt($|\?)/i.test(name)
 }
 
+function isImagePreviewTarget(file = {}) {
+  const name = (file.name || '').toLowerCase()
+  const type = (file.type || '').toLowerCase()
+  return (
+    type === 'image/jpeg' ||
+    type === 'image/png' ||
+    type === 'image/gif' ||
+    /\.(jpe?g|png|gif)($|\?)/i.test(name)
+  )
+}
+
 function getPreviewDimensions(f, moviePreviewOverride, htmlPreviewOverride, pdfPreviewOverride, txtPreviewOverride) {
   const name = (f.name || '').toLowerCase()
   const type = (f.type || '').toLowerCase()
   const isPdf = type === 'application/pdf' || /\.pdf($|\?)/i.test(name)
   if (isTxtFile(f)) return txtPreviewOverride || config.txtPreview || { width: 270, height: 480 }
+  if (isImagePreviewTarget(f)) return config.imagePreview
   if (name.endsWith('.pptx') || name.endsWith('.ppt')) return config.pptPreview || config.imagePreview
   if (name.endsWith('.xlsx') || name.endsWith('.xls')) return config.excelPreview || config.imagePreview
   if (name.endsWith('.docx') || name.endsWith('.doc')) return config.wordPreview || config.imagePreview
