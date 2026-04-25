@@ -1491,8 +1491,14 @@ function LinkPreviewCards({ links = [] }) {
 function ContentRenderer({ text = '' }) {
   const normalized = normalizeMarkdownCodeFence(text || '')
   const links = extractHttpUrls(text || '')
+  const keepTextSelection = (e) => e.stopPropagation()
   return (
-    <div className="text-gray-700 text-sm leading-relaxed break-words select-text">
+    <div
+      className="text-gray-700 text-sm leading-relaxed break-words select-text allow-copy cursor-text"
+      onMouseDown={keepTextSelection}
+      onClick={keepTextSelection}
+      onDoubleClick={keepTextSelection}
+    >
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         components={{
@@ -2234,6 +2240,8 @@ function PostCard({ post, onSelect, pinned, isSelected }) {
   const commentCount = post.comments?.length || 0
   const trainingStatus = post.training_status || null
 
+  const keepTextSelection = (e) => e.stopPropagation()
+
   function handleCardClick() {
     const selectedText = window.getSelection?.()?.toString() || ''
     if (selectedText.trim().length > 0) return
@@ -2265,10 +2273,10 @@ function PostCard({ post, onSelect, pinned, isSelected }) {
         <Avatar letters={post.author?.avatar || '?'} imageUrl={post.author?.image_url} />
         <div className="flex-1 min-w-0">
           {/* Lead line */}
-          <div className="flex items-center gap-2 mb-0.5">
+          <div className="flex items-center gap-2 mb-0.5" onMouseDown={keepTextSelection} onClick={keepTextSelection}>
             {pinned && <PinIcon />}
             {leadLine && (
-              <p className="text-gray-800 font-semibold text-sm leading-tight group-hover:text-indigo-600 transition-colors truncate">{leadLine}</p>
+              <p className="text-gray-800 font-semibold text-sm leading-tight group-hover:text-indigo-600 transition-colors truncate select-text allow-copy cursor-text">{leadLine}</p>
             )}
           </div>
           {/* Meta */}
@@ -2305,7 +2313,15 @@ function PostCard({ post, onSelect, pinned, isSelected }) {
             )}
           </div>
           {/* Body preview (second line onward) */}
-          {bodyPreview && <p className="text-gray-400 text-xs leading-relaxed line-clamp-2">{bodyPreview}</p>}
+          {bodyPreview && (
+            <p
+              className="text-gray-400 text-xs leading-relaxed line-clamp-2 select-text allow-copy cursor-text"
+              onMouseDown={keepTextSelection}
+              onClick={keepTextSelection}
+            >
+              {bodyPreview}
+            </p>
+          )}
         </div>
       </div>
     </div>
@@ -2887,7 +2903,11 @@ function PostDetail({ post, channelId, onClose }) {
           </div>
         ) : (
           <>
-            <div className="mb-4 select-text allow-copy">
+            <div
+              className="mb-4 select-text allow-copy cursor-text"
+              onMouseDown={(e) => e.stopPropagation()}
+              onClick={(e) => e.stopPropagation()}
+            >
               {isTemplateContent(freshPost.content) ? (
                 <TemplateRenderer
                   html={freshPost.content}
@@ -3040,7 +3060,11 @@ function PostDetail({ post, channelId, onClose }) {
                       </div>
                     ) : (
                       <>
-                        <div className="text-gray-600 overflow-hidden select-text allow-copy">
+                        <div
+                          className="text-gray-600 select-text allow-copy cursor-text"
+                          onMouseDown={(e) => e.stopPropagation()}
+                          onClick={(e) => e.stopPropagation()}
+                        >
                           <ContentRenderer text={c.text} />
                         </div>
                         {c.attachments && c.attachments.length > 0 && (
