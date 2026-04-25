@@ -56,6 +56,39 @@ function execFileAsync(command, args) {
   })
 }
 
+async function convertWithLibreOfficeToPdf(inputPath, outDir) {
+  const userProfileDir = fs.mkdtempSync(path.join(outDir, 'lo-profile-'))
+  const commonArgs = [
+    '--headless',
+    '--nologo',
+    '--nolockcheck',
+    '--nodefault',
+    '--norestore',
+    `-env:UserInstallation=file://${userProfileDir}`,
+    '--convert-to', 'pdf',
+    '--outdir', outDir,
+    inputPath,
+  ]
+
+  let lastErr = null
+  for (const cmd of ['libreoffice', 'soffice']) {
+    try {
+      await execFileAsync(cmd, commonArgs)
+      const expected = path.join(outDir, `${path.parse(inputPath).name}.pdf`)
+      if (fs.existsSync(expected)) return expected
+
+      const fallbackPdfName = fs.readdirSync(outDir).find(n => n.toLowerCase().endsWith('.pdf'))
+      if (fallbackPdfName) return path.join(outDir, fallbackPdfName)
+    } catch (err) {
+      lastErr = err
+    }
+  }
+
+  const err = new Error('LibreOffice PDF conversion failed')
+  err.cause = lastErr
+  throw err
+}
+
 async function generateThumbnail(fileUuid, fullPath) {
   const logFile = path.join(STORAGE_BASE, 'thumbnail_debug.log')
   const ext = path.extname(fullPath).toLowerCase()
@@ -97,13 +130,7 @@ async function generateThumbnail(fileUuid, fullPath) {
         await execFileAsync('pdftoppm', ['-png', '-singlefile', '-f', '1', '-scale-to', '512', fullPath, pngBase])
       } else if (officeExts.has(ext)) {
         appendThumbLog(logFile, `Generating (linux/office): ${fullPath}`)
-        await execFileAsync('libreoffice', ['--headless', '--convert-to', 'pdf', '--outdir', tmpDir, fullPath])
-        const converted = path.join(tmpDir, `${path.parse(fullPath).name}.pdf`)
-        const fallbackPdfName = fs.readdirSync(tmpDir).find(n => n.toLowerCase().endsWith('.pdf'))
-        const sourcePdf = fs.existsSync(converted)
-          ? converted
-          : (fallbackPdfName ? path.join(tmpDir, fallbackPdfName) : null)
-        if (!sourcePdf) return null
+        const sourcePdf = await convertWithLibreOfficeToPdf(fullPath, tmpDir)
         await execFileAsync('pdftoppm', ['-png', '-singlefile', '-f', '1', '-scale-to', '512', sourcePdf, pngBase])
       } else if (videoExts.has(ext)) {
         appendThumbLog(logFile, `Generating (linux/video): ${fullPath}`)
@@ -142,19 +169,14 @@ async function convertOfficeToPdf(fileUuid, fullPath) {
 
     const tmpDir = fs.mkdtempSync(path.join(PREVIEW_BASE, 'tmp-'))
     try {
-      await execFileAsync('libreoffice', ['--headless', '--convert-to', 'pdf', '--outdir', tmpDir, fullPath])
-      const expected = path.join(tmpDir, `${path.parse(fullPath).name}.pdf`)
-      const fallbackPdfName = fs.readdirSync(tmpDir).find(n => n.toLowerCase().endsWith('.pdf'))
-      const sourcePdf = fs.existsSync(expected)
-        ? expected
-        : (fallbackPdfName ? path.join(tmpDir, fallbackPdfName) : null)
-      if (!sourcePdf || !fs.existsSync(sourcePdf)) return null
+      const sourcePdf = await convertWithLibreOfficeToPdf(fullPath, tmpDir)
       fs.copyFileSync(sourcePdf, previewPdfPath)
       return previewPdfPath
     } finally {
       fs.rmSync(tmpDir, { recursive: true, force: true })
     }
   } catch (err) {
+    console.error('[Preview] Office->PDF conversion failed:', err?.cause?.stderr || err?.stderr || err?.message || err)
     return null
   }
 }
