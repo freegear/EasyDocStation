@@ -135,6 +135,9 @@ async function initDb() {
           IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='use_sns_channel') THEN
             ALTER TABLE users ADD COLUMN use_sns_channel VARCHAR(20);
           END IF;
+          IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='active_session_id') THEN
+            ALTER TABLE users ADD COLUMN active_session_id TEXT;
+          END IF;
           -- posts 테이블 컬럼 추가
           IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='posts' AND column_name='security_level') THEN
             ALTER TABLE posts ADD COLUMN security_level INTEGER NOT NULL DEFAULT 0;
