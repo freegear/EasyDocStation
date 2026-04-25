@@ -2,8 +2,8 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import Placeholder from '@tiptap/extension-placeholder'
-import Image from '@tiptap/extension-image'
 import Dropcursor from '@tiptap/extension-dropcursor'
+import ImageResize from 'tiptap-extension-resize-image'
 import { Markdown } from 'tiptap-markdown'
 import { useChat } from '../../contexts/ChatContext'
 import { useAuth } from '../../contexts/AuthContext'
@@ -39,10 +39,9 @@ export default function MDPageViewer({ post, channelId, onClose }) {
   const editor = useEditor({
     extensions: [
       StarterKit,
-      Image.configure({
-        HTMLAttributes: {
-          class: 'md-inline-image',
-        },
+      ImageResize.configure({
+        minWidth: 120,
+        maxWidth: 1200,
       }),
       Dropcursor.configure({
         color: '#6366f1',
