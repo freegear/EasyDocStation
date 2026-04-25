@@ -246,6 +246,7 @@ export default function Sidebar({ showCalendar, onToggleCalendar, onCloseCalenda
             <div className="flex flex-col gap-0.5 px-2">
               {FORM_TEMPLATES.map(form => {
                 const needsDoubleClick = true
+                const displayLabel = form.id === 'md-page' ? 'EasyPage' : form.label
                 const registerForm = async () => {
                   if (!selectedChannel) return alert('채널을 먼저 선택해주세요.')
                   try {
@@ -261,7 +262,7 @@ export default function Sidebar({ showCalendar, onToggleCalendar, onCloseCalenda
                     className="flex items-center gap-2.5 w-full px-2 py-1.5 rounded-md text-gray-500 hover:bg-gray-100 hover:text-gray-700 text-sm text-left transition-all"
                   >
                     <span className="text-base leading-none">{form.icon}</span>
-                    <span className="truncate">{form.label}</span>
+                    <span className="truncate">{displayLabel}</span>
                     {needsDoubleClick && <span className="ml-auto text-[9px] text-gray-300 whitespace-nowrap">더블클릭</span>}
                   </button>
                 )
