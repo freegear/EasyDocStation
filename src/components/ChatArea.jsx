@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import { useChat } from '../contexts/ChatContext'
 import { useAuth } from '../contexts/AuthContext'
 import { apiFetch, getToken } from '../lib/api'
-import { getSelectedText, hasTextSelectionInside } from '../lib/textSelection'
+import { getSelectedText, hasAnyTextSelection, hasTextSelectionInside } from '../lib/textSelection'
 import config from '../config.json'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
@@ -2260,6 +2260,7 @@ function PostCard({ post, onSelect, pinned, isSelected }) {
   const trainingStatus = post.training_status || null
   const [copyToast, setCopyToast] = useState(null)
   const mouseDownPos = useRef(null)
+  const suppressClickRef = useRef(false)
 
   function handleCardMouseDown(e) {
     mouseDownPos.current = { x: e.clientX, y: e.clientY }
@@ -2269,18 +2270,25 @@ function PostCard({ post, onSelect, pinned, isSelected }) {
     if (hasTextSelectionInside(e.currentTarget)) {
       const selected = getSelectedText()
       setCopyToast({ x: e.clientX, y: e.clientY, text: selected })
+      suppressClickRef.current = true
     } else {
       setCopyToast(null)
+      suppressClickRef.current = false
     }
   }
 
   function handleCardClick(e) {
+    if (suppressClickRef.current) {
+      suppressClickRef.current = false
+      return
+    }
     const start = mouseDownPos.current
     if (start) {
       const dx = Math.abs(e.clientX - start.x)
       const dy = Math.abs(e.clientY - start.y)
       if (dx > 4 || dy > 4) return  // drag-select, not a click
     }
+    if (hasAnyTextSelection()) return
     if (hasTextSelectionInside(e.currentTarget)) return
     setCopyToast(null)
     onSelect(post)
