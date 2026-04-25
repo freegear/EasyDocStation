@@ -2987,15 +2987,14 @@ function PostDetail({ post, channelId, onClose }) {
 
         {/* Body & Attachments */}
         {isEditingPost ? (
-          <div className="bg-gray-100 rounded-2xl border border-indigo-300 p-4 mb-6">
+          <div className="bg-gray-100 rounded-2xl border border-indigo-300 p-4 mb-6 flex flex-col gap-4">
             <textarea
               value={postContent}
               onChange={e => setPostContent(e.target.value)}
-              className="w-full bg-transparent text-gray-800 placeholder-gray-400 text-sm leading-relaxed resize-none focus:outline-none mb-4"
-              rows={8}
+              className="w-full h-[min(58vh,520px)] bg-transparent text-gray-800 placeholder-gray-400 text-sm leading-relaxed resize-none focus:outline-none overflow-y-auto"
             />
             {postFiles.length > 0 && (
-              <div className="flex flex-wrap gap-2 mb-4">
+              <div className="flex flex-wrap gap-2">
                 {postFiles.map(f => <FileChip key={f.id} file={f} onRemove={(id) => setPostFiles(prev => prev.filter(x => x.id !== id))} />)}
               </div>
             )}
@@ -3146,8 +3145,7 @@ function PostDetail({ post, channelId, onClose }) {
                         <textarea
                           value={commentEditContent}
                           onChange={e => setCommentEditContent(e.target.value)}
-                          className="w-full bg-gray-100 border border-gray-200 rounded-lg p-2 text-gray-700 text-sm focus:outline-none focus:border-indigo-300 resize-none"
-                          rows={2}
+                          className="w-full h-[min(32vh,300px)] bg-gray-100 border border-gray-200 rounded-lg p-2 text-gray-700 text-sm focus:outline-none focus:border-indigo-300 resize-none overflow-y-auto"
                         />
                         {commentEditFiles.length > 0 && (
                           <div className="flex flex-wrap gap-1.5 mt-2">
