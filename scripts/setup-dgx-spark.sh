@@ -8,6 +8,21 @@ PYTHON_ENV_DIR="${PYTHON_ENV_DIR:-$ROOT_DIR/.venv}"
 TORCH_VERSION="${TORCH_VERSION:-}"
 TORCH_MIN_VERSION="${TORCH_MIN_VERSION:-2.6}"
 
+install_print_dependencies() {
+  echo "[DGX] 프론트 인쇄 의존성 정합 시작"
+  echo "  1) @vitejs/plugin-react 최신화"
+  npm install -D @vitejs/plugin-react@latest
+
+  echo "  2) react-to-print 설치"
+  if npm install react-to-print; then
+    echo "  - react-to-print 설치 성공"
+    return 0
+  fi
+
+  echo "  3) react-to-print 우회 설치(--legacy-peer-deps)"
+  npm install react-to-print --legacy-peer-deps
+}
+
 # ARM64(DGX Spark GB10)는 PyPI에서 CUDA 휠을 제공하므로 별도 인덱스 불필요
 ARCH="$(uname -m)"
 if [[ -z "${TORCH_INDEX_URL:-}" ]]; then
@@ -31,8 +46,8 @@ fi
 echo "[1/3] Ubuntu 기본 설치 스크립트 실행"
 INSTALL_HIRES_DEPS=1 bash "$ROOT_DIR/scripts/setup-ubuntu.sh"
 
-echo "[1-1/3] 프론트 인쇄 의존성 설치 (react-to-print)"
-npm install react-to-print
+echo "[1-1/3] 프론트 인쇄 의존성 설치"
+install_print_dependencies
 
 if [[ ! -x "$PYTHON_ENV_DIR/bin/python3" ]]; then
   echo "[ERROR] Python venv를 찾을 수 없습니다: $PYTHON_ENV_DIR"
