@@ -255,6 +255,30 @@ export default function MDPageViewer({ post, channelId, onClose }) {
     ],
     content: stripImageMeta(initialMdRaw),
     editable: canEdit && mode === 'preview',
+    editorProps: {
+      handleDrop(view, event) {
+        if (!canEdit || mode !== 'preview') return false
+        const files = Array.from(event.dataTransfer?.files || []).filter(isImageFile)
+        if (files.length === 0) return false
+
+        event.preventDefault()
+        event.stopPropagation()
+        setIsDragOver(false)
+
+        const coords = { left: event.clientX, top: event.clientY }
+        const dropPos = view.posAtCoords(coords)?.pos
+
+        ;(async () => {
+          let insertPos = Number.isFinite(dropPos) ? dropPos : null
+          for (const file of files) {
+            // eslint-disable-next-line no-await-in-loop
+            await uploadAndInsertImage(file, insertPos)
+            insertPos = null
+          }
+        })()
+        return true
+      },
+    },
     onUpdate({ editor }) {
       const md = stripImageMeta(editor.storage.markdown.getMarkdown())
       const nextImageMeta = collectImageMetaFromDoc(editor.state.doc, imageMetaRef.current)
