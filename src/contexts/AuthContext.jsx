@@ -50,7 +50,12 @@ export function AuthProvider({ children }) {
     return updated
   }
 
-  function logout() {
+  async function logout() {
+    try {
+      await apiFetch('/auth/logout', { method: 'POST' })
+    } catch (_) {
+      // 서버 오류 시에도 로컬 세션은 정리
+    }
     clearToken()
     setCurrentUser(null)
   }
