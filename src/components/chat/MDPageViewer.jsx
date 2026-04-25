@@ -18,6 +18,7 @@ import '../../styles/tiptap.css'
 const MD_PAGE_MARKER = '<!--md-page-->'
 const MD_IMAGE_META_PREFIX = '<!--md-image-meta:'
 const ResizableImage = ImageResize.extend({ name: 'image' })
+const FILE_VIEW_URL_PATTERN = /(https?:\/\/[^\s)"']+\/api\/files\/view\/[A-Za-z0-9-]+(?:\?[^\s)"']*)?|\/api\/files\/view\/[A-Za-z0-9-]+(?:\?[^\s)"']*)?)/g
 
 function extractImageMeta(mdText = '') {
   const match = mdText.match(/<!--md-image-meta:([A-Za-z0-9+/=_-]+)-->\s*$/m)
@@ -25,10 +26,10 @@ function extractImageMeta(mdText = '') {
   try {
     const decoded = atob(match[1])
     try {
-      return JSON.parse(decoded) || {}
+      return normalizeImageMetaKeys(JSON.parse(decoded) || {})
     } catch {
       // Backward/forward safety for unicode payloads.
-      return JSON.parse(decodeURIComponent(escape(decoded))) || {}
+      return normalizeImageMetaKeys(JSON.parse(decodeURIComponent(escape(decoded))) || {})
     }
   } catch {
     return {}
@@ -41,10 +42,64 @@ function stripImageMeta(mdText = '') {
 
 function attachImageMeta(mdText = '', imageMeta = {}) {
   const plain = stripImageMeta(mdText || '')
-  const keys = Object.keys(imageMeta || {})
+  const normalizedMeta = normalizeImageMetaKeys(imageMeta || {})
+  const keys = Object.keys(normalizedMeta)
   if (keys.length === 0) return plain
-  const encoded = btoa(unescape(encodeURIComponent(JSON.stringify(imageMeta))))
+  const encoded = btoa(unescape(encodeURIComponent(JSON.stringify(normalizedMeta))))
   return `${plain}\n${MD_IMAGE_META_PREFIX}${encoded}-->`
+}
+
+function mapFileViewUrl(url, mutateParams) {
+  try {
+    const input = String(url || '').trim()
+    if (!input) return input
+    const absolute = /^https?:\/\//i.test(input)
+    const parsed = new URL(input, window.location.origin)
+    if (!parsed.pathname.startsWith('/api/files/view/')) return input
+    mutateParams(parsed.searchParams)
+    if (absolute) return parsed.toString()
+    const q = parsed.searchParams.toString()
+    return `${parsed.pathname}${q ? `?${q}` : ''}${parsed.hash || ''}`
+  } catch {
+    return String(url || '')
+  }
+}
+
+function stripAuthTokenFromFileViewUrl(url) {
+  return mapFileViewUrl(url, (params) => {
+    params.delete('auth_token')
+  })
+}
+
+function ensureAuthTokenInFileViewUrl(url, token) {
+  return mapFileViewUrl(url, (params) => {
+    params.delete('auth_token')
+    if (token) params.set('auth_token', token)
+  })
+}
+
+function rewriteFileViewUrlsInMarkdown(md = '', rewriteFn = (v) => v) {
+  return String(md || '').replace(FILE_VIEW_URL_PATTERN, (matched) => rewriteFn(matched))
+}
+
+function stripAuthTokenFromMarkdown(md = '') {
+  return rewriteFileViewUrlsInMarkdown(md, stripAuthTokenFromFileViewUrl)
+}
+
+function injectAuthTokenIntoMarkdown(md = '', token = '') {
+  return rewriteFileViewUrlsInMarkdown(md, (url) => ensureAuthTokenInFileViewUrl(url, token))
+}
+
+function normalizeImageMetaKeys(imageMeta = {}) {
+  const entries = Object.entries(imageMeta || {})
+  if (entries.length === 0) return {}
+  const normalized = {}
+  for (const [key, val] of entries) {
+    const nextKey = stripAuthTokenFromFileViewUrl(String(key || '').trim())
+    if (!nextKey) continue
+    normalized[nextKey] = val || {}
+  }
+  return normalized
 }
 
 function hasSizingMeta(meta = {}) {
@@ -60,7 +115,7 @@ function collectImageMetaFromDoc(doc, fallbackMap = {}) {
   const map = {}
   doc.descendants((node) => {
     if (node.type.name !== 'image') return
-    const src = String(node.attrs?.src || '').trim()
+    const src = stripAuthTokenFromFileViewUrl(String(node.attrs?.src || '').trim())
     if (!src) return
     const current = {
       width: node.attrs?.width ?? null,
@@ -158,13 +213,15 @@ export default function MDPageViewer({ post, channelId, onClose }) {
   const { updatePost } = useChat()
   const { currentUser } = useAuth()
   const t = useT()
-  const initialMdRaw = String(post.content || '').replace(/^<!--md-page-->\n?/, '')
+  const authToken = getToken() || ''
+  const initialMdStored = stripAuthTokenFromMarkdown(String(post.content || '').replace(/^<!--md-page-->\n?/, ''))
+  const initialMdRaw = injectAuthTokenIntoMarkdown(initialMdStored, authToken)
 
   const [mode, setMode] = useState('preview')
-  const [savedContent, setSavedContent] = useState(() => stripImageMeta(initialMdRaw))
-  const [sourceText, setSourceText] = useState(() => stripImageMeta(initialMdRaw))
-  const [imageMeta, setImageMeta] = useState(() => extractImageMeta(initialMdRaw))
-  const [savedImageMeta, setSavedImageMeta] = useState(() => extractImageMeta(initialMdRaw))
+  const [savedContent, setSavedContent] = useState(() => stripImageMeta(initialMdStored))
+  const [sourceText, setSourceText] = useState(() => stripImageMeta(initialMdStored))
+  const [imageMeta, setImageMeta] = useState(() => extractImageMeta(initialMdStored))
+  const [savedImageMeta, setSavedImageMeta] = useState(() => extractImageMeta(initialMdStored))
   const [isChanged, setIsChanged] = useState(false)
   const [saving, setSaving] = useState(false)
   const [showSaveDialog, setShowSaveDialog] = useState(false)
@@ -187,7 +244,10 @@ export default function MDPageViewer({ post, channelId, onClose }) {
 
   const editor = useEditor({
     extensions: [
-      StarterKit,
+      StarterKit.configure({
+        link: false,
+        dropcursor: false,
+      }),
       Link.configure({
         openOnClick: false,
         autolink: true,
@@ -274,13 +334,13 @@ export default function MDPageViewer({ post, channelId, onClose }) {
   }
 
   const getCurrentMarkdown = useCallback(() => {
-    if (mode === 'source') return sourceText
-    return stripImageMeta(editor?.storage.markdown.getMarkdown() || '')
+    if (mode === 'source') return stripAuthTokenFromMarkdown(sourceText)
+    return stripAuthTokenFromMarkdown(stripImageMeta(editor?.storage.markdown.getMarkdown() || ''))
   }, [mode, sourceText, editor])
 
   const handleSave = useCallback(async () => {
-    const md = getCurrentMarkdown()
-    const mdWithMeta = attachImageMeta(md, imageMeta)
+      const md = stripAuthTokenFromMarkdown(getCurrentMarkdown())
+      const mdWithMeta = attachImageMeta(md, normalizeImageMetaKeys(imageMeta))
     setSaving(true)
     try {
       await updatePost(channelId, post.id, { content: `${MD_PAGE_MARKER}\n${mdWithMeta}` })
@@ -403,9 +463,10 @@ export default function MDPageViewer({ post, channelId, onClose }) {
 
     let printableBody = mdHtml
     try {
-      printableBody = await inlineImagesForPrint(mdHtml)
+      const withCurrentToken = injectAuthTokenIntoMarkdown(mdHtml, getToken() || '')
+      printableBody = await inlineImagesForPrint(withCurrentToken)
     } catch (_) {
-      printableBody = mdHtml
+      printableBody = injectAuthTokenIntoMarkdown(mdHtml, getToken() || '')
     }
 
     const printableHtml = `<!doctype html>
