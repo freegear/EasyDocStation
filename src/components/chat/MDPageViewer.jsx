@@ -2,12 +2,15 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import Placeholder from '@tiptap/extension-placeholder'
+import Image from '@tiptap/extension-image'
+import Dropcursor from '@tiptap/extension-dropcursor'
 import { Markdown } from 'tiptap-markdown'
 import { useChat } from '../../contexts/ChatContext'
 import { useAuth } from '../../contexts/AuthContext'
 import { useT } from '../../i18n/useT'
 import ConfirmDialog from '../ConfirmDialog'
-import { getMdPageContent } from '../../templates/formTemplates'
+import { getMdPageContent, getMdPageTitle } from '../../templates/formTemplates'
+import { apiFetch, getToken } from '../../lib/api'
 import '../../styles/tiptap.css'
 
 const MD_PAGE_MARKER = '<!--md-page-->'
@@ -23,7 +26,10 @@ export default function MDPageViewer({ post, channelId, onClose }) {
   const [isChanged, setIsChanged] = useState(false)
   const [saving, setSaving] = useState(false)
   const [showSaveDialog, setShowSaveDialog] = useState(false)
+  const [isUploadingImage, setIsUploadingImage] = useState(false)
+  const [isDragOver, setIsDragOver] = useState(false)
   const showSaveDialogRef = useRef(false)
+  const imageInputRef = useRef(null)
 
   useEffect(() => { showSaveDialogRef.current = showSaveDialog }, [showSaveDialog])
 
@@ -33,6 +39,15 @@ export default function MDPageViewer({ post, channelId, onClose }) {
   const editor = useEditor({
     extensions: [
       StarterKit,
+      Image.configure({
+        HTMLAttributes: {
+          class: 'md-inline-image',
+        },
+      }),
+      Dropcursor.configure({
+        color: '#6366f1',
+        width: 2,
+      }),
       Placeholder.configure({ placeholder: t.mdPage.sourcePlaceholder }),
       Markdown.configure({ html: false, transformCopiedText: true, transformPastedText: true }),
     ],
@@ -98,7 +113,89 @@ export default function MDPageViewer({ post, channelId, onClose }) {
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [isChanged, onClose])
 
-  const pageTitle = getCurrentMarkdown().match(/^#{1,3}\s+(.+)/m)?.[1] || t.mdPage.title
+  const pageTitle = getMdPageTitle(getCurrentMarkdown(), t.mdPage.title)
+
+  function isImageFile(file) {
+    if (!file) return false
+    const type = (file.type || '').toLowerCase()
+    if (type.startsWith('image/')) return true
+    return /\.(jpe?g|png|gif|webp|bmp|svg)$/i.test(file.name || '')
+  }
+
+  async function uploadAndInsertImage(file, insertPos = null) {
+    if (!editor || !isImageFile(file)) return
+
+    setIsUploadingImage(true)
+    try {
+      const prep = await apiFetch('/files/get-upload-url', {
+        method: 'POST',
+        body: JSON.stringify({
+          filename: file.name,
+          contentType: file.type || 'application/octet-stream',
+          channelId,
+        }),
+      })
+
+      const uploadResp = await fetch(prep.uploadUrl, {
+        method: 'PUT',
+        headers: { 'Content-Type': file.type || 'application/octet-stream' },
+        body: file,
+      })
+      if (!uploadResp.ok) {
+        throw new Error(`이미지 업로드 실패 (${uploadResp.status})`)
+      }
+
+      const authToken = getToken()
+      const src = `/api/files/view/${prep.file_uuid}${authToken ? `?auth_token=${encodeURIComponent(authToken)}` : ''}`
+      const chain = editor.chain().focus()
+      if (Number.isFinite(insertPos)) chain.setTextSelection(insertPos)
+      chain.setImage({ src, alt: file.name, title: file.name }).run()
+    } catch (e) {
+      console.error('MD 이미지 업로드 실패:', e)
+      alert(t.mdPage.imageUploadFail || '이미지 업로드에 실패했습니다.')
+    } finally {
+      setIsUploadingImage(false)
+    }
+  }
+
+  async function handleImageInputChange(e) {
+    const files = Array.from(e.target.files || []).filter(isImageFile)
+    if (files.length === 0) {
+      e.target.value = ''
+      return
+    }
+    for (const file of files) {
+      // eslint-disable-next-line no-await-in-loop
+      await uploadAndInsertImage(file)
+    }
+    e.target.value = ''
+  }
+
+  function handleImagePickClick() {
+    if (!canEdit || mode !== 'preview' || isUploadingImage) return
+    imageInputRef.current?.click()
+  }
+
+  async function handleEditorDrop(e) {
+    if (!canEdit || mode !== 'preview') return
+    const files = Array.from(e.dataTransfer?.files || []).filter(isImageFile)
+    if (files.length === 0) return
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragOver(false)
+
+    let insertPos = null
+    if (editor?.view?.posAtCoords) {
+      const coords = editor.view.posAtCoords({ left: e.clientX, top: e.clientY })
+      if (coords && Number.isFinite(coords.pos)) insertPos = coords.pos
+    }
+
+    for (const file of files) {
+      // eslint-disable-next-line no-await-in-loop
+      await uploadAndInsertImage(file, insertPos)
+      insertPos = null
+    }
+  }
 
   return (
     <div className="flex flex-col flex-1 min-h-0 bg-white">
@@ -143,15 +240,34 @@ export default function MDPageViewer({ post, channelId, onClose }) {
             {saving ? t.mdPage.saving : t.mdPage.save}
           </button>
         )}
+
+        {canEdit && mode === 'preview' && isUploadingImage && (
+          <span className="text-xs text-indigo-600 font-medium">{t.mdPage.imageUploading || '이미지 업로드 중...'}</span>
+        )}
       </div>
 
       {/* ── TipTap Toolbar (미리보기+편집 가능 모드에서만 표시) ── */}
       {canEdit && mode === 'preview' && editor && (
-        <TipTapToolbar editor={editor} />
+        <TipTapToolbar
+          editor={editor}
+          onInsertImage={handleImagePickClick}
+          isUploadingImage={isUploadingImage}
+        />
       )}
 
       {/* ── Content area ── */}
-      <div className="flex-1 overflow-auto min-h-0">
+      <div
+        className={`flex-1 overflow-auto min-h-0 ${isDragOver ? 'bg-indigo-50/50' : ''}`}
+        onDragOver={(e) => {
+          if (!canEdit || mode !== 'preview') return
+          if ((e.dataTransfer?.files?.length || 0) > 0) {
+            e.preventDefault()
+            setIsDragOver(true)
+          }
+        }}
+        onDragLeave={() => setIsDragOver(false)}
+        onDrop={handleEditorDrop}
+      >
         {mode === 'source' ? (
           /* 소스 모드: 마크다운 텍스트 표시 */
           <textarea
@@ -172,6 +288,15 @@ export default function MDPageViewer({ post, channelId, onClose }) {
           </div>
         )}
       </div>
+
+      <input
+        ref={imageInputRef}
+        type="file"
+        accept="image/*"
+        multiple
+        className="hidden"
+        onChange={handleImageInputChange}
+      />
 
       {/* ── 저장 다이얼로그 ── */}
       {showSaveDialog && (
@@ -200,7 +325,7 @@ export default function MDPageViewer({ post, channelId, onClose }) {
 /* ─────────────────────────────────────────
    TipTap 툴바 컴포넌트
 ───────────────────────────────────────── */
-function TipTapToolbar({ editor }) {
+function TipTapToolbar({ editor, onInsertImage, isUploadingImage = false }) {
   if (!editor) return null
 
   const btn = (active, onClick, label, title) => (
@@ -237,6 +362,7 @@ function TipTapToolbar({ editor }) {
       {btn(editor.isActive('blockquote'),  () => editor.chain().focus().toggleBlockquote().run(),   '"  인용',   '인용구')}
       {btn(editor.isActive('codeBlock'),   () => editor.chain().focus().toggleCodeBlock().run(),    '코드 블록', '코드 블록')}
       {btn(false, () => editor.chain().focus().setHorizontalRule().run(), '── 구분선', '가로 구분선')}
+      {btn(false, onInsertImage, isUploadingImage ? '업로드 중' : '이미지', '이미지 업로드 및 삽입')}
       {sep('s4')}
       {btn(false, () => editor.chain().focus().undo().run(), '↩ 실행취소', '실행취소 (Ctrl+Z)')}
       {btn(false, () => editor.chain().focus().redo().run(), '↪ 다시실행', '다시실행 (Ctrl+Y)')}

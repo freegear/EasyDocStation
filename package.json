@@ -21,6 +21,8 @@
     "dev:dgx-spark": "bash scripts/dev-dgx-spark.sh"
   },
   "dependencies": {
+    "@tiptap/extension-dropcursor": "^3.22.4",
+    "@tiptap/extension-image": "^3.22.4",
     "@tiptap/extension-placeholder": "^3.22.4",
     "@tiptap/react": "^3.22.4",
     "@tiptap/starter-kit": "^3.22.4",
