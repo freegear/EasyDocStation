@@ -581,12 +581,7 @@ export default function MDPageViewer({ post, channelId, onClose }) {
       const src = `/api/files/view/${prep.file_uuid}${authToken ? `?auth_token=${encodeURIComponent(authToken)}` : ''}`
       const chain = editor.chain().focus()
       if (Number.isFinite(insertPos)) chain.setTextSelection(insertPos)
-      // 이미지 아래에 표가 붙어 깨지는 문제를 막기 위해
-      // 이미지 삽입 시 항상 빈 문단 1줄을 함께 추가한다.
-      chain.insertContent([
-        { type: 'image', attrs: { src, alt: file.name, title: file.name } },
-        { type: 'paragraph' },
-      ]).run()
+      chain.setImage({ src, alt: file.name, title: file.name }).run()
     } catch (e) {
       console.error('MD 이미지 업로드 실패:', e)
       alert(t.mdPage.imageUploadFail || '이미지 업로드에 실패했습니다.')
