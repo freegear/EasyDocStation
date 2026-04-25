@@ -2,6 +2,15 @@ export function getSelectedText() {
   return window.getSelection?.()?.toString?.().trim?.() || ''
 }
 
+export function hasAnyTextSelection() {
+  const selection = window.getSelection?.()
+  if (!selection?.rangeCount) return false
+  const text = selection.toString?.().trim?.() || ''
+  if (!text) return false
+  if (selection.type === 'Range') return true
+  return text.length > 0
+}
+
 export function hasTextSelectionInside(container) {
   if (!container) return false
   const selection = window.getSelection?.()
