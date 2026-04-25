@@ -8,6 +8,11 @@ import ConfirmDialog from './ConfirmDialog'
 
 // ─── helpers ─────────────────────────────────────────────────
 const USERNAME_PATTERN = /^[A-Za-z][A-Za-z0-9_.]*$/
+const LANGUAGES = [
+  { code: 'ko', label: '한국어' },
+  { code: 'en', label: 'English' },
+  { code: 'ja', label: '日本語' },
+]
 
 function formatDate(iso) {
   if (!iso) return '-'
@@ -645,7 +650,7 @@ function FormField({ label, type = 'text', value, onChange, placeholder, require
 
 export default function SiteAdminPage({ onClose }) {
   const t = useT()
-  const { currentUser, setMaxAttachmentFileSize } = useAuth()
+  const { currentUser, setMaxAttachmentFileSize, language, setLanguage } = useAuth()
   const [users, setUsers] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -1139,15 +1144,34 @@ export default function SiteAdminPage({ onClose }) {
           </div>
         </div>
 
-        <button
-          onClick={onClose}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gray-100 hover:bg-red-500/20 text-gray-600 hover:text-red-400 border border-gray-200 hover:border-red-200 text-sm font-medium transition-all active:scale-95"
-        >
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
-          </svg>
-          {t.admin.close}
-        </button>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center bg-gray-100 border border-gray-200 rounded-lg overflow-hidden">
+            {LANGUAGES.map(lang => (
+              <button
+                key={lang.code}
+                type="button"
+                onClick={() => setLanguage(lang.code)}
+                className={`px-2.5 py-1 text-xs font-medium transition-all ${
+                  language === lang.code
+                    ? 'bg-indigo-600 text-white'
+                    : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                {lang.label}
+              </button>
+            ))}
+          </div>
+
+          <button
+            onClick={onClose}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gray-100 hover:bg-red-500/20 text-gray-600 hover:text-red-400 border border-gray-200 hover:border-red-200 text-sm font-medium transition-all active:scale-95"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+            {t.admin.close}
+          </button>
+        </div>
       </div>
 
       <div className="flex-1 flex min-h-0 bg-gray-100 relative">
