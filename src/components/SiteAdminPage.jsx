@@ -1156,6 +1156,21 @@ export default function SiteAdminPage({
         </div>
 
         <div className="flex items-center gap-3">
+          <div className="hidden md:block">
+            <div className="relative">
+              <svg className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              <input
+                type="text"
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                placeholder={t.admin.searchPlaceholder}
+                className="w-56 bg-gray-100 border border-gray-200 rounded-lg pl-8 pr-3 py-1.5 text-gray-900 text-xs placeholder-gray-400 focus:outline-none focus:border-indigo-300 focus:ring-1 focus:ring-indigo-500/40"
+              />
+            </div>
+          </div>
+
           <button
             type="button"
             onClick={() => {
@@ -1176,7 +1191,7 @@ export default function SiteAdminPage({
               <rect x="2.5" y="3" width="15" height="14" rx="2" />
               <line x1="11" y1="3" x2="11" y2="17" />
             </svg>
-            <span className="hidden lg:inline">{t.titlebar.agenticPanelLabel}</span>
+            <span>{t.titlebar.agenticPanelLabel}</span>
           </button>
 
           <div className="flex items-center bg-gray-100 border border-gray-200 rounded-lg overflow-hidden">
