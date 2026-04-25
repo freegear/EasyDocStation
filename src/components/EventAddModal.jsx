@@ -87,6 +87,11 @@ export default function EventAddModal({ onClose, onAdd, onSave, onDelete, event:
   const maxLevel = isSiteAdmin ? 4 : (currentUser?.security_level ?? 0)
   const isEditMode = !!editEvent
   const canMutate = !isEditMode || canEdit
+  const ownerId = Number(editEvent?.ownerId)
+  const isOwnerCurrentUser = !isEditMode || ownerId === Number(currentUser?.id)
+  const ownerName = editEvent?.owner?.name || (isOwnerCurrentUser ? currentUser?.name : `사용자 #${editEvent?.ownerId ?? '-'}`)
+  const ownerUsername = editEvent?.owner?.username || (isOwnerCurrentUser ? currentUser?.username : null)
+  const ownerImageUrl = editEvent?.owner?.imageUrl || (isOwnerCurrentUser ? currentUser?.image_url : null)
 
   const [tab, setTab] = useState('event') // 'event' | 'reminder'
   const [showRepeatDeleteConfirm, setShowRepeatDeleteConfirm] = useState(false)
@@ -102,7 +107,9 @@ export default function EventAddModal({ onClose, onAdd, onSave, onDelete, event:
   const [inviteeQuery, setInviteeQuery] = useState('')
   const [suggestions, setSuggestions] = useState([])
   const [showSuggestions, setShowSuggestions] = useState(false)
-  const [invitees, setInvitees] = useState(editEvent?.invitees ?? [])
+  const [invitees, setInvitees] = useState(
+    (editEvent?.invitees ?? []).filter(inv => Number(inv?.id) !== Number(currentUser?.id)),
+  )
   const inviteeInputRef = useRef(null)
   const suggestBoxRef = useRef(null)
   const [memo, setMemo] = useState(editEvent?.memo ?? '')
@@ -131,11 +138,11 @@ export default function EventAddModal({ onClose, onAdd, onSave, onDelete, event:
       .then(data => {
         // Filter out already-added invitees
         const addedIds = new Set(invitees.map(u => u.id))
-        setSuggestions(data.filter(u => !addedIds.has(u.id)))
+        setSuggestions(data.filter(u => !addedIds.has(u.id) && Number(u.id) !== Number(currentUser?.id)))
         setShowSuggestions(true)
       })
       .catch(() => setSuggestions([]))
-  }, [inviteeQuery])
+  }, [inviteeQuery, invitees, currentUser?.id])
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -153,6 +160,7 @@ export default function EventAddModal({ onClose, onAdd, onSave, onDelete, event:
 
   function addInvitee(user) {
     if (!canMutate) return
+    if (Number(user?.id) === Number(currentUser?.id)) return
     setInvitees(prev => [...prev, { id: user.id, username: user.username, name: user.name, image_url: user.image_url }])
     setInviteeQuery('')
     setSuggestions([])
@@ -168,7 +176,7 @@ export default function EventAddModal({ onClose, onAdd, onSave, onDelete, event:
       startDt,
       endDt,
       repeat,
-      invitees,
+      invitees: invitees.filter(inv => Number(inv?.id) !== Number(currentUser?.id)),
       memo,
       securityLevel,
       remindDt,
@@ -288,10 +296,13 @@ export default function EventAddModal({ onClose, onAdd, onSave, onDelete, event:
         {/* Header tabs */}
         <div className="flex border-b border-gray-200 px-5 pt-4 gap-0 items-center">
           {isEditMode && (
-            <span className="text-xs font-semibold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full mr-3 mb-1">편집</span>
-          )}
-          {isEditMode && !canMutate && (
-            <span className="text-xs font-semibold text-gray-600 bg-gray-100 px-2 py-0.5 rounded-full mr-3 mb-1">읽기 전용</span>
+            <span
+              className={`text-xs font-semibold px-2 py-0.5 rounded-full mr-3 mb-1 ${
+                canMutate ? 'text-indigo-600 bg-indigo-50' : 'text-gray-600 bg-gray-100'
+              }`}
+            >
+              {canMutate ? '편집' : '읽기 전용'}
+            </span>
           )}
           {[['event', '이벤트'], ['reminder', '미리 알림']].map(([k, label]) => (
             <button
@@ -391,15 +402,15 @@ export default function EventAddModal({ onClose, onAdd, onSave, onDelete, event:
               <div>
                 <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 block">등록자</label>
                 <div className="flex items-center gap-2">
-                  {currentUser?.image_url ? (
-                    <img src={currentUser.image_url} className="w-6 h-6 rounded-full object-cover flex-shrink-0" alt="" />
+                  {ownerImageUrl ? (
+                    <img src={ownerImageUrl} className="w-6 h-6 rounded-full object-cover flex-shrink-0" alt="" />
                   ) : (
                     <div className="w-6 h-6 rounded-full bg-indigo-500 text-white flex items-center justify-center text-[10px] font-bold flex-shrink-0">
-                      {(currentUser?.name || currentUser?.username || '?')[0].toUpperCase()}
+                      {(ownerName || ownerUsername || '?')[0].toUpperCase()}
                     </div>
                   )}
-                  <span className="text-sm text-gray-700">{currentUser?.name}</span>
-                  <span className="text-xs text-gray-400">@{currentUser?.username}</span>
+                  <span className="text-sm text-gray-700">{ownerName || '-'}</span>
+                  {ownerUsername && <span className="text-xs text-gray-400">@{ownerUsername}</span>}
                 </div>
               </div>
 
@@ -583,11 +594,13 @@ export default function EventAddModal({ onClose, onAdd, onSave, onDelete, event:
             취소
           </button>
           <button
-            onClick={handleSubmit}
-            style={{ backgroundColor: color }}
-            className="ml-2 px-5 py-2 rounded-lg text-sm text-white font-semibold shadow-sm hover:opacity-90 transition-opacity"
+            onClick={canMutate ? handleSubmit : onClose}
+            style={canMutate ? { backgroundColor: color } : undefined}
+            className={`ml-2 px-5 py-2 rounded-lg text-sm font-semibold shadow-sm transition-opacity ${
+              canMutate ? 'text-white hover:opacity-90' : 'text-gray-700 border border-gray-200 bg-white hover:bg-gray-50'
+            }`}
           >
-            {isEditMode ? '수정' : '추가'}
+            {isEditMode ? (canMutate ? '수정' : '확인') : '추가'}
           </button>
         </div>
       </div>

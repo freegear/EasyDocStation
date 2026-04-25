@@ -56,10 +56,31 @@ function parseDt(val) {
   return typeof val === 'string' ? JSON.parse(val) : val
 }
 
-function toClient(row) {
+function buildOwnerSummary(row = {}) {
+  const ownerId = Number(row.owner_id ?? row.ownerId ?? row.owner_id_int)
+  const id = Number.isInteger(ownerId) ? ownerId : null
+  const name = row.owner_name ?? row.ownerName ?? null
+  const username = row.owner_username ?? row.ownerUsername ?? null
+  const displayName = row.owner_display_name ?? row.ownerDisplayName ?? null
+  const imageUrl = row.owner_image_url ?? row.ownerImageUrl ?? null
+  return { id, name, username, displayName, imageUrl }
+}
+
+async function fetchOwnerSummary(ownerId) {
+  const { rows } = await db.query(
+    'SELECT id, name, username, display_name AS owner_display_name, image_url AS owner_image_url FROM users WHERE id = $1 LIMIT 1',
+    [ownerId]
+  )
+  if (!rows[0]) return { id: ownerId, name: null, username: null, displayName: null, imageUrl: null }
+  return buildOwnerSummary(rows[0])
+}
+
+function toClient(row, ownerSummary = null) {
+  const owner = ownerSummary || buildOwnerSummary(row)
   return {
     id: row.id,
     ownerId: row.owner_id,
+    owner,
     title: row.title || '',
     color: row.color || '#4f46e5',
     allDay: row.all_day,
@@ -122,21 +143,21 @@ async function syncInvitationsForEvents({ ownerId, eventIds, invitees }) {
 router.get('/', async (req, res) => {
   const userId = req.user.id
   try {
-    const { rows: myRows } = await db.query(
-      'SELECT * FROM calendar_events WHERE owner_id = $1 ORDER BY created_at ASC',
-      [userId]
-    )
-
-    const { rows: invitedRows } = await db.query(`
-      SELECT ce.* FROM calendar_invitations ci
-      JOIN calendar_events ce ON ce.id = ci.event_id
-      WHERE ci.invitee_id = $1 AND ce.owner_id != $1
+    const { rows } = await db.query(`
+      SELECT DISTINCT ON (ce.id)
+        ce.*,
+        u.name AS owner_name,
+        u.username AS owner_username,
+        u.display_name AS owner_display_name,
+        u.image_url AS owner_image_url
+      FROM calendar_events ce
+      LEFT JOIN users u ON u.id = ce.owner_id
+      LEFT JOIN calendar_invitations ci ON ci.event_id = ce.id AND ci.invitee_id = $1
+      WHERE ce.owner_id = $1 OR ci.invitee_id = $1
+      ORDER BY ce.id, ce.created_at DESC
     `, [userId])
 
-    const myIds = new Set(myRows.map(r => r.id))
-    const filtered = invitedRows.filter(r => !myIds.has(r.id))
-
-    res.json([...myRows, ...filtered].map(toClient))
+    res.json(rows.map(toClient))
   } catch (err) {
     console.error(err)
     res.status(500).json({ error: '서버 오류가 발생했습니다.' })
@@ -163,6 +184,7 @@ router.put('/series/:seriesId', async (req, res) => {
     const now = new Date()
     const updated = []
 
+    const ownerSummary = await fetchOwnerSummary(userId)
     for (const row of seriesRows) {
       const oldStart = dtToDate(parseDt(row.start_dt))
       const newStart = new Date(oldStart.getTime() + shift)
@@ -187,7 +209,7 @@ router.put('/series/:seriesId', async (req, res) => {
         start_dt: newStartDt, end_dt: newEndDt, repeat,
         invitees: invitees || [], memo, security_level: securityLevel,
         remind_dt: remindDt || {}, remind_repeat: remindRepeat, series_id: seriesId,
-      }))
+      }, ownerSummary))
     }
     await syncInvitationsForEvents({
       ownerId: userId,
@@ -244,6 +266,7 @@ router.post('/', async (req, res) => {
   const seriesId = isRepeat ? randomUUID() : null
 
   try {
+    const ownerSummary = await fetchOwnerSummary(userId)
     const occurrences = isRepeat
       ? generateOccurrences(startDt, endDt, repeat, allDay || false)
       : [{ startDt, endDt }]
@@ -271,7 +294,7 @@ router.post('/', async (req, res) => {
       RETURNING *
     `, params)
 
-    const created = rows.map(toClient)
+    const created = rows.map((row) => toClient(row, ownerSummary))
 
     await syncInvitationsForEvents({ ownerId: userId, eventIds, invitees })
 
@@ -291,6 +314,7 @@ router.put('/:id', async (req, res) => {
   const evId = req.params.id
   const { title, color, allDay, startDt, endDt, repeat, invitees, memo, securityLevel, remindDt, remindRepeat } = req.body
   try {
+    const ownerSummary = await fetchOwnerSummary(userId)
     const { rows } = await db.query(
       'SELECT * FROM calendar_events WHERE owner_id = $1 AND id = $2',
       [userId, evId]
@@ -311,7 +335,7 @@ router.put('/:id', async (req, res) => {
       JSON.stringify(remindDt || {}), remindRepeat || 'none',
       now, userId, evId,
     ])
-    const updatedEvent = toClient(updated[0])
+    const updatedEvent = toClient(updated[0], ownerSummary)
     await syncInvitationsForEvents({ ownerId: userId, eventIds: [evId], invitees })
     res.json(updatedEvent)
 
