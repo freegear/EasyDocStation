@@ -160,18 +160,11 @@ function PostDetailPane({ post, channelId, onClose, helpers = {} }) {
     blockOnAnySelection: false,
   })
 
-  function isInteractiveTarget(el) {
-    return Boolean(el?.closest?.('a,button,input,textarea,select,label,[role="button"]'))
-  }
-
   function guardSelectionMouseDownCapture(e, guard) {
-    if (isInteractiveTarget(e.target)) return
     guard.handleMouseDown(e)
-    e.stopPropagation()
   }
 
   function guardSelectionMouseUpCapture(e, guard) {
-    if (isInteractiveTarget(e.target)) return
     guard.handleMouseUp(e)
   }
 
