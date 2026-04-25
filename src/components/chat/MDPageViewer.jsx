@@ -297,8 +297,9 @@ export default function MDPageViewer({ post, channelId, onClose }) {
     editor.state.doc.descendants((node, pos) => {
       if (node.type.name !== 'image') return
       const src = String(node.attrs?.src || '').trim()
-      if (!src || !imageMeta[src]) return
-      const meta = imageMeta[src]
+      const normalizedSrc = stripAuthTokenFromFileViewUrl(src)
+      const meta = imageMeta[normalizedSrc] || imageMeta[src]
+      if (!src || !meta) return
       const nextAttrs = {
         ...node.attrs,
         ...(meta.width != null ? { width: meta.width } : {}),
