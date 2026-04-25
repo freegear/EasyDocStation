@@ -367,6 +367,17 @@ export default function MDPageViewer({ post, channelId, onClose }) {
       logPrint('pdf.failed.noContentRef')
       return
     }
+    const printWindow = window.open('', '_blank')
+    if (printWindow) {
+      try {
+        printWindow.document.write('<!doctype html><html><head><title>PDF Print</title></head><body style="margin:0;background:#111;color:#fff;font:14px sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;">PDF 생성 중...</body></html>')
+        printWindow.document.close()
+      } catch {
+        // noop
+      }
+    } else {
+      logPrint('pdf.print.popupBlocked')
+    }
     try {
       setIsPrinting(true)
       logPrint('pdf.capture.start', {
@@ -380,25 +391,29 @@ export default function MDPageViewer({ post, channelId, onClose }) {
         maxHeight: target.style.maxHeight,
         height: target.style.height,
       }
-      target.style.overflow = 'visible'
-      target.style.maxHeight = 'none'
-      target.style.height = 'auto'
+      let canvas = null
+      try {
+        target.style.overflow = 'visible'
+        target.style.maxHeight = 'none'
+        target.style.height = 'auto'
 
-      await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))
+        await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))
 
-      const canvas = await html2canvas(target, {
-        scale: 2,
-        useCORS: true,
-        allowTaint: true,
-        backgroundColor: '#ffffff',
-        windowWidth: Math.max(target.scrollWidth, target.clientWidth),
-        windowHeight: Math.max(target.scrollHeight, target.clientHeight),
-        logging: false,
-      })
-
-      target.style.overflow = original.overflow
-      target.style.maxHeight = original.maxHeight
-      target.style.height = original.height
+        canvas = await html2canvas(target, {
+          scale: 2,
+          useCORS: true,
+          allowTaint: true,
+          backgroundColor: '#ffffff',
+          windowWidth: Math.max(target.scrollWidth, target.clientWidth),
+          windowHeight: Math.max(target.scrollHeight, target.clientHeight),
+          logging: false,
+        })
+      } finally {
+        target.style.overflow = original.overflow
+        target.style.maxHeight = original.maxHeight
+        target.style.height = original.height
+      }
+      if (!canvas) throw new Error('PDF 캡처 캔버스가 생성되지 않았습니다.')
 
       logPrint('pdf.capture.done', { canvasWidth: canvas.width, canvasHeight: canvas.height })
 
@@ -425,12 +440,57 @@ export default function MDPageViewer({ post, channelId, onClose }) {
 
       const safeTitle = (pageTitle || t.mdPage.title || 'EasyPage').replace(/[\\/:*?"<>|]+/g, '_')
       const fileName = `${safeTitle}.pdf`
-      logPrint('pdf.save.start', { fileName })
-      pdf.save(fileName)
-      logPrint('pdf.save.done', { fileName })
+      const blob = pdf.output('blob')
+      const blobUrl = URL.createObjectURL(blob)
+      logPrint('pdf.blob.ready', { fileName, blobBytes: blob.size })
+
+      if (printWindow) {
+        const escapedUrl = blobUrl.replace(/"/g, '&quot;')
+        printWindow.document.open()
+        printWindow.document.write(`<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>${safeTitle}</title>
+    <style>
+      html, body { margin: 0; height: 100%; background: #111; }
+      iframe { border: 0; width: 100%; height: 100%; }
+    </style>
+  </head>
+  <body>
+    <iframe id="pdf-frame" src="${escapedUrl}"></iframe>
+    <script>
+      (function () {
+        const frame = document.getElementById('pdf-frame');
+        const trigger = function () {
+          try {
+            frame.contentWindow.focus();
+            frame.contentWindow.print();
+          } catch (e) {
+            window.print();
+          }
+        };
+        frame.addEventListener('load', function () {
+          setTimeout(trigger, 250);
+        });
+      })();
+    </script>
+  </body>
+</html>`)
+        printWindow.document.close()
+        logPrint('pdf.print.window.opened', { fileName })
+      } else {
+        logPrint('pdf.save.fallback.start', { fileName })
+        pdf.save(fileName)
+        logPrint('pdf.save.fallback.done', { fileName })
+      }
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 60_000)
     } catch (error) {
       console.error(`[MDPrint][job:${printJobIdRef.current || '-'}] pdf.failed`, error)
       alert('PDF 생성 중 오류가 발생했습니다.')
+      if (printWindow && !printWindow.closed) {
+        try { printWindow.close() } catch { /* noop */ }
+      }
     } finally {
       setIsPrinting(false)
     }
