@@ -173,22 +173,29 @@ async function convertOfficeToPdf(fileUuid, fullPath) {
   if (!officeExts.has(ext)) return null
 
   const previewPdfPath = path.join(PREVIEW_BASE, `${fileUuid}.pdf`)
+  const logFile = path.join(STORAGE_BASE, 'thumbnail_debug.log')
   try {
+    appendThumbLog(logFile, `Preview convert start: ${fullPath}`)
     if (fs.existsSync(previewPdfPath)) {
       const sourceMtime = fs.statSync(fullPath).mtimeMs
       const previewMtime = fs.statSync(previewPdfPath).mtimeMs
-      if (previewMtime >= sourceMtime) return previewPdfPath
+      if (previewMtime >= sourceMtime) {
+        appendThumbLog(logFile, `Preview convert cache hit: ${previewPdfPath}`)
+        return previewPdfPath
+      }
     }
 
     const tmpDir = fs.mkdtempSync(path.join(PREVIEW_BASE, 'tmp-'))
     try {
       const sourcePdf = await convertWithLibreOfficeToPdf(fullPath, tmpDir)
       fs.copyFileSync(sourcePdf, previewPdfPath)
+      appendThumbLog(logFile, `Preview convert ok: ${previewPdfPath}`)
       return previewPdfPath
     } finally {
       fs.rmSync(tmpDir, { recursive: true, force: true })
     }
   } catch (err) {
+    appendThumbLog(logFile, `Preview convert error: ${err?.cause?.stderr || err?.stderr || err?.message || err}`)
     console.error('[Preview] Office->PDF conversion failed:', err?.cause?.stderr || err?.stderr || err?.message || err)
     return null
   }
