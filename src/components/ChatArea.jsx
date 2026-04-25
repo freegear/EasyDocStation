@@ -2887,7 +2887,7 @@ function PostDetail({ post, channelId, onClose }) {
           </div>
         ) : (
           <>
-            <div className="mb-4 select-text">
+            <div className="mb-4 select-text allow-copy">
               {isTemplateContent(freshPost.content) ? (
                 <TemplateRenderer
                   html={freshPost.content}
@@ -3040,7 +3040,7 @@ function PostDetail({ post, channelId, onClose }) {
                       </div>
                     ) : (
                       <>
-                        <div className="text-gray-600 overflow-hidden select-text">
+                        <div className="text-gray-600 overflow-hidden select-text allow-copy">
                           <ContentRenderer text={c.text} />
                         </div>
                         {c.attachments && c.attachments.length > 0 && (
@@ -3227,18 +3227,15 @@ export default function ChatArea({ autoOpenPostId }) {
       window.addEventListener('mousemove', onMouseMove)
       window.addEventListener('mouseup', stopResizing)
       document.body.style.cursor = 'col-resize'
-      document.body.style.userSelect = 'none'
     } else {
       window.removeEventListener('mousemove', onMouseMove)
       window.removeEventListener('mouseup', stopResizing)
       document.body.style.cursor = ''
-      document.body.style.userSelect = ''
     }
     return () => {
       window.removeEventListener('mousemove', onMouseMove)
       window.removeEventListener('mouseup', stopResizing)
       document.body.style.cursor = ''
-      document.body.style.userSelect = ''
     }
   }, [resizing, onMouseMove, stopResizing])
 
