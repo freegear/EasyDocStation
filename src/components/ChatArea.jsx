@@ -2261,23 +2261,32 @@ function PostCard({ post, onSelect, pinned, isSelected }) {
   const attachCount = post.attachments?.length || 0
   const commentCount = post.comments?.length || 0
   const trainingStatus = post.training_status || null
-  const [copyToast, setCopyToast] = useState(null) // { x, y, text }
+  const [copyToast, setCopyToast] = useState(null)
+  const mouseDownPos = useRef(null)
 
-  const keepTextSelection = (e) => e.stopPropagation()
-
-  function handleCardClick() {
-    const selectedText = window.getSelection?.()?.toString() || ''
-    if (selectedText.trim().length > 0) return
-    onSelect(post)
+  function handleCardMouseDown(e) {
+    mouseDownPos.current = { x: e.clientX, y: e.clientY }
   }
 
   function handleCardMouseUp(e) {
-    const selected = window.getSelection?.()?.toString?.() || ''
-    if (selected.trim().length > 0) {
+    const selected = window.getSelection?.()?.toString() || ''
+    if (selected.trim()) {
       setCopyToast({ x: e.clientX, y: e.clientY, text: selected })
     } else {
       setCopyToast(null)
     }
+  }
+
+  function handleCardClick(e) {
+    const start = mouseDownPos.current
+    if (start) {
+      const dx = Math.abs(e.clientX - start.x)
+      const dy = Math.abs(e.clientY - start.y)
+      if (dx > 4 || dy > 4) return  // drag-select, not a click
+    }
+    setCopyToast(null)
+    window.getSelection?.()?.removeAllRanges?.()
+    onSelect(post)
   }
 
   function handleCopy() {
@@ -2297,7 +2306,9 @@ function PostCard({ post, onSelect, pinned, isSelected }) {
   function handleCardKeyDown(e) {
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault()
-      handleCardClick()
+      setCopyToast(null)
+      window.getSelection?.()?.removeAllRanges?.()
+      onSelect(post)
     }
   }
 
@@ -2305,9 +2316,10 @@ function PostCard({ post, onSelect, pinned, isSelected }) {
     <div className="relative">
       <div
         tabIndex={0}
+        onMouseDown={handleCardMouseDown}
+        onMouseUp={handleCardMouseUp}
         onClick={handleCardClick}
         onKeyDown={handleCardKeyDown}
-        onMouseUp={handleCardMouseUp}
         className={`w-full text-left px-5 py-3 rounded-2xl border transition-all group cursor-pointer ${
           isSelected
             ? 'bg-indigo-50 border-indigo-300'
@@ -2320,14 +2332,14 @@ function PostCard({ post, onSelect, pinned, isSelected }) {
         <Avatar letters={post.author?.avatar || '?'} imageUrl={post.author?.image_url} />
         <div className="flex-1 min-w-0">
           {/* Lead line */}
-          <div className="flex items-center gap-2 mb-0.5" onMouseDown={keepTextSelection}>
+          <div className="flex items-center gap-2 mb-0.5">
             {pinned && <PinIcon />}
             {leadLine && (
               <p className="text-gray-800 font-semibold text-sm leading-tight group-hover:text-indigo-600 transition-colors overflow-hidden text-ellipsis whitespace-nowrap select-text allow-copy cursor-text">{leadLine}</p>
             )}
           </div>
           {/* Meta */}
-          <div className={`flex items-center gap-2 text-gray-400 text-xs select-text allow-copy ${bodyPreview ? 'mb-1' : 'mb-0'}`} onMouseDown={keepTextSelection}>
+          <div className={`flex items-center gap-2 text-gray-400 text-xs select-text allow-copy ${bodyPreview ? 'mb-1' : 'mb-0'}`}>
             <span className="font-medium text-gray-500">{post.author?.name}</span>
             {post.author?.username && (
               <span className="text-gray-400">@{post.author.username}</span>
@@ -2363,7 +2375,6 @@ function PostCard({ post, onSelect, pinned, isSelected }) {
           {bodyPreview && (
             <p
               className="text-gray-400 text-xs leading-relaxed line-clamp-2 select-text allow-copy cursor-text"
-              onMouseDown={keepTextSelection}
             >
               {bodyPreview}
             </p>
