@@ -54,6 +54,21 @@ function collectImageMetaFromDoc(doc) {
   return map
 }
 
+function sameImageMeta(a = {}, b = {}) {
+  const aKeys = Object.keys(a).sort()
+  const bKeys = Object.keys(b).sort()
+  if (aKeys.length !== bKeys.length) return false
+  for (let i = 0; i < aKeys.length; i += 1) {
+    if (aKeys[i] !== bKeys[i]) return false
+    const av = a[aKeys[i]] || {}
+    const bv = b[bKeys[i]] || {}
+    if ((av.width ?? null) !== (bv.width ?? null)) return false
+    if ((av.containerStyle ?? null) !== (bv.containerStyle ?? null)) return false
+    if ((av.wrapperStyle ?? null) !== (bv.wrapperStyle ?? null)) return false
+  }
+  return true
+}
+
 export default function MDPageViewer({ post, channelId, onClose }) {
   const { updatePost } = useChat()
   const { currentUser } = useAuth()
@@ -64,6 +79,7 @@ export default function MDPageViewer({ post, channelId, onClose }) {
   const [savedContent, setSavedContent] = useState(() => stripImageMeta(initialMdRaw))
   const [sourceText, setSourceText] = useState(() => stripImageMeta(initialMdRaw))
   const [imageMeta, setImageMeta] = useState(() => extractImageMeta(initialMdRaw))
+  const [savedImageMeta, setSavedImageMeta] = useState(() => extractImageMeta(initialMdRaw))
   const [isChanged, setIsChanged] = useState(false)
   const [saving, setSaving] = useState(false)
   const [showSaveDialog, setShowSaveDialog] = useState(false)
@@ -95,8 +111,9 @@ export default function MDPageViewer({ post, channelId, onClose }) {
     editable: canEdit && mode === 'preview',
     onUpdate({ editor }) {
       const md = stripImageMeta(editor.storage.markdown.getMarkdown())
-      setImageMeta(collectImageMetaFromDoc(editor.state.doc))
-      setIsChanged(md !== savedContent)
+      const nextImageMeta = collectImageMetaFromDoc(editor.state.doc)
+      setImageMeta(nextImageMeta)
+      setIsChanged(md !== savedContent || !sameImageMeta(nextImageMeta, savedImageMeta))
     },
   })
 
@@ -138,7 +155,7 @@ export default function MDPageViewer({ post, channelId, onClose }) {
   function switchToPreview() {
     if (mode === 'source' && editor) {
       editor.commands.setContent(sourceText)
-      setIsChanged(sourceText !== savedContent)
+      setIsChanged(sourceText !== savedContent || !sameImageMeta(imageMeta, savedImageMeta))
     }
     setMode('preview')
   }
@@ -163,6 +180,7 @@ export default function MDPageViewer({ post, channelId, onClose }) {
     try {
       await updatePost(channelId, post.id, { content: `${MD_PAGE_MARKER}\n${mdWithMeta}` })
       setSavedContent(md)
+      setSavedImageMeta(imageMeta)
       setIsChanged(false)
     } catch (e) {
       console.error('MD 페이지 저장 실패:', e)
@@ -344,8 +362,9 @@ export default function MDPageViewer({ post, channelId, onClose }) {
             className="w-full h-full p-6 font-mono text-sm text-gray-800 bg-gray-50 resize-none focus:outline-none focus:bg-white transition-colors"
             value={sourceText}
             onChange={canEdit ? e => {
-              setSourceText(e.target.value)
-              setIsChanged(e.target.value !== savedContent)
+              const nextSource = e.target.value
+              setSourceText(nextSource)
+              setIsChanged(nextSource !== savedContent || !sameImageMeta(imageMeta, savedImageMeta))
             } : undefined}
             readOnly={!canEdit}
             spellCheck={false}
