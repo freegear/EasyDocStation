@@ -28,6 +28,7 @@ sudo DEBIAN_FRONTEND=noninteractive apt-get install -y \
   curl ca-certificates gnupg lsb-release software-properties-common \
   python3-full python3-venv python3-pip build-essential pkg-config libpq-dev \
   postgresql postgresql-contrib \
+  cups cups-client printer-driver-cups-pdf \
   poppler-utils ffmpeg libreoffice libreoffice-impress \
   tesseract-ocr tesseract-ocr-eng tesseract-ocr-kor
 
@@ -40,6 +41,10 @@ fi
 echo "[2/8] PostgreSQL 서비스 기동"
 sudo systemctl enable postgresql >/dev/null 2>&1 || true
 sudo systemctl start postgresql
+
+echo "[2-0/8] CUPS 인쇄 서비스 기동"
+sudo systemctl enable cups >/dev/null 2>&1 || true
+sudo systemctl restart cups || true
 
 echo "[3/8] PostgreSQL DB/계정 준비"
 sudo -u postgres psql <<SQL
