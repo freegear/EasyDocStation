@@ -97,12 +97,18 @@ function dmAttachmentUrl(att) {
   return `/api/dm/files?storagePath=${encodeURIComponent(att.storagePath)}&filename=${encodeURIComponent(att.filename)}${token ? `&auth_token=${encodeURIComponent(token)}` : ''}`
 }
 
+function dmPreviewPdfUrl(att) {
+  return `${dmAttachmentUrl(att)}&preview=pdf`
+}
+
 function getAttachmentExt(att = {}) {
   return (att.filename || '').toLowerCase()
 }
 
 function getPreviewKind(att = {}) {
   const name = getAttachmentExt(att)
+  if (/\.pptx$/.test(name)) return 'pptx'
+  if (/\.ppt$/.test(name)) return 'ppt'
   if (/\.(jpe?g|png|gif|webp|bmp|svg)$/.test(name)) return 'image'
   if (/\.(mp4|mov|avi|webm)$/.test(name)) return 'video'
   if (/\.pdf$/.test(name)) return 'pdf'
@@ -114,6 +120,8 @@ function getPreviewKind(att = {}) {
 function getHalfPreviewSize(att = {}, displayConfig = DEFAULT_DISPLAY_CONFIG) {
   const kind = getPreviewKind(att)
   let base = displayConfig.imagePreview || DEFAULT_DISPLAY_CONFIG.imagePreview
+  if (kind === 'ppt') base = displayConfig.pptPreview || DEFAULT_DISPLAY_CONFIG.pptPreview
+  if (kind === 'pptx') base = displayConfig.pptxPreview || DEFAULT_DISPLAY_CONFIG.pptxPreview
   if (kind === 'video') base = displayConfig.moviePreview || DEFAULT_DISPLAY_CONFIG.moviePreview
   if (kind === 'pdf') base = displayConfig.pdfPreview || DEFAULT_DISPLAY_CONFIG.pdfPreview
   if (kind === 'html') base = displayConfig.htmlPreview || DEFAULT_DISPLAY_CONFIG.htmlPreview
@@ -592,6 +600,7 @@ function MessageBubble({
                         const { width, height, kind } = getHalfPreviewSize(att, displayConfig)
                         const previewable = !!kind
                         const url = dmAttachmentUrl(att)
+                        const previewUrl = (kind === 'ppt' || kind === 'pptx') ? dmPreviewPdfUrl(att) : url
 
                         if (!previewable) {
                           return (
@@ -634,9 +643,9 @@ function MessageBubble({
                                 style={{ width, height, maxWidth: '100%', background: '#000' }}
                               />
                             )}
-                            {(kind === 'pdf' || kind === 'html' || kind === 'txt') && (
+                            {(kind === 'pdf' || kind === 'html' || kind === 'txt' || kind === 'ppt' || kind === 'pptx') && (
                               <iframe
-                                src={url}
+                                src={previewUrl}
                                 title={att.filename}
                                 style={{ width, height, maxWidth: '100%', border: 'none', background: '#fff' }}
                               />
