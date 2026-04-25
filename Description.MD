@@ -3071,11 +3071,44 @@ CODEX에게 작업을 지시할 때, **"Tiptap Image 확장을 사용하고, 파
 
 # 28.6 Image Resize 커뮤니티 확장 라이브러리 사용 (추천)
 
-MD 페이지의 링크를 위해서
+MD 페이지에 추가된 이미지의 크기 조절을 위해서 Image Resize 커뮤니티 확장 라이브러리를 사용한다.
 가장 빠르고 효율적인 방법입니다. 이미 많은 개발자가 Tiptap용 이미지 크기 조절 확장을 만들어 두었습니다.
 추천 라이브러리: tiptap-extension-resize-image
 장점: 이미지 모서리에 드래그 핸들이 생겨 사용자가 직관적으로 크기를 조절할 수 있습니다.
 
+
+# 28.7 Tiptap에서 링크를 추가하는 방법
+
+Markdown 기반의 Notion 스타일 에디터를 구현할 때, Tiptap에서 링크를 추가하는 방법은 크게 '설정(Extension)'과 '사용자 인터페이스(UI)' 두 가지 측면으로 나뉩니다.
+1. Tiptap Link Extension 설치 및 설정
+먼저 @tiptap/extension-link를 설치하여 에디터가 링크 노드를 인식할 수 있도록 해야 합니다.
+
+npm install @tiptap/extension-link
+
+2. 링크 입력 UI 구현 (Bubble Menu)
+Notion처럼 사용자가 텍스트를 드래그했을 때 링크 입력 팝업(Bubble Menu)이 뜨게 하려면 BubbleMenu 컴포넌트를 사용해야 합니다.
+
+핵심 로직:
+- 선택(Select): 사용자가 텍스트를 드래그합니다.
+- 버블 메뉴 노출: BubbleMenu 컴포넌트가 활성화되며 '링크 삽입' 아이콘을 보여줍니다.
+- 입력창: 아이콘 클릭 시 URL을 입력받을 수 있는 작은 입력 필드를 띄웁니다.
+- 적용: 입력 완료 시 editor.chain().focus().setLink({ href: url }).run() 명령어를 실행합니다.
+
+내부 문서 링크(Internal Linking): 사용자가 [[를 입력했을 때, 현재 EasyDocStation에 등록된 문서 목록을 검색(Autocomplete)해서 보여주고, 선택 시 해당 문서 ID로 링크를 연결하는 기능을 넣으면 Notion과 완벽히 동일한 환경이 됩니다.
+링크 유효성 검사: 링크를 삽입할 때 해당 URL이 실제 존재하는지(Status 200) 백엔드에서 미리 검증하여, 깨진 링크(Dead Link)를 사전에 차단하는 로직을 넣으면 문서의 품질이 훨씬 높아집니다.
+AI 미리보기: 링크 위에 마우스를 올렸을 때(Hover), 해당 URL의 페이지 내용을 AI가 간단히 요약해서 툴팁으로 보여주는 기능을 구현하면 Agentic AI 플랫폼으로서 차별화된 가치를 제공할 수 있습니다.
+
+
+
+
+
+# 29 스크립트 작성
+
+UBUNTU
+DGX-SPARK 의 
+설치 스크립트와 
+실행 스크립트
+그리고 재실행 스크립트를 작성해줘
 
 
 

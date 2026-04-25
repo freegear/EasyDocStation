@@ -1,8 +1,10 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useEditor, EditorContent } from '@tiptap/react'
+import { BubbleMenu } from '@tiptap/react/menus'
 import StarterKit from '@tiptap/starter-kit'
 import Placeholder from '@tiptap/extension-placeholder'
 import Dropcursor from '@tiptap/extension-dropcursor'
+import Link from '@tiptap/extension-link'
 import ImageResize from 'tiptap-extension-resize-image'
 import { Markdown } from 'tiptap-markdown'
 import { useChat } from '../../contexts/ChatContext'
@@ -69,6 +71,23 @@ function sameImageMeta(a = {}, b = {}) {
   return true
 }
 
+function normalizeLinkUrl(input = '') {
+  const raw = String(input || '').trim()
+  if (!raw) return ''
+  if (/^(https?:\/\/|mailto:|tel:|\/|#)/i.test(raw)) return raw
+  return `https://${raw}`
+}
+
+function truncateSingleLine(text = '', max = 60) {
+  const oneLine = String(text || '')
+    .replace(/\r/g, '')
+    .split('\n')
+    .map(line => line.trim())
+    .find(Boolean) || ''
+  if (oneLine.length <= max) return oneLine
+  return `${oneLine.slice(0, max - 1)}…`
+}
+
 export default function MDPageViewer({ post, channelId, onClose }) {
   const { updatePost } = useChat()
   const { currentUser } = useAuth()
@@ -96,6 +115,16 @@ export default function MDPageViewer({ post, channelId, onClose }) {
   const editor = useEditor({
     extensions: [
       StarterKit,
+      Link.configure({
+        openOnClick: false,
+        autolink: true,
+        linkOnPaste: true,
+        defaultProtocol: 'https',
+        HTMLAttributes: {
+          target: '_blank',
+          rel: 'noopener noreferrer nofollow',
+        },
+      }),
       ResizableImage.configure({
         minWidth: 120,
         maxWidth: 1200,
@@ -372,8 +401,14 @@ export default function MDPageViewer({ post, channelId, onClose }) {
           />
         ) : (
           /* 미리보기 모드: TipTap WYSIWYG 에디터 */
-          <div className="max-w-4xl mx-auto px-8 py-8">
+          <div className="max-w-4xl mx-auto px-8 py-8 relative">
+            {canEdit && (
+              <LinkBubbleMenu editor={editor} />
+            )}
             <EditorContent editor={editor} className="tiptap-editor" />
+            {canEdit && (
+              <InternalLinkAutocomplete editor={editor} />
+            )}
           </div>
         )}
       </div>
@@ -455,6 +490,292 @@ function TipTapToolbar({ editor, onInsertImage, isUploadingImage = false }) {
       {sep('s4')}
       {btn(false, () => editor.chain().focus().undo().run(), '↩ 실행취소', '실행취소 (Ctrl+Z)')}
       {btn(false, () => editor.chain().focus().redo().run(), '↪ 다시실행', '다시실행 (Ctrl+Y)')}
+    </div>
+  )
+}
+
+function LinkBubbleMenu({ editor }) {
+  const [isEditing, setIsEditing] = useState(false)
+  const [url, setUrl] = useState('')
+
+  useEffect(() => {
+    if (!editor) return undefined
+    const closeOnEmptySelection = () => {
+      if (editor.state.selection.empty) {
+        setIsEditing(false)
+      }
+    }
+    editor.on('selectionUpdate', closeOnEmptySelection)
+    return () => {
+      editor.off('selectionUpdate', closeOnEmptySelection)
+    }
+  }, [editor])
+
+  if (!editor) return null
+
+  const openEdit = () => {
+    const currentHref = String(editor.getAttributes('link')?.href || '')
+    setUrl(currentHref)
+    setIsEditing(true)
+  }
+
+  const applyLink = () => {
+    const normalized = normalizeLinkUrl(url)
+    if (!normalized) return
+    editor.chain().focus().extendMarkRange('link').setLink({ href: normalized }).run()
+    setIsEditing(false)
+  }
+
+  const unsetLink = () => {
+    editor.chain().focus().extendMarkRange('link').unsetLink().run()
+    setIsEditing(false)
+  }
+
+  return (
+    <BubbleMenu
+      editor={editor}
+      shouldShow={({ editor: ed, from, to }) => ed.isEditable && from !== to}
+      tippyOptions={{ duration: 120, placement: 'top', maxWidth: 360 }}
+      className="rounded-lg border border-gray-200 bg-white shadow-md px-2 py-1 flex items-center gap-1"
+    >
+      {isEditing ? (
+        <div className="flex items-center gap-1">
+          <input
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+            onMouseDown={(e) => e.stopPropagation()}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault()
+                applyLink()
+              }
+              if (e.key === 'Escape') {
+                e.preventDefault()
+                setIsEditing(false)
+              }
+            }}
+            placeholder="https://example.com"
+            className="h-8 w-56 px-2 text-xs border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          />
+          <button
+            onMouseDown={(e) => { e.preventDefault(); applyLink() }}
+            className="h-8 px-2 rounded-md bg-indigo-600 text-white text-xs hover:bg-indigo-500"
+          >
+            적용
+          </button>
+          <button
+            onMouseDown={(e) => { e.preventDefault(); setIsEditing(false) }}
+            className="h-8 px-2 rounded-md text-xs text-gray-600 hover:bg-gray-100"
+          >
+            취소
+          </button>
+        </div>
+      ) : (
+        <>
+          <button
+            onMouseDown={(e) => { e.preventDefault(); openEdit() }}
+            className="h-8 px-2 rounded-md text-xs text-gray-700 hover:bg-gray-100"
+          >
+            {editor.isActive('link') ? '링크 수정' : '링크 추가'}
+          </button>
+          {editor.isActive('link') && (
+            <button
+              onMouseDown={(e) => { e.preventDefault(); unsetLink() }}
+              className="h-8 px-2 rounded-md text-xs text-red-600 hover:bg-red-50"
+            >
+              링크 해제
+            </button>
+          )}
+        </>
+      )}
+    </BubbleMenu>
+  )
+}
+
+function InternalLinkAutocomplete({ editor }) {
+  const [open, setOpen] = useState(false)
+  const [query, setQuery] = useState('')
+  const [replaceRange, setReplaceRange] = useState(null)
+  const [items, setItems] = useState([])
+  const [loading, setLoading] = useState(false)
+  const [activeIndex, setActiveIndex] = useState(0)
+
+  useEffect(() => {
+    if (!editor) return undefined
+
+    const updateTrigger = () => {
+      const { state } = editor
+      const { selection } = state
+      if (!selection.empty) {
+        setOpen(false)
+        setItems([])
+        return
+      }
+
+      const { $from } = selection
+      if (!$from.parent.isTextblock) {
+        setOpen(false)
+        setItems([])
+        return
+      }
+
+      const textBefore = $from.parent.textBetween(0, $from.parentOffset, '\0', '\0')
+      const matched = textBefore.match(/\[\[([^\[\]]*)$/)
+      if (!matched) {
+        setOpen(false)
+        setItems([])
+        return
+      }
+
+      const typedQuery = String(matched[1] || '')
+      const from = $from.start() + (matched.index ?? 0)
+      const to = $from.pos
+
+      setQuery(typedQuery)
+      setReplaceRange({ from, to })
+      setOpen(true)
+    }
+
+    editor.on('update', updateTrigger)
+    editor.on('selectionUpdate', updateTrigger)
+    updateTrigger()
+
+    return () => {
+      editor.off('update', updateTrigger)
+      editor.off('selectionUpdate', updateTrigger)
+    }
+  }, [editor])
+
+  useEffect(() => {
+    if (!open) return undefined
+    const q = query.trim()
+    if (!q) {
+      setItems([])
+      setActiveIndex(0)
+      return undefined
+    }
+
+    let cancelled = false
+    const timer = setTimeout(async () => {
+      setLoading(true)
+      try {
+        const results = await apiFetch(`/posts/search?q=${encodeURIComponent(q)}`)
+        if (cancelled) return
+
+        const dedup = new Map()
+        for (const row of Array.isArray(results) ? results : []) {
+          const postId = row.type === 'comment' ? row.postId : row.id
+          if (!postId || !row.channelId) continue
+          if (!dedup.has(postId)) {
+            const labelSource = row.type === 'comment' ? (row.postContent || row.content) : row.content
+            dedup.set(postId, {
+              postId,
+              channelId: row.channelId,
+              label: truncateSingleLine(labelSource || '문서', 64),
+              subtitle: `${row.teamName || '-'} › ${row.channelName || '-'}`,
+            })
+          }
+        }
+        setItems(Array.from(dedup.values()).slice(0, 8))
+        setActiveIndex(0)
+      } catch (e) {
+        if (!cancelled) {
+          setItems([])
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false)
+        }
+      }
+    }, 180)
+
+    return () => {
+      cancelled = true
+      clearTimeout(timer)
+    }
+  }, [open, query])
+
+  const selectItem = useCallback((item) => {
+    if (!editor || !replaceRange || !item) return
+    const href = `/?channelId=${encodeURIComponent(item.channelId)}&postId=${encodeURIComponent(item.postId)}`
+    editor
+      .chain()
+      .focus()
+      .deleteRange(replaceRange)
+      .insertContent({
+        type: 'text',
+        text: item.label || '문서 링크',
+        marks: [{ type: 'link', attrs: { href } }],
+      })
+      .insertContent(' ')
+      .run()
+    setOpen(false)
+    setItems([])
+  }, [editor, replaceRange])
+
+  useEffect(() => {
+    if (!open || !editor) return undefined
+
+    const onKeyDown = (e) => {
+      if (!open) return
+      if (e.key === 'Escape') {
+        e.preventDefault()
+        setOpen(false)
+        return
+      }
+      if (e.key === 'ArrowDown') {
+        e.preventDefault()
+        setActiveIndex(prev => (items.length ? (prev + 1) % items.length : 0))
+        return
+      }
+      if (e.key === 'ArrowUp') {
+        e.preventDefault()
+        setActiveIndex(prev => (items.length ? (prev - 1 + items.length) % items.length : 0))
+        return
+      }
+      if (e.key === 'Enter') {
+        if (!items.length) return
+        e.preventDefault()
+        selectItem(items[activeIndex] || items[0])
+      }
+    }
+
+    const dom = editor.view?.dom
+    dom?.addEventListener('keydown', onKeyDown)
+    return () => dom?.removeEventListener('keydown', onKeyDown)
+  }, [open, editor, items, activeIndex, selectItem])
+
+  if (!open) return null
+
+  return (
+    <div className="absolute left-8 top-10 z-20 w-96 rounded-lg border border-gray-200 bg-white shadow-lg">
+      <div className="px-3 py-2 border-b border-gray-100 text-xs text-gray-500">
+        내부 문서 링크: <span className="font-semibold text-gray-700">[[{query}</span>
+      </div>
+      <div className="max-h-64 overflow-auto">
+        {loading ? (
+          <div className="px-3 py-3 text-xs text-gray-500">검색 중...</div>
+        ) : items.length === 0 ? (
+          <div className="px-3 py-3 text-xs text-gray-500">검색 결과가 없습니다.</div>
+        ) : (
+          items.map((item, index) => (
+            <button
+              key={`${item.channelId}-${item.postId}`}
+              type="button"
+              onMouseDown={(e) => {
+                e.preventDefault()
+                selectItem(item)
+              }}
+              className={`w-full text-left px-3 py-2 border-b border-gray-50 last:border-b-0 ${
+                index === activeIndex ? 'bg-indigo-50' : 'hover:bg-gray-50'
+              }`}
+            >
+              <p className="text-sm text-gray-800 font-medium truncate">{item.label}</p>
+              <p className="text-[11px] text-gray-500 truncate">{item.subtitle}</p>
+            </button>
+          ))
+        )}
+      </div>
     </div>
   )
 }
