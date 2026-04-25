@@ -1,6 +1,8 @@
 const express = require('express')
 const fs = require('fs')
 const path = require('path')
+const crypto = require('crypto')
+const { execFile } = require('child_process')
 const { v4: uuidv4 } = require('uuid')
 const db = require('../db')
 const requireAuth = require('../middleware/auth')
@@ -12,6 +14,94 @@ router.use(requireAuth)
 const CONFIG_PATH = path.resolve(__dirname, '../../config.json')
 const DM_EDIT_WINDOW_MS = 10 * 60 * 1000
 const ONE_DAY_MS = 24 * 60 * 60 * 1000
+
+function execFileAsync(command, args, options = {}) {
+  return new Promise((resolve, reject) => {
+    execFile(command, args, options, (err, stdout, stderr) => {
+      if (err) {
+        err.stdout = stdout
+        err.stderr = stderr
+        reject(err)
+        return
+      }
+      resolve({ stdout, stderr })
+    })
+  })
+}
+
+async function convertWithLibreOfficeToPdf(inputPath, outDir) {
+  const ext = path.extname(inputPath).toLowerCase()
+  const preferredFilter = (
+    (ext === '.ppt' || ext === '.pptx') ? 'pdf:impress_pdf_Export' :
+    (ext === '.doc' || ext === '.docx') ? 'pdf:writer_pdf_Export' :
+    (ext === '.xls' || ext === '.xlsx') ? 'pdf:calc_pdf_Export' :
+    'pdf'
+  )
+  const userProfileDir = fs.mkdtempSync(path.join(outDir, 'lo-profile-'))
+  const baseArgs = [
+    '--headless',
+    '--nologo',
+    '--nolockcheck',
+    '--nodefault',
+    '--norestore',
+    `-env:UserInstallation=file://${userProfileDir}`,
+  ]
+  const convertArgsList = preferredFilter === 'pdf'
+    ? [['--convert-to', 'pdf', '--outdir', outDir, inputPath]]
+    : [
+        ['--convert-to', preferredFilter, '--outdir', outDir, inputPath],
+        ['--convert-to', 'pdf', '--outdir', outDir, inputPath],
+      ]
+
+  let lastErr = null
+  for (const cmd of ['libreoffice', 'soffice']) {
+    for (const convertArgs of convertArgsList) {
+      try {
+        await execFileAsync(cmd, [...baseArgs, ...convertArgs], { timeout: 120000, maxBuffer: 8 * 1024 * 1024 })
+        const expected = path.join(outDir, `${path.parse(inputPath).name}.pdf`)
+        if (fs.existsSync(expected)) return expected
+        const fallbackPdfName = fs.readdirSync(outDir).find(n => n.toLowerCase().endsWith('.pdf'))
+        if (fallbackPdfName) return path.join(outDir, fallbackPdfName)
+      } catch (err) {
+        lastErr = err
+      }
+    }
+  }
+  const err = new Error('LibreOffice PDF conversion failed')
+  err.cause = lastErr
+  throw err
+}
+
+async function convertDmOfficeToPdf(storagePath, fullPath) {
+  const ext = path.extname(fullPath).toLowerCase()
+  const officeExts = new Set(['.ppt', '.pptx', '.doc', '.docx', '.xls', '.xlsx'])
+  if (!officeExts.has(ext)) return null
+
+  const storageBase = getStorageBase()
+  const previewBase = path.join(storageBase, 'previews', 'dm')
+  if (!fs.existsSync(previewBase)) fs.mkdirSync(previewBase, { recursive: true })
+
+  const key = crypto.createHash('sha1').update(String(storagePath || fullPath)).digest('hex')
+  const previewPdfPath = path.join(previewBase, `${key}.pdf`)
+  try {
+    if (fs.existsSync(previewPdfPath)) {
+      const sourceMtime = fs.statSync(fullPath).mtimeMs
+      const previewMtime = fs.statSync(previewPdfPath).mtimeMs
+      if (previewMtime >= sourceMtime) return previewPdfPath
+    }
+    const tmpDir = fs.mkdtempSync(path.join(previewBase, 'tmp-'))
+    try {
+      const sourcePdf = await convertWithLibreOfficeToPdf(fullPath, tmpDir)
+      fs.copyFileSync(sourcePdf, previewPdfPath)
+      return previewPdfPath
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true })
+    }
+  } catch (err) {
+    console.error('[DM Preview] Office->PDF conversion failed:', err?.cause?.stderr || err?.stderr || err?.message || err)
+    return null
+  }
+}
 
 function getStorageBase() {
   try {
@@ -535,8 +625,35 @@ router.get('/files', async (req, res) => {
   }
 
   if (!fs.existsSync(fullPath)) return res.status(404).json({ error: '파일을 찾을 수 없습니다.' })
+  const originalName = filename || path.basename(fullPath)
+  const originalExt = path.extname(originalName || '').toLowerCase()
 
-  res.download(fullPath, filename || path.basename(fullPath))
+  if (req.query.preview === 'pdf') {
+    let previewPath = fullPath
+    if (originalExt === '.pdf') {
+      // keep original PDF
+    } else if (['.ppt', '.pptx', '.doc', '.docx', '.xls', '.xlsx'].includes(originalExt)) {
+      const convertedPdfPath = await convertDmOfficeToPdf(storagePath, fullPath)
+      if (!convertedPdfPath) {
+        return res.status(500).send('미리보기 PDF 변환에 실패했습니다.')
+      }
+      previewPath = convertedPdfPath
+    } else {
+      return res.status(400).send('미리보기를 지원하지 않는 파일 형식입니다.')
+    }
+
+    if (!fs.existsSync(previewPath)) return res.status(404).json({ error: '파일을 찾을 수 없습니다.' })
+    const stat = fs.statSync(previewPath)
+    const safePdfName = String(originalName || 'preview').replace(/\.(pptx|ppt|docx|doc|xlsx|xls)$/i, '.pdf')
+    res.setHeader('Content-Type', 'application/pdf')
+    res.setHeader('Content-Length', String(stat.size))
+    res.setHeader('Accept-Ranges', 'bytes')
+    res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(safePdfName)}"`)
+    fs.createReadStream(previewPath).pipe(res)
+    return
+  }
+
+  res.download(fullPath, originalName)
 })
 
 module.exports = router
