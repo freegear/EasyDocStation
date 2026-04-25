@@ -28,7 +28,7 @@ export default function ConfirmDialog({
       <div className="w-full max-w-sm rounded-2xl bg-white border border-gray-200 shadow-2xl p-5">
         {titleTone === 'blue' ? (
           <div className="-mx-5 -mt-5 mb-4 rounded-t-2xl border-b border-indigo-100 bg-indigo-50 px-5 py-3">
-            <h3 className="text-indigo-700 font-bold text-base">{title}</h3>
+            <h3 className="text-indigo-700 font-bold text-base text-center">{title}</h3>
           </div>
         ) : (
           <h3 className="text-gray-900 font-bold text-base">{title}</h3>
