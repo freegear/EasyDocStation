@@ -9,7 +9,7 @@
 
 const fs                    = require('fs')
 const path                  = require('path')
-const { spawn }             = require('child_process')
+const { spawn, execFile }   = require('child_process')
 const db                    = require('./db')
 const { client, isConnected } = require('./cassandra')
 const { getDatabasePath }   = require('./databasePaths')
@@ -81,6 +81,22 @@ const IMAGE_CONTENT_TYPES = [
   'image/heif',
 ]
 const IMAGE_FILE_EXT_RE = /\.(jpe?g|png|webp|gif|bmp|tiff?|heic|heif)$/i
+const WORD_FILE_EXT_RE = /\.(doc|docx)$/i
+const PPT_FILE_EXT_RE = /\.(ppt|pptx)$/i
+const PPT_CONTENT_TYPES = new Set([
+  'application/vnd.ms-powerpoint',
+  'application/mspowerpoint',
+  'application/powerpoint',
+  'application/x-mspowerpoint',
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+])
+const LIBREOFFICE_COMMAND_CANDIDATES = [
+  'libreoffice',
+  'soffice',
+  '/usr/bin/libreoffice',
+  '/usr/bin/soffice',
+]
+let hasLoggedMissingLibreOffice = false
 
 function isTxtAttachment(row = {}) {
   const ct = String(row.content_type || '').toLowerCase()
@@ -93,6 +109,91 @@ function isImageAttachment(row = {}) {
   const filename = String(row.filename || '')
   if (IMAGE_CONTENT_TYPES.includes(ct)) return true
   return IMAGE_FILE_EXT_RE.test(filename)
+}
+
+function isWordAttachment(row = {}) {
+  const ct = String(row.content_type || '').toLowerCase()
+  const filename = String(row.filename || '')
+  return ct === 'application/msword'
+    || ct === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+    || WORD_FILE_EXT_RE.test(filename)
+}
+
+function isPresentationAttachment(row = {}) {
+  const ct = String(row.content_type || '').toLowerCase()
+  const filename = String(row.filename || '')
+  return PPT_CONTENT_TYPES.has(ct) || PPT_FILE_EXT_RE.test(filename)
+}
+
+function execFileAsync(command, args, options = {}) {
+  return new Promise((resolve, reject) => {
+    execFile(command, args, options, (err, stdout, stderr) => {
+      if (err) {
+        err.stdout = stdout
+        err.stderr = stderr
+        reject(err)
+        return
+      }
+      resolve({ stdout, stderr })
+    })
+  })
+}
+
+async function convertPresentationToPdf(attachmentId, sourcePath, storageBase) {
+  if (!sourcePath || !fs.existsSync(sourcePath)) return null
+  const previewBase = path.join(storageBase, 'previews')
+  if (!fs.existsSync(previewBase)) fs.mkdirSync(previewBase, { recursive: true })
+
+  const targetPdfPath = path.join(previewBase, `${attachmentId}.pdf`)
+  try {
+    if (fs.existsSync(targetPdfPath)) {
+      const srcMtime = fs.statSync(sourcePath).mtimeMs
+      const pdfMtime = fs.statSync(targetPdfPath).mtimeMs
+      if (pdfMtime >= srcMtime) return targetPdfPath
+    }
+  } catch (_) {}
+
+  const tmpDir = fs.mkdtempSync(path.join(previewBase, 'rag-ppt-'))
+  const userProfileDir = fs.mkdtempSync(path.join(tmpDir, 'lo-profile-'))
+  const baseArgs = [
+    '--headless',
+    '--nologo',
+    '--nolockcheck',
+    '--nodefault',
+    '--norestore',
+    `-env:UserInstallation=file://${userProfileDir}`,
+    '--convert-to', 'pdf:impress_pdf_Export',
+    '--outdir', tmpDir,
+    sourcePath,
+  ]
+  let lastErr = null
+  let attempted = 0
+  try {
+    for (const cmd of LIBREOFFICE_COMMAND_CANDIDATES) {
+      try {
+        attempted += 1
+        await execFileAsync(cmd, baseArgs, { timeout: 180000, maxBuffer: 8 * 1024 * 1024 })
+        const expected = path.join(tmpDir, `${path.parse(sourcePath).name}.pdf`)
+        const fallbackPdfName = fs.readdirSync(tmpDir).find(n => n.toLowerCase().endsWith('.pdf'))
+        const converted = fs.existsSync(expected)
+          ? expected
+          : (fallbackPdfName ? path.join(tmpDir, fallbackPdfName) : null)
+        if (!converted) continue
+        fs.copyFileSync(converted, targetPdfPath)
+        return targetPdfPath
+      } catch (err) {
+        lastErr = err
+      }
+    }
+    if (!hasLoggedMissingLibreOffice && (lastErr?.code === 'ENOENT' || attempted === 0)) {
+      hasLoggedMissingLibreOffice = true
+      console.error('[RAG] LibreOffice(soffice) 명령을 찾지 못했습니다. Ubuntu DGX-SPARK에서는 scripts/setup-dgx-spark.sh 를 실행해 의존성을 설치하세요.')
+    }
+    console.error('[RAG] PPT/PPTX -> PDF 변환 실패:', lastErr?.stderr || lastErr?.message || lastErr)
+    return null
+  } finally {
+    try { fs.rmSync(tmpDir, { recursive: true, force: true }) } catch (_) {}
+  }
 }
 
 // ─── 문서 첨부파일 경로 조회 (PDF + Word + TXT) ───────────────
@@ -114,7 +215,17 @@ async function getDocumentPathsForPost(postId) {
       if (r.content_type === 'application/pdf') pdfs.push(item)
       else if (isTxtAttachment(r)) txts.push(item)
       else if (isImageAttachment(r)) images.push(item)
-      else words.push(item)
+      else if (isWordAttachment(r)) words.push(item)
+      else if (isPresentationAttachment(r)) {
+        const convertedPdfPath = await convertPresentationToPdf(r.id, item.path, storageBase)
+        if (convertedPdfPath) {
+          pdfs.push({
+            id: r.id,
+            path: convertedPdfPath,
+            file_name: `${path.parse(item.file_name || 'presentation').name}.pdf`,
+          })
+        }
+      }
     }
     return { pdfs, words, txts, images }
   } catch (e) {
@@ -319,7 +430,17 @@ async function getDocumentPathsByIds(attachmentIds) {
       if (r.content_type === 'application/pdf') pdfs.push(item)
       else if (isTxtAttachment(r)) txts.push(item)
       else if (isImageAttachment(r)) images.push(item)
-      else words.push(item)
+      else if (isWordAttachment(r)) words.push(item)
+      else if (isPresentationAttachment(r)) {
+        const convertedPdfPath = await convertPresentationToPdf(r.id, item.path, storageBase)
+        if (convertedPdfPath) {
+          pdfs.push({
+            id: r.id,
+            path: convertedPdfPath,
+            file_name: `${path.parse(item.file_name || 'presentation').name}.pdf`,
+          })
+        }
+      }
     }
     return { pdfs, words, txts, images }
   } catch (e) {

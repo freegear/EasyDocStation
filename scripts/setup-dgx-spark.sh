@@ -71,6 +71,15 @@ PY
 deactivate
 
 echo
+echo "[검증] DGX-SPARK 런타임 의존성"
+for cmd in libreoffice pdftoppm ffmpeg tesseract; do
+  if command -v "$cmd" >/dev/null 2>&1; then
+    echo "  - $cmd: OK ($(command -v "$cmd"))"
+  else
+    echo "  - $cmd: MISSING"
+  fi
+done
+echo
 echo "DGX Spark 설치가 완료되었습니다."
 echo "실행 명령:"
 echo "  npm run dev:dgx-spark"
