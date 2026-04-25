@@ -7,6 +7,7 @@ export default function ConfirmDialog({
   cancelText = '취소',
   hideCancel = false,
   danger = false,
+  titleTone = 'default',
   loading = false,
   onConfirm,
   onCancel,
@@ -25,7 +26,13 @@ export default function ConfirmDialog({
   return (
     <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/45 px-4">
       <div className="w-full max-w-sm rounded-2xl bg-white border border-gray-200 shadow-2xl p-5">
-        <h3 className="text-gray-900 font-bold text-base">{title}</h3>
+        {titleTone === 'blue' ? (
+          <div className="-mx-5 -mt-5 mb-4 rounded-t-2xl border-b border-indigo-100 bg-indigo-50 px-5 py-3">
+            <h3 className="text-indigo-700 font-bold text-base">{title}</h3>
+          </div>
+        ) : (
+          <h3 className="text-gray-900 font-bold text-base">{title}</h3>
+        )}
         <p className="text-gray-600 text-sm mt-2 whitespace-pre-wrap leading-relaxed">{message}</p>
         <div className="flex justify-end gap-2 mt-5">
           {!hideCancel && (
