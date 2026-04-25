@@ -566,7 +566,7 @@ function PostDetailPane({ post, channelId, onClose, helpers = {} }) {
         <div className="fixed inset-0 z-[95] flex items-center justify-center bg-black/45 px-4">
           <div className="w-full max-w-sm rounded-2xl bg-white border border-gray-200 shadow-2xl p-5">
             <div className="-mx-5 -mt-5 mb-4 rounded-t-2xl border-b border-indigo-100 bg-indigo-50 px-5 py-3">
-              <h3 className="text-indigo-700 font-bold text-base">{t.chat.fileAttachDuplicateTitle || '중복 파일명 경고'}</h3>
+              <h3 className="text-indigo-700 font-bold text-base text-center">{t.chat.fileAttachDuplicateTitle || '중복 파일명 경고'}</h3>
             </div>
             <p className="text-gray-600 text-sm mt-2 whitespace-pre-wrap leading-relaxed">
               {`${t.chat.fileAttachDuplicateMessage || '첨부파일에 같은 이름이 있습니다. 파일명을 변경한 뒤 다시 게시해 주세요.'}\n\n${duplicateFileDialog.join('\n')}`}
