@@ -889,36 +889,40 @@ function TableBubbleMenu({ editor }) {
       tippyOptions={{ duration: 120, placement: 'top', maxWidth: 520 }}
       className="table-toolbar"
     >
-      <button onMouseDown={(e) => { e.preventDefault(); editor.chain().focus().addColumnBefore().run() }}>
-        왼쪽 열
-      </button>
-      <button onMouseDown={(e) => { e.preventDefault(); editor.chain().focus().addColumnAfter().run() }}>
-        오른쪽 열
-      </button>
-      <button onMouseDown={(e) => { e.preventDefault(); editor.chain().focus().addRowBefore().run() }}>
-        위 행
-      </button>
-      <button onMouseDown={(e) => { e.preventDefault(); editor.chain().focus().addRowAfter().run() }}>
-        아래 행
-      </button>
-      <button onMouseDown={(e) => { e.preventDefault(); editor.chain().focus().mergeCells().run() }}>
-        셀 병합
-      </button>
-      <button onMouseDown={(e) => { e.preventDefault(); editor.chain().focus().splitCell().run() }}>
-        셀 분할
-      </button>
-      <button onMouseDown={(e) => { e.preventDefault(); editor.chain().focus().deleteColumn().run() }}>
-        열 삭제
-      </button>
-      <button onMouseDown={(e) => { e.preventDefault(); editor.chain().focus().deleteRow().run() }}>
-        행 삭제
-      </button>
-      <button onMouseDown={(e) => { e.preventDefault(); editor.chain().focus().toggleHeaderRow().run() }}>
-        헤더 토글
-      </button>
-      <button onMouseDown={(e) => { e.preventDefault(); editor.chain().focus().deleteTable().run() }}>
-        표 삭제
-      </button>
+      <div className="table-toolbar-row">
+        <button onMouseDown={(e) => { e.preventDefault(); editor.chain().focus().addColumnBefore().run() }}>
+          왼쪽 열
+        </button>
+        <button onMouseDown={(e) => { e.preventDefault(); editor.chain().focus().addColumnAfter().run() }}>
+          오른쪽 열
+        </button>
+        <button onMouseDown={(e) => { e.preventDefault(); editor.chain().focus().addRowBefore().run() }}>
+          위 행
+        </button>
+        <button onMouseDown={(e) => { e.preventDefault(); editor.chain().focus().addRowAfter().run() }}>
+          아래 행
+        </button>
+        <button onMouseDown={(e) => { e.preventDefault(); editor.chain().focus().mergeCells().run() }}>
+          셀 병합
+        </button>
+      </div>
+      <div className="table-toolbar-row">
+        <button onMouseDown={(e) => { e.preventDefault(); editor.chain().focus().splitCell().run() }}>
+          셀 분할
+        </button>
+        <button onMouseDown={(e) => { e.preventDefault(); editor.chain().focus().deleteColumn().run() }}>
+          열 삭제
+        </button>
+        <button onMouseDown={(e) => { e.preventDefault(); editor.chain().focus().deleteRow().run() }}>
+          행 삭제
+        </button>
+        <button onMouseDown={(e) => { e.preventDefault(); editor.chain().focus().toggleHeaderRow().run() }}>
+          헤더 토글
+        </button>
+        <button onMouseDown={(e) => { e.preventDefault(); editor.chain().focus().deleteTable().run() }}>
+          표 삭제
+        </button>
+      </div>
     </BubbleMenu>
   )
 }
