@@ -2194,6 +2194,12 @@ function PostCard({ post, onSelect, pinned, isSelected }) {
                 </span>
               </>
             )}
+            {trainingStatus && (
+              <>
+                <span>·</span>
+                <TrainingStatusBadge status={trainingStatus} />
+              </>
+            )}
             {commentCount > 0 && (
               <>
                 <span>·</span>
@@ -2206,11 +2212,6 @@ function PostCard({ post, onSelect, pinned, isSelected }) {
           </div>
           {/* Body preview (second line onward) */}
           {bodyPreview && <p className="text-gray-400 text-xs leading-relaxed line-clamp-2">{bodyPreview}</p>}
-          {trainingStatus && (
-            <div className="mt-2">
-              <TrainingStatusBadge status={trainingStatus} />
-            </div>
-          )}
         </div>
       </div>
     </button>
