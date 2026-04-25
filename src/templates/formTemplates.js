@@ -1263,7 +1263,9 @@ export function isMdPage(content) {
 
 export function getMdPageContent(content) {
   if (!content) return ''
-  return content.replace(/^<!--md-page-->\n?/, '')
+  return content
+    .replace(/^<!--md-page-->\n?/, '')
+    .replace(/\n?<!--md-image-meta:[A-Za-z0-9+/=_-]+-->\s*$/m, '')
 }
 
 export function getMdPageTitle(content, fallback = 'MD 페이지') {

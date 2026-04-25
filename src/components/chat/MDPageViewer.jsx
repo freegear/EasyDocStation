@@ -14,16 +14,56 @@ import { apiFetch, getToken } from '../../lib/api'
 import '../../styles/tiptap.css'
 
 const MD_PAGE_MARKER = '<!--md-page-->'
+const MD_IMAGE_META_PREFIX = '<!--md-image-meta:'
 const ResizableImage = ImageResize.extend({ name: 'image' })
+
+function extractImageMeta(mdText = '') {
+  const match = mdText.match(/<!--md-image-meta:([A-Za-z0-9+/=_-]+)-->\s*$/m)
+  if (!match?.[1]) return {}
+  try {
+    return JSON.parse(atob(match[1])) || {}
+  } catch {
+    return {}
+  }
+}
+
+function stripImageMeta(mdText = '') {
+  return mdText.replace(/\n?<!--md-image-meta:[A-Za-z0-9+/=_-]+-->\s*$/m, '')
+}
+
+function attachImageMeta(mdText = '', imageMeta = {}) {
+  const plain = stripImageMeta(mdText || '')
+  const keys = Object.keys(imageMeta || {})
+  if (keys.length === 0) return plain
+  const encoded = btoa(unescape(encodeURIComponent(JSON.stringify(imageMeta))))
+  return `${plain}\n${MD_IMAGE_META_PREFIX}${encoded}-->`
+}
+
+function collectImageMetaFromDoc(doc) {
+  const map = {}
+  doc.descendants((node) => {
+    if (node.type.name !== 'image') return
+    const src = String(node.attrs?.src || '').trim()
+    if (!src) return
+    map[src] = {
+      width: node.attrs?.width ?? null,
+      containerStyle: node.attrs?.containerStyle ?? null,
+      wrapperStyle: node.attrs?.wrapperStyle ?? null,
+    }
+  })
+  return map
+}
 
 export default function MDPageViewer({ post, channelId, onClose }) {
   const { updatePost } = useChat()
   const { currentUser } = useAuth()
   const t = useT()
+  const initialMdRaw = getMdPageContent(post.content)
 
   const [mode, setMode] = useState('preview')
-  const [savedContent, setSavedContent] = useState(() => getMdPageContent(post.content))
-  const [sourceText, setSourceText] = useState(() => getMdPageContent(post.content))
+  const [savedContent, setSavedContent] = useState(() => stripImageMeta(initialMdRaw))
+  const [sourceText, setSourceText] = useState(() => stripImageMeta(initialMdRaw))
+  const [imageMeta, setImageMeta] = useState(() => extractImageMeta(initialMdRaw))
   const [isChanged, setIsChanged] = useState(false)
   const [saving, setSaving] = useState(false)
   const [showSaveDialog, setShowSaveDialog] = useState(false)
@@ -51,10 +91,11 @@ export default function MDPageViewer({ post, channelId, onClose }) {
       Placeholder.configure({ placeholder: t.mdPage.sourcePlaceholder }),
       Markdown.configure({ html: false, transformCopiedText: true, transformPastedText: true }),
     ],
-    content: getMdPageContent(post.content),
+    content: stripImageMeta(initialMdRaw),
     editable: canEdit && mode === 'preview',
     onUpdate({ editor }) {
-      const md = editor.storage.markdown.getMarkdown()
+      const md = stripImageMeta(editor.storage.markdown.getMarkdown())
+      setImageMeta(collectImageMetaFromDoc(editor.state.doc))
       setIsChanged(md !== savedContent)
     },
   })
@@ -64,6 +105,34 @@ export default function MDPageViewer({ post, channelId, onClose }) {
     if (!editor) return
     editor.setEditable(canEdit && mode === 'preview')
   }, [editor, canEdit, mode])
+
+  useEffect(() => {
+    if (!editor) return
+    if (!imageMeta || Object.keys(imageMeta).length === 0) return
+    const tr = editor.state.tr
+    let changed = false
+
+    editor.state.doc.descendants((node, pos) => {
+      if (node.type.name !== 'image') return
+      const src = String(node.attrs?.src || '').trim()
+      if (!src || !imageMeta[src]) return
+      const meta = imageMeta[src]
+      const nextAttrs = {
+        ...node.attrs,
+        ...(meta.width != null ? { width: meta.width } : {}),
+        ...(meta.containerStyle ? { containerStyle: meta.containerStyle } : {}),
+        ...(meta.wrapperStyle ? { wrapperStyle: meta.wrapperStyle } : {}),
+      }
+      if (JSON.stringify(nextAttrs) !== JSON.stringify(node.attrs)) {
+        tr.setNodeMarkup(pos, undefined, nextAttrs)
+        changed = true
+      }
+    })
+
+    if (changed) {
+      editor.view.dispatch(tr)
+    }
+  }, [editor, imageMeta])
 
   // 소스 → 미리보기 전환: 소스 텍스트를 에디터에 반영
   function switchToPreview() {
@@ -84,14 +153,15 @@ export default function MDPageViewer({ post, channelId, onClose }) {
 
   const getCurrentMarkdown = useCallback(() => {
     if (mode === 'source') return sourceText
-    return editor?.storage.markdown.getMarkdown() || ''
+    return stripImageMeta(editor?.storage.markdown.getMarkdown() || '')
   }, [mode, sourceText, editor])
 
   const handleSave = useCallback(async () => {
     const md = getCurrentMarkdown()
+    const mdWithMeta = attachImageMeta(md, imageMeta)
     setSaving(true)
     try {
-      await updatePost(channelId, post.id, { content: `${MD_PAGE_MARKER}\n${md}` })
+      await updatePost(channelId, post.id, { content: `${MD_PAGE_MARKER}\n${mdWithMeta}` })
       setSavedContent(md)
       setIsChanged(false)
     } catch (e) {
@@ -99,7 +169,7 @@ export default function MDPageViewer({ post, channelId, onClose }) {
     } finally {
       setSaving(false)
     }
-  }, [channelId, getCurrentMarkdown, post.id, updatePost])
+  }, [channelId, getCurrentMarkdown, imageMeta, post.id, updatePost])
 
   // ESC 키 핸들러
   useEffect(() => {
