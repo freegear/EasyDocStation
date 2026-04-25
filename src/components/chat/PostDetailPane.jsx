@@ -5,6 +5,7 @@ import { apiFetch } from '../../lib/api'
 import { useT } from '../../i18n/useT'
 import { isTemplateContent } from '../../templates/formTemplates'
 import { useSelectionClickGuard } from '../../hooks/useSelectionClickGuard'
+import { findDuplicateFileNames } from '../../lib/fileNameValidation'
 
 function PostDetailPane({ post, channelId, onClose, helpers = {} }) {
   const t = useT()
@@ -49,6 +50,7 @@ function PostDetailPane({ post, channelId, onClose, helpers = {} }) {
   const [commentSecurityLevel, setCommentSecurityLevel] = useState(Math.min(1, currentUser?.security_level ?? 0))
   const [commentErrorDialog, setCommentErrorDialog] = useState(null)
   const [dmNoticeDialog, setDmNoticeDialog] = useState(null)
+  const [duplicateFileDialog, setDuplicateFileDialog] = useState(null)
 
   const [files, setFiles] = useState([])
   const [dragOver, setDragOver] = useState(false)
@@ -203,6 +205,11 @@ function PostDetailPane({ post, channelId, onClose, helpers = {} }) {
     e.preventDefault()
     if (commentSubmittingRef.current) return
     if ((!comment.trim() && files.length === 0) || !currentUser) return
+    const duplicateNames = findDuplicateFileNames(files)
+    if (duplicateNames.length > 0) {
+      setDuplicateFileDialog(duplicateNames)
+      return
+    }
     
     commentSubmittingRef.current = true
     setUploading(true)
@@ -550,6 +557,24 @@ function PostDetailPane({ post, channelId, onClose, helpers = {} }) {
                 className="px-4 py-2 rounded-xl text-sm text-white bg-indigo-600 hover:bg-indigo-700"
               >
                 {t.chat.ok}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {duplicateFileDialog && (
+        <div className="fixed inset-0 z-[95] flex items-center justify-center bg-black/45 px-4">
+          <div className="w-full max-w-sm rounded-2xl bg-white border border-gray-200 shadow-2xl p-5">
+            <h3 className="text-gray-900 font-bold text-base">{t.chat.fileAttachDuplicateTitle || '중복 파일명 경고'}</h3>
+            <p className="text-gray-600 text-sm mt-2 whitespace-pre-wrap leading-relaxed">
+              {`${t.chat.fileAttachDuplicateMessage || '첨부파일에 같은 이름이 있습니다. 파일명을 변경한 뒤 다시 게시해 주세요.'}\n\n${duplicateFileDialog.join('\n')}`}
+            </p>
+            <div className="flex justify-end mt-5">
+              <button
+                onClick={() => setDuplicateFileDialog(null)}
+                className="px-4 py-2 rounded-xl text-sm text-white bg-indigo-600 hover:bg-indigo-700"
+              >
+                {t.chat.ok || '확인'}
               </button>
             </div>
           </div>
