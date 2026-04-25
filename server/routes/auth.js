@@ -35,7 +35,7 @@ const MAX_FAILED_ATTEMPTS = 3
 
 // POST /api/auth/login
 router.post('/login', async (req, res) => {
-  const { identifier, email, username, password } = req.body
+  const { identifier, email, username, password, forceRelogin } = req.body
   const loginId = String(identifier || username || email || '').trim()
   if (!loginId || !password) return res.status(400).json({ error: '아이디와 비밀번호를 입력하세요.' })
 
@@ -83,7 +83,7 @@ router.post('/login', async (req, res) => {
     }
 
     // 중복 로그인 체크: active_session_id가 있고 JWT 유효 기간(7일) 이내이면 차단
-    if (user.active_session_id) {
+    if (user.active_session_id && !forceRelogin) {
       const loginAge = user.last_login_at
         ? Date.now() - new Date(user.last_login_at).getTime()
         : 0

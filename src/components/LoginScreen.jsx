@@ -17,18 +17,21 @@ export default function LoginScreen() {
   const [isLocked, setIsLocked] = useState(false)
   const [loading, setLoading] = useState(false)
   const [isDuplicateLogin, setIsDuplicateLogin] = useState(false)
+  const [pendingDuplicateCredentials, setPendingDuplicateCredentials] = useState(null)
 
   async function handleSubmit(e) {
     e.preventDefault()
     setError('')
     setIsLocked(false)
     setIsDuplicateLogin(false)
+    setPendingDuplicateCredentials(null)
     setLoading(true)
     try {
       await login(identifier, password)
     } catch (err) {
       const msg = err.message || t.login.loginFailed
       if (err.code === 'DUPLICATE_LOGIN' || msg.includes('이미 동일한 정보로')) {
+        setPendingDuplicateCredentials({ identifier, password })
         setIsDuplicateLogin(true)
         setLoading(false)
         return
@@ -58,7 +61,28 @@ export default function LoginScreen() {
             </div>
             <p className="text-gray-600 text-sm mb-6">{t.login.duplicateLoginMessage}</p>
             <button
-              onClick={() => setIsDuplicateLogin(false)}
+              onClick={async () => {
+                if (!pendingDuplicateCredentials) {
+                  setIsDuplicateLogin(false)
+                  return
+                }
+                setLoading(true)
+                setError('')
+                try {
+                  await login(
+                    pendingDuplicateCredentials.identifier,
+                    pendingDuplicateCredentials.password,
+                    { forceRelogin: true }
+                  )
+                  setIsDuplicateLogin(false)
+                  setPendingDuplicateCredentials(null)
+                } catch (err) {
+                  setError(err.message || t.login.loginFailed)
+                  setIsDuplicateLogin(false)
+                } finally {
+                  setLoading(false)
+                }
+              }}
               className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-2.5 rounded-xl text-sm transition-all"
             >
               {t.login.duplicateLoginConfirm}
