@@ -186,6 +186,7 @@ export default function MDPageViewer({ post, channelId, onClose }) {
   const showSaveDialogRef = useRef(false)
   const imageInputRef = useRef(null)
   const printContentRef = useRef(null)
+  const [printHtml, setPrintHtml] = useState('')
   const imageMetaRef = useRef(imageMeta)
   const savedContentRef = useRef(savedContent)
   const savedImageMetaRef = useRef(savedImageMeta)
@@ -195,6 +196,18 @@ export default function MDPageViewer({ post, channelId, onClose }) {
   useEffect(() => { imageMetaRef.current = imageMeta }, [imageMeta])
   useEffect(() => { savedContentRef.current = savedContent }, [savedContent])
   useEffect(() => { savedImageMetaRef.current = savedImageMeta }, [savedImageMeta])
+  useEffect(() => {
+    if (!editor) return undefined
+    const syncPrintHtml = () => {
+      const html = injectAuthTokenIntoMarkdown(editor.getHTML() || '', getToken() || '')
+      setPrintHtml(html)
+    }
+    syncPrintHtml()
+    editor.on('update', syncPrintHtml)
+    return () => {
+      editor.off('update', syncPrintHtml)
+    }
+  }, [editor])
 
   const canEdit = post.author?.id === currentUser?.id
     || ['site_admin', 'team_admin', 'channel_admin'].includes(currentUser?.role)
@@ -495,7 +508,6 @@ export default function MDPageViewer({ post, channelId, onClose }) {
 
       {/* ── Content area ── */}
       <div
-        ref={printContentRef}
         className={`easy-page-print-root flex-1 overflow-auto min-h-0 ${isDragOver ? 'bg-indigo-50/50' : ''}`}
         onDragOver={(e) => {
           if (!canEdit || mode !== 'preview') return
@@ -543,6 +555,16 @@ export default function MDPageViewer({ post, channelId, onClose }) {
         className="hidden"
         onChange={handleImageInputChange}
       />
+
+      {/* 인쇄 전용 범위: 본문 텍스트/이미지만 포함 */}
+      <div
+        aria-hidden="true"
+        style={{ position: 'fixed', left: '-100000px', top: 0, width: '900px', pointerEvents: 'none' }}
+      >
+        <div ref={printContentRef} className="easy-page-print-root tiptap-editor">
+          <div className="ProseMirror" dangerouslySetInnerHTML={{ __html: printHtml }} />
+        </div>
+      </div>
 
       {/* ── 저장 다이얼로그 ── */}
       {showSaveDialog && (
