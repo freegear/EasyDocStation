@@ -7,6 +7,7 @@ import StarterKit from '@tiptap/starter-kit'
 import Placeholder from '@tiptap/extension-placeholder'
 import Dropcursor from '@tiptap/extension-dropcursor'
 import Link from '@tiptap/extension-link'
+import { Table, TableRow, TableCell, TableHeader } from '@tiptap/extension-table'
 import ImageResize from 'tiptap-extension-resize-image'
 import { Markdown } from 'tiptap-markdown'
 import { useChat } from '../../contexts/ChatContext'
@@ -235,6 +236,12 @@ export default function MDPageViewer({ post, channelId, onClose }) {
           rel: 'noopener noreferrer nofollow',
         },
       }),
+      Table.configure({
+        resizable: true,
+      }),
+      TableRow,
+      TableHeader,
+      TableCell,
       ResizableImage.configure({
         minWidth: 120,
         maxWidth: 1200,
@@ -681,6 +688,9 @@ export default function MDPageViewer({ post, channelId, onClose }) {
             {canEdit && (
               <LinkBubbleMenu editor={editor} />
             )}
+            {canEdit && (
+              <TableBubbleMenu editor={editor} />
+            )}
             <EditorContent editor={editor} className="tiptap-editor" />
             {canEdit && (
               <InternalLinkAutocomplete editor={editor} />
@@ -761,6 +771,7 @@ function TipTapToolbar({ editor, onInsertImage, isUploadingImage = false }) {
       {sep('s3')}
       {btn(editor.isActive('blockquote'),  () => editor.chain().focus().toggleBlockquote().run(),   '"  인용',   '인용구')}
       {btn(editor.isActive('codeBlock'),   () => editor.chain().focus().toggleCodeBlock().run(),    '코드 블록', '코드 블록')}
+      {btn(editor.isActive('table'), () => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run(), '표 추가', '3x3 표 추가')}
       {btn(false, () => editor.chain().focus().setHorizontalRule().run(), '── 구분선', '가로 구분선')}
       {btn(false, onInsertImage, isUploadingImage ? '업로드 중' : '이미지', '이미지 업로드 및 삽입')}
       {sep('s4')}
@@ -864,6 +875,50 @@ function LinkBubbleMenu({ editor }) {
           )}
         </>
       )}
+    </BubbleMenu>
+  )
+}
+
+function TableBubbleMenu({ editor }) {
+  if (!editor) return null
+
+  return (
+    <BubbleMenu
+      editor={editor}
+      shouldShow={({ editor: ed }) => ed.isEditable && ed.isActive('table')}
+      tippyOptions={{ duration: 120, placement: 'top', maxWidth: 520 }}
+      className="table-toolbar"
+    >
+      <button onMouseDown={(e) => { e.preventDefault(); editor.chain().focus().addColumnBefore().run() }}>
+        왼쪽 열
+      </button>
+      <button onMouseDown={(e) => { e.preventDefault(); editor.chain().focus().addColumnAfter().run() }}>
+        오른쪽 열
+      </button>
+      <button onMouseDown={(e) => { e.preventDefault(); editor.chain().focus().addRowBefore().run() }}>
+        위 행
+      </button>
+      <button onMouseDown={(e) => { e.preventDefault(); editor.chain().focus().addRowAfter().run() }}>
+        아래 행
+      </button>
+      <button onMouseDown={(e) => { e.preventDefault(); editor.chain().focus().mergeCells().run() }}>
+        셀 병합
+      </button>
+      <button onMouseDown={(e) => { e.preventDefault(); editor.chain().focus().splitCell().run() }}>
+        셀 분할
+      </button>
+      <button onMouseDown={(e) => { e.preventDefault(); editor.chain().focus().deleteColumn().run() }}>
+        열 삭제
+      </button>
+      <button onMouseDown={(e) => { e.preventDefault(); editor.chain().focus().deleteRow().run() }}>
+        행 삭제
+      </button>
+      <button onMouseDown={(e) => { e.preventDefault(); editor.chain().focus().toggleHeaderRow().run() }}>
+        헤더 토글
+      </button>
+      <button onMouseDown={(e) => { e.preventDefault(); editor.chain().focus().deleteTable().run() }}>
+        표 삭제
+      </button>
     </BubbleMenu>
   )
 }
