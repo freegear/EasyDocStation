@@ -915,16 +915,16 @@ function TableBubbleMenu({ editor }) {
     >
       <div className="table-toolbar-row">
         <button onMouseDown={(e) => { e.preventDefault(); editor.chain().focus().addColumnBefore().run() }}>
-          왼쪽 열
+          왼쪽 열 추가
         </button>
         <button onMouseDown={(e) => { e.preventDefault(); editor.chain().focus().addColumnAfter().run() }}>
-          오른쪽 열
+          오른쪽 열 추가
         </button>
         <button onMouseDown={(e) => { e.preventDefault(); editor.chain().focus().addRowBefore().run() }}>
-          위 행
+          위 행 추가
         </button>
         <button onMouseDown={(e) => { e.preventDefault(); editor.chain().focus().addRowAfter().run() }}>
-          아래 행
+          아래 행 추가
         </button>
         <button onMouseDown={(e) => { e.preventDefault(); editor.chain().focus().mergeCells().run() }}>
           셀 병합
