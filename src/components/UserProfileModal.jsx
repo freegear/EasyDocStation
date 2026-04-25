@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { useChat } from '../contexts/ChatContext'
-import { ROLE_LABELS, ROLE_BADGE } from '../constants/roles'
+import { ROLE_BADGE } from '../constants/roles'
 import { useT } from '../i18n/useT'
 
 export default function UserProfileModal({ onClose, onSaved }) {
@@ -154,7 +154,7 @@ export default function UserProfileModal({ onClose, onSaved }) {
   }
 
   const roleBadge = ROLE_BADGE[currentUser?.role] ?? ROLE_BADGE.user
-  const roleLabel = ROLE_LABELS[currentUser?.role] ?? ''
+  const roleLabel = t.roles?.[currentUser?.role] ?? currentUser?.role ?? ''
   const teamName = currentUser?.department_id
     ? (teams.find(tm => tm.id === currentUser.department_id)?.name || currentUser.department_id)
     : (t.profile.noDepartment || t.admin.noDepartment || '-')
