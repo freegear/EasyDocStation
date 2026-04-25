@@ -13,7 +13,7 @@ import ConfirmDialog from './ConfirmDialog'
 import PostDetailPane from './chat/PostDetailPane'
 import MDPageViewer from './chat/MDPageViewer'
 import { useT } from '../i18n/useT'
-import { isTemplateContent, isMdPage, getMdPageContent, FORM_TEMPLATES } from '../templates/formTemplates'
+import { isTemplateContent, isMdPage, getMdPageContent, getMdPageTitle, FORM_TEMPLATES } from '../templates/formTemplates'
 
 
 // ─── Helpers ──────────────────────────────────────────────────
@@ -2101,13 +2101,11 @@ function ChannelDocumentListPage({ posts, onBack, onOpenPost }) {
         post,
       })
     } else if (isMd) {
-      const firstLine = getMdPageContent(post.content)
-        .replace(/#{1,3} /g, '').split('\n').find(l => l.trim()) || 'MD 페이지'
       items.push({
         key: `${post.id}-md`,
         kind: 'template',
         icon: '📝',
-        title: firstLine.slice(0, 100),
+        title: getMdPageTitle(post.content, t.mdPage.title).slice(0, 100),
         post,
       })
     }
@@ -2292,7 +2290,7 @@ function PostCard({ post, onSelect, pinned, isSelected }) {
           })()
         : '📄 양식 템플릿')
     : isMd
-      ? `📝 ${plain[0]?.slice(0, 100) || 'MD 페이지'}`
+      ? `📝 ${getMdPageTitle(post.content, t.mdPage.title).slice(0, 100)}`
       : (plain[0]?.slice(0, 100) || '')
   const bodyPreview = isTemplate ? '' : plain.slice(1).join(' ').slice(0, 120)
   const attachCount = post.attachments?.length || 0

@@ -107,6 +107,20 @@
   text-decoration: underline;
 }
 
+.tiptap-editor .ProseMirror img,
+.tiptap-editor .ProseMirror .md-inline-image {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 0.75rem 0;
+  border-radius: 0.5rem;
+  border: 1px solid #e5e7eb;
+}
+
+.tiptap-editor .ProseMirror-dropcursor {
+  border-left: 2px solid #6366f1;
+}
+
 /* Placeholder */
 .tiptap-editor .ProseMirror p.is-editor-empty:first-child::before {
   content: attr(data-placeholder);

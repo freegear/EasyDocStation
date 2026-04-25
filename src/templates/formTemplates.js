@@ -1265,3 +1265,14 @@ export function getMdPageContent(content) {
   if (!content) return ''
   return content.replace(/^<!--md-page-->\n?/, '')
 }
+
+export function getMdPageTitle(content, fallback = 'MD 페이지') {
+  const md = getMdPageContent(content || '')
+  const first = md
+    .split('\n')
+    .map((line) => line.trim())
+    .find((line) => line.length > 0)
+
+  if (!first) return fallback
+  return first.replace(/^#{1,6}\s+/, '').trim() || fallback
+}
