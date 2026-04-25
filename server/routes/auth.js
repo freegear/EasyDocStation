@@ -82,11 +82,13 @@ router.post('/login', async (req, res) => {
       })
     }
 
-    // 중복 로그인 체크 (7일 이내 활성 세션이 있으면 차단)
-    if (user.active_session_id && user.last_login_at) {
-      const sessionExpiry = new Date(user.last_login_at)
-      sessionExpiry.setDate(sessionExpiry.getDate() + 7)
-      if (new Date() < sessionExpiry) {
+    // 중복 로그인 체크: active_session_id가 있고 JWT 유효 기간(7일) 이내이면 차단
+    if (user.active_session_id) {
+      const loginAge = user.last_login_at
+        ? Date.now() - new Date(user.last_login_at).getTime()
+        : 0
+      const JWT_EXPIRY_MS = 7 * 24 * 60 * 60 * 1000
+      if (!user.last_login_at || loginAge < JWT_EXPIRY_MS) {
         return res.status(409).json({
           error: '이미 동일한 정보로 로그인 되어 있습니다.',
           code: 'DUPLICATE_LOGIN',
@@ -105,8 +107,9 @@ router.post('/login', async (req, res) => {
       [user.id, req.ip, req.headers['user-agent']]
     )
 
+    // session_id를 JWT에 포함 → /auth/me에서 검증
     const token = jwt.sign(
-      { id: user.id, email: user.email, role: user.role, security_level: user.security_level || 0 },
+      { id: user.id, email: user.email, role: user.role, security_level: user.security_level || 0, session_id: newSessionId },
       process.env.JWT_SECRET,
       { expiresIn: '7d' }
     )
@@ -133,7 +136,15 @@ router.get('/me', requireAuth, async (req, res) => {
   try {
     const { rows } = await pool.query('SELECT * FROM users WHERE id = $1', [req.user.id])
     if (!rows[0]) return res.status(404).json({ error: '사용자를 찾을 수 없습니다.' })
-    res.json(toPublicUser(rows[0]))
+    const user = rows[0]
+
+    // 세션 유효성 검사: DB의 active_session_id와 JWT의 session_id가 일치해야 함
+    // active_session_id가 DB에 있는데 JWT session_id가 다르면 다른 기기에서 로그인된 것
+    if (user.active_session_id && req.user.session_id !== user.active_session_id) {
+      return res.status(401).json({ error: '다른 기기에서 로그인되었습니다.', code: 'SESSION_INVALIDATED' })
+    }
+
+    res.json(toPublicUser(user))
   } catch (err) {
     res.status(500).json({ error: '서버 오류가 발생했습니다.' })
   }

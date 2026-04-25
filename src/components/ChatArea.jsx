@@ -11,8 +11,9 @@ import remarkGfm from 'remark-gfm'
 import ChannelManageModal from './ChannelManageModal'
 import ConfirmDialog from './ConfirmDialog'
 import PostDetailPane from './chat/PostDetailPane'
+import MDPageViewer from './chat/MDPageViewer'
 import { useT } from '../i18n/useT'
-import { isTemplateContent, FORM_TEMPLATES } from '../templates/formTemplates'
+import { isTemplateContent, isMdPage, FORM_TEMPLATES } from '../templates/formTemplates'
 
 
 // ─── Helpers ──────────────────────────────────────────────────
@@ -2542,6 +2543,9 @@ export default function ChatArea({ autoOpenPostId }) {
     return <div className="flex-1 flex items-center justify-center text-gray-400 bg-gray-50">{t.chat.selectChannel}</div>
   }
 
+  // MD 페이지 선택 여부
+  const isMdPageSelected = selectedPost && isMdPage(selectedPost.content)
+
   return (
     <div ref={containerRef} className="flex-1 flex min-w-0 bg-gray-50">
       {showDocumentList ? (
@@ -2553,10 +2557,17 @@ export default function ChatArea({ autoOpenPostId }) {
             setShowDocumentList(false)
           }}
         />
+      ) : isMdPageSelected ? (
+        /* MD 페이지 — 전체 영역을 뷰어로 대체 */
+        <MDPageViewer
+          post={selectedPost}
+          channelId={selectedChannel.id}
+          onClose={() => setSelectedPost(null)}
+        />
       ) : (
         <>
       {/* Left panel — post list (narrows when detail is open) */}
-      <div 
+      <div
         className={`flex flex-col min-h-0 bg-gray-50 ${selectedPost ? 'border-r border-gray-200' : 'flex-1'} ${resizing ? '' : 'transition-[width] duration-200'}`}
         style={{ width: selectedPost ? `${leftWidth}%` : '100%' }}
       >
