@@ -2542,6 +2542,22 @@ function PostDetail({ post, channelId, onClose }) {
   const maxSelectableLevel = isSiteAdmin ? 4 : (currentUser?.security_level ?? 0)
   const postTrainingStatus = freshPost.training_status || null
 
+  function isInteractiveTarget(el) {
+    return Boolean(el?.closest?.('a,button,input,textarea,select,label,[role="button"]'))
+  }
+
+  function guardSelectionMouseDownCapture(e) {
+    if (isInteractiveTarget(e.target)) return
+    e.stopPropagation()
+  }
+
+  function guardSelectionClickCapture(e) {
+    if (!hasAnyTextSelection()) return
+    if (!e.currentTarget?.contains?.(window.getSelection?.()?.anchorNode)) return
+    e.preventDefault()
+    e.stopPropagation()
+  }
+
   function extractQuotationDocNo(content = '') {
     const m = content.match(/data-type=['"]no['"][^>]*>([^<]*)</i)
     return (m?.[1] || '').trim()
@@ -2987,6 +3003,8 @@ function PostDetail({ post, channelId, onClose }) {
           <>
             <div
               className="mb-4 select-text allow-copy cursor-text"
+              onMouseDownCapture={guardSelectionMouseDownCapture}
+              onClickCapture={guardSelectionClickCapture}
             >
               {isTemplateContent(freshPost.content) ? (
                 <TemplateRenderer
@@ -3141,6 +3159,8 @@ function PostDetail({ post, channelId, onClose }) {
                       <>
                         <div
                           className="text-gray-600 select-text allow-copy cursor-text"
+                          onMouseDownCapture={guardSelectionMouseDownCapture}
+                          onClickCapture={guardSelectionClickCapture}
                         >
                           <ContentRenderer text={c.text} />
                         </div>
