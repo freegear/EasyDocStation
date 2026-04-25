@@ -1492,7 +1492,7 @@ function ContentRenderer({ text = '' }) {
   const normalized = normalizeMarkdownCodeFence(text || '')
   const links = extractHttpUrls(text || '')
   return (
-    <div className="text-gray-700 text-sm leading-relaxed break-words">
+    <div className="text-gray-700 text-sm leading-relaxed break-words select-text">
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         components={{
@@ -2234,9 +2234,25 @@ function PostCard({ post, onSelect, pinned, isSelected }) {
   const commentCount = post.comments?.length || 0
   const trainingStatus = post.training_status || null
 
+  function handleCardClick() {
+    const selectedText = window.getSelection?.()?.toString() || ''
+    if (selectedText.trim().length > 0) return
+    onSelect(post)
+  }
+
+  function handleCardKeyDown(e) {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault()
+      handleCardClick()
+    }
+  }
+
   return (
-    <button
-      onClick={() => onSelect(post)}
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={handleCardClick}
+      onKeyDown={handleCardKeyDown}
       className={`w-full text-left px-5 py-3 rounded-2xl border transition-all group ${
         isSelected
           ? 'bg-indigo-50 border-indigo-300'
@@ -2292,7 +2308,7 @@ function PostCard({ post, onSelect, pinned, isSelected }) {
           {bodyPreview && <p className="text-gray-400 text-xs leading-relaxed line-clamp-2">{bodyPreview}</p>}
         </div>
       </div>
-    </button>
+    </div>
   )
 }
 
@@ -2871,7 +2887,7 @@ function PostDetail({ post, channelId, onClose }) {
           </div>
         ) : (
           <>
-            <div className="mb-4">
+            <div className="mb-4 select-text">
               {isTemplateContent(freshPost.content) ? (
                 <TemplateRenderer
                   html={freshPost.content}
@@ -3024,7 +3040,7 @@ function PostDetail({ post, channelId, onClose }) {
                       </div>
                     ) : (
                       <>
-                        <div className="text-gray-600 overflow-hidden">
+                        <div className="text-gray-600 overflow-hidden select-text">
                           <ContentRenderer text={c.text} />
                         </div>
                         {c.attachments && c.attachments.length > 0 && (
