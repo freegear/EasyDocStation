@@ -28,7 +28,7 @@ sudo DEBIAN_FRONTEND=noninteractive apt-get install -y \
   curl ca-certificates gnupg lsb-release software-properties-common \
   python3-full python3-venv python3-pip build-essential pkg-config libpq-dev \
   postgresql postgresql-contrib \
-  poppler-utils ffmpeg libreoffice \
+  poppler-utils ffmpeg libreoffice libreoffice-impress \
   tesseract-ocr tesseract-ocr-eng tesseract-ocr-kor
 
 if ! command -v node >/dev/null 2>&1; then
