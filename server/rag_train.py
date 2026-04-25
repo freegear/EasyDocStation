@@ -1424,6 +1424,38 @@ def ingest_txt(records, *, post_id, channel_id, attachment_id, comment_id, txt_p
     return count
 
 
+def ingest_image(records, *, post_id, channel_id, attachment_id, comment_id, image_path, file_name):
+    if not image_path or not os.path.isfile(image_path):
+        if image_path:
+            print(f"[RAG] 이미지 파일 없음: {image_path}", file=sys.stderr)
+        return 0
+
+    source_name = file_name or os.path.basename(image_path)
+    file_hash = calc_file_hash(image_path)
+    caption = describe_image_with_gemma(image_path, source_name, page_number=1)
+    if not caption:
+        caption = build_image_caption(source_name, page_number=1, image_path=image_path)
+
+    meta = metadata_base(
+        post_id=post_id,
+        channel_id=channel_id,
+        attachment_id=attachment_id,
+        comment_id=comment_id,
+        source=source_name,
+        file_name=source_name,
+        file_hash=file_hash,
+    )
+    meta["type"] = "image_attachment"
+    meta["page_number"] = 1
+    meta["img_path"] = image_path
+    meta["element_id"] = f"img-{attachment_id or post_id or comment_id}"
+    apply_amount_meta(meta, caption)
+
+    count = append_text_chunks(records, caption, meta, chunk_prefix=meta["element_id"])
+    print(f"[RAG] 이미지 학습 완료: {os.path.basename(image_path)} ({count}청크)", flush=True)
+    return count
+
+
 def ingest_plain_text(records, *, post_id, channel_id, comment_id, content, source_type):
     body = (content or "").strip()
     if not body:
@@ -1453,11 +1485,13 @@ def count_training_steps(posts, comments):
         steps += len(post.get("pdfs", []) or [])
         steps += len(post.get("words", []) or [])
         steps += len(post.get("txts", []) or [])
+        steps += len(post.get("images", []) or [])
     for comment in comments:
         steps += 1
         steps += len(comment.get("pdfs", []) or [])
         steps += len(comment.get("words", []) or [])
         steps += len(comment.get("txts", []) or [])
+        steps += len(comment.get("images", []) or [])
     return max(steps, 1)
 
 
@@ -1546,6 +1580,19 @@ for post in posts:
         )
         progress.step(label="게시글 TXT")
 
+    # 이미지 첨부
+    for image_info in post.get("images", []):
+        total_chunks += ingest_image(
+            records,
+            post_id=post_id,
+            channel_id=channel_id,
+            attachment_id=image_info.get("id") or "",
+            comment_id="",
+            image_path=image_info.get("path") or "",
+            file_name=image_info.get("file_name") or "",
+        )
+        progress.step(label="게시글 이미지")
+
 for comment in comments:
     comment_id = comment.get("id", "unknown")
     post_id = comment.get("post_id", "")
@@ -1603,6 +1650,19 @@ for comment in comments:
             file_name=txt_info.get("file_name") or "",
         )
         progress.step(label="댓글 TXT")
+
+    # 댓글 이미지
+    for image_info in comment.get("images", []):
+        total_chunks += ingest_image(
+            records,
+            post_id=post_id,
+            channel_id=channel_id,
+            attachment_id=image_info.get("id") or "",
+            comment_id=comment_id,
+            image_path=image_info.get("path") or "",
+            file_name=image_info.get("file_name") or "",
+        )
+        progress.step(label="댓글 이미지")
 
 
 if records:

@@ -69,6 +69,18 @@ const DOC_CONTENT_TYPES = [
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
   'text/plain',
 ]
+const IMAGE_CONTENT_TYPES = [
+  'image/jpeg',
+  'image/jpg',
+  'image/png',
+  'image/webp',
+  'image/gif',
+  'image/bmp',
+  'image/tiff',
+  'image/heic',
+  'image/heif',
+]
+const IMAGE_FILE_EXT_RE = /\.(jpe?g|png|webp|gif|bmp|tiff?|heic|heif)$/i
 
 function isTxtAttachment(row = {}) {
   const ct = String(row.content_type || '').toLowerCase()
@@ -76,34 +88,38 @@ function isTxtAttachment(row = {}) {
   return ct === 'text/plain' || filename.endsWith('.txt')
 }
 
+function isImageAttachment(row = {}) {
+  const ct = String(row.content_type || '').toLowerCase()
+  const filename = String(row.filename || '')
+  if (IMAGE_CONTENT_TYPES.includes(ct)) return true
+  return IMAGE_FILE_EXT_RE.test(filename)
+}
+
 // ─── 문서 첨부파일 경로 조회 (PDF + Word + TXT) ───────────────
 async function getDocumentPathsForPost(postId) {
   try {
     const cfg         = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'))
     const storageBase = getDatabasePath(cfg, 'ObjectFile Path')
-    const contentTypePlaceholders = DOC_CONTENT_TYPES.map((_, idx) => `$${idx + 2}`).join(', ')
     const result = await db.query(
       `SELECT id, storage_path, content_type, filename FROM attachments
-       WHERE post_id = $1 AND status = 'COMPLETED'
-         AND (
-           content_type IN (${contentTypePlaceholders})
-           OR LOWER(filename) LIKE '%.txt'
-         )`,
-      [postId, ...DOC_CONTENT_TYPES]
+       WHERE post_id = $1 AND status = 'COMPLETED'`,
+      [postId]
     )
     const pdfs  = []
     const words = []
     const txts = []
+    const images = []
     for (const r of result.rows) {
       const item = { id: r.id, path: path.join(storageBase, r.storage_path), file_name: r.filename || '' }
       if (r.content_type === 'application/pdf') pdfs.push(item)
       else if (isTxtAttachment(r)) txts.push(item)
+      else if (isImageAttachment(r)) images.push(item)
       else words.push(item)
     }
-    return { pdfs, words, txts }
+    return { pdfs, words, txts, images }
   } catch (e) {
     console.error('[RAG] 문서 경로 조회 실패:', e.message)
-    return { pdfs: [], words: [], txts: [] }
+    return { pdfs: [], words: [], txts: [], images: [] }
   }
 }
 
@@ -137,8 +153,8 @@ function callPythonTrainer(payload, options = {}) {
 // ─── 학습 제외 조건: 첨부 없고 100자 미만 ────────────────────
 const RAG_MIN_CONTENT_LENGTH = 100
 
-function shouldSkipTraining(content, pdfs, words, txts = []) {
-  return pdfs.length === 0 && words.length === 0 && txts.length === 0 && (content || '').length < RAG_MIN_CONTENT_LENGTH
+function shouldSkipTraining(content, pdfs, words, txts = [], images = []) {
+  return pdfs.length === 0 && words.length === 0 && txts.length === 0 && images.length === 0 && (content || '').length < RAG_MIN_CONTENT_LENGTH
 }
 
 // ─── 실제 학습 로직 ───────────────────────────────────────────
@@ -154,7 +170,7 @@ async function runTraining(posts, options = {}) {
   // 각 게시글의 PDF + Word + TXT 첨부파일 경로를 함께 전달
   const postsWithPdfs = (await Promise.all(
     posts.map(async post => {
-      const { pdfs, words, txts } = await getDocumentPathsForPost(post.id)
+      const { pdfs, words, txts, images } = await getDocumentPathsForPost(post.id)
       return {
         id:         post.id,
         channel_id: post.channel_id || '',
@@ -163,10 +179,11 @@ async function runTraining(posts, options = {}) {
         pdfs,
         words,
         txts,
+        images,
       }
     })
   )).filter(p => {
-    if (shouldSkipTraining(p.content, p.pdfs, p.words, p.txts)) {
+    if (shouldSkipTraining(p.content, p.pdfs, p.words, p.txts, p.images)) {
       console.log(`[RAG] 학습 제외 (게시글): ${p.id} — 첨부파일 없음, ${(p.content || '').length}자`)
       return false
     }
@@ -286,32 +303,28 @@ async function retrainPostImmediate(post) {
 
 // ─── 댓글 첨부파일 경로 조회 (attachment ID 목록으로 직접 조회) ─
 async function getDocumentPathsByIds(attachmentIds) {
-  if (!attachmentIds || attachmentIds.length === 0) return { pdfs: [], words: [], txts: [] }
+  if (!attachmentIds || attachmentIds.length === 0) return { pdfs: [], words: [], txts: [], images: [] }
   try {
     const cfg         = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'))
     const storageBase = getDatabasePath(cfg, 'ObjectFile Path')
     const placeholders = attachmentIds.map((_, i) => `$${i + 1}`).join(', ')
-    const contentTypePlaceholders = DOC_CONTENT_TYPES.map((_, i) => `$${attachmentIds.length + i + 1}`).join(', ')
     const result = await db.query(
       `SELECT id, storage_path, content_type, filename FROM attachments
-       WHERE id IN (${placeholders}) AND status = 'COMPLETED'
-         AND (
-           content_type IN (${contentTypePlaceholders})
-           OR LOWER(filename) LIKE '%.txt'
-         )`,
-      [...attachmentIds, ...DOC_CONTENT_TYPES]
+       WHERE id IN (${placeholders}) AND status = 'COMPLETED'`,
+      [...attachmentIds]
     )
-    const pdfs = [], words = [], txts = []
+    const pdfs = [], words = [], txts = [], images = []
     for (const r of result.rows) {
       const item = { id: r.id, path: path.join(storageBase, r.storage_path), file_name: r.filename || '' }
       if (r.content_type === 'application/pdf') pdfs.push(item)
       else if (isTxtAttachment(r)) txts.push(item)
+      else if (isImageAttachment(r)) images.push(item)
       else words.push(item)
     }
-    return { pdfs, words, txts }
+    return { pdfs, words, txts, images }
   } catch (e) {
     console.error('[RAG] 댓글 문서 경로 조회 실패:', e.message)
-    return { pdfs: [], words: [], txts: [] }
+    return { pdfs: [], words: [], txts: [], images: [] }
   }
 }
 
@@ -328,7 +341,7 @@ async function runCommentTraining(comments, options = {}) {
   // 각 댓글의 PDF + Word + TXT 첨부파일 경로 조회
   const commentsWithDocs = (await Promise.all(
     comments.map(async c => {
-      const { pdfs, words, txts } = await getDocumentPathsByIds(c.attachmentIds || [])
+      const { pdfs, words, txts, images } = await getDocumentPathsByIds(c.attachmentIds || [])
       return {
         id:            c.id,
         post_id:       c.post_id,
@@ -337,10 +350,11 @@ async function runCommentTraining(comments, options = {}) {
         pdfs,
         words,
         txts,
+        images,
       }
     })
   )).filter(c => {
-    if (shouldSkipTraining(c.content, c.pdfs, c.words, c.txts)) {
+    if (shouldSkipTraining(c.content, c.pdfs, c.words, c.txts, c.images)) {
       console.log(`[RAG] 학습 제외 (댓글): ${c.id} — 첨부파일 없음, ${(c.content || '').length}자`)
       return false
     }
