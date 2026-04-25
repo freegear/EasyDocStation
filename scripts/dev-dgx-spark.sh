@@ -4,6 +4,21 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
 
+install_print_dependencies() {
+  echo "[DGX] 프론트 인쇄 의존성 정합 시작"
+  echo "  1) @vitejs/plugin-react 최신화"
+  npm install -D @vitejs/plugin-react@latest
+
+  echo "  2) react-to-print 설치"
+  if npm install react-to-print; then
+    echo "  - react-to-print 설치 성공"
+    return 0
+  fi
+
+  echo "  3) react-to-print 우회 설치(--legacy-peer-deps)"
+  npm install react-to-print --legacy-peer-deps
+}
+
 if [[ ! -f "$ROOT_DIR/server/.env" ]]; then
   echo "[ERROR] server/.env 파일이 없습니다. 먼저 설치 스크립트를 실행하세요:"
   echo "  npm run setup:dgx-spark"
@@ -26,7 +41,7 @@ fi
 echo "[DGX] npm 의존성 점검 (react-to-print)"
 if ! npm ls react-to-print --depth=0 >/dev/null 2>&1; then
   echo "  - react-to-print 누락 감지, 설치를 진행합니다."
-  npm install react-to-print
+  install_print_dependencies
 else
   echo "  - react-to-print: OK"
 fi
