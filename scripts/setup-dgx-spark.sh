@@ -102,11 +102,29 @@ if command -v systemctl >/dev/null 2>&1; then
   fi
 fi
 if command -v lpstat >/dev/null 2>&1; then
+  if command -v lpadmin >/dev/null 2>&1; then
+    # CUPS-PDF 큐가 없으면 생성 시도
+    if ! lpstat -p 2>/dev/null | awk '{print $2}' | grep -qx "CUPS-PDF"; then
+      if lpinfo -v 2>/dev/null | grep -q "cups-pdf"; then
+        pdf_model="$(lpinfo -m 2>/dev/null | awk '/cups-pdf|CUPS-PDF|Generic PDF|PDF/{print $1; exit}')"
+        if [[ -z "${pdf_model:-}" ]]; then
+          pdf_model="drv:///sample.drv/generic.ppd"
+        fi
+        sudo lpadmin -p CUPS-PDF -E -v cups-pdf:/ -m "$pdf_model" >/dev/null 2>&1 || true
+        sudo cupsaccept CUPS-PDF >/dev/null 2>&1 || true
+        sudo cupsenable CUPS-PDF >/dev/null 2>&1 || true
+      fi
+    fi
+  fi
+
+  # 기본 프린터 미설정이면 CUPS-PDF 또는 첫 번째 프린터를 기본으로 설정
   if ! lpstat -d >/dev/null 2>&1; then
-    if command -v lpadmin >/dev/null 2>&1; then
-      # CUPS-PDF 가상 프린터가 있으면 기본 프린터로 지정
-      if lpstat -v 2>/dev/null | grep -q "CUPS-PDF"; then
-        lpoptions -d CUPS-PDF >/dev/null 2>&1 || true
+    if lpstat -p 2>/dev/null | awk '{print $2}' | grep -qx "CUPS-PDF"; then
+      lpoptions -d CUPS-PDF >/dev/null 2>&1 || true
+    else
+      first_printer="$(lpstat -p 2>/dev/null | awk 'NR==1{print $2}')"
+      if [[ -n "${first_printer:-}" ]]; then
+        lpoptions -d "$first_printer" >/dev/null 2>&1 || true
       fi
     fi
   fi
