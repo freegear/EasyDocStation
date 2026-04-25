@@ -164,6 +164,7 @@ function MainLayout() {
         <SiteAdminPage
           onClose={() => setShowSiteAdmin(false)}
           showAgenticPanel={showAgenticPanel}
+          onSetAgenticPanel={setShowAgenticPanel}
           onToggleAgenticPanel={() => setShowAgenticPanel(v => !v)}
         />
       )}
