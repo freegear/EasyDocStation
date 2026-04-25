@@ -3123,7 +3123,7 @@ function PostDetail({ post, channelId, onClose }) {
                       )}
                       <span className="text-gray-400 text-xs">{formatDate(c.createdAt, t)}</span>
                       {editingCommentId !== c.id && !selectedChannel?.is_archived && (
-                        <div className="ml-auto flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="ml-auto flex items-center gap-2 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-opacity">
                           <button onClick={() => handleSendCommentToAgenticAI(c)} className="text-sky-600 hover:text-sky-700 text-[10px] font-medium uppercase tracking-tight">{t.chat.sendToAgenticAI || 'AgenticAI'}</button>
                           {(isSiteAdmin || c.author?.name === currentUser?.name) && (
                             <>
