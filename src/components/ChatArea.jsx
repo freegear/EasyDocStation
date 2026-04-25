@@ -1280,6 +1280,28 @@ function TemplateRenderer({ html, postId, onContentChange, onSave }) {
       const doc = iframeRef.current?.contentDocument
       const win = iframeRef.current?.contentWindow
       if (doc) {
+        // 템플릿 내부 .editable 클릭 핸들러가 부분 드래그 선택을 깨뜨리는 문제 방지
+        if (!doc.querySelector('style[data-selection-guard="true"]')) {
+          const selectionStyle = doc.createElement('style')
+          selectionStyle.setAttribute('data-selection-guard', 'true')
+          selectionStyle.textContent = `
+            .editable { -webkit-user-select: text !important; user-select: text !important; }
+          `
+          doc.head?.appendChild(selectionStyle)
+        }
+        if (!doc.__selectionClickGuardBound) {
+          doc.__selectionClickGuardBound = true
+          doc.addEventListener('click', (e) => {
+            const target = e.target
+            if (!target || !target.closest) return
+            if (!target.closest('.editable')) return
+            const selected = win?.getSelection?.()?.toString?.().trim?.() || ''
+            if (selected.length > 0) {
+              e.stopImmediatePropagation()
+            }
+          }, true)
+        }
+
         // 기존 저장 문서(구버전 템플릿)도 동일한 인쇄 동작을 사용하도록 강제
         if (win) {
           if (!doc.querySelector('style[data-print-guard="true"]')) {
