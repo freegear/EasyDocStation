@@ -47,6 +47,39 @@ function normalizeGatewayUrl(url) {
   }
 }
 
+function uploadFileWithProgress(uploadUrl, file, onProgress) {
+  const targetUrl = normalizeGatewayUrl(uploadUrl)
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest()
+    xhr.open('PUT', targetUrl, true)
+
+    xhr.upload.onprogress = (evt) => {
+      if (!onProgress) return
+      const total = evt.lengthComputable ? evt.total : (file?.size || 0)
+      onProgress({
+        loaded: evt.loaded || 0,
+        total,
+        lengthComputable: Boolean(evt.lengthComputable),
+      })
+    }
+
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        if (onProgress) {
+          const total = file?.size || 0
+          onProgress({ loaded: total, total, lengthComputable: true })
+        }
+        resolve()
+        return
+      }
+      reject(new Error(`upload failed (${xhr.status})`))
+    }
+    xhr.onerror = () => reject(new Error('upload network error'))
+    xhr.onabort = () => reject(new Error('upload aborted'))
+    xhr.send(file)
+  })
+}
+
 function dataTransferHasFiles(dataTransfer) {
   if (!dataTransfer) return false
 
@@ -1520,6 +1553,7 @@ function ComposeBar({ onSubmit, isArchived }) {
   const [files, setFiles] = useState([])
   const [dragOver, setDragOver] = useState(false)
   const [sending, setSending] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState(null)
   const [focused, setFocused] = useState(false)
   const [securityLevel, setSecurityLevel] = useState(Math.min(1, currentUser?.security_level ?? 0))
   const maxSelectableLevel = currentUser?.role === 'site_admin' ? 4 : (currentUser?.security_level ?? 0)
@@ -1613,9 +1647,21 @@ function ComposeBar({ onSubmit, isArchived }) {
     setSending(true)
     try {
       const attachmentIds = []
+      const totalUploadBytes = files.reduce((sum, f) => sum + (f.file?.size || 0), 0)
+      let uploadedBytesDone = 0
+      if (files.length > 0) {
+        setUploadProgress({
+          percent: 0,
+          uploadedBytes: 0,
+          totalBytes: totalUploadBytes,
+          fileIndex: 1,
+          fileCount: files.length,
+        })
+      }
 
       // Upload each file to Mock S3 first
-      for (const fObj of files) {
+      for (let i = 0; i < files.length; i++) {
+        const fObj = files[i]
         const { uploadUrl, file_uuid } = await apiFetch('/files/get-upload-url', {
           method: 'POST',
           body: JSON.stringify({
@@ -1624,7 +1670,22 @@ function ComposeBar({ onSubmit, isArchived }) {
             channelId: selectedChannel.id,
           }),
         })
-        await fetch(normalizeGatewayUrl(uploadUrl), { method: 'PUT', body: fObj.file })
+        await uploadFileWithProgress(uploadUrl, fObj.file, ({ loaded, total }) => {
+          const currentTotal = total || fObj.file?.size || 0
+          const safeLoaded = Math.min(Math.max(loaded || 0, 0), currentTotal)
+          const overallUploaded = uploadedBytesDone + safeLoaded
+          const percent = totalUploadBytes > 0
+            ? Math.min(100, Math.round((overallUploaded / totalUploadBytes) * 100))
+            : 100
+          setUploadProgress({
+            percent,
+            uploadedBytes: overallUploaded,
+            totalBytes: totalUploadBytes,
+            fileIndex: i + 1,
+            fileCount: files.length,
+          })
+        })
+        uploadedBytesDone += fObj.file?.size || 0
         attachmentIds.push(file_uuid)
       }
 
@@ -1641,6 +1702,7 @@ function ComposeBar({ onSubmit, isArchived }) {
       alert(t.chat.sendError(err.message))
     } finally {
       setSending(false)
+      setUploadProgress(null)
     }
   }
 
@@ -1735,7 +1797,22 @@ function ComposeBar({ onSubmit, isArchived }) {
 
         {/* Action row — shown when focused or has content */}
         {showActions && (
-          <div className="flex items-center gap-2 px-3 pb-3 pl-[52px]">
+          <div className="px-3 pb-3 pl-[52px]">
+            {sending && uploadProgress && (
+              <div className="mb-2">
+                <div className="flex items-center justify-between text-[11px] text-gray-500 mb-1">
+                  <span>{t.chat.sending} {uploadProgress.percent}%</span>
+                  <span>{uploadProgress.fileIndex}/{uploadProgress.fileCount} · {formatSize(uploadProgress.uploadedBytes)} / {formatSize(uploadProgress.totalBytes)}</span>
+                </div>
+                <div className="h-1.5 w-full rounded-full bg-gray-200 overflow-hidden">
+                  <div
+                    className="h-full bg-indigo-500 transition-all duration-150"
+                    style={{ width: `${uploadProgress.percent}%` }}
+                  />
+                </div>
+              </div>
+            )}
+            <div className="flex items-center gap-2">
             {/* Clip button */}
             <button
               type="button"
@@ -1783,6 +1860,7 @@ function ComposeBar({ onSubmit, isArchived }) {
                 </svg>
               )}
             </button>
+            </div>
           </div>
         )}
       </div>
@@ -2252,6 +2330,7 @@ function PostDetail({ post, channelId, onClose }) {
   const [files, setFiles] = useState([])
   const [dragOver, setDragOver] = useState(false)
   const [uploading, setUploading] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState(null)
   const commentSubmittingRef = useRef(false)
   const commentsEndRef = useRef(null)
   const fileInputRef = useRef(null)
@@ -2384,7 +2463,19 @@ function PostDetail({ post, channelId, onClose }) {
     setUploading(true)
     try {
       const attachmentIds = []
-      for (const fObj of files) {
+      const totalUploadBytes = files.reduce((sum, f) => sum + (f.file?.size || 0), 0)
+      let uploadedBytesDone = 0
+      if (files.length > 0) {
+        setUploadProgress({
+          percent: 0,
+          uploadedBytes: 0,
+          totalBytes: totalUploadBytes,
+          fileIndex: 1,
+          fileCount: files.length,
+        })
+      }
+      for (let i = 0; i < files.length; i++) {
+        const fObj = files[i]
         const { uploadUrl, file_uuid } = await apiFetch('/files/get-upload-url', {
           method: 'POST',
           body: JSON.stringify({
@@ -2393,7 +2484,22 @@ function PostDetail({ post, channelId, onClose }) {
             channelId: selectedChannel?.id,
           }),
         })
-        await fetch(normalizeGatewayUrl(uploadUrl), { method: 'PUT', body: fObj.file })
+        await uploadFileWithProgress(uploadUrl, fObj.file, ({ loaded, total }) => {
+          const currentTotal = total || fObj.file?.size || 0
+          const safeLoaded = Math.min(Math.max(loaded || 0, 0), currentTotal)
+          const overallUploaded = uploadedBytesDone + safeLoaded
+          const percent = totalUploadBytes > 0
+            ? Math.min(100, Math.round((overallUploaded / totalUploadBytes) * 100))
+            : 100
+          setUploadProgress({
+            percent,
+            uploadedBytes: overallUploaded,
+            totalBytes: totalUploadBytes,
+            fileIndex: i + 1,
+            fileCount: files.length,
+          })
+        })
+        uploadedBytesDone += fObj.file?.size || 0
         attachmentIds.push(file_uuid)
       }
 
@@ -2407,6 +2513,7 @@ function PostDetail({ post, channelId, onClose }) {
       setCommentErrorDialog(t.chat.commentError(err.message))
     } finally {
       setUploading(false)
+      setUploadProgress(null)
       commentSubmittingRef.current = false
     }
   }
@@ -3017,6 +3124,20 @@ function PostDetail({ post, channelId, onClose }) {
                   {uploading ? t.chat.sending : t.chat.addComment}
                 </button>
               </div>
+              {uploading && uploadProgress && (
+                <div className="px-4 pb-3">
+                  <div className="flex items-center justify-between text-[11px] text-gray-500 mb-1">
+                    <span>{t.chat.sending} {uploadProgress.percent}%</span>
+                    <span>{uploadProgress.fileIndex}/{uploadProgress.fileCount} · {formatSize(uploadProgress.uploadedBytes)} / {formatSize(uploadProgress.totalBytes)}</span>
+                  </div>
+                  <div className="h-1.5 w-full rounded-full bg-gray-200 overflow-hidden">
+                    <div
+                      className="h-full bg-indigo-500 transition-all duration-150"
+                      style={{ width: `${uploadProgress.percent}%` }}
+                    />
+                  </div>
+                </div>
+              )}
             </div>
           </form>
         ) : (
