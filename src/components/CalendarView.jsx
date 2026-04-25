@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import EventAddModal from './EventAddModal'
 import { apiFetch } from '../lib/api'
+import { useAuth } from '../contexts/AuthContext'
 
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토']
 const MONTHS = ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월']
@@ -144,7 +145,7 @@ function timedEventsForDay(events, date, slotPx) {
 
 // ─── Month View ──────────────────────────────────────────────
 
-function MonthView({ date, events = [], onEventDoubleClick, onEventDragStart, onDayDrop, onCellDoubleClick }) {
+function MonthView({ date, events = [], onEventDoubleClick, onEventDragStart, onDayDrop, onCellDoubleClick, canEditEvent }) {
   const today = new Date()
   const [dragOverDate, setDragOverDate] = useState(null)
   const days = getMonthDays(date.getFullYear(), date.getMonth())
@@ -192,18 +193,20 @@ function MonthView({ date, events = [], onEventDoubleClick, onEventDragStart, on
                     {d.getDate()}
                   </div>
                   <div className="flex flex-col gap-0.5">
-                    {dayEvents.slice(0, 3).map(ev => (
+                    {dayEvents.slice(0, 3).map(ev => {
+                      const canEdit = canEditEvent?.(ev) !== false
+                      return (
                       <div
                         key={ev.id}
-                        draggable
-                        onDragStart={e => { e.stopPropagation(); onEventDragStart?.(ev.id) }}
+                        draggable={canEdit}
+                        onDragStart={e => { if (!canEdit) { e.preventDefault(); return }; e.stopPropagation(); onEventDragStart?.(ev.id) }}
                         onDoubleClick={e => { e.stopPropagation(); onEventDoubleClick?.(ev) }}
-                        className="text-[10px] font-medium text-white px-1.5 py-0.5 rounded truncate leading-tight cursor-grab active:cursor-grabbing hover:brightness-95"
+                        className={`text-[10px] font-medium text-white px-1.5 py-0.5 rounded truncate leading-tight hover:brightness-95 ${canEdit ? 'cursor-grab active:cursor-grabbing' : 'cursor-default'}`}
                         style={{ backgroundColor: ev.color }}
                       >
                         {ev.allDay ? ev.title : `${dtTo24h(ev.startDt).hour.toString().padStart(2,'0')}:${String(dtTo24h(ev.startDt).minute).padStart(2,'0')} ${ev.title}`}
                       </div>
-                    ))}
+                    )})}
                     {dayEvents.length > 3 && (
                       <div className="text-[10px] text-gray-400 px-1">+{dayEvents.length - 3}개</div>
                     )}
@@ -220,7 +223,7 @@ function MonthView({ date, events = [], onEventDoubleClick, onEventDragStart, on
 
 // ─── Week View ───────────────────────────────────────────────
 
-function WeekView({ date, events = [], onEventDoubleClick, onEventDragStart, onWeekDrop, onAllDayDrop, onCellDoubleClick }) {
+function WeekView({ date, events = [], onEventDoubleClick, onEventDragStart, onWeekDrop, onAllDayDrop, onCellDoubleClick, canEditEvent }) {
   const today = new Date()
   const [dragOverDate, setDragOverDate] = useState(null)
   const [dragOverAllDayDate, setDragOverAllDayDate] = useState(null)
@@ -290,16 +293,18 @@ function WeekView({ date, events = [], onEventDoubleClick, onEventDragStart, onW
               onDragLeave={e => { if (!e.currentTarget.contains(e.relatedTarget)) setDragOverAllDayDate(null) }}
               onDrop={e => { e.preventDefault(); setDragOverAllDayDate(null); onAllDayDrop?.(d) }}
             >
-              {dayAllDayEvents.map(ev => (
+              {dayAllDayEvents.map(ev => {
+                const canEdit = canEditEvent?.(ev) !== false
+                return (
                 <div key={ev.id}
-                  draggable
-                  onDragStart={e => { e.stopPropagation(); grabOffsetRef.current = 0; onEventDragStart?.(ev.id) }}
+                  draggable={canEdit}
+                  onDragStart={e => { if (!canEdit) { e.preventDefault(); return }; e.stopPropagation(); grabOffsetRef.current = 0; onEventDragStart?.(ev.id) }}
                   onDoubleClick={e => { e.stopPropagation(); onEventDoubleClick?.(ev) }}
-                  className="text-[10px] font-medium text-white px-1.5 py-0.5 rounded mb-0.5 truncate cursor-grab active:cursor-grabbing hover:brightness-95"
+                  className={`text-[10px] font-medium text-white px-1.5 py-0.5 rounded mb-0.5 truncate hover:brightness-95 ${canEdit ? 'cursor-grab active:cursor-grabbing' : 'cursor-default'}`}
                   style={{ backgroundColor: ev.color }}>
                   {ev.title}
                 </div>
-              ))}
+              )})}
             </div>
           )
         })}
@@ -379,20 +384,22 @@ function WeekView({ date, events = [], onEventDoubleClick, onEventDragStart, onW
 
                 {/* Timed events */}
                 {colTimed.map(({ ev, topPx, heightPx, colIndex, colCount }) => {
+                  const canEdit = canEditEvent?.(ev) !== false
                   const widthPct = 100 / colCount
                   const leftPct = colIndex * widthPct
                   return (
                     <div
                       key={ev.id}
-                      draggable
+                      draggable={canEdit}
                       onDragStart={e => {
+                        if (!canEdit) { e.preventDefault(); return }
                         e.stopPropagation()
                         const rect = e.currentTarget.getBoundingClientRect()
                         grabOffsetRef.current = e.clientY - rect.top
                         onEventDragStart?.(ev.id, 'move')
                       }}
                       onDoubleClick={e => { e.stopPropagation(); onEventDoubleClick?.(ev) }}
-                      className="absolute rounded overflow-hidden z-20 px-1 font-medium leading-tight cursor-grab active:cursor-grabbing hover:brightness-95"
+                      className={`absolute rounded overflow-hidden z-20 px-1 font-medium leading-tight hover:brightness-95 ${canEdit ? 'cursor-grab active:cursor-grabbing' : 'cursor-default'}`}
                       style={{
                         top: topPx,
                         height: heightPx,
@@ -407,8 +414,8 @@ function WeekView({ date, events = [], onEventDoubleClick, onEventDragStart, onW
                       {/* Top resize handle */}
                       {heightPx >= 20 && (
                         <div
-                          draggable
-                          onDragStart={e => { e.stopPropagation(); grabOffsetRef.current = 0; onEventDragStart?.(ev.id, 'resize-start') }}
+                          draggable={canEdit}
+                          onDragStart={e => { if (!canEdit) { e.preventDefault(); return }; e.stopPropagation(); grabOffsetRef.current = 0; onEventDragStart?.(ev.id, 'resize-start') }}
                           className="absolute top-0 left-0 right-0 h-2 cursor-n-resize z-30 hover:bg-white/30"
                         />
                       )}
@@ -423,8 +430,8 @@ function WeekView({ date, events = [], onEventDoubleClick, onEventDragStart, onW
                       {/* Bottom resize handle */}
                       {heightPx >= 20 && (
                         <div
-                          draggable
-                          onDragStart={e => { e.stopPropagation(); grabOffsetRef.current = 0; onEventDragStart?.(ev.id, 'resize-end') }}
+                          draggable={canEdit}
+                          onDragStart={e => { if (!canEdit) { e.preventDefault(); return }; e.stopPropagation(); grabOffsetRef.current = 0; onEventDragStart?.(ev.id, 'resize-end') }}
                           className="absolute bottom-0 left-0 right-0 h-2 cursor-s-resize z-30 hover:bg-white/30"
                         />
                       )}
@@ -442,7 +449,7 @@ function WeekView({ date, events = [], onEventDoubleClick, onEventDragStart, onW
 
 // ─── Day View ────────────────────────────────────────────────
 
-function DayView({ date, events = [], onEventDoubleClick, onEventDragStart, onTimeDrop, onAllDayDrop, onCellDoubleClick }) {
+function DayView({ date, events = [], onEventDoubleClick, onEventDragStart, onTimeDrop, onAllDayDrop, onCellDoubleClick, canEditEvent }) {
   const today = new Date()
   const isToday = isSameDay(date, today)
   const currentH = today.getHours()
@@ -500,16 +507,18 @@ function DayView({ date, events = [], onEventDoubleClick, onEventDragStart, onTi
               {dayAllDayEvents.length === 0 && (
                 <span className="text-[11px] text-gray-300 leading-6">일정 없음</span>
               )}
-              {dayAllDayEvents.map(ev => (
+              {dayAllDayEvents.map(ev => {
+                const canEdit = canEditEvent?.(ev) !== false
+                return (
                 <div key={ev.id}
-                  draggable
-                  onDragStart={e => { e.stopPropagation(); grabOffsetRef.current = 0; onEventDragStart?.(ev.id) }}
+                  draggable={canEdit}
+                  onDragStart={e => { if (!canEdit) { e.preventDefault(); return }; e.stopPropagation(); grabOffsetRef.current = 0; onEventDragStart?.(ev.id) }}
                   onDoubleClick={e => { e.stopPropagation(); onEventDoubleClick?.(ev) }}
-                  className="text-[11px] font-medium text-white px-2 py-0.5 rounded truncate max-w-xs cursor-grab active:cursor-grabbing hover:brightness-95"
+                  className={`text-[11px] font-medium text-white px-2 py-0.5 rounded truncate max-w-xs hover:brightness-95 ${canEdit ? 'cursor-grab active:cursor-grabbing' : 'cursor-default'}`}
                   style={{ backgroundColor: ev.color }}>
                   {ev.title}
                 </div>
-              ))}
+              )})}
             </div>
           </div>
         )
@@ -567,15 +576,16 @@ function DayView({ date, events = [], onEventDoubleClick, onEventDragStart, onTi
 
             {/* Timed events */}
             {timedEvents.map(({ ev, topPx, heightPx, colIndex, colCount }) => {
+              const canEdit = canEditEvent?.(ev) !== false
               const widthPct = 100 / colCount
               const leftPct = colIndex * widthPct
               return (
                 <div
                   key={ev.id}
-                  draggable
-                  onDragStart={e => handleTimedDragStart(e, ev.id, 'move')}
+                  draggable={canEdit}
+                  onDragStart={e => { if (!canEdit) { e.preventDefault(); return }; handleTimedDragStart(e, ev.id, 'move') }}
                   onDoubleClick={e => { e.stopPropagation(); onEventDoubleClick?.(ev) }}
-                  className="absolute rounded overflow-hidden z-20 font-medium leading-tight cursor-grab active:cursor-grabbing hover:brightness-95"
+                  className={`absolute rounded overflow-hidden z-20 font-medium leading-tight hover:brightness-95 ${canEdit ? 'cursor-grab active:cursor-grabbing' : 'cursor-default'}`}
                   style={{
                     top: topPx,
                     height: heightPx,
@@ -590,8 +600,8 @@ function DayView({ date, events = [], onEventDoubleClick, onEventDragStart, onTi
                   {/* Top resize handle */}
                   {heightPx >= 24 && (
                     <div
-                      draggable
-                      onDragStart={e => { e.stopPropagation(); grabOffsetRef.current = 0; onEventDragStart?.(ev.id, 'resize-start') }}
+                      draggable={canEdit}
+                      onDragStart={e => { if (!canEdit) { e.preventDefault(); return }; e.stopPropagation(); grabOffsetRef.current = 0; onEventDragStart?.(ev.id, 'resize-start') }}
                       className="absolute top-0 left-0 right-0 h-2.5 cursor-n-resize z-30 hover:bg-white/30"
                     />
                   )}
@@ -606,8 +616,8 @@ function DayView({ date, events = [], onEventDoubleClick, onEventDragStart, onTi
                   {/* Bottom resize handle */}
                   {heightPx >= 24 && (
                     <div
-                      draggable
-                      onDragStart={e => { e.stopPropagation(); grabOffsetRef.current = 0; onEventDragStart?.(ev.id, 'resize-end') }}
+                      draggable={canEdit}
+                      onDragStart={e => { if (!canEdit) { e.preventDefault(); return }; e.stopPropagation(); grabOffsetRef.current = 0; onEventDragStart?.(ev.id, 'resize-end') }}
                       className="absolute bottom-0 left-0 right-0 h-2.5 cursor-s-resize z-30 hover:bg-white/30"
                     />
                   )}
@@ -699,6 +709,7 @@ function YearView({ date, events = [], onMonthClick, onCellDoubleClick }) {
 // ─── Main CalendarView ────────────────────────────────────────
 
 export default function CalendarView({ onClose }) {
+  const { currentUser } = useAuth()
   const [viewType, setViewType] = useState('month')
   const [currentDate, setCurrentDate] = useState(new Date())
   const [showEventModal, setShowEventModal] = useState(false)
@@ -710,6 +721,11 @@ export default function CalendarView({ onClose }) {
   const [errorDialog, setErrorDialog] = useState(null) // { title, message }
   // { id, mode: 'move' | 'resize-start' | 'resize-end' }
   const draggingRef = useRef(null)
+
+  function canEditEvent(ev) {
+    if (!ev) return false
+    return Number(ev.ownerId) === Number(currentUser?.id)
+  }
 
   function openCalendarError(title, err) {
     const raw = err?.message || '알 수 없는 오류'
@@ -810,6 +826,7 @@ export default function CalendarView({ onClose }) {
     setEvents(prev => {
       const next = prev.map(ev => {
         if (ev.id !== drag.id) return ev
+        if (!canEditEvent(ev)) return ev
         const startDate = new Date(ev.startDt.year, ev.startDt.month - 1, ev.startDt.day)
         const diffDays = Math.round((newDate - startDate) / 86400000)
         if (diffDays === 0) return ev
@@ -838,6 +855,7 @@ export default function CalendarView({ onClose }) {
     setEvents(prev => {
       const next = prev.map(ev => {
         if (ev.id !== drag.id) return ev
+        if (!canEditEvent(ev)) return ev
 
         // 18.5.6.1: allDay → timed
         if (ev.allDay) {
@@ -903,6 +921,7 @@ export default function CalendarView({ onClose }) {
     setEvents(prev => {
       const next = prev.map(ev => {
         if (ev.id !== drag.id) return ev
+        if (!canEditEvent(ev)) return ev
         // 18.5.6.2: timed → allDay, 또는 allDay → allDay 날짜 이동
         return {
           ...ev,
@@ -1038,9 +1057,9 @@ export default function CalendarView({ onClose }) {
             <div className="w-6 h-6 border-2 border-indigo-200 border-t-indigo-500 rounded-full animate-spin" />
           </div>
         )}
-        {viewType === 'month' && <MonthView date={currentDate} events={events} onEventDoubleClick={handleEventDoubleClick} onEventDragStart={handleEventDragStart} onDayDrop={handleDayDrop} onCellDoubleClick={handleCellDoubleClick} />}
-        {viewType === 'week' && <WeekView date={currentDate} events={events} onEventDoubleClick={handleEventDoubleClick} onEventDragStart={handleEventDragStart} onWeekDrop={(date, h, m) => handleTimeGridDrop(date, h, m)} onAllDayDrop={handleAllDayDrop} onCellDoubleClick={handleCellDoubleClick} />}
-        {viewType === 'day' && <DayView date={currentDate} events={events} onEventDoubleClick={handleEventDoubleClick} onEventDragStart={handleEventDragStart} onTimeDrop={(h, m) => handleTimeGridDrop(null, h, m)} onAllDayDrop={handleAllDayDrop} onCellDoubleClick={handleCellDoubleClick} />}
+        {viewType === 'month' && <MonthView date={currentDate} events={events} onEventDoubleClick={handleEventDoubleClick} onEventDragStart={handleEventDragStart} onDayDrop={handleDayDrop} onCellDoubleClick={handleCellDoubleClick} canEditEvent={canEditEvent} />}
+        {viewType === 'week' && <WeekView date={currentDate} events={events} onEventDoubleClick={handleEventDoubleClick} onEventDragStart={handleEventDragStart} onWeekDrop={(date, h, m) => handleTimeGridDrop(date, h, m)} onAllDayDrop={handleAllDayDrop} onCellDoubleClick={handleCellDoubleClick} canEditEvent={canEditEvent} />}
+        {viewType === 'day' && <DayView date={currentDate} events={events} onEventDoubleClick={handleEventDoubleClick} onEventDragStart={handleEventDragStart} onTimeDrop={(h, m) => handleTimeGridDrop(null, h, m)} onAllDayDrop={handleAllDayDrop} onCellDoubleClick={handleCellDoubleClick} canEditEvent={canEditEvent} />}
         {viewType === 'year' && (
           <YearView
             date={currentDate}
@@ -1054,6 +1073,7 @@ export default function CalendarView({ onClose }) {
       {showEventModal && (
         <EventAddModal
           event={editingEvent}
+          canEdit={!editingEvent || canEditEvent(editingEvent)}
           initialStartDt={presetDts?.startDt}
           initialEndDt={presetDts?.endDt}
           onClose={() => { setShowEventModal(false); setEditingEvent(null); setPresetDts(null) }}
