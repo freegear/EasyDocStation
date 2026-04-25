@@ -1513,13 +1513,9 @@ function LinkPreviewCards({ links = [] }) {
 function ContentRenderer({ text = '' }) {
   const normalized = normalizeMarkdownCodeFence(text || '')
   const links = extractHttpUrls(text || '')
-  const keepTextSelection = (e) => e.stopPropagation()
   return (
     <div
       className="text-gray-700 text-sm leading-relaxed break-words select-text allow-copy cursor-text"
-      onMouseDown={keepTextSelection}
-      onClick={keepTextSelection}
-      onDoubleClick={keepTextSelection}
     >
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
@@ -2434,10 +2430,44 @@ function PostDetail({ post, channelId, onClose }) {
   const [dragOver, setDragOver] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(null)
+  const [copyPopup, setCopyPopup] = useState(null)
   const commentSubmittingRef = useRef(false)
   const commentsEndRef = useRef(null)
   const fileInputRef = useRef(null)
   const dragCounter = useRef(0)
+  const detailScrollRef = useRef(null)
+
+  useEffect(() => {
+    function onMouseUp() {
+      const sel = window.getSelection()
+      const text = sel?.toString().trim() || ''
+      if (!text || !sel.rangeCount) { setCopyPopup(null); return }
+      const range = sel.getRangeAt(0)
+      if (detailScrollRef.current && !detailScrollRef.current.contains(range.commonAncestorContainer)) return
+      try {
+        const rect = range.getBoundingClientRect()
+        setCopyPopup({
+          x: Math.max(60, Math.min(rect.left + rect.width / 2, window.innerWidth - 70)),
+          y: Math.max(50, rect.top - 12),
+          text,
+        })
+      } catch { setCopyPopup(null) }
+    }
+    function onMouseDown(e) {
+      if (!e.target.closest?.('[data-detail-copy-popup]')) setCopyPopup(null)
+    }
+    function onKeyDown(e) {
+      if (e.key === 'Escape') setCopyPopup(null)
+    }
+    document.addEventListener('mouseup', onMouseUp)
+    document.addEventListener('mousedown', onMouseDown)
+    document.addEventListener('keydown', onKeyDown)
+    return () => {
+      document.removeEventListener('mouseup', onMouseUp)
+      document.removeEventListener('mousedown', onMouseDown)
+      document.removeEventListener('keydown', onKeyDown)
+    }
+  }, [])
 
   const isAdmin = ['Admin', 'site_admin', 'channel_admin', 'team_admin'].includes(currentUser?.role)
 
@@ -2914,7 +2944,7 @@ function PostDetail({ post, channelId, onClose }) {
         </div>
       )}
 
-      <div className="flex-1 overflow-y-auto overflow-x-hidden px-6 py-6">
+      <div ref={detailScrollRef} className="flex-1 overflow-y-auto overflow-x-hidden px-6 py-6">
         {/* Meta */}
         <div className="mb-6">
           {freshPost.pinned && <div className="flex items-center gap-1.5 text-amber-600 text-xs font-medium mb-3"><PinIcon /><span>{t.chat.pinnedPost}</span></div>}
@@ -2976,8 +3006,6 @@ function PostDetail({ post, channelId, onClose }) {
           <>
             <div
               className="mb-4 select-text allow-copy cursor-text"
-              onMouseDown={(e) => e.stopPropagation()}
-              onClick={(e) => e.stopPropagation()}
             >
               {isTemplateContent(freshPost.content) ? (
                 <TemplateRenderer
@@ -3133,8 +3161,6 @@ function PostDetail({ post, channelId, onClose }) {
                       <>
                         <div
                           className="text-gray-600 select-text allow-copy cursor-text"
-                          onMouseDown={(e) => e.stopPropagation()}
-                          onClick={(e) => e.stopPropagation()}
                         >
                           <ContentRenderer text={c.text} />
                         </div>
@@ -3260,6 +3286,32 @@ function PostDetail({ post, channelId, onClose }) {
           </div>
         )}
       </div>
+
+      {copyPopup && (
+        <div
+          data-detail-copy-popup="true"
+          className="fixed z-50 flex items-center gap-1.5 bg-gray-900 text-white text-xs px-3 py-1.5 rounded-lg shadow-xl cursor-pointer select-none"
+          style={{ left: copyPopup.x, top: copyPopup.y, transform: 'translateX(-50%)' }}
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => {
+            navigator.clipboard.writeText(copyPopup.text).catch(() => {
+              const ta = document.createElement('textarea')
+              ta.value = copyPopup.text
+              document.body.appendChild(ta)
+              ta.select()
+              document.execCommand('copy')
+              document.body.removeChild(ta)
+            })
+            setCopyPopup(null)
+            window.getSelection?.()?.removeAllRanges?.()
+          }}
+        >
+          <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+          </svg>
+          복사
+        </div>
+      )}
     </div>
   )
 }
