@@ -648,14 +648,10 @@ function FormField({ label, type = 'text', value, onChange, placeholder, require
 
 // ─── Main SiteAdminPage ───────────────────────────────────────
 
-export default function SiteAdminPage({
-  onClose,
-  showAgenticPanel = true,
-  onSetAgenticPanel = null,
-  onToggleAgenticPanel = () => {},
-}) {
+export default function SiteAdminPage({ onClose }) {
   const t = useT()
   const { currentUser, setMaxAttachmentFileSize, language, setLanguage } = useAuth()
+  const [showLocalAgenticPanel, setShowLocalAgenticPanel] = useState(true)
   const [users, setUsers] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -1173,16 +1169,10 @@ export default function SiteAdminPage({
 
           <button
             type="button"
-            onClick={() => {
-              if (typeof onSetAgenticPanel === 'function') {
-                onSetAgenticPanel(!showAgenticPanel)
-                return
-              }
-              onToggleAgenticPanel()
-            }}
-            title={showAgenticPanel ? t.titlebar.agenticPanelHide : t.titlebar.agenticPanelShow}
+            onClick={() => setShowLocalAgenticPanel(v => !v)}
+            title={showLocalAgenticPanel ? t.titlebar.agenticPanelHide : t.titlebar.agenticPanelShow}
             className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-semibold transition-colors ${
-              showAgenticPanel
+              showLocalAgenticPanel
                 ? 'bg-blue-600 border-blue-600 text-white hover:bg-blue-700'
                 : 'bg-gray-200 border-gray-300 text-gray-600 hover:bg-gray-300'
             }`}
@@ -2837,9 +2827,11 @@ export default function SiteAdminPage({
         </div>
 
         {/* Right Side: GROQ Panel */}
-        <div className="h-full border-l border-gray-100">
-          <GroqPanel />
-        </div>
+        {showLocalAgenticPanel && (
+          <div className="h-full border-l border-gray-100">
+            <GroqPanel />
+          </div>
+        )}
       </div>
 
       {/* User form modal */}
