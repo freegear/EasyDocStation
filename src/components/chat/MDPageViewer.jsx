@@ -109,6 +109,15 @@ function injectAuthTokenIntoMarkdown(md = '', token = '') {
   return rewriteFileViewUrlsInMarkdown(md, (url) => ensureAuthTokenInFileViewUrl(url, token))
 }
 
+function normalizeMarkdownForTableParsing(md = '') {
+  const text = String(md || '').replace(/\r\n?/g, '\n')
+  // Markdown image line 바로 아래에 GFM table 헤더가 붙으면 표 파싱이 깨지는 케이스가 있어
+  // 블록 경계를 명확히 하기 위해 빈 줄을 강제한다.
+  return text
+    .replace(/(!\[[^\]]*]\([^)]+\)(?:\{[^}]*\})?[^\n]*)\n(?=\|.+\|)/g, '$1\n\n')
+    .replace(/(<img\b[^>]*>[^\n]*)\n(?=\|.+\|)/gi, '$1\n\n')
+}
+
 function normalizeImageMetaKeys(imageMeta = {}) {
   const entries = Object.entries(imageMeta || {})
   if (entries.length === 0) return {}
@@ -189,7 +198,9 @@ export default function MDPageViewer({ post, channelId, onClose }) {
   const { currentUser } = useAuth()
   const t = useT()
   const authToken = getToken() || ''
-  const initialMdStored = stripAuthTokenFromMarkdown(String(post.content || '').replace(/^<!--md-page-->\n?/, ''))
+  const initialMdStored = normalizeMarkdownForTableParsing(
+    stripAuthTokenFromMarkdown(String(post.content || '').replace(/^<!--md-page-->\n?/, '')),
+  )
   const initialMdRaw = injectAuthTokenIntoMarkdown(initialMdStored, authToken)
 
   const [mode, setMode] = useState('preview')
@@ -329,11 +340,12 @@ export default function MDPageViewer({ post, channelId, onClose }) {
   function switchToPreview() {
     if (mode === 'source' && editor) {
       const normalizedSource = stripAuthTokenFromMarkdown(sourceText || '')
+      const sanitizedSource = normalizeMarkdownForTableParsing(normalizedSource)
       const baseline = sourceBaselineRef.current || ''
       // 소스가 실제로 변경되지 않았다면 setContent를 건너뛰어
       // 이미지 노드 attrs(width/containerStyle) 손실을 방지한다.
-      if (normalizedSource !== baseline) {
-        const withToken = injectAuthTokenIntoMarkdown(normalizedSource, getToken() || '')
+      if (sanitizedSource !== baseline) {
+        const withToken = injectAuthTokenIntoMarkdown(sanitizedSource, getToken() || '')
         editor.commands.setContent(withToken)
       }
       setIsChanged(sourceText !== savedContent || !sameImageMeta(imageMeta, savedImageMeta))
@@ -344,7 +356,9 @@ export default function MDPageViewer({ post, channelId, onClose }) {
   // 미리보기 → 소스 전환: 에디터 내용을 마크다운으로 추출
   function switchToSource() {
     if (mode === 'preview' && editor) {
-      const md = stripAuthTokenFromMarkdown(editor.storage.markdown.getMarkdown())
+      const md = normalizeMarkdownForTableParsing(
+        stripAuthTokenFromMarkdown(editor.storage.markdown.getMarkdown()),
+      )
       sourceBaselineRef.current = md
       setSourceText(md)
     }
@@ -352,8 +366,12 @@ export default function MDPageViewer({ post, channelId, onClose }) {
   }
 
   const getCurrentMarkdown = useCallback(() => {
-    if (mode === 'source') return stripAuthTokenFromMarkdown(sourceText)
-    return stripAuthTokenFromMarkdown(stripImageMeta(editor?.storage.markdown.getMarkdown() || ''))
+    if (mode === 'source') {
+      return normalizeMarkdownForTableParsing(stripAuthTokenFromMarkdown(sourceText))
+    }
+    return normalizeMarkdownForTableParsing(
+      stripAuthTokenFromMarkdown(stripImageMeta(editor?.storage.markdown.getMarkdown() || '')),
+    )
   }, [mode, sourceText, editor])
 
   const handleSave = useCallback(async () => {
