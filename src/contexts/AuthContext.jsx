@@ -32,10 +32,10 @@ export function AuthProvider({ children }) {
       .catch(() => {})
   }, [])
 
-  async function login(email, password) {
+  async function login(identifier, password) {
     const data = await apiFetch('/auth/login', {
       method: 'POST',
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify({ identifier, password }),
     })
     setToken(data.token)
     setCurrentUser(data.user)
