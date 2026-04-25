@@ -738,6 +738,14 @@ export default function CalendarView({ onClose }) {
       .finally(() => setLoading(false))
   }, [])
 
+  // 캘린더 전용 인쇄 CSS 스코프 활성화
+  useEffect(() => {
+    document.body.classList.add('calendar-print-enabled')
+    return () => {
+      document.body.classList.remove('calendar-print-enabled')
+    }
+  }, [])
+
   // 인쇄 시 일/주 단위 시간 그리드 전체가 페이지에 맞도록 스케일 조정
   useEffect(() => {
     const handleBeforePrint = () => {

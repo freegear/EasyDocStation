@@ -31,12 +31,12 @@ html, body, #root {
 
 /* ── 캘린더 인쇄 스타일 ─────────────────────────── */
 @media print {
-  /* visibility 방식: 부모 숨김이 자식에 전파되지 않도록 */
-  html * { visibility: hidden !important; }
-  #calendar-print-area,
-  #calendar-print-area * { visibility: visible !important; }
+  /* 캘린더 페이지에서만 전역 숨김 규칙을 적용한다. */
+  body.calendar-print-enabled * { visibility: hidden !important; }
+  body.calendar-print-enabled #calendar-print-area,
+  body.calendar-print-enabled #calendar-print-area * { visibility: visible !important; }
   /* 캘린더 영역을 전체 페이지에 배치 */
-  #calendar-print-area {
+  body.calendar-print-enabled #calendar-print-area {
     position: fixed !important;
     inset: 0 !important;
     width: 100vw !important;
@@ -48,19 +48,19 @@ html, body, #root {
     overflow: visible !important;
   }
   /* 툴바의 버튼 숨김 */
-  #calendar-print-area .no-print { visibility: hidden !important; }
+  body.calendar-print-enabled #calendar-print-area .no-print { visibility: hidden !important; }
   /* 이벤트 색상 배경 인쇄 허용 */
-  * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+  body.calendar-print-enabled * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
   /* 일/주 단위: 스크롤 해제 → JS beforeprint가 scale 적용 */
-  #calendar-print-area .calendar-scale-root {
+  body.calendar-print-enabled #calendar-print-area .calendar-scale-root {
     overflow: visible !important;
   }
-  #calendar-print-area .time-grid-scroll {
+  body.calendar-print-enabled #calendar-print-area .time-grid-scroll {
     overflow: visible !important;
     flex: none !important;
     height: auto !important;
   }
-  #calendar-print-area .time-grid-inner {
+  body.calendar-print-enabled #calendar-print-area .time-grid-inner {
     transform-origin: top left !important;
     width: 100% !important;
   }
