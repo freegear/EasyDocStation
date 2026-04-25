@@ -31,6 +31,9 @@ fi
 echo "[1/3] Ubuntu 기본 설치 스크립트 실행"
 INSTALL_HIRES_DEPS=1 bash "$ROOT_DIR/scripts/setup-ubuntu.sh"
 
+echo "[1-1/3] 프론트 인쇄 의존성 설치 (react-to-print)"
+npm install react-to-print
+
 if [[ ! -x "$PYTHON_ENV_DIR/bin/python3" ]]; then
   echo "[ERROR] Python venv를 찾을 수 없습니다: $PYTHON_ENV_DIR"
   exit 1

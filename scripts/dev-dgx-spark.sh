@@ -23,6 +23,14 @@ if command -v nvidia-smi >/dev/null 2>&1; then
   nvidia-smi --query-gpu=name,utilization.gpu,memory.used,memory.total --format=csv,noheader
 fi
 
+echo "[DGX] npm 의존성 점검 (react-to-print)"
+if ! npm ls react-to-print --depth=0 >/dev/null 2>&1; then
+  echo "  - react-to-print 누락 감지, 설치를 진행합니다."
+  npm install react-to-print
+else
+  echo "  - react-to-print: OK"
+fi
+
 echo "[DGX] 문서 변환/학습 의존성 점검"
 for cmd in libreoffice pdftoppm ffmpeg tesseract; do
   if command -v "$cmd" >/dev/null 2>&1; then
