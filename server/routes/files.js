@@ -36,6 +36,31 @@ if (!fs.existsSync(PREVIEW_BASE)) {
   fs.mkdirSync(PREVIEW_BASE, { recursive: true })
 }
 
+function toAsciiFilename(name = '') {
+  return String(name || 'download')
+    .replace(/[^\x20-\x7E]/g, '_')
+    .replace(/["\\]/g, '_')
+}
+
+function encodeRFC5987(str = '') {
+  return encodeURIComponent(str)
+    .replace(/['()]/g, (ch) => `%${ch.charCodeAt(0).toString(16).toUpperCase()}`)
+    .replace(/\*/g, '%2A')
+}
+
+function setAttachmentHeaders(res, filename, contentType, contentLength) {
+  const safeName = String(filename || 'download')
+  const asciiName = toAsciiFilename(safeName)
+  const disposition = `attachment; filename="${asciiName}"; filename*=UTF-8''${encodeRFC5987(safeName)}`
+  res.setHeader('Content-Disposition', disposition)
+  res.setHeader('Content-Type', contentType || 'application/octet-stream')
+  if (Number.isFinite(contentLength) && contentLength >= 0) {
+    res.setHeader('Content-Length', String(contentLength))
+  }
+  res.setHeader('Accept-Ranges', 'bytes')
+  res.setHeader('X-Content-Type-Options', 'nosniff')
+}
+
 function appendThumbLog(logFile, message) {
   try {
     fs.appendFileSync(logFile, `[${new Date().toISOString()}] ${message}\n`)
@@ -294,13 +319,28 @@ router.get('/view/:id', requireAuth, async (req, res, next) => {
 
     if (!fs.existsSync(fullPath)) return res.status(404).send('파일을 찾을 수 없습니다.')
 
+    const stat = fs.statSync(fullPath)
     res.setHeader('Content-Type', contentType)
+    res.setHeader('Content-Length', String(stat.size))
+    res.setHeader('Accept-Ranges', 'bytes')
+    res.setHeader('X-Content-Type-Options', 'nosniff')
     if (!req.query.preview && !contentType.startsWith('image/') && !contentType.startsWith('video/')) {
-      res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(file.filename)}"`)
+      setAttachmentHeaders(res, file.filename, contentType, stat.size)
     } else if (!req.query.preview && (originalExt === '.ppt' || originalExt === '.pptx')) {
-      res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(file.filename)}"`)
+      const asciiName = toAsciiFilename(file.filename)
+      const utf8Name = encodeRFC5987(file.filename || '')
+      res.setHeader('Content-Disposition', `inline; filename="${asciiName}"; filename*=UTF-8''${utf8Name}`)
     }
-    fs.createReadStream(fullPath).pipe(res)
+    const stream = fs.createReadStream(fullPath)
+    stream.on('error', (err) => {
+      console.error('[files/view] stream error:', err)
+      if (!res.headersSent) {
+        res.status(500).send('파일 전송 중 오류가 발생했습니다.')
+        return
+      }
+      res.destroy(err)
+    })
+    stream.pipe(res)
   } catch (err) {
     next(err)
   }
@@ -448,9 +488,18 @@ router.get('/gateway/download', async (req, res) => {
       originalName = fileRow.rows[0]?.filename || path.basename(fullPath)
     }
 
-    res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(originalName)}"`)
+    const stat = fs.statSync(fullPath)
+    setAttachmentHeaders(res, originalName, 'application/octet-stream', stat.size)
 
     const fileStream = fs.createReadStream(fullPath)
+    fileStream.on('error', (err) => {
+      console.error('[files/download] stream error:', err)
+      if (!res.headersSent) {
+        res.status(500).send('파일 다운로드 중 오류가 발생했습니다.')
+        return
+      }
+      res.destroy(err)
+    })
     fileStream.pipe(res)
 
   } catch (err) {
