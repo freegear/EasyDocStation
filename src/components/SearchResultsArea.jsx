@@ -1,5 +1,6 @@
 import { useChat } from '../contexts/ChatContext'
 import { useT } from '../i18n/useT'
+import { hasTextSelectionInside } from '../lib/textSelection'
 
 export default function SearchResultsArea({ onSelectResult }) {
   const {
@@ -13,20 +14,8 @@ export default function SearchResultsArea({ onSelectResult }) {
   } = useChat()
   const t = useT()
 
-  function hasSelectionInside(node) {
-    const sel = window.getSelection?.()
-    const text = sel?.toString?.().trim?.() || ''
-    if (!text || !node) return false
-    const anchor = sel?.anchorNode
-    const focus = sel?.focusNode
-    return (
-      (anchor ? node.contains(anchor) : false) ||
-      (focus ? node.contains(focus) : false)
-    )
-  }
-
   async function handleItemClick(item, e) {
-    if (hasSelectionInside(e?.currentTarget)) return
+    if (hasTextSelectionInside(e?.currentTarget)) return
     const team = teams.find(tm => tm.name === item.teamName)
     const channel = team?.channels?.find(c => c.id === item.channelId)
 
