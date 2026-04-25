@@ -1,6 +1,7 @@
 const express = require('express')
 const bcrypt = require('bcryptjs')
 const jwt = require('jsonwebtoken')
+const { randomUUID } = require('crypto')
 const pool = require('../db')
 const requireAuth = require('../middleware/auth')
 
@@ -81,10 +82,23 @@ router.post('/login', async (req, res) => {
       })
     }
 
-    // 로그인 성공 — 실패 횟수 초기화 및 기록
+    // 중복 로그인 체크 (7일 이내 활성 세션이 있으면 차단)
+    if (user.active_session_id && user.last_login_at) {
+      const sessionExpiry = new Date(user.last_login_at)
+      sessionExpiry.setDate(sessionExpiry.getDate() + 7)
+      if (new Date() < sessionExpiry) {
+        return res.status(409).json({
+          error: '이미 동일한 정보로 로그인 되어 있습니다.',
+          code: 'DUPLICATE_LOGIN',
+        })
+      }
+    }
+
+    // 로그인 성공 — 실패 횟수 초기화 및 세션 ID 갱신
+    const newSessionId = randomUUID()
     await pool.query(
-      'UPDATE users SET failed_login_attempts = 0, last_login_at = NOW() WHERE id = $1',
-      [user.id]
+      'UPDATE users SET failed_login_attempts = 0, last_login_at = NOW(), active_session_id = $2 WHERE id = $1',
+      [user.id, newSessionId]
     )
     await pool.query(
       'INSERT INTO login_history (user_id, ip_address, user_agent) VALUES ($1, $2, $3)',
@@ -100,6 +114,16 @@ router.post('/login', async (req, res) => {
     res.json({ token, user: { ...toPublicUser(user), last_login_at: new Date().toISOString() } })
   } catch (err) {
     console.error(err)
+    res.status(500).json({ error: '서버 오류가 발생했습니다.' })
+  }
+})
+
+// POST /api/auth/logout
+router.post('/logout', requireAuth, async (req, res) => {
+  try {
+    await pool.query('UPDATE users SET active_session_id = NULL WHERE id = $1', [req.user.id])
+    res.json({ ok: true })
+  } catch (err) {
     res.status(500).json({ error: '서버 오류가 발생했습니다.' })
   }
 })

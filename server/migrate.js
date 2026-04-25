@@ -16,6 +16,15 @@ async function migrate() {
         END IF;
       END $$;
     `);
+    // Add active_session_id to users for duplicate login prevention
+    await pool.query(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='active_session_id') THEN
+          ALTER TABLE users ADD COLUMN active_session_id TEXT;
+        END IF;
+      END $$;
+    `);
     console.log('Migration successful.');
   } catch (err) {
     console.error('Migration failed:', err.message);

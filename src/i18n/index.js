@@ -9,6 +9,9 @@ export const translations = {
       demoAccounts: '데모 계정으로 로그인', demoPassword: '비밀번호: password123',
       accountLocked: '계정 잠김', loginFailed: '아이디 또는 비밀번호가 올바르지 않습니다.',
       lockedKeyword: '잠겼습니다',
+      duplicateLoginTitle: '중복 로그인 감지',
+      duplicateLoginMessage: '이미 동일한 정보로 로그인 되어 있습니다.',
+      duplicateLoginConfirm: '확인',
     },
     titlebar: {
       searchPlaceholder: '게시글 및 댓글 검색...', searchButton: '검색',
@@ -432,6 +435,9 @@ export const translations = {
       demoAccounts: 'Sign in with demo account', demoPassword: 'Password: password123',
       accountLocked: 'Account Locked', loginFailed: 'Incorrect ID or password.',
       lockedKeyword: 'locked',
+      duplicateLoginTitle: 'Duplicate Login Detected',
+      duplicateLoginMessage: 'You are already logged in with the same credentials.',
+      duplicateLoginConfirm: 'OK',
     },
     titlebar: {
       searchPlaceholder: 'Search posts and comments...', searchButton: 'Search',
@@ -860,6 +866,9 @@ translations.ja = {
     accountLocked: 'アカウントがロックされています',
     loginFailed: 'IDまたはパスワードが正しくありません。',
     lockedKeyword: 'ロック',
+    duplicateLoginTitle: '重複ログインを検出',
+    duplicateLoginMessage: '同じ情報で既にログインされています。',
+    duplicateLoginConfirm: '確認',
   },
   titlebar: {
     searchPlaceholder: '投稿とコメントを検索...',

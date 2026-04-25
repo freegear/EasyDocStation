@@ -16,16 +16,23 @@ export default function LoginScreen() {
   const [error, setError] = useState('')
   const [isLocked, setIsLocked] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [isDuplicateLogin, setIsDuplicateLogin] = useState(false)
 
   async function handleSubmit(e) {
     e.preventDefault()
     setError('')
     setIsLocked(false)
+    setIsDuplicateLogin(false)
     setLoading(true)
     try {
       await login(identifier, password)
     } catch (err) {
       const msg = err.message || t.login.loginFailed
+      if (err.code === 'DUPLICATE_LOGIN' || msg.includes('이미 동일한 정보로')) {
+        setIsDuplicateLogin(true)
+        setLoading(false)
+        return
+      }
       if (msg.includes(t.login.lockedKeyword) || msg.includes('locked')) {
         setIsLocked(true)
       }
@@ -37,6 +44,28 @@ export default function LoginScreen() {
 
   return (
     <div className="min-h-screen bg-gray-100 flex items-center justify-center px-4">
+      {/* 중복 로그인 Dialog */}
+      {isDuplicateLogin && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl p-6 mx-4 w-full max-w-sm">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-full bg-yellow-100 flex items-center justify-center flex-shrink-0">
+                <svg className="w-5 h-5 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                </svg>
+              </div>
+              <h2 className="text-gray-900 font-semibold text-base">{t.login.duplicateLoginTitle}</h2>
+            </div>
+            <p className="text-gray-600 text-sm mb-6">{t.login.duplicateLoginMessage}</p>
+            <button
+              onClick={() => setIsDuplicateLogin(false)}
+              className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-2.5 rounded-xl text-sm transition-all"
+            >
+              {t.login.duplicateLoginConfirm}
+            </button>
+          </div>
+        </div>
+      )}
       {/* Background gradient */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-96 h-96 bg-indigo-100 rounded-full blur-3xl" />
