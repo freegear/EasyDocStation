@@ -213,15 +213,17 @@ export function ChatProvider({ children }) {
         method: 'PUT',
         body: JSON.stringify({ content, security_level }),
       })
+      setPosts(prev => ({
+        ...prev,
+        [channelId]: (prev[channelId] || []).map(p =>
+          p.id === postId ? { ...p, content, attachments, security_level, updatedAt: new Date().toISOString() } : p
+        ),
+      }))
+      return true
     } catch (err) {
       console.error('update post error:', err)
+      throw err
     }
-    setPosts(prev => ({
-      ...prev,
-      [channelId]: (prev[channelId] || []).map(p =>
-        p.id === postId ? { ...p, content, attachments, security_level, updatedAt: new Date().toISOString() } : p
-      ),
-    }))
   }
 
   // ─── 댓글 삭제 — DB에서 삭제 후 state 반영 ──────────────────
