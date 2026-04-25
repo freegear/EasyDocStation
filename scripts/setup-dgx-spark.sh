@@ -5,9 +5,20 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
 
 PYTHON_ENV_DIR="${PYTHON_ENV_DIR:-$ROOT_DIR/.venv}"
-TORCH_INDEX_URL="${TORCH_INDEX_URL:-https://download.pytorch.org/whl/cu124}"
 TORCH_VERSION="${TORCH_VERSION:-}"
 TORCH_MIN_VERSION="${TORCH_MIN_VERSION:-2.6}"
+
+# ARM64(DGX Spark GB10)는 PyPI에서 CUDA 휠을 제공하므로 별도 인덱스 불필요
+ARCH="$(uname -m)"
+if [[ -z "${TORCH_INDEX_URL:-}" ]]; then
+  if [[ "$ARCH" == "aarch64" ]]; then
+    TORCH_INDEX_URL="https://pypi.org/simple"
+    echo "[INFO] ARM64 감지 — PyPI 인덱스 사용 (aarch64+CUDA 휠)"
+  else
+    TORCH_INDEX_URL="https://download.pytorch.org/whl/cu124"
+    echo "[INFO] x86_64 감지 — CUDA 전용 인덱스 사용"
+  fi
+fi
 
 if ! command -v nvidia-smi >/dev/null 2>&1; then
   echo "[WARN] nvidia-smi를 찾지 못했습니다. GPU 드라이버가 없거나 PATH에 없을 수 있습니다."
