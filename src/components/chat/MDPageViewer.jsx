@@ -203,10 +203,12 @@ export default function MDPageViewer({ post, channelId, onClose }) {
   const showSaveDialogRef = useRef(false)
   const imageInputRef = useRef(null)
   const printContentRef = useRef(null)
+  const printJobIdRef = useRef(0)
   const imageMetaRef = useRef(imageMeta)
   const savedContentRef = useRef(savedContent)
   const savedImageMetaRef = useRef(savedImageMeta)
   const sourceBaselineRef = useRef('')
+  const [isPrinting, setIsPrinting] = useState(false)
 
   useEffect(() => { showSaveDialogRef.current = showSaveDialog }, [showSaveDialog])
   useEffect(() => { imageMetaRef.current = imageMeta }, [imageMeta])
@@ -351,9 +353,41 @@ export default function MDPageViewer({ post, channelId, onClose }) {
   }, [isChanged, onClose])
 
   const pageTitle = getMdPageTitle(getCurrentMarkdown(), t.mdPage.title)
+  const logPrint = useCallback((phase, payload = {}) => {
+    const jobId = printJobIdRef.current
+    console.info(`[MDPrint][job:${jobId || '-'}] ${phase}`, payload)
+  }, [])
+
+  useEffect(() => {
+    const handleBeforePrint = () => logPrint('window.beforeprint')
+    const handleAfterPrint = () => logPrint('window.afterprint')
+    window.addEventListener('beforeprint', handleBeforePrint)
+    window.addEventListener('afterprint', handleAfterPrint)
+    return () => {
+      window.removeEventListener('beforeprint', handleBeforePrint)
+      window.removeEventListener('afterprint', handleAfterPrint)
+    }
+  }, [logPrint])
+
   const handlePrint = useReactToPrint({
     contentRef: printContentRef,
     documentTitle: pageTitle || t.mdPage.title || 'EasyPage',
+    onBeforePrint: async () => {
+      printJobIdRef.current = Date.now()
+      setIsPrinting(true)
+      logPrint('onBeforePrint', {
+        title: pageTitle || t.mdPage.title || 'EasyPage',
+        hasContentRef: Boolean(printContentRef.current),
+      })
+    },
+    onAfterPrint: () => {
+      logPrint('onAfterPrint')
+      setIsPrinting(false)
+    },
+    onPrintError: (errorLocation, error) => {
+      console.error(`[MDPrint][job:${printJobIdRef.current || '-'}] onPrintError @${errorLocation}`, error)
+      setIsPrinting(false)
+    },
     pageStyle: `
       @page { margin: 16mm; }
       html, body { background: #fff !important; color: #111827 !important; }
@@ -362,6 +396,17 @@ export default function MDPageViewer({ post, channelId, onClose }) {
       img { max-width: 100% !important; height: auto !important; page-break-inside: avoid; }
     `,
   })
+
+  const handlePrintClick = useCallback(async () => {
+    logPrint('click.printButton')
+    try {
+      await handlePrint?.()
+      logPrint('printFunction.resolved')
+    } catch (error) {
+      console.error(`[MDPrint][job:${printJobIdRef.current || '-'}] printFunction.rejected`, error)
+      setIsPrinting(false)
+    }
+  }, [handlePrint, logPrint])
 
   function isImageFile(file) {
     if (!file) return false
@@ -490,11 +535,15 @@ export default function MDPageViewer({ post, channelId, onClose }) {
         )}
 
         <button
-          onClick={handlePrint}
+          onClick={handlePrintClick}
           className="px-3 py-1.5 rounded-lg border border-gray-200 text-xs text-gray-500 hover:bg-gray-50 hover:text-gray-700 transition-colors flex-shrink-0"
         >
           {t.mdPage.print || '인쇄'}
         </button>
+
+        {isPrinting && (
+          <span className="text-xs text-indigo-600 font-medium">{t.mdPage.printing || '인쇄 준비 중...'}</span>
+        )}
 
         {canEdit && mode === 'preview' && isUploadingImage && (
           <span className="text-xs text-indigo-600 font-medium">{t.mdPage.imageUploading || '이미지 업로드 중...'}</span>
