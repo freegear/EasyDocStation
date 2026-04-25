@@ -4,6 +4,7 @@ import { useChat } from '../contexts/ChatContext'
 import { apiFetch } from '../lib/api'
 import { ROLE_LABELS, ROLE_BADGE } from '../constants/roles'
 import { useT } from '../i18n/useT'
+import { useOutsideMouseDown } from '../hooks/useOutsideMouseDown'
 
 const LANGUAGES = [
   { code: 'ko', label: '한국어', flag: '🇰🇷' },
@@ -23,16 +24,14 @@ function SearchBar({ onSelectResult }) {
   const inputRef = useRef(null)
   const containerRef = useRef(null)
 
-  // 바깥 클릭 시 닫기
-  useEffect(() => {
-    function handler(e) {
-      if (containerRef.current && !containerRef.current.contains(e.target)) {
-        setOpen(false)
-      }
-    }
-    if (open) document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
-  }, [open])
+  // 바깥 클릭 시 닫기 (텍스트 선택 중에는 닫힘 무시)
+  useOutsideMouseDown({
+    enabled: open,
+    containerRef,
+    onOutside: () => setOpen(false),
+    ignoreWhenTextSelected: true,
+    scope: 'titlebar-search-dropdown',
+  })
 
   const runSearch = useCallback(async (q) => {
     if (!q.trim()) { setResults([]); return }
@@ -177,15 +176,13 @@ export default function TitleBar({ onOpenProfile, onOpenSiteAdmin, onSelectSearc
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef(null)
 
-  useEffect(() => {
-    function handleClickOutside(e) {
-      if (menuRef.current && !menuRef.current.contains(e.target)) {
-        setMenuOpen(false)
-      }
-    }
-    if (menuOpen) document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [menuOpen])
+  useOutsideMouseDown({
+    enabled: menuOpen,
+    containerRef: menuRef,
+    onOutside: () => setMenuOpen(false),
+    ignoreWhenTextSelected: true,
+    scope: 'titlebar-user-menu',
+  })
 
   const isSiteAdmin = currentUser?.role === 'site_admin'
   const roleBadge = ROLE_BADGE[currentUser?.role] ?? ROLE_BADGE.user

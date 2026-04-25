@@ -15,6 +15,7 @@
     "version:bump": "node scripts/bump-app-version.mjs",
     "build": "vite build",
     "lint": "eslint .",
+    "test:e2e": "playwright test",
     "preview": "vite preview",
     "setup:dgx-spark": "bash scripts/setup-dgx-spark.sh",
     "dev:dgx-spark": "bash scripts/dev-dgx-spark.sh"
@@ -29,6 +30,7 @@
     "remark-gfm": "^4.0.1"
   },
   "devDependencies": {
+    "@playwright/test": "^1.55.0",
     "@eslint/js": "^9.39.4",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",

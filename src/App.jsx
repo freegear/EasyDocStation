@@ -12,6 +12,7 @@ import SearchResultsArea from './components/SearchResultsArea'
 import CalendarView from './components/CalendarView'
 import DirectMessageView, { NewConversationModal } from './components/DirectMessageView'
 import ConfirmDialog from './components/ConfirmDialog'
+import SelectionGuardPlaywrightFixture from './components/dev/SelectionGuardPlaywrightFixture'
 
 function MainLayout() {
   const [showProfile, setShowProfile] = useState(false)
@@ -208,6 +209,13 @@ function AppContent() {
 }
 
 export default function App() {
+  if (typeof window !== 'undefined') {
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('e2e') === 'selection-guard') {
+      return <SelectionGuardPlaywrightFixture />
+    }
+  }
+
   return (
     <AuthProvider>
       <AppContent />
