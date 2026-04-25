@@ -11,7 +11,7 @@ const LANGUAGES = [
 export default function LoginScreen() {
   const { login, language, setLanguage } = useAuth()
   const t = useT()
-  const [email, setEmail] = useState('')
+  const [identifier, setIdentifier] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [isLocked, setIsLocked] = useState(false)
@@ -23,7 +23,7 @@ export default function LoginScreen() {
     setIsLocked(false)
     setLoading(true)
     try {
-      await login(email, password)
+      await login(identifier, password)
     } catch (err) {
       const msg = err.message || t.login.loginFailed
       if (msg.includes(t.login.lockedKeyword) || msg.includes('locked')) {
@@ -78,8 +78,8 @@ export default function LoginScreen() {
               <label className="block text-gray-500 text-sm mb-1.5 font-medium">{t.login.email}</label>
               <input
                 type="text"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
+                value={identifier}
+                onChange={e => setIdentifier(e.target.value)}
                 placeholder={t.login.emailPlaceholder}
                 autoComplete="username"
                 autoCapitalize="none"
@@ -138,18 +138,18 @@ export default function LoginScreen() {
             <p className="text-gray-400 text-xs text-center mb-3">{t.login.demoAccounts}</p>
             <div className="flex flex-col gap-2">
               {[
-                { email: 'kevin@easydocstation.com', name: 'Kevin Im (Admin)' },
-                { email: 'alice@easydocstation.com', name: 'Alice Kim (Member)' },
-                { email: 'bob@easydocstation.com', name: 'Bob Lee (Member)' },
+                { id: 'kevin', name: 'Kevin Im (Admin)' },
+                { id: 'alice', name: 'Alice Kim (Member)' },
+                { id: 'bob', name: 'Bob Lee (Member)' },
               ].map(u => (
                 <button
-                  key={u.email}
+                  key={u.id}
                   type="button"
-                  onClick={() => { setEmail(u.email); setPassword('password123') }}
+                  onClick={() => { setIdentifier(u.id); setPassword('password123') }}
                   className="flex items-center justify-between px-3 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 border border-gray-100 text-gray-500 hover:text-gray-700 text-xs transition-all"
                 >
                   <span>{u.name}</span>
-                  <span className="text-gray-300">{u.email}</span>
+                  <span className="text-gray-300">{u.id}</span>
                 </button>
               ))}
             </div>

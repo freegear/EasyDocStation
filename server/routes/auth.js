@@ -34,19 +34,21 @@ const MAX_FAILED_ATTEMPTS = 3
 
 // POST /api/auth/login
 router.post('/login', async (req, res) => {
-  const { email, password } = req.body
-  if (!email || !password) return res.status(400).json({ error: '이메일과 비밀번호를 입력하세요.' })
+  const { identifier, email, username, password } = req.body
+  const loginId = String(identifier || username || email || '').trim()
+  if (!loginId || !password) return res.status(400).json({ error: '아이디와 비밀번호를 입력하세요.' })
 
   try {
+    const normalizedId = loginId.toLowerCase()
     const { rows } = await pool.query(
-      'SELECT * FROM users WHERE email = $1',
-      [email.trim().toLowerCase()]
+      'SELECT * FROM users WHERE lower(username) = $1 OR lower(email) = $1 LIMIT 1',
+      [normalizedId]
     )
     const user = rows[0]
 
     // 계정이 없는 경우
     if (!user) {
-      return res.status(401).json({ error: '이메일 또는 비밀번호가 올바르지 않습니다.' })
+      return res.status(401).json({ error: '아이디 또는 비밀번호가 올바르지 않습니다.' })
     }
 
     // 계정이 비활성화된 경우 (잠김)
