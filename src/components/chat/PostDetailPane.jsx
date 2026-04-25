@@ -278,6 +278,10 @@ function PostDetailPane({ post, channelId, onClose, helpers = {} }) {
     setIsEditingPost(true)
   }
 
+  function cancelPostEdit() {
+    setIsEditingPost(false)
+  }
+
   async function handlePostUpdate() {
     setUploading(true)
     try {
@@ -398,6 +402,10 @@ function PostDetailPane({ post, channelId, onClose, helpers = {} }) {
     setCommentEditContent(c.text)
     setCommentEditFiles(c.attachments || [])
     setCommentEditSecurityLevel(c.security_level ?? currentUser?.security_level ?? 0)
+  }
+
+  function cancelCommentEdit() {
+    setEditingCommentId(null)
   }
 
   function handleCommentDelete(cId) {
@@ -606,6 +614,12 @@ function PostDetailPane({ post, channelId, onClose, helpers = {} }) {
             <textarea
               value={postContent}
               onChange={e => setPostContent(e.target.value)}
+              onKeyDown={e => {
+                if (e.key !== 'Escape') return
+                e.preventDefault()
+                e.stopPropagation()
+                cancelPostEdit()
+              }}
               className="w-full h-[min(58vh,520px)] bg-transparent text-gray-800 placeholder-gray-400 text-sm leading-relaxed resize-none focus:outline-none overflow-y-auto"
             />
             {postFiles.length > 0 && (
@@ -627,7 +641,7 @@ function PostDetailPane({ post, channelId, onClose, helpers = {} }) {
                 </select>
               </div>
               <div className="flex items-center gap-2">
-                <button onClick={() => setIsEditingPost(false)} className="px-3 py-1.5 rounded-lg text-gray-400 hover:text-gray-900 text-xs transition-colors">{t.chat.cancel}</button>
+                <button onClick={cancelPostEdit} className="px-3 py-1.5 rounded-lg text-gray-400 hover:text-gray-900 text-xs transition-colors">{t.chat.cancel}</button>
                 <button onClick={handlePostUpdate} className="px-4 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold transition-colors">{t.chat.savePost}</button>
               </div>
             </div>
@@ -764,6 +778,12 @@ function PostDetailPane({ post, channelId, onClose, helpers = {} }) {
                         <textarea
                           value={commentEditContent}
                           onChange={e => setCommentEditContent(e.target.value)}
+                          onKeyDown={e => {
+                            if (e.key !== 'Escape') return
+                            e.preventDefault()
+                            e.stopPropagation()
+                            cancelCommentEdit()
+                          }}
                           className="w-full h-[min(32vh,300px)] bg-gray-100 border border-gray-200 rounded-lg p-2 text-gray-700 text-sm focus:outline-none focus:border-indigo-300 resize-none overflow-y-auto"
                         />
                         {commentEditFiles.length > 0 && (
@@ -785,7 +805,7 @@ function PostDetailPane({ post, channelId, onClose, helpers = {} }) {
                             </select>
                           </div>
                           <div className="flex items-center gap-2">
-                            <button onClick={() => setEditingCommentId(null)} className="text-gray-400 hover:text-gray-900 text-xs">{t.chat.cancel}</button>
+                            <button onClick={cancelCommentEdit} className="text-gray-400 hover:text-gray-900 text-xs">{t.chat.cancel}</button>
                             <button onClick={() => handleCommentUpdate(c.id)} className="text-indigo-600 hover:text-indigo-600 text-xs font-semibold">{t.chat.save}</button>
                           </div>
                         </div>
