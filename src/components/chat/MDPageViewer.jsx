@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useEditor, EditorContent } from '@tiptap/react'
 import { BubbleMenu } from '@tiptap/react/menus'
-import { useReactToPrint } from 'react-to-print'
+import html2canvas from 'html2canvas'
+import { jsPDF } from 'jspdf'
 import StarterKit from '@tiptap/starter-kit'
 import Placeholder from '@tiptap/extension-placeholder'
 import Dropcursor from '@tiptap/extension-dropcursor'
@@ -358,55 +359,82 @@ export default function MDPageViewer({ post, channelId, onClose }) {
     console.info(`[MDPrint][job:${jobId || '-'}] ${phase}`, payload)
   }, [])
 
-  useEffect(() => {
-    const handleBeforePrint = () => logPrint('window.beforeprint')
-    const handleAfterPrint = () => logPrint('window.afterprint')
-    window.addEventListener('beforeprint', handleBeforePrint)
-    window.addEventListener('afterprint', handleAfterPrint)
-    return () => {
-      window.removeEventListener('beforeprint', handleBeforePrint)
-      window.removeEventListener('afterprint', handleAfterPrint)
-    }
-  }, [logPrint])
-
-  const handlePrint = useReactToPrint({
-    contentRef: printContentRef,
-    documentTitle: pageTitle || t.mdPage.title || 'EasyPage',
-    onBeforePrint: async () => {
-      printJobIdRef.current = Date.now()
-      setIsPrinting(true)
-      logPrint('onBeforePrint', {
-        title: pageTitle || t.mdPage.title || 'EasyPage',
-        hasContentRef: Boolean(printContentRef.current),
-      })
-    },
-    onAfterPrint: () => {
-      logPrint('onAfterPrint')
-      setIsPrinting(false)
-    },
-    onPrintError: (errorLocation, error) => {
-      console.error(`[MDPrint][job:${printJobIdRef.current || '-'}] onPrintError @${errorLocation}`, error)
-      setIsPrinting(false)
-    },
-    pageStyle: `
-      @page { margin: 16mm; }
-      html, body { background: #fff !important; color: #111827 !important; }
-      .easy-page-print-root { width: 100% !important; max-width: 900px !important; margin: 0 auto !important; }
-      * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-      img { max-width: 100% !important; height: auto !important; page-break-inside: avoid; }
-    `,
-  })
-
   const handlePrintClick = useCallback(async () => {
+    printJobIdRef.current = Date.now()
     logPrint('click.printButton')
+    const target = printContentRef.current
+    if (!target) {
+      logPrint('pdf.failed.noContentRef')
+      return
+    }
     try {
-      await handlePrint?.()
-      logPrint('printFunction.resolved')
+      setIsPrinting(true)
+      logPrint('pdf.capture.start', {
+        title: pageTitle || t.mdPage.title || 'EasyPage',
+        scrollWidth: target.scrollWidth,
+        scrollHeight: target.scrollHeight,
+      })
+
+      const original = {
+        overflow: target.style.overflow,
+        maxHeight: target.style.maxHeight,
+        height: target.style.height,
+      }
+      target.style.overflow = 'visible'
+      target.style.maxHeight = 'none'
+      target.style.height = 'auto'
+
+      await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))
+
+      const canvas = await html2canvas(target, {
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: '#ffffff',
+        windowWidth: Math.max(target.scrollWidth, target.clientWidth),
+        windowHeight: Math.max(target.scrollHeight, target.clientHeight),
+        logging: false,
+      })
+
+      target.style.overflow = original.overflow
+      target.style.maxHeight = original.maxHeight
+      target.style.height = original.height
+
+      logPrint('pdf.capture.done', { canvasWidth: canvas.width, canvasHeight: canvas.height })
+
+      const pdf = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4', compress: true })
+      const pageWidth = pdf.internal.pageSize.getWidth()
+      const pageHeight = pdf.internal.pageSize.getHeight()
+      const margin = 10
+      const printableWidth = pageWidth - (margin * 2)
+      const printableHeight = pageHeight - (margin * 2)
+      const imageData = canvas.toDataURL('image/png')
+      const imageHeight = (canvas.height * printableWidth) / canvas.width
+
+      let renderedHeight = imageHeight
+      let yOffset = margin
+      pdf.addImage(imageData, 'PNG', margin, yOffset, printableWidth, imageHeight, undefined, 'FAST')
+      renderedHeight -= printableHeight
+
+      while (renderedHeight > 0) {
+        pdf.addPage()
+        yOffset = margin - (imageHeight - renderedHeight)
+        pdf.addImage(imageData, 'PNG', margin, yOffset, printableWidth, imageHeight, undefined, 'FAST')
+        renderedHeight -= printableHeight
+      }
+
+      const safeTitle = (pageTitle || t.mdPage.title || 'EasyPage').replace(/[\\/:*?"<>|]+/g, '_')
+      const fileName = `${safeTitle}.pdf`
+      logPrint('pdf.save.start', { fileName })
+      pdf.save(fileName)
+      logPrint('pdf.save.done', { fileName })
     } catch (error) {
-      console.error(`[MDPrint][job:${printJobIdRef.current || '-'}] printFunction.rejected`, error)
+      console.error(`[MDPrint][job:${printJobIdRef.current || '-'}] pdf.failed`, error)
+      alert('PDF 생성 중 오류가 발생했습니다.')
+    } finally {
       setIsPrinting(false)
     }
-  }, [handlePrint, logPrint])
+  }, [logPrint, pageTitle, t.mdPage.title])
 
   function isImageFile(file) {
     if (!file) return false
