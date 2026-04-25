@@ -89,8 +89,15 @@ export default function EventAddModal({ onClose, onAdd, onSave, onDelete, event:
   const canMutate = !isEditMode || canEdit
   const ownerId = Number(editEvent?.ownerId)
   const isOwnerCurrentUser = !isEditMode || ownerId === Number(currentUser?.id)
-  const ownerName = editEvent?.owner?.name || (isOwnerCurrentUser ? currentUser?.name : `사용자 #${editEvent?.ownerId ?? '-'}`)
-  const ownerUsername = editEvent?.owner?.username || (isOwnerCurrentUser ? currentUser?.username : null)
+  const ownerDisplayName = (editEvent?.owner?.displayName || '').trim()
+  const ownerNameRaw = (editEvent?.owner?.name || '').trim()
+  const ownerUsernameRaw = (editEvent?.owner?.username || '').trim()
+  const ownerName = ownerDisplayName
+    || ownerNameRaw
+    || (isOwnerCurrentUser ? (currentUser?.name || '').trim() : '')
+    || ownerUsernameRaw
+    || `사용자 #${editEvent?.ownerId ?? '-'}`
+  const ownerUsername = ownerUsernameRaw || (isOwnerCurrentUser ? currentUser?.username : null)
   const ownerImageUrl = editEvent?.owner?.imageUrl || (isOwnerCurrentUser ? currentUser?.image_url : null)
 
   const [tab, setTab] = useState('event') // 'event' | 'reminder'
