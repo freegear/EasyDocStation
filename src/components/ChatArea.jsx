@@ -2159,7 +2159,7 @@ function PostCard({ post, onSelect, pinned, isSelected }) {
   return (
     <button
       onClick={() => onSelect(post)}
-      className={`w-full text-left px-5 py-4 rounded-2xl border transition-all group ${
+      className={`w-full text-left px-5 py-3 rounded-2xl border transition-all group ${
         isSelected
           ? 'bg-indigo-50 border-indigo-300'
           : pinned
@@ -2167,18 +2167,18 @@ function PostCard({ post, onSelect, pinned, isSelected }) {
           : 'bg-gray-50 border-gray-200 hover:bg-white/7 hover:border-gray-200'
       }`}
     >
-      <div className="flex items-start gap-3">
+      <div className="flex items-start gap-2.5">
         <Avatar letters={post.author?.avatar || '?'} imageUrl={post.author?.image_url} />
         <div className="flex-1 min-w-0">
           {/* Lead line */}
-          <div className="flex items-center gap-2 mb-1">
+          <div className="flex items-center gap-2 mb-0.5">
             {pinned && <PinIcon />}
             {leadLine && (
               <p className="text-gray-800 font-semibold text-sm leading-tight group-hover:text-indigo-600 transition-colors truncate">{leadLine}</p>
             )}
           </div>
           {/* Meta */}
-          <div className="flex items-center gap-2 text-gray-400 text-xs mb-2">
+          <div className={`flex items-center gap-2 text-gray-400 text-xs ${bodyPreview ? 'mb-1' : 'mb-0'}`}>
             <span className="font-medium text-gray-500">{post.author?.name}</span>
             {post.author?.username && (
               <span className="text-gray-400">@{post.author.username}</span>
