@@ -1,5 +1,5 @@
-import { createContext, useContext, useState, useEffect } from 'react'
-import { apiFetch, setToken, clearToken, getToken } from '../lib/api'
+import { createContext, useContext, useState, useEffect, useRef } from 'react'
+import { apiFetch, setToken, clearToken, getToken, setSessionInvalidatedHandler } from '../lib/api'
 
 const AuthContext = createContext(null)
 const LANGUAGE_STORAGE_KEY = 'easydocstation.language'
@@ -13,6 +13,21 @@ export function AuthProvider({ children }) {
   })
   const [loading, setLoading] = useState(true)   // true while restoring session
   const [maxAttachmentFileSize, setMaxAttachmentFileSize] = useState(100)
+  const currentUserRef = useRef(null)
+
+  // 세션 강제 만료 핸들러 (다른 기기 로그인 감지)
+  useEffect(() => {
+    setSessionInvalidatedHandler(() => {
+      clearToken()
+      setCurrentUser(null)
+      currentUserRef.current = null
+    })
+  }, [])
+
+  // currentUser 변경 시 ref 동기화
+  useEffect(() => {
+    currentUserRef.current = currentUser
+  }, [currentUser])
 
   // Restore session on app load
   useEffect(() => {
@@ -22,6 +37,21 @@ export function AuthProvider({ children }) {
       .then(user => setCurrentUser(user))
       .catch(() => clearToken())
       .finally(() => setLoading(false))
+  }, [])
+
+  // 윈도우 포커스 시 세션 재검증 (다른 탭/브라우저에서 로그인 감지)
+  useEffect(() => {
+    function handleFocus() {
+      if (!getToken() || !currentUserRef.current) return
+      apiFetch('/auth/me')
+        .then(user => setCurrentUser(user))
+        .catch(() => {
+          clearToken()
+          setCurrentUser(null)
+        })
+    }
+    window.addEventListener('focus', handleFocus)
+    return () => window.removeEventListener('focus', handleFocus)
   }, [])
 
   // Load public config limits on startup
