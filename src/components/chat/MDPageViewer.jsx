@@ -356,6 +356,7 @@ export default function MDPageViewer({ post, channelId, onClose }) {
 <html>
   <head>
     <meta charset="utf-8" />
+    <base href="${window.location.origin}" />
     <title>${docTitle.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</title>
     <style>
       @page { margin: 16mm; }
@@ -379,42 +380,70 @@ export default function MDPageViewer({ post, channelId, onClose }) {
   </body>
 </html>`
 
-    const printWin = window.open('', '_blank', 'noopener,noreferrer,width=1100,height=900')
-    if (!printWin) {
+    const iframe = document.createElement('iframe')
+    iframe.style.position = 'fixed'
+    iframe.style.right = '0'
+    iframe.style.bottom = '0'
+    iframe.style.width = '0'
+    iframe.style.height = '0'
+    iframe.style.border = '0'
+    iframe.setAttribute('aria-hidden', 'true')
+    document.body.appendChild(iframe)
+
+    const cleanup = () => {
+      try {
+        iframe.remove()
+      } catch (_) {}
+    }
+
+    const printDoc = iframe.contentWindow?.document
+    if (!printDoc || !iframe.contentWindow) {
+      cleanup()
       window.print()
       return
     }
 
-    printWin.document.open()
-    printWin.document.write(printableHtml)
-    printWin.document.close()
+    printDoc.open()
+    printDoc.write(printableHtml)
+    printDoc.close()
 
     const runPrint = () => {
       try {
-        printWin.focus()
-        printWin.print()
-      } catch (_) {}
+        const w = iframe.contentWindow
+        if (!w) throw new Error('no iframe window')
+        const done = () => setTimeout(cleanup, 150)
+        w.onafterprint = done
+        w.focus()
+        w.print()
+        // onafterprint가 호출되지 않는 환경 대비
+        setTimeout(done, 2000)
+      } catch (_) {
+        cleanup()
+        window.print()
+      }
     }
 
-    const imgs = Array.from(printWin.document.images || [])
-    if (imgs.length === 0) {
+    const images = Array.from(printDoc.images || [])
+    if (images.length === 0) {
       setTimeout(runPrint, 120)
       return
     }
-    let done = 0
-    const onFinish = () => {
-      done += 1
-      if (done >= imgs.length) {
+
+    let loaded = 0
+    const finish = () => {
+      loaded += 1
+      if (loaded >= images.length) {
         setTimeout(runPrint, 120)
       }
     }
-    imgs.forEach((img) => {
+
+    images.forEach((img) => {
       if (img.complete) {
-        onFinish()
+        finish()
         return
       }
-      img.onload = onFinish
-      img.onerror = onFinish
+      img.onload = finish
+      img.onerror = finish
     })
   }
 
