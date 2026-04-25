@@ -59,10 +59,14 @@ function parseDt(val) {
 function buildOwnerSummary(row = {}) {
   const ownerId = Number(row.owner_id ?? row.ownerId ?? row.owner_id_int)
   const id = Number.isInteger(ownerId) ? ownerId : null
-  const name = row.owner_name ?? row.ownerName ?? row.name ?? null
-  const username = row.owner_username ?? row.ownerUsername ?? row.username ?? null
-  const displayName = row.owner_display_name ?? row.ownerDisplayName ?? null
-  const imageUrl = row.owner_image_url ?? row.ownerImageUrl ?? null
+  const nameRaw = row.owner_name ?? row.ownerName ?? row.name ?? null
+  const usernameRaw = row.owner_username ?? row.ownerUsername ?? row.username ?? null
+  const displayNameRaw = row.owner_display_name ?? row.ownerDisplayName ?? row.display_name ?? null
+  const imageUrlRaw = row.owner_image_url ?? row.ownerImageUrl ?? row.image_url ?? null
+  const name = typeof nameRaw === 'string' ? nameRaw.trim() : null
+  const username = typeof usernameRaw === 'string' ? usernameRaw.trim() : null
+  const displayName = typeof displayNameRaw === 'string' ? displayNameRaw.trim() : null
+  const imageUrl = typeof imageUrlRaw === 'string' ? imageUrlRaw.trim() : null
   return { id, name, username, displayName, imageUrl }
 }
 
