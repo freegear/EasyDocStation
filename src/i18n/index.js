@@ -105,7 +105,7 @@ export const translations = {
     },
     mdPage: {
       title: 'MD 페이지',
-      back: '뒤로',
+      back: '게시판으로',
       viewSource: '소스',
       viewPreview: 'MD보기',
       print: '인쇄',
