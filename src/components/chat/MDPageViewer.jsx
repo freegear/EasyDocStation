@@ -186,6 +186,7 @@ export default function MDPageViewer({ post, channelId, onClose }) {
   const showSaveDialogRef = useRef(false)
   const imageInputRef = useRef(null)
   const printContentRef = useRef(null)
+  const [printHtml, setPrintHtml] = useState('')
   const imageMetaRef = useRef(imageMeta)
   const savedContentRef = useRef(savedContent)
   const savedImageMetaRef = useRef(savedImageMeta)
@@ -194,6 +195,19 @@ export default function MDPageViewer({ post, channelId, onClose }) {
   useEffect(() => { imageMetaRef.current = imageMeta }, [imageMeta])
   useEffect(() => { savedContentRef.current = savedContent }, [savedContent])
   useEffect(() => { savedImageMetaRef.current = savedImageMeta }, [savedImageMeta])
+  useEffect(() => {
+    if (!editor) return undefined
+    const syncPrintHtml = () => {
+      const token = getToken() || ''
+      const html = injectAuthTokenIntoMarkdown(editor.getHTML() || '', token)
+      setPrintHtml(html)
+    }
+    syncPrintHtml()
+    editor.on('update', syncPrintHtml)
+    return () => {
+      editor.off('update', syncPrintHtml)
+    }
+  }, [editor])
 
   const canEdit = post.author?.id === currentUser?.id
     || ['site_admin', 'team_admin', 'channel_admin'].includes(currentUser?.role)
@@ -330,6 +344,7 @@ export default function MDPageViewer({ post, channelId, onClose }) {
     pageStyle: `
       @page { margin: 16mm; }
       html, body { background: #fff !important; color: #111827 !important; }
+      .easy-page-print-root { width: 100% !important; max-width: 900px !important; margin: 0 auto !important; }
       * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
       img { max-width: 100% !important; height: auto !important; page-break-inside: avoid; }
     `,
@@ -484,7 +499,6 @@ export default function MDPageViewer({ post, channelId, onClose }) {
 
       {/* ── Content area ── */}
       <div
-        ref={printContentRef}
         className={`flex-1 overflow-auto min-h-0 ${isDragOver ? 'bg-indigo-50/50' : ''}`}
         onDragOver={(e) => {
           if (!canEdit || mode !== 'preview') return
@@ -532,6 +546,16 @@ export default function MDPageViewer({ post, channelId, onClose }) {
         className="hidden"
         onChange={handleImageInputChange}
       />
+
+      {/* react-to-print 전용 출력 범위: EasyPage 본문만 포함 */}
+      <div
+        aria-hidden="true"
+        style={{ position: 'fixed', left: '-100000px', top: 0, width: '960px', pointerEvents: 'none' }}
+      >
+        <div ref={printContentRef} className="easy-page-print-root tiptap-editor">
+          <div className="ProseMirror" dangerouslySetInnerHTML={{ __html: printHtml }} />
+        </div>
+      </div>
 
       {/* ── 저장 다이얼로그 ── */}
       {showSaveDialog && (
