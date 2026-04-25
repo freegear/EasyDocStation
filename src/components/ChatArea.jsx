@@ -2364,7 +2364,6 @@ function PostCard({ post, onSelect, pinned, isSelected }) {
             <p
               className="text-gray-400 text-xs leading-relaxed line-clamp-2 select-text allow-copy cursor-text"
               onMouseDown={keepTextSelection}
-              onClick={keepTextSelection}
             >
               {bodyPreview}
             </p>
