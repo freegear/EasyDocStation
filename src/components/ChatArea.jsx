@@ -2294,6 +2294,13 @@ function PostCard({ post, onSelect, pinned, isSelected }) {
     onSelect(post)
   }
 
+  function handleCardClickCapture(e) {
+    if (!hasAnyTextSelection()) return
+    if (!hasTextSelectionInside(e.currentTarget)) return
+    e.preventDefault()
+    e.stopPropagation()
+  }
+
   function handleCopy() {
     if (!copyToast) return
     navigator.clipboard.writeText(copyToast.text).catch(() => {
@@ -2312,7 +2319,6 @@ function PostCard({ post, onSelect, pinned, isSelected }) {
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault()
       setCopyToast(null)
-      window.getSelection?.()?.removeAllRanges?.()
       onSelect(post)
     }
   }
@@ -2323,6 +2329,7 @@ function PostCard({ post, onSelect, pinned, isSelected }) {
         tabIndex={0}
         onMouseDown={handleCardMouseDown}
         onMouseUp={handleCardMouseUp}
+        onClickCapture={handleCardClickCapture}
         onClick={handleCardClick}
         onKeyDown={handleCardKeyDown}
         className={`w-full text-left px-5 py-3 rounded-2xl border transition-all group cursor-pointer ${
