@@ -195,6 +195,15 @@ function truncateSingleLine(text = '', max = 60) {
   return `${oneLine.slice(0, max - 1)}…`
 }
 
+function isEditableImageWrapperElement(el) {
+  if (!(el instanceof HTMLElement)) return false
+  if (el.tagName !== 'DIV') return false
+  const container = el.firstElementChild
+  if (!(container instanceof HTMLElement) || container.tagName !== 'DIV') return false
+  const img = container.firstElementChild
+  return img instanceof HTMLImageElement
+}
+
 export default function MDPageViewer({ post, channelId, onClose }) {
   const { updatePost } = useChat()
   const { currentUser } = useAuth()
@@ -308,6 +317,46 @@ export default function MDPageViewer({ post, channelId, onClose }) {
     if (!editor) return
     editor.setEditable(canEdit && mode === 'preview')
   }, [editor, canEdit, mode])
+
+  // 연속 이미지 run을 감지해 가로 배치 클래스를 부여한다.
+  useEffect(() => {
+    if (!editor) return undefined
+
+    const applyInlineImageRunLayout = () => {
+      const prose = editor.view?.dom
+      if (!(prose instanceof HTMLElement)) return
+      const children = Array.from(prose.children)
+
+      children.forEach((node) => {
+        if (node instanceof HTMLElement) node.classList.remove('md-image-inline-run-item')
+      })
+
+      const flushRun = (run) => {
+        if (run.length < 2) return
+        run.forEach((item) => item.classList.add('md-image-inline-run-item'))
+      }
+
+      let run = []
+      children.forEach((node) => {
+        if (isEditableImageWrapperElement(node)) {
+          run.push(node)
+        } else {
+          flushRun(run)
+          run = []
+        }
+      })
+      flushRun(run)
+    }
+
+    const rafApply = () => window.requestAnimationFrame(applyInlineImageRunLayout)
+    rafApply()
+    editor.on('update', rafApply)
+    editor.on('selectionUpdate', rafApply)
+    return () => {
+      editor.off('update', rafApply)
+      editor.off('selectionUpdate', rafApply)
+    }
+  }, [editor])
 
   useEffect(() => {
     if (!editor) return
