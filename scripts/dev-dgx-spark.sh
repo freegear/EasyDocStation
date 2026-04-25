@@ -32,4 +32,18 @@ for cmd in libreoffice pdftoppm ffmpeg tesseract; do
   fi
 done
 
+echo "[DGX] 인쇄 백엔드(CUPS) 점검"
+if command -v systemctl >/dev/null 2>&1; then
+  if systemctl is-active --quiet cups; then
+    echo "  - cups: active"
+  else
+    echo "  - cups: inactive (print preview가 '로드 중'에서 멈출 수 있습니다)"
+  fi
+fi
+if command -v lpstat >/dev/null 2>&1; then
+  lpstat -d >/dev/null 2>&1 && lpstat -d || echo "  - 기본 프린터 미설정 (PDF 프린터 설정 권장)"
+else
+  echo "  - lpstat: not found (cups-client 미설치)"
+fi
+
 npm run dev

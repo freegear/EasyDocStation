@@ -91,6 +91,30 @@ for cmd in libreoffice pdftoppm ffmpeg tesseract; do
   fi
 done
 echo
+echo "[검증] 인쇄 백엔드(CUPS)"
+if command -v systemctl >/dev/null 2>&1; then
+  sudo systemctl enable cups >/dev/null 2>&1 || true
+  sudo systemctl restart cups || true
+  if systemctl is-active --quiet cups; then
+    echo "  - cups: active"
+  else
+    echo "  - cups: inactive"
+  fi
+fi
+if command -v lpstat >/dev/null 2>&1; then
+  if ! lpstat -d >/dev/null 2>&1; then
+    if command -v lpadmin >/dev/null 2>&1; then
+      # CUPS-PDF 가상 프린터가 있으면 기본 프린터로 지정
+      if lpstat -v 2>/dev/null | grep -q "CUPS-PDF"; then
+        lpoptions -d CUPS-PDF >/dev/null 2>&1 || true
+      fi
+    fi
+  fi
+  lpstat -d 2>/dev/null || echo "  - 기본 프린터 없음 (수동 설정 필요)"
+else
+  echo "  - lpstat: not found"
+fi
+echo
 echo "DGX Spark 설치가 완료되었습니다."
 echo "실행 명령:"
 echo "  npm run dev:dgx-spark"
