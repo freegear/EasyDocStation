@@ -106,8 +106,8 @@ export const translations = {
     mdPage: {
       title: 'MD 페이지',
       back: '뒤로',
-      viewSource: 'MD 소스로 보기',
-      viewPreview: 'MD 보여주기',
+      viewSource: '소스',
+      viewPreview: 'MD보기',
       save: '저장',
       saving: '저장 중...',
       sourcePlaceholder: 'Markdown 내용을 입력하세요...',
