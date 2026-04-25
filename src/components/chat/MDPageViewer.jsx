@@ -23,7 +23,13 @@ function extractImageMeta(mdText = '') {
   const match = mdText.match(/<!--md-image-meta:([A-Za-z0-9+/=_-]+)-->\s*$/m)
   if (!match?.[1]) return {}
   try {
-    return JSON.parse(atob(match[1])) || {}
+    const decoded = atob(match[1])
+    try {
+      return JSON.parse(decoded) || {}
+    } catch {
+      // Backward/forward safety for unicode payloads.
+      return JSON.parse(decodeURIComponent(escape(decoded))) || {}
+    }
   } catch {
     return {}
   }
@@ -41,16 +47,31 @@ function attachImageMeta(mdText = '', imageMeta = {}) {
   return `${plain}\n${MD_IMAGE_META_PREFIX}${encoded}-->`
 }
 
-function collectImageMetaFromDoc(doc) {
+function hasSizingMeta(meta = {}) {
+  if (!meta || typeof meta !== 'object') return false
+  return (
+    meta.width != null
+    || Boolean(meta.containerStyle)
+    || Boolean(meta.wrapperStyle)
+  )
+}
+
+function collectImageMetaFromDoc(doc, fallbackMap = {}) {
   const map = {}
   doc.descendants((node) => {
     if (node.type.name !== 'image') return
     const src = String(node.attrs?.src || '').trim()
     if (!src) return
-    map[src] = {
+    const current = {
       width: node.attrs?.width ?? null,
       containerStyle: node.attrs?.containerStyle ?? null,
       wrapperStyle: node.attrs?.wrapperStyle ?? null,
+    }
+    const fallback = fallbackMap?.[src] || {}
+    map[src] = hasSizingMeta(current) ? current : {
+      width: fallback.width ?? current.width ?? null,
+      containerStyle: fallback.containerStyle ?? current.containerStyle ?? null,
+      wrapperStyle: fallback.wrapperStyle ?? current.wrapperStyle ?? null,
     }
   })
   return map
@@ -106,8 +127,14 @@ export default function MDPageViewer({ post, channelId, onClose }) {
   const [isDragOver, setIsDragOver] = useState(false)
   const showSaveDialogRef = useRef(false)
   const imageInputRef = useRef(null)
+  const imageMetaRef = useRef(imageMeta)
+  const savedContentRef = useRef(savedContent)
+  const savedImageMetaRef = useRef(savedImageMeta)
 
   useEffect(() => { showSaveDialogRef.current = showSaveDialog }, [showSaveDialog])
+  useEffect(() => { imageMetaRef.current = imageMeta }, [imageMeta])
+  useEffect(() => { savedContentRef.current = savedContent }, [savedContent])
+  useEffect(() => { savedImageMetaRef.current = savedImageMeta }, [savedImageMeta])
 
   const canEdit = post.author?.id === currentUser?.id
     || ['site_admin', 'team_admin', 'channel_admin'].includes(currentUser?.role)
@@ -140,9 +167,12 @@ export default function MDPageViewer({ post, channelId, onClose }) {
     editable: canEdit && mode === 'preview',
     onUpdate({ editor }) {
       const md = stripImageMeta(editor.storage.markdown.getMarkdown())
-      const nextImageMeta = collectImageMetaFromDoc(editor.state.doc)
-      setImageMeta(nextImageMeta)
-      setIsChanged(md !== savedContent || !sameImageMeta(nextImageMeta, savedImageMeta))
+      const nextImageMeta = collectImageMetaFromDoc(editor.state.doc, imageMetaRef.current)
+      setImageMeta(prev => (sameImageMeta(prev, nextImageMeta) ? prev : nextImageMeta))
+      setIsChanged(
+        md !== savedContentRef.current
+        || !sameImageMeta(nextImageMeta, savedImageMetaRef.current)
+      )
     },
   })
 

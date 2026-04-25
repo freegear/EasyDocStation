@@ -286,7 +286,7 @@ function PostDetailPane({ post, channelId, onClose, helpers = {} }) {
     setUploading(true)
     try {
       const attachments = [...postFiles]
-      updatePost(channelId, post.id, { content: postContent, attachments, security_level: postSecurityLevel })
+      await updatePost(channelId, post.id, { content: postContent, attachments, security_level: postSecurityLevel })
       setIsEditingPost(false)
     } catch (err) {
       alert(t.chat.saveError(err.message))
@@ -727,6 +727,8 @@ function PostDetailPane({ post, channelId, onClose, helpers = {} }) {
                       content: updatedContent,
                       attachments: freshPost.attachments || [],
                       security_level: freshPost.security_level ?? 0,
+                    }).catch((err) => {
+                      alert(t.chat.saveError(err.message))
                     })
                   }}
                 />
