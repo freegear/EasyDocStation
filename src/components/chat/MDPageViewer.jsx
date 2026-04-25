@@ -601,14 +601,6 @@ export default function MDPageViewer({ post, channelId, onClose }) {
           </button>
         </div>
 
-        <button
-          onClick={handlePrint}
-          disabled={isPrinting}
-          className="px-3 py-1.5 rounded-lg border border-gray-200 text-xs text-gray-500 hover:bg-gray-50 hover:text-gray-700 disabled:opacity-60 transition-colors flex-shrink-0"
-        >
-          {isPrinting ? (t.mdPage.printing || '인쇄 준비 중...') : (t.mdPage.print || '인쇄')}
-        </button>
-
         {canEdit && isChanged && (
           <button
             onClick={handleSave}
@@ -618,6 +610,14 @@ export default function MDPageViewer({ post, channelId, onClose }) {
             {saving ? t.mdPage.saving : t.mdPage.save}
           </button>
         )}
+
+        <button
+          onClick={handlePrint}
+          disabled={isPrinting}
+          className="px-3 py-1.5 rounded-lg border border-gray-200 text-xs text-gray-500 hover:bg-gray-50 hover:text-gray-700 disabled:opacity-60 transition-colors flex-shrink-0"
+        >
+          {isPrinting ? (t.mdPage.printing || '인쇄 준비 중...') : (t.mdPage.print || '인쇄')}
+        </button>
 
         {canEdit && mode === 'preview' && isUploadingImage && (
           <span className="text-xs text-indigo-600 font-medium">{t.mdPage.imageUploading || '이미지 업로드 중...'}</span>
