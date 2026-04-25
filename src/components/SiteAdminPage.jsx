@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { apiFetch, getToken } from '../lib/api'
-import { ROLE_LABELS, ROLE_BADGE, ROLE_OPTIONS } from '../constants/roles'
+import { ROLE_BADGE } from '../constants/roles'
 import { useAuth } from '../contexts/AuthContext'
 import { useT } from '../i18n/useT'
 import GroqPanel from './GroqPanel'
@@ -22,11 +22,11 @@ function formatDate(iso) {
   })
 }
 
-function RoleBadge({ role }) {
+function RoleBadge({ role, label }) {
   const cls = ROLE_BADGE[role] ?? ROLE_BADGE.user
   return (
     <span className={`px-2 py-0.5 rounded-md text-xs font-medium border ${cls}`}>
-      {ROLE_LABELS[role] ?? role}
+      {label ?? role}
     </span>
   )
 }
@@ -1127,6 +1127,12 @@ export default function SiteAdminPage({ onClose }) {
     const matchRole = roleFilter === 'all' || u.role === roleFilter
     return matchSearch && matchRole
   })
+  const roleOptions = [
+    { value: 'site_admin', label: t.roles.site_admin },
+    { value: 'team_admin', label: t.roles.team_admin },
+    { value: 'channel_admin', label: t.roles.channel_admin },
+    { value: 'user', label: t.roles.user },
+  ]
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-gray-100/95 backdrop-blur-sm">
@@ -1291,7 +1297,7 @@ export default function SiteAdminPage({ onClose }) {
                 className="bg-gray-100 border border-gray-200 rounded-xl px-3 py-2.5 text-gray-900 text-sm focus:outline-none focus:border-indigo-300"
               >
                 <option value="all" className="bg-gray-50">{t.admin.roleAll}</option>
-                {ROLE_OPTIONS.map(r => (
+                {roleOptions.map(r => (
                   <option key={r.value} value={r.value} className="bg-gray-50">{r.label}</option>
                 ))}
               </select>
@@ -1373,7 +1379,7 @@ export default function SiteAdminPage({ onClose }) {
                           </p>
                         </td>
                         <td className="px-5 py-3.5">
-                          <RoleBadge role={user.role} />
+                          <RoleBadge role={user.role} label={t.roles?.[user.role] ?? user.role} />
                         </td>
                         <td className="px-5 py-3.5 text-gray-400 text-xs whitespace-nowrap">
                           {formatDate(user.last_login_at)}

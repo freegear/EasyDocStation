@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { useChat } from '../contexts/ChatContext'
 import { apiFetch } from '../lib/api'
-import { ROLE_LABELS, ROLE_BADGE } from '../constants/roles'
+import { ROLE_BADGE } from '../constants/roles'
 import { useT } from '../i18n/useT'
 import { useOutsideMouseDown } from '../hooks/useOutsideMouseDown'
 
@@ -186,7 +186,7 @@ export default function TitleBar({ onOpenProfile, onOpenSiteAdmin, onSelectSearc
 
   const isSiteAdmin = currentUser?.role === 'site_admin'
   const roleBadge = ROLE_BADGE[currentUser?.role] ?? ROLE_BADGE.user
-  const roleLabel = ROLE_LABELS[currentUser?.role] ?? ''
+  const roleLabel = t.roles?.[currentUser?.role] ?? currentUser?.role ?? ''
   const langLabel = LANGUAGES.find(l => l.code === language)?.label ?? '한국어'
 
   function formatLoginTime(iso) {
