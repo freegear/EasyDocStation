@@ -17,4 +17,13 @@ if command -v nvidia-smi >/dev/null 2>&1; then
   nvidia-smi --query-gpu=name,utilization.gpu,memory.used,memory.total --format=csv,noheader
 fi
 
+echo "[DGX] 문서 변환/학습 의존성 점검"
+for cmd in libreoffice pdftoppm ffmpeg tesseract; do
+  if command -v "$cmd" >/dev/null 2>&1; then
+    echo "  - $cmd: OK ($(command -v "$cmd"))"
+  else
+    echo "  - $cmd: MISSING (PPT/PPTX->PDF 또는 OCR/RAG 품질 저하 가능)"
+  fi
+done
+
 npm run dev
