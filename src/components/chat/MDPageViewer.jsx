@@ -73,7 +73,7 @@ export default function MDPageViewer({ post, channelId, onClose }) {
   const { updatePost } = useChat()
   const { currentUser } = useAuth()
   const t = useT()
-  const initialMdRaw = getMdPageContent(post.content)
+  const initialMdRaw = String(post.content || '').replace(/^<!--md-page-->\n?/, '')
 
   const [mode, setMode] = useState('preview')
   const [savedContent, setSavedContent] = useState(() => stripImageMeta(initialMdRaw))
