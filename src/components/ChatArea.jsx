@@ -1908,7 +1908,8 @@ function ComposeBar({ onSubmit, isArchived }) {
         <ConfirmDialog
           title={t.chat.fileAttachDuplicateTitle || '중복 파일명 경고'}
           titleTone="blue"
-          message={`${t.chat.fileAttachDuplicateMessage || '첨부파일에 같은 이름이 있습니다. 파일명을 변경한 뒤 다시 게시해 주세요.'}\n\n${duplicateFileDialog.join('\n')}`}
+          message={t.chat.fileAttachDuplicateMessage || '첨부파일에 같은 이름이 있습니다. 파일명을 변경한 뒤 다시 게시해 주세요.'}
+          highlightItems={duplicateFileDialog}
           confirmText={t.chat.confirm || '확인'}
           hideCancel
           onConfirm={() => setDuplicateFileDialog(null)}

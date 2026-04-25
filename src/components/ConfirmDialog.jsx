@@ -3,6 +3,7 @@ import { useEffect, useRef } from 'react'
 export default function ConfirmDialog({
   title = '확인',
   message = '',
+  highlightItems = [],
   confirmText = '확인',
   cancelText = '취소',
   hideCancel = false,
@@ -33,7 +34,18 @@ export default function ConfirmDialog({
         ) : (
           <h3 className="text-gray-900 font-bold text-base">{title}</h3>
         )}
-        <p className="text-gray-600 text-sm mt-2 whitespace-pre-wrap leading-relaxed">{message}</p>
+        {message ? (
+          <p className="text-gray-600 text-sm mt-2 whitespace-pre-wrap leading-relaxed">{message}</p>
+        ) : null}
+        {highlightItems.length > 0 && (
+          <ul className="mt-3 space-y-1.5">
+            {highlightItems.map((item, idx) => (
+              <li key={`${item}-${idx}`} className="text-sm font-bold text-red-600 break-all">
+                {item}
+              </li>
+            ))}
+          </ul>
+        )}
         <div className="flex justify-end gap-2 mt-5">
           {!hideCancel && (
             <button
