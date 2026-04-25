@@ -13,7 +13,20 @@ export default function SearchResultsArea({ onSelectResult }) {
   } = useChat()
   const t = useT()
 
-  async function handleItemClick(item) {
+  function hasSelectionInside(node) {
+    const sel = window.getSelection?.()
+    const text = sel?.toString?.().trim?.() || ''
+    if (!text || !node) return false
+    const anchor = sel?.anchorNode
+    const focus = sel?.focusNode
+    return (
+      (anchor ? node.contains(anchor) : false) ||
+      (focus ? node.contains(focus) : false)
+    )
+  }
+
+  async function handleItemClick(item, e) {
+    if (hasSelectionInside(e?.currentTarget)) return
     const team = teams.find(tm => tm.name === item.teamName)
     const channel = team?.channels?.find(c => c.id === item.channelId)
 
@@ -80,7 +93,7 @@ export default function SearchResultsArea({ onSelectResult }) {
             searchResults.map((item, idx) => (
               <div
                 key={`${item.id}-${idx}`}
-                onClick={() => handleItemClick(item)}
+                onClick={(e) => handleItemClick(item, e)}
                 className="bg-gray-100 border border-gray-200 rounded-2xl p-5 hover:border-indigo-500/50 hover:bg-gray-200 transition-all cursor-pointer group"
               >
                 <div className="flex items-center justify-between mb-3">
@@ -115,7 +128,7 @@ export default function SearchResultsArea({ onSelectResult }) {
                       </div>
                     )}
 
-                    <div className="text-gray-800 text-sm leading-relaxed whitespace-pre-wrap break-words">
+                    <div className="text-gray-800 text-sm leading-relaxed whitespace-pre-wrap break-words select-text allow-copy cursor-text">
                       {item.content}
                     </div>
                   </div>
