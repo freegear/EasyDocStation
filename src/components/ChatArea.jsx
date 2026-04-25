@@ -13,7 +13,7 @@ import ConfirmDialog from './ConfirmDialog'
 import PostDetailPane from './chat/PostDetailPane'
 import MDPageViewer from './chat/MDPageViewer'
 import { useT } from '../i18n/useT'
-import { isTemplateContent, isMdPage, FORM_TEMPLATES } from '../templates/formTemplates'
+import { isTemplateContent, isMdPage, getMdPageContent, FORM_TEMPLATES } from '../templates/formTemplates'
 
 
 // ─── Helpers ──────────────────────────────────────────────────
@@ -2087,6 +2087,7 @@ function ChannelDocumentListPage({ posts, onBack, onOpenPost }) {
   const documentItems = posts.flatMap(post => {
     const items = []
     const isTemplate = isTemplateContent(post.content)
+    const isMd = isMdPage(post.content)
     const templateMeta = isTemplate
       ? FORM_TEMPLATES.find(f => post.content.includes(`<title>${f.label}`))
       : null
@@ -2097,6 +2098,16 @@ function ChannelDocumentListPage({ posts, onBack, onOpenPost }) {
         kind: 'template',
         icon: templateMeta?.icon || '📄',
         title: templateMeta ? `${templateMeta.label} 양식` : '양식 문서',
+        post,
+      })
+    } else if (isMd) {
+      const firstLine = getMdPageContent(post.content)
+        .replace(/#{1,3} /g, '').split('\n').find(l => l.trim()) || 'MD 페이지'
+      items.push({
+        key: `${post.id}-md`,
+        kind: 'template',
+        icon: '📝',
+        title: firstLine.slice(0, 100),
         post,
       })
     }
@@ -2242,10 +2253,13 @@ function ChannelDocumentListPage({ posts, onBack, onOpenPost }) {
 function PostCard({ post, onSelect, pinned, isSelected }) {
   const t = useT()
   const isTemplate = isTemplateContent(post.content)
+  const isMd = isMdPage(post.content)
   const templateMeta = isTemplate
     ? FORM_TEMPLATES.find(f => post.content.includes(`<title>${f.label}`))
     : null
-  const plain = isTemplate ? [] : (post.content || '')
+  // MD 페이지는 마커를 제거한 뒤 파싱
+  const rawForParsing = isMd ? getMdPageContent(post.content) : (post.content || '')
+  const plain = isTemplate ? [] : rawForParsing
     .replace(/#{1,3} /g, '').replace(/\*\*/g, '').replace(/`/g, '')
     .split('\n').filter(l => l.trim() && !l.startsWith('|') && !l.startsWith('-'))
   const isQuotation = isTemplate && templateMeta?.id === 'quotation'
@@ -2277,7 +2291,9 @@ function PostCard({ post, onSelect, pinned, isSelected }) {
             return `${templateMeta.icon} ${templateMeta.label} 양식`
           })()
         : '📄 양식 템플릿')
-    : (plain[0]?.slice(0, 100) || '')
+    : isMd
+      ? `📝 ${plain[0]?.slice(0, 100) || 'MD 페이지'}`
+      : (plain[0]?.slice(0, 100) || '')
   const bodyPreview = isTemplate ? '' : plain.slice(1).join(' ').slice(0, 120)
   const attachCount = post.attachments?.length || 0
   const commentCount = post.comments?.length || 0
