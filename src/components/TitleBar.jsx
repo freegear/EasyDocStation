@@ -215,7 +215,7 @@ export default function TitleBar({ onOpenProfile, onOpenSiteAdmin, onSelectSearc
         <button
           type="button"
           onClick={onToggleAgenticPanel}
-          title={showAgenticPanel ? 'EasyStation AgenticAI Panel 숨기기' : 'EasyStation AgenticAI Panel 보이기'}
+          title={showAgenticPanel ? 'EasyStation AgenticAI 창 숨기기' : 'EasyStation AgenticAI 창 보이기'}
           className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-semibold transition-colors ${
             showAgenticPanel
               ? 'bg-blue-600 border-blue-600 text-white hover:bg-blue-700'
@@ -226,7 +226,7 @@ export default function TitleBar({ onOpenProfile, onOpenSiteAdmin, onSelectSearc
             <rect x="2.5" y="3" width="15" height="14" rx="2" />
             <line x1="11" y1="3" x2="11" y2="17" />
           </svg>
-          <span className="hidden lg:inline">AI Panel</span>
+          <span className="hidden lg:inline">AI 창</span>
         </button>
 
         {/* User avatar + popup trigger */}
