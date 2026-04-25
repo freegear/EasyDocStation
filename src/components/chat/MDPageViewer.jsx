@@ -66,6 +66,22 @@ function mapFileViewUrl(url, mutateParams) {
   }
 }
 
+function normalizeFileViewUrlKey(url) {
+  try {
+    const input = String(url || '').trim()
+    if (!input) return ''
+    const parsed = new URL(input, window.location.origin)
+    if (!parsed.pathname.startsWith('/api/files/view/')) return input
+    parsed.searchParams.delete('auth_token')
+    const entries = Array.from(parsed.searchParams.entries())
+    entries.sort(([a], [b]) => a.localeCompare(b))
+    const query = new URLSearchParams(entries).toString()
+    return `${parsed.pathname}${query ? `?${query}` : ''}`
+  } catch {
+    return String(url || '').trim()
+  }
+}
+
 function stripAuthTokenFromFileViewUrl(url) {
   return mapFileViewUrl(url, (params) => {
     params.delete('auth_token')
@@ -96,7 +112,7 @@ function normalizeImageMetaKeys(imageMeta = {}) {
   if (entries.length === 0) return {}
   const normalized = {}
   for (const [key, val] of entries) {
-    const nextKey = stripAuthTokenFromFileViewUrl(String(key || '').trim())
+    const nextKey = normalizeFileViewUrlKey(stripAuthTokenFromFileViewUrl(String(key || '').trim()))
     if (!nextKey) continue
     normalized[nextKey] = val || {}
   }
@@ -113,17 +129,18 @@ function hasSizingMeta(meta = {}) {
 }
 
 function collectImageMetaFromDoc(doc, fallbackMap = {}) {
+  const normalizedFallbackMap = normalizeImageMetaKeys(fallbackMap || {})
   const map = {}
   doc.descendants((node) => {
     if (node.type.name !== 'image') return
-    const src = stripAuthTokenFromFileViewUrl(String(node.attrs?.src || '').trim())
+    const src = normalizeFileViewUrlKey(stripAuthTokenFromFileViewUrl(String(node.attrs?.src || '').trim()))
     if (!src) return
     const current = {
       width: node.attrs?.width ?? null,
       containerStyle: node.attrs?.containerStyle ?? null,
       wrapperStyle: node.attrs?.wrapperStyle ?? null,
     }
-    const fallback = fallbackMap?.[src] || {}
+    const fallback = normalizedFallbackMap?.[src] || {}
     map[src] = hasSizingMeta(current) ? current : {
       width: fallback.width ?? current.width ?? null,
       containerStyle: fallback.containerStyle ?? current.containerStyle ?? null,
@@ -186,7 +203,6 @@ export default function MDPageViewer({ post, channelId, onClose }) {
   const showSaveDialogRef = useRef(false)
   const imageInputRef = useRef(null)
   const printContentRef = useRef(null)
-  const [printHtml, setPrintHtml] = useState('')
   const imageMetaRef = useRef(imageMeta)
   const savedContentRef = useRef(savedContent)
   const savedImageMetaRef = useRef(savedImageMeta)
@@ -196,18 +212,6 @@ export default function MDPageViewer({ post, channelId, onClose }) {
   useEffect(() => { imageMetaRef.current = imageMeta }, [imageMeta])
   useEffect(() => { savedContentRef.current = savedContent }, [savedContent])
   useEffect(() => { savedImageMetaRef.current = savedImageMeta }, [savedImageMeta])
-  useEffect(() => {
-    if (!editor) return undefined
-    const syncPrintHtml = () => {
-      const html = injectAuthTokenIntoMarkdown(editor.getHTML() || '', getToken() || '')
-      setPrintHtml(html)
-    }
-    syncPrintHtml()
-    editor.on('update', syncPrintHtml)
-    return () => {
-      editor.off('update', syncPrintHtml)
-    }
-  }, [editor])
 
   const canEdit = post.author?.id === currentUser?.id
     || ['site_admin', 'team_admin', 'channel_admin'].includes(currentUser?.role)
@@ -267,8 +271,8 @@ export default function MDPageViewer({ post, channelId, onClose }) {
     editor.state.doc.descendants((node, pos) => {
       if (node.type.name !== 'image') return
       const src = String(node.attrs?.src || '').trim()
-      const normalizedSrc = stripAuthTokenFromFileViewUrl(src)
-      const meta = imageMeta[normalizedSrc] || imageMeta[src]
+      const normalizedSrc = normalizeFileViewUrlKey(stripAuthTokenFromFileViewUrl(src))
+      const meta = imageMeta[normalizedSrc] || imageMeta[normalizeFileViewUrlKey(src)] || imageMeta[stripAuthTokenFromFileViewUrl(src)] || imageMeta[src]
       if (!src || !meta) return
       const nextAttrs = {
         ...node.attrs,
@@ -325,7 +329,7 @@ export default function MDPageViewer({ post, channelId, onClose }) {
     try {
       await updatePost(channelId, post.id, { content: `${MD_PAGE_MARKER}\n${mdWithMeta}` })
       setSavedContent(md)
-      setSavedImageMeta(imageMeta)
+      setSavedImageMeta(normalizeImageMetaKeys(imageMeta))
       setIsChanged(false)
     } catch (e) {
       console.error('MD 페이지 저장 실패:', e)
@@ -508,6 +512,7 @@ export default function MDPageViewer({ post, channelId, onClose }) {
 
       {/* ── Content area ── */}
       <div
+        ref={printContentRef}
         className={`easy-page-print-root flex-1 overflow-auto min-h-0 ${isDragOver ? 'bg-indigo-50/50' : ''}`}
         onDragOver={(e) => {
           if (!canEdit || mode !== 'preview') return
@@ -555,16 +560,6 @@ export default function MDPageViewer({ post, channelId, onClose }) {
         className="hidden"
         onChange={handleImageInputChange}
       />
-
-      {/* 인쇄 전용 범위: 본문 텍스트/이미지만 포함 */}
-      <div
-        aria-hidden="true"
-        style={{ position: 'fixed', left: '-100000px', top: 0, width: '900px', pointerEvents: 'none' }}
-      >
-        <div ref={printContentRef} className="easy-page-print-root tiptap-editor">
-          <div className="ProseMirror" dangerouslySetInnerHTML={{ __html: printHtml }} />
-        </div>
-      </div>
 
       {/* ── 저장 다이얼로그 ── */}
       {showSaveDialog && (
