@@ -189,6 +189,7 @@ export default function MDPageViewer({ post, channelId, onClose }) {
   const imageMetaRef = useRef(imageMeta)
   const savedContentRef = useRef(savedContent)
   const savedImageMetaRef = useRef(savedImageMeta)
+  const sourceBaselineRef = useRef('')
 
   useEffect(() => { showSaveDialogRef.current = showSaveDialog }, [showSaveDialog])
   useEffect(() => { imageMetaRef.current = imageMeta }, [imageMeta])
@@ -276,7 +277,14 @@ export default function MDPageViewer({ post, channelId, onClose }) {
   // 소스 → 미리보기 전환: 소스 텍스트를 에디터에 반영
   function switchToPreview() {
     if (mode === 'source' && editor) {
-      editor.commands.setContent(sourceText)
+      const normalizedSource = stripAuthTokenFromMarkdown(sourceText || '')
+      const baseline = sourceBaselineRef.current || ''
+      // 소스가 실제로 변경되지 않았다면 setContent를 건너뛰어
+      // 이미지 노드 attrs(width/containerStyle) 손실을 방지한다.
+      if (normalizedSource !== baseline) {
+        const withToken = injectAuthTokenIntoMarkdown(normalizedSource, getToken() || '')
+        editor.commands.setContent(withToken)
+      }
       setIsChanged(sourceText !== savedContent || !sameImageMeta(imageMeta, savedImageMeta))
     }
     setMode('preview')
@@ -285,7 +293,9 @@ export default function MDPageViewer({ post, channelId, onClose }) {
   // 미리보기 → 소스 전환: 에디터 내용을 마크다운으로 추출
   function switchToSource() {
     if (mode === 'preview' && editor) {
-      setSourceText(editor.storage.markdown.getMarkdown())
+      const md = stripAuthTokenFromMarkdown(editor.storage.markdown.getMarkdown())
+      sourceBaselineRef.current = md
+      setSourceText(md)
     }
     setMode('source')
   }
