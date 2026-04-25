@@ -345,7 +345,77 @@ export default function MDPageViewer({ post, channelId, onClose }) {
   }
 
   function handlePrint() {
-    window.print()
+    const docTitle = (pageTitle || t.mdPage.title || 'EasyPage').trim()
+    const mdHtml = editor?.getHTML?.() || ''
+    if (!mdHtml) {
+      window.print()
+      return
+    }
+
+    const printableHtml = `<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>${docTitle.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</title>
+    <style>
+      @page { margin: 16mm; }
+      html, body { margin: 0; padding: 0; background: #fff; color: #111827; }
+      body { font-family: "Noto Sans KR", "Apple SD Gothic Neo", "Segoe UI", sans-serif; line-height: 1.7; }
+      .doc { max-width: 900px; margin: 0 auto; }
+      .doc h1, .doc h2, .doc h3 { color: #111827; margin-top: 1.2em; margin-bottom: 0.5em; }
+      .doc p { margin: 0.5em 0; white-space: pre-wrap; word-break: break-word; }
+      .doc ul, .doc ol { margin: 0.5em 0 0.5em 1.2em; }
+      .doc blockquote { border-left: 3px solid #c7d2fe; margin: 0.75em 0; padding: 0.25em 0.75em; color: #374151; }
+      .doc code { background: #f3f4f6; padding: 0.1em 0.35em; border-radius: 4px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+      .doc pre { background: #111827; color: #f9fafb; padding: 0.75em; border-radius: 8px; overflow: auto; }
+      .doc pre code { background: transparent; padding: 0; color: inherit; }
+      .doc img { max-width: 100%; height: auto; display: block; margin: 0.75em 0; page-break-inside: avoid; }
+      .doc a { color: #1d4ed8; text-decoration: underline; }
+      * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    </style>
+  </head>
+  <body>
+    <div class="doc">${mdHtml}</div>
+  </body>
+</html>`
+
+    const printWin = window.open('', '_blank', 'noopener,noreferrer,width=1100,height=900')
+    if (!printWin) {
+      window.print()
+      return
+    }
+
+    printWin.document.open()
+    printWin.document.write(printableHtml)
+    printWin.document.close()
+
+    const runPrint = () => {
+      try {
+        printWin.focus()
+        printWin.print()
+      } catch (_) {}
+    }
+
+    const imgs = Array.from(printWin.document.images || [])
+    if (imgs.length === 0) {
+      setTimeout(runPrint, 120)
+      return
+    }
+    let done = 0
+    const onFinish = () => {
+      done += 1
+      if (done >= imgs.length) {
+        setTimeout(runPrint, 120)
+      }
+    }
+    imgs.forEach((img) => {
+      if (img.complete) {
+        onFinish()
+        return
+      }
+      img.onload = onFinish
+      img.onerror = onFinish
+    })
   }
 
   return (
