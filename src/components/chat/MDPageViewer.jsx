@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useEditor, EditorContent } from '@tiptap/react'
 import { BubbleMenu } from '@tiptap/react/menus'
+import { useReactToPrint } from 'react-to-print'
 import StarterKit from '@tiptap/starter-kit'
 import Placeholder from '@tiptap/extension-placeholder'
 import Dropcursor from '@tiptap/extension-dropcursor'
@@ -164,51 +165,6 @@ function truncateSingleLine(text = '', max = 60) {
   return `${oneLine.slice(0, max - 1)}…`
 }
 
-function blobToDataUrl(blob) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onload = () => resolve(String(reader.result || ''))
-    reader.onerror = reject
-    reader.readAsDataURL(blob)
-  })
-}
-
-async function inlineImagesForPrint(html = '') {
-  const parser = new DOMParser()
-  const doc = parser.parseFromString(`<div id="print-root">${html}</div>`, 'text/html')
-  const root = doc.getElementById('print-root')
-  if (!root) return html
-
-  const images = Array.from(root.querySelectorAll('img'))
-  if (images.length === 0) return root.innerHTML
-
-  await Promise.all(images.map(async (img) => {
-    const src = String(img.getAttribute('src') || '').trim()
-    if (!src) return
-    try {
-      const absUrl = new URL(src, window.location.origin).toString()
-      const controller = new AbortController()
-      const timer = setTimeout(() => controller.abort(), 4000)
-      const resp = await fetch(absUrl, {
-        credentials: 'include',
-        cache: 'no-store',
-        signal: controller.signal,
-      })
-      clearTimeout(timer)
-      if (!resp.ok) throw new Error(`HTTP ${resp.status}`)
-      const blob = await resp.blob()
-      const dataUrl = await blobToDataUrl(blob)
-      if (!dataUrl) throw new Error('empty data url')
-      img.setAttribute('src', dataUrl)
-    } catch {
-      // 이미지 로딩 실패가 인쇄 프리뷰 전체를 막지 않도록 제거
-      img.remove()
-    }
-  }))
-
-  return root.innerHTML
-}
-
 export default function MDPageViewer({ post, channelId, onClose }) {
   const { updatePost } = useChat()
   const { currentUser } = useAuth()
@@ -227,9 +183,9 @@ export default function MDPageViewer({ post, channelId, onClose }) {
   const [showSaveDialog, setShowSaveDialog] = useState(false)
   const [isUploadingImage, setIsUploadingImage] = useState(false)
   const [isDragOver, setIsDragOver] = useState(false)
-  const [isPrinting, setIsPrinting] = useState(false)
   const showSaveDialogRef = useRef(false)
   const imageInputRef = useRef(null)
+  const printContentRef = useRef(null)
   const imageMetaRef = useRef(imageMeta)
   const savedContentRef = useRef(savedContent)
   const savedImageMetaRef = useRef(savedImageMeta)
@@ -368,6 +324,16 @@ export default function MDPageViewer({ post, channelId, onClose }) {
   }, [isChanged, onClose])
 
   const pageTitle = getMdPageTitle(getCurrentMarkdown(), t.mdPage.title)
+  const handlePrint = useReactToPrint({
+    contentRef: printContentRef,
+    documentTitle: pageTitle || t.mdPage.title || 'EasyPage',
+    pageStyle: `
+      @page { margin: 16mm; }
+      html, body { background: #fff !important; color: #111827 !important; }
+      * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      img { max-width: 100% !important; height: auto !important; page-break-inside: avoid; }
+    `,
+  })
 
   function isImageFile(file) {
     if (!file) return false
@@ -451,123 +417,6 @@ export default function MDPageViewer({ post, channelId, onClose }) {
     }
   }
 
-  async function handlePrint() {
-    if (isPrinting) return
-    setIsPrinting(true)
-    const docTitle = (pageTitle || t.mdPage.title || 'EasyPage').trim()
-    const mdHtml = editor?.getHTML?.() || ''
-    if (!mdHtml) {
-      window.print()
-      setIsPrinting(false)
-      return
-    }
-
-    let printableBody = mdHtml
-    try {
-      const withCurrentToken = injectAuthTokenIntoMarkdown(mdHtml, getToken() || '')
-      printableBody = await inlineImagesForPrint(withCurrentToken)
-    } catch (_) {
-      printableBody = injectAuthTokenIntoMarkdown(mdHtml, getToken() || '')
-    }
-
-    const printableHtml = `<!doctype html>
-<html>
-  <head>
-    <meta charset="utf-8" />
-    <base href="${window.location.origin}" />
-    <title>${docTitle.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</title>
-    <style>
-      @page { margin: 16mm; }
-      html, body { margin: 0; padding: 0; background: #fff; color: #111827; }
-      body { font-family: "Noto Sans KR", "Apple SD Gothic Neo", "Segoe UI", sans-serif; line-height: 1.7; }
-      .doc { max-width: 900px; margin: 0 auto; }
-      .doc h1, .doc h2, .doc h3 { color: #111827; margin-top: 1.2em; margin-bottom: 0.5em; }
-      .doc p { margin: 0.5em 0; white-space: pre-wrap; word-break: break-word; }
-      .doc ul, .doc ol { margin: 0.5em 0 0.5em 1.2em; }
-      .doc blockquote { border-left: 3px solid #c7d2fe; margin: 0.75em 0; padding: 0.25em 0.75em; color: #374151; }
-      .doc code { background: #f3f4f6; padding: 0.1em 0.35em; border-radius: 4px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
-      .doc pre { background: #111827; color: #f9fafb; padding: 0.75em; border-radius: 8px; overflow: auto; }
-      .doc pre code { background: transparent; padding: 0; color: inherit; }
-      .doc img { max-width: 100%; height: auto; display: block; margin: 0.75em 0; page-break-inside: avoid; }
-      .doc a { color: #1d4ed8; text-decoration: underline; }
-      * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-    </style>
-  </head>
-  <body>
-    <div class="doc">${printableBody}</div>
-  </body>
-</html>`
-
-    const iframe = document.createElement('iframe')
-    iframe.style.position = 'fixed'
-    iframe.style.right = '0'
-    iframe.style.bottom = '0'
-    iframe.style.width = '0'
-    iframe.style.height = '0'
-    iframe.style.border = '0'
-    iframe.setAttribute('aria-hidden', 'true')
-    document.body.appendChild(iframe)
-
-    const cleanup = () => {
-      try {
-        iframe.remove()
-      } catch (_) {}
-      setIsPrinting(false)
-    }
-
-    const printDoc = iframe.contentWindow?.document
-    if (!printDoc || !iframe.contentWindow) {
-      cleanup()
-      window.print()
-      setIsPrinting(false)
-      return
-    }
-
-    printDoc.open()
-    printDoc.write(printableHtml)
-    printDoc.close()
-
-    const runPrint = () => {
-      try {
-        const w = iframe.contentWindow
-        if (!w) throw new Error('no iframe window')
-        const done = () => setTimeout(cleanup, 150)
-        w.onafterprint = done
-        w.focus()
-        w.print()
-        // onafterprint가 호출되지 않는 환경 대비
-        setTimeout(done, 2000)
-      } catch (_) {
-        cleanup()
-        window.print()
-        setIsPrinting(false)
-      }
-    }
-
-    const images = Array.from(printDoc.images || [])
-    if (images.length === 0) {
-      setTimeout(runPrint, 120)
-      return
-    }
-
-    let loaded = 0
-    const finish = () => {
-      loaded += 1
-      if (loaded >= images.length) {
-        setTimeout(runPrint, 120)
-      }
-    }
-
-    images.forEach((img) => {
-      if (img.complete) {
-        finish()
-        return
-      }
-      img.onload = finish
-      img.onerror = finish
-    })
-  }
-
   return (
     <div className="flex flex-col flex-1 min-h-0 bg-white">
 
@@ -614,10 +463,9 @@ export default function MDPageViewer({ post, channelId, onClose }) {
 
         <button
           onClick={handlePrint}
-          disabled={isPrinting}
-          className="px-3 py-1.5 rounded-lg border border-gray-200 text-xs text-gray-500 hover:bg-gray-50 hover:text-gray-700 disabled:opacity-60 transition-colors flex-shrink-0"
+          className="px-3 py-1.5 rounded-lg border border-gray-200 text-xs text-gray-500 hover:bg-gray-50 hover:text-gray-700 transition-colors flex-shrink-0"
         >
-          {isPrinting ? (t.mdPage.printing || '인쇄 준비 중...') : (t.mdPage.print || '인쇄')}
+          {t.mdPage.print || '인쇄'}
         </button>
 
         {canEdit && mode === 'preview' && isUploadingImage && (
@@ -636,6 +484,7 @@ export default function MDPageViewer({ post, channelId, onClose }) {
 
       {/* ── Content area ── */}
       <div
+        ref={printContentRef}
         className={`flex-1 overflow-auto min-h-0 ${isDragOver ? 'bg-indigo-50/50' : ''}`}
         onDragOver={(e) => {
           if (!canEdit || mode !== 'preview') return

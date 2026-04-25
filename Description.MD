@@ -3106,6 +3106,48 @@ MD 페이지에서 인쇄 버튼의 위치는
 
 해당 버튼을 누르면, 현재 페이지를 인쇄하는 인쇄창이 나타난다.
 
+# 28.8.1 react-to-print 라이브러리 사용 (가장 권장)
+
+React 환경에서 인쇄 문제를 해결하는 가장 표준적이고 강력한 방법입니다. 전체 앱을 인쇄하는 대신, 인쇄할 특정 DOM 요소(에디터 영역)만 떼어내서 인쇄하므로 로딩이 빠르고 안정적입니다.
+
+1. 설치
+npm install react-to-print
+
+2. 코드 구현 예시
+
+TypeScript
+import React, { useRef } from 'react';
+import { useReactToPrint } from 'react-to-print';
+
+const PrintComponent = ({ editorContentRef }) => {
+  // 인쇄 기능을 트리거하는 함수
+  const handlePrint = useReactToPrint({
+    contentRef: editorContentRef, // 인쇄할 에디터 영역의 ref
+    documentTitle: 'EasyDocStation_Document',
+  });
+
+  return <button onClick={handlePrint}>문서 인쇄하기</button>;
+};
+
+// 메인 컴포넌트
+export default function App() {
+  const contentRef = useRef<HTMLDivElement>(null);
+
+  return (
+    <div>
+      {/* 인쇄 버튼 */}
+      <PrintComponent editorContentRef={contentRef} />
+      
+      {/* Tiptap 에디터 영역 (이 부분만 인쇄됨) */}
+      <div ref={contentRef} className="print-container">
+        <EditorContent editor={editor} />
+      </div>
+    </div>
+  );
+}
+
+
+
 
 
 
