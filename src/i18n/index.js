@@ -3,11 +3,11 @@ export const translations = {
     app: { loading: '로딩 중...' },
     login: {
       welcome: '팀 협업 플랫폼에 오신 것을 환영합니다',
-      email: '이메일', emailPlaceholder: 'your@email.com',
+      email: '아이디', emailPlaceholder: '아이디를 입력하세요',
       password: '비밀번호', passwordPlaceholder: '••••••••',
       submit: '로그인', submitting: '로그인 중...',
       demoAccounts: '데모 계정으로 로그인', demoPassword: '비밀번호: password123',
-      accountLocked: '계정 잠김', loginFailed: '이메일 또는 비밀번호가 올바르지 않습니다.',
+      accountLocked: '계정 잠김', loginFailed: '아이디 또는 비밀번호가 올바르지 않습니다.',
       lockedKeyword: '잠겼습니다',
     },
     titlebar: {
@@ -423,11 +423,11 @@ export const translations = {
     app: { loading: 'Loading...' },
     login: {
       welcome: 'Welcome to the team collaboration platform',
-      email: 'Email', emailPlaceholder: 'your@email.com',
+      email: 'ID', emailPlaceholder: 'Enter your ID',
       password: 'Password', passwordPlaceholder: '••••••••',
       submit: 'Sign In', submitting: 'Signing in...',
       demoAccounts: 'Sign in with demo account', demoPassword: 'Password: password123',
-      accountLocked: 'Account Locked', loginFailed: 'Incorrect email or password.',
+      accountLocked: 'Account Locked', loginFailed: 'Incorrect ID or password.',
       lockedKeyword: 'locked',
     },
     titlebar: {
@@ -844,14 +844,15 @@ translations.ja = {
   app: { loading: '読み込み中...' },
   login: {
     welcome: 'チームコラボレーションプラットフォームへようこそ',
-    email: 'メールアドレス',
+    email: 'ID',
+    emailPlaceholder: 'IDを入力してください',
     password: 'パスワード',
     submit: 'ログイン',
     submitting: 'ログイン中...',
     demoAccounts: 'デモアカウントでログイン',
     demoPassword: 'パスワード: password123',
     accountLocked: 'アカウントがロックされています',
-    loginFailed: 'メールアドレスまたはパスワードが正しくありません。',
+    loginFailed: 'IDまたはパスワードが正しくありません。',
     lockedKeyword: 'ロック',
   },
   titlebar: {
