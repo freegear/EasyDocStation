@@ -4,6 +4,7 @@ import { apiFetch, setToken, clearToken, getToken, setSessionInvalidatedHandler 
 const AuthContext = createContext(null)
 const LANGUAGE_STORAGE_KEY = 'easydocstation.language'
 const SUPPORTED_LANGUAGES = new Set(['ko', 'en', 'ja'])
+const IDLE_LOGOUT_MS = 30 * 60 * 1000
 
 export function AuthProvider({ children }) {
   const [currentUser, setCurrentUser] = useState(null)
@@ -14,6 +15,29 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true)   // true while restoring session
   const [maxAttachmentFileSize, setMaxAttachmentFileSize] = useState(100)
   const currentUserRef = useRef(null)
+  const idleTimerRef = useRef(null)
+  const isAutoLoggingOutRef = useRef(false)
+
+  function clearIdleTimer() {
+    if (idleTimerRef.current) {
+      window.clearTimeout(idleTimerRef.current)
+      idleTimerRef.current = null
+    }
+  }
+
+  function clearLocalSession() {
+    clearToken()
+    setCurrentUser(null)
+    currentUserRef.current = null
+  }
+
+  async function logoutToServer() {
+    try {
+      await apiFetch('/auth/logout', { method: 'POST' })
+    } catch (_) {
+      // 서버 오류 시에도 로컬 세션은 정리
+    }
+  }
 
   // 세션 강제 만료 핸들러 (다른 기기 로그인 감지)
   useEffect(() => {
@@ -82,14 +106,50 @@ export function AuthProvider({ children }) {
   }
 
   async function logout() {
-    try {
-      await apiFetch('/auth/logout', { method: 'POST' })
-    } catch (_) {
-      // 서버 오류 시에도 로컬 세션은 정리
-    }
-    clearToken()
-    setCurrentUser(null)
+    clearIdleTimer()
+    await logoutToServer()
+    clearLocalSession()
   }
+
+  // 유휴 시간 30분 초과 시 자동 로그아웃
+  useEffect(() => {
+    if (!currentUser) {
+      clearIdleTimer()
+      return undefined
+    }
+
+    const scheduleAutoLogout = () => {
+      clearIdleTimer()
+      idleTimerRef.current = window.setTimeout(async () => {
+        if (isAutoLoggingOutRef.current || !currentUserRef.current) return
+        isAutoLoggingOutRef.current = true
+        try {
+          await logoutToServer()
+        } finally {
+          clearLocalSession()
+          isAutoLoggingOutRef.current = false
+        }
+      }, IDLE_LOGOUT_MS)
+    }
+
+    const handleUserActivity = () => {
+      if (!currentUserRef.current) return
+      scheduleAutoLogout()
+    }
+
+    scheduleAutoLogout()
+    const activityEvents = ['mousedown', 'mousemove', 'keydown', 'scroll', 'touchstart', 'pointerdown']
+    activityEvents.forEach((eventName) => {
+      window.addEventListener(eventName, handleUserActivity, { passive: true })
+    })
+
+    return () => {
+      clearIdleTimer()
+      activityEvents.forEach((eventName) => {
+        window.removeEventListener(eventName, handleUserActivity)
+      })
+    }
+  }, [currentUser])
 
   function setLanguage(nextLanguage) {
     const safeLanguage = SUPPORTED_LANGUAGES.has(nextLanguage) ? nextLanguage : 'ko'
