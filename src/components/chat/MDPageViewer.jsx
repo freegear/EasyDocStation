@@ -273,7 +273,9 @@ export default function MDPageViewer({ post, channelId, onClose }) {
         width: 2,
       }),
       Placeholder.configure({ placeholder: t.mdPage.sourcePlaceholder }),
-      Markdown.configure({ html: false, transformCopiedText: true, transformPastedText: true }),
+      // 이미지/복합 콘텐츠가 포함된 표는 순수 markdown 직렬화가 불가능할 수 있어
+      // html 모드로 fallback 저장/복원을 허용한다.
+      Markdown.configure({ html: true, transformCopiedText: true, transformPastedText: true }),
     ],
     content: stripImageMeta(initialMdRaw),
     editable: canEdit && mode === 'preview',
