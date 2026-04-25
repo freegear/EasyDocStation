@@ -4,19 +4,32 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
 
-install_print_dependencies() {
-  echo "[DGX] 프론트 인쇄 의존성 정합 시작"
+install_frontend_dependencies() {
+  echo "[DGX] 프론트 의존성 정합 시작"
   echo "  1) @vitejs/plugin-react 최신화"
   npm install -D @vitejs/plugin-react@latest
 
-  echo "  2) react-to-print 설치"
-  if npm install react-to-print; then
-    echo "  - react-to-print 설치 성공"
-    return 0
-  fi
+  local packages=(
+    "react-to-print"
+    "@tiptap/extension-table"
+    "@tiptap/extension-table-row"
+    "@tiptap/extension-table-cell"
+    "@tiptap/extension-table-header"
+  )
 
-  echo "  3) react-to-print 우회 설치(--legacy-peer-deps)"
-  npm install react-to-print --legacy-peer-deps
+  for pkg in "${packages[@]}"; do
+    if npm ls "$pkg" --depth=0 >/dev/null 2>&1; then
+      echo "  - $pkg: OK"
+      continue
+    fi
+    echo "  2) 설치 시도: $pkg"
+    if npm install "$pkg"; then
+      echo "  - $pkg 설치 성공"
+      continue
+    fi
+    echo "  3) 우회 설치(--legacy-peer-deps): $pkg"
+    npm install "$pkg" --legacy-peer-deps
+  done
 }
 
 if [[ ! -f "$ROOT_DIR/server/.env" ]]; then
@@ -38,13 +51,8 @@ if command -v nvidia-smi >/dev/null 2>&1; then
   nvidia-smi --query-gpu=name,utilization.gpu,memory.used,memory.total --format=csv,noheader
 fi
 
-echo "[DGX] npm 의존성 점검 (react-to-print)"
-if ! npm ls react-to-print --depth=0 >/dev/null 2>&1; then
-  echo "  - react-to-print 누락 감지, 설치를 진행합니다."
-  install_print_dependencies
-else
-  echo "  - react-to-print: OK"
-fi
+echo "[DGX] npm 의존성 점검"
+install_frontend_dependencies
 
 echo "[DGX] 문서 변환/학습 의존성 점검"
 for cmd in libreoffice pdftoppm ffmpeg tesseract; do
