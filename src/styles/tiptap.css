@@ -178,19 +178,11 @@
 }
 
 /* Consecutive images: auto horizontal layout when enough width */
-.tiptap-editor .ProseMirror > div:has(> div > img):has(+ div:has(> div > img)),
-.tiptap-editor .ProseMirror > div:has(> div > img) + div:has(> div > img),
-.tiptap-editor .ProseMirror > div:has(> img):has(+ div:has(> img)),
-.tiptap-editor .ProseMirror > div:has(> img) + div:has(> img) {
+.tiptap-editor .ProseMirror > .md-image-inline-run-item {
   display: inline-flex !important;
   vertical-align: top;
   margin-right: 0.5rem;
   margin-bottom: 0.5rem;
-  max-width: 100%;
-}
-
-.tiptap-editor .ProseMirror > div:has(> div > img) > div,
-.tiptap-editor .ProseMirror > div:has(> img) {
   max-width: 100%;
 }
 
