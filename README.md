@@ -69,6 +69,22 @@ npm run dev:ubuntu
 
 `dev:ubuntu`는 `.venv/bin/python3`를 자동으로 사용해 RAG Python 모듈 경로 이슈를 줄입니다.
 
+### 3) 재시작 (관련 프로세스 전체 종료 후 재기동)
+
+```bash
+npm run restart:ubuntu
+```
+
+`restart:ubuntu`는 EasyDocStation 관련 실행 프로세스(프론트/백엔드/dev runner)를 먼저 종료한 뒤 `dev:ubuntu`로 다시 시작합니다.
+
+DGX Spark 모드 재시작:
+
+```bash
+npm run restart:dgx-spark
+```
+
+`restart:dgx-spark`는 관련 실행 프로세스를 먼저 종료한 뒤 `dev:dgx-spark`로 다시 시작합니다.
+
 ## 코드의 Ubuntu 자동 조정 방식
 - DB/스토리지 경로는 `config.json`의
   - `EasyDocStationFolder`
