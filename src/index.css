@@ -78,3 +78,10 @@ html, body, #root {
   animation: pulse-highlight 2s ease-in-out infinite;
   border-color: rgba(99, 102, 241, 0.6) !important;
 }
+
+/* 게시글/댓글 본문은 항상 드래그 선택 가능하도록 강제 */
+.allow-copy,
+.allow-copy * {
+  user-select: text !important;
+  -webkit-user-select: text !important;
+}

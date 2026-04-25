@@ -49,18 +49,15 @@ function MainLayout() {
       window.addEventListener('mousemove', onGroqMouseMove)
       window.addEventListener('mouseup', stopGroqResize)
       document.body.style.cursor = 'col-resize'
-      document.body.style.userSelect = 'none'
     } else {
       window.removeEventListener('mousemove', onGroqMouseMove)
       window.removeEventListener('mouseup', stopGroqResize)
       document.body.style.cursor = ''
-      document.body.style.userSelect = ''
     }
     return () => {
       window.removeEventListener('mousemove', onGroqMouseMove)
       window.removeEventListener('mouseup', stopGroqResize)
       document.body.style.cursor = ''
-      document.body.style.userSelect = ''
     }
   }, [resizingGroq, onGroqMouseMove, stopGroqResize])
 
