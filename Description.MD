@@ -3147,6 +3147,279 @@ export default function App() {
 }
 
 
+# 28,9 tiptap에서 표를 넣기
+
+# 28.9.1 기본적으로 Table 관련 extension들을 설치
+
+Tiptap에서 표(Table)를 넣으려면 기본적으로 Table 관련 extension들을 설치하고 에디터에 등록한 다음, 명령어(command)로 테이블을 삽입하면 됩니다
+
+# 28.9.1.1 패키지 설치
+
+npm install @tiptap/extension-table \
+            @tiptap/extension-table-row \
+            @tiptap/extension-table-cell \
+            @tiptap/extension-table-header
+
+# 28.9.1.2 에디터에 extension 등록
+
+import { Editor } from '@tiptap/core'
+import StarterKit from '@tiptap/starter-kit'
+
+import Table from '@tiptap/extension-table'
+import TableRow from '@tiptap/extension-table-row'
+import TableCell from '@tiptap/extension-table-cell'
+import TableHeader from '@tiptap/extension-table-header'
+
+const editor = new Editor({
+  extensions: [
+    StarterKit,
+    Table.configure({
+      resizable: true, // 컬럼 크기 조절 가능
+    }),
+    TableRow,
+    TableHeader,
+    TableCell,
+  ],
+})
+
+# 28.9.1.3  표 삽입 (핵심)
+
+
+editor.commands.insertTable({
+  rows: 3,
+  cols: 3,
+  withHeaderRow: true,
+})
+
+👉 결과: 3x3 테이블 + 첫 줄은 header
+
+
+# 28.9.1.4 자주 쓰는 테이블 명령어
+
+// 행 추가
+editor.commands.addRowAfter()
+
+// 열 추가
+editor.commands.addColumnAfter()
+
+// 행 삭제
+editor.commands.deleteRow()
+
+// 열 삭제
+editor.commands.deleteColumn()
+
+// 테이블 삭제
+editor.commands.deleteTable()
+
+// 셀 병합
+editor.commands.mergeCells()
+
+// 셀 분할
+editor.commands.splitCell()
+
+
+# 28.9.1.5 React에서 버튼으로 쓰는 예
+
+<button
+  onClick={() =>
+    editor.chain().focus().insertTable({ rows: 3, cols: 3 }).run()
+  }
+>
+  표 추가
+</button>
+
+# 28.9.1.6 실무 팁
+
+resizable: true 꼭 넣는 걸 추천 (UX 좋아짐)
+테이블 스타일은 CSS로 직접 잡아줘야 함 (border 등)
+기본 상태에서는 키보드로 행/열 이동 UX가 좋지 않아서 커스텀하는 경우 많음
+
+# 28.9.2 Notion 스타일 테이블 UX
+
+# 28.9.2.1. 기본 TableKit 사용
+
+최신 Tiptap은 TableKit 사용이 권장됩니다.
+
+npm install @tiptap/extension-table
+
+import { TableKit } from '@tiptap/extension-table'
+
+const editor = useEditor({
+  extensions: [
+    StarterKit,
+    TableKit.configure({
+      table: {
+        resizable: true,
+      },
+    }),
+  ],
+})
+
+# 28.9.2.2. 표 삽입 버튼
+
+<button
+  onClick={() =>
+    editor.chain().focus().insertTable({
+      rows: 3,
+      cols: 3,
+      withHeaderRow: true,
+    }).run()
+  }
+>
+  표 추가
+</button>
+
+# 28.9.2.3  표 안에서만 보이는 툴바
+
+React에서는 BubbleMenu를 쓰면 됩니다. Tiptap React는 @tiptap/react/menus에서 BubbleMenu를 제공합니다.
+
+import { BubbleMenu } from '@tiptap/react/menus'
+
+function TableToolbar({ editor }) {
+  if (!editor) return null
+
+  return (
+    <BubbleMenu
+      editor={editor}
+      shouldShow={() => editor.isActive('table')}
+    >
+      <div className="table-toolbar">
+        <button onClick={() => editor.chain().focus().addColumnBefore().run()}>
+          왼쪽 열 추가
+        </button>
+        <button onClick={() => editor.chain().focus().addColumnAfter().run()}>
+          오른쪽 열 추가
+        </button>
+        <button onClick={() => editor.chain().focus().addRowBefore().run()}>
+          위 행 추가
+        </button>
+        <button onClick={() => editor.chain().focus().addRowAfter().run()}>
+          아래 행 추가
+        </button>
+        <button onClick={() => editor.chain().focus().deleteColumn().run()}>
+          열 삭제
+        </button>
+        <button onClick={() => editor.chain().focus().deleteRow().run()}>
+          행 삭제
+        </button>
+        <button onClick={() => editor.chain().focus().deleteTable().run()}>
+          표 삭제
+        </button>
+      </div>
+    </BubbleMenu>
+  )
+}
+
+
+# 28.9.2.4. 컨텍스트 메뉴
+
+function onTableContextMenu(e) {
+  const table = e.target.closest('table')
+
+  if (!table) return
+
+  e.preventDefault()
+
+  // 여기서 Radix DropdownMenu, shadcn ContextMenu 등 열기
+  setMenu({
+    open: true,
+    x: e.clientX,
+    y: e.clientY,
+  })
+}
+
+<div onContextMenu={onTableContextMenu}>
+  <EditorContent editor={editor} />
+</div>
+
+editor.chain().focus().addRowAfter().run()
+editor.chain().focus().addColumnAfter().run()
+editor.chain().focus().mergeCells().run()
+editor.chain().focus().splitCell().run()
+editor.chain().focus().toggleHeaderRow().run()
+editor.chain().focus().deleteTable().run()
+
+
+# 28.9.2.5. Notion 느낌 CSS
+
+.ProseMirror table {
+  border-collapse: collapse;
+  table-layout: fixed;
+  width: 100%;
+  margin: 12px 0;
+  overflow: hidden;
+}
+
+.ProseMirror td,
+.ProseMirror th {
+  border: 1px solid #e5e7eb;
+  padding: 8px 10px;
+  min-width: 80px;
+  vertical-align: top;
+  position: relative;
+}
+
+.ProseMirror th {
+  background: #f9fafb;
+  font-weight: 600;
+}
+
+.ProseMirror .selectedCell::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(59, 130, 246, 0.12);
+  pointer-events: none;
+}
+
+.ProseMirror .column-resize-handle {
+  position: absolute;
+  right: -2px;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: #3b82f6;
+  pointer-events: none;
+}
+
+.table-toolbar {
+  display: flex;
+  gap: 4px;
+  padding: 6px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: white;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+}
+
+
+# 28.9.2.6 Notion 스타일 핵심 UX 구성
+
+표 삽입 버튼
+ └─ insertTable()
+
+표 안 클릭
+ └─ BubbleMenu 표시
+
+표 우클릭
+ └─ ContextMenu 표시
+
+셀 선택
+ └─ selectedCell CSS 강조
+
+컬럼 리사이즈
+ └─ TableKit table.resizable = true
+
+행/열 추가 핸들
+ └─ 커스텀 NodeView 또는 table 주변 overlay로 구현
+
+
+ 
+
+
+
+
+
 
 
 
