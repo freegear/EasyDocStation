@@ -25,6 +25,13 @@ export default function SearchResultsArea({ onSelectResult }) {
     suppressClickRef.current = false
   }
 
+  function handleItemClickCapture(e) {
+    if (!hasAnyTextSelection()) return
+    if (!hasTextSelectionInside(e?.currentTarget)) return
+    e.preventDefault()
+    e.stopPropagation()
+  }
+
   async function handleItemClick(item, e) {
     if (suppressClickRef.current) {
       suppressClickRef.current = false
@@ -99,6 +106,7 @@ export default function SearchResultsArea({ onSelectResult }) {
               <div
                 key={`${item.id}-${idx}`}
                 onMouseUp={handleItemMouseUp}
+                onClickCapture={handleItemClickCapture}
                 onClick={(e) => handleItemClick(item, e)}
                 className="bg-gray-100 border border-gray-200 rounded-2xl p-5 hover:border-indigo-500/50 hover:bg-gray-200 transition-all cursor-pointer group"
               >
