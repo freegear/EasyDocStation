@@ -1,7 +1,6 @@
-import { useRef } from 'react'
 import { useChat } from '../contexts/ChatContext'
 import { useT } from '../i18n/useT'
-import { getSelectedText, hasAnyTextSelection, hasTextSelectionInside } from '../lib/textSelection'
+import { useSelectionClickGuard } from '../hooks/useSelectionClickGuard'
 
 export default function SearchResultsArea({ onSelectResult }) {
   const {
@@ -14,31 +13,15 @@ export default function SearchResultsArea({ onSelectResult }) {
     teams
   } = useChat()
   const t = useT()
-  const suppressClickRef = useRef(false)
-
-  function handleItemMouseUp(e) {
-    if (hasTextSelectionInside(e?.currentTarget) || hasAnyTextSelection()) {
-      const text = getSelectedText()
-      suppressClickRef.current = Boolean(text)
-      return
-    }
-    suppressClickRef.current = false
-  }
-
-  function handleItemClickCapture(e) {
-    if (!hasAnyTextSelection()) return
-    if (!hasTextSelectionInside(e?.currentTarget)) return
-    e.preventDefault()
-    e.stopPropagation()
-  }
+  const {
+    handleMouseDown,
+    handleMouseUp,
+    handleClickCapture,
+    shouldBlockClick,
+  } = useSelectionClickGuard({ scope: 'search-result-card', dragThreshold: 4, blockOnAnySelection: true })
 
   async function handleItemClick(item, e) {
-    if (suppressClickRef.current) {
-      suppressClickRef.current = false
-      return
-    }
-    if (hasAnyTextSelection()) return
-    if (hasTextSelectionInside(e?.currentTarget)) return
+    if (shouldBlockClick(e, { useDragThreshold: true })) return
     const team = teams.find(tm => tm.name === item.teamName)
     const channel = team?.channels?.find(c => c.id === item.channelId)
 
@@ -105,8 +88,9 @@ export default function SearchResultsArea({ onSelectResult }) {
             searchResults.map((item, idx) => (
               <div
                 key={`${item.id}-${idx}`}
-                onMouseUp={handleItemMouseUp}
-                onClickCapture={handleItemClickCapture}
+                onMouseDown={handleMouseDown}
+                onMouseUp={handleMouseUp}
+                onClickCapture={handleClickCapture}
                 onClick={(e) => handleItemClick(item, e)}
                 className="bg-gray-100 border border-gray-200 rounded-2xl p-5 hover:border-indigo-500/50 hover:bg-gray-200 transition-all cursor-pointer group"
               >

@@ -79,6 +79,8 @@ function isMessageEditable(createdAtIso, nowMs = Date.now()) {
   return (nowMs - createdAtMs) <= (10 * 60 * 1000)
 }
 
+const MESSAGE_SYNC_INTERVAL_MS = 1500
+
 function sameReadBy(a, b) {
   const arrA = Array.isArray(a) ? a : []
   const arrB = Array.isArray(b) ? b : []
@@ -538,7 +540,7 @@ function MessageBubble({
                     {deletedMessageLabel}
                   </p>
                 ) : (
-                  msg.content && <p className="whitespace-pre-wrap break-words">{renderTextWithLinks(msg.content, isMine)}</p>
+                  msg.content && <p className="whitespace-pre-wrap break-words select-text allow-copy">{renderTextWithLinks(msg.content, isMine)}</p>
                 )}
                 {msg.attachments?.length > 0 && (
                   <div className={`flex flex-col gap-1 ${msg.content ? 'mt-2' : ''}`}>
@@ -638,7 +640,7 @@ export default function DirectMessageView({ conversation, onClose, onConversatio
     if (!conversation?.id) return
     const timer = setInterval(() => {
       loadMessages()
-    }, 1500)
+    }, MESSAGE_SYNC_INTERVAL_MS)
     return () => clearInterval(timer)
   }, [conversation?.id])
 
@@ -663,7 +665,7 @@ export default function DirectMessageView({ conversation, onClose, onConversatio
       // 불러오는 즉시 읽음 처리
       markAsRead()
     } catch (e) {
-      console.error('메시지 로드 실패:', e)
+      console.error('메시지 로드 실패', { conversationId: conversation?.id, error: e })
     }
   }
 
