@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useRef } from 'react'
+import { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react'
 import { apiFetch } from '../lib/api'
 
 const ChatContext = createContext(null)
@@ -294,17 +294,29 @@ export function ChatProvider({ children }) {
     setAgenticTarget(null)
   }
 
-  function setSelectedPostContext(channelId, postId) {
+  const setSelectedPostContext = useCallback((channelId, postId) => {
     if (!channelId || !postId) {
-      setActivePostSelection({ channelId: null, postId: null })
+      setActivePostSelection(prev => (
+        prev.channelId === null && prev.postId === null
+          ? prev
+          : { channelId: null, postId: null }
+      ))
       return
     }
-    setActivePostSelection({ channelId, postId })
-  }
+    setActivePostSelection(prev => (
+      prev.channelId === channelId && prev.postId === postId
+        ? prev
+        : { channelId, postId }
+    ))
+  }, [])
 
-  function clearSelectedPostContext() {
-    setActivePostSelection({ channelId: null, postId: null })
-  }
+  const clearSelectedPostContext = useCallback(() => {
+    setActivePostSelection(prev => (
+      prev.channelId === null && prev.postId === null
+        ? prev
+        : { channelId: null, postId: null }
+    ))
+  }, [])
 
   const [isSearchMode, setIsSearchMode] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
