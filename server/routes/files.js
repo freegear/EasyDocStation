@@ -42,9 +42,9 @@ function appendThumbLog(logFile, message) {
   } catch (_) {}
 }
 
-function execFileAsync(command, args) {
+function execFileAsync(command, args, options = {}) {
   return new Promise((resolve, reject) => {
-    execFile(command, args, (err, stdout, stderr) => {
+    execFile(command, args, options, (err, stdout, stderr) => {
       if (err) {
         err.stdout = stdout
         err.stderr = stderr
@@ -57,30 +57,43 @@ function execFileAsync(command, args) {
 }
 
 async function convertWithLibreOfficeToPdf(inputPath, outDir) {
+  const ext = path.extname(inputPath).toLowerCase()
+  const preferredFilter = (
+    (ext === '.ppt' || ext === '.pptx') ? 'pdf:impress_pdf_Export' :
+    (ext === '.doc' || ext === '.docx') ? 'pdf:writer_pdf_Export' :
+    (ext === '.xls' || ext === '.xlsx') ? 'pdf:calc_pdf_Export' :
+    'pdf'
+  )
   const userProfileDir = fs.mkdtempSync(path.join(outDir, 'lo-profile-'))
-  const commonArgs = [
+  const baseArgs = [
     '--headless',
     '--nologo',
     '--nolockcheck',
     '--nodefault',
     '--norestore',
     `-env:UserInstallation=file://${userProfileDir}`,
-    '--convert-to', 'pdf',
-    '--outdir', outDir,
-    inputPath,
   ]
+
+  const convertArgsList = preferredFilter === 'pdf'
+    ? [['--convert-to', 'pdf', '--outdir', outDir, inputPath]]
+    : [
+        ['--convert-to', preferredFilter, '--outdir', outDir, inputPath],
+        ['--convert-to', 'pdf', '--outdir', outDir, inputPath],
+      ]
 
   let lastErr = null
   for (const cmd of ['libreoffice', 'soffice']) {
-    try {
-      await execFileAsync(cmd, commonArgs)
-      const expected = path.join(outDir, `${path.parse(inputPath).name}.pdf`)
-      if (fs.existsSync(expected)) return expected
+    for (const convertArgs of convertArgsList) {
+      try {
+        await execFileAsync(cmd, [...baseArgs, ...convertArgs], { timeout: 120000, maxBuffer: 8 * 1024 * 1024 })
+        const expected = path.join(outDir, `${path.parse(inputPath).name}.pdf`)
+        if (fs.existsSync(expected)) return expected
 
-      const fallbackPdfName = fs.readdirSync(outDir).find(n => n.toLowerCase().endsWith('.pdf'))
-      if (fallbackPdfName) return path.join(outDir, fallbackPdfName)
-    } catch (err) {
-      lastErr = err
+        const fallbackPdfName = fs.readdirSync(outDir).find(n => n.toLowerCase().endsWith('.pdf'))
+        if (fallbackPdfName) return path.join(outDir, fallbackPdfName)
+      } catch (err) {
+        lastErr = err
+      }
     }
   }
 
