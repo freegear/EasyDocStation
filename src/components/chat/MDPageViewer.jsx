@@ -109,6 +109,51 @@ function truncateSingleLine(text = '', max = 60) {
   return `${oneLine.slice(0, max - 1)}…`
 }
 
+function blobToDataUrl(blob) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(String(reader.result || ''))
+    reader.onerror = reject
+    reader.readAsDataURL(blob)
+  })
+}
+
+async function inlineImagesForPrint(html = '') {
+  const parser = new DOMParser()
+  const doc = parser.parseFromString(`<div id="print-root">${html}</div>`, 'text/html')
+  const root = doc.getElementById('print-root')
+  if (!root) return html
+
+  const images = Array.from(root.querySelectorAll('img'))
+  if (images.length === 0) return root.innerHTML
+
+  await Promise.all(images.map(async (img) => {
+    const src = String(img.getAttribute('src') || '').trim()
+    if (!src) return
+    try {
+      const absUrl = new URL(src, window.location.origin).toString()
+      const controller = new AbortController()
+      const timer = setTimeout(() => controller.abort(), 4000)
+      const resp = await fetch(absUrl, {
+        credentials: 'include',
+        cache: 'no-store',
+        signal: controller.signal,
+      })
+      clearTimeout(timer)
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`)
+      const blob = await resp.blob()
+      const dataUrl = await blobToDataUrl(blob)
+      if (!dataUrl) throw new Error('empty data url')
+      img.setAttribute('src', dataUrl)
+    } catch {
+      // 이미지 로딩 실패가 인쇄 프리뷰 전체를 막지 않도록 제거
+      img.remove()
+    }
+  }))
+
+  return root.innerHTML
+}
+
 export default function MDPageViewer({ post, channelId, onClose }) {
   const { updatePost } = useChat()
   const { currentUser } = useAuth()
@@ -125,6 +170,7 @@ export default function MDPageViewer({ post, channelId, onClose }) {
   const [showSaveDialog, setShowSaveDialog] = useState(false)
   const [isUploadingImage, setIsUploadingImage] = useState(false)
   const [isDragOver, setIsDragOver] = useState(false)
+  const [isPrinting, setIsPrinting] = useState(false)
   const showSaveDialogRef = useRef(false)
   const imageInputRef = useRef(null)
   const imageMetaRef = useRef(imageMeta)
@@ -344,12 +390,22 @@ export default function MDPageViewer({ post, channelId, onClose }) {
     }
   }
 
-  function handlePrint() {
+  async function handlePrint() {
+    if (isPrinting) return
+    setIsPrinting(true)
     const docTitle = (pageTitle || t.mdPage.title || 'EasyPage').trim()
     const mdHtml = editor?.getHTML?.() || ''
     if (!mdHtml) {
       window.print()
+      setIsPrinting(false)
       return
+    }
+
+    let printableBody = mdHtml
+    try {
+      printableBody = await inlineImagesForPrint(mdHtml)
+    } catch (_) {
+      printableBody = mdHtml
     }
 
     const printableHtml = `<!doctype html>
@@ -376,7 +432,7 @@ export default function MDPageViewer({ post, channelId, onClose }) {
     </style>
   </head>
   <body>
-    <div class="doc">${mdHtml}</div>
+    <div class="doc">${printableBody}</div>
   </body>
 </html>`
 
@@ -394,12 +450,14 @@ export default function MDPageViewer({ post, channelId, onClose }) {
       try {
         iframe.remove()
       } catch (_) {}
+      setIsPrinting(false)
     }
 
     const printDoc = iframe.contentWindow?.document
     if (!printDoc || !iframe.contentWindow) {
       cleanup()
       window.print()
+      setIsPrinting(false)
       return
     }
 
@@ -420,6 +478,7 @@ export default function MDPageViewer({ post, channelId, onClose }) {
       } catch (_) {
         cleanup()
         window.print()
+        setIsPrinting(false)
       }
     }
 
@@ -483,9 +542,10 @@ export default function MDPageViewer({ post, channelId, onClose }) {
 
         <button
           onClick={handlePrint}
-          className="px-3 py-1.5 rounded-lg border border-gray-200 text-xs text-gray-500 hover:bg-gray-50 hover:text-gray-700 transition-colors flex-shrink-0"
+          disabled={isPrinting}
+          className="px-3 py-1.5 rounded-lg border border-gray-200 text-xs text-gray-500 hover:bg-gray-50 hover:text-gray-700 disabled:opacity-60 transition-colors flex-shrink-0"
         >
-          {t.mdPage.print || '인쇄'}
+          {isPrinting ? (t.mdPage.printing || '인쇄 준비 중...') : (t.mdPage.print || '인쇄')}
         </button>
 
         {canEdit && isChanged && (
