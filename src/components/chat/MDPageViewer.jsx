@@ -344,6 +344,10 @@ export default function MDPageViewer({ post, channelId, onClose }) {
     }
   }
 
+  function handlePrint() {
+    window.print()
+  }
+
   return (
     <div className="flex flex-col flex-1 min-h-0 bg-white">
 
@@ -377,6 +381,13 @@ export default function MDPageViewer({ post, channelId, onClose }) {
             {t.mdPage.viewPreview}
           </button>
         </div>
+
+        <button
+          onClick={handlePrint}
+          className="px-3 py-1.5 rounded-lg border border-gray-200 text-xs text-gray-500 hover:bg-gray-50 hover:text-gray-700 transition-colors flex-shrink-0"
+        >
+          {t.mdPage.print || '인쇄'}
+        </button>
 
         {canEdit && isChanged && (
           <button
