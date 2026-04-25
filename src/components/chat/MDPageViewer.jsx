@@ -114,6 +114,8 @@ function normalizeMarkdownForTableParsing(md = '') {
   // Markdown image line 바로 아래에 GFM table 헤더가 붙으면 표 파싱이 깨지는 케이스가 있어
   // 블록 경계를 명확히 하기 위해 빈 줄을 강제한다.
   return text
+    .replace(/(!\[[^\]]*]\([^)]*\))(?=\|)/g, '$1\n\n')
+    .replace(/(<img\b[^>]*>)(?=\|)/gi, '$1\n\n')
     .replace(/(!\[[^\]]*]\([^)]+\)(?:\{[^}]*\})?[^\n]*)\n(?=\|.+\|)/g, '$1\n\n')
     .replace(/(<img\b[^>]*>[^\n]*)\n(?=\|.+\|)/gi, '$1\n\n')
 }
@@ -579,7 +581,12 @@ export default function MDPageViewer({ post, channelId, onClose }) {
       const src = `/api/files/view/${prep.file_uuid}${authToken ? `?auth_token=${encodeURIComponent(authToken)}` : ''}`
       const chain = editor.chain().focus()
       if (Number.isFinite(insertPos)) chain.setTextSelection(insertPos)
-      chain.setImage({ src, alt: file.name, title: file.name }).run()
+      // 이미지 아래에 표가 붙어 깨지는 문제를 막기 위해
+      // 이미지 삽입 시 항상 빈 문단 1줄을 함께 추가한다.
+      chain.insertContent([
+        { type: 'image', attrs: { src, alt: file.name, title: file.name } },
+        { type: 'paragraph' },
+      ]).run()
     } catch (e) {
       console.error('MD 이미지 업로드 실패:', e)
       alert(t.mdPage.imageUploadFail || '이미지 업로드에 실패했습니다.')
