@@ -2261,6 +2261,7 @@ function PostCard({ post, onSelect, pinned, isSelected }) {
   const attachCount = post.attachments?.length || 0
   const commentCount = post.comments?.length || 0
   const trainingStatus = post.training_status || null
+  const [copyToast, setCopyToast] = useState(null) // { x, y, text }
 
   const keepTextSelection = (e) => e.stopPropagation()
 
@@ -2268,6 +2269,29 @@ function PostCard({ post, onSelect, pinned, isSelected }) {
     const selectedText = window.getSelection?.()?.toString() || ''
     if (selectedText.trim().length > 0) return
     onSelect(post)
+  }
+
+  function handleCardMouseUp(e) {
+    const selected = window.getSelection?.()?.toString?.() || ''
+    if (selected.trim().length > 0) {
+      setCopyToast({ x: e.clientX, y: e.clientY, text: selected })
+    } else {
+      setCopyToast(null)
+    }
+  }
+
+  function handleCopy() {
+    if (!copyToast) return
+    navigator.clipboard.writeText(copyToast.text).catch(() => {
+      const ta = document.createElement('textarea')
+      ta.value = copyToast.text
+      document.body.appendChild(ta)
+      ta.select()
+      document.execCommand('copy')
+      document.body.removeChild(ta)
+    })
+    setCopyToast(null)
+    window.getSelection?.()?.removeAllRanges?.()
   }
 
   function handleCardKeyDown(e) {
@@ -2278,31 +2302,32 @@ function PostCard({ post, onSelect, pinned, isSelected }) {
   }
 
   return (
-    <div
-      role="button"
-      tabIndex={0}
-      onClick={handleCardClick}
-      onKeyDown={handleCardKeyDown}
-      className={`w-full text-left px-5 py-3 rounded-2xl border transition-all group ${
-        isSelected
-          ? 'bg-indigo-50 border-indigo-300'
-          : pinned
-          ? 'bg-amber-50 border-amber-100 hover:bg-amber-50 hover:border-amber-200'
-          : 'bg-gray-50 border-gray-200 hover:bg-white/7 hover:border-gray-200'
-      }`}
-    >
+    <div className="relative">
+      <div
+        tabIndex={0}
+        onClick={handleCardClick}
+        onKeyDown={handleCardKeyDown}
+        onMouseUp={handleCardMouseUp}
+        className={`w-full text-left px-5 py-3 rounded-2xl border transition-all group cursor-pointer ${
+          isSelected
+            ? 'bg-indigo-50 border-indigo-300'
+            : pinned
+            ? 'bg-amber-50 border-amber-100 hover:bg-amber-50 hover:border-amber-200'
+            : 'bg-gray-50 border-gray-200 hover:bg-white/7 hover:border-gray-200'
+        }`}
+      >
       <div className="flex items-start gap-2.5">
         <Avatar letters={post.author?.avatar || '?'} imageUrl={post.author?.image_url} />
         <div className="flex-1 min-w-0">
           {/* Lead line */}
-          <div className="flex items-center gap-2 mb-0.5" onMouseDown={keepTextSelection} onClick={keepTextSelection}>
+          <div className="flex items-center gap-2 mb-0.5" onMouseDown={keepTextSelection}>
             {pinned && <PinIcon />}
             {leadLine && (
-              <p className="text-gray-800 font-semibold text-sm leading-tight group-hover:text-indigo-600 transition-colors truncate select-text allow-copy cursor-text">{leadLine}</p>
+              <p className="text-gray-800 font-semibold text-sm leading-tight group-hover:text-indigo-600 transition-colors overflow-hidden text-ellipsis whitespace-nowrap select-text allow-copy cursor-text">{leadLine}</p>
             )}
           </div>
           {/* Meta */}
-          <div className={`flex items-center gap-2 text-gray-400 text-xs ${bodyPreview ? 'mb-1' : 'mb-0'}`}>
+          <div className={`flex items-center gap-2 text-gray-400 text-xs select-text allow-copy ${bodyPreview ? 'mb-1' : 'mb-0'}`} onMouseDown={keepTextSelection}>
             <span className="font-medium text-gray-500">{post.author?.name}</span>
             {post.author?.username && (
               <span className="text-gray-400">@{post.author.username}</span>
@@ -2346,6 +2371,20 @@ function PostCard({ post, onSelect, pinned, isSelected }) {
           )}
         </div>
       </div>
+      </div>
+      {copyToast && (
+        <div
+          className="fixed z-50 flex items-center gap-1.5 bg-gray-900 text-white text-xs px-3 py-1.5 rounded-lg shadow-lg cursor-pointer select-none"
+          style={{ left: copyToast.x, top: copyToast.y - 40 }}
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={handleCopy}
+        >
+          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+          </svg>
+          복사
+        </div>
+      )}
     </div>
   )
 }
