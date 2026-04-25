@@ -3,6 +3,7 @@ import { useChat } from '../contexts/ChatContext'
 import { useAuth } from '../contexts/AuthContext'
 import { apiFetch, getToken } from '../lib/api'
 import { hasAnyTextSelection } from '../lib/textSelection'
+import { findDuplicateFileNames } from '../lib/fileNameValidation'
 import { useSelectionClickGuard } from '../hooks/useSelectionClickGuard'
 import config from '../config.json'
 import ReactMarkdown from 'react-markdown'
@@ -1581,6 +1582,7 @@ function ComposeBar({ onSubmit, isArchived }) {
   const [dragOver, setDragOver] = useState(false)
   const [sending, setSending] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(null)
+  const [duplicateFileDialog, setDuplicateFileDialog] = useState(null)
   const [focused, setFocused] = useState(false)
   const [securityLevel, setSecurityLevel] = useState(Math.min(1, currentUser?.security_level ?? 0))
   const maxSelectableLevel = currentUser?.role === 'site_admin' ? 4 : (currentUser?.security_level ?? 0)
@@ -1671,6 +1673,11 @@ function ComposeBar({ onSubmit, isArchived }) {
 
   async function handleSend() {
     if (!content.trim() && files.length === 0) { contentRef.current?.focus(); return }
+    const duplicateNames = findDuplicateFileNames(files)
+    if (duplicateNames.length > 0) {
+      setDuplicateFileDialog(duplicateNames)
+      return
+    }
     setSending(true)
     try {
       const attachmentIds = []
@@ -1766,8 +1773,9 @@ function ComposeBar({ onSubmit, isArchived }) {
   }
 
   return (
-    <div className="flex-shrink-0 px-4 py-3 border-t border-gray-200">
-      <input ref={fileInputRef} type="file" multiple className="hidden" onChange={handleFileSelect} />
+    <>
+      <div className="flex-shrink-0 px-4 py-3 border-t border-gray-200">
+        <input ref={fileInputRef} type="file" multiple className="hidden" onChange={handleFileSelect} />
 
       <div
         onDragEnter={handleDragEnter}
@@ -1892,10 +1900,21 @@ function ComposeBar({ onSubmit, isArchived }) {
         )}
       </div>
 
-      <p className="text-gray-300 text-xs mt-1.5 px-1">
-        {t.chat.messageHint}
-      </p>
-    </div>
+        <p className="text-gray-300 text-xs mt-1.5 px-1">
+          {t.chat.messageHint}
+        </p>
+      </div>
+      {duplicateFileDialog && (
+        <ConfirmDialog
+          title={t.chat.fileAttachDuplicateTitle || '중복 파일명 경고'}
+          message={`${t.chat.fileAttachDuplicateMessage || '첨부파일에 같은 이름이 있습니다. 파일명을 변경한 뒤 다시 게시해 주세요.'}\n\n${duplicateFileDialog.join('\n')}`}
+          confirmText={t.chat.confirm || '확인'}
+          hideCancel
+          onConfirm={() => setDuplicateFileDialog(null)}
+          onCancel={() => setDuplicateFileDialog(null)}
+        />
+      )}
+    </>
   )
 }
 
