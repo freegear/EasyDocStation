@@ -648,7 +648,12 @@ function FormField({ label, type = 'text', value, onChange, placeholder, require
 
 // ─── Main SiteAdminPage ───────────────────────────────────────
 
-export default function SiteAdminPage({ onClose, showAgenticPanel = true, onToggleAgenticPanel = () => {} }) {
+export default function SiteAdminPage({
+  onClose,
+  showAgenticPanel = true,
+  onSetAgenticPanel = null,
+  onToggleAgenticPanel = () => {},
+}) {
   const t = useT()
   const { currentUser, setMaxAttachmentFileSize, language, setLanguage } = useAuth()
   const [users, setUsers] = useState([])
@@ -1153,7 +1158,13 @@ export default function SiteAdminPage({ onClose, showAgenticPanel = true, onTogg
         <div className="flex items-center gap-3">
           <button
             type="button"
-            onClick={onToggleAgenticPanel}
+            onClick={() => {
+              if (typeof onSetAgenticPanel === 'function') {
+                onSetAgenticPanel(!showAgenticPanel)
+                return
+              }
+              onToggleAgenticPanel()
+            }}
             title={showAgenticPanel ? t.titlebar.agenticPanelHide : t.titlebar.agenticPanelShow}
             className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-semibold transition-colors ${
               showAgenticPanel
