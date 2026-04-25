@@ -158,6 +158,14 @@ npm install
 npm install --prefix server
 
 echo "[7/8] Python venv 및 RAG 의존성 설치"
+if [[ -e "$ROOT_DIR/.venv" && ! -w "$ROOT_DIR/.venv" ]]; then
+  echo "[INFO] 기존 .venv 권한이 현재 사용자와 달라 복구합니다."
+  sudo chown -R "$(id -un):$(id -gn)" "$ROOT_DIR/.venv" || true
+fi
+if [[ -e "$ROOT_DIR/.venv" && ! -w "$ROOT_DIR/.venv" ]]; then
+  echo "[WARN] .venv 권한 복구 실패. 재생성을 위해 삭제 시도합니다."
+  sudo rm -rf "$ROOT_DIR/.venv"
+fi
 python3 -m venv --clear "$ROOT_DIR/.venv"
 source "$ROOT_DIR/.venv/bin/activate"
 python -m pip install -U pip wheel packaging "setuptools<82"
