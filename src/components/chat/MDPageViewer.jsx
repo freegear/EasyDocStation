@@ -14,6 +14,7 @@ import { apiFetch, getToken } from '../../lib/api'
 import '../../styles/tiptap.css'
 
 const MD_PAGE_MARKER = '<!--md-page-->'
+const ResizableImage = ImageResize.extend({ name: 'image' })
 
 export default function MDPageViewer({ post, channelId, onClose }) {
   const { updatePost } = useChat()
@@ -39,7 +40,7 @@ export default function MDPageViewer({ post, channelId, onClose }) {
   const editor = useEditor({
     extensions: [
       StarterKit,
-      ImageResize.configure({
+      ResizableImage.configure({
         minWidth: 120,
         maxWidth: 1200,
       }),
