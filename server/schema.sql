@@ -68,7 +68,7 @@ CREATE TABLE IF NOT EXISTS users (
   last_login_at TIMESTAMPTZ
 );
 
--- Migration: failed_login_attempts 컬럼 추가 (안전하게 재실행 가능)
+-- Migration: 컬럼 추가 (안전하게 재실행 가능)
 DO $$ BEGIN
   IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='failed_login_attempts')
   THEN ALTER TABLE users ADD COLUMN failed_login_attempts INTEGER NOT NULL DEFAULT 0; END IF;
@@ -80,6 +80,8 @@ DO $$ BEGIN
   THEN ALTER TABLE users ADD COLUMN line_channel_access_token TEXT; END IF;
   IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='use_sns_channel')
   THEN ALTER TABLE users ADD COLUMN use_sns_channel VARCHAR(20); END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='active_session_id')
+  THEN ALTER TABLE users ADD COLUMN active_session_id TEXT; END IF;
 END $$;
 
 -- ─── Login history ───────────────────────────────────────────
