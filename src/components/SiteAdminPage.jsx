@@ -9,9 +9,9 @@ import ConfirmDialog from './ConfirmDialog'
 // ─── helpers ─────────────────────────────────────────────────
 const USERNAME_PATTERN = /^[A-Za-z][A-Za-z0-9_.]*$/
 const LANGUAGES = [
-  { code: 'ko', label: '한국어' },
-  { code: 'en', label: 'English' },
-  { code: 'ja', label: '日本語' },
+  { code: 'ko', label: '한국어', flag: '🇰🇷' },
+  { code: 'en', label: 'English', flag: '🇺🇸' },
+  { code: 'ja', label: '日本語', flag: '🇯🇵' },
 ]
 
 function formatDate(iso) {
@@ -1157,13 +1157,15 @@ export default function SiteAdminPage({ onClose }) {
                 key={lang.code}
                 type="button"
                 onClick={() => setLanguage(lang.code)}
-                className={`px-2.5 py-1 text-xs font-medium transition-all ${
+                title={lang.label}
+                aria-label={lang.label}
+                className={`px-2.5 py-1 text-sm leading-none transition-all ${
                   language === lang.code
                     ? 'bg-indigo-600 text-white'
                     : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200'
                 }`}
               >
-                {lang.label}
+                {lang.flag}
               </button>
             ))}
           </div>
