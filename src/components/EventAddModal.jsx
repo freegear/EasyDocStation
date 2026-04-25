@@ -80,12 +80,13 @@ function DateTimeRow({ label, dt, setDt, disabled }) {
   )
 }
 
-export default function EventAddModal({ onClose, onAdd, onSave, onDelete, event: editEvent, initialStartDt, initialEndDt }) {
+export default function EventAddModal({ onClose, onAdd, onSave, onDelete, event: editEvent, initialStartDt, initialEndDt, canEdit = true }) {
   const { currentUser } = useAuth()
   const t = useT()
   const isSiteAdmin = currentUser?.role === 'site_admin'
   const maxLevel = isSiteAdmin ? 4 : (currentUser?.security_level ?? 0)
   const isEditMode = !!editEvent
+  const canMutate = !isEditMode || canEdit
 
   const [tab, setTab] = useState('event') // 'event' | 'reminder'
   const [showRepeatDeleteConfirm, setShowRepeatDeleteConfirm] = useState(false)
@@ -151,6 +152,7 @@ export default function EventAddModal({ onClose, onAdd, onSave, onDelete, event:
   }, [])
 
   function addInvitee(user) {
+    if (!canMutate) return
     setInvitees(prev => [...prev, { id: user.id, username: user.username, name: user.name, image_url: user.image_url }])
     setInviteeQuery('')
     setSuggestions([])
@@ -175,6 +177,7 @@ export default function EventAddModal({ onClose, onAdd, onSave, onDelete, event:
   }
 
   function handleSubmit() {
+    if (!canMutate) return
     if (!title.trim()) { titleRef.current?.focus(); return }
     if (isEditMode) {
       if (editEvent.repeat && editEvent.repeat !== 'none') {
@@ -190,6 +193,7 @@ export default function EventAddModal({ onClose, onAdd, onSave, onDelete, event:
   }
 
   function handleDelete() {
+    if (!canMutate) return
     if (editEvent.repeat && editEvent.repeat !== 'none') {
       setShowRepeatDeleteConfirm(true)
     } else {
@@ -286,6 +290,9 @@ export default function EventAddModal({ onClose, onAdd, onSave, onDelete, event:
           {isEditMode && (
             <span className="text-xs font-semibold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full mr-3 mb-1">편집</span>
           )}
+          {isEditMode && !canMutate && (
+            <span className="text-xs font-semibold text-gray-600 bg-gray-100 px-2 py-0.5 rounded-full mr-3 mb-1">읽기 전용</span>
+          )}
           {[['event', '이벤트'], ['reminder', '미리 알림']].map(([k, label]) => (
             <button
               key={k}
@@ -314,9 +321,10 @@ export default function EventAddModal({ onClose, onAdd, onSave, onDelete, event:
                 <input
                   ref={titleRef}
                   value={title}
-                  onChange={e => setTitle(e.target.value)}
+                  onChange={canMutate ? e => setTitle(e.target.value) : undefined}
                   onKeyDown={e => { if (e.key === 'Enter') handleSubmit() }}
                   placeholder="이벤트 제목"
+                  readOnly={!canMutate}
                   className="w-full border-0 border-b-2 border-gray-200 focus:border-indigo-500 outline-none text-base font-semibold text-gray-900 placeholder-gray-300 pb-1.5 transition-colors bg-transparent"
                 />
               </div>
@@ -328,8 +336,9 @@ export default function EventAddModal({ onClose, onAdd, onSave, onDelete, event:
                   {EVENT_COLORS.map(c => (
                     <button
                       key={c.value}
-                      onClick={() => setColor(c.value)}
+                      onClick={() => { if (canMutate) setColor(c.value) }}
                       title={c.label}
+                      disabled={!canMutate}
                       className={`w-7 h-7 rounded-full transition-all ${color === c.value ? 'ring-2 ring-offset-2 ring-gray-400 scale-110' : 'hover:scale-105'}`}
                       style={{ backgroundColor: c.value }}
                     />
@@ -341,7 +350,7 @@ export default function EventAddModal({ onClose, onAdd, onSave, onDelete, event:
               <div>
                 <label className="flex items-center gap-2.5 cursor-pointer w-fit">
                   <div
-                    onClick={() => setAllDay(v => !v)}
+                    onClick={() => { if (canMutate) setAllDay(v => !v) }}
                     className={`w-9 h-5 rounded-full transition-colors relative ${allDay ? 'bg-indigo-600' : 'bg-gray-200'}`}
                   >
                     <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${allDay ? 'translate-x-4' : 'translate-x-0.5'}`} />
@@ -353,8 +362,8 @@ export default function EventAddModal({ onClose, onAdd, onSave, onDelete, event:
               {/* 4. 시간 */}
               <div className="space-y-2">
                 <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block">시간</label>
-                <DateTimeRow label="시작" dt={startDt} setDt={setStartDt} disabled={allDay} />
-                <DateTimeRow label="종료" dt={endDt} setDt={setEndDt} disabled={allDay} />
+                <DateTimeRow label="시작" dt={startDt} setDt={setStartDt} disabled={!canMutate || allDay} />
+                <DateTimeRow label="종료" dt={endDt} setDt={setEndDt} disabled={!canMutate || allDay} />
               </div>
 
               {/* 5. 반복 */}
@@ -364,7 +373,8 @@ export default function EventAddModal({ onClose, onAdd, onSave, onDelete, event:
                   {REPEAT_OPTIONS.map(r => (
                     <button
                       key={r.value}
-                      onClick={() => setRepeat(r.value)}
+                      onClick={() => { if (canMutate) setRepeat(r.value) }}
+                      disabled={!canMutate}
                       className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
                         repeat === r.value
                           ? 'bg-indigo-600 text-white border-indigo-600'
@@ -411,8 +421,9 @@ export default function EventAddModal({ onClose, onAdd, onSave, onDelete, event:
                         <span>{inv.name}</span>
                         <span className="text-indigo-400">@{inv.username}</span>
                         <button
-                          onClick={() => setInvitees(prev => prev.filter((_, j) => j !== i))}
+                          onClick={() => { if (canMutate) setInvitees(prev => prev.filter((_, j) => j !== i)) }}
                           className="hover:text-red-500 leading-none ml-0.5"
+                          disabled={!canMutate}
                         >×</button>
                       </span>
                     ))}
@@ -423,13 +434,14 @@ export default function EventAddModal({ onClose, onAdd, onSave, onDelete, event:
                   <input
                     ref={inviteeInputRef}
                     value={inviteeQuery}
-                    onChange={e => setInviteeQuery(e.target.value)}
-                    onFocus={() => inviteeQuery.trim() && setShowSuggestions(true)}
+                    onChange={canMutate ? e => setInviteeQuery(e.target.value) : undefined}
+                    onFocus={() => canMutate && inviteeQuery.trim() && setShowSuggestions(true)}
                     onKeyDown={e => { if (e.key === 'Escape') { setShowSuggestions(false); setInviteeQuery('') } }}
                     placeholder="아이디 또는 이름으로 검색..."
+                    readOnly={!canMutate}
                     className="w-full border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 placeholder-gray-300"
                   />
-                  {showSuggestions && suggestions.length > 0 && (
+                  {canMutate && showSuggestions && suggestions.length > 0 && (
                     <div
                       ref={suggestBoxRef}
                       className="absolute left-0 right-0 top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 overflow-hidden max-h-48 overflow-y-auto"
@@ -455,7 +467,7 @@ export default function EventAddModal({ onClose, onAdd, onSave, onDelete, event:
                       ))}
                     </div>
                   )}
-                  {showSuggestions && inviteeQuery.trim() && suggestions.length === 0 && (
+                  {canMutate && showSuggestions && inviteeQuery.trim() && suggestions.length === 0 && (
                     <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 px-3 py-2 text-sm text-gray-400">
                       검색 결과가 없습니다.
                     </div>
@@ -468,9 +480,10 @@ export default function EventAddModal({ onClose, onAdd, onSave, onDelete, event:
                 <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 block">메모</label>
                 <textarea
                   value={memo}
-                  onChange={e => setMemo(e.target.value)}
+                  onChange={canMutate ? e => setMemo(e.target.value) : undefined}
                   rows={3}
                   placeholder="이벤트 메모를 입력하세요..."
+                  readOnly={!canMutate}
                   className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 resize-none placeholder-gray-300"
                 />
               </div>
@@ -480,7 +493,8 @@ export default function EventAddModal({ onClose, onAdd, onSave, onDelete, event:
                 <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 block">보안 등급</label>
                 <select
                   value={securityLevel}
-                  onChange={e => setSecurityLevel(+e.target.value)}
+                  onChange={canMutate ? e => setSecurityLevel(+e.target.value) : undefined}
+                  disabled={!canMutate}
                   className="border border-gray-200 rounded-lg px-2 py-1.5 text-sm text-gray-700 focus:outline-none focus:ring-1 focus:ring-indigo-400 cursor-pointer"
                 >
                   {t.admin.securityLevels.map((label, i) => i <= maxLevel && (
@@ -502,7 +516,7 @@ export default function EventAddModal({ onClose, onAdd, onSave, onDelete, event:
                     { label: '월', key: 'month', options: Array.from({ length: 12 }, (_, i) => i + 1) },
                     { label: '일', key: 'day', options: Array.from({ length: getDaysInMonth(remindDt.year, remindDt.month) }, (_, i) => i + 1) },
                   ].map(({ label, key, options }) => (
-                    <select key={key} value={remindDt[key]} onChange={e => setRemindDt({ ...remindDt, [key]: +e.target.value })} className={selectCls}>
+                    <select key={key} value={remindDt[key]} onChange={canMutate ? e => setRemindDt({ ...remindDt, [key]: +e.target.value }) : undefined} disabled={!canMutate} className={selectCls}>
                       {options.map(v => <option key={v} value={v}>{v}{label}</option>)}
                     </select>
                   ))}
@@ -513,15 +527,15 @@ export default function EventAddModal({ onClose, onAdd, onSave, onDelete, event:
               <div>
                 <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 block">특정한 시간에</label>
                 <div className="flex items-center gap-1.5 flex-wrap">
-                  <select value={remindDt.ampm} onChange={e => setRemindDt({ ...remindDt, ampm: e.target.value })} className={selectCls}>
+                  <select value={remindDt.ampm} onChange={canMutate ? e => setRemindDt({ ...remindDt, ampm: e.target.value }) : undefined} disabled={!canMutate} className={selectCls}>
                     <option value="오전">오전</option>
                     <option value="오후">오후</option>
                   </select>
-                  <select value={remindDt.hour} onChange={e => setRemindDt({ ...remindDt, hour: +e.target.value })} className={selectCls}>
+                  <select value={remindDt.hour} onChange={canMutate ? e => setRemindDt({ ...remindDt, hour: +e.target.value }) : undefined} disabled={!canMutate} className={selectCls}>
                     {Array.from({ length: 12 }, (_, i) => i + 1).map(h => <option key={h} value={h}>{String(h).padStart(2, '0')}</option>)}
                   </select>
                   <span className="text-gray-400 text-sm">:</span>
-                  <select value={remindDt.minute} onChange={e => setRemindDt({ ...remindDt, minute: +e.target.value })} className={selectCls}>
+                  <select value={remindDt.minute} onChange={canMutate ? e => setRemindDt({ ...remindDt, minute: +e.target.value }) : undefined} disabled={!canMutate} className={selectCls}>
                     {Array.from({ length: 12 }, (_, i) => i * 5).map(m => <option key={m} value={m}>{String(m).padStart(2, '0')}</option>)}
                   </select>
                 </div>
@@ -534,7 +548,8 @@ export default function EventAddModal({ onClose, onAdd, onSave, onDelete, event:
                   {[{ value: 'none', label: '반복 안함' }, ...REPEAT_OPTIONS.slice(1)].map(r => (
                     <button
                       key={r.value}
-                      onClick={() => setRemindRepeat(r.value)}
+                      onClick={() => { if (canMutate) setRemindRepeat(r.value) }}
+                      disabled={!canMutate}
                       className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
                         remindRepeat === r.value
                           ? 'bg-indigo-600 text-white border-indigo-600'
@@ -552,7 +567,7 @@ export default function EventAddModal({ onClose, onAdd, onSave, onDelete, event:
 
         {/* Footer buttons */}
         <div className="flex items-center px-5 py-3 border-t border-gray-100 bg-gray-50/60">
-          {isEditMode && (
+          {isEditMode && canMutate && (
             <button
               onClick={handleDelete}
               className="px-4 py-2 rounded-lg text-sm text-red-600 hover:bg-red-50 font-medium transition-colors border border-red-200"

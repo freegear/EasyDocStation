@@ -75,6 +75,49 @@ function toClient(row) {
   }
 }
 
+function extractInviteeIds(invitees, ownerId) {
+  const owner = Number(ownerId)
+  const ids = new Set()
+  for (const inv of Array.isArray(invitees) ? invitees : []) {
+    const id = Number(inv?.id)
+    if (!Number.isInteger(id) || id <= 0) continue
+    if (id === owner) continue
+    ids.add(id)
+  }
+  return Array.from(ids)
+}
+
+async function syncInvitationsForEvents({ ownerId, eventIds, invitees }) {
+  const targetEventIds = Array.from(new Set((eventIds || []).map(v => String(v || '').trim()).filter(Boolean)))
+  if (targetEventIds.length === 0) return
+
+  const inviteeIds = extractInviteeIds(invitees, ownerId)
+  await db.query(
+    'DELETE FROM calendar_invitations WHERE owner_id = $1 AND event_id = ANY($2::text[])',
+    [ownerId, targetEventIds]
+  )
+
+  if (inviteeIds.length === 0) return
+
+  const values = []
+  const params = []
+  let idx = 1
+  for (const eventId of targetEventIds) {
+    for (const inviteeId of inviteeIds) {
+      values.push(`($${idx},$${idx + 1},$${idx + 2})`)
+      params.push(inviteeId, eventId, ownerId)
+      idx += 3
+    }
+  }
+
+  if (values.length > 0) {
+    await db.query(
+      `INSERT INTO calendar_invitations (invitee_id, event_id, owner_id) VALUES ${values.join(',')} ON CONFLICT DO NOTHING`,
+      params
+    )
+  }
+}
+
 // GET /api/events — 내 이벤트 + 내가 초대된 이벤트
 router.get('/', async (req, res) => {
   const userId = req.user.id
@@ -146,6 +189,11 @@ router.put('/series/:seriesId', async (req, res) => {
         remind_dt: remindDt || {}, remind_repeat: remindRepeat, series_id: seriesId,
       }))
     }
+    await syncInvitationsForEvents({
+      ownerId: userId,
+      eventIds: updated.map(ev => ev.id),
+      invitees,
+    })
     res.json(updated)
 
     for (const ev of updated) {
@@ -172,6 +220,10 @@ router.delete('/series/:seriesId', async (req, res) => {
     await db.query(
       'DELETE FROM calendar_events WHERE owner_id = $1 AND series_id = $2',
       [userId, seriesId]
+    )
+    await db.query(
+      'DELETE FROM calendar_invitations WHERE owner_id = $1 AND event_id = ANY($2::text[])',
+      [userId, deletedIds]
     )
     res.json({ success: true, deleted: deletedIds.length })
 
@@ -221,20 +273,7 @@ router.post('/', async (req, res) => {
 
     const created = rows.map(toClient)
 
-    // ── 초대 테이블 기록 (invitees가 있을 때만) ─────────────────
-    const invList = invitees || []
-    if (invList.length > 0) {
-      for (let i = 0; i < eventIds.length; i++) {
-        for (const inv of invList) {
-          if (inv.id && inv.id !== userId) {
-            await db.query(
-              'INSERT INTO calendar_invitations (invitee_id, event_id, owner_id) VALUES ($1,$2,$3) ON CONFLICT DO NOTHING',
-              [inv.id, eventIds[i], userId]
-            )
-          }
-        }
-      }
-    }
+    await syncInvitationsForEvents({ ownerId: userId, eventIds, invitees })
 
     res.status(201).json(created)
 
@@ -273,6 +312,7 @@ router.put('/:id', async (req, res) => {
       now, userId, evId,
     ])
     const updatedEvent = toClient(updated[0])
+    await syncInvitationsForEvents({ ownerId: userId, eventIds: [evId], invitees })
     res.json(updatedEvent)
 
     retrainEventImmediate(evId, updatedEvent).catch(() => {})
@@ -294,6 +334,7 @@ router.delete('/:id', async (req, res) => {
     if (!rows[0]) return res.status(404).json({ error: '이벤트를 찾을 수 없습니다.' })
 
     await db.query('DELETE FROM calendar_events WHERE owner_id = $1 AND id = $2', [userId, evId])
+    await db.query('DELETE FROM calendar_invitations WHERE owner_id = $1 AND event_id = $2', [userId, evId])
     res.json({ success: true })
 
     deleteEventFromRAG(evId).catch(() => {})
