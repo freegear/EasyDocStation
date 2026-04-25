@@ -10,8 +10,11 @@ TORCH_MIN_VERSION="${TORCH_MIN_VERSION:-2.6}"
 
 install_frontend_dependencies() {
   echo "[DGX] 프론트 의존성 정합 시작"
-  echo "  1) @vitejs/plugin-react 최신화"
-  npm install -D @vitejs/plugin-react@latest
+  local plugin_react_version="${PLUGIN_REACT_VERSION:-^4.7.0}"
+  echo "  1) @vitejs/plugin-react 호환 버전 설치 (${plugin_react_version})"
+  if ! npm install -D "@vitejs/plugin-react@${plugin_react_version}"; then
+    npm install -D "@vitejs/plugin-react@${plugin_react_version}" --legacy-peer-deps
+  fi
 
   local packages=(
     "react-to-print"
