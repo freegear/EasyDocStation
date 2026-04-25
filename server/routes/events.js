@@ -59,8 +59,8 @@ function parseDt(val) {
 function buildOwnerSummary(row = {}) {
   const ownerId = Number(row.owner_id ?? row.ownerId ?? row.owner_id_int)
   const id = Number.isInteger(ownerId) ? ownerId : null
-  const name = row.owner_name ?? row.ownerName ?? null
-  const username = row.owner_username ?? row.ownerUsername ?? null
+  const name = row.owner_name ?? row.ownerName ?? row.name ?? null
+  const username = row.owner_username ?? row.ownerUsername ?? row.username ?? null
   const displayName = row.owner_display_name ?? row.ownerDisplayName ?? null
   const imageUrl = row.owner_image_url ?? row.ownerImageUrl ?? null
   return { id, name, username, displayName, imageUrl }
@@ -68,7 +68,7 @@ function buildOwnerSummary(row = {}) {
 
 async function fetchOwnerSummary(ownerId) {
   const { rows } = await db.query(
-    'SELECT id, name, username, display_name AS owner_display_name, image_url AS owner_image_url FROM users WHERE id = $1 LIMIT 1',
+    'SELECT id AS owner_id, name AS owner_name, username AS owner_username, display_name AS owner_display_name, image_url AS owner_image_url FROM users WHERE id = $1 LIMIT 1',
     [ownerId]
   )
   if (!rows[0]) return { id: ownerId, name: null, username: null, displayName: null, imageUrl: null }
