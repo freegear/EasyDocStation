@@ -648,7 +648,7 @@ function FormField({ label, type = 'text', value, onChange, placeholder, require
 
 // ─── Main SiteAdminPage ───────────────────────────────────────
 
-export default function SiteAdminPage({ onClose }) {
+export default function SiteAdminPage({ onClose, showAgenticPanel = true, onToggleAgenticPanel = () => {} }) {
   const t = useT()
   const { currentUser, setMaxAttachmentFileSize, language, setLanguage } = useAuth()
   const [users, setUsers] = useState([])
@@ -1151,6 +1151,23 @@ export default function SiteAdminPage({ onClose }) {
         </div>
 
         <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={onToggleAgenticPanel}
+            title={showAgenticPanel ? t.titlebar.agenticPanelHide : t.titlebar.agenticPanelShow}
+            className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-semibold transition-colors ${
+              showAgenticPanel
+                ? 'bg-blue-600 border-blue-600 text-white hover:bg-blue-700'
+                : 'bg-gray-200 border-gray-300 text-gray-600 hover:bg-gray-300'
+            }`}
+          >
+            <svg className="w-3.5 h-3.5" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+              <rect x="2.5" y="3" width="15" height="14" rx="2" />
+              <line x1="11" y1="3" x2="11" y2="17" />
+            </svg>
+            <span className="hidden lg:inline">{t.titlebar.agenticPanelLabel}</span>
+          </button>
+
           <div className="flex items-center bg-gray-100 border border-gray-200 rounded-lg overflow-hidden">
             {LANGUAGES.map(lang => (
               <button

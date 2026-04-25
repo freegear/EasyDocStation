@@ -160,7 +160,13 @@ function MainLayout() {
           onSaved={() => setShowProfileSavedDialog(true)}
         />
       )}
-      {showSiteAdmin && <SiteAdminPage onClose={() => setShowSiteAdmin(false)} />}
+      {showSiteAdmin && (
+        <SiteAdminPage
+          onClose={() => setShowSiteAdmin(false)}
+          showAgenticPanel={showAgenticPanel}
+          onToggleAgenticPanel={() => setShowAgenticPanel(v => !v)}
+        />
+      )}
       {showNewDM && (
         <NewConversationModal
           onCreated={(conv) => { setShowNewDM(false); setActiveDMConv(conv); setShowDM(true); setShowCalendar(false) }}
