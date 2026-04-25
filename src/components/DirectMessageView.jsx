@@ -80,6 +80,49 @@ function isMessageEditable(createdAtIso, nowMs = Date.now()) {
 }
 
 const MESSAGE_SYNC_INTERVAL_MS = 1500
+const DEFAULT_DISPLAY_CONFIG = {
+  imagePreview: { width: 512, height: 512 },
+  pdfPreview: { width: 480, height: 270 },
+  txtPreview: { width: 270, height: 480 },
+  pptPreview: { width: 480, height: 270 },
+  pptxPreview: { width: 480, height: 270 },
+  excelPreview: { width: 480, height: 270 },
+  wordPreview: { width: 270, height: 480 },
+  moviePreview: { width: 480, height: 270 },
+  htmlPreview: { width: 480, height: 270 },
+}
+
+function dmAttachmentUrl(att) {
+  const token = getToken()
+  return `/api/dm/files?storagePath=${encodeURIComponent(att.storagePath)}&filename=${encodeURIComponent(att.filename)}${token ? `&auth_token=${encodeURIComponent(token)}` : ''}`
+}
+
+function getAttachmentExt(att = {}) {
+  return (att.filename || '').toLowerCase()
+}
+
+function getPreviewKind(att = {}) {
+  const name = getAttachmentExt(att)
+  if (/\.(jpe?g|png|gif|webp|bmp|svg)$/.test(name)) return 'image'
+  if (/\.(mp4|mov|avi|webm)$/.test(name)) return 'video'
+  if (/\.pdf$/.test(name)) return 'pdf'
+  if (/\.html?$/.test(name)) return 'html'
+  if (/\.txt$/.test(name)) return 'txt'
+  return null
+}
+
+function getHalfPreviewSize(att = {}, displayConfig = DEFAULT_DISPLAY_CONFIG) {
+  const kind = getPreviewKind(att)
+  let base = displayConfig.imagePreview || DEFAULT_DISPLAY_CONFIG.imagePreview
+  if (kind === 'video') base = displayConfig.moviePreview || DEFAULT_DISPLAY_CONFIG.moviePreview
+  if (kind === 'pdf') base = displayConfig.pdfPreview || DEFAULT_DISPLAY_CONFIG.pdfPreview
+  if (kind === 'html') base = displayConfig.htmlPreview || DEFAULT_DISPLAY_CONFIG.htmlPreview
+  if (kind === 'txt') base = displayConfig.txtPreview || DEFAULT_DISPLAY_CONFIG.txtPreview
+
+  const width = Math.max(120, Math.round((Number(base?.width) || 480) / 2))
+  const height = Math.max(80, Math.round((Number(base?.height) || 270) / 2))
+  return { width, height, kind }
+}
 
 function sameReadBy(a, b) {
   const arrA = Array.isArray(a) ? a : []
@@ -435,6 +478,7 @@ function MessageBubble({
   unreadLabel,
   readAccountsLabel,
   deletedMessageLabel,
+  displayConfig,
 }) {
   const [editMode, setEditMode] = useState(false)
   const [editContent, setEditContent] = useState(msg.content)
@@ -470,8 +514,7 @@ function MessageBubble({
   }
 
   function downloadFile(att) {
-    const token = getToken()
-    const url = `/api/dm/files?storagePath=${encodeURIComponent(att.storagePath)}&filename=${encodeURIComponent(att.filename)}${token ? `&auth_token=${encodeURIComponent(token)}` : ''}`
+    const url = dmAttachmentUrl(att)
     const a = document.createElement('a')
     a.href = url
     a.download = att.filename
@@ -545,17 +588,68 @@ function MessageBubble({
                 {msg.attachments?.length > 0 && (
                   <div className={`flex flex-col gap-1 ${msg.content ? 'mt-2' : ''}`}>
                     {msg.attachments.map((att, i) => (
-                      <button
-                        key={i}
-                        onDoubleClick={() => handleAttachmentDoubleClick(att, msg.attachments)}
-                        title="더블클릭하여 다운로드"
-                        className={`flex items-center gap-1.5 text-xs rounded-lg px-2 py-1 transition-colors ${
-                          isMine ? 'bg-white/20 hover:bg-white/30 text-white' : 'bg-gray-50 hover:bg-gray-100 text-gray-600 border border-gray-100'
-                        }`}
-                      >
-                        <ClipIcon />
-                        <span className="truncate max-w-[180px]">{att.filename}</span>
-                      </button>
+                      (() => {
+                        const { width, height, kind } = getHalfPreviewSize(att, displayConfig)
+                        const previewable = !!kind
+                        const url = dmAttachmentUrl(att)
+
+                        if (!previewable) {
+                          return (
+                            <button
+                              key={i}
+                              onDoubleClick={() => handleAttachmentDoubleClick(att, msg.attachments)}
+                              title="더블클릭하여 다운로드"
+                              className={`flex items-center gap-1.5 text-xs rounded-lg px-2 py-1 transition-colors ${
+                                isMine ? 'bg-white/20 hover:bg-white/30 text-white' : 'bg-gray-50 hover:bg-gray-100 text-gray-600 border border-gray-100'
+                              }`}
+                            >
+                              <ClipIcon />
+                              <span className="truncate max-w-[180px]">{att.filename}</span>
+                            </button>
+                          )
+                        }
+
+                        return (
+                          <div
+                            key={i}
+                            onDoubleClick={() => handleAttachmentDoubleClick(att, msg.attachments)}
+                            title="더블클릭하여 다운로드"
+                            className={`rounded-lg overflow-hidden border text-xs ${
+                              isMine ? 'border-white/25 bg-white/10' : 'border-gray-200 bg-white'
+                            }`}
+                            style={{ width, maxWidth: '100%' }}
+                          >
+                            {kind === 'image' && (
+                              <img
+                                src={url}
+                                alt={att.filename}
+                                style={{ width, height, maxWidth: '100%', objectFit: 'cover' }}
+                              />
+                            )}
+                            {kind === 'video' && (
+                              <video
+                                src={url}
+                                controls
+                                preload="metadata"
+                                style={{ width, height, maxWidth: '100%', background: '#000' }}
+                              />
+                            )}
+                            {(kind === 'pdf' || kind === 'html' || kind === 'txt') && (
+                              <iframe
+                                src={url}
+                                title={att.filename}
+                                style={{ width, height, maxWidth: '100%', border: 'none', background: '#fff' }}
+                              />
+                            )}
+                            <div className={`flex items-center gap-1.5 px-2 py-1 ${
+                              isMine ? 'bg-white/10 text-white' : 'bg-gray-50 text-gray-600'
+                            }`}>
+                              <ClipIcon />
+                              <span className="truncate max-w-[180px]">{att.filename}</span>
+                            </div>
+                          </div>
+                        )
+                      })()
                     ))}
                   </div>
                 )}
@@ -620,6 +714,7 @@ export default function DirectMessageView({ conversation, onClose, onConversatio
   const [messages, setMessages] = useState([])
   const [input, setInput] = useState('')
   const [pendingFiles, setPendingFiles] = useState([]) // [{file, name}]
+  const [displayConfig, setDisplayConfig] = useState(DEFAULT_DISPLAY_CONFIG)
   const [sending, setSending] = useState(false)
   const [deletingConversation, setDeletingConversation] = useState(false)
   const [showDeleteConversationDialog, setShowDeleteConversationDialog] = useState(false)
@@ -634,6 +729,26 @@ export default function DirectMessageView({ conversation, onClose, onConversatio
   useEffect(() => {
     if (conversation?.id) loadMessages()
   }, [conversation?.id])
+
+  useEffect(() => {
+    apiFetch('/config/display')
+      .then((data) => {
+        if (!data || typeof data !== 'object') return
+        setDisplayConfig(prev => ({
+          ...prev,
+          imagePreview: data.imagePreview || prev.imagePreview,
+          pdfPreview: data.pdfPreview || prev.pdfPreview,
+          txtPreview: data.txtPreview || prev.txtPreview,
+          pptPreview: data.pptPreview || prev.pptPreview,
+          pptxPreview: data.pptxPreview || prev.pptxPreview,
+          excelPreview: data.excelPreview || prev.excelPreview,
+          wordPreview: data.wordPreview || prev.wordPreview,
+          moviePreview: data.moviePreview || prev.moviePreview,
+          htmlPreview: data.htmlPreview || prev.htmlPreview,
+        }))
+      })
+      .catch(() => {})
+  }, [])
 
   // 상대방 읽음 상태 반영용 주기 동기화
   useEffect(() => {
@@ -998,6 +1113,7 @@ export default function DirectMessageView({ conversation, onClose, onConversatio
               unreadLabel={unreadLabel}
               readAccountsLabel={readAccountsLabel}
               deletedMessageLabel={deletedMessageLabel}
+              displayConfig={displayConfig}
             />
           ))
         )}
