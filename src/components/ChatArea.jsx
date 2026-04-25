@@ -2797,7 +2797,7 @@ function PostDetail({ post, channelId, onClose }) {
   }
 
   return (
-    <div className="flex-1 flex flex-col min-h-0">
+    <div className="flex-1 flex flex-col min-h-0" style={{ WebkitAppRegion: 'no-drag' }}>
       <div className="flex items-center gap-3 px-6 py-3 border-b border-gray-200 flex-shrink-0">
         <div className="flex-1" />
         {isOwn && !isEditingPost && !selectedChannel?.is_archived && (
@@ -3003,6 +3003,7 @@ function PostDetail({ post, channelId, onClose }) {
           <>
             <div
               className="mb-4 select-text allow-copy cursor-text"
+              style={{ WebkitAppRegion: 'no-drag', userSelect: 'text', WebkitUserSelect: 'text' }}
               onMouseDownCapture={guardSelectionMouseDownCapture}
               onClickCapture={guardSelectionClickCapture}
             >
@@ -3099,7 +3100,7 @@ function PostDetail({ post, channelId, onClose }) {
               {(freshPost.comments || []).map(c => (
                 <div key={c.id} className="flex items-start gap-3 group">
                   <Avatar letters={c.author?.avatar || '?'} imageUrl={c.author?.image_url} size="sm" />
-                  <div className="flex-1 bg-gray-100 rounded-xl px-4 py-3 border border-gray-200">
+                  <div className="flex-1 bg-gray-100 rounded-xl px-4 py-3 border border-gray-200" style={{ WebkitAppRegion: 'no-drag' }}>
                     <div className="flex items-baseline gap-2 mb-1.5">
                       <span className="text-gray-700 text-xs font-semibold">{c.author?.name}</span>
                       {c.author?.username && (
@@ -3159,6 +3160,7 @@ function PostDetail({ post, channelId, onClose }) {
                       <>
                         <div
                           className="text-gray-600 select-text allow-copy cursor-text"
+                          style={{ WebkitAppRegion: 'no-drag', userSelect: 'text', WebkitUserSelect: 'text' }}
                           onMouseDownCapture={guardSelectionMouseDownCapture}
                           onClickCapture={guardSelectionClickCapture}
                         >
