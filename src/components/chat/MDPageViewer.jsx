@@ -22,6 +22,11 @@ const MD_PAGE_MARKER = '<!--md-page-->'
 const MD_IMAGE_META_PREFIX = '<!--md-image-meta:'
 const ResizableImage = ImageResize.extend({ name: 'image' })
 const FILE_VIEW_URL_PATTERN = /(https?:\/\/[^\s)"']+\/api\/files\/view\/[A-Za-z0-9-]+(?:\?[^\s)"']*)?|\/api\/files\/view\/[A-Za-z0-9-]+(?:\?[^\s)"']*)?)/g
+const DEFAULT_DISPLAY_PREVIEW = {
+  imagePreview: { width: 512, height: 512 },
+  pptPreview: { width: 480, height: 270 },
+  pptxPreview: { width: 480, height: 270 },
+}
 
 function extractImageMeta(mdText = '') {
   const match = mdText.match(/<!--md-image-meta:([A-Za-z0-9+/=_-]+)-->\s*$/m)
@@ -195,6 +200,21 @@ function truncateSingleLine(text = '', max = 60) {
   return `${oneLine.slice(0, max - 1)}…`
 }
 
+function extOf(name = '') {
+  return String(name || '').toLowerCase().split('.').pop() || ''
+}
+
+function isSlideFile(file) {
+  if (!file) return false
+  const type = String(file.type || '').toLowerCase()
+  const ext = extOf(file.name || '')
+  return type.includes('presentation') || ext === 'ppt' || ext === 'pptx'
+}
+
+function isPreviewableAsImage(file) {
+  return isImageFile(file) || isSlideFile(file)
+}
+
 function isEditableImageWrapperElement(el) {
   if (!(el instanceof HTMLElement)) return false
   if (el.tagName !== 'DIV') return false
@@ -224,8 +244,9 @@ export default function MDPageViewer({ post, channelId, onClose }) {
   const [showSaveDialog, setShowSaveDialog] = useState(false)
   const [isUploadingImage, setIsUploadingImage] = useState(false)
   const [isDragOver, setIsDragOver] = useState(false)
+  const [displayPreviewConfig, setDisplayPreviewConfig] = useState(DEFAULT_DISPLAY_PREVIEW)
   const showSaveDialogRef = useRef(false)
-  const imageInputRef = useRef(null)
+  const fileInputRef = useRef(null)
   const printContentRef = useRef(null)
   const printJobIdRef = useRef(0)
   const imageMetaRef = useRef(imageMeta)
@@ -238,6 +259,21 @@ export default function MDPageViewer({ post, channelId, onClose }) {
   useEffect(() => { imageMetaRef.current = imageMeta }, [imageMeta])
   useEffect(() => { savedContentRef.current = savedContent }, [savedContent])
   useEffect(() => { savedImageMetaRef.current = savedImageMeta }, [savedImageMeta])
+
+  useEffect(() => {
+    let cancelled = false
+    apiFetch('/config/display')
+      .then((data) => {
+        if (cancelled || !data) return
+        setDisplayPreviewConfig({
+          imagePreview: data.imagePreview || DEFAULT_DISPLAY_PREVIEW.imagePreview,
+          pptPreview: data.pptPreview || DEFAULT_DISPLAY_PREVIEW.pptPreview,
+          pptxPreview: data.pptxPreview || DEFAULT_DISPLAY_PREVIEW.pptxPreview,
+        })
+      })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [])
 
   const canEdit = String(post.author?.id ?? '') === String(currentUser?.id ?? '')
 
@@ -604,8 +640,35 @@ export default function MDPageViewer({ post, channelId, onClose }) {
     return /\.(jpe?g|png|gif|webp|bmp|svg)$/i.test(file.name || '')
   }
 
-  async function uploadAndInsertImage(file, insertPos = null) {
-    if (!editor || !isImageFile(file)) return
+  function buildFileViewUrl(fileId, { asPdfPreview = false, asThumbnail = false } = {}) {
+    const params = new URLSearchParams()
+    if (asPdfPreview) params.set('preview', 'pdf')
+    if (asThumbnail) params.set('thumbnail', 'true')
+    if (authToken) params.set('auth_token', authToken)
+    const query = params.toString()
+    return `/api/files/view/${fileId}${query ? `?${query}` : ''}`
+  }
+
+  function getHalfPreviewSize(file) {
+    if (isSlideFile(file)) {
+      const ext = extOf(file?.name || '')
+      const base = ext === 'ppt'
+        ? (displayPreviewConfig.pptPreview || DEFAULT_DISPLAY_PREVIEW.pptPreview)
+        : (displayPreviewConfig.pptxPreview || DEFAULT_DISPLAY_PREVIEW.pptxPreview)
+      return {
+        width: Math.max(120, Math.round((Number(base.width) || 480) / 2)),
+        height: Math.max(68, Math.round((Number(base.height) || 270) / 2)),
+      }
+    }
+    const base = displayPreviewConfig.imagePreview || DEFAULT_DISPLAY_PREVIEW.imagePreview
+    return {
+      width: Math.max(120, Math.round((Number(base.width) || 512) / 2)),
+      height: Math.max(120, Math.round((Number(base.height) || 512) / 2)),
+    }
+  }
+
+  async function uploadAndInsertFile(file, insertPos = null) {
+    if (!editor || !file) return
 
     setIsUploadingImage(true)
     try {
@@ -627,40 +690,74 @@ export default function MDPageViewer({ post, channelId, onClose }) {
         throw new Error(`이미지 업로드 실패 (${uploadResp.status})`)
       }
 
-      const authToken = getToken()
-      const src = `/api/files/view/${prep.file_uuid}${authToken ? `?auth_token=${encodeURIComponent(authToken)}` : ''}`
       const chain = editor.chain().focus()
       if (Number.isFinite(insertPos)) chain.setTextSelection(insertPos)
-      chain.setImage({ src, alt: file.name, title: file.name }).run()
+
+      const originalUrl = buildFileViewUrl(prep.file_uuid)
+      const linkLabel = truncateSingleLine(file.name || '첨부파일', 80)
+
+      if (isPreviewableAsImage(file)) {
+        const previewSize = getHalfPreviewSize(file)
+        const previewSrc = isSlideFile(file)
+          ? buildFileViewUrl(prep.file_uuid, { asThumbnail: true })
+          : originalUrl
+
+        chain
+          .setImage({
+            src: previewSrc,
+            alt: file.name,
+            title: file.name,
+            width: previewSize.width,
+            containerStyle: `width:${previewSize.width}px;max-width:100%;`,
+            wrapperStyle: `display:block;`,
+          })
+          .insertContent('\n')
+          .insertContent({
+            type: 'text',
+            text: linkLabel,
+            marks: [{ type: 'link', attrs: { href: isSlideFile(file) ? buildFileViewUrl(prep.file_uuid, { asPdfPreview: true }) : originalUrl } }],
+          })
+          .insertContent('\n')
+          .run()
+      } else {
+        chain
+          .insertContent({
+            type: 'text',
+            text: `📎 ${linkLabel}`,
+            marks: [{ type: 'link', attrs: { href: originalUrl } }],
+          })
+          .insertContent('\n')
+          .run()
+      }
     } catch (e) {
-      console.error('MD 이미지 업로드 실패:', e)
-      alert(t.mdPage.imageUploadFail || '이미지 업로드에 실패했습니다.')
+      console.error('MD 파일 업로드 실패:', e)
+      alert(t.mdPage.imageUploadFail || '파일 업로드에 실패했습니다.')
     } finally {
       setIsUploadingImage(false)
     }
   }
 
-  async function handleImageInputChange(e) {
-    const files = Array.from(e.target.files || []).filter(isImageFile)
+  async function handleFileInputChange(e) {
+    const files = Array.from(e.target.files || [])
     if (files.length === 0) {
       e.target.value = ''
       return
     }
     for (const file of files) {
       // eslint-disable-next-line no-await-in-loop
-      await uploadAndInsertImage(file)
+      await uploadAndInsertFile(file)
     }
     e.target.value = ''
   }
 
-  function handleImagePickClick() {
+  function handleFilePickClick() {
     if (!canEdit || mode !== 'preview' || isUploadingImage) return
-    imageInputRef.current?.click()
+    fileInputRef.current?.click()
   }
 
   async function handleEditorDrop(e) {
     if (!canEdit || mode !== 'preview') return
-    const files = Array.from(e.dataTransfer?.files || []).filter(isImageFile)
+    const files = Array.from(e.dataTransfer?.files || [])
     if (files.length === 0) return
     e.preventDefault()
     e.stopPropagation()
@@ -674,7 +771,7 @@ export default function MDPageViewer({ post, channelId, onClose }) {
 
     for (const file of files) {
       // eslint-disable-next-line no-await-in-loop
-      await uploadAndInsertImage(file, insertPos)
+      await uploadAndInsertFile(file, insertPos)
       insertPos = null
     }
   }
@@ -743,7 +840,7 @@ export default function MDPageViewer({ post, channelId, onClose }) {
       {canEdit && mode === 'preview' && editor && (
         <TipTapToolbar
           editor={editor}
-          onInsertImage={handleImagePickClick}
+          onInsertFile={handleFilePickClick}
           isUploadingImage={isUploadingImage}
         />
       )}
@@ -794,12 +891,12 @@ export default function MDPageViewer({ post, channelId, onClose }) {
       </div>
 
       <input
-        ref={imageInputRef}
+        ref={fileInputRef}
         type="file"
-        accept="image/*"
+        accept=".png,.jpg,.jpeg,.gif,.webp,.bmp,.svg,.pdf,.txt,.md,.csv,.xls,.xlsx,.ppt,.pptx,.doc,.docx,.html,.htm"
         multiple
         className="hidden"
-        onChange={handleImageInputChange}
+        onChange={handleFileInputChange}
       />
 
       {/* ── 저장 다이얼로그 ── */}
@@ -829,7 +926,7 @@ export default function MDPageViewer({ post, channelId, onClose }) {
 /* ─────────────────────────────────────────
    TipTap 툴바 컴포넌트
 ───────────────────────────────────────── */
-function TipTapToolbar({ editor, onInsertImage, isUploadingImage = false }) {
+function TipTapToolbar({ editor, onInsertFile, isUploadingImage = false }) {
   if (!editor) return null
 
   const btn = (active, onClick, label, title) => (
@@ -867,7 +964,7 @@ function TipTapToolbar({ editor, onInsertImage, isUploadingImage = false }) {
       {btn(editor.isActive('codeBlock'),   () => editor.chain().focus().toggleCodeBlock().run(),    '코드 블록', '코드 블록')}
       {btn(editor.isActive('table'), () => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run(), '표 추가', '3x3 표 추가')}
       {btn(false, () => editor.chain().focus().setHorizontalRule().run(), '── 구분선', '가로 구분선')}
-      {btn(false, onInsertImage, isUploadingImage ? '업로드 중' : '이미지', '이미지 업로드 및 삽입')}
+      {btn(false, onInsertFile, isUploadingImage ? '업로드 중' : '파일', '파일 업로드 및 삽입')}
       {sep('s4')}
       {btn(false, () => editor.chain().focus().undo().run(), '↩ 실행취소', '실행취소 (Ctrl+Z)')}
       {btn(false, () => editor.chain().focus().redo().run(), '↪ 다시실행', '다시실행 (Ctrl+Y)')}
@@ -974,46 +1071,91 @@ function LinkBubbleMenu({ editor }) {
 }
 
 function TableBubbleMenu({ editor }) {
+  const [openByDblClick, setOpenByDblClick] = useState(false)
+  const closeTimerRef = useRef(null)
+
+  const resetAutoCloseTimer = useCallback(() => {
+    if (closeTimerRef.current) clearTimeout(closeTimerRef.current)
+    closeTimerRef.current = setTimeout(() => {
+      setOpenByDblClick(false)
+    }, 10_000)
+  }, [])
+
+  const runTableCommand = useCallback((commandFn) => {
+    if (!editor) return
+    commandFn()
+    resetAutoCloseTimer()
+  }, [editor, resetAutoCloseTimer])
+
+  useEffect(() => {
+    if (!editor?.view?.dom) return undefined
+
+    const onDoubleClick = (event) => {
+      const target = event.target
+      if (!(target instanceof HTMLElement)) return
+      if (!target.closest('table')) return
+      setOpenByDblClick(true)
+      resetAutoCloseTimer()
+    }
+
+    const onSelectionUpdate = () => {
+      if (!editor.isActive('table')) {
+        setOpenByDblClick(false)
+      }
+    }
+
+    editor.view.dom.addEventListener('dblclick', onDoubleClick)
+    editor.on('selectionUpdate', onSelectionUpdate)
+    return () => {
+      editor.view.dom.removeEventListener('dblclick', onDoubleClick)
+      editor.off('selectionUpdate', onSelectionUpdate)
+    }
+  }, [editor, resetAutoCloseTimer])
+
+  useEffect(() => () => {
+    if (closeTimerRef.current) clearTimeout(closeTimerRef.current)
+  }, [])
+
   if (!editor) return null
 
   return (
     <BubbleMenu
       editor={editor}
-      shouldShow={({ editor: ed }) => ed.isEditable && ed.isActive('table')}
+      shouldShow={({ editor: ed }) => openByDblClick && ed.isEditable && ed.isActive('table')}
       tippyOptions={{ duration: 120, placement: 'top', maxWidth: 520 }}
       className="table-toolbar"
     >
       <div className="table-toolbar-row">
-        <button onMouseDown={(e) => { e.preventDefault(); editor.chain().focus().addColumnBefore().run() }}>
+        <button onMouseDown={(e) => { e.preventDefault(); runTableCommand(() => editor.chain().focus().addColumnBefore().run()) }}>
           왼쪽 열 추가
         </button>
-        <button onMouseDown={(e) => { e.preventDefault(); editor.chain().focus().addColumnAfter().run() }}>
+        <button onMouseDown={(e) => { e.preventDefault(); runTableCommand(() => editor.chain().focus().addColumnAfter().run()) }}>
           오른쪽 열 추가
         </button>
-        <button onMouseDown={(e) => { e.preventDefault(); editor.chain().focus().addRowBefore().run() }}>
+        <button onMouseDown={(e) => { e.preventDefault(); runTableCommand(() => editor.chain().focus().addRowBefore().run()) }}>
           위 행 추가
         </button>
-        <button onMouseDown={(e) => { e.preventDefault(); editor.chain().focus().addRowAfter().run() }}>
+        <button onMouseDown={(e) => { e.preventDefault(); runTableCommand(() => editor.chain().focus().addRowAfter().run()) }}>
           아래 행 추가
         </button>
-        <button onMouseDown={(e) => { e.preventDefault(); editor.chain().focus().mergeCells().run() }}>
+        <button onMouseDown={(e) => { e.preventDefault(); runTableCommand(() => editor.chain().focus().mergeCells().run()) }}>
           셀 병합
         </button>
       </div>
       <div className="table-toolbar-row">
-        <button onMouseDown={(e) => { e.preventDefault(); editor.chain().focus().splitCell().run() }}>
+        <button onMouseDown={(e) => { e.preventDefault(); runTableCommand(() => editor.chain().focus().splitCell().run()) }}>
           셀 분할
         </button>
-        <button onMouseDown={(e) => { e.preventDefault(); editor.chain().focus().deleteColumn().run() }}>
+        <button onMouseDown={(e) => { e.preventDefault(); runTableCommand(() => editor.chain().focus().deleteColumn().run()) }}>
           열 삭제
         </button>
-        <button onMouseDown={(e) => { e.preventDefault(); editor.chain().focus().deleteRow().run() }}>
+        <button onMouseDown={(e) => { e.preventDefault(); runTableCommand(() => editor.chain().focus().deleteRow().run()) }}>
           행 삭제
         </button>
-        <button onMouseDown={(e) => { e.preventDefault(); editor.chain().focus().toggleHeaderRow().run() }}>
+        <button onMouseDown={(e) => { e.preventDefault(); runTableCommand(() => editor.chain().focus().toggleHeaderRow().run()) }}>
           헤더 토글
         </button>
-        <button onMouseDown={(e) => { e.preventDefault(); editor.chain().focus().deleteTable().run() }}>
+        <button onMouseDown={(e) => { e.preventDefault(); runTableCommand(() => editor.chain().focus().deleteTable().run()) }}>
           표 삭제
         </button>
       </div>
