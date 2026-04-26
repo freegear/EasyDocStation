@@ -547,8 +547,7 @@ router.put('/:id', requireAuth, async (req, res, next) => {
     if (!isConnected()) return res.status(503).json({ error: 'Cassandra 연결이 필요합니다.' })
     const row = await findPostLocator(id)
     if (!row) return res.status(404).json({ error: '게시글을 찾을 수 없습니다.' })
-    const isSiteAdmin = req.user.role === 'site_admin'
-    if (!isSiteAdmin && String(row.author_id) !== String(req.user.id)) return res.status(403).json({ error: '권한이 없습니다.' })
+    if (String(row.author_id) !== String(req.user.id)) return res.status(403).json({ error: '권한이 없습니다.' })
     // security_level은 요청자의 레벨 이하만 허용
     const userLevel = req.user.security_level ?? 0
     const safeLevel = (security_level != null) ? Math.min(Math.max(parseInt(security_level) || 0, 0), userLevel) : undefined
@@ -650,8 +649,7 @@ router.put('/:postId/comments/:commentId', requireAuth, async (req, res, next) =
     if (!isConnected()) return res.status(503).json({ error: 'Cassandra 연결이 필요합니다.' })
     const row = await findCommentLocator(postId, commentId)
     if (!row) return res.status(404).json({ error: '댓글을 찾을 수 없습니다.' })
-    const isSiteAdmin = req.user.role === 'site_admin'
-    if (!isSiteAdmin && String(row.author_id) !== String(req.user.id)) return res.status(403).json({ error: '권한이 없습니다.' })
+    if (String(row.author_id) !== String(req.user.id)) return res.status(403).json({ error: '권한이 없습니다.' })
     const userLevel = req.user.security_level ?? 0
     const safeLevel = (security_level != null) ? Math.min(Math.max(parseInt(security_level) || 0, 0), userLevel) : undefined
     if (safeLevel !== undefined) {

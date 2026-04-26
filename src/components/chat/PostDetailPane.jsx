@@ -61,7 +61,6 @@ function PostDetailPane({ post, channelId, onClose, helpers = {} }) {
   const fileInputRef = useRef(null)
   const dragCounter = useRef(0)
 
-  const isAdmin = ['Admin', 'site_admin', 'channel_admin', 'team_admin'].includes(currentUser?.role)
 
   function addFiles(newFiles) {
     if (files.length + newFiles.length > 10) {
@@ -148,7 +147,8 @@ function PostDetailPane({ post, channelId, onClose, helpers = {} }) {
 
   const freshPost = posts[channelId]?.find(p => p.id === post.id) || post
   const isSiteAdmin = currentUser?.role === 'site_admin'
-  const isOwn = isSiteAdmin || freshPost.author?.name === currentUser?.name
+  const canEditPost = String(freshPost.author?.id ?? '') === String(currentUser?.id ?? '')
+  const canDeletePost = isSiteAdmin || canEditPost
   const maxSelectableLevel = isSiteAdmin ? 4 : (currentUser?.security_level ?? 0)
   const postTrainingStatus = freshPost.training_status || null
   const postBodySelectionGuard = useSelectionClickGuard({
@@ -429,16 +429,20 @@ function PostDetailPane({ post, channelId, onClose, helpers = {} }) {
     <div className="flex-1 flex flex-col min-h-0" style={{ WebkitAppRegion: 'no-drag' }}>
       <div className="flex items-center gap-3 px-6 py-3 border-b border-gray-200 flex-shrink-0">
         <div className="flex-1" />
-        {isOwn && !isEditingPost && !selectedChannel?.is_archived && (
+        {(canEditPost || canDeletePost) && !isEditingPost && !selectedChannel?.is_archived && (
           <div className="flex items-center gap-2">
-            <button onClick={startPostEdit} className="flex items-center gap-1 text-gray-400 hover:text-gray-900 text-xs transition-colors">
-              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
-              {t.chat.edit}
-            </button>
-            <button onClick={handleDelete} className="flex items-center gap-1 text-red-500 hover:text-red-400 text-xs transition-colors">
-              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-              {t.chat.delete}
-            </button>
+            {canEditPost && (
+              <button onClick={startPostEdit} className="flex items-center gap-1 text-gray-400 hover:text-gray-900 text-xs transition-colors">
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                {t.chat.edit}
+              </button>
+            )}
+            {canDeletePost && (
+              <button onClick={handleDelete} className="flex items-center gap-1 text-red-500 hover:text-red-400 text-xs transition-colors">
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                {t.chat.delete}
+              </button>
+            )}
           </div>
         )}
         {!isEditingPost && !selectedChannel?.is_archived && (
@@ -760,11 +764,11 @@ function PostDetailPane({ post, channelId, onClose, helpers = {} }) {
                       {editingCommentId !== c.id && !selectedChannel?.is_archived && (
                         <div className="ml-auto flex items-center gap-2 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-opacity">
                           <button onClick={() => handleSendCommentToAgenticAI(c)} className="text-sky-600 hover:text-sky-700 text-[10px] font-medium uppercase tracking-tight">{t.chat.sendToAgenticAI || 'AgenticAI'}</button>
-                          {(isSiteAdmin || c.author?.name === currentUser?.name) && (
-                            <>
-                          <button onClick={() => startCommentEdit(c)} className="text-gray-400 hover:text-gray-900 text-[10px] font-medium uppercase tracking-tight">{t.chat.edit}</button>
-                          <button onClick={() => handleCommentDelete(c.id)} className="text-red-400 hover:text-red-400 text-[10px] font-medium uppercase tracking-tight">{t.chat.delete}</button>
-                            </>
+                          {String(c.author?.id ?? '') === String(currentUser?.id ?? '') && (
+                            <button onClick={() => startCommentEdit(c)} className="text-gray-400 hover:text-gray-900 text-[10px] font-medium uppercase tracking-tight">{t.chat.edit}</button>
+                          )}
+                          {(isSiteAdmin || String(c.author?.id ?? '') === String(currentUser?.id ?? '')) && (
+                            <button onClick={() => handleCommentDelete(c.id)} className="text-red-400 hover:text-red-400 text-[10px] font-medium uppercase tracking-tight">{t.chat.delete}</button>
                           )}
                         </div>
                       )}
