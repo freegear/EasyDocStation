@@ -496,11 +496,6 @@ export default function MDPageViewer({ post, channelId, onClose }) {
       file: f,
     }))
     setCommentFiles((prev) => [...prev, ...mapped])
-    // 백엔드에서 content 필수 검증이 있으므로,
-    // 파일만 첨부하는 경우 첫 파일명을 기본 본문으로 채워 등록 가능하게 한다.
-    if (!String(commentText || '').trim() && mapped.length > 0) {
-      setCommentText(mapped[0].name)
-    }
   }
 
   function removeCommentFile(id) {
@@ -538,8 +533,6 @@ export default function MDPageViewer({ post, channelId, onClose }) {
     const text = String(commentText || '').trim()
     if (!text && commentFiles.length === 0) return
     if (!currentUser) return
-    const fallbackText = (commentFiles[0]?.name || '').trim()
-    const contentToSend = text || fallbackText || '첨부파일'
 
     setCommentSubmitting(true)
     try {
@@ -567,7 +560,7 @@ export default function MDPageViewer({ post, channelId, onClose }) {
       await addComment(
         channelId,
         post.id,
-        contentToSend,
+        text,
         currentUser,
         attachmentIds,
         Math.min(Number(currentUser?.security_level ?? 0), 1),
@@ -1297,6 +1290,21 @@ export default function MDPageViewer({ post, channelId, onClose }) {
                           <div className="text-sm text-gray-800 whitespace-pre-wrap break-words">
                             {comment?.content || ''}
                           </div>
+                          {Array.isArray(comment?.attachments) && comment.attachments.length > 0 && (
+                            <div className="mt-2 space-y-1">
+                              {comment.attachments.map((att) => (
+                                <a
+                                  key={att.id}
+                                  href={ensureAuthTokenInFileViewUrl(att.url, getToken() || '')}
+                                  target="_blank"
+                                  rel="noreferrer noopener"
+                                  className="block text-xs text-indigo-600 hover:text-indigo-700 underline break-all"
+                                >
+                                  {att.name || att.id}
+                                </a>
+                              ))}
+                            </div>
+                          )}
                         </div>
                       </div>
                     )

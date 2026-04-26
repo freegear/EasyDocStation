@@ -592,8 +592,12 @@ router.post('/:id/comments', requireAuth, async (req, res, next) => {
   try {
     const { id: postId } = req.params
     const { content, attachmentIds = [], channelId, security_level } = req.body
-    if (!content) return res.status(400).json({ error: 'content is required' })
-    if (attachmentIds.length > 10) {
+    const safeContent = String(content || '').trim()
+    const safeAttachmentIds = Array.isArray(attachmentIds) ? attachmentIds.filter(Boolean) : []
+    if (!safeContent && safeAttachmentIds.length === 0) {
+      return res.status(400).json({ error: 'content or attachment is required' })
+    }
+    if (safeAttachmentIds.length > 10) {
       return res.status(400).json({ error: '첨부파일은 최대 10개까지만 가능합니다.' })
     }
 
@@ -610,7 +614,7 @@ router.post('/:id/comments', requireAuth, async (req, res, next) => {
     await client.execute(
       `INSERT INTO comments (post_id, id, author_id, content, attachments, security_level, created_at)
        VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [postId, commentId, req.user.id, content, attachmentIds, safeCommentLevel, createdAt],
+      [postId, commentId, req.user.id, safeContent, safeAttachmentIds, safeCommentLevel, createdAt],
       { prepare: true }
     )
 
@@ -627,7 +631,13 @@ router.post('/:id/comments', requireAuth, async (req, res, next) => {
     // 업로드 즉시 LanceDB 임베딩 (비동기, 응답에 영향 없음)
     markTrainingStarted('comment', commentId)
     ;(async () => {
-      const success = await trainCommentImmediate({ id: commentId, post_id: postId, channel_id: channelId || '', content, attachmentIds })
+      const success = await trainCommentImmediate({
+        id: commentId,
+        post_id: postId,
+        channel_id: channelId || '',
+        content: safeContent,
+        attachmentIds: safeAttachmentIds,
+      })
       if (success) markTrainingCompleted('comment', commentId)
       else clearTrainingStatus('comment', commentId)
     })()
