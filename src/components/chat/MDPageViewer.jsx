@@ -398,6 +398,10 @@ export default function MDPageViewer({ post, channelId, onClose }) {
   const sourceBaselineRef = useRef('')
   const [isPrinting, setIsPrinting] = useState(false)
   const [showComments, setShowComments] = useState(false)
+  const [commentPaneHeight, setCommentPaneHeight] = useState(220)
+  const [isResizingCommentPane, setIsResizingCommentPane] = useState(false)
+  const splitAreaRef = useRef(null)
+  const resizeStartRef = useRef({ y: 0, height: 220 })
 
   useEffect(() => { showSaveDialogRef.current = showSaveDialog }, [showSaveDialog])
   useEffect(() => { imageMetaRef.current = imageMeta }, [imageMeta])
@@ -406,6 +410,53 @@ export default function MDPageViewer({ post, channelId, onClose }) {
 
   const canEdit = String(post.author?.id ?? '') === String(currentUser?.id ?? '')
   const comments = Array.isArray(post.comments) ? post.comments : []
+
+  useEffect(() => {
+    if (!showComments) return undefined
+
+    const onMouseMove = (e) => {
+      if (!isResizingCommentPane) return
+      const area = splitAreaRef.current
+      if (!(area instanceof HTMLElement)) return
+
+      const bounds = area.getBoundingClientRect()
+      const delta = e.clientY - resizeStartRef.current.y
+      const desired = resizeStartRef.current.height - delta
+      const minComment = 120
+      const minEditor = 200
+      const maxComment = Math.max(minComment, bounds.height - minEditor - 8)
+      const nextHeight = Math.max(minComment, Math.min(maxComment, desired))
+      setCommentPaneHeight(nextHeight)
+    }
+
+    const onMouseUp = () => {
+      if (!isResizingCommentPane) return
+      setIsResizingCommentPane(false)
+      document.body.style.userSelect = ''
+      document.body.style.cursor = ''
+    }
+
+    window.addEventListener('mousemove', onMouseMove)
+    window.addEventListener('mouseup', onMouseUp)
+    return () => {
+      window.removeEventListener('mousemove', onMouseMove)
+      window.removeEventListener('mouseup', onMouseUp)
+    }
+  }, [showComments, isResizingCommentPane])
+
+  useEffect(() => () => {
+    document.body.style.userSelect = ''
+    document.body.style.cursor = ''
+  }, [])
+
+  function handleCommentSplitterMouseDown(e) {
+    if (!showComments) return
+    e.preventDefault()
+    resizeStartRef.current = { y: e.clientY, height: commentPaneHeight }
+    setIsResizingCommentPane(true)
+    document.body.style.userSelect = 'none'
+    document.body.style.cursor = 'row-resize'
+  }
 
   const editor = useEditor({
     extensions: [
@@ -1040,80 +1091,97 @@ export default function MDPageViewer({ post, channelId, onClose }) {
         />
       )}
 
-      {/* ── Content area ── */}
-      <div
-        ref={printContentRef}
-        className={`easy-page-print-root flex-1 overflow-auto min-h-0 ${isDragOver ? 'bg-indigo-50/50' : ''}`}
-        onDragOver={(e) => {
-          if (!canEdit || mode !== 'preview') return
-          if ((e.dataTransfer?.files?.length || 0) > 0) {
-            e.preventDefault()
-            setIsDragOver(true)
-          }
-        }}
-        onDragLeave={() => setIsDragOver(false)}
-        onDrop={handleEditorDrop}
-      >
-        {mode === 'source' ? (
-          /* 소스 모드: 마크다운 텍스트 표시 */
-          <textarea
-            className="w-full h-full p-6 font-mono text-sm text-gray-800 bg-gray-50 resize-none focus:outline-none focus:bg-white transition-colors"
-            value={sourceText}
-            onChange={canEdit ? e => {
-              const nextSource = e.target.value
-              setSourceText(nextSource)
-              setIsChanged(nextSource !== savedContent || !sameImageMeta(imageMeta, savedImageMeta))
-            } : undefined}
-            readOnly={!canEdit}
-            spellCheck={false}
-            placeholder={t.mdPage.sourcePlaceholder}
-          />
-        ) : (
-          /* 미리보기 모드: TipTap WYSIWYG 에디터 */
-          <div className="max-w-4xl mx-auto px-8 py-8 relative">
-            {canEdit && (
-              <LinkBubbleMenu editor={editor} />
-            )}
-            {canEdit && (
-              <TableBubbleMenu editor={editor} />
-            )}
-            <EditorContent editor={editor} className="tiptap-editor" />
-            {canEdit && (
-              <InternalLinkAutocomplete editor={editor} />
-            )}
-          </div>
-        )}
-      </div>
-
-      {showComments && (
-        <div className="border-t border-gray-200 bg-gray-50/70 px-6 py-4 max-h-64 overflow-auto">
-          {comments.length === 0 ? (
-            <p className="text-sm text-gray-500">등록된 댓글이 없습니다.</p>
+      <div ref={splitAreaRef} className="flex-1 min-h-0 flex flex-col">
+        {/* ── Content area ── */}
+        <div
+          ref={printContentRef}
+          className={`easy-page-print-root flex-1 overflow-auto min-h-0 ${isDragOver ? 'bg-indigo-50/50' : ''}`}
+          onDragOver={(e) => {
+            if (!canEdit || mode !== 'preview') return
+            if ((e.dataTransfer?.files?.length || 0) > 0) {
+              e.preventDefault()
+              setIsDragOver(true)
+            }
+          }}
+          onDragLeave={() => setIsDragOver(false)}
+          onDrop={handleEditorDrop}
+        >
+          {mode === 'source' ? (
+            /* 소스 모드: 마크다운 텍스트 표시 */
+            <textarea
+              className="w-full h-full p-6 font-mono text-sm text-gray-800 bg-gray-50 resize-none focus:outline-none focus:bg-white transition-colors"
+              value={sourceText}
+              onChange={canEdit ? e => {
+                const nextSource = e.target.value
+                setSourceText(nextSource)
+                setIsChanged(nextSource !== savedContent || !sameImageMeta(imageMeta, savedImageMeta))
+              } : undefined}
+              readOnly={!canEdit}
+              spellCheck={false}
+              placeholder={t.mdPage.sourcePlaceholder}
+            />
           ) : (
-            <div className="space-y-3">
-              {comments.map((comment) => {
-                const authorName = comment?.author?.name || comment?.authorName || '사용자'
-                const createdAt = comment?.createdAt
-                  ? new Date(comment.createdAt).toLocaleString()
-                  : ''
-                return (
-                  <div key={comment.id} className="flex">
-                    <div className="max-w-[92%] rounded-2xl bg-white border border-gray-200 shadow-sm px-4 py-2.5">
-                      <div className="flex items-center gap-2 text-xs text-gray-500 mb-1">
-                        <span className="font-semibold text-gray-700">{authorName}</span>
-                        {createdAt && <span>{createdAt}</span>}
-                      </div>
-                      <div className="text-sm text-gray-800 whitespace-pre-wrap break-words">
-                        {comment?.content || ''}
-                      </div>
-                    </div>
-                  </div>
-                )
-              })}
+            /* 미리보기 모드: TipTap WYSIWYG 에디터 */
+            <div className="max-w-4xl mx-auto px-8 py-8 relative">
+              {canEdit && (
+                <LinkBubbleMenu editor={editor} />
+              )}
+              {canEdit && (
+                <TableBubbleMenu editor={editor} />
+              )}
+              <EditorContent editor={editor} className="tiptap-editor" />
+              {canEdit && (
+                <InternalLinkAutocomplete editor={editor} />
+              )}
             </div>
           )}
         </div>
-      )}
+
+        {showComments && (
+          <>
+            <div
+              role="separator"
+              aria-orientation="horizontal"
+              title="드래그해서 댓글 영역 크기 조절"
+              onMouseDown={handleCommentSplitterMouseDown}
+              className={`h-2 flex-shrink-0 cursor-row-resize border-y border-gray-200 transition-colors ${isResizingCommentPane ? 'bg-indigo-200' : 'bg-gray-100 hover:bg-indigo-100'}`}
+            >
+              <div className="m-auto w-12 h-0.5 rounded-full bg-gray-400" />
+            </div>
+
+            <div
+              className="border-t border-gray-200 bg-gray-50/70 px-6 py-4 overflow-auto flex-shrink-0"
+              style={{ height: `${commentPaneHeight}px` }}
+            >
+              {comments.length === 0 ? (
+                <p className="text-sm text-gray-500">등록된 댓글이 없습니다.</p>
+              ) : (
+                <div className="space-y-3">
+                  {comments.map((comment) => {
+                    const authorName = comment?.author?.name || comment?.authorName || '사용자'
+                    const createdAt = comment?.createdAt
+                      ? new Date(comment.createdAt).toLocaleString()
+                      : ''
+                    return (
+                      <div key={comment.id} className="flex">
+                        <div className="max-w-[92%] rounded-2xl bg-white border border-gray-200 shadow-sm px-4 py-2.5">
+                          <div className="flex items-center gap-2 text-xs text-gray-500 mb-1">
+                            <span className="font-semibold text-gray-700">{authorName}</span>
+                            {createdAt && <span>{createdAt}</span>}
+                          </div>
+                          <div className="text-sm text-gray-800 whitespace-pre-wrap break-words">
+                            {comment?.content || ''}
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+          </>
+        )}
+      </div>
 
       <input
         ref={imageInputRef}
