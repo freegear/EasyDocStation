@@ -239,8 +239,7 @@ export default function MDPageViewer({ post, channelId, onClose }) {
   useEffect(() => { savedContentRef.current = savedContent }, [savedContent])
   useEffect(() => { savedImageMetaRef.current = savedImageMeta }, [savedImageMeta])
 
-  const canEdit = post.author?.id === currentUser?.id
-    || ['site_admin', 'team_admin', 'channel_admin'].includes(currentUser?.role)
+  const canEdit = String(post.author?.id ?? '') === String(currentUser?.id ?? '')
 
   const editor = useEditor({
     extensions: [
