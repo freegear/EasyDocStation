@@ -3416,67 +3416,61 @@ editor.chain().focus().deleteTable().run()
 
  
 
-# 28.10 공식 TableOfContents extension 사용
+# 28.10 문서 안에 들어가는 TOC Node
 
-TableOfContents를 만든다.
+툴바 버튼으로 넣으려면 “문서 안에 들어가는 TOC Node” 방식이어야 합니다. 
+즉 TableOfContents 데이터용 extension만으로는 부족하고, 
+insertTocNode() 명령이 등록되는 TOC Node 컴포넌트/extension을 같이 넣는 구조로 가야 합니다.
 
-# 28.10.1 설치 
 
-npm install @tiptap/extension-table-of-contents
+# 28.10.1 명령
 
-# 28.10.2 Type script
+editor.commands.insertTocNode()
 
-import TableOfContents from '@tiptap/extension-table-of-contents'
+또는 chain 방식:
 
-const [items, setItems] = useState([])
+editor.chain().focus().insertTocNode().run()
+
+단, 이 명령은 일반 TableOfContents extension이 아니라 TOC Node 컴포넌트를 추가했을 때 사용합니다. 공식 문서에서도 insertTocNode()로 문서 안에 inline TOC node를 삽입하는 방식을 안내합니다.
+
+# 28.10.2 Toolbar 버튼 예시
+
+<button
+  onClick={() => {
+    editor?.chain().focus().insertTocNode({
+      maxShowCount: 10,
+      topOffset: 60,
+      showTitle: true,
+    }).run()
+  }}
+>
+  목차 삽입
+</button>
+
+# 28.10.3 필요한 설정 예시
+
+import { TableOfContents } from '@tiptap/extension-table-of-contents'
+import { TocNode } from '@/components/tiptap-node/toc-node'
 
 const editor = useEditor({
   extensions: [
     StarterKit,
-    TableOfContents.configure({
-      onUpdate: content => {
-        setItems(content)
-      },
-    }),
+    TableOfContents,
+    TocNode,
   ],
 })
+설치
+npx @tiptap/cli@latest add toc-node
 
-# 28.10.3 목차 UI를 렌더링
-
-Tiptap 공식 TableOfContents extension은 문서의 heading/anchor 목록을 추출하고, depth, content, id, active 상태 등을 넘겨줘서 직접 목차 UI를 렌더링하게 해줍니다.
-
-목차 UI 렌더링
-function Toc({ items }) {
-  return (
-    <nav className="toc">
-      {items.map(item => (
-        <button
-          key={item.id}
-          style={{ paddingLeft: `${item.level * 12}px` }}
-          onClick={() => {
-            document
-              .getElementById(item.id)
-              ?.scrollIntoView({ behavior: 'smooth' })
-          }}
-        >
-          {item.textContent}
-        </button>
-      ))}
-    </nav>
-  )
-}
-
-<Toc items={items} />
-<EditorContent editor={editor} />
-
-
-
+TableOfContents extension만 쓰는 경우는 heading 목록 데이터를 받아서 사이드바 등을 직접 렌더링하는 방식이라, 문서 안에 삽입하는 명령어는 없습니다.
 
 
 
 
 
 # 29 스크립트 작성
+
+이를 위한 컴퍼넌트 설치를 포함하여서
 
 UBUNTU
 DGX-SPARK 의 

@@ -18,6 +18,7 @@ install_frontend_dependencies() {
     "@tiptap/extension-table-row"
     "@tiptap/extension-table-cell"
     "@tiptap/extension-table-header"
+    "@tiptap/extension-table-of-contents"
   )
 
   for pkg in "${packages[@]}"; do

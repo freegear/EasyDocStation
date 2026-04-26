@@ -1,12 +1,14 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useEditor, EditorContent } from '@tiptap/react'
 import { BubbleMenu } from '@tiptap/react/menus'
+import { Node, mergeAttributes } from '@tiptap/core'
 import html2canvas from 'html2canvas'
 import { jsPDF } from 'jspdf'
 import StarterKit from '@tiptap/starter-kit'
 import Placeholder from '@tiptap/extension-placeholder'
 import Dropcursor from '@tiptap/extension-dropcursor'
 import Link from '@tiptap/extension-link'
+import { TableOfContents } from '@tiptap/extension-table-of-contents'
 import { Table, TableRow, TableCell, TableHeader } from '@tiptap/extension-table'
 import ImageResize from 'tiptap-extension-resize-image'
 import { Markdown } from 'tiptap-markdown'
@@ -22,6 +24,145 @@ const MD_PAGE_MARKER = '<!--md-page-->'
 const MD_IMAGE_META_PREFIX = '<!--md-image-meta:'
 const ResizableImage = ImageResize.extend({ name: 'image' })
 const FILE_VIEW_URL_PATTERN = /(https?:\/\/[^\s)"']+\/api\/files\/view\/[A-Za-z0-9-]+(?:\?[^\s)"']*)?|\/api\/files\/view\/[A-Za-z0-9-]+(?:\?[^\s)"']*)?)/g
+const TOC_NODE_NAME = 'tocNode'
+
+function collectHeadingItems(doc, limit = 10) {
+  const items = []
+  doc.descendants((node, pos) => {
+    if (node.type.name !== 'heading') return
+    const level = Number(node.attrs?.level || 1)
+    const text = String(node.textContent || '').trim()
+    if (!text) return
+    items.push({ pos, level, text })
+  })
+  if (limit > 0) return items.slice(0, limit)
+  return items
+}
+
+const TocNode = Node.create({
+  name: TOC_NODE_NAME,
+  group: 'block',
+  atom: true,
+  selectable: true,
+
+  addAttributes() {
+    return {
+      maxShowCount: {
+        default: 10,
+        parseHTML: el => Number(el.getAttribute('data-max-show-count') || 10),
+        renderHTML: attrs => ({ 'data-max-show-count': String(attrs.maxShowCount ?? 10) }),
+      },
+      topOffset: {
+        default: 60,
+        parseHTML: el => Number(el.getAttribute('data-top-offset') || 60),
+        renderHTML: attrs => ({ 'data-top-offset': String(attrs.topOffset ?? 60) }),
+      },
+      showTitle: {
+        default: true,
+        parseHTML: el => el.getAttribute('data-show-title') !== 'false',
+        renderHTML: attrs => ({ 'data-show-title': String(attrs.showTitle !== false) }),
+      },
+    }
+  },
+
+  parseHTML() {
+    return [{ tag: 'div[data-toc-node="true"]' }]
+  },
+
+  renderHTML({ HTMLAttributes }) {
+    return ['div', mergeAttributes(HTMLAttributes, { 'data-toc-node': 'true', class: 'md-toc-node' })]
+  },
+
+  addCommands() {
+    return {
+      insertTocNode:
+        (attrs = {}) =>
+        ({ commands }) =>
+          commands.insertContent({
+            type: this.name,
+            attrs: {
+              maxShowCount: Number(attrs.maxShowCount ?? 10),
+              topOffset: Number(attrs.topOffset ?? 60),
+              showTitle: attrs.showTitle !== false,
+            },
+          }),
+    }
+  },
+
+  addNodeView() {
+    return ({ editor, node }) => {
+      const dom = document.createElement('div')
+      dom.className = 'md-toc-node'
+      dom.setAttribute('data-toc-node', 'true')
+
+      const render = () => {
+        const maxShowCount = Number(node.attrs?.maxShowCount ?? 10)
+        const topOffset = Number(node.attrs?.topOffset ?? 60)
+        const showTitle = node.attrs?.showTitle !== false
+        const items = collectHeadingItems(editor.state.doc, maxShowCount)
+
+        dom.innerHTML = ''
+
+        if (showTitle) {
+          const title = document.createElement('div')
+          title.className = 'md-toc-node-title'
+          title.textContent = '목차'
+          dom.appendChild(title)
+        }
+
+        const list = document.createElement('div')
+        list.className = 'md-toc-node-list'
+
+        if (items.length === 0) {
+          const empty = document.createElement('div')
+          empty.className = 'md-toc-node-empty'
+          empty.textContent = '제목(H1/H2/H3)을 추가하면 목차가 표시됩니다.'
+          list.appendChild(empty)
+        } else {
+          items.forEach((item) => {
+            const row = document.createElement('button')
+            row.type = 'button'
+            row.className = 'md-toc-node-item'
+            row.style.paddingLeft = `${Math.max(0, (item.level - 1) * 12)}px`
+            row.textContent = item.text
+            row.onclick = (e) => {
+              e.preventDefault()
+              editor.chain().focus().setTextSelection(item.pos).run()
+              const headingEl = editor.view.nodeDOM(item.pos)
+              if (headingEl instanceof HTMLElement) {
+                headingEl.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                if (topOffset > 0) {
+                  window.setTimeout(() => window.scrollBy({ top: -topOffset, behavior: 'smooth' }), 30)
+                }
+              }
+            }
+            list.appendChild(row)
+          })
+        }
+
+        dom.appendChild(list)
+      }
+
+      const onUpdate = () => render()
+      render()
+      editor.on('update', onUpdate)
+
+      return {
+        dom,
+        update(updatedNode) {
+          if (updatedNode.type.name !== TOC_NODE_NAME) return false
+          node = updatedNode
+          render()
+          return true
+        },
+        ignoreMutation: () => true,
+        destroy() {
+          editor.off('update', onUpdate)
+        },
+      }
+    }
+  },
+})
 
 function extractImageMeta(mdText = '') {
   const match = mdText.match(/<!--md-image-meta:([A-Za-z0-9+/=_-]+)-->\s*$/m)
@@ -263,6 +404,8 @@ export default function MDPageViewer({ post, channelId, onClose }) {
       TableRow,
       TableHeader,
       TableCell,
+      TableOfContents,
+      TocNode,
       ResizableImage.configure({
         minWidth: 120,
         maxWidth: 1200,
@@ -658,6 +801,19 @@ export default function MDPageViewer({ post, channelId, onClose }) {
     imageInputRef.current?.click()
   }
 
+  function handleInsertToc() {
+    if (!editor || !canEdit || mode !== 'preview') return
+    editor
+      .chain()
+      .focus()
+      .insertTocNode({
+        maxShowCount: 10,
+        topOffset: 60,
+        showTitle: true,
+      })
+      .run()
+  }
+
   async function handleEditorDrop(e) {
     if (!canEdit || mode !== 'preview') return
     const files = Array.from(e.dataTransfer?.files || []).filter(isImageFile)
@@ -744,6 +900,7 @@ export default function MDPageViewer({ post, channelId, onClose }) {
         <TipTapToolbar
           editor={editor}
           onInsertImage={handleImagePickClick}
+          onInsertToc={handleInsertToc}
           isUploadingImage={isUploadingImage}
         />
       )}
@@ -829,7 +986,7 @@ export default function MDPageViewer({ post, channelId, onClose }) {
 /* ─────────────────────────────────────────
    TipTap 툴바 컴포넌트
 ───────────────────────────────────────── */
-function TipTapToolbar({ editor, onInsertImage, isUploadingImage = false }) {
+function TipTapToolbar({ editor, onInsertImage, onInsertToc, isUploadingImage = false }) {
   if (!editor) return null
 
   const btn = (active, onClick, label, title) => (
@@ -866,6 +1023,7 @@ function TipTapToolbar({ editor, onInsertImage, isUploadingImage = false }) {
       {btn(editor.isActive('blockquote'),  () => editor.chain().focus().toggleBlockquote().run(),   '"  인용',   '인용구')}
       {btn(editor.isActive('codeBlock'),   () => editor.chain().focus().toggleCodeBlock().run(),    '코드 블록', '코드 블록')}
       {btn(editor.isActive('table'), () => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run(), '표 추가', '3x3 표 추가')}
+      {btn(false, onInsertToc, '목차 삽입', '문서 내 TOC 노드 삽입')}
       {btn(false, () => editor.chain().focus().setHorizontalRule().run(), '── 구분선', '가로 구분선')}
       {btn(false, onInsertImage, isUploadingImage ? '업로드 중' : '이미지', '이미지 업로드 및 삽입')}
       {sep('s4')}
