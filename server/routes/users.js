@@ -87,6 +87,32 @@ router.get('/', requireSiteAdmin, async (req, res) => {
   }
 })
 
+// GET /api/users/:id/basic — any authenticated user (calendar owner display fallback)
+router.get('/:id/basic', async (req, res) => {
+  const targetId = parseInt(req.params.id, 10)
+  if (!Number.isInteger(targetId) || targetId <= 0) {
+    return res.status(400).json({ error: '유효하지 않은 사용자 ID입니다.' })
+  }
+  try {
+    const { rows } = await pool.query(
+      'SELECT id, username, name, display_name, image_url FROM users WHERE id = $1 LIMIT 1',
+      [targetId]
+    )
+    if (!rows[0]) return res.status(404).json({ error: '사용자를 찾을 수 없습니다.' })
+    const row = rows[0]
+    res.json({
+      id: row.id,
+      username: row.username ?? null,
+      name: row.name ?? null,
+      displayName: row.display_name ?? null,
+      imageUrl: row.image_url ?? null,
+    })
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ error: '서버 오류가 발생했습니다.' })
+  }
+})
+
 // POST /api/users — site admin only
 router.post('/', requireSiteAdmin, async (req, res) => {
   const {
