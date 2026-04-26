@@ -89,16 +89,17 @@ export default function EventAddModal({ onClose, onAdd, onSave, onDelete, event:
   const canMutate = !isEditMode || canEdit
   const ownerId = Number(editEvent?.ownerId)
   const isOwnerCurrentUser = !isEditMode || ownerId === Number(currentUser?.id)
-  const ownerDisplayName = (editEvent?.owner?.displayName || '').trim()
-  const ownerNameRaw = (editEvent?.owner?.name || '').trim()
-  const ownerUsernameRaw = (editEvent?.owner?.username || '').trim()
+  const [ownerFallback, setOwnerFallback] = useState(null)
+  const ownerDisplayName = ((editEvent?.owner?.displayName ?? ownerFallback?.displayName) || '').trim()
+  const ownerNameRaw = ((editEvent?.owner?.name ?? ownerFallback?.name) || '').trim()
+  const ownerUsernameRaw = ((editEvent?.owner?.username ?? ownerFallback?.username) || '').trim()
   const ownerName = ownerDisplayName
     || ownerNameRaw
     || (isOwnerCurrentUser ? (currentUser?.name || '').trim() : '')
     || ownerUsernameRaw
     || '알 수 없음'
   const ownerUsername = ownerUsernameRaw || (isOwnerCurrentUser ? currentUser?.username : null)
-  const ownerImageUrl = editEvent?.owner?.imageUrl || (isOwnerCurrentUser ? currentUser?.image_url : null)
+  const ownerImageUrl = editEvent?.owner?.imageUrl || ownerFallback?.imageUrl || (isOwnerCurrentUser ? currentUser?.image_url : null)
 
   const [tab, setTab] = useState('event') // 'event' | 'reminder'
   const [showRepeatDeleteConfirm, setShowRepeatDeleteConfirm] = useState(false)
@@ -136,6 +137,25 @@ export default function EventAddModal({ onClose, onAdd, onSave, onDelete, event:
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [onClose])
+
+  useEffect(() => {
+    const hasOwnerName = !!((editEvent?.owner?.displayName || editEvent?.owner?.name || editEvent?.owner?.username || '').trim())
+    if (!isEditMode || !Number.isInteger(ownerId) || ownerId <= 0 || hasOwnerName) {
+      setOwnerFallback(null)
+      return
+    }
+    let cancelled = false
+    apiFetch(`/users/${ownerId}/basic`)
+      .then((user) => {
+        if (!cancelled) setOwnerFallback(user || null)
+      })
+      .catch(() => {
+        if (!cancelled) setOwnerFallback(null)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [isEditMode, ownerId, editEvent?.owner?.displayName, editEvent?.owner?.name, editEvent?.owner?.username])
 
   // Search users as query changes
   useEffect(() => {
