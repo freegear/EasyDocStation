@@ -291,6 +291,31 @@ function normalizeImageMetaKeys(imageMeta = {}) {
   return normalized
 }
 
+function extractPixelWidthFromStyle(style = '') {
+  const text = String(style || '')
+  const m = text.match(/width:\s*([0-9.]+)px/i)
+  if (!m?.[1]) return null
+  const n = Number(m[1])
+  return Number.isFinite(n) ? String(Math.round(n)) : null
+}
+
+function buildContainerStyleWithWidth(existingStyle = '', width = null) {
+  const styleText = String(existingStyle || '').trim()
+  const widthValue = width == null ? null : `${Number(width)}px`
+  if (!widthValue || Number.isNaN(Number(width))) {
+    return styleText || DEFAULT_IMAGE_CONTAINER_STYLE
+  }
+
+  if (!styleText) {
+    return `width: ${widthValue}; height: auto; cursor: pointer;`
+  }
+
+  if (/width\s*:/i.test(styleText)) {
+    return styleText.replace(/width:\s*[^;]+;?/i, `width: ${widthValue};`)
+  }
+  return `width: ${widthValue}; ${styleText}`
+}
+
 function hasSizingMeta(meta = {}) {
   if (!meta || typeof meta !== 'object') return false
   const containerStyle = String(meta.containerStyle || '').trim()
@@ -311,8 +336,11 @@ function collectImageMetaFromDoc(doc, fallbackMap = {}) {
     if (node.type.name !== 'image') return
     const src = normalizeFileViewUrlKey(stripAuthTokenFromFileViewUrl(String(node.attrs?.src || '').trim()))
     if (!src) return
+    const widthFromAttr = node.attrs?.width ?? null
+    const widthFromStyle = extractPixelWidthFromStyle(node.attrs?.containerStyle || '')
+    const resolvedWidth = widthFromAttr ?? widthFromStyle ?? null
     const current = {
-      width: node.attrs?.width ?? null,
+      width: resolvedWidth,
       containerStyle: node.attrs?.containerStyle ?? null,
       wrapperStyle: node.attrs?.wrapperStyle ?? null,
     }
@@ -767,10 +795,14 @@ export default function MDPageViewer({ post, channelId, onClose }) {
       const normalizedSrc = normalizeFileViewUrlKey(stripAuthTokenFromFileViewUrl(src))
       const meta = imageMeta[normalizedSrc] || imageMeta[normalizeFileViewUrlKey(src)] || imageMeta[stripAuthTokenFromFileViewUrl(src)] || imageMeta[src]
       if (!src || !meta) return
+      const metaWidth = meta.width ?? extractPixelWidthFromStyle(meta.containerStyle || '') ?? null
+      const nextContainerStyle = meta.containerStyle
+        ? buildContainerStyleWithWidth(meta.containerStyle, metaWidth)
+        : buildContainerStyleWithWidth(node.attrs?.containerStyle || '', metaWidth)
       const nextAttrs = {
         ...node.attrs,
-        ...(meta.width != null ? { width: meta.width } : {}),
-        ...(meta.containerStyle ? { containerStyle: meta.containerStyle } : {}),
+        ...(metaWidth != null ? { width: metaWidth } : {}),
+        ...(nextContainerStyle ? { containerStyle: nextContainerStyle } : {}),
         ...(meta.wrapperStyle ? { wrapperStyle: meta.wrapperStyle } : {}),
       }
       if (JSON.stringify(nextAttrs) !== JSON.stringify(node.attrs)) {
@@ -796,10 +828,11 @@ export default function MDPageViewer({ post, channelId, onClose }) {
       const containerStyle = String(node.attrs?.containerStyle || '').trim()
       const wrapperStyle = String(node.attrs?.wrapperStyle || '').trim()
       if (containerStyle && wrapperStyle) return
+      const width = node.attrs?.width ?? extractPixelWidthFromStyle(containerStyle) ?? null
 
       tr.setNodeMarkup(pos, undefined, {
         ...node.attrs,
-        containerStyle: containerStyle || DEFAULT_IMAGE_CONTAINER_STYLE,
+        containerStyle: containerStyle || buildContainerStyleWithWidth('', width),
         wrapperStyle: wrapperStyle || DEFAULT_IMAGE_WRAPPER_STYLE,
       })
       changed = true
