@@ -367,8 +367,8 @@ function normalizeHexColor(raw, fallback = '#111827') {
 }
 
 export default function MDPageViewer({ post, channelId, onClose }) {
-  const { updatePost, deletePost } = useChat()
-  const { currentUser } = useAuth()
+  const { updatePost, deletePost, addComment, posts } = useChat()
+  const { currentUser, maxAttachmentFileSize } = useAuth()
   const t = useT()
   const authToken = getToken() || ''
   const initialMdStored = normalizeMarkdownForTableParsing(
@@ -400,8 +400,13 @@ export default function MDPageViewer({ post, channelId, onClose }) {
   const [showComments, setShowComments] = useState(false)
   const [commentPaneHeight, setCommentPaneHeight] = useState(220)
   const [isResizingCommentPane, setIsResizingCommentPane] = useState(false)
+  const [commentText, setCommentText] = useState('')
+  const [commentFiles, setCommentFiles] = useState([])
+  const [commentDragOver, setCommentDragOver] = useState(false)
+  const [commentSubmitting, setCommentSubmitting] = useState(false)
   const splitAreaRef = useRef(null)
   const resizeStartRef = useRef({ y: 0, height: 220 })
+  const commentFileInputRef = useRef(null)
 
   useEffect(() => { showSaveDialogRef.current = showSaveDialog }, [showSaveDialog])
   useEffect(() => { imageMetaRef.current = imageMeta }, [imageMeta])
@@ -409,7 +414,8 @@ export default function MDPageViewer({ post, channelId, onClose }) {
   useEffect(() => { savedImageMetaRef.current = savedImageMeta }, [savedImageMeta])
 
   const canEdit = String(post.author?.id ?? '') === String(currentUser?.id ?? '')
-  const comments = Array.isArray(post.comments) ? post.comments : []
+  const freshPost = posts[channelId]?.find((p) => p.id === post.id) || post
+  const comments = Array.isArray(freshPost.comments) ? freshPost.comments : []
 
   useEffect(() => {
     if (!showComments) return undefined
@@ -456,6 +462,118 @@ export default function MDPageViewer({ post, channelId, onClose }) {
     setIsResizingCommentPane(true)
     document.body.style.userSelect = 'none'
     document.body.style.cursor = 'row-resize'
+  }
+
+  function dataTransferHasFiles(dataTransfer) {
+    if (!dataTransfer) return false
+    if (dataTransfer.files && dataTransfer.files.length > 0) return true
+    return Array.from(dataTransfer.types || []).includes('Files')
+  }
+
+  function addCommentFiles(newFilesLike) {
+    const incoming = Array.from(newFilesLike || [])
+    if (incoming.length === 0) return
+    const nextCount = commentFiles.length + incoming.length
+    if (nextCount > 10) {
+      alert('첨부파일은 최대 10개까지 추가할 수 있습니다.')
+      return
+    }
+
+    const limitMB = Number(maxAttachmentFileSize ?? 100)
+    const limitBytes = limitMB * 1024 * 1024
+    for (const f of incoming) {
+      if ((f.size || 0) > limitBytes) {
+        alert(`파일 용량은 ${limitMB}MB 이하만 업로드할 수 있습니다.`)
+        return
+      }
+    }
+
+    const mapped = incoming.map((f) => ({
+      id: `md-comment-file-${Date.now()}-${Math.random()}`,
+      name: f.name,
+      size: f.size,
+      type: f.type,
+      file: f,
+    }))
+    setCommentFiles((prev) => [...prev, ...mapped])
+  }
+
+  function removeCommentFile(id) {
+    setCommentFiles((prev) => prev.filter((f) => f.id !== id))
+  }
+
+  function handleCommentInputDrop(e) {
+    if (!dataTransferHasFiles(e.dataTransfer)) return
+    e.preventDefault()
+    e.stopPropagation()
+    setCommentDragOver(false)
+    if (e.dataTransfer?.files?.length) {
+      addCommentFiles(e.dataTransfer.files)
+    }
+  }
+
+  function handleCommentInputDragOver(e) {
+    if (!dataTransferHasFiles(e.dataTransfer)) return
+    e.preventDefault()
+    e.stopPropagation()
+    if (e.dataTransfer) e.dataTransfer.dropEffect = 'copy'
+    setCommentDragOver(true)
+  }
+
+  function handleCommentInputDragLeave(e) {
+    if (!dataTransferHasFiles(e.dataTransfer)) return
+    e.preventDefault()
+    e.stopPropagation()
+    setCommentDragOver(false)
+  }
+
+  async function handleCommentSubmit(e) {
+    e.preventDefault()
+    if (commentSubmitting) return
+    const text = String(commentText || '').trim()
+    if (!text && commentFiles.length === 0) return
+    if (!currentUser) return
+
+    setCommentSubmitting(true)
+    try {
+      const attachmentIds = []
+      for (const fileObj of commentFiles) {
+        const prep = await apiFetch('/files/get-upload-url', {
+          method: 'POST',
+          body: JSON.stringify({
+            filename: fileObj.name,
+            contentType: fileObj.type || 'application/octet-stream',
+            channelId,
+          }),
+        })
+        const uploadResp = await fetch(prep.uploadUrl, {
+          method: 'PUT',
+          headers: { 'Content-Type': fileObj.type || 'application/octet-stream' },
+          body: fileObj.file,
+        })
+        if (!uploadResp.ok) {
+          throw new Error(`파일 업로드 실패 (${uploadResp.status})`)
+        }
+        attachmentIds.push(prep.file_uuid)
+      }
+
+      await addComment(
+        channelId,
+        post.id,
+        text,
+        currentUser,
+        attachmentIds,
+        Math.min(Number(currentUser?.security_level ?? 0), 1),
+      )
+      setCommentText('')
+      setCommentFiles([])
+    } catch (err) {
+      console.error('MD 댓글 등록 실패:', err)
+      alert(`댓글 등록에 실패했습니다: ${err.message || err}`)
+    } finally {
+      setCommentSubmitting(false)
+      setCommentDragOver(false)
+    }
   }
 
   const editor = useEditor({
@@ -1178,6 +1296,67 @@ export default function MDPageViewer({ post, channelId, onClose }) {
                   })}
                 </div>
               )}
+
+              <form onSubmit={handleCommentSubmit} className="mt-4 border-t border-gray-200 pt-3">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-xs text-gray-500">댓글 입력 (파일 Drag & Drop 가능)</p>
+                  <button
+                    type="button"
+                    onClick={() => commentFileInputRef.current?.click()}
+                    className="px-2.5 py-1 rounded-md border border-gray-300 text-xs text-gray-600 hover:bg-gray-100"
+                    disabled={commentSubmitting}
+                  >
+                    파일 추가
+                  </button>
+                </div>
+                <textarea
+                  value={commentText}
+                  onChange={(e) => setCommentText(e.target.value)}
+                  onDragOver={handleCommentInputDragOver}
+                  onDragLeave={handleCommentInputDragLeave}
+                  onDrop={handleCommentInputDrop}
+                  placeholder="댓글을 입력하세요..."
+                  className={`w-full min-h-[72px] max-h-36 resize-y rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-200 ${commentDragOver ? 'border-indigo-400 bg-indigo-50' : 'border-gray-300 bg-white'}`}
+                  disabled={commentSubmitting}
+                />
+                {commentFiles.length > 0 && (
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {commentFiles.map((f) => (
+                      <div key={f.id} className="flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-2.5 py-1 text-xs text-gray-700">
+                        <span className="max-w-[180px] truncate">{f.name}</span>
+                        <button
+                          type="button"
+                          onClick={() => removeCommentFile(f.id)}
+                          className="text-gray-400 hover:text-red-500"
+                          aria-label={`${f.name} 제거`}
+                          disabled={commentSubmitting}
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <div className="mt-2 flex justify-end">
+                  <button
+                    type="submit"
+                    disabled={commentSubmitting || (!String(commentText || '').trim() && commentFiles.length === 0)}
+                    className="px-3 py-1.5 rounded-lg bg-indigo-600 text-white text-xs font-medium hover:bg-indigo-500 disabled:bg-gray-300 disabled:cursor-not-allowed"
+                  >
+                    {commentSubmitting ? '등록 중...' : '댓글 등록'}
+                  </button>
+                </div>
+                <input
+                  ref={commentFileInputRef}
+                  type="file"
+                  multiple
+                  className="hidden"
+                  onChange={(e) => {
+                    addCommentFiles(e.target.files)
+                    e.target.value = ''
+                  }}
+                />
+              </form>
             </div>
           </>
         )}
