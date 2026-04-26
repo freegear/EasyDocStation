@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { useEditor, EditorContent } from '@tiptap/react'
 import { BubbleMenu } from '@tiptap/react/menus'
 import { Node, mergeAttributes } from '@tiptap/core'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 import html2canvas from 'html2canvas'
 import { jsPDF } from 'jspdf'
 import StarterKit from '@tiptap/starter-kit'
@@ -1336,7 +1338,14 @@ export default function MDPageViewer({ post, channelId, onClose }) {
                             )}
                           </div>
                           <div className="text-sm text-gray-800 whitespace-pre-wrap break-words">
-                            {comment?.content || ''}
+                            <ReactMarkdown
+                              remarkPlugins={[remarkGfm]}
+                              components={{
+                                a: ({ ...props }) => <a {...props} target="_blank" rel="noreferrer noopener" />,
+                              }}
+                            >
+                              {String(comment?.content || '')}
+                            </ReactMarkdown>
                           </div>
                           {Array.isArray(comment?.attachments) && comment.attachments.length > 0 && (
                             <div className="mt-3 grid grid-cols-1 gap-2">
