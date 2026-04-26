@@ -542,7 +542,7 @@ PostgreSQL Database Path : /Users/kevinim/Desktop/EasyDocStation/Database/PoseSQ
 ObjectFile Path : /Users/kevinim/Desktop/EasyDocStation/Database/ObjectFile
 로 둔다.
 
-
+ 
 # 4.4 Cassandra 
 
 채널의 글을 올릴 떄 글 자체는 Cassandra에 저장한다.
