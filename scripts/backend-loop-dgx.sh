@@ -4,6 +4,24 @@ set -uo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
 
+LOG_DIR="${EASYDOC_LOG_DIR:-$ROOT_DIR/logs}"
+mkdir -p "$LOG_DIR"
+LOOP_PID_FILE="$LOG_DIR/dgx-be-loop.pid"
+
+if [[ -f "$LOOP_PID_FILE" ]]; then
+  old_pid="$(cat "$LOOP_PID_FILE" 2>/dev/null || true)"
+  if [[ -n "${old_pid:-}" ]] && kill -0 "$old_pid" 2>/dev/null; then
+    echo "[BE] backend-loop가 이미 실행 중입니다. (PID: $old_pid)"
+    exit 0
+  fi
+fi
+
+echo "$$" > "$LOOP_PID_FILE"
+cleanup() {
+  rm -f "$LOOP_PID_FILE"
+}
+trap cleanup EXIT INT TERM
+
 resolve_port_pids() {
   local port="$1"
   local pids=""
@@ -31,6 +49,12 @@ cleanup_port() {
   alive="$(resolve_port_pids "$port")"
   if [[ -n "${alive:-}" ]]; then
     echo "$alive" | xargs -r kill -KILL >/dev/null 2>&1 || true
+    # root 소유 프로세스 등으로 일반 kill 실패 시 sudo 무인 모드로 재시도
+    if [[ -n "${alive:-}" ]] && command -v sudo >/dev/null 2>&1; then
+      echo "$alive" | xargs -r sudo -n kill -TERM >/dev/null 2>&1 || true
+      sleep 1
+      echo "$alive" | xargs -r sudo -n kill -KILL >/dev/null 2>&1 || true
+    fi
     sleep 1
   fi
 
@@ -50,4 +74,3 @@ while true; do
   echo "[BE] process exited with code ${code}. restarting in 2s..."
   sleep 2
 done
-
