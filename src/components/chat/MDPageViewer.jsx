@@ -447,6 +447,21 @@ export default function MDPageViewer({ post, channelId, onClose }) {
     content: stripImageMeta(initialMdRaw),
     editable: canEdit && mode === 'preview',
     editorProps: {
+      handleClick(view, _pos, event) {
+        const target = event.target
+        if (!(target instanceof Element)) return false
+        const anchor = target.closest('a[href]')
+        if (!(anchor instanceof HTMLAnchorElement)) return false
+        const href = String(anchor.getAttribute('href') || '').trim()
+        if (!href) return false
+
+        event.preventDefault()
+        event.stopPropagation()
+
+        const normalized = normalizeLinkUrl(href)
+        window.open(normalized, '_blank', 'noopener,noreferrer')
+        return true
+      },
       handleDrop(view, event) {
         if (!canEdit || mode !== 'preview') return false
         const files = Array.from(event.dataTransfer?.files || []).filter(isImageFile)
