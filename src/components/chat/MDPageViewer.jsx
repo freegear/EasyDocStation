@@ -1118,11 +1118,11 @@ function TipTapToolbar({ editor, onInsertImage, onInsertToc, isUploadingImage = 
       {btn(editor.isActive('codeBlock'),   () => editor.chain().focus().toggleCodeBlock().run(),    '코드 블록', '코드 블록')}
       {btn(editor.isActive('table'), () => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run(), '표 추가', '3x3 표 추가')}
       <TextColorControl editor={editor} />
-      {btn(false, () => editor.chain().focus().setHorizontalRule().run(), '── 구분선', '가로 구분선')}
+      {btn(false, () => editor.chain().focus().setHorizontalRule().run(), '──', '가로 구분선')}
       {btn(false, onInsertImage, isUploadingImage ? '업로드 중' : '이미지', '이미지 업로드 및 삽입')}
       {sep('s4')}
-      {btn(false, () => editor.chain().focus().undo().run(), '↩ 실행취소', '실행취소 (Ctrl+Z)')}
-      {btn(false, () => editor.chain().focus().redo().run(), '↪ 다시실행', '다시실행 (Ctrl+Y)')}
+      {btn(false, () => editor.chain().focus().undo().run(), '↩', '실행취소 (Ctrl+Z)')}
+      {btn(false, () => editor.chain().focus().redo().run(), '↪', '다시실행 (Ctrl+Y)')}
     </div>
   )
 }
