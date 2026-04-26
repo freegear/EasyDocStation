@@ -67,7 +67,9 @@ if [[ "${1:-}" == "--stop" ]]; then
   pkill -f "$ROOT_DIR/node_modules/.bin/vite" >/dev/null 2>&1 || true
   pkill -f "$ROOT_DIR/server/node_modules/.bin/nodemon" >/dev/null 2>&1 || true
   pkill -f "$ROOT_DIR/node_modules/concurrently" >/dev/null 2>&1 || true
+  pkill -f "nodemon[[:space:]].*index\\.js" >/dev/null 2>&1 || true
   pkill -f "$ROOT_DIR/server/index.js" >/dev/null 2>&1 || true
+  pkill -f "node[[:space:]].*server/index\\.js" >/dev/null 2>&1 || true
   kill_by_port 5173
   kill_by_port 3001
   kill_by_port 11434
@@ -106,6 +108,11 @@ if [[ -f "$PID_FILE" ]]; then
   fi
   rm -f "$PID_FILE"
 fi
+
+# 과거 세션에서 띄운 dev 프로세스가 남아 있으면 먼저 정리
+pkill -f "$ROOT_DIR/node_modules/concurrently" >/dev/null 2>&1 || true
+pkill -f "nodemon[[:space:]].*index\\.js" >/dev/null 2>&1 || true
+pkill -f "node[[:space:]].*server/index\\.js" >/dev/null 2>&1 || true
 
 kill_by_port 5173
 kill_by_port 3001

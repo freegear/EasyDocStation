@@ -20,7 +20,6 @@ const { initRag } = require('./rag')
 
 const app = express()
 const PORT = process.env.PORT || 3001
-let portRecoveryTried = false
 
 function normalizeAgenticAiConfig(ai = {}) {
   const language = ['ko', 'ja', 'en', 'zh'].includes(ai?.language) ? ai.language : 'ko'
@@ -175,53 +174,8 @@ const server = app.listen(PORT, () => {
 
 server.on('error', (err) => {
   if (err.code === 'EADDRINUSE') {
-    const { execSync } = require('child_process')
-    const selfPid = Number(process.pid)
-    const parentPid = Number(process.ppid)
-
-    // 동일 충돌에 대해 무한 재시도 방지
-    if (portRecoveryTried) {
-      console.error(`❌ 포트 ${PORT} 이미 사용 중입니다. 자동 복구 재시도 후에도 실패했습니다.`)
-      process.exit(1)
-      return
-    }
-    portRecoveryTried = true
-
-    console.warn(`⚠️  포트 ${PORT} 이미 사용 중 — 점유 프로세스 정리 후 1회 재시도합니다.`)
-
-    let occupied = []
-    try {
-      const raw = execSync(`lsof -ti tcp:${PORT}`, { encoding: 'utf8' })
-      occupied = String(raw || '')
-        .split(/\s+/)
-        .map(v => Number(v))
-        .filter(pid => Number.isInteger(pid) && pid > 0)
-    } catch (_) {
-      occupied = []
-    }
-
-    const targets = occupied.filter(pid => pid !== selfPid && pid !== parentPid)
-    if (targets.length === 0) {
-      console.error(`❌ 포트 ${PORT} 점유 PID를 찾지 못했거나 자기 자신만 감지되었습니다.`)
-      process.exit(1)
-      return
-    }
-
-    for (const pid of targets) {
-      try { process.kill(pid, 'SIGTERM') } catch (_) {}
-    }
-
-    setTimeout(() => {
-      for (const pid of targets) {
-        try { process.kill(pid, 0); process.kill(pid, 'SIGKILL') } catch (_) {}
-      }
-      try {
-        server.listen(PORT)
-      } catch (listenErr) {
-        console.error(`❌ 포트 ${PORT} 재시작 실패:`, listenErr?.message || listenErr)
-        process.exit(1)
-      }
-    }, 700)
+    console.error(`❌ 포트 ${PORT} 이미 사용 중입니다. run 스크립트에서 선정리 후 다시 실행하세요.`)
+    process.exit(1)
   } else {
     throw err
   }
