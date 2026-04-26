@@ -75,6 +75,12 @@ bash scripts/run-dgx-spark.sh --status
 bash scripts/run-dgx-spark.sh --stop
 ```
 
+로그 확인(백엔드 크래시 포함):
+
+```bash
+tail -f logs/run-dgx-spark.log
+```
+
 ### 3) 재실행
 
 ```bash
@@ -94,6 +100,7 @@ bash scripts/dgx-spark-rerun.sh --help
 - `dgx-spark-install.sh` -> `scripts/install-dgx-spark.sh`
 - `dgx-spark-run.sh` -> `scripts/run-dgx-spark.sh`
 - `dgx-spark-rerun.sh` -> `scripts/rerun-dgx-spark.sh`
+- `run-dgx-spark.sh`는 `EASYDOC_DAEMON_MODE=1`로 실행되어 백엔드는 `node server/index.js` 기반으로 자동 재시작됩니다.
 - 로그 파일: `logs/run-dgx-spark.log`, `logs/rerun-dgx-spark.log`
 - PID 파일: `logs/dgx-spark.pid`
 - 설치 시 프론트 의존성에 아래 컴포넌트가 포함됩니다.

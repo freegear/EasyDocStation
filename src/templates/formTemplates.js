@@ -1269,6 +1269,7 @@ export function getMdPageContent(content) {
 }
 
 export function getMdPageTitle(content, fallback = 'MD 페이지') {
+  const MAX_TITLE_LENGTH = 80
   const md = getMdPageContent(content || '')
   const first = md
     .split('\n')
@@ -1276,5 +1277,9 @@ export function getMdPageTitle(content, fallback = 'MD 페이지') {
     .find((line) => line.length > 0)
 
   if (!first) return fallback
-  return first.replace(/^#{1,6}\s+/, '').trim() || fallback
+  const plain = first.replace(/^#{1,6}\s+/, '').trim()
+  if (!plain) return fallback
+  const chars = Array.from(plain)
+  if (chars.length <= MAX_TITLE_LENGTH) return plain
+  return chars.slice(0, MAX_TITLE_LENGTH).join('')
 }

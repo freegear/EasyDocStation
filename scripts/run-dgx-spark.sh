@@ -39,6 +39,21 @@ if [[ "${1:-}" == "--status" ]]; then
 fi
 
 if [[ "${1:-}" == "--stop" ]]; then
+  kill_by_port() {
+    local port="$1"
+    local pids=""
+    if command -v lsof >/dev/null 2>&1; then
+      pids="$(lsof -ti tcp:"$port" 2>/dev/null || true)"
+    elif command -v fuser >/dev/null 2>&1; then
+      pids="$(fuser -n tcp "$port" 2>/dev/null || true)"
+    fi
+    if [[ -n "${pids:-}" ]]; then
+      echo "$pids" | tr ' ' '\n' | xargs -r kill -TERM >/dev/null 2>&1 || true
+      sleep 1
+      echo "$pids" | tr ' ' '\n' | xargs -r kill -KILL >/dev/null 2>&1 || true
+    fi
+  }
+
   if [[ -f "$PID_FILE" ]]; then
     pid="$(cat "$PID_FILE" 2>/dev/null || true)"
     if [[ -n "${pid:-}" ]] && kill -0 "$pid" 2>/dev/null; then
@@ -52,6 +67,10 @@ if [[ "${1:-}" == "--stop" ]]; then
   pkill -f "$ROOT_DIR/node_modules/.bin/vite" >/dev/null 2>&1 || true
   pkill -f "$ROOT_DIR/server/node_modules/.bin/nodemon" >/dev/null 2>&1 || true
   pkill -f "$ROOT_DIR/node_modules/concurrently" >/dev/null 2>&1 || true
+  pkill -f "$ROOT_DIR/server/index.js" >/dev/null 2>&1 || true
+  kill_by_port 5173
+  kill_by_port 3001
+  kill_by_port 11434
   echo "[DGX-SPARK] 중지 완료"
   exit 0
 fi
@@ -75,7 +94,7 @@ fi
 echo "[DGX-SPARK] 백그라운드 실행 시작"
 echo "[DGX-SPARK] 로그: $LOG_FILE"
 
-nohup bash "$ROOT_DIR/scripts/dev-dgx-spark.sh" >>"$LOG_FILE" 2>&1 < /dev/null &
+nohup env EASYDOC_DAEMON_MODE=1 bash "$ROOT_DIR/scripts/dev-dgx-spark.sh" >>"$LOG_FILE" 2>&1 < /dev/null &
 new_pid=$!
 disown "$new_pid" >/dev/null 2>&1 || true
 echo "$new_pid" > "$PID_FILE"
