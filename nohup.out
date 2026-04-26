@@ -1,0 +1,1188 @@
+
+> easydocstation@1.0.0 setup:dgx-spark
+> bash scripts/setup-dgx-spark.sh
+
+[INFO] NVIDIA GPU 확인:
+NVIDIA GB10, 580.95.05, [N/A]
+[1/3] Ubuntu 기본 설치 스크립트 실행
+[1/8] Ubuntu 패키지 설치
+
+> easydocstation@1.0.0 setup:dgx-spark
+> bash scripts/setup-dgx-spark.sh
+
+[INFO] NVIDIA GPU 확인:
+NVIDIA GB10, 580.95.05, [N/A]
+[1/3] Ubuntu 기본 설치 스크립트 실행
+[1/8] Ubuntu 패키지 설치
+
+> easydocstation@1.0.0 setup:dgx-spark
+> bash scripts/setup-dgx-spark.sh
+
+[INFO] NVIDIA GPU 확인:
+NVIDIA GB10, 580.95.05, [N/A]
+[1/3] Ubuntu 기본 설치 스크립트 실행
+[1/8] Ubuntu 패키지 설치
+
+> easydocstation@1.0.0 setup:dgx-spark
+> bash scripts/setup-dgx-spark.sh
+
+[INFO] NVIDIA GPU 확인:
+NVIDIA GB10, 580.95.05, [N/A]
+[1/3] Ubuntu 기본 설치 스크립트 실행
+[1/8] Ubuntu 패키지 설치
+
+> easydocstation@1.0.0 setup:dgx-spark
+> bash scripts/setup-dgx-spark.sh
+
+[INFO] NVIDIA GPU 확인:
+NVIDIA GB10, 580.95.05, [N/A]
+[1/3] Ubuntu 기본 설치 스크립트 실행
+[1/8] Ubuntu 패키지 설치
+
+> easydocstation@1.0.0 setup:dgx-spark
+> bash scripts/setup-dgx-spark.sh
+
+[INFO] NVIDIA GPU 확인:
+NVIDIA GB10, 580.95.05, [N/A]
+[1/3] Ubuntu 기본 설치 스크립트 실행
+[1/8] Ubuntu 패키지 설치
+기존:1 https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/sbsa  InRelease
+기존:2 https://repo.download.nvidia.com/baseos/ubuntu/noble/arm64 noble InRelease
+기존:3 https://developer.download.nvidia.com/hpc-sdk/ubuntu/arm64  InRelease
+기존:4 https://repo.download.nvidia.com/baseos/ubuntu/noble/arm64 noble-updates InRelease
+기존:6 https://ppa.launchpadcontent.net/canonical-nvidia/linux-firmware-mbssid-patches/ubuntu noble InRelease
+기존:7 http://ports.ubuntu.com/ubuntu-ports noble InRelease
+받기:8 https://esm.ubuntu.com/apps/ubuntu noble-apps-security InRelease [8,371 B]
+기존:5 https://apache.jfrog.io/artifactory/cassandra-deb 41x InRelease
+기존:9 https://ppa.launchpadcontent.net/canonical-nvidia/nvidia-desktop-edge/ubuntu noble InRelease
+기존:10 http://ports.ubuntu.com/ubuntu-ports noble-updates InRelease
+기존:11 https://ppa.launchpadcontent.net/canonical-nvidia/vulkan-packages-nv-desktop/ubuntu noble InRelease
+받기:12 https://esm.ubuntu.com/apps/ubuntu noble-apps-updates InRelease [8,220 B]
+기존:13 http://ports.ubuntu.com/ubuntu-ports noble-backports InRelease
+받기:14 https://esm.ubuntu.com/infra/ubuntu noble-infra-security InRelease [8,235 B]
+기존:15 http://ports.ubuntu.com/ubuntu-ports noble-security InRelease
+받기:16 https://esm.ubuntu.com/infra/ubuntu noble-infra-updates InRelease [8,213 B]
+내려받기 33.0 k바이트, 소요시간 3초 (12.6 k바이트/초)
+패키지 목록을 읽는 중입니다...
+패키지 목록을 읽는 중입니다...
+의존성 트리를 만드는 중입니다...
+상태 정보를 읽는 중입니다...
+패키지 curl는 이미 최신 버전입니다 (8.5.0-2ubuntu10.8).
+패키지 ca-certificates는 이미 최신 버전입니다 (20240203).
+패키지 gnupg는 이미 최신 버전입니다 (2.4.4-2ubuntu17.4).
+패키지 lsb-release는 이미 최신 버전입니다 (12.0-2).
+패키지 software-properties-common는 이미 최신 버전입니다 (0.99.49.4).
+패키지 python3-full는 이미 최신 버전입니다 (3.12.3-0ubuntu2.1).
+패키지 python3-venv는 이미 최신 버전입니다 (3.12.3-0ubuntu2.1).
+패키지 python3-pip는 이미 최신 버전입니다 (24.0+dfsg-1ubuntu1.3).
+패키지 build-essential는 이미 최신 버전입니다 (12.10ubuntu1).
+패키지 pkg-config는 이미 최신 버전입니다 (1.8.1-2build1).
+패키지 libpq-dev는 이미 최신 버전입니다 (16.13-0ubuntu0.24.04.1).
+패키지 postgresql는 이미 최신 버전입니다 (16+257build1.1).
+패키지 postgresql-contrib는 이미 최신 버전입니다 (16+257build1.1).
+패키지 poppler-utils는 이미 최신 버전입니다 (24.02.0-1ubuntu9.8).
+패키지 ffmpeg는 이미 최신 버전입니다 (7:6.1.1-3ubuntu5+esm7).
+패키지 libreoffice는 이미 최신 버전입니다 (4:24.2.7-0ubuntu0.24.04.4).
+패키지 tesseract-ocr는 이미 최신 버전입니다 (5.3.4-1build5).
+패키지 tesseract-ocr-eng는 이미 최신 버전입니다 (1:4.1.0-2).
+패키지 tesseract-ocr-kor는 이미 최신 버전입니다 (1:4.1.0-2).
+0개 업그레이드, 0개 새로 설치, 0개 제거 및 506개 업그레이드 안 함.
+[2/8] PostgreSQL 서비스 기동
+[3/8] PostgreSQL DB/계정 준비
+DO
+ALTER DATABASE
+[3-0/8] PostgreSQL 권한 보정(public schema)
+GRANT
+GRANT
+ALTER SCHEMA
+DO
+DO
+ALTER DEFAULT PRIVILEGES
+ALTER DEFAULT PRIVILEGES
+ALTER DEFAULT PRIVILEGES
+[3-1/8] PostgreSQL 스키마 적용
+psql:/home/freegear/EasyDocStation/server/schema.sql:8: NOTICE:  extension "pgcrypto" already exists, skipping
+psql:/home/freegear/EasyDocStation/server/schema.sql:19: NOTICE:  relation "teams" already exists, skipping
+psql:/home/freegear/EasyDocStation/server/schema.sql:33: NOTICE:  relation "channels" already exists, skipping
+psql:/home/freegear/EasyDocStation/server/schema.sql:69: NOTICE:  relation "users" already exists, skipping
+psql:/home/freegear/EasyDocStation/server/schema.sql:92: NOTICE:  relation "login_history" already exists, skipping
+psql:/home/freegear/EasyDocStation/server/schema.sql:102: NOTICE:  relation "team_admins" already exists, skipping
+psql:/home/freegear/EasyDocStation/server/schema.sql:112: NOTICE:  relation "team_members" already exists, skipping
+psql:/home/freegear/EasyDocStation/server/schema.sql:122: NOTICE:  relation "channel_admins" already exists, skipping
+psql:/home/freegear/EasyDocStation/server/schema.sql:132: NOTICE:  relation "channel_members" already exists, skipping
+psql:/home/freegear/EasyDocStation/server/schema.sql:161: NOTICE:  relation "posts" already exists, skipping
+psql:/home/freegear/EasyDocStation/server/schema.sql:176: NOTICE:  relation "attachments" already exists, skipping
+psql:/home/freegear/EasyDocStation/server/schema.sql:193: NOTICE:  relation "channel_last_read" already exists, skipping
+psql:/home/freegear/EasyDocStation/server/schema.sql:196: NOTICE:  relation "idx_channel_last_read_user" already exists, skipping
+psql:/home/freegear/EasyDocStation/server/schema.sql:197: NOTICE:  relation "idx_users_email" already exists, skipping
+psql:/home/freegear/EasyDocStation/server/schema.sql:198: NOTICE:  relation "idx_users_role" already exists, skipping
+psql:/home/freegear/EasyDocStation/server/schema.sql:199: NOTICE:  relation "idx_login_history_user" already exists, skipping
+psql:/home/freegear/EasyDocStation/server/schema.sql:200: NOTICE:  relation "idx_team_admins_team" already exists, skipping
+psql:/home/freegear/EasyDocStation/server/schema.sql:201: NOTICE:  relation "idx_team_members_team" already exists, skipping
+psql:/home/freegear/EasyDocStation/server/schema.sql:202: NOTICE:  relation "idx_channel_admins_ch" already exists, skipping
+psql:/home/freegear/EasyDocStation/server/schema.sql:203: NOTICE:  relation "idx_channel_members_ch" already exists, skipping
+psql:/home/freegear/EasyDocStation/server/schema.sql:204: NOTICE:  relation "idx_posts_channel" already exists, skipping
+psql:/home/freegear/EasyDocStation/server/schema.sql:205: NOTICE:  relation "idx_attachments_post" already exists, skipping
+[4/8] Cassandra 설치는 건너뜀 (INSTALL_CASSANDRA=1 로 활성화 가능)
+[5/8] Ollama 설치는 건너뜀 (INSTALL_OLLAMA=1 로 활성화 가능)
+[6/8] Node 패키지 설치
+npm WARN EBADENGINE Unsupported engine {
+npm WARN EBADENGINE   package: '@vitejs/plugin-react@6.0.1',
+npm WARN EBADENGINE   required: { node: '^20.19.0 || >=22.12.0' },
+npm WARN EBADENGINE   current: { node: 'v18.19.1', npm: '9.2.0' }
+npm WARN EBADENGINE }
+npm WARN EBADENGINE Unsupported engine {
+npm WARN EBADENGINE   package: 'pdfjs-dist@5.6.205',
+npm WARN EBADENGINE   required: { node: '>=20.19.0 || >=22.13.0 || >=24' },
+npm WARN EBADENGINE   current: { node: 'v18.19.1', npm: '9.2.0' }
+npm WARN EBADENGINE }
+npm WARN EBADENGINE Unsupported engine {
+npm WARN EBADENGINE   package: 'rolldown@1.0.0-rc.15',
+npm WARN EBADENGINE   required: { node: '^20.19.0 || >=22.12.0' },
+npm WARN EBADENGINE   current: { node: 'v18.19.1', npm: '9.2.0' }
+npm WARN EBADENGINE }
+npm WARN EBADENGINE Unsupported engine {
+npm WARN EBADENGINE   package: 'vite@8.0.8',
+npm WARN EBADENGINE   required: { node: '^20.19.0 || >=22.12.0' },
+npm WARN EBADENGINE   current: { node: 'v18.19.1', npm: '9.2.0' }
+npm WARN EBADENGINE }
+
+up to date, audited 358 packages in 389ms
+
+145 packages are looking for funding
+  run `npm fund` for details
+
+found 0 vulnerabilities
+
+up to date, audited 144 packages in 297ms
+
+24 packages are looking for funding
+  run `npm fund` for details
+
+found 0 vulnerabilities
+[7/8] Python venv 및 RAG 의존성 설치
+Requirement already satisfied: pip in ./.venv/lib/python3.12/site-packages (24.0)
+Collecting pip
+  Downloading pip-26.0.1-py3-none-any.whl.metadata (4.7 kB)
+Collecting wheel
+  Downloading wheel-0.46.3-py3-none-any.whl.metadata (2.4 kB)
+Collecting packaging
+  Downloading packaging-26.1-py3-none-any.whl.metadata (3.5 kB)
+Collecting setuptools<82
+  Downloading setuptools-81.0.0-py3-none-any.whl.metadata (6.6 kB)
+Downloading pip-26.0.1-py3-none-any.whl (1.8 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.8/1.8 MB 17.3 MB/s eta 0:00:00
+Downloading wheel-0.46.3-py3-none-any.whl (30 kB)
+Downloading packaging-26.1-py3-none-any.whl (95 kB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 95.8/95.8 kB 13.4 MB/s eta 0:00:00
+Downloading setuptools-81.0.0-py3-none-any.whl (1.1 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.1/1.1 MB 19.5 MB/s eta 0:00:00
+Installing collected packages: setuptools, pip, packaging, wheel
+  Attempting uninstall: pip
+    Found existing installation: pip 24.0
+    Uninstalling pip-24.0:
+      Successfully uninstalled pip-24.0
+Successfully installed packaging-26.1 pip-26.0.1 setuptools-81.0.0 wheel-0.46.3
+Collecting torch>=2.6 (from -r /home/freegear/EasyDocStation/server/requirements.txt (line 1))
+  Downloading torch-2.11.0-cp312-cp312-manylinux_2_28_aarch64.whl.metadata (29 kB)
+Collecting sentence-transformers (from -r /home/freegear/EasyDocStation/server/requirements.txt (line 2))
+  Downloading sentence_transformers-5.4.1-py3-none-any.whl.metadata (17 kB)
+Collecting lancedb (from -r /home/freegear/EasyDocStation/server/requirements.txt (line 3))
+  Downloading lancedb-0.30.2-cp39-abi3-manylinux_2_28_aarch64.whl.metadata (5.0 kB)
+Collecting pdfplumber (from -r /home/freegear/EasyDocStation/server/requirements.txt (line 4))
+  Downloading pdfplumber-0.11.9-py3-none-any.whl.metadata (43 kB)
+Collecting langchain-community (from -r /home/freegear/EasyDocStation/server/requirements.txt (line 5))
+  Downloading langchain_community-0.4.1-py3-none-any.whl.metadata (3.0 kB)
+Collecting langchain-text-splitters (from -r /home/freegear/EasyDocStation/server/requirements.txt (line 6))
+  Downloading langchain_text_splitters-1.1.2-py3-none-any.whl.metadata (3.3 kB)
+Collecting pyarrow (from -r /home/freegear/EasyDocStation/server/requirements.txt (line 7))
+  Downloading pyarrow-23.0.1-cp312-cp312-manylinux_2_28_aarch64.whl.metadata (3.1 kB)
+Collecting docx2txt (from -r /home/freegear/EasyDocStation/server/requirements.txt (line 8))
+  Downloading docx2txt-0.9-py3-none-any.whl.metadata (529 bytes)
+Collecting pytesseract (from -r /home/freegear/EasyDocStation/server/requirements.txt (line 10))
+  Downloading pytesseract-0.3.13-py3-none-any.whl.metadata (11 kB)
+Collecting unstructured[pdf] (from -r /home/freegear/EasyDocStation/server/requirements.txt (line 9))
+  Downloading unstructured-0.22.21-py3-none-any.whl.metadata (29 kB)
+Collecting filelock (from torch>=2.6->-r /home/freegear/EasyDocStation/server/requirements.txt (line 1))
+  Downloading filelock-3.29.0-py3-none-any.whl.metadata (2.0 kB)
+Collecting typing-extensions>=4.10.0 (from torch>=2.6->-r /home/freegear/EasyDocStation/server/requirements.txt (line 1))
+  Downloading typing_extensions-4.15.0-py3-none-any.whl.metadata (3.3 kB)
+Requirement already satisfied: setuptools<82 in ./.venv/lib/python3.12/site-packages (from torch>=2.6->-r /home/freegear/EasyDocStation/server/requirements.txt (line 1)) (81.0.0)
+Collecting sympy>=1.13.3 (from torch>=2.6->-r /home/freegear/EasyDocStation/server/requirements.txt (line 1))
+  Downloading sympy-1.14.0-py3-none-any.whl.metadata (12 kB)
+Collecting networkx>=2.5.1 (from torch>=2.6->-r /home/freegear/EasyDocStation/server/requirements.txt (line 1))
+  Downloading networkx-3.6.1-py3-none-any.whl.metadata (6.8 kB)
+Collecting jinja2 (from torch>=2.6->-r /home/freegear/EasyDocStation/server/requirements.txt (line 1))
+  Downloading jinja2-3.1.6-py3-none-any.whl.metadata (2.9 kB)
+Collecting fsspec>=0.8.5 (from torch>=2.6->-r /home/freegear/EasyDocStation/server/requirements.txt (line 1))
+  Downloading fsspec-2026.3.0-py3-none-any.whl.metadata (10 kB)
+Collecting cuda-toolkit==13.0.2 (from cuda-toolkit[cublas,cudart,cufft,cufile,cupti,curand,cusolver,cusparse,nvjitlink,nvrtc,nvtx]==13.0.2; platform_system == "Linux"->torch>=2.6->-r /home/freegear/EasyDocStation/server/requirements.txt (line 1))
+  Downloading cuda_toolkit-13.0.2-py2.py3-none-any.whl.metadata (9.4 kB)
+Collecting cuda-bindings<14,>=13.0.3 (from torch>=2.6->-r /home/freegear/EasyDocStation/server/requirements.txt (line 1))
+  Downloading cuda_bindings-13.2.0-cp312-cp312-manylinux_2_24_aarch64.manylinux_2_28_aarch64.whl.metadata (2.3 kB)
+Collecting nvidia-cudnn-cu13==9.19.0.56 (from torch>=2.6->-r /home/freegear/EasyDocStation/server/requirements.txt (line 1))
+  Downloading nvidia_cudnn_cu13-9.19.0.56-py3-none-manylinux_2_27_aarch64.whl.metadata (1.9 kB)
+Collecting nvidia-cusparselt-cu13==0.8.0 (from torch>=2.6->-r /home/freegear/EasyDocStation/server/requirements.txt (line 1))
+  Downloading nvidia_cusparselt_cu13-0.8.0-py3-none-manylinux2014_aarch64.whl.metadata (12 kB)
+Collecting nvidia-nccl-cu13==2.28.9 (from torch>=2.6->-r /home/freegear/EasyDocStation/server/requirements.txt (line 1))
+  Downloading nvidia_nccl_cu13-2.28.9-py3-none-manylinux_2_18_aarch64.whl.metadata (2.0 kB)
+Collecting nvidia-nvshmem-cu13==3.4.5 (from torch>=2.6->-r /home/freegear/EasyDocStation/server/requirements.txt (line 1))
+  Downloading nvidia_nvshmem_cu13-3.4.5-py3-none-manylinux2014_aarch64.manylinux_2_17_aarch64.whl.metadata (2.1 kB)
+Collecting triton==3.6.0 (from torch>=2.6->-r /home/freegear/EasyDocStation/server/requirements.txt (line 1))
+  Downloading triton-3.6.0-cp312-cp312-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl.metadata (1.7 kB)
+Collecting nvidia-cublas==13.1.0.3.* (from cuda-toolkit[cublas,cudart,cufft,cufile,cupti,curand,cusolver,cusparse,nvjitlink,nvrtc,nvtx]==13.0.2; platform_system == "Linux"->torch>=2.6->-r /home/freegear/EasyDocStation/server/requirements.txt (line 1))
+  Downloading nvidia_cublas-13.1.0.3-py3-none-manylinux_2_27_aarch64.whl.metadata (1.7 kB)
+Collecting nvidia-cuda-runtime==13.0.96.* (from cuda-toolkit[cublas,cudart,cufft,cufile,cupti,curand,cusolver,cusparse,nvjitlink,nvrtc,nvtx]==13.0.2; platform_system == "Linux"->torch>=2.6->-r /home/freegear/EasyDocStation/server/requirements.txt (line 1))
+  Downloading nvidia_cuda_runtime-13.0.96-py3-none-manylinux2014_aarch64.manylinux_2_17_aarch64.whl.metadata (1.7 kB)
+Collecting nvidia-cufft==12.0.0.61.* (from cuda-toolkit[cublas,cudart,cufft,cufile,cupti,curand,cusolver,cusparse,nvjitlink,nvrtc,nvtx]==13.0.2; platform_system == "Linux"->torch>=2.6->-r /home/freegear/EasyDocStation/server/requirements.txt (line 1))
+  Downloading nvidia_cufft-12.0.0.61-py3-none-manylinux2014_aarch64.manylinux_2_17_aarch64.whl.metadata (1.8 kB)
+Collecting nvidia-cufile==1.15.1.6.* (from cuda-toolkit[cublas,cudart,cufft,cufile,cupti,curand,cusolver,cusparse,nvjitlink,nvrtc,nvtx]==13.0.2; platform_system == "Linux"->torch>=2.6->-r /home/freegear/EasyDocStation/server/requirements.txt (line 1))
+  Downloading nvidia_cufile-1.15.1.6-py3-none-manylinux_2_27_aarch64.whl.metadata (1.7 kB)
+Collecting nvidia-cuda-cupti==13.0.85.* (from cuda-toolkit[cublas,cudart,cufft,cufile,cupti,curand,cusolver,cusparse,nvjitlink,nvrtc,nvtx]==13.0.2; platform_system == "Linux"->torch>=2.6->-r /home/freegear/EasyDocStation/server/requirements.txt (line 1))
+  Downloading nvidia_cuda_cupti-13.0.85-py3-none-manylinux_2_25_aarch64.whl.metadata (1.7 kB)
+Collecting nvidia-curand==10.4.0.35.* (from cuda-toolkit[cublas,cudart,cufft,cufile,cupti,curand,cusolver,cusparse,nvjitlink,nvrtc,nvtx]==13.0.2; platform_system == "Linux"->torch>=2.6->-r /home/freegear/EasyDocStation/server/requirements.txt (line 1))
+  Downloading nvidia_curand-10.4.0.35-py3-none-manylinux_2_27_aarch64.whl.metadata (1.7 kB)
+Collecting nvidia-cusolver==12.0.4.66.* (from cuda-toolkit[cublas,cudart,cufft,cufile,cupti,curand,cusolver,cusparse,nvjitlink,nvrtc,nvtx]==13.0.2; platform_system == "Linux"->torch>=2.6->-r /home/freegear/EasyDocStation/server/requirements.txt (line 1))
+  Downloading nvidia_cusolver-12.0.4.66-py3-none-manylinux_2_27_aarch64.whl.metadata (1.8 kB)
+Collecting nvidia-cusparse==12.6.3.3.* (from cuda-toolkit[cublas,cudart,cufft,cufile,cupti,curand,cusolver,cusparse,nvjitlink,nvrtc,nvtx]==13.0.2; platform_system == "Linux"->torch>=2.6->-r /home/freegear/EasyDocStation/server/requirements.txt (line 1))
+  Downloading nvidia_cusparse-12.6.3.3-py3-none-manylinux2014_aarch64.manylinux_2_17_aarch64.whl.metadata (1.8 kB)
+Collecting nvidia-nvjitlink==13.0.88.* (from cuda-toolkit[cublas,cudart,cufft,cufile,cupti,curand,cusolver,cusparse,nvjitlink,nvrtc,nvtx]==13.0.2; platform_system == "Linux"->torch>=2.6->-r /home/freegear/EasyDocStation/server/requirements.txt (line 1))
+  Downloading nvidia_nvjitlink-13.0.88-py3-none-manylinux2014_aarch64.manylinux_2_17_aarch64.whl.metadata (1.7 kB)
+Collecting nvidia-cuda-nvrtc==13.0.88.* (from cuda-toolkit[cublas,cudart,cufft,cufile,cupti,curand,cusolver,cusparse,nvjitlink,nvrtc,nvtx]==13.0.2; platform_system == "Linux"->torch>=2.6->-r /home/freegear/EasyDocStation/server/requirements.txt (line 1))
+  Downloading nvidia_cuda_nvrtc-13.0.88-py3-none-manylinux2014_aarch64.manylinux_2_17_aarch64.whl.metadata (1.7 kB)
+Collecting nvidia-nvtx==13.0.85.* (from cuda-toolkit[cublas,cudart,cufft,cufile,cupti,curand,cusolver,cusparse,nvjitlink,nvrtc,nvtx]==13.0.2; platform_system == "Linux"->torch>=2.6->-r /home/freegear/EasyDocStation/server/requirements.txt (line 1))
+  Downloading nvidia_nvtx-13.0.85-py3-none-manylinux2014_aarch64.manylinux_2_17_aarch64.whl.metadata (1.8 kB)
+Collecting cuda-pathfinder~=1.1 (from cuda-bindings<14,>=13.0.3->torch>=2.6->-r /home/freegear/EasyDocStation/server/requirements.txt (line 1))
+  Downloading cuda_pathfinder-1.5.3-py3-none-any.whl.metadata (1.9 kB)
+Collecting transformers<6.0.0,>=4.41.0 (from sentence-transformers->-r /home/freegear/EasyDocStation/server/requirements.txt (line 2))
+  Downloading transformers-5.5.4-py3-none-any.whl.metadata (32 kB)
+Collecting huggingface-hub>=0.23.0 (from sentence-transformers->-r /home/freegear/EasyDocStation/server/requirements.txt (line 2))
+  Downloading huggingface_hub-1.11.0-py3-none-any.whl.metadata (14 kB)
+Collecting numpy>=1.20.0 (from sentence-transformers->-r /home/freegear/EasyDocStation/server/requirements.txt (line 2))
+  Downloading numpy-2.4.4-cp312-cp312-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl.metadata (6.6 kB)
+Collecting scikit-learn>=0.22.0 (from sentence-transformers->-r /home/freegear/EasyDocStation/server/requirements.txt (line 2))
+  Downloading scikit_learn-1.8.0-cp312-cp312-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl.metadata (11 kB)
+Collecting scipy>=1.0.0 (from sentence-transformers->-r /home/freegear/EasyDocStation/server/requirements.txt (line 2))
+  Downloading scipy-1.17.1-cp312-cp312-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl.metadata (62 kB)
+Collecting tqdm>=4.0.0 (from sentence-transformers->-r /home/freegear/EasyDocStation/server/requirements.txt (line 2))
+  Downloading tqdm-4.67.3-py3-none-any.whl.metadata (57 kB)
+Requirement already satisfied: packaging>=20.0 in ./.venv/lib/python3.12/site-packages (from transformers<6.0.0,>=4.41.0->sentence-transformers->-r /home/freegear/EasyDocStation/server/requirements.txt (line 2)) (26.1)
+Collecting pyyaml>=5.1 (from transformers<6.0.0,>=4.41.0->sentence-transformers->-r /home/freegear/EasyDocStation/server/requirements.txt (line 2))
+  Downloading pyyaml-6.0.3-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl.metadata (2.4 kB)
+Collecting regex>=2025.10.22 (from transformers<6.0.0,>=4.41.0->sentence-transformers->-r /home/freegear/EasyDocStation/server/requirements.txt (line 2))
+  Downloading regex-2026.4.4-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl.metadata (40 kB)
+Collecting tokenizers<=0.23.0,>=0.22.0 (from transformers<6.0.0,>=4.41.0->sentence-transformers->-r /home/freegear/EasyDocStation/server/requirements.txt (line 2))
+  Downloading tokenizers-0.22.2-cp39-abi3-manylinux_2_17_aarch64.manylinux2014_aarch64.whl.metadata (7.3 kB)
+Collecting typer (from transformers<6.0.0,>=4.41.0->sentence-transformers->-r /home/freegear/EasyDocStation/server/requirements.txt (line 2))
+  Downloading typer-0.24.1-py3-none-any.whl.metadata (16 kB)
+Collecting safetensors>=0.4.3 (from transformers<6.0.0,>=4.41.0->sentence-transformers->-r /home/freegear/EasyDocStation/server/requirements.txt (line 2))
+  Downloading safetensors-0.7.0-cp38-abi3-manylinux_2_17_aarch64.manylinux2014_aarch64.whl.metadata (4.1 kB)
+Collecting hf-xet<2.0.0,>=1.4.3 (from huggingface-hub>=0.23.0->sentence-transformers->-r /home/freegear/EasyDocStation/server/requirements.txt (line 2))
+  Downloading hf_xet-1.4.3-cp37-abi3-manylinux_2_28_aarch64.whl.metadata (4.9 kB)
+Collecting httpx<1,>=0.23.0 (from huggingface-hub>=0.23.0->sentence-transformers->-r /home/freegear/EasyDocStation/server/requirements.txt (line 2))
+  Downloading httpx-0.28.1-py3-none-any.whl.metadata (7.1 kB)
+Collecting anyio (from httpx<1,>=0.23.0->huggingface-hub>=0.23.0->sentence-transformers->-r /home/freegear/EasyDocStation/server/requirements.txt (line 2))
+  Downloading anyio-4.13.0-py3-none-any.whl.metadata (4.5 kB)
+Collecting certifi (from httpx<1,>=0.23.0->huggingface-hub>=0.23.0->sentence-transformers->-r /home/freegear/EasyDocStation/server/requirements.txt (line 2))
+  Downloading certifi-2026.2.25-py3-none-any.whl.metadata (2.5 kB)
+Collecting httpcore==1.* (from httpx<1,>=0.23.0->huggingface-hub>=0.23.0->sentence-transformers->-r /home/freegear/EasyDocStation/server/requirements.txt (line 2))
+  Downloading httpcore-1.0.9-py3-none-any.whl.metadata (21 kB)
+Collecting idna (from httpx<1,>=0.23.0->huggingface-hub>=0.23.0->sentence-transformers->-r /home/freegear/EasyDocStation/server/requirements.txt (line 2))
+  Downloading idna-3.11-py3-none-any.whl.metadata (8.4 kB)
+Collecting h11>=0.16 (from httpcore==1.*->httpx<1,>=0.23.0->huggingface-hub>=0.23.0->sentence-transformers->-r /home/freegear/EasyDocStation/server/requirements.txt (line 2))
+  Downloading h11-0.16.0-py3-none-any.whl.metadata (8.3 kB)
+Collecting deprecation>=2.1.0 (from lancedb->-r /home/freegear/EasyDocStation/server/requirements.txt (line 3))
+  Downloading deprecation-2.1.0-py2.py3-none-any.whl.metadata (4.6 kB)
+Collecting pydantic>=1.10 (from lancedb->-r /home/freegear/EasyDocStation/server/requirements.txt (line 3))
+  Downloading pydantic-2.13.2-py3-none-any.whl.metadata (108 kB)
+Collecting lance-namespace>=0.3.2 (from lancedb->-r /home/freegear/EasyDocStation/server/requirements.txt (line 3))
+  Downloading lance_namespace-0.6.1-py3-none-any.whl.metadata (1.6 kB)
+Collecting pdfminer.six==20251230 (from pdfplumber->-r /home/freegear/EasyDocStation/server/requirements.txt (line 4))
+  Downloading pdfminer_six-20251230-py3-none-any.whl.metadata (4.3 kB)
+Collecting Pillow>=9.1 (from pdfplumber->-r /home/freegear/EasyDocStation/server/requirements.txt (line 4))
+  Downloading pillow-12.2.0-cp312-cp312-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl.metadata (8.8 kB)
+Collecting pypdfium2>=4.18.0 (from pdfplumber->-r /home/freegear/EasyDocStation/server/requirements.txt (line 4))
+  Downloading pypdfium2-5.7.0-py3-none-manylinux_2_17_aarch64.manylinux2014_aarch64.whl.metadata (67 kB)
+Collecting charset-normalizer>=2.0.0 (from pdfminer.six==20251230->pdfplumber->-r /home/freegear/EasyDocStation/server/requirements.txt (line 4))
+  Downloading charset_normalizer-3.4.7-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl.metadata (40 kB)
+Collecting cryptography>=36.0.0 (from pdfminer.six==20251230->pdfplumber->-r /home/freegear/EasyDocStation/server/requirements.txt (line 4))
+  Downloading cryptography-46.0.7-cp311-abi3-manylinux_2_34_aarch64.whl.metadata (5.7 kB)
+Collecting langchain-core<2.0.0,>=1.0.1 (from langchain-community->-r /home/freegear/EasyDocStation/server/requirements.txt (line 5))
+  Downloading langchain_core-1.3.0-py3-none-any.whl.metadata (4.4 kB)
+Collecting langchain-classic<2.0.0,>=1.0.0 (from langchain-community->-r /home/freegear/EasyDocStation/server/requirements.txt (line 5))
+  Downloading langchain_classic-1.0.4-py3-none-any.whl.metadata (4.8 kB)
+Collecting SQLAlchemy<3.0.0,>=1.4.0 (from langchain-community->-r /home/freegear/EasyDocStation/server/requirements.txt (line 5))
+  Downloading sqlalchemy-2.0.49-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl.metadata (9.5 kB)
+Collecting requests<3.0.0,>=2.32.5 (from langchain-community->-r /home/freegear/EasyDocStation/server/requirements.txt (line 5))
+  Downloading requests-2.33.1-py3-none-any.whl.metadata (4.8 kB)
+Collecting aiohttp<4.0.0,>=3.8.3 (from langchain-community->-r /home/freegear/EasyDocStation/server/requirements.txt (line 5))
+  Downloading aiohttp-3.13.5-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl.metadata (8.1 kB)
+Collecting tenacity!=8.4.0,<10.0.0,>=8.1.0 (from langchain-community->-r /home/freegear/EasyDocStation/server/requirements.txt (line 5))
+  Downloading tenacity-9.1.4-py3-none-any.whl.metadata (1.2 kB)
+Collecting dataclasses-json<0.7.0,>=0.6.7 (from langchain-community->-r /home/freegear/EasyDocStation/server/requirements.txt (line 5))
+  Downloading dataclasses_json-0.6.7-py3-none-any.whl.metadata (25 kB)
+Collecting pydantic-settings<3.0.0,>=2.10.1 (from langchain-community->-r /home/freegear/EasyDocStation/server/requirements.txt (line 5))
+  Downloading pydantic_settings-2.13.1-py3-none-any.whl.metadata (3.4 kB)
+Collecting langsmith<1.0.0,>=0.1.125 (from langchain-community->-r /home/freegear/EasyDocStation/server/requirements.txt (line 5))
+  Downloading langsmith-0.7.32-py3-none-any.whl.metadata (15 kB)
+Collecting httpx-sse<1.0.0,>=0.4.0 (from langchain-community->-r /home/freegear/EasyDocStation/server/requirements.txt (line 5))
+  Downloading httpx_sse-0.4.3-py3-none-any.whl.metadata (9.7 kB)
+Collecting aiohappyeyeballs>=2.5.0 (from aiohttp<4.0.0,>=3.8.3->langchain-community->-r /home/freegear/EasyDocStation/server/requirements.txt (line 5))
+  Downloading aiohappyeyeballs-2.6.1-py3-none-any.whl.metadata (5.9 kB)
+Collecting aiosignal>=1.4.0 (from aiohttp<4.0.0,>=3.8.3->langchain-community->-r /home/freegear/EasyDocStation/server/requirements.txt (line 5))
+  Downloading aiosignal-1.4.0-py3-none-any.whl.metadata (3.7 kB)
+Collecting attrs>=17.3.0 (from aiohttp<4.0.0,>=3.8.3->langchain-community->-r /home/freegear/EasyDocStation/server/requirements.txt (line 5))
+  Downloading attrs-26.1.0-py3-none-any.whl.metadata (8.8 kB)
+Collecting frozenlist>=1.1.1 (from aiohttp<4.0.0,>=3.8.3->langchain-community->-r /home/freegear/EasyDocStation/server/requirements.txt (line 5))
+  Downloading frozenlist-1.8.0-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl.metadata (20 kB)
+Collecting multidict<7.0,>=4.5 (from aiohttp<4.0.0,>=3.8.3->langchain-community->-r /home/freegear/EasyDocStation/server/requirements.txt (line 5))
+  Downloading multidict-6.7.1-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl.metadata (5.3 kB)
+Collecting propcache>=0.2.0 (from aiohttp<4.0.0,>=3.8.3->langchain-community->-r /home/freegear/EasyDocStation/server/requirements.txt (line 5))
+  Downloading propcache-0.4.1-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl.metadata (13 kB)
+Collecting yarl<2.0,>=1.17.0 (from aiohttp<4.0.0,>=3.8.3->langchain-community->-r /home/freegear/EasyDocStation/server/requirements.txt (line 5))
+  Downloading yarl-1.23.0-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl.metadata (79 kB)
+Collecting marshmallow<4.0.0,>=3.18.0 (from dataclasses-json<0.7.0,>=0.6.7->langchain-community->-r /home/freegear/EasyDocStation/server/requirements.txt (line 5))
+  Downloading marshmallow-3.26.2-py3-none-any.whl.metadata (7.3 kB)
+Collecting typing-inspect<1,>=0.4.0 (from dataclasses-json<0.7.0,>=0.6.7->langchain-community->-r /home/freegear/EasyDocStation/server/requirements.txt (line 5))
+  Downloading typing_inspect-0.9.0-py3-none-any.whl.metadata (1.5 kB)
+Collecting jsonpatch<2.0.0,>=1.33.0 (from langchain-core<2.0.0,>=1.0.1->langchain-community->-r /home/freegear/EasyDocStation/server/requirements.txt (line 5))
+  Downloading jsonpatch-1.33-py2.py3-none-any.whl.metadata (3.0 kB)
+Collecting uuid-utils<1.0,>=0.12.0 (from langchain-core<2.0.0,>=1.0.1->langchain-community->-r /home/freegear/EasyDocStation/server/requirements.txt (line 5))
+  Downloading uuid_utils-0.14.1-cp39-abi3-manylinux_2_17_aarch64.manylinux2014_aarch64.whl.metadata (4.8 kB)
+Collecting jsonpointer>=1.9 (from jsonpatch<2.0.0,>=1.33.0->langchain-core<2.0.0,>=1.0.1->langchain-community->-r /home/freegear/EasyDocStation/server/requirements.txt (line 5))
+  Downloading jsonpointer-3.1.1-py3-none-any.whl.metadata (2.4 kB)
+Collecting orjson>=3.9.14 (from langsmith<1.0.0,>=0.1.125->langchain-community->-r /home/freegear/EasyDocStation/server/requirements.txt (line 5))
+  Downloading orjson-3.11.8-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl.metadata (41 kB)
+Collecting requests-toolbelt>=1.0.0 (from langsmith<1.0.0,>=0.1.125->langchain-community->-r /home/freegear/EasyDocStation/server/requirements.txt (line 5))
+  Downloading requests_toolbelt-1.0.0-py2.py3-none-any.whl.metadata (14 kB)
+Collecting xxhash>=3.0.0 (from langsmith<1.0.0,>=0.1.125->langchain-community->-r /home/freegear/EasyDocStation/server/requirements.txt (line 5))
+  Downloading xxhash-3.6.0-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl.metadata (13 kB)
+Collecting zstandard>=0.23.0 (from langsmith<1.0.0,>=0.1.125->langchain-community->-r /home/freegear/EasyDocStation/server/requirements.txt (line 5))
+  Downloading zstandard-0.25.0-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.whl.metadata (3.3 kB)
+Collecting annotated-types>=0.6.0 (from pydantic>=1.10->lancedb->-r /home/freegear/EasyDocStation/server/requirements.txt (line 3))
+  Downloading annotated_types-0.7.0-py3-none-any.whl.metadata (15 kB)
+Collecting pydantic-core==2.46.2 (from pydantic>=1.10->lancedb->-r /home/freegear/EasyDocStation/server/requirements.txt (line 3))
+  Downloading pydantic_core-2.46.2-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl.metadata (6.6 kB)
+Collecting typing-inspection>=0.4.2 (from pydantic>=1.10->lancedb->-r /home/freegear/EasyDocStation/server/requirements.txt (line 3))
+  Downloading typing_inspection-0.4.2-py3-none-any.whl.metadata (2.6 kB)
+Collecting python-dotenv>=0.21.0 (from pydantic-settings<3.0.0,>=2.10.1->langchain-community->-r /home/freegear/EasyDocStation/server/requirements.txt (line 5))
+  Downloading python_dotenv-1.2.2-py3-none-any.whl.metadata (27 kB)
+Collecting urllib3<3,>=1.26 (from requests<3.0.0,>=2.32.5->langchain-community->-r /home/freegear/EasyDocStation/server/requirements.txt (line 5))
+  Downloading urllib3-2.6.3-py3-none-any.whl.metadata (6.9 kB)
+Collecting greenlet>=1 (from SQLAlchemy<3.0.0,>=1.4.0->langchain-community->-r /home/freegear/EasyDocStation/server/requirements.txt (line 5))
+  Downloading greenlet-3.4.0-cp312-cp312-manylinux_2_24_aarch64.manylinux_2_28_aarch64.whl.metadata (3.7 kB)
+Collecting mypy-extensions>=0.3.0 (from typing-inspect<1,>=0.4.0->dataclasses-json<0.7.0,>=0.6.7->langchain-community->-r /home/freegear/EasyDocStation/server/requirements.txt (line 5))
+  Downloading mypy_extensions-1.1.0-py3-none-any.whl.metadata (1.1 kB)
+Collecting beautifulsoup4<5.0.0,>=4.14.3 (from unstructured[pdf]->-r /home/freegear/EasyDocStation/server/requirements.txt (line 9))
+  Downloading beautifulsoup4-4.14.3-py3-none-any.whl.metadata (3.8 kB)
+Collecting emoji<3.0.0,>=2.15.0 (from unstructured[pdf]->-r /home/freegear/EasyDocStation/server/requirements.txt (line 9))
+  Downloading emoji-2.15.0-py3-none-any.whl.metadata (5.7 kB)
+Collecting filetype<2.0.0,>=1.2.0 (from unstructured[pdf]->-r /home/freegear/EasyDocStation/server/requirements.txt (line 9))
+  Downloading filetype-1.2.0-py2.py3-none-any.whl.metadata (6.5 kB)
+Collecting html5lib<2.0.0,>=1.1 (from unstructured[pdf]->-r /home/freegear/EasyDocStation/server/requirements.txt (line 9))
+  Downloading html5lib-1.1-py2.py3-none-any.whl.metadata (16 kB)
+Collecting installer<1.0.0,>=0.7.0 (from unstructured[pdf]->-r /home/freegear/EasyDocStation/server/requirements.txt (line 9))
+  Downloading installer-0.7.0-py3-none-any.whl.metadata (936 bytes)
+Collecting langdetect<2.0.0,>=1.0.9 (from unstructured[pdf]->-r /home/freegear/EasyDocStation/server/requirements.txt (line 9))
+  Downloading langdetect-1.0.9.tar.gz (981 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 981.5/981.5 kB 29.7 MB/s  0:00:00
+  Installing build dependencies: started
+  Installing build dependencies: finished with status 'done'
+  Getting requirements to build wheel: started
+  Getting requirements to build wheel: finished with status 'done'
+  Preparing metadata (pyproject.toml): started
+  Preparing metadata (pyproject.toml): finished with status 'done'
+Collecting lxml<7.0.0,>=5.0.0 (from unstructured[pdf]->-r /home/freegear/EasyDocStation/server/requirements.txt (line 9))
+  Downloading lxml-6.1.0-cp312-cp312-manylinux_2_26_aarch64.manylinux_2_28_aarch64.whl.metadata (4.0 kB)
+Collecting numba<1.0.0,>=0.60.0 (from unstructured[pdf]->-r /home/freegear/EasyDocStation/server/requirements.txt (line 9))
+  Downloading numba-0.65.0-cp312-cp312-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl.metadata (2.9 kB)
+Collecting psutil<8.0.0,>=7.2.2 (from unstructured[pdf]->-r /home/freegear/EasyDocStation/server/requirements.txt (line 9))
+  Downloading psutil-7.2.2-cp36-abi3-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl.metadata (22 kB)
+Collecting python-iso639<2027.0.0,>=2026.1.31 (from unstructured[pdf]->-r /home/freegear/EasyDocStation/server/requirements.txt (line 9))
+  Downloading python_iso639-2026.1.31-py3-none-any.whl.metadata (14 kB)
+Collecting python-magic<1.0.0,>=0.4.27 (from unstructured[pdf]->-r /home/freegear/EasyDocStation/server/requirements.txt (line 9))
+  Downloading python_magic-0.4.27-py2.py3-none-any.whl.metadata (5.8 kB)
+Collecting python-oxmsg<1.0.0,>=0.0.2 (from unstructured[pdf]->-r /home/freegear/EasyDocStation/server/requirements.txt (line 9))
+  Downloading python_oxmsg-0.0.2-py3-none-any.whl.metadata (5.0 kB)
+Collecting rapidfuzz<4.0.0,>=3.14.3 (from unstructured[pdf]->-r /home/freegear/EasyDocStation/server/requirements.txt (line 9))
+  Downloading rapidfuzz-3.14.5-cp312-cp312-manylinux_2_26_aarch64.manylinux_2_28_aarch64.whl.metadata (12 kB)
+Collecting spacy<4.0.0,>=3.7.0 (from unstructured[pdf]->-r /home/freegear/EasyDocStation/server/requirements.txt (line 9))
+  Downloading spacy-3.8.14-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.whl.metadata (28 kB)
+Collecting unstructured-client<1.0.0,>=0.25.9 (from unstructured[pdf]->-r /home/freegear/EasyDocStation/server/requirements.txt (line 9))
+  Downloading unstructured_client-0.43.2-py3-none-any.whl.metadata (22 kB)
+Collecting wrapt<3.0.0,>=2.1.1 (from unstructured[pdf]->-r /home/freegear/EasyDocStation/server/requirements.txt (line 9))
+  Downloading wrapt-2.1.2-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl.metadata (7.4 kB)
+Collecting google-cloud-vision<4.0.0,>=3.12.1 (from unstructured[pdf]->-r /home/freegear/EasyDocStation/server/requirements.txt (line 9))
+  Downloading google_cloud_vision-3.13.0-py3-none-any.whl.metadata (9.6 kB)
+Collecting pdf2image<2.0.0,>=1.17.0 (from unstructured[pdf]->-r /home/freegear/EasyDocStation/server/requirements.txt (line 9))
+  Downloading pdf2image-1.17.0-py3-none-any.whl.metadata (6.2 kB)
+Collecting pi-heif<2.0.0,>=1.2.0 (from unstructured[pdf]->-r /home/freegear/EasyDocStation/server/requirements.txt (line 9))
+  Downloading pi_heif-1.3.0-cp312-cp312-manylinux_2_26_aarch64.manylinux_2_28_aarch64.whl.metadata (6.3 kB)
+Collecting pikepdf<11.0.0,>=10.3.0 (from unstructured[pdf]->-r /home/freegear/EasyDocStation/server/requirements.txt (line 9))
+  Downloading pikepdf-10.5.1-cp312-cp312-manylinux_2_26_aarch64.manylinux_2_28_aarch64.whl.metadata (11 kB)
+Collecting pypdf<7.0.0,>=6.6.2 (from unstructured[pdf]->-r /home/freegear/EasyDocStation/server/requirements.txt (line 9))
+  Downloading pypdf-6.10.2-py3-none-any.whl.metadata (7.1 kB)
+Collecting unstructured-inference<2.0.0,>=1.6.6 (from unstructured[pdf]->-r /home/freegear/EasyDocStation/server/requirements.txt (line 9))
+  Downloading unstructured_inference-1.6.6-py3-none-any.whl.metadata (5.5 kB)
+Collecting unstructured-pytesseract<1.0.0,>=0.3.15 (from unstructured[pdf]->-r /home/freegear/EasyDocStation/server/requirements.txt (line 9))
+  Downloading unstructured.pytesseract-0.3.15-py3-none-any.whl.metadata (11 kB)
+Collecting soupsieve>=1.6.1 (from beautifulsoup4<5.0.0,>=4.14.3->unstructured[pdf]->-r /home/freegear/EasyDocStation/server/requirements.txt (line 9))
+  Downloading soupsieve-2.8.3-py3-none-any.whl.metadata (4.6 kB)
+Collecting google-api-core<3.0.0,>=2.11.0 (from google-api-core[grpc]<3.0.0,>=2.11.0->google-cloud-vision<4.0.0,>=3.12.1->unstructured[pdf]->-r /home/freegear/EasyDocStation/server/requirements.txt (line 9))
+  Downloading google_api_core-2.30.3-py3-none-any.whl.metadata (3.1 kB)
+Collecting google-auth!=2.24.0,!=2.25.0,<3.0.0,>=2.14.1 (from google-cloud-vision<4.0.0,>=3.12.1->unstructured[pdf]->-r /home/freegear/EasyDocStation/server/requirements.txt (line 9))
+  Downloading google_auth-2.49.2-py3-none-any.whl.metadata (6.2 kB)
+Collecting grpcio<2.0.0,>=1.33.2 (from google-cloud-vision<4.0.0,>=3.12.1->unstructured[pdf]->-r /home/freegear/EasyDocStation/server/requirements.txt (line 9))
+  Downloading grpcio-1.80.0-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.whl.metadata (3.8 kB)
+Collecting proto-plus<2.0.0,>=1.22.3 (from google-cloud-vision<4.0.0,>=3.12.1->unstructured[pdf]->-r /home/freegear/EasyDocStation/server/requirements.txt (line 9))
+  Downloading proto_plus-1.27.2-py3-none-any.whl.metadata (2.2 kB)
+Collecting protobuf<8.0.0,>=4.25.8 (from google-cloud-vision<4.0.0,>=3.12.1->unstructured[pdf]->-r /home/freegear/EasyDocStation/server/requirements.txt (line 9))
+  Downloading protobuf-7.34.1-cp310-abi3-manylinux2014_aarch64.whl.metadata (595 bytes)
+Collecting googleapis-common-protos<2.0.0,>=1.63.2 (from google-api-core<3.0.0,>=2.11.0->google-api-core[grpc]<3.0.0,>=2.11.0->google-cloud-vision<4.0.0,>=3.12.1->unstructured[pdf]->-r /home/freegear/EasyDocStation/server/requirements.txt (line 9))
+  Downloading googleapis_common_protos-1.74.0-py3-none-any.whl.metadata (9.2 kB)
+Collecting grpcio-status<2.0.0,>=1.33.2 (from google-api-core[grpc]<3.0.0,>=2.11.0->google-cloud-vision<4.0.0,>=3.12.1->unstructured[pdf]->-r /home/freegear/EasyDocStation/server/requirements.txt (line 9))
+  Downloading grpcio_status-1.80.0-py3-none-any.whl.metadata (1.3 kB)
+Collecting pyasn1-modules>=0.2.1 (from google-auth!=2.24.0,!=2.25.0,<3.0.0,>=2.14.1->google-cloud-vision<4.0.0,>=3.12.1->unstructured[pdf]->-r /home/freegear/EasyDocStation/server/requirements.txt (line 9))
+  Downloading pyasn1_modules-0.4.2-py3-none-any.whl.metadata (3.5 kB)
+Collecting protobuf<8.0.0,>=4.25.8 (from google-cloud-vision<4.0.0,>=3.12.1->unstructured[pdf]->-r /home/freegear/EasyDocStation/server/requirements.txt (line 9))
+  Downloading protobuf-6.33.6-cp39-abi3-manylinux2014_aarch64.whl.metadata (593 bytes)
+Collecting six>=1.9 (from html5lib<2.0.0,>=1.1->unstructured[pdf]->-r /home/freegear/EasyDocStation/server/requirements.txt (line 9))
+  Downloading six-1.17.0-py2.py3-none-any.whl.metadata (1.7 kB)
+Collecting webencodings (from html5lib<2.0.0,>=1.1->unstructured[pdf]->-r /home/freegear/EasyDocStation/server/requirements.txt (line 9))
+  Downloading webencodings-0.5.1-py2.py3-none-any.whl.metadata (2.1 kB)
+Collecting llvmlite<0.48,>=0.47.0dev0 (from numba<1.0.0,>=0.60.0->unstructured[pdf]->-r /home/freegear/EasyDocStation/server/requirements.txt (line 9))
+  Downloading llvmlite-0.47.0-cp312-cp312-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl.metadata (5.0 kB)
+Collecting Deprecated (from pikepdf<11.0.0,>=10.3.0->unstructured[pdf]->-r /home/freegear/EasyDocStation/server/requirements.txt (line 9))
+  Downloading deprecated-1.3.1-py2.py3-none-any.whl.metadata (5.9 kB)
+Collecting click (from python-oxmsg<1.0.0,>=0.0.2->unstructured[pdf]->-r /home/freegear/EasyDocStation/server/requirements.txt (line 9))
+  Downloading click-8.3.2-py3-none-any.whl.metadata (2.6 kB)
+Collecting olefile (from python-oxmsg<1.0.0,>=0.0.2->unstructured[pdf]->-r /home/freegear/EasyDocStation/server/requirements.txt (line 9))
+  Downloading olefile-0.47-py2.py3-none-any.whl.metadata (9.7 kB)
+Collecting spacy-legacy<3.1.0,>=3.0.11 (from spacy<4.0.0,>=3.7.0->unstructured[pdf]->-r /home/freegear/EasyDocStation/server/requirements.txt (line 9))
+  Downloading spacy_legacy-3.0.12-py2.py3-none-any.whl.metadata (2.8 kB)
+Collecting spacy-loggers<2.0.0,>=1.0.0 (from spacy<4.0.0,>=3.7.0->unstructured[pdf]->-r /home/freegear/EasyDocStation/server/requirements.txt (line 9))
+  Downloading spacy_loggers-1.0.5-py3-none-any.whl.metadata (23 kB)
+Collecting murmurhash<1.1.0,>=0.28.0 (from spacy<4.0.0,>=3.7.0->unstructured[pdf]->-r /home/freegear/EasyDocStation/server/requirements.txt (line 9))
+  Downloading murmurhash-1.0.15-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.whl.metadata (2.3 kB)
+Collecting cymem<2.1.0,>=2.0.2 (from spacy<4.0.0,>=3.7.0->unstructured[pdf]->-r /home/freegear/EasyDocStation/server/requirements.txt (line 9))
+  Downloading cymem-2.0.13-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.whl.metadata (9.7 kB)
+Collecting preshed<3.1.0,>=3.0.2 (from spacy<4.0.0,>=3.7.0->unstructured[pdf]->-r /home/freegear/EasyDocStation/server/requirements.txt (line 9))
+  Downloading preshed-3.0.13-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.whl.metadata (5.2 kB)
+Collecting thinc<8.4.0,>=8.3.12 (from spacy<4.0.0,>=3.7.0->unstructured[pdf]->-r /home/freegear/EasyDocStation/server/requirements.txt (line 9))
+  Downloading thinc-8.3.13-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.whl.metadata (14 kB)
+Collecting wasabi<1.2.0,>=0.9.1 (from spacy<4.0.0,>=3.7.0->unstructured[pdf]->-r /home/freegear/EasyDocStation/server/requirements.txt (line 9))
+  Downloading wasabi-1.1.3-py3-none-any.whl.metadata (28 kB)
+Collecting srsly<3.0.0,>=2.5.3 (from spacy<4.0.0,>=3.7.0->unstructured[pdf]->-r /home/freegear/EasyDocStation/server/requirements.txt (line 9))
+  Downloading srsly-2.5.3-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.whl.metadata (19 kB)
+Collecting catalogue<2.1.0,>=2.0.6 (from spacy<4.0.0,>=3.7.0->unstructured[pdf]->-r /home/freegear/EasyDocStation/server/requirements.txt (line 9))
+  Downloading catalogue-2.0.10-py3-none-any.whl.metadata (14 kB)
+Collecting weasel<2.0.0,>=1.0.0 (from spacy<4.0.0,>=3.7.0->unstructured[pdf]->-r /home/freegear/EasyDocStation/server/requirements.txt (line 9))
+  Downloading weasel-1.0.0-py3-none-any.whl.metadata (4.6 kB)
+Collecting confection<2.0.0,>=1.3.2 (from spacy<4.0.0,>=3.7.0->unstructured[pdf]->-r /home/freegear/EasyDocStation/server/requirements.txt (line 9))
+  Downloading confection-1.3.3-py3-none-any.whl.metadata (19 kB)
+Collecting blis<1.4.0,>=1.3.0 (from thinc<8.4.0,>=8.3.12->spacy<4.0.0,>=3.7.0->unstructured[pdf]->-r /home/freegear/EasyDocStation/server/requirements.txt (line 9))
+  Downloading blis-1.3.3-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.whl.metadata (7.5 kB)
+Collecting shellingham>=1.3.0 (from typer->transformers<6.0.0,>=4.41.0->sentence-transformers->-r /home/freegear/EasyDocStation/server/requirements.txt (line 2))
+  Downloading shellingham-1.5.4-py2.py3-none-any.whl.metadata (3.5 kB)
+Collecting rich>=12.3.0 (from typer->transformers<6.0.0,>=4.41.0->sentence-transformers->-r /home/freegear/EasyDocStation/server/requirements.txt (line 2))
+  Downloading rich-15.0.0-py3-none-any.whl.metadata (18 kB)
+Collecting annotated-doc>=0.0.2 (from typer->transformers<6.0.0,>=4.41.0->sentence-transformers->-r /home/freegear/EasyDocStation/server/requirements.txt (line 2))
+  Downloading annotated_doc-0.0.4-py3-none-any.whl.metadata (6.6 kB)
+Collecting aiofiles>=25.1.0 (from unstructured-client<1.0.0,>=0.25.9->unstructured[pdf]->-r /home/freegear/EasyDocStation/server/requirements.txt (line 9))
+  Downloading aiofiles-25.1.0-py3-none-any.whl.metadata (6.3 kB)
+Collecting accelerate>=1.12.0 (from unstructured-inference<2.0.0,>=1.6.6->unstructured[pdf]->-r /home/freegear/EasyDocStation/server/requirements.txt (line 9))
+  Downloading accelerate-1.13.0-py3-none-any.whl.metadata (19 kB)
+Collecting matplotlib>=3.10.8 (from unstructured-inference<2.0.0,>=1.6.6->unstructured[pdf]->-r /home/freegear/EasyDocStation/server/requirements.txt (line 9))
+  Downloading matplotlib-3.10.8-cp312-cp312-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl.metadata (52 kB)
+Collecting onnx>=1.20.1 (from unstructured-inference<2.0.0,>=1.6.6->unstructured[pdf]->-r /home/freegear/EasyDocStation/server/requirements.txt (line 9))
+  Downloading onnx-1.21.0-cp312-abi3-manylinux_2_26_aarch64.manylinux_2_28_aarch64.whl.metadata (8.5 kB)
+Collecting onnxruntime>=1.18.0 (from unstructured-inference<2.0.0,>=1.6.6->unstructured[pdf]->-r /home/freegear/EasyDocStation/server/requirements.txt (line 9))
+  Downloading onnxruntime-1.24.4-cp312-cp312-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl.metadata (5.2 kB)
+Collecting opencv-python>=4.13.0.90 (from unstructured-inference<2.0.0,>=1.6.6->unstructured[pdf]->-r /home/freegear/EasyDocStation/server/requirements.txt (line 9))
+  Downloading opencv_python-4.13.0.92-cp37-abi3-manylinux_2_28_aarch64.whl.metadata (19 kB)
+Collecting pandas>=1.5.0 (from unstructured-inference<2.0.0,>=1.6.6->unstructured[pdf]->-r /home/freegear/EasyDocStation/server/requirements.txt (line 9))
+  Downloading pandas-3.0.2-cp312-cp312-manylinux_2_24_aarch64.manylinux_2_28_aarch64.whl.metadata (79 kB)
+Collecting timm>=1.0.24 (from unstructured-inference<2.0.0,>=1.6.6->unstructured[pdf]->-r /home/freegear/EasyDocStation/server/requirements.txt (line 9))
+  Downloading timm-1.0.26-py3-none-any.whl.metadata (39 kB)
+Collecting cloudpathlib>=0.7.0 (from weasel<2.0.0,>=1.0.0->spacy<4.0.0,>=3.7.0->unstructured[pdf]->-r /home/freegear/EasyDocStation/server/requirements.txt (line 9))
+  Downloading cloudpathlib-0.23.0-py3-none-any.whl.metadata (16 kB)
+Collecting smart-open>=5.2.1 (from weasel<2.0.0,>=1.0.0->spacy<4.0.0,>=3.7.0->unstructured[pdf]->-r /home/freegear/EasyDocStation/server/requirements.txt (line 9))
+  Downloading smart_open-7.6.0-py3-none-any.whl.metadata (25 kB)
+Collecting cffi>=2.0.0 (from cryptography>=36.0.0->pdfminer.six==20251230->pdfplumber->-r /home/freegear/EasyDocStation/server/requirements.txt (line 4))
+  Downloading cffi-2.0.0-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.whl.metadata (2.6 kB)
+Collecting pycparser (from cffi>=2.0.0->cryptography>=36.0.0->pdfminer.six==20251230->pdfplumber->-r /home/freegear/EasyDocStation/server/requirements.txt (line 4))
+  Downloading pycparser-3.0-py3-none-any.whl.metadata (8.2 kB)
+Collecting lance-namespace-urllib3-client==0.6.1 (from lance-namespace>=0.3.2->lancedb->-r /home/freegear/EasyDocStation/server/requirements.txt (line 3))
+  Downloading lance_namespace_urllib3_client-0.6.1-py3-none-any.whl.metadata (28 kB)
+Collecting python-dateutil>=2.8.2 (from lance-namespace-urllib3-client==0.6.1->lance-namespace>=0.3.2->lancedb->-r /home/freegear/EasyDocStation/server/requirements.txt (line 3))
+  Downloading python_dateutil-2.9.0.post0-py2.py3-none-any.whl.metadata (8.4 kB)
+Collecting contourpy>=1.0.1 (from matplotlib>=3.10.8->unstructured-inference<2.0.0,>=1.6.6->unstructured[pdf]->-r /home/freegear/EasyDocStation/server/requirements.txt (line 9))
+  Downloading contourpy-1.3.3-cp312-cp312-manylinux_2_26_aarch64.manylinux_2_28_aarch64.whl.metadata (5.5 kB)
+Collecting cycler>=0.10 (from matplotlib>=3.10.8->unstructured-inference<2.0.0,>=1.6.6->unstructured[pdf]->-r /home/freegear/EasyDocStation/server/requirements.txt (line 9))
+  Downloading cycler-0.12.1-py3-none-any.whl.metadata (3.8 kB)
+Collecting fonttools>=4.22.0 (from matplotlib>=3.10.8->unstructured-inference<2.0.0,>=1.6.6->unstructured[pdf]->-r /home/freegear/EasyDocStation/server/requirements.txt (line 9))
+  Downloading fonttools-4.62.1-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl.metadata (117 kB)
+Collecting kiwisolver>=1.3.1 (from matplotlib>=3.10.8->unstructured-inference<2.0.0,>=1.6.6->unstructured[pdf]->-r /home/freegear/EasyDocStation/server/requirements.txt (line 9))
+  Downloading kiwisolver-1.5.0-cp312-cp312-manylinux_2_24_aarch64.manylinux_2_28_aarch64.whl.metadata (5.1 kB)
+Collecting pyparsing>=3 (from matplotlib>=3.10.8->unstructured-inference<2.0.0,>=1.6.6->unstructured[pdf]->-r /home/freegear/EasyDocStation/server/requirements.txt (line 9))
+  Downloading pyparsing-3.3.2-py3-none-any.whl.metadata (5.8 kB)
+Collecting ml_dtypes>=0.5.0 (from onnx>=1.20.1->unstructured-inference<2.0.0,>=1.6.6->unstructured[pdf]->-r /home/freegear/EasyDocStation/server/requirements.txt (line 9))
+  Downloading ml_dtypes-0.5.4-cp312-cp312-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl.metadata (8.9 kB)
+Collecting flatbuffers (from onnxruntime>=1.18.0->unstructured-inference<2.0.0,>=1.6.6->unstructured[pdf]->-r /home/freegear/EasyDocStation/server/requirements.txt (line 9))
+  Downloading flatbuffers-25.12.19-py2.py3-none-any.whl.metadata (1.0 kB)
+Collecting pyasn1<0.7.0,>=0.6.1 (from pyasn1-modules>=0.2.1->google-auth!=2.24.0,!=2.25.0,<3.0.0,>=2.14.1->google-cloud-vision<4.0.0,>=3.12.1->unstructured[pdf]->-r /home/freegear/EasyDocStation/server/requirements.txt (line 9))
+  Downloading pyasn1-0.6.3-py3-none-any.whl.metadata (8.4 kB)
+Collecting markdown-it-py>=2.2.0 (from rich>=12.3.0->typer->transformers<6.0.0,>=4.41.0->sentence-transformers->-r /home/freegear/EasyDocStation/server/requirements.txt (line 2))
+  Downloading markdown_it_py-4.0.0-py3-none-any.whl.metadata (7.3 kB)
+Collecting pygments<3.0.0,>=2.13.0 (from rich>=12.3.0->typer->transformers<6.0.0,>=4.41.0->sentence-transformers->-r /home/freegear/EasyDocStation/server/requirements.txt (line 2))
+  Downloading pygments-2.20.0-py3-none-any.whl.metadata (2.5 kB)
+Collecting mdurl~=0.1 (from markdown-it-py>=2.2.0->rich>=12.3.0->typer->transformers<6.0.0,>=4.41.0->sentence-transformers->-r /home/freegear/EasyDocStation/server/requirements.txt (line 2))
+  Downloading mdurl-0.1.2-py3-none-any.whl.metadata (1.6 kB)
+Collecting joblib>=1.3.0 (from scikit-learn>=0.22.0->sentence-transformers->-r /home/freegear/EasyDocStation/server/requirements.txt (line 2))
+  Downloading joblib-1.5.3-py3-none-any.whl.metadata (5.5 kB)
+Collecting threadpoolctl>=3.2.0 (from scikit-learn>=0.22.0->sentence-transformers->-r /home/freegear/EasyDocStation/server/requirements.txt (line 2))
+  Downloading threadpoolctl-3.6.0-py3-none-any.whl.metadata (13 kB)
+Collecting mpmath<1.4,>=1.1.0 (from sympy>=1.13.3->torch>=2.6->-r /home/freegear/EasyDocStation/server/requirements.txt (line 1))
+  Downloading mpmath-1.3.0-py3-none-any.whl.metadata (8.6 kB)
+Collecting torchvision (from timm>=1.0.24->unstructured-inference<2.0.0,>=1.6.6->unstructured[pdf]->-r /home/freegear/EasyDocStation/server/requirements.txt (line 9))
+  Downloading torchvision-0.26.0-cp312-cp312-manylinux_2_28_aarch64.whl.metadata (5.5 kB)
+Collecting MarkupSafe>=2.0 (from jinja2->torch>=2.6->-r /home/freegear/EasyDocStation/server/requirements.txt (line 1))
+  Downloading markupsafe-3.0.3-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl.metadata (2.7 kB)
+Downloading torch-2.11.0-cp312-cp312-manylinux_2_28_aarch64.whl (419.7 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 419.7/419.7 MB 36.0 MB/s  0:00:12
+Downloading cuda_toolkit-13.0.2-py2.py3-none-any.whl (2.4 kB)
+Downloading nvidia_cudnn_cu13-9.19.0.56-py3-none-manylinux_2_27_aarch64.whl (433.8 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 433.8/433.8 MB 35.8 MB/s  0:00:11
+Downloading nvidia_cusparselt_cu13-0.8.0-py3-none-manylinux2014_aarch64.whl (220.8 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 220.8/220.8 MB 32.8 MB/s  0:00:06
+Downloading nvidia_nccl_cu13-2.28.9-py3-none-manylinux_2_18_aarch64.whl (196.6 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 196.6/196.6 MB 47.3 MB/s  0:00:04
+Downloading nvidia_nvshmem_cu13-3.4.5-py3-none-manylinux2014_aarch64.manylinux_2_17_aarch64.whl (60.2 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 60.2/60.2 MB 51.1 MB/s  0:00:01
+Downloading triton-3.6.0-cp312-cp312-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl (176.1 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 176.1/176.1 MB 43.8 MB/s  0:00:04
+Downloading cuda_bindings-13.2.0-cp312-cp312-manylinux_2_24_aarch64.manylinux_2_28_aarch64.whl (5.7 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 5.7/5.7 MB 56.0 MB/s  0:00:00
+Downloading cuda_pathfinder-1.5.3-py3-none-any.whl (49 kB)
+Downloading nvidia_cublas-13.1.0.3-py3-none-manylinux_2_27_aarch64.whl (542.9 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 542.9/542.9 MB 39.0 MB/s  0:00:12
+Downloading nvidia_cuda_cupti-13.0.85-py3-none-manylinux_2_25_aarch64.whl (10.3 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 10.3/10.3 MB 48.3 MB/s  0:00:00
+Downloading nvidia_cuda_nvrtc-13.0.88-py3-none-manylinux2014_aarch64.manylinux_2_17_aarch64.whl (43.0 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 43.0/43.0 MB 31.9 MB/s  0:00:01
+Downloading nvidia_cuda_runtime-13.0.96-py3-none-manylinux2014_aarch64.manylinux_2_17_aarch64.whl (2.3 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 2.3/2.3 MB 34.2 MB/s  0:00:00
+Downloading nvidia_cufft-12.0.0.61-py3-none-manylinux2014_aarch64.manylinux_2_17_aarch64.whl (214.1 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 214.1/214.1 MB 43.5 MB/s  0:00:04
+Downloading nvidia_cufile-1.15.1.6-py3-none-manylinux_2_27_aarch64.whl (1.1 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.1/1.1 MB 31.0 MB/s  0:00:00
+Downloading nvidia_curand-10.4.0.35-py3-none-manylinux_2_27_aarch64.whl (62.0 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 62.0/62.0 MB 30.3 MB/s  0:00:02
+Downloading nvidia_cusolver-12.0.4.66-py3-none-manylinux_2_27_aarch64.whl (223.5 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 223.5/223.5 MB 38.7 MB/s  0:00:05
+Downloading nvidia_cusparse-12.6.3.3-py3-none-manylinux2014_aarch64.manylinux_2_17_aarch64.whl (162.2 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 162.2/162.2 MB 35.2 MB/s  0:00:04
+Downloading nvidia_nvjitlink-13.0.88-py3-none-manylinux2014_aarch64.manylinux_2_17_aarch64.whl (38.8 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 38.8/38.8 MB 39.4 MB/s  0:00:00
+Downloading nvidia_nvtx-13.0.85-py3-none-manylinux2014_aarch64.manylinux_2_17_aarch64.whl (148 kB)
+Downloading sentence_transformers-5.4.1-py3-none-any.whl (571 kB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 571.3/571.3 kB 45.8 MB/s  0:00:00
+Downloading transformers-5.5.4-py3-none-any.whl (10.2 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 10.2/10.2 MB 41.2 MB/s  0:00:00
+Downloading huggingface_hub-1.11.0-py3-none-any.whl (645 kB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 645.5/645.5 kB 22.5 MB/s  0:00:00
+Downloading hf_xet-1.4.3-cp37-abi3-manylinux_2_28_aarch64.whl (4.0 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 4.0/4.0 MB 25.8 MB/s  0:00:00
+Downloading httpx-0.28.1-py3-none-any.whl (73 kB)
+Downloading httpcore-1.0.9-py3-none-any.whl (78 kB)
+Downloading tokenizers-0.22.2-cp39-abi3-manylinux_2_17_aarch64.manylinux2014_aarch64.whl (3.3 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 3.3/3.3 MB 33.3 MB/s  0:00:00
+Downloading lancedb-0.30.2-cp39-abi3-manylinux_2_28_aarch64.whl (43.6 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 43.6/43.6 MB 33.8 MB/s  0:00:01
+Downloading pdfplumber-0.11.9-py3-none-any.whl (60 kB)
+Downloading pdfminer_six-20251230-py3-none-any.whl (6.6 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 6.6/6.6 MB 45.5 MB/s  0:00:00
+Downloading langchain_community-0.4.1-py3-none-any.whl (2.5 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 2.5/2.5 MB 57.5 MB/s  0:00:00
+Downloading aiohttp-3.13.5-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl (1.7 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.7/1.7 MB 41.4 MB/s  0:00:00
+Downloading dataclasses_json-0.6.7-py3-none-any.whl (28 kB)
+Downloading httpx_sse-0.4.3-py3-none-any.whl (9.0 kB)
+Downloading langchain_classic-1.0.4-py3-none-any.whl (1.0 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.0/1.0 MB 36.9 MB/s  0:00:00
+Downloading langchain_text_splitters-1.1.2-py3-none-any.whl (35 kB)
+Downloading langchain_core-1.3.0-py3-none-any.whl (515 kB)
+Downloading jsonpatch-1.33-py2.py3-none-any.whl (12 kB)
+Downloading langsmith-0.7.32-py3-none-any.whl (378 kB)
+Downloading marshmallow-3.26.2-py3-none-any.whl (50 kB)
+Downloading multidict-6.7.1-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl (258 kB)
+Downloading pydantic-2.13.2-py3-none-any.whl (471 kB)
+Downloading pydantic_core-2.46.2-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl (2.0 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 2.0/2.0 MB 41.1 MB/s  0:00:00
+Downloading pydantic_settings-2.13.1-py3-none-any.whl (58 kB)
+Downloading pyyaml-6.0.3-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl (775 kB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 775.1/775.1 kB 36.5 MB/s  0:00:00
+Downloading requests-2.33.1-py3-none-any.whl (64 kB)
+Downloading charset_normalizer-3.4.7-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl (208 kB)
+Downloading idna-3.11-py3-none-any.whl (71 kB)
+Downloading sqlalchemy-2.0.49-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl (3.3 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 3.3/3.3 MB 48.1 MB/s  0:00:00
+Downloading tenacity-9.1.4-py3-none-any.whl (28 kB)
+Downloading typing_extensions-4.15.0-py3-none-any.whl (44 kB)
+Downloading typing_inspect-0.9.0-py3-none-any.whl (8.8 kB)
+Downloading urllib3-2.6.3-py3-none-any.whl (131 kB)
+Downloading uuid_utils-0.14.1-cp39-abi3-manylinux_2_17_aarch64.manylinux2014_aarch64.whl (344 kB)
+Downloading yarl-1.23.0-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl (97 kB)
+Downloading pyarrow-23.0.1-cp312-cp312-manylinux_2_28_aarch64.whl (44.5 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 44.5/44.5 MB 46.8 MB/s  0:00:00
+Downloading docx2txt-0.9-py3-none-any.whl (4.0 kB)
+Downloading unstructured-0.22.21-py3-none-any.whl (1.6 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.6/1.6 MB 47.1 MB/s  0:00:00
+Downloading beautifulsoup4-4.14.3-py3-none-any.whl (107 kB)
+Downloading emoji-2.15.0-py3-none-any.whl (608 kB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 608.4/608.4 kB 3.1 MB/s  0:00:00
+Downloading filelock-3.29.0-py3-none-any.whl (39 kB)
+Downloading filetype-1.2.0-py2.py3-none-any.whl (19 kB)
+Downloading google_cloud_vision-3.13.0-py3-none-any.whl (543 kB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 543.2/543.2 kB 33.9 MB/s  0:00:00
+Downloading google_api_core-2.30.3-py3-none-any.whl (173 kB)
+Downloading google_auth-2.49.2-py3-none-any.whl (240 kB)
+Downloading googleapis_common_protos-1.74.0-py3-none-any.whl (300 kB)
+Downloading grpcio-1.80.0-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.whl (6.6 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 6.6/6.6 MB 41.2 MB/s  0:00:00
+Downloading grpcio_status-1.80.0-py3-none-any.whl (14 kB)
+Downloading html5lib-1.1-py2.py3-none-any.whl (112 kB)
+Downloading installer-0.7.0-py3-none-any.whl (453 kB)
+Downloading lxml-6.1.0-cp312-cp312-manylinux_2_26_aarch64.manylinux_2_28_aarch64.whl (5.0 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 5.0/5.0 MB 53.6 MB/s  0:00:00
+Downloading numba-0.65.0-cp312-cp312-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl (3.5 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 3.5/3.5 MB 43.8 MB/s  0:00:00
+Downloading llvmlite-0.47.0-cp312-cp312-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl (55.1 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 55.1/55.1 MB 41.1 MB/s  0:00:01
+Downloading numpy-2.4.4-cp312-cp312-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl (15.7 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 15.7/15.7 MB 35.3 MB/s  0:00:00
+Downloading pdf2image-1.17.0-py3-none-any.whl (11 kB)
+Downloading pi_heif-1.3.0-cp312-cp312-manylinux_2_26_aarch64.manylinux_2_28_aarch64.whl (1.4 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.4/1.4 MB 34.7 MB/s  0:00:00
+Downloading pikepdf-10.5.1-cp312-cp312-manylinux_2_26_aarch64.manylinux_2_28_aarch64.whl (2.5 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 2.5/2.5 MB 31.9 MB/s  0:00:00
+Downloading proto_plus-1.27.2-py3-none-any.whl (50 kB)
+Downloading protobuf-6.33.6-cp39-abi3-manylinux2014_aarch64.whl (324 kB)
+Downloading psutil-7.2.2-cp36-abi3-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl (156 kB)
+Downloading pypdf-6.10.2-py3-none-any.whl (336 kB)
+Downloading python_iso639-2026.1.31-py3-none-any.whl (167 kB)
+Downloading python_magic-0.4.27-py2.py3-none-any.whl (13 kB)
+Downloading python_oxmsg-0.0.2-py3-none-any.whl (31 kB)
+Downloading rapidfuzz-3.14.5-cp312-cp312-manylinux_2_26_aarch64.manylinux_2_28_aarch64.whl (1.4 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.4/1.4 MB 41.4 MB/s  0:00:00
+Downloading regex-2026.4.4-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl (796 kB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 796.7/796.7 kB 39.5 MB/s  0:00:00
+Downloading spacy-3.8.14-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.whl (32.7 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 32.7/32.7 MB 35.4 MB/s  0:00:00
+Downloading catalogue-2.0.10-py3-none-any.whl (17 kB)
+Downloading confection-1.3.3-py3-none-any.whl (35 kB)
+Downloading cymem-2.0.13-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.whl (258 kB)
+Downloading murmurhash-1.0.15-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.whl (133 kB)
+Downloading preshed-3.0.13-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.whl (861 kB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 861.5/861.5 kB 31.9 MB/s  0:00:00
+Downloading spacy_legacy-3.0.12-py2.py3-none-any.whl (29 kB)
+Downloading spacy_loggers-1.0.5-py3-none-any.whl (22 kB)
+Downloading srsly-2.5.3-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.whl (1.2 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.2/1.2 MB 33.6 MB/s  0:00:00
+Downloading thinc-8.3.13-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.whl (3.9 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 3.9/3.9 MB 42.7 MB/s  0:00:00
+Downloading blis-1.3.3-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.whl (2.8 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 2.8/2.8 MB 53.0 MB/s  0:00:00
+Downloading tqdm-4.67.3-py3-none-any.whl (78 kB)
+Downloading typer-0.24.1-py3-none-any.whl (56 kB)
+Downloading unstructured_client-0.43.2-py3-none-any.whl (224 kB)
+Downloading unstructured_inference-1.6.6-py3-none-any.whl (54 kB)
+Downloading unstructured.pytesseract-0.3.15-py3-none-any.whl (14 kB)
+Downloading wasabi-1.1.3-py3-none-any.whl (27 kB)
+Downloading weasel-1.0.0-py3-none-any.whl (50 kB)
+Downloading wrapt-2.1.2-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl (123 kB)
+Downloading pytesseract-0.3.13-py3-none-any.whl (14 kB)
+Downloading accelerate-1.13.0-py3-none-any.whl (383 kB)
+Downloading aiofiles-25.1.0-py3-none-any.whl (14 kB)
+Downloading aiohappyeyeballs-2.6.1-py3-none-any.whl (15 kB)
+Downloading aiosignal-1.4.0-py3-none-any.whl (7.5 kB)
+Downloading annotated_doc-0.0.4-py3-none-any.whl (5.3 kB)
+Downloading annotated_types-0.7.0-py3-none-any.whl (13 kB)
+Downloading attrs-26.1.0-py3-none-any.whl (67 kB)
+Downloading certifi-2026.2.25-py3-none-any.whl (153 kB)
+Downloading click-8.3.2-py3-none-any.whl (108 kB)
+Downloading cloudpathlib-0.23.0-py3-none-any.whl (62 kB)
+Downloading cryptography-46.0.7-cp311-abi3-manylinux_2_34_aarch64.whl (4.3 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 4.3/4.3 MB 38.2 MB/s  0:00:00
+Downloading cffi-2.0.0-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.whl (220 kB)
+Downloading deprecation-2.1.0-py2.py3-none-any.whl (11 kB)
+Downloading frozenlist-1.8.0-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl (243 kB)
+Downloading fsspec-2026.3.0-py3-none-any.whl (202 kB)
+Downloading greenlet-3.4.0-cp312-cp312-manylinux_2_24_aarch64.manylinux_2_28_aarch64.whl (606 kB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 606.1/606.1 kB 37.8 MB/s  0:00:00
+Downloading h11-0.16.0-py3-none-any.whl (37 kB)
+Downloading jsonpointer-3.1.1-py3-none-any.whl (7.7 kB)
+Downloading lance_namespace-0.6.1-py3-none-any.whl (12 kB)
+Downloading lance_namespace_urllib3_client-0.6.1-py3-none-any.whl (317 kB)
+Downloading matplotlib-3.10.8-cp312-cp312-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl (9.6 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 9.6/9.6 MB 52.0 MB/s  0:00:00
+Downloading contourpy-1.3.3-cp312-cp312-manylinux_2_26_aarch64.manylinux_2_28_aarch64.whl (332 kB)
+Downloading cycler-0.12.1-py3-none-any.whl (8.3 kB)
+Downloading fonttools-4.62.1-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl (5.0 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 5.0/5.0 MB 46.9 MB/s  0:00:00
+Downloading kiwisolver-1.5.0-cp312-cp312-manylinux_2_24_aarch64.manylinux_2_28_aarch64.whl (1.3 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.3/1.3 MB 47.9 MB/s  0:00:00
+Downloading mypy_extensions-1.1.0-py3-none-any.whl (5.0 kB)
+Downloading networkx-3.6.1-py3-none-any.whl (2.1 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 2.1/2.1 MB 38.2 MB/s  0:00:00
+Downloading onnx-1.21.0-cp312-abi3-manylinux_2_26_aarch64.manylinux_2_28_aarch64.whl (17.5 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 17.5/17.5 MB 42.0 MB/s  0:00:00
+Downloading ml_dtypes-0.5.4-cp312-cp312-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl (5.0 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 5.0/5.0 MB 32.8 MB/s  0:00:00
+Downloading onnxruntime-1.24.4-cp312-cp312-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl (15.2 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 15.2/15.2 MB 36.7 MB/s  0:00:00
+Downloading opencv_python-4.13.0.92-cp37-abi3-manylinux_2_28_aarch64.whl (46.7 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 46.7/46.7 MB 47.7 MB/s  0:00:00
+Downloading orjson-3.11.8-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl (131 kB)
+Downloading pandas-3.0.2-cp312-cp312-manylinux_2_24_aarch64.manylinux_2_28_aarch64.whl (10.4 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 10.4/10.4 MB 55.2 MB/s  0:00:00
+Downloading pillow-12.2.0-cp312-cp312-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl (6.4 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 6.4/6.4 MB 41.8 MB/s  0:00:00
+Downloading propcache-0.4.1-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl (225 kB)
+Downloading pyasn1_modules-0.4.2-py3-none-any.whl (181 kB)
+Downloading pyasn1-0.6.3-py3-none-any.whl (83 kB)
+Downloading pyparsing-3.3.2-py3-none-any.whl (122 kB)
+Downloading pypdfium2-5.7.0-py3-none-manylinux_2_17_aarch64.manylinux2014_aarch64.whl (3.6 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 3.6/3.6 MB 31.7 MB/s  0:00:00
+Downloading python_dateutil-2.9.0.post0-py2.py3-none-any.whl (229 kB)
+Downloading python_dotenv-1.2.2-py3-none-any.whl (22 kB)
+Downloading requests_toolbelt-1.0.0-py2.py3-none-any.whl (54 kB)
+Downloading rich-15.0.0-py3-none-any.whl (310 kB)
+Downloading pygments-2.20.0-py3-none-any.whl (1.2 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.2/1.2 MB 37.9 MB/s  0:00:00
+Downloading markdown_it_py-4.0.0-py3-none-any.whl (87 kB)
+Downloading mdurl-0.1.2-py3-none-any.whl (10.0 kB)
+Downloading safetensors-0.7.0-cp38-abi3-manylinux_2_17_aarch64.manylinux2014_aarch64.whl (491 kB)
+Downloading scikit_learn-1.8.0-cp312-cp312-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl (8.7 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 8.7/8.7 MB 54.2 MB/s  0:00:00
+Downloading joblib-1.5.3-py3-none-any.whl (309 kB)
+Downloading scipy-1.17.1-cp312-cp312-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl (32.9 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 32.9/32.9 MB 61.2 MB/s  0:00:00
+Downloading shellingham-1.5.4-py2.py3-none-any.whl (9.8 kB)
+Downloading six-1.17.0-py2.py3-none-any.whl (11 kB)
+Downloading smart_open-7.6.0-py3-none-any.whl (64 kB)
+Downloading soupsieve-2.8.3-py3-none-any.whl (37 kB)
+Downloading sympy-1.14.0-py3-none-any.whl (6.3 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 6.3/6.3 MB 54.6 MB/s  0:00:00
+Downloading mpmath-1.3.0-py3-none-any.whl (536 kB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 536.2/536.2 kB 49.6 MB/s  0:00:00
+Downloading threadpoolctl-3.6.0-py3-none-any.whl (18 kB)
+Downloading timm-1.0.26-py3-none-any.whl (2.6 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 2.6/2.6 MB 41.2 MB/s  0:00:00
+Downloading typing_inspection-0.4.2-py3-none-any.whl (14 kB)
+Downloading xxhash-3.6.0-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl (212 kB)
+Downloading zstandard-0.25.0-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.whl (5.1 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 5.1/5.1 MB 45.2 MB/s  0:00:00
+Downloading anyio-4.13.0-py3-none-any.whl (114 kB)
+Downloading deprecated-1.3.1-py2.py3-none-any.whl (11 kB)
+Downloading flatbuffers-25.12.19-py2.py3-none-any.whl (26 kB)
+Downloading jinja2-3.1.6-py3-none-any.whl (134 kB)
+Downloading markupsafe-3.0.3-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl (24 kB)
+Downloading olefile-0.47-py2.py3-none-any.whl (114 kB)
+Downloading pycparser-3.0-py3-none-any.whl (48 kB)
+Downloading torchvision-0.26.0-cp312-cp312-manylinux_2_28_aarch64.whl (7.8 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 7.8/7.8 MB 57.2 MB/s  0:00:00
+Downloading webencodings-0.5.1-py2.py3-none-any.whl (11 kB)
+Building wheels for collected packages: langdetect
+  Building wheel for langdetect (pyproject.toml): started
+  Building wheel for langdetect (pyproject.toml): finished with status 'done'
+  Created wheel for langdetect: filename=langdetect-1.0.9-py3-none-any.whl size=993332 sha256=72eb6b2e4019ced08b28590f648d18f560a5331a3c7b7cd03908dbade235413c
+  Stored in directory: /root/.cache/pip/wheels/c1/67/88/e844b5b022812e15a52e4eaa38a1e709e99f06f6639d7e3ba7
+Successfully built langdetect
+Installing collected packages: webencodings, nvidia-cusparselt-cu13, mpmath, flatbuffers, filetype, docx2txt, cuda-toolkit, zstandard, xxhash, wrapt, wasabi, uuid-utils, urllib3, typing-extensions, triton, tqdm, threadpoolctl, tenacity, sympy, spacy-loggers, spacy-legacy, soupsieve, six, shellingham, safetensors, regex, rapidfuzz, pyyaml, python-magic, python-iso639, python-dotenv, pypdfium2, pypdf, pyparsing, pygments, pycparser, pyasn1, pyarrow, psutil, protobuf, propcache, Pillow, orjson, olefile, nvidia-nvtx, nvidia-nvshmem-cu13, nvidia-nvjitlink, nvidia-nccl-cu13, nvidia-curand, nvidia-cufile, nvidia-cuda-runtime, nvidia-cuda-nvrtc, nvidia-cuda-cupti, nvidia-cublas, numpy, networkx, mypy-extensions, murmurhash, multidict, mdurl, marshmallow, MarkupSafe, lxml, llvmlite, kiwisolver, jsonpointer, joblib, installer, idna, httpx-sse, hf-xet, h11, greenlet, fsspec, frozenlist, fonttools, filelock, emoji, deprecation, cymem, cycler, cuda-pathfinder, confection, cloudpathlib, click, charset-normalizer, certifi, catalogue, attrs, annotated-types, annotated-doc, aiohappyeyeballs, aiofiles, yarl, unstructured-pytesseract, typing-inspection, typing-inspect, srsly, SQLAlchemy, smart-open, scipy, requests, python-oxmsg, python-dateutil, pytesseract, pydantic-core, pyasn1-modules, proto-plus, preshed, pi-heif, pdf2image, opencv-python, onnxruntime, nvidia-cusparse, nvidia-cufft, nvidia-cudnn-cu13, numba, ml_dtypes, markdown-it-py, langdetect, jsonpatch, jinja2, httpcore, html5lib, grpcio, googleapis-common-protos, Deprecated, cuda-bindings, contourpy, cffi, blis, beautifulsoup4, anyio, aiosignal, scikit-learn, rich, requests-toolbelt, pydantic, pikepdf, pandas, onnx, nvidia-cusolver, matplotlib, httpx, grpcio-status, dataclasses-json, cryptography, aiohttp, unstructured-client, typer, thinc, pydantic-settings, pdfminer.six, langsmith, lance-namespace-urllib3-client, google-auth, weasel, torch, pdfplumber, langchain-core, lance-namespace, huggingface-hub, google-api-core, torchvision, tokenizers, spacy, langchain-text-splitters, lancedb, accelerate, unstructured, transformers, timm, langchain-classic, google-cloud-vision, unstructured-inference, sentence-transformers, langchain-community
+
+Successfully installed Deprecated-1.3.1 MarkupSafe-3.0.3 Pillow-12.2.0 SQLAlchemy-2.0.49 accelerate-1.13.0 aiofiles-25.1.0 aiohappyeyeballs-2.6.1 aiohttp-3.13.5 aiosignal-1.4.0 annotated-doc-0.0.4 annotated-types-0.7.0 anyio-4.13.0 attrs-26.1.0 beautifulsoup4-4.14.3 blis-1.3.3 catalogue-2.0.10 certifi-2026.2.25 cffi-2.0.0 charset-normalizer-3.4.7 click-8.3.2 cloudpathlib-0.23.0 confection-1.3.3 contourpy-1.3.3 cryptography-46.0.7 cuda-bindings-13.2.0 cuda-pathfinder-1.5.3 cuda-toolkit-13.0.2 cycler-0.12.1 cymem-2.0.13 dataclasses-json-0.6.7 deprecation-2.1.0 docx2txt-0.9 emoji-2.15.0 filelock-3.29.0 filetype-1.2.0 flatbuffers-25.12.19 fonttools-4.62.1 frozenlist-1.8.0 fsspec-2026.3.0 google-api-core-2.30.3 google-auth-2.49.2 google-cloud-vision-3.13.0 googleapis-common-protos-1.74.0 greenlet-3.4.0 grpcio-1.80.0 grpcio-status-1.80.0 h11-0.16.0 hf-xet-1.4.3 html5lib-1.1 httpcore-1.0.9 httpx-0.28.1 httpx-sse-0.4.3 huggingface-hub-1.11.0 idna-3.11 installer-0.7.0 jinja2-3.1.6 joblib-1.5.3 jsonpatch-1.33 jsonpointer-3.1.1 kiwisolver-1.5.0 lance-namespace-0.6.1 lance-namespace-urllib3-client-0.6.1 lancedb-0.30.2 langchain-classic-1.0.4 langchain-community-0.4.1 langchain-core-1.3.0 langchain-text-splitters-1.1.2 langdetect-1.0.9 langsmith-0.7.32 llvmlite-0.47.0 lxml-6.1.0 markdown-it-py-4.0.0 marshmallow-3.26.2 matplotlib-3.10.8 mdurl-0.1.2 ml_dtypes-0.5.4 mpmath-1.3.0 multidict-6.7.1 murmurhash-1.0.15 mypy-extensions-1.1.0 networkx-3.6.1 numba-0.65.0 numpy-2.4.4 nvidia-cublas-13.1.0.3 nvidia-cuda-cupti-13.0.85 nvidia-cuda-nvrtc-13.0.88 nvidia-cuda-runtime-13.0.96 nvidia-cudnn-cu13-9.19.0.56 nvidia-cufft-12.0.0.61 nvidia-cufile-1.15.1.6 nvidia-curand-10.4.0.35 nvidia-cusolver-12.0.4.66 nvidia-cusparse-12.6.3.3 nvidia-cusparselt-cu13-0.8.0 nvidia-nccl-cu13-2.28.9 nvidia-nvjitlink-13.0.88 nvidia-nvshmem-cu13-3.4.5 nvidia-nvtx-13.0.85 olefile-0.47 onnx-1.21.0 onnxruntime-1.24.4 opencv-python-4.13.0.92 orjson-3.11.8 pandas-3.0.2 pdf2image-1.17.0 pdfminer.six-20251230 pdfplumber-0.11.9 pi-heif-1.3.0 pikepdf-10.5.1 preshed-3.0.13 propcache-0.4.1 proto-plus-1.27.2 protobuf-6.33.6 psutil-7.2.2 pyarrow-23.0.1 pyasn1-0.6.3 pyasn1-modules-0.4.2 pycparser-3.0 pydantic-2.13.2 pydantic-core-2.46.2 pydantic-settings-2.13.1 pygments-2.20.0 pyparsing-3.3.2 pypdf-6.10.2 pypdfium2-5.7.0 pytesseract-0.3.13 python-dateutil-2.9.0.post0 python-dotenv-1.2.2 python-iso639-2026.1.31 python-magic-0.4.27 python-oxmsg-0.0.2 pyyaml-6.0.3 rapidfuzz-3.14.5 regex-2026.4.4 requests-2.33.1 requests-toolbelt-1.0.0 rich-15.0.0 safetensors-0.7.0 scikit-learn-1.8.0 scipy-1.17.1 sentence-transformers-5.4.1 shellingham-1.5.4 six-1.17.0 smart-open-7.6.0 soupsieve-2.8.3 spacy-3.8.14 spacy-legacy-3.0.12 spacy-loggers-1.0.5 srsly-2.5.3 sympy-1.14.0 tenacity-9.1.4 thinc-8.3.13 threadpoolctl-3.6.0 timm-1.0.26 tokenizers-0.22.2 torch-2.11.0 torchvision-0.26.0 tqdm-4.67.3 transformers-5.5.4 triton-3.6.0 typer-0.24.1 typing-extensions-4.15.0 typing-inspect-0.9.0 typing-inspection-0.4.2 unstructured-0.22.21 unstructured-client-0.43.2 unstructured-inference-1.6.6 unstructured-pytesseract-0.3.15 urllib3-2.6.3 uuid-utils-0.14.1 wasabi-1.1.3 weasel-1.0.0 webencodings-0.5.1 wrapt-2.1.2 xxhash-3.6.0 yarl-1.23.0 zstandard-0.25.0
+[INFO] installed torch=2.11.0+cu130
+[8/8] 프로젝트 설정 파일 자동 구성
+[8-1/8] 기본 사용자 시드 적용
+
+완료되었습니다.
+다음 명령으로 실행하세요:
+  cd /home/freegear/EasyDocStation
+  npm run dev:ubuntu
+[2/3] PyTorch CUDA 빌드 설치
+Requirement already satisfied: pip in ./.venv/lib/python3.12/site-packages (26.0.1)
+Requirement already satisfied: wheel in ./.venv/lib/python3.12/site-packages (0.46.3)
+Requirement already satisfied: packaging in ./.venv/lib/python3.12/site-packages (26.1)
+Requirement already satisfied: setuptools<82 in ./.venv/lib/python3.12/site-packages (81.0.0)
+Looking in indexes: https://download.pytorch.org/whl/cu124, https://pypi.org/simple
+Collecting torch<3,>=2.6
+  Using cached torch-2.11.0-cp312-cp312-manylinux_2_28_aarch64.whl.metadata (29 kB)
+Requirement already satisfied: filelock in ./.venv/lib/python3.12/site-packages (from torch<3,>=2.6) (3.29.0)
+Requirement already satisfied: typing-extensions>=4.10.0 in ./.venv/lib/python3.12/site-packages (from torch<3,>=2.6) (4.15.0)
+Requirement already satisfied: setuptools<82 in ./.venv/lib/python3.12/site-packages (from torch<3,>=2.6) (81.0.0)
+Requirement already satisfied: sympy>=1.13.3 in ./.venv/lib/python3.12/site-packages (from torch<3,>=2.6) (1.14.0)
+Requirement already satisfied: networkx>=2.5.1 in ./.venv/lib/python3.12/site-packages (from torch<3,>=2.6) (3.6.1)
+Requirement already satisfied: jinja2 in ./.venv/lib/python3.12/site-packages (from torch<3,>=2.6) (3.1.6)
+Requirement already satisfied: fsspec>=0.8.5 in ./.venv/lib/python3.12/site-packages (from torch<3,>=2.6) (2026.3.0)
+Requirement already satisfied: cuda-toolkit==13.0.2 in ./.venv/lib/python3.12/site-packages (from cuda-toolkit[cublas,cudart,cufft,cufile,cupti,curand,cusolver,cusparse,nvjitlink,nvrtc,nvtx]==13.0.2; platform_system == "Linux"->torch<3,>=2.6) (13.0.2)
+Requirement already satisfied: cuda-bindings<14,>=13.0.3 in ./.venv/lib/python3.12/site-packages (from torch<3,>=2.6) (13.2.0)
+Requirement already satisfied: nvidia-cudnn-cu13==9.19.0.56 in ./.venv/lib/python3.12/site-packages (from torch<3,>=2.6) (9.19.0.56)
+Requirement already satisfied: nvidia-cusparselt-cu13==0.8.0 in ./.venv/lib/python3.12/site-packages (from torch<3,>=2.6) (0.8.0)
+Requirement already satisfied: nvidia-nccl-cu13==2.28.9 in ./.venv/lib/python3.12/site-packages (from torch<3,>=2.6) (2.28.9)
+Requirement already satisfied: nvidia-nvshmem-cu13==3.4.5 in ./.venv/lib/python3.12/site-packages (from torch<3,>=2.6) (3.4.5)
+Requirement already satisfied: triton==3.6.0 in ./.venv/lib/python3.12/site-packages (from torch<3,>=2.6) (3.6.0)
+Requirement already satisfied: nvidia-cublas==13.1.0.3.* in ./.venv/lib/python3.12/site-packages (from cuda-toolkit[cublas,cudart,cufft,cufile,cupti,curand,cusolver,cusparse,nvjitlink,nvrtc,nvtx]==13.0.2; platform_system == "Linux"->torch<3,>=2.6) (13.1.0.3)
+Requirement already satisfied: nvidia-cuda-runtime==13.0.96.* in ./.venv/lib/python3.12/site-packages (from cuda-toolkit[cublas,cudart,cufft,cufile,cupti,curand,cusolver,cusparse,nvjitlink,nvrtc,nvtx]==13.0.2; platform_system == "Linux"->torch<3,>=2.6) (13.0.96)
+Requirement already satisfied: nvidia-cufft==12.0.0.61.* in ./.venv/lib/python3.12/site-packages (from cuda-toolkit[cublas,cudart,cufft,cufile,cupti,curand,cusolver,cusparse,nvjitlink,nvrtc,nvtx]==13.0.2; platform_system == "Linux"->torch<3,>=2.6) (12.0.0.61)
+Requirement already satisfied: nvidia-cufile==1.15.1.6.* in ./.venv/lib/python3.12/site-packages (from cuda-toolkit[cublas,cudart,cufft,cufile,cupti,curand,cusolver,cusparse,nvjitlink,nvrtc,nvtx]==13.0.2; platform_system == "Linux"->torch<3,>=2.6) (1.15.1.6)
+Requirement already satisfied: nvidia-cuda-cupti==13.0.85.* in ./.venv/lib/python3.12/site-packages (from cuda-toolkit[cublas,cudart,cufft,cufile,cupti,curand,cusolver,cusparse,nvjitlink,nvrtc,nvtx]==13.0.2; platform_system == "Linux"->torch<3,>=2.6) (13.0.85)
+Requirement already satisfied: nvidia-curand==10.4.0.35.* in ./.venv/lib/python3.12/site-packages (from cuda-toolkit[cublas,cudart,cufft,cufile,cupti,curand,cusolver,cusparse,nvjitlink,nvrtc,nvtx]==13.0.2; platform_system == "Linux"->torch<3,>=2.6) (10.4.0.35)
+Requirement already satisfied: nvidia-cusolver==12.0.4.66.* in ./.venv/lib/python3.12/site-packages (from cuda-toolkit[cublas,cudart,cufft,cufile,cupti,curand,cusolver,cusparse,nvjitlink,nvrtc,nvtx]==13.0.2; platform_system == "Linux"->torch<3,>=2.6) (12.0.4.66)
+Requirement already satisfied: nvidia-cusparse==12.6.3.3.* in ./.venv/lib/python3.12/site-packages (from cuda-toolkit[cublas,cudart,cufft,cufile,cupti,curand,cusolver,cusparse,nvjitlink,nvrtc,nvtx]==13.0.2; platform_system == "Linux"->torch<3,>=2.6) (12.6.3.3)
+Requirement already satisfied: nvidia-nvjitlink==13.0.88.* in ./.venv/lib/python3.12/site-packages (from cuda-toolkit[cublas,cudart,cufft,cufile,cupti,curand,cusolver,cusparse,nvjitlink,nvrtc,nvtx]==13.0.2; platform_system == "Linux"->torch<3,>=2.6) (13.0.88)
+Requirement already satisfied: nvidia-cuda-nvrtc==13.0.88.* in ./.venv/lib/python3.12/site-packages (from cuda-toolkit[cublas,cudart,cufft,cufile,cupti,curand,cusolver,cusparse,nvjitlink,nvrtc,nvtx]==13.0.2; platform_system == "Linux"->torch<3,>=2.6) (13.0.88)
+Requirement already satisfied: nvidia-nvtx==13.0.85.* in ./.venv/lib/python3.12/site-packages (from cuda-toolkit[cublas,cudart,cufft,cufile,cupti,curand,cusolver,cusparse,nvjitlink,nvrtc,nvtx]==13.0.2; platform_system == "Linux"->torch<3,>=2.6) (13.0.85)
+Requirement already satisfied: cuda-pathfinder~=1.1 in ./.venv/lib/python3.12/site-packages (from cuda-bindings<14,>=13.0.3->torch<3,>=2.6) (1.5.3)
+Requirement already satisfied: mpmath<1.4,>=1.1.0 in ./.venv/lib/python3.12/site-packages (from sympy>=1.13.3->torch<3,>=2.6) (1.3.0)
+Requirement already satisfied: MarkupSafe>=2.0 in ./.venv/lib/python3.12/site-packages (from jinja2->torch<3,>=2.6) (3.0.3)
+Using cached torch-2.11.0-cp312-cp312-manylinux_2_28_aarch64.whl (419.7 MB)
+Installing collected packages: torch
+ERROR: pip's dependency resolver does not currently take into account all the packages that are installed. This behaviour is the source of the following dependency conflicts.
+unstructured-inference 1.6.6 requires timm>=1.0.24, which is not installed.
+Successfully installed torch-2.11.0
+[2-1/3] Unstructured hi_res 의존성 설치 (torchvision, timm)
+Looking in indexes: https://download.pytorch.org/whl/cu124, https://pypi.org/simple
+Collecting torchvision
+  Using cached torchvision-0.26.0-cp312-cp312-manylinux_2_28_aarch64.whl.metadata (5.5 kB)
+Collecting timm
+  Using cached timm-1.0.26-py3-none-any.whl.metadata (39 kB)
+Requirement already satisfied: numpy in ./.venv/lib/python3.12/site-packages (from torchvision) (2.4.4)
+Requirement already satisfied: torch==2.11.0 in ./.venv/lib/python3.12/site-packages (from torchvision) (2.11.0)
+Requirement already satisfied: pillow!=8.3.*,>=5.3.0 in ./.venv/lib/python3.12/site-packages (from torchvision) (12.2.0)
+Requirement already satisfied: filelock in ./.venv/lib/python3.12/site-packages (from torch==2.11.0->torchvision) (3.29.0)
+Requirement already satisfied: typing-extensions>=4.10.0 in ./.venv/lib/python3.12/site-packages (from torch==2.11.0->torchvision) (4.15.0)
+Requirement already satisfied: setuptools<82 in ./.venv/lib/python3.12/site-packages (from torch==2.11.0->torchvision) (81.0.0)
+Requirement already satisfied: sympy>=1.13.3 in ./.venv/lib/python3.12/site-packages (from torch==2.11.0->torchvision) (1.14.0)
+Requirement already satisfied: networkx>=2.5.1 in ./.venv/lib/python3.12/site-packages (from torch==2.11.0->torchvision) (3.6.1)
+Requirement already satisfied: jinja2 in ./.venv/lib/python3.12/site-packages (from torch==2.11.0->torchvision) (3.1.6)
+Requirement already satisfied: fsspec>=0.8.5 in ./.venv/lib/python3.12/site-packages (from torch==2.11.0->torchvision) (2026.3.0)
+Requirement already satisfied: cuda-toolkit==13.0.2 in ./.venv/lib/python3.12/site-packages (from cuda-toolkit[cublas,cudart,cufft,cufile,cupti,curand,cusolver,cusparse,nvjitlink,nvrtc,nvtx]==13.0.2; platform_system == "Linux"->torch==2.11.0->torchvision) (13.0.2)
+Requirement already satisfied: cuda-bindings<14,>=13.0.3 in ./.venv/lib/python3.12/site-packages (from torch==2.11.0->torchvision) (13.2.0)
+Requirement already satisfied: nvidia-cudnn-cu13==9.19.0.56 in ./.venv/lib/python3.12/site-packages (from torch==2.11.0->torchvision) (9.19.0.56)
+Requirement already satisfied: nvidia-cusparselt-cu13==0.8.0 in ./.venv/lib/python3.12/site-packages (from torch==2.11.0->torchvision) (0.8.0)
+Requirement already satisfied: nvidia-nccl-cu13==2.28.9 in ./.venv/lib/python3.12/site-packages (from torch==2.11.0->torchvision) (2.28.9)
+Requirement already satisfied: nvidia-nvshmem-cu13==3.4.5 in ./.venv/lib/python3.12/site-packages (from torch==2.11.0->torchvision) (3.4.5)
+Requirement already satisfied: triton==3.6.0 in ./.venv/lib/python3.12/site-packages (from torch==2.11.0->torchvision) (3.6.0)
+Requirement already satisfied: nvidia-cublas==13.1.0.3.* in ./.venv/lib/python3.12/site-packages (from cuda-toolkit[cublas,cudart,cufft,cufile,cupti,curand,cusolver,cusparse,nvjitlink,nvrtc,nvtx]==13.0.2; platform_system == "Linux"->torch==2.11.0->torchvision) (13.1.0.3)
+Requirement already satisfied: nvidia-cuda-runtime==13.0.96.* in ./.venv/lib/python3.12/site-packages (from cuda-toolkit[cublas,cudart,cufft,cufile,cupti,curand,cusolver,cusparse,nvjitlink,nvrtc,nvtx]==13.0.2; platform_system == "Linux"->torch==2.11.0->torchvision) (13.0.96)
+Requirement already satisfied: nvidia-cufft==12.0.0.61.* in ./.venv/lib/python3.12/site-packages (from cuda-toolkit[cublas,cudart,cufft,cufile,cupti,curand,cusolver,cusparse,nvjitlink,nvrtc,nvtx]==13.0.2; platform_system == "Linux"->torch==2.11.0->torchvision) (12.0.0.61)
+Requirement already satisfied: nvidia-cufile==1.15.1.6.* in ./.venv/lib/python3.12/site-packages (from cuda-toolkit[cublas,cudart,cufft,cufile,cupti,curand,cusolver,cusparse,nvjitlink,nvrtc,nvtx]==13.0.2; platform_system == "Linux"->torch==2.11.0->torchvision) (1.15.1.6)
+Requirement already satisfied: nvidia-cuda-cupti==13.0.85.* in ./.venv/lib/python3.12/site-packages (from cuda-toolkit[cublas,cudart,cufft,cufile,cupti,curand,cusolver,cusparse,nvjitlink,nvrtc,nvtx]==13.0.2; platform_system == "Linux"->torch==2.11.0->torchvision) (13.0.85)
+Requirement already satisfied: nvidia-curand==10.4.0.35.* in ./.venv/lib/python3.12/site-packages (from cuda-toolkit[cublas,cudart,cufft,cufile,cupti,curand,cusolver,cusparse,nvjitlink,nvrtc,nvtx]==13.0.2; platform_system == "Linux"->torch==2.11.0->torchvision) (10.4.0.35)
+Requirement already satisfied: nvidia-cusolver==12.0.4.66.* in ./.venv/lib/python3.12/site-packages (from cuda-toolkit[cublas,cudart,cufft,cufile,cupti,curand,cusolver,cusparse,nvjitlink,nvrtc,nvtx]==13.0.2; platform_system == "Linux"->torch==2.11.0->torchvision) (12.0.4.66)
+Requirement already satisfied: nvidia-cusparse==12.6.3.3.* in ./.venv/lib/python3.12/site-packages (from cuda-toolkit[cublas,cudart,cufft,cufile,cupti,curand,cusolver,cusparse,nvjitlink,nvrtc,nvtx]==13.0.2; platform_system == "Linux"->torch==2.11.0->torchvision) (12.6.3.3)
+Requirement already satisfied: nvidia-nvjitlink==13.0.88.* in ./.venv/lib/python3.12/site-packages (from cuda-toolkit[cublas,cudart,cufft,cufile,cupti,curand,cusolver,cusparse,nvjitlink,nvrtc,nvtx]==13.0.2; platform_system == "Linux"->torch==2.11.0->torchvision) (13.0.88)
+Requirement already satisfied: nvidia-cuda-nvrtc==13.0.88.* in ./.venv/lib/python3.12/site-packages (from cuda-toolkit[cublas,cudart,cufft,cufile,cupti,curand,cusolver,cusparse,nvjitlink,nvrtc,nvtx]==13.0.2; platform_system == "Linux"->torch==2.11.0->torchvision) (13.0.88)
+Requirement already satisfied: nvidia-nvtx==13.0.85.* in ./.venv/lib/python3.12/site-packages (from cuda-toolkit[cublas,cudart,cufft,cufile,cupti,curand,cusolver,cusparse,nvjitlink,nvrtc,nvtx]==13.0.2; platform_system == "Linux"->torch==2.11.0->torchvision) (13.0.85)
+Requirement already satisfied: cuda-pathfinder~=1.1 in ./.venv/lib/python3.12/site-packages (from cuda-bindings<14,>=13.0.3->torch==2.11.0->torchvision) (1.5.3)
+Requirement already satisfied: pyyaml in ./.venv/lib/python3.12/site-packages (from timm) (6.0.3)
+Requirement already satisfied: huggingface_hub in ./.venv/lib/python3.12/site-packages (from timm) (1.11.0)
+Requirement already satisfied: safetensors in ./.venv/lib/python3.12/site-packages (from timm) (0.7.0)
+Requirement already satisfied: mpmath<1.4,>=1.1.0 in ./.venv/lib/python3.12/site-packages (from sympy>=1.13.3->torch==2.11.0->torchvision) (1.3.0)
+Requirement already satisfied: hf-xet<2.0.0,>=1.4.3 in ./.venv/lib/python3.12/site-packages (from huggingface_hub->timm) (1.4.3)
+Requirement already satisfied: httpx<1,>=0.23.0 in ./.venv/lib/python3.12/site-packages (from huggingface_hub->timm) (0.28.1)
+Requirement already satisfied: packaging>=20.9 in ./.venv/lib/python3.12/site-packages (from huggingface_hub->timm) (26.1)
+Requirement already satisfied: tqdm>=4.42.1 in ./.venv/lib/python3.12/site-packages (from huggingface_hub->timm) (4.67.3)
+Requirement already satisfied: typer in ./.venv/lib/python3.12/site-packages (from huggingface_hub->timm) (0.24.1)
+Requirement already satisfied: anyio in ./.venv/lib/python3.12/site-packages (from httpx<1,>=0.23.0->huggingface_hub->timm) (4.13.0)
+Requirement already satisfied: certifi in ./.venv/lib/python3.12/site-packages (from httpx<1,>=0.23.0->huggingface_hub->timm) (2026.2.25)
+Requirement already satisfied: httpcore==1.* in ./.venv/lib/python3.12/site-packages (from httpx<1,>=0.23.0->huggingface_hub->timm) (1.0.9)
+Requirement already satisfied: idna in ./.venv/lib/python3.12/site-packages (from httpx<1,>=0.23.0->huggingface_hub->timm) (3.11)
+Requirement already satisfied: h11>=0.16 in ./.venv/lib/python3.12/site-packages (from httpcore==1.*->httpx<1,>=0.23.0->huggingface_hub->timm) (0.16.0)
+Requirement already satisfied: MarkupSafe>=2.0 in ./.venv/lib/python3.12/site-packages (from jinja2->torch==2.11.0->torchvision) (3.0.3)
+Requirement already satisfied: click>=8.2.1 in ./.venv/lib/python3.12/site-packages (from typer->huggingface_hub->timm) (8.3.2)
+Requirement already satisfied: shellingham>=1.3.0 in ./.venv/lib/python3.12/site-packages (from typer->huggingface_hub->timm) (1.5.4)
+Requirement already satisfied: rich>=12.3.0 in ./.venv/lib/python3.12/site-packages (from typer->huggingface_hub->timm) (15.0.0)
+Requirement already satisfied: annotated-doc>=0.0.2 in ./.venv/lib/python3.12/site-packages (from typer->huggingface_hub->timm) (0.0.4)
+Requirement already satisfied: markdown-it-py>=2.2.0 in ./.venv/lib/python3.12/site-packages (from rich>=12.3.0->typer->huggingface_hub->timm) (4.0.0)
+Requirement already satisfied: pygments<3.0.0,>=2.13.0 in ./.venv/lib/python3.12/site-packages (from rich>=12.3.0->typer->huggingface_hub->timm) (2.20.0)
+Requirement already satisfied: mdurl~=0.1 in ./.venv/lib/python3.12/site-packages (from markdown-it-py>=2.2.0->rich>=12.3.0->typer->huggingface_hub->timm) (0.1.2)
+Using cached torchvision-0.26.0-cp312-cp312-manylinux_2_28_aarch64.whl (7.8 MB)
+Using cached timm-1.0.26-py3-none-any.whl (2.6 MB)
+Installing collected packages: torchvision, timm
+
+Successfully installed timm-1.0.26 torchvision-0.26.0
+[3/3] CUDA 동작 검증
+torch=2.11.0+cu130
+torchvision=0.26.0+cu130
+timm=1.0.26
+cuda_available=True
+cuda_device_count=1
+cuda_device_name=NVIDIA GB10
+
+DGX Spark 설치가 완료되었습니다.
+실행 명령:
+  npm run dev:dgx-spark
+
+> easydocstation@1.0.0 dev:dgx-spark
+> bash scripts/dev-dgx-spark.sh
+
+[DGX] GPU 상태
+NVIDIA GB10, 0 %, [N/A], [N/A]
+
+> easydocstation@1.0.0 dev
+> concurrently -p "[{name}]" -n "Ollama,FE,BE" -c "cyan,magenta,green" "npm run ollama:serve" "npm run dev:frontend" "npm run dev:backend"
+
+[Ollama] 
+[Ollama] > easydocstation@1.0.0 ollama:serve
+[Ollama] > node scripts/ollama-serve-safe.mjs
+[Ollama] 
+[BE] 
+[BE] > easydocstation@1.0.0 dev:backend
+[BE] > PYTHON_BIN=${PYTHON_BIN:-python3} npm run dev --prefix server
+[BE] 
+[FE] 
+[FE] > easydocstation@1.0.0 dev:frontend
+[FE] > vite
+[FE] 
+[Ollama] [Ollama] already running on 127.0.0.1:11434, skipping duplicate serve.
+[Ollama] npm run ollama:serve exited with code 0
+[FE] You are using Node.js 18.19.1. Vite requires Node.js version 20.19+ or 22.12+. Please upgrade your Node.js version.
+[FE] file:///home/freegear/EasyDocStation/node_modules/vite/dist/node/cli.js:542
+[FE] 				this.dispatchEvent(new CustomEvent("command:!", { detail: command }));
+[FE] 				                       ^
+[FE] 
+[FE] ReferenceError: CustomEvent is not defined
+[FE]     at CAC.parse (file:///home/freegear/EasyDocStation/node_modules/vite/dist/node/cli.js:542:28)
+[FE]     at file:///home/freegear/EasyDocStation/node_modules/vite/dist/node/cli.js:835:5
+[FE]     at ModuleJob.run (node:internal/modules/esm/module_job:195:25)
+[FE]     at async ModuleLoader.import (node:internal/modules/esm/loader:336:24)
+[FE] 
+[FE] Node.js v18.19.1
+[FE] npm run dev:frontend exited with code 1
+[BE] 
+[BE] > easydocstation-server@1.0.0 dev
+[BE] > nodemon index.js
+[BE] 
+[BE] [33m[nodemon] 3.1.14[39m
+[BE] [33m[nodemon] to restart at any time, enter `rs`[39m
+[BE] [33m[nodemon] watching path(s): *.*[39m
+[BE] [33m[nodemon] watching extensions: js,mjs,cjs,json[39m
+[BE] [32m[nodemon] starting `node index.js`[39m
+[BE] /home/freegear/EasyDocStation/server/routes/files.js:6
+[BE] const { v4: uuidv4 } = require('uuid')
+[BE]                        ^
+[BE] 
+[BE] Error [ERR_REQUIRE_ESM]: require() of ES Module /home/freegear/EasyDocStation/server/node_modules/uuid/dist-node/index.js from /home/freegear/EasyDocStation/server/routes/files.js not supported.
+[BE] Instead change the require of index.js in /home/freegear/EasyDocStation/server/routes/files.js to a dynamic import() which is available in all CommonJS modules.
+[BE]     at Object.<anonymous> (/home/freegear/EasyDocStation/server/routes/files.js:6:24)
+[BE]     at Object.<anonymous> (/home/freegear/EasyDocStation/server/index.js:10:21) {
+[BE]   code: 'ERR_REQUIRE_ESM'
+[BE] }
+[BE] 
+[BE] Node.js v18.19.1
+[BE] [31m[nodemon] app crashed - waiting for file changes before starting...[39m
+sudo: 비밀번호를 읽을 수 없습니다: 입력/출력 오류
+sudo: 암호가 필요합니다
+sudo: 비밀번호를 읽을 수 없습니다: 입력/출력 오류
+sudo: 암호가 필요합니다
+sudo: 비밀번호를 읽을 수 없습니다: 입력/출력 오류
+sudo: 암호가 필요합니다
+sudo: 비밀번호를 읽을 수 없습니다: 입력/출력 오류
+sudo: 암호가 필요합니다
+sudo: 비밀번호를 읽을 수 없습니다: 입력/출력 오류
+sudo: 암호가 필요합니다
+
+> easydocstation@1.0.0 dev:dgx-spark
+> bash scripts/dev-dgx-spark.sh
+
+[DGX] GPU 상태
+NVIDIA GB10, 0 %, [N/A], [N/A]
+
+> easydocstation@1.0.0 dev
+> concurrently -p "[{name}]" -n "Ollama,FE,BE" -c "cyan,magenta,green" "npm run ollama:serve" "npm run dev:frontend" "npm run dev:backend"
+
+[FE] 
+[FE] > easydocstation@1.0.0 dev:frontend
+[FE] > vite
+[FE] 
+[Ollama] 
+[Ollama] > easydocstation@1.0.0 ollama:serve
+[Ollama] > node scripts/ollama-serve-safe.mjs
+[Ollama] 
+[BE] 
+[BE] > easydocstation@1.0.0 dev:backend
+[BE] > PYTHON_BIN=${PYTHON_BIN:-python3} npm run dev --prefix server
+[BE] 
+[Ollama] [Ollama] already running on 127.0.0.1:11434, skipping duplicate serve.
+[FE] You are using Node.js 18.19.1. Vite requires Node.js version 20.19+ or 22.12+. Please upgrade your Node.js version.
+[FE] file:///home/freegear/EasyDocStation/node_modules/vite/dist/node/cli.js:542
+[FE] 				this.dispatchEvent(new CustomEvent("command:!", { detail: command }));
+[FE] 				                       ^
+[FE] 
+[FE] ReferenceError: CustomEvent is not defined
+[FE]     at CAC.parse (file:///home/freegear/EasyDocStation/node_modules/vite/dist/node/cli.js:542:28)
+[FE]     at file:///home/freegear/EasyDocStation/node_modules/vite/dist/node/cli.js:835:5
+[FE]     at ModuleJob.run (node:internal/modules/esm/module_job:195:25)
+[FE]     at async ModuleLoader.import (node:internal/modules/esm/loader:336:24)
+[FE] 
+[FE] Node.js v18.19.1
+[Ollama] npm run ollama:serve exited with code 0
+[FE] npm run dev:frontend exited with code 1
+[BE] 
+[BE] > easydocstation-server@1.0.0 dev
+[BE] > nodemon index.js
+[BE] 
+[BE] [33m[nodemon] 3.1.14[39m
+[BE] [33m[nodemon] to restart at any time, enter `rs`[39m
+[BE] [33m[nodemon] watching path(s): *.*[39m
+[BE] [33m[nodemon] watching extensions: js,mjs,cjs,json[39m
+[BE] [32m[nodemon] starting `node index.js`[39m
+[BE] /home/freegear/EasyDocStation/server/routes/files.js:6
+[BE] const { v4: uuidv4 } = require('uuid')
+[BE]                        ^
+[BE] 
+[BE] Error [ERR_REQUIRE_ESM]: require() of ES Module /home/freegear/EasyDocStation/server/node_modules/uuid/dist-node/index.js from /home/freegear/EasyDocStation/server/routes/files.js not supported.
+[BE] Instead change the require of index.js in /home/freegear/EasyDocStation/server/routes/files.js to a dynamic import() which is available in all CommonJS modules.
+[BE]     at Object.<anonymous> (/home/freegear/EasyDocStation/server/routes/files.js:6:24)
+[BE]     at Object.<anonymous> (/home/freegear/EasyDocStation/server/index.js:10:21) {
+[BE]   code: 'ERR_REQUIRE_ESM'
+[BE] }
+[BE] 
+[BE] Node.js v18.19.1
+[BE] [31m[nodemon] app crashed - waiting for file changes before starting...[39m
+[BE] [32m[nodemon] restarting due to changes...[39m
+[BE] [32m[nodemon] starting `node index.js`[39m
+[BE] [32m[nodemon] restarting due to changes...[39m
+[BE] [32m[nodemon] starting `node index.js`[39m
+[BE] /home/freegear/EasyDocStation/server/routes/files.js:6
+[BE] const { v4: uuidv4 } = require('uuid')
+[BE]                        ^
+[BE] 
+[BE] Error [ERR_REQUIRE_ESM]: require() of ES Module /home/freegear/EasyDocStation/server/node_modules/uuid/dist-node/index.js from /home/freegear/EasyDocStation/server/routes/files.js not supported.
+[BE] Instead change the require of index.js in /home/freegear/EasyDocStation/server/routes/files.js to a dynamic import() which is available in all CommonJS modules.
+[BE]     at Object.<anonymous> (/home/freegear/EasyDocStation/server/routes/files.js:6:24)
+[BE]     at Object.<anonymous> (/home/freegear/EasyDocStation/server/index.js:10:21) {
+[BE]   code: 'ERR_REQUIRE_ESM'
+[BE] }
+[BE] 
+[BE] Node.js v18.19.1
+[BE] [31m[nodemon] app crashed - waiting for file changes before starting...[39m
+[BE] /home/freegear/EasyDocStation/server/routes/files.js:6
+[BE] const { v4: uuidv4 } = require('uuid')
+[BE]                        ^
+[BE] 
+[BE] Error [ERR_REQUIRE_ESM]: require() of ES Module /home/freegear/EasyDocStation/server/node_modules/uuid/dist-node/index.js from /home/freegear/EasyDocStation/server/routes/files.js not supported.
+[BE] Instead change the require of index.js in /home/freegear/EasyDocStation/server/routes/files.js to a dynamic import() which is available in all CommonJS modules.
+[BE]     at Object.<anonymous> (/home/freegear/EasyDocStation/server/routes/files.js:6:24)
+[BE]     at Object.<anonymous> (/home/freegear/EasyDocStation/server/index.js:10:21) {
+[BE]   code: 'ERR_REQUIRE_ESM'
+[BE] }
+[BE] 
+[BE] Node.js v18.19.1
+[BE] [31m[nodemon] app crashed - waiting for file changes before starting...[39m
+npm error Missing script: "dev:dgx-spar"
+npm error
+npm error Did you mean this?
+npm error   npm run dev:dgx-spark # run the "dev:dgx-spark" package script
+npm error
+npm error To see a list of scripts, run:
+npm error   npm run
+npm error A complete log of this run can be found in: /home/freegear/.npm/_logs/2026-04-20T02_49_28_414Z-debug-0.log
+[BE] [32m[nodemon] restarting due to changes...[39m
+[BE] [32m[nodemon] starting `node index.js`[39m
+[BE] [32m[nodemon] restarting due to changes...[39m
+[BE] [32m[nodemon] starting `node index.js`[39m
+[BE] /home/freegear/EasyDocStation/server/routes/files.js:6
+[BE] const { v4: uuidv4 } = require('uuid')
+[BE]                        ^
+[BE] 
+[BE] Error [ERR_REQUIRE_ESM]: require() of ES Module /home/freegear/EasyDocStation/server/node_modules/uuid/dist-node/index.js from /home/freegear/EasyDocStation/server/routes/files.js not supported.
+[BE] Instead change the require of index.js in /home/freegear/EasyDocStation/server/routes/files.js to a dynamic import() which is available in all CommonJS modules.
+[BE]     at Object.<anonymous> (/home/freegear/EasyDocStation/server/routes/files.js:6:24)
+[BE]     at Object.<anonymous> (/home/freegear/EasyDocStation/server/index.js:10:21) {
+[BE]   code: 'ERR_REQUIRE_ESM'
+[BE] }
+[BE] 
+[BE] Node.js v18.19.1
+[BE] /home/freegear/EasyDocStation/server/routes/files.js:6
+[BE] const { v4: uuidv4 } = require('uuid')
+[BE]                        ^
+[BE] 
+[BE] Error [ERR_REQUIRE_ESM]: require() of ES Module /home/freegear/EasyDocStation/server/node_modules/uuid/dist-node/index.js from /home/freegear/EasyDocStation/server/routes/files.js not supported.
+[BE] Instead change the require of index.js in /home/freegear/EasyDocStation/server/routes/files.js to a dynamic import() which is available in all CommonJS modules.
+[BE]     at Object.<anonymous> (/home/freegear/EasyDocStation/server/routes/files.js:6:24)
+[BE]     at Object.<anonymous> (/home/freegear/EasyDocStation/server/index.js:10:21) {
+[BE]   code: 'ERR_REQUIRE_ESM'
+[BE] }
+[BE] 
+[BE] Node.js v18.19.1
+[BE] [31m[nodemon] app crashed - waiting for file changes before starting...[39m
+[BE] [31m[nodemon] app crashed - waiting for file changes before starting...[39m
+[BE] [32m[nodemon] restarting due to changes...[39m
+[BE] [32m[nodemon] starting `node index.js`[39m
+[BE] [32m[nodemon] restarting due to changes...[39m
+[BE] [32m[nodemon] starting `node index.js`[39m
+[BE] /home/freegear/EasyDocStation/server/routes/files.js:6
+[BE] const { v4: uuidv4 } = require('uuid')
+[BE]                        ^
+[BE] 
+[BE] Error [ERR_REQUIRE_ESM]: require() of ES Module /home/freegear/EasyDocStation/server/node_modules/uuid/dist-node/index.js from /home/freegear/EasyDocStation/server/routes/files.js not supported.
+[BE] Instead change the require of index.js in /home/freegear/EasyDocStation/server/routes/files.js to a dynamic import() which is available in all CommonJS modules.
+[BE]     at Object.<anonymous> (/home/freegear/EasyDocStation/server/routes/files.js:6:24)
+[BE]     at Object.<anonymous> (/home/freegear/EasyDocStation/server/index.js:10:21) {
+[BE]   code: 'ERR_REQUIRE_ESM'
+[BE] }
+[BE] 
+[BE] Node.js v18.19.1
+[BE] /home/freegear/EasyDocStation/server/routes/files.js:6
+[BE] const { v4: uuidv4 } = require('uuid')
+[BE]                        ^
+[BE] 
+[BE] Error [ERR_REQUIRE_ESM]: require() of ES Module /home/freegear/EasyDocStation/server/node_modules/uuid/dist-node/index.js from /home/freegear/EasyDocStation/server/routes/files.js not supported.
+[BE] Instead change the require of index.js in /home/freegear/EasyDocStation/server/routes/files.js to a dynamic import() which is available in all CommonJS modules.
+[BE]     at Object.<anonymous> (/home/freegear/EasyDocStation/server/routes/files.js:6:24)
+[BE]     at Object.<anonymous> (/home/freegear/EasyDocStation/server/index.js:10:21) {
+[BE]   code: 'ERR_REQUIRE_ESM'
+[BE] }
+[BE] 
+[BE] Node.js v18.19.1
+[BE] [31m[nodemon] app crashed - waiting for file changes before starting...[39m
+[BE] [31m[nodemon] app crashed - waiting for file changes before starting...[39m
+[BE] [32m[nodemon] restarting due to changes...[39m
+[BE] [32m[nodemon] starting `node index.js`[39m
+[BE] [32m[nodemon] restarting due to changes...[39m
+[BE] [32m[nodemon] starting `node index.js`[39m
+[BE] [32m[nodemon] restarting due to changes...[39m
+[BE] [32m[nodemon] restarting due to changes...[39m
+[BE] [32m[nodemon] starting `node index.js`[39m
+[BE] [32m[nodemon] starting `node index.js`[39m
+[BE] /home/freegear/EasyDocStation/server/routes/files.js:6
+[BE] const { v4: uuidv4 } = require('uuid')
+[BE]                        ^
+[BE] 
+[BE] Error [ERR_REQUIRE_ESM]: require() of ES Module /home/freegear/EasyDocStation/server/node_modules/uuid/dist-node/index.js from /home/freegear/EasyDocStation/server/routes/files.js not supported.
+[BE] Instead change the require of index.js in /home/freegear/EasyDocStation/server/routes/files.js to a dynamic import() which is available in all CommonJS modules.
+[BE]     at Object.<anonymous> (/home/freegear/EasyDocStation/server/routes/files.js:6:24)
+[BE]     at Object.<anonymous> (/home/freegear/EasyDocStation/server/index.js:10:21) {
+[BE]   code: 'ERR_REQUIRE_ESM'
+[BE] }
+[BE] 
+[BE] Node.js v18.19.1
+[BE] [31m[nodemon] app crashed - waiting for file changes before starting...[39m
+[BE] /home/freegear/EasyDocStation/server/routes/files.js:6
+[BE] const { v4: uuidv4 } = require('uuid')
+[BE]                        ^
+[BE] 
+[BE] Error [ERR_REQUIRE_ESM]: require() of ES Module /home/freegear/EasyDocStation/server/node_modules/uuid/dist-node/index.js from /home/freegear/EasyDocStation/server/routes/files.js not supported.
+[BE] Instead change the require of index.js in /home/freegear/EasyDocStation/server/routes/files.js to a dynamic import() which is available in all CommonJS modules.
+[BE]     at Object.<anonymous> (/home/freegear/EasyDocStation/server/routes/files.js:6:24)
+[BE]     at Object.<anonymous> (/home/freegear/EasyDocStation/server/index.js:10:21) {
+[BE]   code: 'ERR_REQUIRE_ESM'
+[BE] }
+[BE] 
+[BE] Node.js v18.19.1
+[BE] [31m[nodemon] app crashed - waiting for file changes before starting...[39m
+Killed
+Killed
