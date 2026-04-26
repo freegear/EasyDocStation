@@ -496,6 +496,11 @@ export default function MDPageViewer({ post, channelId, onClose }) {
       file: f,
     }))
     setCommentFiles((prev) => [...prev, ...mapped])
+    // 백엔드에서 content 필수 검증이 있으므로,
+    // 파일만 첨부하는 경우 첫 파일명을 기본 본문으로 채워 등록 가능하게 한다.
+    if (!String(commentText || '').trim() && mapped.length > 0) {
+      setCommentText(mapped[0].name)
+    }
   }
 
   function removeCommentFile(id) {
@@ -533,6 +538,8 @@ export default function MDPageViewer({ post, channelId, onClose }) {
     const text = String(commentText || '').trim()
     if (!text && commentFiles.length === 0) return
     if (!currentUser) return
+    const fallbackText = (commentFiles[0]?.name || '').trim()
+    const contentToSend = text || fallbackText || '첨부파일'
 
     setCommentSubmitting(true)
     try {
@@ -560,7 +567,7 @@ export default function MDPageViewer({ post, channelId, onClose }) {
       await addComment(
         channelId,
         post.id,
-        text,
+        contentToSend,
         currentUser,
         attachmentIds,
         Math.min(Number(currentUser?.security_level ?? 0), 1),
