@@ -216,3 +216,45 @@
 .table-toolbar button:hover {
   background: #f9fafb;
 }
+
+.tiptap-editor .ProseMirror .md-toc-node {
+  border: 1px solid #dbeafe;
+  background: #eff6ff;
+  border-radius: 0.75rem;
+  padding: 0.75rem;
+  margin: 0.75rem 0;
+}
+
+.tiptap-editor .ProseMirror .md-toc-node-title {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #1d4ed8;
+  margin-bottom: 0.5rem;
+}
+
+.tiptap-editor .ProseMirror .md-toc-node-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.tiptap-editor .ProseMirror .md-toc-node-item {
+  border: none;
+  background: transparent;
+  text-align: left;
+  color: #1f2937;
+  font-size: 0.83rem;
+  line-height: 1.35;
+  padding: 0.2rem 0;
+  cursor: pointer;
+}
+
+.tiptap-editor .ProseMirror .md-toc-node-item:hover {
+  color: #1d4ed8;
+  text-decoration: underline;
+}
+
+.tiptap-editor .ProseMirror .md-toc-node-empty {
+  color: #6b7280;
+  font-size: 0.78rem;
+}
