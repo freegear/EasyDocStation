@@ -316,12 +316,16 @@ function buildContainerStyleWithWidth(existingStyle = '', width = null) {
   return `width: ${widthValue}; ${styleText}`
 }
 
+function normalizeStyleStr(s) {
+  return String(s || '').trim().replace(/;\s*$/, '')
+}
+
 function hasSizingMeta(meta = {}) {
   if (!meta || typeof meta !== 'object') return false
-  const containerStyle = String(meta.containerStyle || '').trim()
-  const wrapperStyle = String(meta.wrapperStyle || '').trim()
-  const hasCustomContainerStyle = Boolean(containerStyle) && containerStyle !== DEFAULT_IMAGE_CONTAINER_STYLE
-  const hasCustomWrapperStyle = Boolean(wrapperStyle) && wrapperStyle !== DEFAULT_IMAGE_WRAPPER_STYLE
+  const containerStyle = normalizeStyleStr(meta.containerStyle)
+  const wrapperStyle = normalizeStyleStr(meta.wrapperStyle)
+  const hasCustomContainerStyle = Boolean(containerStyle) && containerStyle !== normalizeStyleStr(DEFAULT_IMAGE_CONTAINER_STYLE)
+  const hasCustomWrapperStyle = Boolean(wrapperStyle) && wrapperStyle !== normalizeStyleStr(DEFAULT_IMAGE_WRAPPER_STYLE)
   return (
     meta.width != null
     || hasCustomContainerStyle
@@ -363,8 +367,8 @@ function sameImageMeta(a = {}, b = {}) {
     const av = a[aKeys[i]] || {}
     const bv = b[bKeys[i]] || {}
     if ((av.width ?? null) !== (bv.width ?? null)) return false
-    if ((av.containerStyle ?? null) !== (bv.containerStyle ?? null)) return false
-    if ((av.wrapperStyle ?? null) !== (bv.wrapperStyle ?? null)) return false
+    if (normalizeStyleStr(av.containerStyle) !== normalizeStyleStr(bv.containerStyle)) return false
+    if (normalizeStyleStr(av.wrapperStyle) !== normalizeStyleStr(bv.wrapperStyle)) return false
   }
   return true
 }
@@ -843,6 +847,35 @@ export default function MDPageViewer({ post, channelId, onClose }) {
     }
   }, [editor])
 
+  // setContent 직후 이미지 크기를 즉시 재적용 — onUpdate 콜백이 imageMeta를 덮어쓰기 전에 실행됨
+  function applyImageMetaToEditor(ed, meta) {
+    if (!ed || !meta || Object.keys(meta).length === 0) return
+    const tr = ed.state.tr
+    let changed = false
+    ed.state.doc.descendants((node, pos) => {
+      if (node.type.name !== 'image') return
+      const src = String(node.attrs?.src || '').trim()
+      const normalizedSrc = normalizeFileViewUrlKey(stripAuthTokenFromFileViewUrl(src))
+      const m = meta[normalizedSrc] || meta[normalizeFileViewUrlKey(src)] || meta[stripAuthTokenFromFileViewUrl(src)] || meta[src]
+      if (!src || !m) return
+      const metaWidth = m.width ?? extractPixelWidthFromStyle(m.containerStyle || '') ?? null
+      const nextContainerStyle = m.containerStyle
+        ? buildContainerStyleWithWidth(m.containerStyle, metaWidth)
+        : buildContainerStyleWithWidth('', metaWidth)
+      const nextAttrs = {
+        ...node.attrs,
+        ...(metaWidth != null ? { width: metaWidth } : {}),
+        ...(nextContainerStyle ? { containerStyle: nextContainerStyle } : {}),
+        ...(m.wrapperStyle ? { wrapperStyle: m.wrapperStyle } : {}),
+      }
+      if (JSON.stringify(nextAttrs) !== JSON.stringify(node.attrs)) {
+        tr.setNodeMarkup(pos, undefined, nextAttrs)
+        changed = true
+      }
+    })
+    if (changed) ed.view.dispatch(tr)
+  }
+
   // 소스 → 미리보기 전환: 소스 텍스트를 에디터에 반영
   function switchToPreview() {
     if (mode === 'source' && editor) {
@@ -854,6 +887,7 @@ export default function MDPageViewer({ post, channelId, onClose }) {
       if (sanitizedSource !== baseline) {
         const withToken = injectAuthTokenIntoMarkdown(sanitizedSource, getToken() || '')
         editor.commands.setContent(withToken)
+        applyImageMetaToEditor(editor, imageMetaRef.current)
       }
       setIsChanged(sourceText !== savedContent || !sameImageMeta(imageMeta, savedImageMeta))
     }
