@@ -409,7 +409,7 @@ export default function MDPageViewer({ post, channelId, onClose }) {
   const sourceBaselineRef = useRef('')
   const [isPrinting, setIsPrinting] = useState(false)
   const [showComments, setShowComments] = useState(false)
-  const [commentPaneHeight, setCommentPaneHeight] = useState(220)
+  const [commentPaneWidth, setCommentPaneWidth] = useState(420)
   const [isResizingCommentPane, setIsResizingCommentPane] = useState(false)
   const [commentText, setCommentText] = useState('')
   const [commentFiles, setCommentFiles] = useState([])
@@ -418,7 +418,7 @@ export default function MDPageViewer({ post, channelId, onClose }) {
   const [pendingDeleteCommentId, setPendingDeleteCommentId] = useState(null)
   const [previewConfig, setPreviewConfig] = useState(DEFAULT_PREVIEW_CONFIG)
   const splitAreaRef = useRef(null)
-  const resizeStartRef = useRef({ y: 0, height: 220 })
+  const resizeStartRef = useRef({ x: 0, width: 420 })
   const commentFileInputRef = useRef(null)
 
   useEffect(() => { showSaveDialogRef.current = showSaveDialog }, [showSaveDialog])
@@ -450,13 +450,13 @@ export default function MDPageViewer({ post, channelId, onClose }) {
       if (!(area instanceof HTMLElement)) return
 
       const bounds = area.getBoundingClientRect()
-      const delta = e.clientY - resizeStartRef.current.y
-      const desired = resizeStartRef.current.height - delta
-      const minComment = 120
-      const minEditor = 200
-      const maxComment = Math.max(minComment, bounds.height - minEditor - 8)
-      const nextHeight = Math.max(minComment, Math.min(maxComment, desired))
-      setCommentPaneHeight(nextHeight)
+      const delta = e.clientX - resizeStartRef.current.x
+      const desired = resizeStartRef.current.width - delta
+      const minComment = 280
+      const minEditor = 360
+      const maxComment = Math.max(minComment, bounds.width - minEditor - 8)
+      const nextWidth = Math.max(minComment, Math.min(maxComment, desired))
+      setCommentPaneWidth(nextWidth)
     }
 
     const onMouseUp = () => {
@@ -482,10 +482,10 @@ export default function MDPageViewer({ post, channelId, onClose }) {
   function handleCommentSplitterMouseDown(e) {
     if (!showComments) return
     e.preventDefault()
-    resizeStartRef.current = { y: e.clientY, height: commentPaneHeight }
+    resizeStartRef.current = { x: e.clientX, width: commentPaneWidth }
     setIsResizingCommentPane(true)
     document.body.style.userSelect = 'none'
-    document.body.style.cursor = 'row-resize'
+    document.body.style.cursor = 'col-resize'
   }
 
   function dataTransferHasFiles(dataTransfer) {
@@ -1245,11 +1245,11 @@ export default function MDPageViewer({ post, channelId, onClose }) {
         />
       )}
 
-      <div ref={splitAreaRef} className="flex-1 min-h-0 flex flex-col">
+      <div ref={splitAreaRef} className={`flex-1 min-h-0 flex ${showComments ? 'flex-row' : 'flex-col'}`}>
         {/* ── Content area ── */}
         <div
           ref={printContentRef}
-          className={`easy-page-print-root flex-1 overflow-auto min-h-0 ${isDragOver ? 'bg-indigo-50/50' : ''}`}
+          className={`easy-page-print-root flex-1 min-w-0 overflow-auto min-h-0 ${isDragOver ? 'bg-indigo-50/50' : ''}`}
           onDragOver={(e) => {
             if (!canEdit || mode !== 'preview') return
             if ((e.dataTransfer?.files?.length || 0) > 0) {
@@ -1295,17 +1295,17 @@ export default function MDPageViewer({ post, channelId, onClose }) {
           <>
             <div
               role="separator"
-              aria-orientation="horizontal"
+              aria-orientation="vertical"
               title="드래그해서 댓글 영역 크기 조절"
               onMouseDown={handleCommentSplitterMouseDown}
-              className={`h-2 flex-shrink-0 cursor-row-resize border-y border-gray-200 transition-colors ${isResizingCommentPane ? 'bg-indigo-200' : 'bg-gray-100 hover:bg-indigo-100'}`}
+              className={`w-2 h-full flex-shrink-0 cursor-col-resize border-x border-gray-200 transition-colors ${isResizingCommentPane ? 'bg-indigo-200' : 'bg-gray-100 hover:bg-indigo-100'}`}
             >
-              <div className="m-auto w-12 h-0.5 rounded-full bg-gray-400" />
+              <div className="m-auto h-12 w-0.5 rounded-full bg-gray-400" />
             </div>
 
             <div
-              className="border-t border-gray-200 bg-gray-50/70 px-6 py-4 overflow-auto flex-shrink-0"
-              style={{ height: `${commentPaneHeight}px` }}
+              className="border-l border-gray-200 bg-gray-50/70 px-6 py-4 overflow-auto flex-shrink-0 h-full"
+              style={{ width: `${commentPaneWidth}px` }}
             >
               {comments.length === 0 ? (
                 <p className="text-sm text-gray-500">등록된 댓글이 없습니다.</p>
