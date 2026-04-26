@@ -30,6 +30,17 @@ const FILE_VIEW_URL_PATTERN = /(https?:\/\/[^\s)"']+\/api\/files\/view\/[A-Za-z0
 const TOC_NODE_NAME = 'tocNode'
 const DEFAULT_IMAGE_CONTAINER_STYLE = 'width: 100%; height: auto; cursor: pointer;'
 const DEFAULT_IMAGE_WRAPPER_STYLE = 'display: flex;'
+const DEFAULT_PREVIEW_CONFIG = {
+  imagePreview: { width: 512, height: 512 },
+  pdfPreview: { width: 480, height: 270 },
+  txtPreview: { width: 270, height: 480 },
+  pptPreview: { width: 480, height: 270 },
+  pptxPreview: { width: 480, height: 270 },
+  excelPreview: { width: 480, height: 270 },
+  wordPreview: { width: 270, height: 480 },
+  moviePreview: { width: 480, height: 270 },
+  htmlPreview: { width: 480, height: 270 },
+}
 
 function collectHeadingItems(doc, limit = 10) {
   const items = []
@@ -367,7 +378,7 @@ function normalizeHexColor(raw, fallback = '#111827') {
 }
 
 export default function MDPageViewer({ post, channelId, onClose }) {
-  const { updatePost, deletePost, addComment, posts } = useChat()
+  const { updatePost, deletePost, addComment, deleteComment, posts } = useChat()
   const { currentUser, maxAttachmentFileSize } = useAuth()
   const t = useT()
   const authToken = getToken() || ''
@@ -404,6 +415,8 @@ export default function MDPageViewer({ post, channelId, onClose }) {
   const [commentFiles, setCommentFiles] = useState([])
   const [commentDragOver, setCommentDragOver] = useState(false)
   const [commentSubmitting, setCommentSubmitting] = useState(false)
+  const [pendingDeleteCommentId, setPendingDeleteCommentId] = useState(null)
+  const [previewConfig, setPreviewConfig] = useState(DEFAULT_PREVIEW_CONFIG)
   const splitAreaRef = useRef(null)
   const resizeStartRef = useRef({ y: 0, height: 220 })
   const commentFileInputRef = useRef(null)
@@ -416,6 +429,17 @@ export default function MDPageViewer({ post, channelId, onClose }) {
   const canEdit = String(post.author?.id ?? '') === String(currentUser?.id ?? '')
   const freshPost = posts[channelId]?.find((p) => p.id === post.id) || post
   const comments = Array.isArray(freshPost.comments) ? freshPost.comments : []
+
+  useEffect(() => {
+    let cancelled = false
+    apiFetch('/config/display')
+      .then((data) => {
+        if (cancelled || !data || typeof data !== 'object') return
+        setPreviewConfig((prev) => ({ ...prev, ...data }))
+      })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [])
 
   useEffect(() => {
     if (!showComments) return undefined
@@ -573,6 +597,18 @@ export default function MDPageViewer({ post, channelId, onClose }) {
     } finally {
       setCommentSubmitting(false)
       setCommentDragOver(false)
+    }
+  }
+
+  async function handleDeleteComment() {
+    const targetId = pendingDeleteCommentId
+    if (!targetId) return
+    try {
+      await deleteComment(channelId, post.id, targetId)
+      setPendingDeleteCommentId(null)
+    } catch (err) {
+      console.error('MD 댓글 삭제 실패:', err)
+      alert(`댓글 삭제에 실패했습니다: ${err.message || err}`)
     }
   }
 
@@ -1147,7 +1183,7 @@ export default function MDPageViewer({ post, channelId, onClose }) {
             onClick={() => setShowComments(prev => !prev)}
             className={`px-3 py-1.5 border-l border-gray-200 transition-colors ${showComments ? 'bg-indigo-600 text-white' : 'text-gray-500 hover:bg-gray-50'}`}
           >
-            댓글보기
+            댓글보기 ({comments.length})
           </button>
         </div>
 
@@ -1280,28 +1316,37 @@ export default function MDPageViewer({ post, channelId, onClose }) {
                     const createdAt = comment?.createdAt
                       ? new Date(comment.createdAt).toLocaleString()
                       : ''
+                    const canDeleteComment =
+                      String(comment?.author?.id ?? '') === String(currentUser?.id ?? '')
+                      || currentUser?.role === 'site_admin'
                     return (
-                      <div key={comment.id} className="flex">
-                        <div className="max-w-[92%] rounded-2xl bg-blue-50 border border-blue-100 shadow-sm px-4 py-2.5">
+                      <div key={comment.id} className="flex flex-col">
+                        <div className="w-full rounded-2xl bg-blue-50 border border-blue-100 shadow-sm px-4 py-2.5">
                           <div className="flex items-center gap-2 text-xs text-gray-500 mb-1">
                             <span className="font-semibold text-gray-700">{authorName}</span>
                             {createdAt && <span>{createdAt}</span>}
+                            {canDeleteComment && (
+                              <button
+                                type="button"
+                                onClick={() => setPendingDeleteCommentId(comment.id)}
+                                className="ml-auto px-2 py-0.5 rounded-md border border-red-200 text-red-500 hover:bg-red-50 text-[11px]"
+                              >
+                                삭제
+                              </button>
+                            )}
                           </div>
                           <div className="text-sm text-gray-800 whitespace-pre-wrap break-words">
                             {comment?.content || ''}
                           </div>
                           {Array.isArray(comment?.attachments) && comment.attachments.length > 0 && (
-                            <div className="mt-2 space-y-1">
+                            <div className="mt-3 grid grid-cols-1 gap-2">
                               {comment.attachments.map((att) => (
-                                <a
+                                <MDCommentAttachmentPreview
                                   key={att.id}
-                                  href={ensureAuthTokenInFileViewUrl(att.url, getToken() || '')}
-                                  target="_blank"
-                                  rel="noreferrer noopener"
-                                  className="block text-xs text-indigo-600 hover:text-indigo-700 underline break-all"
-                                >
-                                  {att.name || att.id}
-                                </a>
+                                  attachment={att}
+                                  resolveUrl={(url) => ensureAuthTokenInFileViewUrl(url, getToken() || '')}
+                                  previewConfig={previewConfig}
+                                />
                               ))}
                             </div>
                           )}
@@ -1422,8 +1467,79 @@ export default function MDPageViewer({ post, channelId, onClose }) {
           }}
         />
       )}
+      {pendingDeleteCommentId && (
+        <ConfirmDialog
+          title="댓글 삭제"
+          message="이 댓글을 삭제하시겠습니까?"
+          confirmText="삭제"
+          cancelText="취소"
+          danger
+          onConfirm={handleDeleteComment}
+          onCancel={() => setPendingDeleteCommentId(null)}
+        />
+      )}
     </div>
   )
+}
+
+function MDCommentAttachmentPreview({ attachment, resolveUrl, previewConfig }) {
+  const name = String(attachment?.name || attachment?.id || '첨부파일')
+  const type = String(attachment?.type || '').toLowerCase()
+  const mainUrl = resolveUrl?.(attachment?.url) || attachment?.url || ''
+  const thumbUrl = resolveUrl?.(attachment?.thumbnail_url) || attachment?.thumbnail_url || ''
+  const isImage = type.startsWith('image/')
+  const hasImagePreview = isImage || Boolean(thumbUrl)
+  const previewSrc = isImage ? mainUrl : thumbUrl
+  const dims = getCommentAttachmentPreviewSize({ name, type }, previewConfig)
+  const previewWidth = Math.max(80, Math.round((Number(dims.width) || 480) / 2))
+  const previewHeight = Math.max(60, Math.round((Number(dims.height) || 270) / 2))
+
+  return (
+    <a
+      href={mainUrl}
+      target="_blank"
+      rel="noreferrer noopener"
+      className="rounded-xl border border-blue-200 bg-white overflow-hidden hover:border-indigo-300 transition-colors"
+      title={name}
+      style={{ width: `${previewWidth}px` }}
+    >
+      {hasImagePreview ? (
+        <img
+          src={previewSrc}
+          alt={name}
+          className="w-full object-cover bg-gray-100"
+          style={{ height: `${previewHeight}px` }}
+          loading="lazy"
+        />
+      ) : (
+        <div className="w-full bg-gray-100 flex items-center justify-center text-gray-400 text-xs" style={{ height: `${previewHeight}px` }}>
+          Preview 없음
+        </div>
+      )}
+      <div className="px-2.5 py-2 text-xs text-indigo-600 underline truncate">{name}</div>
+    </a>
+  )
+}
+
+function getCommentAttachmentPreviewSize(file, cfg) {
+  const safe = cfg || DEFAULT_PREVIEW_CONFIG
+  const name = String(file?.name || '').toLowerCase()
+  const type = String(file?.type || '').toLowerCase()
+
+  if (type.startsWith('image/') || /\.(png|jpe?g|gif|webp|bmp|svg)$/i.test(name)) {
+    return safe.imagePreview || DEFAULT_PREVIEW_CONFIG.imagePreview
+  }
+  if (type === 'application/pdf' || /\.pdf$/i.test(name)) {
+    return safe.pdfPreview || DEFAULT_PREVIEW_CONFIG.pdfPreview
+  }
+  if (/\.pptx$/i.test(name)) return safe.pptxPreview || safe.pptPreview || DEFAULT_PREVIEW_CONFIG.pptxPreview
+  if (/\.ppt$/i.test(name) || type.includes('presentation')) return safe.pptPreview || DEFAULT_PREVIEW_CONFIG.pptPreview
+  if (/\.xlsx?$/i.test(name) || type.includes('excel') || type.includes('spreadsheet')) return safe.excelPreview || DEFAULT_PREVIEW_CONFIG.excelPreview
+  if (/\.docx?$/i.test(name) || type.includes('word')) return safe.wordPreview || DEFAULT_PREVIEW_CONFIG.wordPreview
+  if (/\.html?$/i.test(name) || type === 'text/html') return safe.htmlPreview || DEFAULT_PREVIEW_CONFIG.htmlPreview
+  if (type.startsWith('video/')) return safe.moviePreview || DEFAULT_PREVIEW_CONFIG.moviePreview
+  if (type.startsWith('text/') || /\.txt$/i.test(name)) return safe.txtPreview || DEFAULT_PREVIEW_CONFIG.txtPreview
+  return safe.pdfPreview || DEFAULT_PREVIEW_CONFIG.pdfPreview
 }
 
 /* ─────────────────────────────────────────
