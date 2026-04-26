@@ -106,7 +106,7 @@ export const translations = {
     mdPage: {
       title: 'MD 페이지',
       back: '게시판으로',
-      viewSource: '소스',
+      viewSource: '소스보기',
       viewPreview: 'MD보기',
       print: '인쇄',
       printing: '인쇄 준비 중...',
@@ -547,7 +547,7 @@ export const translations = {
     mdPage: {
       title: 'MD Page',
       back: 'Back',
-      viewSource: 'View Source',
+      viewSource: 'Source View',
       viewPreview: 'Preview',
       print: 'Print',
       printing: 'Preparing print...',
@@ -960,7 +960,7 @@ translations.ja = {
   mdPage: {
     title: 'MDページ',
     back: '戻る',
-    viewSource: 'MDソース表示',
+    viewSource: 'ソース表示',
     viewPreview: 'MDプレビュー',
     print: '印刷',
     printing: '印刷を準備中...',

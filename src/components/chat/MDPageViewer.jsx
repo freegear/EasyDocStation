@@ -346,7 +346,7 @@ function isEditableImageWrapperElement(el) {
 }
 
 export default function MDPageViewer({ post, channelId, onClose }) {
-  const { updatePost } = useChat()
+  const { updatePost, deletePost } = useChat()
   const { currentUser } = useAuth()
   const t = useT()
   const authToken = getToken() || ''
@@ -362,7 +362,9 @@ export default function MDPageViewer({ post, channelId, onClose }) {
   const [savedImageMeta, setSavedImageMeta] = useState(() => extractImageMeta(initialMdStored))
   const [isChanged, setIsChanged] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [deleting, setDeleting] = useState(false)
   const [showSaveDialog, setShowSaveDialog] = useState(false)
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [isUploadingImage, setIsUploadingImage] = useState(false)
   const [isDragOver, setIsDragOver] = useState(false)
   const showSaveDialogRef = useRef(false)
@@ -584,6 +586,20 @@ export default function MDPageViewer({ post, channelId, onClose }) {
       setSaving(false)
     }
   }, [channelId, getCurrentMarkdown, imageMeta, post.id, updatePost])
+
+  const handleDelete = useCallback(async () => {
+    setDeleting(true)
+    try {
+      await deletePost(channelId, post.id)
+      setShowDeleteDialog(false)
+      onClose()
+    } catch (e) {
+      console.error('MD 페이지 삭제 실패:', e)
+      alert('MD 페이지 삭제에 실패했습니다.')
+    } finally {
+      setDeleting(false)
+    }
+  }, [channelId, deletePost, onClose, post.id])
 
   // ESC 키 핸들러
   useEffect(() => {
@@ -882,6 +898,16 @@ export default function MDPageViewer({ post, channelId, onClose }) {
           {t.mdPage.print || '인쇄'}
         </button>
 
+        {canEdit && (
+          <button
+            onClick={() => setShowDeleteDialog(true)}
+            disabled={deleting}
+            className="px-3 py-1.5 rounded-lg border border-red-200 text-xs text-red-600 hover:bg-red-50 transition-colors flex-shrink-0 disabled:opacity-60"
+          >
+            {deleting ? '삭제 중...' : '삭제'}
+          </button>
+        )}
+
         {isPrinting && (
           <span className="text-xs text-indigo-600 font-medium">{t.mdPage.printing || '인쇄 준비 중...'}</span>
         )}
@@ -972,6 +998,22 @@ export default function MDPageViewer({ post, channelId, onClose }) {
           onCancel={() => {
             setShowSaveDialog(false)
             onClose()
+          }}
+        />
+      )}
+
+      {showDeleteDialog && (
+        <ConfirmDialog
+          title="삭제 확인"
+          message={`${pageTitle} 페이지가 삭제 됩니다. 진행 하시겠습니까 ?`}
+          confirmText="삭제"
+          cancelText="취소"
+          danger
+          loading={deleting}
+          onConfirm={handleDelete}
+          onCancel={() => {
+            if (deleting) return
+            setShowDeleteDialog(false)
           }}
         />
       )}
