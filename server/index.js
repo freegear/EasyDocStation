@@ -174,14 +174,8 @@ const server = app.listen(PORT, () => {
 
 server.on('error', (err) => {
   if (err.code === 'EADDRINUSE') {
-    console.warn(`⚠️  포트 ${PORT} 이미 사용 중 — 기존 프로세스 종료 후 재시작...`)
-    const { execSync } = require('child_process')
-    try {
-      execSync(`lsof -ti :${PORT} | xargs kill -9`, { stdio: 'ignore' })
-    } catch (_) {}
-    setTimeout(() => {
-      server.listen(PORT)
-    }, 500)
+    console.error(`❌ 포트 ${PORT} 이미 사용 중입니다. 실행 중인 기존 프로세스를 먼저 정리하세요.`)
+    process.exit(1)
   } else {
     throw err
   }

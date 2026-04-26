@@ -81,6 +81,22 @@ if [[ ! -f "$ROOT_DIR/server/.env" ]]; then
   exit 1
 fi
 
+kill_by_port() {
+  local port="$1"
+  local pids=""
+  if command -v lsof >/dev/null 2>&1; then
+    pids="$(lsof -ti tcp:"$port" 2>/dev/null || true)"
+  elif command -v fuser >/dev/null 2>&1; then
+    pids="$(fuser -n tcp "$port" 2>/dev/null || true)"
+  fi
+  if [[ -n "${pids:-}" ]]; then
+    echo "[DGX-SPARK] 포트 ${port} 점유 프로세스 정리: ${pids//$'\n'/ }"
+    echo "$pids" | tr ' ' '\n' | xargs -r kill -TERM >/dev/null 2>&1 || true
+    sleep 1
+    echo "$pids" | tr ' ' '\n' | xargs -r kill -KILL >/dev/null 2>&1 || true
+  fi
+}
+
 if [[ -f "$PID_FILE" ]]; then
   old_pid="$(cat "$PID_FILE" 2>/dev/null || true)"
   if [[ -n "${old_pid:-}" ]] && kill -0 "$old_pid" 2>/dev/null; then
@@ -90,6 +106,9 @@ if [[ -f "$PID_FILE" ]]; then
   fi
   rm -f "$PID_FILE"
 fi
+
+kill_by_port 5173
+kill_by_port 3001
 
 echo "[DGX-SPARK] 백그라운드 실행 시작"
 echo "[DGX-SPARK] 로그: $LOG_FILE"
