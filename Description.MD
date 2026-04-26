@@ -543,7 +543,7 @@ ObjectFile Path : /Users/kevinim/Desktop/EasyDocStation/Database/ObjectFile
 로 둔다.
 
  
-# 4.4 Cassandra 
+# 4.4 Cassandra  
 
 채널의 글을 올릴 떄 글 자체는 Cassandra에 저장한다.
 저장할 때 글을 올린 사람과, 글의 시간을 같이 저장한다.
