@@ -3462,8 +3462,209 @@ const editor = useEditor({
 설치
 npx @tiptap/cli@latest add toc-node
 
-TableOfContents extension만 쓰는 경우는 heading 목록 데이터를 받아서 사이드바 등을 직접 렌더링하는 방식이라, 문서 안에 삽입하는 명령어는 없습니다.
 
+#######
+
+# 28.11 Tiptap에서 글자 색상을 변경하는 기능
+
+# 28.11.1 Tiptap에서 글자 색상을 변경하는 기능
+
+Tiptap에서 글자 색상을 변경하는 기능을 구현하려면, 공식 확장 기능인 **`@tiptap/extension-color`**와 이를 지원하는 **`@tiptap/extension-text-style`**을 함께 사용해야 합니다.
+
+또한 아래의 내용을 분석하여서 구현하되
+react-colorful
+을 이용한 컬러 픽업 기능을 구현해줘
+
+
+Tiptap은 기본적으로 JSON 기반의 구조를 가지며, 텍스트 색상을 적용하면 HTML의 `<span style="color: ...">` 형태로 변환되므로 Markdown 변환 시에도 HTML 태그로 저장됩니다.
+
+# 28.11.2 구현 단계는 다음과 같습니다.
+
+---
+
+## 28.11.2.1 필요한 패키지 설치
+
+터미널에서 아래 명령어를 실행하여 필요한 확장 기능을 설치합니다.
+
+```bash
+npm install @tiptap/extension-color @tiptap/extension-text-style
+```
+
+## 28.11.2.2. 에디터 설정 (Extensions 추가)
+
+에디터 인스턴스를 생성할 때 `TextStyle`과 `Color`를 `extensions` 배열에 추가합니다. **`TextStyle`이 반드시 `Color`보다 먼저 선언되어야 합니다.**
+
+```javascript
+import { Editor } from '@tiptap/react'
+import StarterKit from '@tiptap/starter-kit'
+import TextStyle from '@tiptap/extension-text-style'
+import Color from '@tiptap/extension-color'
+
+const editor = new Editor({
+  extensions: [
+    StarterKit,
+    TextStyle,
+    Color, // 이 순서가 중요합니다
+  ],
+})
+```
+
+## 28.11.2.3. 툴바 버튼 구현
+
+툴바에 버튼을 배치하고, 클릭 시 `editor.chain()` 명령어를 실행하도록 연결합니다. 아래는 React 예시입니다.
+
+```jsx
+const Toolbar = ({ editor }) => {
+  if (!editor) return null;
+
+  return (
+    <div className="toolbar">
+      {/* 빨간색 적용 버튼 */}
+      <button 
+        onClick={() => editor.chain().focus().setColor('#f00').run()}
+        className={editor.isActive('textStyle', { color: '#f00' }) ? 'is-active' : ''}
+      >
+        Red
+      </button>
+
+      {/* 파란색 적용 버튼 */}
+      <button 
+        onClick={() => editor.chain().focus().setColor('#00f').run()}
+        className={editor.isActive('textStyle', { color: '#00f' }) ? 'is-active' : ''}
+      >
+        Blue
+      </button>
+
+      {/* 색상 제거 버튼 */}
+      <button onClick={() => editor.chain().focus().unsetColor().run()}>
+        Unset Color
+      </button>
+    </div>
+  );
+};
+```
+
+---
+
+## 28.11.2.4 핵심 포인트
+
+* **`TextStyle`의 역할**: Tiptap에서 폰트 관련 스타일(색상, 폰트 크기 등)을 관리하기 위한 필수 기반 확장입니다.
+* **`setColor` 명령어**: 선택한 텍스트에 스타일을 적용합니다.
+* **`unsetColor` 명령어**: 적용된 색상을 제거하고 기본 상태로 되돌립니다.
+* **Markdown 호환성**: 말씀하신 MD 페이지 기반이라면, Tiptap의 `getHTML()` 결과물을 Markdown으로 변환할 때, `span` 태그를 포함하도록 변환 로직이 처리되어 있는지 확인해야 합니다. 일반적인 마크다운 파서(예: `remark`, `markdown-it`)는 HTML 태그를 인식하므로 큰 문제는 없으나, 혹시 별도의 변환기를 직접 구현하셨다면 이 점을 고려하시기 바랍니다.
+
+혹시 버튼 형태의 수동 선택 외에, 사용자가 직접 색상을 선택할 수 있는 **Color Picker(컬러 피커) UI**를 연동하는 방법이 궁금하신가요? 그렇다면 사용 중인 프레임워크(React, Vue 등)를 알려주시면 추천 라이브러리와 함께 구체적인 연결 방법을 안내해 드릴 수 있습니다.
+
+## 28.11.3 React 환경에서 Tiptap에 컬러 피커(Color Picker)를 연동
+
+React 환경에서 Tiptap에 컬러 피커(Color Picker)를 연동하는 가장 효율적인 방법은 HTML5의 기본 `<input type="color">`를 활용하는 것입니다. 별도의 복잡한 라이브러리 없이도 훌륭한 UI/UX를 제공할 수 있으며, 필요에 따라 스타일링을 추가할 수 있습니다.
+
+핵심은 **'현재 커서 위치의 색상을 감지하여 컬러 피커에 반영하는 것'**과 **'피커에서 색상을 선택했을 때 에디터에 적용하는 것'**입니다.
+
+### 28.11.3.1. 기본 구현: HTML5 Color Input 사용
+
+가장 가볍고 성능이 좋은 방법입니다. `onChange` 이벤트로 색상을 적용하고, 에디터의 상태 변화를 감지하여 현재 선택된 텍스트의 색상을 피커에 동기화합니다.
+
+```jsx
+import React, { useState, useEffect } from 'react';
+
+const ColorPicker = ({ editor }) => {
+  const [currentColor, setCurrentColor] = useState('#000000');
+
+  // 에디터의 selection(선택 영역) 변경 시 현재 색상 감지
+  useEffect(() => {
+    if (!editor) return;
+
+    const handleUpdate = () => {
+      // 현재 선택된 텍스트의 색상을 가져옴
+      const color = editor.getAttributes('textStyle').color || '#000000';
+      setCurrentColor(color);
+    };
+
+    editor.on('selectionUpdate', handleUpdate);
+    editor.on('transaction', handleUpdate);
+
+    return () => {
+      editor.off('selectionUpdate', handleUpdate);
+      editor.off('transaction', handleUpdate);
+    };
+  }, [editor]);
+
+  // 컬러 피커 변경 시 에디터에 색상 적용
+  const handleChange = (e) => {
+    const value = e.target.value;
+    setCurrentColor(value);
+    editor.chain().focus().setColor(value).run();
+  };
+
+  return (
+    <div className="color-picker-wrapper">
+      <input
+        type="color"
+        value={currentColor}
+        onChange={handleChange}
+        className="color-picker-input"
+        title="글자 색상 선택"
+      />
+    </div>
+  );
+};
+```
+
+---
+
+### 28.11.3.2. 스타일링 (CSS)
+
+기본 `<input type="color">`는 브라우저마다 모양이 다릅니다. 깔끔한 아이콘 형태로 만들려면 아래와 같이 스타일을 적용하세요.
+
+```css
+.color-picker-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+}
+
+.color-picker-input {
+  -webkit-appearance: none;
+  border: none;
+  width: 32px;
+  height: 32px;
+  cursor: pointer;
+  background: none;
+}
+
+.color-picker-input::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+
+.color-picker-input::-webkit-color-swatch {
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+```
+
+---
+
+### 28.11.3.3. 고도화된 UI가 필요할 때 (라이브러리 추천)
+
+만약 `<input type="color">`의 디자인이 마음에 들지 않고, 더 세련된 팔레트나 팝업 형태의 UI가 필요하다면 **`react-colorful`** 라이브러리를 추천합니다.
+
+1.  **설치**: `npm install react-colorful`
+2.  **적용 방식**:
+    * 위의 예제 코드에서 `<input>` 태그 대신 `<HexColorPicker />` 컴포넌트를 사용합니다.
+    * `react-colorful`은 마우스 드래그를 지원하는 직관적인 팔레트 UI를 제공하므로, 모달(Modal)이나 툴팁(Tooltip) 안에 넣어 사용자 경험을 높일 수 있습니다.
+
+### 28.11.3.4 핵심 요약
+
+* **동기화**: `editor.on('selectionUpdate', ...)` 이벤트를 활용해야 사용자가 텍스트를 클릭했을 때 컬러 피커의 값이 해당 텍스트 색상으로 자동 변경됩니다.
+* **적용**: `editor.chain().focus().setColor(value).run()`을 호출하면 선택된 텍스트에 즉시 색상이 입혀집니다.
+* **성능**: 별도 라이브러리 없이 네이티브 `input` 태그를 사용하면 번들 사이즈를 줄이고 성능을 최적화할 수 있습니다.
+
+
+
+
+########
 
 
 
