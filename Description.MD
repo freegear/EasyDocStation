@@ -3416,6 +3416,58 @@ editor.chain().focus().deleteTable().run()
 
  
 
+# 28.10 공식 TableOfContents extension 사용
+
+TableOfContents를 만든다.
+
+# 28.10.1 설치 
+
+npm install @tiptap/extension-table-of-contents
+
+# 28.10.2 Type script
+
+import TableOfContents from '@tiptap/extension-table-of-contents'
+
+const [items, setItems] = useState([])
+
+const editor = useEditor({
+  extensions: [
+    StarterKit,
+    TableOfContents.configure({
+      onUpdate: content => {
+        setItems(content)
+      },
+    }),
+  ],
+})
+
+# 28.10.3 목차 UI를 렌더링
+
+Tiptap 공식 TableOfContents extension은 문서의 heading/anchor 목록을 추출하고, depth, content, id, active 상태 등을 넘겨줘서 직접 목차 UI를 렌더링하게 해줍니다.
+
+목차 UI 렌더링
+function Toc({ items }) {
+  return (
+    <nav className="toc">
+      {items.map(item => (
+        <button
+          key={item.id}
+          style={{ paddingLeft: `${item.level * 12}px` }}
+          onClick={() => {
+            document
+              .getElementById(item.id)
+              ?.scrollIntoView({ behavior: 'smooth' })
+          }}
+        >
+          {item.textContent}
+        </button>
+      ))}
+    </nav>
+  )
+}
+
+<Toc items={items} />
+<EditorContent editor={editor} />
 
 
 

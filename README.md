@@ -51,6 +51,42 @@ npm run setup:dgx-spark
 - `INSTALL_CASSANDRA=1`, `INSTALL_OLLAMA=1` (기본: 0)
 - `APP_DB_USER`, `APP_DB_PASS`, `APP_DB_NAME`, `CLIENT_ORIGIN`
 
+## DGX-SPARK 전용 실행
+
+아래 3개 스크립트로 DGX-SPARK 환경을 고정적으로 운영할 수 있습니다.
+
+### 1) 설치
+
+```bash
+bash scripts/dgx-spark-install.sh
+```
+
+### 2) 실행
+
+```bash
+bash scripts/dgx-spark-run.sh
+```
+
+### 3) 재실행
+
+```bash
+bash scripts/dgx-spark-rerun.sh
+```
+
+### 4) 설치/실행 확인
+
+```bash
+bash scripts/dgx-spark-install.sh --help
+bash scripts/dgx-spark-run.sh --help
+bash scripts/dgx-spark-rerun.sh --help
+```
+
+### 5) 참고
+- 내부적으로 각각 아래 스크립트를 호출합니다.
+- `dgx-spark-install.sh` -> `scripts/install-dgx-spark.sh`
+- `dgx-spark-run.sh` -> `scripts/run-dgx-spark.sh`
+- `dgx-spark-rerun.sh` -> `scripts/rerun-dgx-spark.sh`
+
 설치 스크립트가 자동으로 수행하는 내용:
 - PostgreSQL 설치/기동 및 DB/계정 생성
 - (옵션) Cassandra/Ollama 설치
