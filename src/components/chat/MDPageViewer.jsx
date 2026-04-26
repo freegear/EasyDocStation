@@ -293,10 +293,14 @@ function normalizeImageMetaKeys(imageMeta = {}) {
 
 function hasSizingMeta(meta = {}) {
   if (!meta || typeof meta !== 'object') return false
+  const containerStyle = String(meta.containerStyle || '').trim()
+  const wrapperStyle = String(meta.wrapperStyle || '').trim()
+  const hasCustomContainerStyle = Boolean(containerStyle) && containerStyle !== DEFAULT_IMAGE_CONTAINER_STYLE
+  const hasCustomWrapperStyle = Boolean(wrapperStyle) && wrapperStyle !== DEFAULT_IMAGE_WRAPPER_STYLE
   return (
     meta.width != null
-    || Boolean(meta.containerStyle)
-    || Boolean(meta.wrapperStyle)
+    || hasCustomContainerStyle
+    || hasCustomWrapperStyle
   )
 }
 

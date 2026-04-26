@@ -101,7 +101,7 @@ body { font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif; margin: 
   <!-- 수신 + 공급자 -->
   <div class="info-section">
     <table class="recv-table">
-      <tr><td class="lbl">수 &nbsp;신</td><td class="editable" data-field="recv" style="width:140px;">뷰아이</td></tr>
+      <tr><td class="lbl">수 &nbsp;신</td><td class="editable" data-field="recv" style="width:140px;">고객사</td></tr>
       <tr><td class="lbl">참 &nbsp;조</td><td class="editable"></td></tr>
       <tr><td class="lbl">전화번호</td><td class="editable"></td></tr>
       <tr><td class="lbl">팩 &nbsp;스</td><td class="editable"></td></tr>
@@ -161,7 +161,7 @@ body { font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif; margin: 
     <tbody>
       <tr>
         <td class="editable">1</td>
-        <td class="desc editable">Beaueye Implant 이식 전후 시뮬레이션 안드로이드 앱 개발</td>
+        <td class="desc editable">Implant 이식 전후 시뮬레이션 안드로이드 앱 개발</td>
         <td class="editable">식</td>
         <td class="editable" data-role="qty">1</td>
         <td class="editable" data-role="unit-price">60,000,000</td>
@@ -179,12 +179,6 @@ body { font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif; margin: 
         <td class="desc editable">나. Beaueye Implant 이식 전후에 대한 AI 엔진 개발<br>&nbsp;&nbsp;- 입력된 사진에서 눈동자의 인식을 할 수 있는 AI 엔진 개발<br>&nbsp;&nbsp;- +/- 200의 각도에서 눈동자를 인식<br>&nbsp;&nbsp;- 각도에 따른 눈동자의 변형된 원형 인식</td>
         <td></td><td></td><td></td><td></td>
         <td class="desc editable" style="font-size:11px;">2) 타겟 플랫폼<br>&nbsp;- 운영 체제의 기본 설정 : Android<br><br>3) 수행 결과물 : Android 기반 App<br>&nbsp;- AI 기반 눈동자 인식 기능 추가<br>&nbsp;- AI 기반 임플란트 이식 전 후 비교 영상 생성</td>
-      </tr>
-      <tr>
-        <td class="editable">1-3</td>
-        <td class="desc editable">다. AI 기반 Beaueye Implant 이식 전후 시뮬레이션 앱 개발<br>&nbsp;&nbsp;- 눈동자와 임플란트(링형태) 사이즈의 간격 조정 (3단계 기본 설정, 협의 가능)<br>&nbsp;&nbsp;- 눈동자와 임플란트(링형태) 두께 조정 (3단계로 기본 설정, 협의 가능)<br>&nbsp;&nbsp;- 눈동자와 임플란트(링형태) 색상 조정 (4가지 색상 옵션: 검정,갈색,녹색,파랑)</td>
-        <td></td><td></td><td></td><td></td>
-        <td class="desc editable" style="font-size:11px;">- 옵션 반영<br>&nbsp;i. 임플란트(링형태)와 눈동자의 간격 설정<br>&nbsp;ii. 임플란트(링형태)의 두께 설정<br>&nbsp;iii. 임플란트(링형태)의 색상</td>
       </tr>
       <tr><td class="editable">&nbsp;</td><td class="desc editable"></td><td class="editable"></td><td class="editable" data-role="qty"></td><td class="editable" data-role="unit-price"></td><td class="editable amount" data-role="supply-amount"></td><td class="editable"></td></tr>
       <tr><td class="editable">&nbsp;</td><td class="desc editable"></td><td class="editable"></td><td class="editable" data-role="qty"></td><td class="editable" data-role="unit-price"></td><td class="editable amount" data-role="supply-amount"></td><td class="editable"></td></tr>
