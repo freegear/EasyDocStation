@@ -101,6 +101,26 @@ kill_by_port() {
   fi
 }
 
+print_port_holders() {
+  local port="$1"
+  local pids=""
+  if command -v lsof >/dev/null 2>&1; then
+    pids="$(lsof -ti tcp:"$port" 2>/dev/null || true)"
+  elif command -v fuser >/dev/null 2>&1; then
+    pids="$(fuser -n tcp "$port" 2>/dev/null || true)"
+  fi
+  pids="$(echo "$pids" | tr ' ' '\n' | awk 'NF' | sort -u)"
+  if [[ -z "${pids:-}" ]]; then
+    echo "[DGX-SPARK] 포트 ${port} 점유 프로세스 없음"
+    return 0
+  fi
+  echo "[DGX-SPARK] 포트 ${port} 점유 프로세스 상세:"
+  while IFS= read -r pid; do
+    [[ -z "${pid:-}" ]] && continue
+    ps -p "$pid" -o pid=,user=,comm=,args= 2>/dev/null | sed 's/^/[DGX-SPARK]   /' || true
+  done <<< "$pids"
+}
+
 if [[ -f "$PID_FILE" ]]; then
   old_pid="$(cat "$PID_FILE" 2>/dev/null || true)"
   if [[ -n "${old_pid:-}" ]] && kill -0 "$old_pid" 2>/dev/null; then
@@ -120,6 +140,23 @@ rm -f "$LOG_DIR/dgx-be-loop.pid"
 
 kill_by_port 5173
 kill_by_port 3001
+
+# 3001이 계속 점유되어 있으면 시작 자체를 중단해 무한 루프를 방지한다.
+if command -v lsof >/dev/null 2>&1; then
+  if lsof -ti tcp:3001 >/dev/null 2>&1; then
+    echo "[DGX-SPARK] 포트 3001이 여전히 점유되어 있어 시작을 중단합니다."
+    print_port_holders 3001
+    echo "[DGX-SPARK] 먼저 정리 후 재시도: bash scripts/run-dgx-spark.sh --stop"
+    exit 1
+  fi
+elif command -v fuser >/dev/null 2>&1; then
+  if fuser -n tcp 3001 >/dev/null 2>&1; then
+    echo "[DGX-SPARK] 포트 3001이 여전히 점유되어 있어 시작을 중단합니다."
+    print_port_holders 3001
+    echo "[DGX-SPARK] 먼저 정리 후 재시도: bash scripts/run-dgx-spark.sh --stop"
+    exit 1
+  fi
+fi
 
 echo "[DGX-SPARK] 백그라운드 실행 시작"
 echo "[DGX-SPARK] 로그: $LOG_FILE"
