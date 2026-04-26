@@ -96,7 +96,7 @@ export default function EventAddModal({ onClose, onAdd, onSave, onDelete, event:
     || ownerNameRaw
     || (isOwnerCurrentUser ? (currentUser?.name || '').trim() : '')
     || ownerUsernameRaw
-    || `사용자 #${editEvent?.ownerId ?? '-'}`
+    || '알 수 없음'
   const ownerUsername = ownerUsernameRaw || (isOwnerCurrentUser ? currentUser?.username : null)
   const ownerImageUrl = editEvent?.owner?.imageUrl || (isOwnerCurrentUser ? currentUser?.image_url : null)
 

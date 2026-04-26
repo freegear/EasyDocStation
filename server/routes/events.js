@@ -57,7 +57,7 @@ function parseDt(val) {
 }
 
 function buildOwnerSummary(row = {}) {
-  const ownerId = Number(row.owner_id ?? row.ownerId ?? row.owner_id_int)
+  const ownerId = Number(row.effective_owner_id ?? row.owner_id ?? row.ownerId ?? row.owner_id_int)
   const id = Number.isInteger(ownerId) ? ownerId : null
   const nameRaw = row.owner_name ?? row.ownerName ?? row.name ?? null
   const usernameRaw = row.owner_username ?? row.ownerUsername ?? row.username ?? null
@@ -83,7 +83,7 @@ function toClient(row, ownerSummary = null) {
   const owner = ownerSummary || buildOwnerSummary(row)
   return {
     id: row.id,
-    ownerId: row.owner_id,
+    ownerId: row.effective_owner_id ?? row.owner_id,
     owner,
     title: row.title || '',
     color: row.color || '#4f46e5',
@@ -150,13 +150,14 @@ router.get('/', async (req, res) => {
     const { rows } = await db.query(`
       SELECT DISTINCT ON (ce.id)
         ce.*,
+        COALESCE(ci.owner_id, ce.owner_id) AS effective_owner_id,
         u.name AS owner_name,
         u.username AS owner_username,
         u.display_name AS owner_display_name,
         u.image_url AS owner_image_url
       FROM calendar_events ce
-      LEFT JOIN users u ON u.id = ce.owner_id
       LEFT JOIN calendar_invitations ci ON ci.event_id = ce.id AND ci.invitee_id = $1
+      LEFT JOIN users u ON u.id = COALESCE(ci.owner_id, ce.owner_id)
       WHERE ce.owner_id = $1 OR ci.invitee_id = $1
       ORDER BY ce.id, ce.created_at DESC
     `, [userId])
