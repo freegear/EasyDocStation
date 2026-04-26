@@ -1164,7 +1164,7 @@ export default function MDPageViewer({ post, channelId, onClose }) {
                       : ''
                     return (
                       <div key={comment.id} className="flex">
-                        <div className="max-w-[92%] rounded-2xl bg-white border border-gray-200 shadow-sm px-4 py-2.5">
+                        <div className="max-w-[92%] rounded-2xl bg-blue-50 border border-blue-100 shadow-sm px-4 py-2.5">
                           <div className="flex items-center gap-2 text-xs text-gray-500 mb-1">
                             <span className="font-semibold text-gray-700">{authorName}</span>
                             {createdAt && <span>{createdAt}</span>}
