@@ -397,6 +397,7 @@ export default function MDPageViewer({ post, channelId, onClose }) {
   const savedImageMetaRef = useRef(savedImageMeta)
   const sourceBaselineRef = useRef('')
   const [isPrinting, setIsPrinting] = useState(false)
+  const [showComments, setShowComments] = useState(false)
 
   useEffect(() => { showSaveDialogRef.current = showSaveDialog }, [showSaveDialog])
   useEffect(() => { imageMetaRef.current = imageMeta }, [imageMeta])
@@ -404,6 +405,7 @@ export default function MDPageViewer({ post, channelId, onClose }) {
   useEffect(() => { savedImageMetaRef.current = savedImageMeta }, [savedImageMeta])
 
   const canEdit = String(post.author?.id ?? '') === String(currentUser?.id ?? '')
+  const comments = Array.isArray(post.comments) ? post.comments : []
 
   const editor = useEditor({
     extensions: [
@@ -972,6 +974,12 @@ export default function MDPageViewer({ post, channelId, onClose }) {
           >
             {t.mdPage.viewPreview}
           </button>
+          <button
+            onClick={() => setShowComments(prev => !prev)}
+            className={`px-3 py-1.5 border-l border-gray-200 transition-colors ${showComments ? 'bg-indigo-600 text-white' : 'text-gray-500 hover:bg-gray-50'}`}
+          >
+            댓글보기
+          </button>
         </div>
 
         <button
@@ -1076,6 +1084,36 @@ export default function MDPageViewer({ post, channelId, onClose }) {
           </div>
         )}
       </div>
+
+      {showComments && (
+        <div className="border-t border-gray-200 bg-gray-50/70 px-6 py-4 max-h-64 overflow-auto">
+          {comments.length === 0 ? (
+            <p className="text-sm text-gray-500">등록된 댓글이 없습니다.</p>
+          ) : (
+            <div className="space-y-3">
+              {comments.map((comment) => {
+                const authorName = comment?.author?.name || comment?.authorName || '사용자'
+                const createdAt = comment?.createdAt
+                  ? new Date(comment.createdAt).toLocaleString()
+                  : ''
+                return (
+                  <div key={comment.id} className="flex">
+                    <div className="max-w-[92%] rounded-2xl bg-white border border-gray-200 shadow-sm px-4 py-2.5">
+                      <div className="flex items-center gap-2 text-xs text-gray-500 mb-1">
+                        <span className="font-semibold text-gray-700">{authorName}</span>
+                        {createdAt && <span>{createdAt}</span>}
+                      </div>
+                      <div className="text-sm text-gray-800 whitespace-pre-wrap break-words">
+                        {comment?.content || ''}
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
+      )}
 
       <input
         ref={imageInputRef}
