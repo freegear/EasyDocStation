@@ -8,10 +8,13 @@ import StarterKit from '@tiptap/starter-kit'
 import Placeholder from '@tiptap/extension-placeholder'
 import Dropcursor from '@tiptap/extension-dropcursor'
 import Link from '@tiptap/extension-link'
+import Color from '@tiptap/extension-color'
+import { TextStyle } from '@tiptap/extension-text-style'
 import { TableOfContents } from '@tiptap/extension-table-of-contents'
 import { Table, TableRow, TableCell, TableHeader } from '@tiptap/extension-table'
 import ImageResize from 'tiptap-extension-resize-image'
 import { Markdown } from 'tiptap-markdown'
+import { HexColorPicker } from 'react-colorful'
 import { useChat } from '../../contexts/ChatContext'
 import { useAuth } from '../../contexts/AuthContext'
 import { useT } from '../../i18n/useT'
@@ -345,6 +348,22 @@ function isEditableImageWrapperElement(el) {
   return img instanceof HTMLImageElement
 }
 
+function normalizeHexColor(raw, fallback = '#111827') {
+  const value = String(raw || '').trim().toLowerCase()
+  if (/^#[0-9a-f]{6}$/i.test(value)) return value
+  if (/^#[0-9a-f]{3}$/i.test(value)) {
+    return `#${value.slice(1).split('').map(ch => `${ch}${ch}`).join('')}`
+  }
+  const rgbMatch = value.match(/^rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/i)
+  if (rgbMatch) {
+    const r = Math.max(0, Math.min(255, Number(rgbMatch[1] || 0)))
+    const g = Math.max(0, Math.min(255, Number(rgbMatch[2] || 0)))
+    const b = Math.max(0, Math.min(255, Number(rgbMatch[3] || 0)))
+    return `#${[r, g, b].map(n => n.toString(16).padStart(2, '0')).join('')}`
+  }
+  return fallback
+}
+
 export default function MDPageViewer({ post, channelId, onClose }) {
   const { updatePost, deletePost } = useChat()
   const { currentUser } = useAuth()
@@ -400,6 +419,8 @@ export default function MDPageViewer({ post, channelId, onClose }) {
           rel: 'noopener noreferrer nofollow',
         },
       }),
+      TextStyle,
+      Color,
       Table.configure({
         resizable: true,
       }),
@@ -1062,11 +1083,107 @@ function TipTapToolbar({ editor, onInsertImage, onInsertToc, isUploadingImage = 
       {btn(editor.isActive('codeBlock'),   () => editor.chain().focus().toggleCodeBlock().run(),    '코드 블록', '코드 블록')}
       {btn(editor.isActive('table'), () => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run(), '표 추가', '3x3 표 추가')}
       {btn(false, onInsertToc, '목차추가', '문서 내 TOC 노드 삽입')}
+      <TextColorControl editor={editor} />
       {btn(false, () => editor.chain().focus().setHorizontalRule().run(), '── 구분선', '가로 구분선')}
       {btn(false, onInsertImage, isUploadingImage ? '업로드 중' : '이미지', '이미지 업로드 및 삽입')}
       {sep('s4')}
       {btn(false, () => editor.chain().focus().undo().run(), '↩ 실행취소', '실행취소 (Ctrl+Z)')}
       {btn(false, () => editor.chain().focus().redo().run(), '↪ 다시실행', '다시실행 (Ctrl+Y)')}
+    </div>
+  )
+}
+
+function TextColorControl({ editor }) {
+  const wrapperRef = useRef(null)
+  const [open, setOpen] = useState(false)
+  const [currentColor, setCurrentColor] = useState('#111827')
+  const [inputColor, setInputColor] = useState('#111827')
+
+  useEffect(() => {
+    if (!editor) return undefined
+    const syncColor = () => {
+      const colorAttr = editor.getAttributes('textStyle')?.color
+      const normalized = normalizeHexColor(colorAttr, '#111827')
+      setCurrentColor(normalized)
+      setInputColor(normalized)
+    }
+    syncColor()
+    editor.on('selectionUpdate', syncColor)
+    editor.on('transaction', syncColor)
+    return () => {
+      editor.off('selectionUpdate', syncColor)
+      editor.off('transaction', syncColor)
+    }
+  }, [editor])
+
+  useEffect(() => {
+    if (!open) return undefined
+    const handleOutside = (e) => {
+      if (!wrapperRef.current?.contains(e.target)) {
+        setOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleOutside)
+    return () => document.removeEventListener('mousedown', handleOutside)
+  }, [open])
+
+  const applyColor = (hex) => {
+    const normalized = normalizeHexColor(hex, currentColor)
+    setCurrentColor(normalized)
+    setInputColor(normalized)
+    editor.chain().focus().setColor(normalized).run()
+  }
+
+  return (
+    <div ref={wrapperRef} className="relative flex items-center gap-1">
+      <button
+        onMouseDown={(e) => {
+          e.preventDefault()
+          setOpen(prev => !prev)
+        }}
+        title="글자 색상"
+        className="px-2 py-1 rounded text-sm text-gray-500 hover:bg-gray-100 hover:text-gray-800"
+      >
+        글자색
+        <span className="inline-block align-middle ml-1 w-3 h-3 rounded-sm border border-gray-300" style={{ backgroundColor: currentColor }} />
+      </button>
+
+      <button
+        onMouseDown={(e) => {
+          e.preventDefault()
+          editor.chain().focus().unsetColor().run()
+        }}
+        title="색상 해제"
+        className="px-2 py-1 rounded text-sm text-gray-500 hover:bg-gray-100 hover:text-gray-800"
+      >
+        색상해제
+      </button>
+
+      {open && (
+        <div
+          className="absolute top-9 left-0 z-30 rounded-xl border border-gray-200 bg-white shadow-lg p-3 w-56"
+          onMouseDown={(e) => e.stopPropagation()}
+        >
+          <HexColorPicker color={currentColor} onChange={applyColor} />
+          <div className="mt-2 flex items-center gap-2">
+            <input
+              value={inputColor}
+              onChange={(e) => setInputColor(e.target.value)}
+              className="h-8 w-full rounded-md border border-gray-300 px-2 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              placeholder="#111827"
+            />
+            <button
+              onMouseDown={(e) => {
+                e.preventDefault()
+                applyColor(inputColor)
+              }}
+              className="h-8 px-2 rounded-md bg-indigo-600 text-white text-xs hover:bg-indigo-500"
+            >
+              적용
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
