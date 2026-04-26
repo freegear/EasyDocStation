@@ -1119,7 +1119,7 @@ function TipTapToolbar({ editor, onInsertImage, onInsertToc, isUploadingImage = 
       {btn(editor.isActive('table'), () => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run(), '표 추가', '3x3 표 추가')}
       <TextColorControl editor={editor} />
       {btn(false, () => editor.chain().focus().setHorizontalRule().run(), '──', '가로 구분선')}
-      {btn(false, onInsertImage, isUploadingImage ? '업로드 중' : '이미지', '이미지 업로드 및 삽입')}
+      {btn(false, onInsertImage, isUploadingImage ? '업로드 중' : '🖼', '이미지 업로드 및 삽입')}
       {sep('s4')}
       {btn(false, () => editor.chain().focus().undo().run(), '↩', '실행취소 (Ctrl+Z)')}
       {btn(false, () => editor.chain().focus().redo().run(), '↪', '다시실행 (Ctrl+Y)')}
@@ -1178,7 +1178,7 @@ function TextColorControl({ editor }) {
         title="글자 색상"
         className="px-2 py-1 rounded text-sm text-gray-500 hover:bg-gray-100 hover:text-gray-800"
       >
-        글자색
+        A
         <span className="inline-block align-middle ml-1 w-3 h-3 rounded-sm border border-gray-300" style={{ backgroundColor: currentColor }} />
       </button>
 
