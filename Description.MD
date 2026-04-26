@@ -532,7 +532,7 @@ EasyDocStation 은 바의 왼쪽 끝에 정렬
 /Users/kevinim/Desktop/EasyDocStation/Database/ObjectFile
 에 ObjectFile 폴더를 둔다.
 
-# 4.3 config.json 파일
+# 4.3 config.json 파일 
 
 그리고 config.json 파일에
 PostgreSQL Database Path : /Users/kevinim/Desktop/EasyDocStation/Database/PoseSQLDB
@@ -3414,7 +3414,7 @@ editor.chain().focus().deleteTable().run()
  └─ 커스텀 NodeView 또는 table 주변 overlay로 구현
 
 
- 
+
 
 
 
