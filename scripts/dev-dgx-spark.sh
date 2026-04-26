@@ -86,7 +86,7 @@ fi
 
 if [[ "${EASYDOC_DAEMON_MODE:-0}" == "1" ]]; then
   echo "[DGX] daemon 모드 실행 (로그아웃 후 지속)"
-  npm exec concurrently -p "[{name}]" -n "Ollama,FE,BE" -c "cyan,magenta,green" \
+  "$ROOT_DIR/node_modules/.bin/concurrently" -p "[{name}]" -n "Ollama,FE,BE" -c "cyan,magenta,green" \
     "npm run ollama:serve" \
     "npm run dev:frontend" \
     "bash -lc 'while true; do npm run start --prefix server; code=\$?; echo \"[BE] process exited with code \$code. restarting in 2s...\"; sleep 2; done'"
