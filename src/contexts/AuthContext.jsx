@@ -31,6 +31,15 @@ export function AuthProvider({ children }) {
     currentUserRef.current = null
   }
 
+  function redirectToLoginPage(forceReload = false) {
+    const cleanPath = `${window.location.origin}/`
+    if (forceReload) {
+      window.location.replace(cleanPath)
+      return
+    }
+    window.history.replaceState({}, '', '/')
+  }
+
   async function logoutToServer() {
     try {
       await apiFetch('/auth/logout', { method: 'POST' })
@@ -45,6 +54,7 @@ export function AuthProvider({ children }) {
       clearToken()
       setCurrentUser(null)
       currentUserRef.current = null
+      redirectToLoginPage(true)
     })
   }, [])
 
@@ -109,6 +119,7 @@ export function AuthProvider({ children }) {
     clearIdleTimer()
     await logoutToServer()
     clearLocalSession()
+    redirectToLoginPage(false)
   }
 
   // 유휴 시간 30분 초과 시 자동 로그아웃
@@ -128,6 +139,7 @@ export function AuthProvider({ children }) {
         } finally {
           clearLocalSession()
           isAutoLoggingOutRef.current = false
+          redirectToLoginPage(true)
         }
       }, IDLE_LOGOUT_MS)
     }
