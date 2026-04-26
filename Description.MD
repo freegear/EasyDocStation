@@ -532,7 +532,7 @@ EasyDocStation 은 바의 왼쪽 끝에 정렬
 /Users/kevinim/Desktop/EasyDocStation/Database/ObjectFile
 에 ObjectFile 폴더를 둔다.
 
-# 4.3 config.json 파일 
+# 4.3 config.json 파일 git push origin main --force-with-lease
 
 그리고 config.json 파일에
 PostgreSQL Database Path : /Users/kevinim/Desktop/EasyDocStation/Database/PoseSQLDB
@@ -552,7 +552,7 @@ ObjectFile에 저장하는 규칙은
 ~ObjectFile/ChannelName/YYYYMMDDHHMMSS/filename1.ext
 ~ObjectFile/ChannelName/YYYYMMDDHHMMSS/filename2.ext
 ~ObjectFile/ChannelName/YYYYMMDDHHMMSS/filename2.ext
-....
+.... 
 으로 저장된다.
 
 
