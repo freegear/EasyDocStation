@@ -1113,10 +1113,10 @@ function TipTapToolbar({ editor, onInsertImage, onInsertToc, isUploadingImage = 
       {btn(editor.isActive('bulletList'),  () => editor.chain().focus().toggleBulletList().run(),  '•  목록',  '글머리 기호 목록')}
       {btn(editor.isActive('orderedList'), () => editor.chain().focus().toggleOrderedList().run(), '1. 목록', '번호 목록')}
       {sep('s3')}
+      {btn(false, onInsertToc, '목차추가', '문서 내 TOC 노드 삽입')}
       {btn(editor.isActive('blockquote'),  () => editor.chain().focus().toggleBlockquote().run(),   '"  인용',   '인용구')}
       {btn(editor.isActive('codeBlock'),   () => editor.chain().focus().toggleCodeBlock().run(),    '코드 블록', '코드 블록')}
       {btn(editor.isActive('table'), () => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run(), '표 추가', '3x3 표 추가')}
-      {btn(false, onInsertToc, '목차추가', '문서 내 TOC 노드 삽입')}
       <TextColorControl editor={editor} />
       {btn(false, () => editor.chain().focus().setHorizontalRule().run(), '── 구분선', '가로 구분선')}
       {btn(false, onInsertImage, isUploadingImage ? '업로드 중' : '이미지', '이미지 업로드 및 삽입')}
