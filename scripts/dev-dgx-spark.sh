@@ -14,6 +14,9 @@ install_frontend_dependencies() {
 
   local packages=(
     "react-to-print"
+    "react-colorful"
+    "@tiptap/extension-color"
+    "@tiptap/extension-text-style"
     "@tiptap/extension-table"
     "@tiptap/extension-table-row"
     "@tiptap/extension-table-cell"

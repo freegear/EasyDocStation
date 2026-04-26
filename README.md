@@ -54,6 +54,7 @@ npm run setup:dgx-spark
 ## DGX-SPARK 전용 실행
 
 아래 3개 스크립트로 DGX-SPARK 환경을 고정적으로 운영할 수 있습니다.
+`run/rerun`은 백그라운드(`nohup`)로 실행되어, 터미널 종료/로그아웃 후에도 계속 동작합니다.
 
 ### 1) 설치
 
@@ -65,6 +66,13 @@ bash scripts/dgx-spark-install.sh
 
 ```bash
 bash scripts/dgx-spark-run.sh
+```
+
+상태 확인/중지:
+
+```bash
+bash scripts/run-dgx-spark.sh --status
+bash scripts/run-dgx-spark.sh --stop
 ```
 
 ### 3) 재실행
@@ -86,6 +94,18 @@ bash scripts/dgx-spark-rerun.sh --help
 - `dgx-spark-install.sh` -> `scripts/install-dgx-spark.sh`
 - `dgx-spark-run.sh` -> `scripts/run-dgx-spark.sh`
 - `dgx-spark-rerun.sh` -> `scripts/rerun-dgx-spark.sh`
+- 로그 파일: `logs/run-dgx-spark.log`, `logs/rerun-dgx-spark.log`
+- PID 파일: `logs/dgx-spark.pid`
+- 설치 시 프론트 의존성에 아래 컴포넌트가 포함됩니다.
+  - `react-to-print`
+  - `react-colorful`
+  - `@tiptap/extension-color`
+  - `@tiptap/extension-text-style`
+  - `@tiptap/extension-table`
+  - `@tiptap/extension-table-row`
+  - `@tiptap/extension-table-cell`
+  - `@tiptap/extension-table-header`
+  - `@tiptap/extension-table-of-contents`
 
 설치 스크립트가 자동으로 수행하는 내용:
 - PostgreSQL 설치/기동 및 DB/계정 생성

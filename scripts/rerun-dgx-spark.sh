@@ -14,8 +14,8 @@ Usage:
   bash scripts/rerun-dgx-spark.sh
 
 Description:
-  EasyDocStation DGX-SPARK 실행 프로세스를 종료 후 재실행합니다.
-  내부적으로 scripts/restart-dgx-spark.sh를 실행합니다.
+  EasyDocStation DGX-SPARK 실행 프로세스를 종료 후 백그라운드 재실행합니다.
+  터미널 로그아웃 후에도 계속 실행됩니다.
 EOF
   exit 0
 fi
@@ -23,4 +23,9 @@ fi
 echo "[DGX-SPARK] 재실행 시작"
 echo "[DGX-SPARK] 로그: $LOG_FILE"
 
-bash "$ROOT_DIR/scripts/restart-dgx-spark.sh" "$@" 2>&1 | tee -a "$LOG_FILE"
+{
+  echo "[$(date '+%F %T')] stop old process"
+  bash "$ROOT_DIR/scripts/run-dgx-spark.sh" --stop
+  echo "[$(date '+%F %T')] start new process"
+  bash "$ROOT_DIR/scripts/run-dgx-spark.sh"
+} >>"$LOG_FILE" 2>&1
