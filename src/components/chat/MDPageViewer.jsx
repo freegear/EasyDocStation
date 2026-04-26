@@ -28,6 +28,8 @@ const MD_IMAGE_META_PREFIX = '<!--md-image-meta:'
 const ResizableImage = ImageResize.extend({ name: 'image' })
 const FILE_VIEW_URL_PATTERN = /(https?:\/\/[^\s)"']+\/api\/files\/view\/[A-Za-z0-9-]+(?:\?[^\s)"']*)?|\/api\/files\/view\/[A-Za-z0-9-]+(?:\?[^\s)"']*)?)/g
 const TOC_NODE_NAME = 'tocNode'
+const DEFAULT_IMAGE_CONTAINER_STYLE = 'width: 100%; height: auto; cursor: pointer;'
+const DEFAULT_IMAGE_WRAPPER_STYLE = 'display: flex;'
 
 function collectHeadingItems(doc, limit = 10) {
   const items = []
@@ -554,6 +556,32 @@ export default function MDPageViewer({ post, channelId, onClose }) {
     }
   }, [editor, imageMeta])
 
+  // 과거 데이터/신규 삽입 이미지에서 resize용 스타일 attrs가 비어 있으면
+  // 노드뷰 리사이즈 핸들이 불안정해질 수 있어 기본값으로 보정한다.
+  useEffect(() => {
+    if (!editor) return
+    const tr = editor.state.tr
+    let changed = false
+
+    editor.state.doc.descendants((node, pos) => {
+      if (node.type.name !== 'image') return
+      const containerStyle = String(node.attrs?.containerStyle || '').trim()
+      const wrapperStyle = String(node.attrs?.wrapperStyle || '').trim()
+      if (containerStyle && wrapperStyle) return
+
+      tr.setNodeMarkup(pos, undefined, {
+        ...node.attrs,
+        containerStyle: containerStyle || DEFAULT_IMAGE_CONTAINER_STYLE,
+        wrapperStyle: wrapperStyle || DEFAULT_IMAGE_WRAPPER_STYLE,
+      })
+      changed = true
+    })
+
+    if (changed) {
+      editor.view.dispatch(tr)
+    }
+  }, [editor])
+
   // 소스 → 미리보기 전환: 소스 텍스트를 에디터에 반영
   function switchToPreview() {
     if (mode === 'source' && editor) {
@@ -811,7 +839,13 @@ export default function MDPageViewer({ post, channelId, onClose }) {
       const src = `/api/files/view/${prep.file_uuid}${authToken ? `?auth_token=${encodeURIComponent(authToken)}` : ''}`
       const chain = editor.chain().focus()
       if (Number.isFinite(insertPos)) chain.setTextSelection(insertPos)
-      chain.setImage({ src, alt: file.name, title: file.name }).run()
+      chain.setImage({
+        src,
+        alt: file.name,
+        title: file.name,
+        containerStyle: DEFAULT_IMAGE_CONTAINER_STYLE,
+        wrapperStyle: DEFAULT_IMAGE_WRAPPER_STYLE,
+      }).run()
     } catch (e) {
       console.error('MD 이미지 업로드 실패:', e)
       alert(t.mdPage.imageUploadFail || '이미지 업로드에 실패했습니다.')
