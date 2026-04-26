@@ -636,6 +636,29 @@ export default function MDPageViewer({ post, channelId, onClose }) {
     }
   }, [channelId, getCurrentMarkdown, imageMeta, post.id, updatePost])
 
+  const handleCopyLink = useCallback(async () => {
+    const link = `${window.location.origin}${window.location.pathname}?channelId=${encodeURIComponent(channelId)}&postId=${encodeURIComponent(post.id)}`
+    try {
+      if (navigator?.clipboard?.writeText) {
+        await navigator.clipboard.writeText(link)
+      } else {
+        const ta = document.createElement('textarea')
+        ta.value = link
+        ta.setAttribute('readonly', '')
+        ta.style.position = 'fixed'
+        ta.style.opacity = '0'
+        document.body.appendChild(ta)
+        ta.select()
+        document.execCommand('copy')
+        document.body.removeChild(ta)
+      }
+      alert('MD 페이지 링크가 복사되었습니다.')
+    } catch (e) {
+      console.error('MD 페이지 링크 복사 실패:', e)
+      alert('링크 복사에 실패했습니다.')
+    }
+  }, [channelId, post.id])
+
   const handleDelete = useCallback(async () => {
     setDeleting(true)
     try {
@@ -935,6 +958,18 @@ export default function MDPageViewer({ post, channelId, onClose }) {
             {t.mdPage.viewPreview}
           </button>
         </div>
+
+        <button
+          onClick={handleCopyLink}
+          title="링크복사"
+          aria-label="링크복사"
+          className="px-3 py-1.5 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 hover:text-gray-700 transition-colors flex-shrink-0"
+        >
+          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+            <rect x="9" y="9" width="10" height="10" rx="2" />
+            <path d="M15 9V7a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2" />
+          </svg>
+        </button>
 
         {canEdit && isChanged && (
           <button
