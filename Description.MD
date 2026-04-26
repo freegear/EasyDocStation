@@ -527,7 +527,7 @@ EasyDocStation 은 바의 왼쪽 끝에 정렬
 에 데이터 베이스 파일을 둔다.
 
 
-# 4.2 Object File 폴더
+# 4.2 Object File 폴더 
 
 /Users/kevinim/Desktop/EasyDocStation/Database/ObjectFile
 에 ObjectFile 폴더를 둔다.
