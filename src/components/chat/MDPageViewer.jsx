@@ -1924,12 +1924,9 @@ function TableBubbleMenu({ editor }) {
       setOpenByDoubleClick(Boolean(target.closest('table')))
     }
 
-    const handlePointerDown = (event) => {
-      const target = event.target
-      if (!(target instanceof Element)) return
-      if (!target.closest('table')) {
-        setOpenByDoubleClick(false)
-      }
+    const handlePointerDown = () => {
+      // 표 안/밖 어디를 클릭하든(다음 클릭부터) 메뉴를 닫는다.
+      setOpenByDoubleClick(false)
     }
 
     const handleSelectionUpdate = () => {
