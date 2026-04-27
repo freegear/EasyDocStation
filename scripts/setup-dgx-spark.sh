@@ -60,7 +60,10 @@ else
 fi
 
 echo "[1/3] Ubuntu 기본 설치 스크립트 실행"
-INSTALL_HIRES_DEPS=1 bash "$ROOT_DIR/scripts/setup-ubuntu.sh"
+# DGX 전용 설치에서는 Cassandra를 기본 활성화한다.
+INSTALL_CASSANDRA="${INSTALL_CASSANDRA:-1}" \
+INSTALL_HIRES_DEPS=1 \
+bash "$ROOT_DIR/scripts/setup-ubuntu.sh"
 
 echo "[1-1/3] 프론트 의존성 설치"
 install_frontend_dependencies

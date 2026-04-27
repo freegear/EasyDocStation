@@ -21,6 +21,7 @@ const client = new cassandra.Client(clientOptions)
 
 let connected = false
 let reconnectTimer = null
+const cassandraRequired = String(process.env.CASSANDRA_REQUIRED || '0') === '1'
 
 function isConnected() { return connected }
 function scheduleReconnect() {
@@ -220,6 +221,10 @@ async function initCassandra() {
     console.warn('⚠️ Cassandra 미연결 — PostgreSQL fallback 사용')
     console.warn(`   Cassandra 설정: contactPoints=${contactPoints.join(', ')} localDataCenter=${localDataCenter} keyspace=${keyspace} auth=${username ? 'enabled' : 'disabled'}`)
     logCassandraError('연결', err)
+    if (cassandraRequired) {
+      console.error('❌ CASSANDRA_REQUIRED=1 이므로 fallback 없이 서버를 종료합니다.')
+      process.exit(1)
+    }
     scheduleReconnect()
   }
 }
