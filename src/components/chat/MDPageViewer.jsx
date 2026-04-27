@@ -1911,6 +1911,11 @@ function LinkBubbleMenu({ editor }) {
 
 function TableBubbleMenu({ editor }) {
   const [openByDoubleClick, setOpenByDoubleClick] = useState(false)
+  const isTableSelection = () => (
+    editor?.isActive('table')
+    || editor?.isActive('tableCell')
+    || editor?.isActive('tableHeader')
+  )
 
   useEffect(() => {
     if (!editor) return undefined
@@ -1919,9 +1924,15 @@ function TableBubbleMenu({ editor }) {
     if (!dom) return undefined
 
     const handleDoubleClick = (event) => {
-      const target = event.target
+      const rawTarget = event.target
+      const target = rawTarget instanceof Element ? rawTarget : rawTarget?.parentElement
       if (!(target instanceof Element)) return
-      setOpenByDoubleClick(Boolean(target.closest('table')))
+
+      const inTableDom = Boolean(target.closest('table, td, th'))
+      // 더블클릭 직후 selection 갱신 타이밍을 한 틱 기다려 표 활성 여부를 함께 확인
+      requestAnimationFrame(() => {
+        setOpenByDoubleClick(inTableDom && isTableSelection())
+      })
     }
 
     const handlePointerDown = () => {
@@ -1930,7 +1941,7 @@ function TableBubbleMenu({ editor }) {
     }
 
     const handleSelectionUpdate = () => {
-      if (!editor.isActive('table')) {
+      if (!isTableSelection()) {
         setOpenByDoubleClick(false)
       }
     }
@@ -1951,7 +1962,11 @@ function TableBubbleMenu({ editor }) {
   return (
     <BubbleMenu
       editor={editor}
-      shouldShow={({ editor: ed }) => ed.isEditable && openByDoubleClick && ed.isActive('table')}
+      shouldShow={({ editor: ed }) => (
+        ed.isEditable
+        && openByDoubleClick
+        && (ed.isActive('table') || ed.isActive('tableCell') || ed.isActive('tableHeader'))
+      )}
       tippyOptions={{ duration: 120, placement: 'top', maxWidth: 520 }}
       className="table-toolbar"
     >
