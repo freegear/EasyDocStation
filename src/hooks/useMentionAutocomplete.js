@@ -6,7 +6,7 @@ function getMentionQuery(text, cursorPos) {
   const before = text.slice(0, cursorPos)
   const match = before.match(/@([^\s@]*)$/)
   if (!match) return null
-  return match[1] // @ 이후 현재까지 입력된 글자
+  return match[1]
 }
 
 // 선택한 사용자를 @DisplayName 으로 치환
@@ -24,15 +24,59 @@ function applyMention(text, cursorPos, user) {
   }
 }
 
+// 미러 div 기법으로 textarea 내 커서의 화면 좌표 계산
+export function getCursorCoords(textarea) {
+  if (!textarea) return null
+  const { value, selectionStart } = textarea
+  const rect = textarea.getBoundingClientRect()
+  const style = window.getComputedStyle(textarea)
+
+  const mirror = document.createElement('div')
+  mirror.style.cssText = [
+    'position:absolute', 'visibility:hidden', 'pointer-events:none',
+    'white-space:pre-wrap', 'word-break:break-word', 'overflow-wrap:break-word',
+    `top:${rect.top + window.scrollY}px`,
+    `left:${rect.left + window.scrollX}px`,
+    `width:${style.width}`,
+    `font-size:${style.fontSize}`,
+    `font-family:${style.fontFamily}`,
+    `font-weight:${style.fontWeight}`,
+    `letter-spacing:${style.letterSpacing}`,
+    `line-height:${style.lineHeight}`,
+    `padding:${style.padding}`,
+    `border:${style.border}`,
+    `box-sizing:${style.boxSizing}`,
+  ].join(';')
+
+  const textBeforeCursor = value.slice(0, selectionStart)
+  mirror.textContent = textBeforeCursor
+
+  const marker = document.createElement('span')
+  marker.textContent = '​'
+  mirror.appendChild(marker)
+  document.body.appendChild(mirror)
+
+  const markerRect = marker.getBoundingClientRect()
+  document.body.removeChild(mirror)
+
+  const lineHeight = parseFloat(style.lineHeight) || 20
+
+  // 뷰포트 기준 좌표 (fixed 포지션용)
+  return {
+    x: markerRect.left,
+    y: markerRect.top + lineHeight,
+  }
+}
+
 export default function useMentionAutocomplete(teamId) {
-  const [query, setQuery] = useState(null)        // null = 비활성, '' = @ 직후
+  const [query, setQuery] = useState(null)
   const [users, setUsers] = useState([])
   const [selectedIdx, setSelectedIdx] = useState(0)
   const [open, setOpen] = useState(false)
+  const [cursorCoords, setCursorCoords] = useState(null)
   const fetchTimer = useRef(null)
   const activeQuery = useRef(null)
 
-  // 쿼리 변경 시 사용자 검색
   useEffect(() => {
     if (query === null) { setOpen(false); return }
     clearTimeout(fetchTimer.current)
@@ -40,14 +84,12 @@ export default function useMentionAutocomplete(teamId) {
       try {
         let results
         if (teamId && query === '') {
-          // @ 입력 직후: 팀 전체 멤버 로드
           const data = await apiFetch(`/teams/${teamId}/members`)
           results = Array.isArray(data) ? data : (data?.members || [])
         } else {
           const data = await apiFetch(`/users/search?q=${encodeURIComponent(query)}`)
           results = Array.isArray(data) ? data : []
         }
-        // 현재 쿼리가 바뀌지 않은 경우에만 반영
         if (activeQuery.current === query) {
           setUsers(results.slice(0, 10))
           setSelectedIdx(0)
@@ -59,49 +101,39 @@ export default function useMentionAutocomplete(teamId) {
     }, query === '' ? 0 : 200)
   }, [query, teamId])
 
-  // textarea onChange 에서 호출
-  const handleChange = useCallback((value, cursorPos) => {
+  // textarea onChange 에서 호출 — textareaEl 을 넘기면 커서 좌표도 갱신
+  const handleChange = useCallback((value, cursorPos, textareaEl) => {
     const q = getMentionQuery(value, cursorPos)
     activeQuery.current = q
     setQuery(q)
+    if (q !== null && textareaEl) {
+      setCursorCoords(getCursorCoords(textareaEl))
+    } else if (q === null) {
+      setCursorCoords(null)
+    }
   }, [])
 
-  // 사용자 선택 → 텍스트 치환 후 콜백 호출
   const selectUser = useCallback((user, content, cursorPos, onResult) => {
     const { text, cursor } = applyMention(content, cursorPos, user)
     setOpen(false)
     setQuery(null)
     setUsers([])
+    setCursorCoords(null)
     onResult(text, cursor)
   }, [])
 
-  // keydown 에서 호출 → true 이면 기본 동작 막음
   const handleKeyDown = useCallback((e) => {
     if (!open) return false
-    if (e.key === 'ArrowDown') {
-      setSelectedIdx(i => Math.min(i + 1, users.length - 1))
-      return true
-    }
-    if (e.key === 'ArrowUp') {
-      setSelectedIdx(i => Math.max(i - 1, 0))
-      return true
-    }
-    if (e.key === 'Enter' || e.key === 'Tab') {
-      return true // 선택은 외부에서 처리
-    }
-    if (e.key === 'Escape') {
-      setOpen(false)
-      setQuery(null)
-      return true
-    }
+    if (e.key === 'ArrowDown') { setSelectedIdx(i => Math.min(i + 1, users.length - 1)); return true }
+    if (e.key === 'ArrowUp')   { setSelectedIdx(i => Math.max(i - 1, 0)); return true }
+    if (e.key === 'Enter' || e.key === 'Tab') return true
+    if (e.key === 'Escape') { setOpen(false); setQuery(null); setCursorCoords(null); return true }
     return false
   }, [open, users.length])
 
   const close = useCallback(() => {
-    setOpen(false)
-    setQuery(null)
-    setUsers([])
+    setOpen(false); setQuery(null); setUsers([]); setCursorCoords(null)
   }, [])
 
-  return { open, users, selectedIdx, handleChange, handleKeyDown, selectUser, close }
+  return { open, users, selectedIdx, cursorCoords, handleChange, handleKeyDown, selectUser, close }
 }
