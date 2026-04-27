@@ -709,8 +709,8 @@ export default function MDPageViewer({ post, channelId, onClose }) {
       },
       handleDrop(view, event) {
         if (!canEdit || mode !== 'preview') return false
-        const files = Array.from(event.dataTransfer?.files || []).filter(isImageFile)
-        if (files.length === 0) return false
+        const allFiles = Array.from(event.dataTransfer?.files || [])
+        if (allFiles.length === 0) return false
 
         event.preventDefault()
         event.stopPropagation()
@@ -721,9 +721,14 @@ export default function MDPageViewer({ post, channelId, onClose }) {
 
         ;(async () => {
           let insertPos = Number.isFinite(dropPos) ? dropPos : null
-          for (const file of files) {
-            // eslint-disable-next-line no-await-in-loop
-            await uploadAndInsertImage(file, insertPos)
+          for (const file of allFiles) {
+            if (isImageFile(file)) {
+              // eslint-disable-next-line no-await-in-loop
+              await uploadAndInsertImage(file, insertPos)
+            } else {
+              // eslint-disable-next-line no-await-in-loop
+              await uploadAndInsertFile(file, insertPos)
+            }
             insertPos = null
           }
         })()
@@ -1172,6 +1177,41 @@ export default function MDPageViewer({ post, channelId, onClose }) {
     }
   }
 
+  async function uploadAndInsertFile(file, insertPos = null) {
+    if (!editor) return
+    setIsUploadingImage(true)
+    try {
+      const prep = await apiFetch('/files/get-upload-url', {
+        method: 'POST',
+        body: JSON.stringify({
+          filename: file.name,
+          contentType: file.type || 'application/octet-stream',
+          channelId,
+        }),
+      })
+      const uploadResp = await fetch(prep.uploadUrl, {
+        method: 'PUT',
+        headers: { 'Content-Type': file.type || 'application/octet-stream' },
+        body: file,
+      })
+      if (!uploadResp.ok) throw new Error(`파일 업로드 실패 (${uploadResp.status})`)
+      const authToken = getToken()
+      const href = `/api/files/view/${prep.file_uuid}${authToken ? `?auth_token=${encodeURIComponent(authToken)}` : ''}`
+      const chain = editor.chain().focus()
+      if (Number.isFinite(insertPos)) chain.setTextSelection(insertPos)
+      chain.insertContent({
+        type: 'text',
+        text: file.name,
+        marks: [{ type: 'link', attrs: { href } }],
+      }).run()
+    } catch (err) {
+      console.error('MD 파일 업로드 실패:', err)
+      alert(t.mdPage.imageUploadFail || '파일 업로드에 실패했습니다.')
+    } finally {
+      setIsUploadingImage(false)
+    }
+  }
+
   async function handleImageInputChange(e) {
     const files = Array.from(e.target.files || []).filter(isImageFile)
     if (files.length === 0) {
@@ -1200,11 +1240,12 @@ export default function MDPageViewer({ post, channelId, onClose }) {
   }
 
   async function handleEditorDrop(e) {
-    if (!canEdit || mode !== 'preview') return
-    const files = Array.from(e.dataTransfer?.files || []).filter(isImageFile)
-    if (files.length === 0) return
+    const allFiles = Array.from(e.dataTransfer?.files || [])
+    if (allFiles.length === 0) return
+    // 항상 preventDefault — 브라우저가 파일을 새 탭으로 여는 것을 막는다
     e.preventDefault()
     e.stopPropagation()
+    if (!canEdit || mode !== 'preview') return
     setIsDragOver(false)
 
     let insertPos = null
@@ -1213,9 +1254,14 @@ export default function MDPageViewer({ post, channelId, onClose }) {
       if (coords && Number.isFinite(coords.pos)) insertPos = coords.pos
     }
 
-    for (const file of files) {
-      // eslint-disable-next-line no-await-in-loop
-      await uploadAndInsertImage(file, insertPos)
+    for (const file of allFiles) {
+      if (isImageFile(file)) {
+        // eslint-disable-next-line no-await-in-loop
+        await uploadAndInsertImage(file, insertPos)
+      } else {
+        // eslint-disable-next-line no-await-in-loop
+        await uploadAndInsertFile(file, insertPos)
+      }
       insertPos = null
     }
   }
@@ -1325,7 +1371,7 @@ export default function MDPageViewer({ post, channelId, onClose }) {
           className={`easy-page-print-root flex-1 min-w-0 overflow-auto min-h-0 ${isDragOver ? 'bg-indigo-50/50' : ''}`}
           onDragOver={(e) => {
             if (!canEdit || mode !== 'preview') return
-            if ((e.dataTransfer?.files?.length || 0) > 0) {
+            if (Array.from(e.dataTransfer?.types || []).includes('Files')) {
               e.preventDefault()
               setIsDragOver(true)
             }
