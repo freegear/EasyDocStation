@@ -1271,7 +1271,7 @@ export function getMdPageTitle(content, fallback = 'MD 페이지') {
     .find((line) => line.length > 0)
 
   if (!first) return fallback
-  const plain = first.replace(/^#{1,6}\s+/, '').trim()
+  const plain = first.replace(/^#{1,6}\s+/, '').replace(/<[^>]*>/g, '').trim()
   if (!plain) return fallback
   const chars = Array.from(plain)
   if (chars.length <= MAX_TITLE_LENGTH) return plain
