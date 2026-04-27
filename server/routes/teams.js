@@ -79,7 +79,7 @@ router.get('/:id/members', requireAuth, async (req, res, next) => {
   try {
     const { id } = req.params
     const result = await db.query(`
-      SELECT u.id, u.username, u.name, u.email, u.role
+      SELECT u.id, u.username, u.name, u.display_name, u.email, u.role
       FROM users u
       JOIN team_members tm ON u.id = tm.user_id
       WHERE tm.team_id = $1

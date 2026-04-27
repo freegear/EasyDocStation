@@ -58,13 +58,19 @@ async function notifyMentionedUsers(content, { channelId = '', postId = '', comm
 
     for (const name of names) {
       const r = await db.query(
-        `SELECT telegram_id FROM users
-         WHERE (LOWER(display_name) = LOWER($1) OR LOWER(name) = LOWER($1))
-           AND is_active = true LIMIT 1`,
+        `SELECT telegram_id, use_sns_channel FROM users
+         WHERE (
+           LOWER(COALESCE(display_name, '')) = LOWER($1)
+           OR LOWER(COALESCE(name, '')) = LOWER($1)
+           OR LOWER(COALESCE(username, '')) = LOWER($1)
+         )
+           AND is_active = true
+         LIMIT 1`,
         [name],
       )
       const user = r.rows[0]
       if (!user) continue
+      if (String(user.use_sns_channel || '').trim() !== 'telegram') continue
 
       // 숫자형 telegram_id 가 등록된 사용자 = 텔레그램 활성화 상태
       const chatId = (user.telegram_id || '').trim()
