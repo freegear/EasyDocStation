@@ -412,6 +412,15 @@ function normalizeHexColor(raw, fallback = '#111827') {
   return fallback
 }
 
+function getEditorDocSignature(editor) {
+  if (!editor) return ''
+  try {
+    return JSON.stringify(editor.getJSON())
+  } catch (_) {
+    return ''
+  }
+}
+
 export default function MDPageViewer({ post, channelId, onClose }) {
   const { updatePost, deletePost, addComment, deleteComment, posts } = useChat()
   const { currentUser, maxAttachmentFileSize } = useAuth()
@@ -441,6 +450,7 @@ export default function MDPageViewer({ post, channelId, onClose }) {
   const imageMetaRef = useRef(imageMeta)
   const savedContentRef = useRef(savedContent)
   const savedImageMetaRef = useRef(savedImageMeta)
+  const savedDocSignatureRef = useRef(null)
   const sourceBaselineRef = useRef('')
   const [isPrinting, setIsPrinting] = useState(false)
   const [showComments, setShowComments] = useState(false)
@@ -735,13 +745,25 @@ export default function MDPageViewer({ post, channelId, onClose }) {
     onUpdate({ editor }) {
       const md = stripImageMeta(editor.storage.markdown.getMarkdown())
       const nextImageMeta = collectImageMetaFromDoc(editor.state.doc, imageMetaRef.current)
+      const currentDocSignature = getEditorDocSignature(editor)
+      const hasDocDiff = Boolean(savedDocSignatureRef.current)
+        && currentDocSignature !== savedDocSignatureRef.current
       setImageMeta(prev => (sameImageMeta(prev, nextImageMeta) ? prev : nextImageMeta))
       setIsChanged(
         md !== savedContentRef.current
         || !sameImageMeta(nextImageMeta, savedImageMetaRef.current)
+        || hasDocDiff
       )
     },
   })
+
+  useEffect(() => {
+    if (!editor) return
+    // 최초 진입 시 문서 시그니처를 baseline으로 저장
+    if (!savedDocSignatureRef.current) {
+      savedDocSignatureRef.current = getEditorDocSignature(editor)
+    }
+  }, [editor])
 
   // mode 변경 시 editor editable 상태 동기화
   useEffect(() => {
@@ -891,7 +913,13 @@ export default function MDPageViewer({ post, channelId, onClose }) {
         editor.commands.setContent(withToken)
         applyImageMetaToEditor(editor, imageMetaRef.current)
       }
-      setIsChanged(sourceText !== savedContent || !sameImageMeta(imageMeta, savedImageMeta))
+      const nextChanged = sourceText !== savedContent || !sameImageMeta(imageMeta, savedImageMeta)
+      setIsChanged(nextChanged)
+      if (!nextChanged) {
+        requestAnimationFrame(() => {
+          savedDocSignatureRef.current = getEditorDocSignature(editor)
+        })
+      }
     }
     setMode('preview')
   }
@@ -925,13 +953,19 @@ export default function MDPageViewer({ post, channelId, onClose }) {
       await updatePost(channelId, post.id, { content: `${MD_PAGE_MARKER}\n${mdWithMeta}` })
       setSavedContent(md)
       setSavedImageMeta(normalizeImageMetaKeys(imageMeta))
+      if (mode === 'preview' && editor) {
+        savedDocSignatureRef.current = getEditorDocSignature(editor)
+      } else {
+        // source 모드 저장 후에는 preview 전환 시점에 baseline을 재확정한다.
+        savedDocSignatureRef.current = null
+      }
       setIsChanged(false)
     } catch (e) {
       console.error('MD 페이지 저장 실패:', e)
     } finally {
       setSaving(false)
     }
-  }, [channelId, getCurrentMarkdown, imageMeta, post.id, updatePost])
+  }, [channelId, editor, getCurrentMarkdown, imageMeta, mode, post.id, updatePost])
 
   const handleCopyLink = useCallback(async () => {
     const link = `${window.location.origin}${window.location.pathname}?channelId=${encodeURIComponent(channelId)}&postId=${encodeURIComponent(post.id)}`
@@ -1945,6 +1979,8 @@ function TableBubbleMenu({ editor }) {
     }
 
     const handlePointerDown = (event) => {
+      const path = typeof event.composedPath === 'function' ? event.composedPath() : []
+      if (menuRef.current && path.includes(menuRef.current)) return
       const target = event.target
       if (menuRef.current && target instanceof Node && menuRef.current.contains(target)) return
       // 표 안/밖 어디를 클릭하든 메뉴를 닫는다.
@@ -1958,12 +1994,12 @@ function TableBubbleMenu({ editor }) {
     }
 
     dom.addEventListener('dblclick', handleDoubleClick)
-    document.addEventListener('pointerdown', handlePointerDown, true)
+    document.addEventListener('pointerdown', handlePointerDown)
     editor.on('selectionUpdate', handleSelectionUpdate)
 
     return () => {
       dom.removeEventListener('dblclick', handleDoubleClick)
-      document.removeEventListener('pointerdown', handlePointerDown, true)
+      document.removeEventListener('pointerdown', handlePointerDown)
       editor.off('selectionUpdate', handleSelectionUpdate)
     }
   }, [editor])
