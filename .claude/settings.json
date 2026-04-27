@@ -10,7 +10,9 @@
       "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\(json.dumps\\({k:v for k,v in d.items\\(\\) if 'lance' in k.lower\\(\\) or 'rag' in k.lower\\(\\) or 'embed' in k.lower\\(\\)}, indent=2, ensure_ascii=False\\)\\)\")",
       "Bash(python3 -c ':*)",
       "Bash(node -e \"const pkg = require\\('./node_modules/tiptap-markdown/package.json'\\); console.log\\(pkg.version\\)\")",
-      "Bash(node -e \"console.log\\(process.version\\)\")"
+      "Bash(node -e \"console.log\\(process.version\\)\")",
+      "Bash(python3 -c ' *)",
+      "Bash(node -e \"require\\('/Users/kevinim/Desktop/EasyDocStation/server/routes/sns.js'\\); console.log\\('OK'\\)\")"
     ]
   }
 }

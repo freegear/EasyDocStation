@@ -27,6 +27,7 @@ export async function apiFetch(path, options = {}) {
     const data = await res.json().catch(() => ({}))
     const err = new Error(data.error || `HTTP ${res.status}`)
     if (data.code) err.code = data.code
+    if (data.guide) err.guide = data.guide
     if (data.code === 'SESSION_INVALIDATED' && _sessionInvalidatedHandler) {
       _sessionInvalidatedHandler()
     }

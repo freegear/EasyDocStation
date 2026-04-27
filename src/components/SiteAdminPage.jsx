@@ -109,8 +109,9 @@ function UserFormModal({ user, onClose, onSave, teams = [] }) {
       await apiFetch('/sns/test-telegram', { method: 'POST' })
       setTelegramTestStatus('ok')
     } catch (e) {
+      const msg = e.message || '전송 실패'
+      setTelegramTestError(e.guide ? `${msg}\n→ ${e.guide}` : msg)
       setTelegramTestStatus('error')
-      setTelegramTestError(e.message || '전송 실패')
     }
   }
 
@@ -586,18 +587,25 @@ function UserFormModal({ user, onClose, onSave, teams = [] }) {
               <p className="text-gray-900 text-sm font-semibold mb-3">{t.admin.navSns}</p>
               <div className={isUnifiedLayout ? 'grid grid-cols-1 md:grid-cols-2 gap-4' : 'space-y-4'}>
                 <div>
-                  <FormField label={t.admin.labelTelegramId} value={form.telegram_id} onChange={v => set('telegram_id', v)} placeholder={t.admin.placeholderTelegramId} />
-                  <div className="mt-2 flex items-center gap-2">
+                  <label className="block text-gray-500 text-xs font-medium mb-1.5">{t.admin.labelTelegramId}</label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      value={form.telegram_id}
+                      onChange={e => set('telegram_id', e.target.value)}
+                      placeholder={t.admin.placeholderTelegramId}
+                      className="flex-1 min-w-0 bg-gray-100 border border-gray-200 rounded-xl px-4 py-2.5 text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-300 transition-all"
+                    />
                     <button
                       type="button"
                       onClick={handleTestTelegram}
                       disabled={!form.telegram_id?.trim() || telegramTestStatus === 'sending'}
-                      className="px-3 py-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-indigo-700 text-xs font-medium disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                      className="flex-shrink-0 px-3 py-2.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-indigo-700 text-xs font-medium disabled:opacity-40 disabled:cursor-not-allowed transition-colors whitespace-nowrap"
                     >
                       {telegramTestStatus === 'sending' ? '...' : (t.admin.btnTestTelegram || '테스트 메시지 보내기')}
                     </button>
-                    {telegramTestStatus === 'ok' && <span className="text-xs text-green-600">✓ 전송 성공</span>}
-                    {telegramTestStatus === 'error' && <span className="text-xs text-red-500">{telegramTestError}</span>}
+                    {telegramTestStatus === 'ok' && <span className="flex-shrink-0 text-xs text-green-600 whitespace-nowrap">✓ 전송 성공</span>}
+                    {telegramTestStatus === 'error' && <span className="flex-shrink-0 text-xs text-red-500 whitespace-pre-line">{telegramTestError}</span>}
                   </div>
                 </div>
                 <FormField label={t.admin.labelKakaoTalkApiKey} value={form.kakaotalk_api_key} onChange={v => set('kakaotalk_api_key', v)} placeholder={t.admin.placeholderKakaoTalkApiKey} />
@@ -723,6 +731,10 @@ export default function SiteAdminPage({ onClose }) {
     line: { enabled: false, channelAccessToken: '' },
     telegram: { enabled: false, botName: '', botUserName: '', httpApiToken: '' },
   })
+  const [telegramWebhookUrl, setTelegramWebhookUrl] = useState('')
+  const [telegramWebhookRegistered, setTelegramWebhookRegistered] = useState('')
+  const [telegramWebhookStatus, setTelegramWebhookStatus] = useState(null) // null | 'loading' | 'ok' | 'error'
+  const [telegramWebhookError, setTelegramWebhookError] = useState('')
   const [ragTableDragOver, setRagTableDragOver] = useState(false)
   const ragTableDragCounter = useRef(0)
   const companyFileInputRef = useRef(null)
@@ -852,6 +864,33 @@ export default function SiteAdminPage({ onClose }) {
     }
   }
 
+  async function loadTelegramWebhookInfo() {
+    try {
+      const data = await apiFetch('/sns/telegram/webhook-info')
+      setTelegramWebhookRegistered(data.webhookUrl || '')
+      if (!telegramWebhookUrl) setTelegramWebhookUrl(data.savedWebhookUrl || data.webhookUrl || '')
+    } catch {
+      setTelegramWebhookRegistered('')
+    }
+  }
+
+  async function handleSetTelegramWebhook() {
+    if (!telegramWebhookUrl.trim()) return
+    setTelegramWebhookStatus('loading')
+    setTelegramWebhookError('')
+    try {
+      await apiFetch('/sns/telegram/set-webhook', {
+        method: 'POST',
+        body: JSON.stringify({ webhookUrl: telegramWebhookUrl.trim() }),
+      })
+      setTelegramWebhookRegistered(telegramWebhookUrl.trim())
+      setTelegramWebhookStatus('ok')
+    } catch (e) {
+      setTelegramWebhookStatus('error')
+      setTelegramWebhookError(e.message || '등록 실패')
+    }
+  }
+
   async function loadRagDatasets() {
     try {
       const data = await apiFetch('/rag/datasets')
@@ -942,6 +981,7 @@ export default function SiteAdminPage({ onClose }) {
   useEffect(() => { loadUsers(); loadTeams() }, [])
   useEffect(() => {
     if (activeTab === 'db' || activeTab === 'display' || activeTab === 'rag' || activeTab === 'agenticai' || activeTab === 'company' || activeTab === 'sns') loadDbStats()
+    if (activeTab === 'sns') loadTelegramWebhookInfo()
     if (activeTab === 'rag-learning') loadRagDatasets()
   }, [activeTab])
   useEffect(() => {
@@ -2793,6 +2833,45 @@ export default function SiteAdminPage({ onClose }) {
                   placeholder={t.admin.snsTelegramHttpApiTokenPlaceholder}
                   className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-gray-900 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-300 transition-all"
                 />
+
+                {/* Webhook 등록 */}
+                <div className="mt-5 p-4 bg-indigo-50 border border-indigo-200 rounded-xl">
+                  <p className="text-indigo-800 text-xs font-semibold mb-1">텔레그램 Webhook 등록</p>
+                  <p className="text-indigo-600 text-xs mb-3">
+                    사용자가 봇에게 메시지를 보내면 chat_id가 자동 저장됩니다. 서버의 공개 URL을 입력하세요.
+                  </p>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={telegramWebhookUrl}
+                      onChange={e => { setTelegramWebhookUrl(e.target.value); setTelegramWebhookStatus(null) }}
+                      placeholder="https://yourserver.com/api/sns/telegram/webhook"
+                      className="flex-1 bg-white border border-indigo-200 rounded-lg px-3 py-2 text-gray-900 text-xs placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-400/40 focus:border-indigo-400 transition-all"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleSetTelegramWebhook}
+                      disabled={!telegramWebhookUrl.trim() || telegramWebhookStatus === 'loading'}
+                      className="px-3 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold disabled:opacity-40 disabled:cursor-not-allowed transition-colors whitespace-nowrap"
+                    >
+                      {telegramWebhookStatus === 'loading' ? '...' : '등록'}
+                    </button>
+                  </div>
+                  {telegramWebhookRegistered && (
+                    <p className="mt-2 text-xs text-green-700">
+                      ✓ 현재 등록된 URL: <span className="font-mono">{telegramWebhookRegistered}</span>
+                    </p>
+                  )}
+                  {telegramWebhookStatus === 'ok' && !telegramWebhookRegistered && (
+                    <p className="mt-2 text-xs text-green-700">✓ 웹훅이 등록되었습니다.</p>
+                  )}
+                  {telegramWebhookStatus === 'error' && (
+                    <p className="mt-2 text-xs text-red-600">{telegramWebhookError}</p>
+                  )}
+                  <p className="mt-3 text-indigo-500 text-xs">
+                    ① 설정 저장 후 위 URL 등록 → ② 각 사용자가 봇({snsForm.telegram.botUserName || '@봇이름'})에게 아무 메시지나 전송 → ③ chat_id 자동 연동
+                  </p>
+                </div>
               </div>
             </div>
           </div>
