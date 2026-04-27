@@ -91,8 +91,10 @@ function getCassandraConfig() {
     || 'datacenter1'
 
   const keyspace = process.env.CASSANDRA_KEYSPACE || cass.keyspace || 'easydocstation'
+  const username = process.env.CASSANDRA_USERNAME || cass.username || ''
+  const password = process.env.CASSANDRA_PASSWORD || cass.password || ''
 
-  return { contactPoints: resolvedContactPoints, localDataCenter, keyspace }
+  return { contactPoints: resolvedContactPoints, localDataCenter, keyspace, username, password }
 }
 
 module.exports = {
