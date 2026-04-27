@@ -71,6 +71,8 @@ function UserFormModal({ user, onClose, onSave, teams = [] }) {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [requiredFieldDialogMessage, setRequiredFieldDialogMessage] = useState('')
+  const [telegramTestStatus, setTelegramTestStatus] = useState(null) // null | 'sending' | 'ok' | 'error'
+  const [telegramTestError, setTelegramTestError] = useState('')
   const fileInputRef = useRef(null)
   const stampInputRef = useRef(null)
 
@@ -99,6 +101,18 @@ function UserFormModal({ user, onClose, onSave, teams = [] }) {
   }
 
   function set(key, val) { setForm(p => ({ ...p, [key]: val })) }
+
+  async function handleTestTelegram() {
+    setTelegramTestStatus('sending')
+    setTelegramTestError('')
+    try {
+      await apiFetch('/sns/test-telegram', { method: 'POST' })
+      setTelegramTestStatus('ok')
+    } catch (e) {
+      setTelegramTestStatus('error')
+      setTelegramTestError(e.message || '전송 실패')
+    }
+  }
 
   const pwEntered = form.password.length > 0 || form.confirmPassword.length > 0
   const pwMatch = form.password === form.confirmPassword
@@ -571,7 +585,21 @@ function UserFormModal({ user, onClose, onSave, teams = [] }) {
             <div className={`${isUnifiedLayout ? 'md:col-span-2' : ''} p-4 rounded-2xl bg-gray-50 border border-gray-200`}>
               <p className="text-gray-900 text-sm font-semibold mb-3">{t.admin.navSns}</p>
               <div className={isUnifiedLayout ? 'grid grid-cols-1 md:grid-cols-2 gap-4' : 'space-y-4'}>
-                <FormField label={t.admin.labelTelegramId} value={form.telegram_id} onChange={v => set('telegram_id', v)} placeholder={t.admin.placeholderTelegramId} />
+                <div>
+                  <FormField label={t.admin.labelTelegramId} value={form.telegram_id} onChange={v => set('telegram_id', v)} placeholder={t.admin.placeholderTelegramId} />
+                  <div className="mt-2 flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={handleTestTelegram}
+                      disabled={!form.telegram_id?.trim() || telegramTestStatus === 'sending'}
+                      className="px-3 py-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-indigo-700 text-xs font-medium disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                    >
+                      {telegramTestStatus === 'sending' ? '...' : (t.admin.btnTestTelegram || '테스트 메시지 보내기')}
+                    </button>
+                    {telegramTestStatus === 'ok' && <span className="text-xs text-green-600">✓ 전송 성공</span>}
+                    {telegramTestStatus === 'error' && <span className="text-xs text-red-500">{telegramTestError}</span>}
+                  </div>
+                </div>
                 <FormField label={t.admin.labelKakaoTalkApiKey} value={form.kakaotalk_api_key} onChange={v => set('kakaotalk_api_key', v)} placeholder={t.admin.placeholderKakaoTalkApiKey} />
                 <FormField label={t.admin.labelLineChannelAccessToken} value={form.line_channel_access_token} onChange={v => set('line_channel_access_token', v)} placeholder={t.admin.placeholderLineChannelAccessToken} />
                 <div>
