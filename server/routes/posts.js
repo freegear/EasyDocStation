@@ -524,7 +524,7 @@ router.post('/', requireAuth, async (req, res, next) => {
       else clearTrainingStatus('post', postId)
     })()
 
-    notifyMentionedUsers(safeContent)
+    notifyMentionedUsers(content)
 
     res.status(201).json({ id: postId, channelId, content, authoredAt })
   } catch (err) {
