@@ -322,14 +322,11 @@ function normalizeStyleStr(s) {
 
 function hasSizingMeta(meta = {}) {
   if (!meta || typeof meta !== 'object') return false
-  const containerStyle = normalizeStyleStr(meta.containerStyle)
-  const wrapperStyle = normalizeStyleStr(meta.wrapperStyle)
-  const hasCustomContainerStyle = Boolean(containerStyle) && containerStyle !== normalizeStyleStr(DEFAULT_IMAGE_CONTAINER_STYLE)
-  const hasCustomWrapperStyle = Boolean(wrapperStyle) && wrapperStyle !== normalizeStyleStr(DEFAULT_IMAGE_WRAPPER_STYLE)
+  const widthFromAttr = meta.width
+  const widthFromContainerStyle = extractPixelWidthFromStyle(meta.containerStyle || '')
   return (
-    meta.width != null
-    || hasCustomContainerStyle
-    || hasCustomWrapperStyle
+    widthFromAttr != null
+    || widthFromContainerStyle != null
   )
 }
 
