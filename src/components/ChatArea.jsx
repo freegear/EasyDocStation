@@ -1517,6 +1517,22 @@ function LinkPreviewCards({ links = [] }) {
   )
 }
 
+// @표시이름 을 파란색 span 으로 치환 — ReactMarkdown children(문자열 노드)에 적용
+function applyMentionColor(children) {
+  const processNode = (child, keyPrefix) => {
+    if (typeof child !== 'string') return child
+    const parts = child.split(/(@[^\s@]+)/g)
+    if (parts.length <= 1) return child
+    return parts.map((part, i) =>
+      /^@[^\s@]+$/.test(part)
+        ? <span key={`${keyPrefix}-m${i}`} className="text-blue-500 font-medium">{part}</span>
+        : part
+    )
+  }
+  if (Array.isArray(children)) return children.map((c, i) => processNode(c, i))
+  return processNode(children, 0)
+}
+
 function ContentRenderer({ text = '' }) {
   const normalized = normalizeMarkdownCodeFence(text || '')
   const links = extractHttpUrls(text || '')
@@ -1527,13 +1543,13 @@ function ContentRenderer({ text = '' }) {
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         components={{
-          p: ({ children }) => <p className="my-1.5 text-gray-700 text-sm leading-relaxed">{children}</p>,
-          h1: ({ children }) => <h1 className="mt-4 mb-2 text-gray-900 font-bold text-lg">{children}</h1>,
-          h2: ({ children }) => <h2 className="mt-4 mb-2 text-gray-900 font-bold text-base">{children}</h2>,
-          h3: ({ children }) => <h3 className="mt-3 mb-1.5 text-gray-900 font-semibold text-sm">{children}</h3>,
+          p: ({ children }) => <p className="my-1.5 text-gray-700 text-sm leading-relaxed">{applyMentionColor(children)}</p>,
+          h1: ({ children }) => <h1 className="mt-4 mb-2 text-gray-900 font-bold text-lg">{applyMentionColor(children)}</h1>,
+          h2: ({ children }) => <h2 className="mt-4 mb-2 text-gray-900 font-bold text-base">{applyMentionColor(children)}</h2>,
+          h3: ({ children }) => <h3 className="mt-3 mb-1.5 text-gray-900 font-semibold text-sm">{applyMentionColor(children)}</h3>,
           ul: ({ children }) => <ul className="list-disc pl-5 my-1.5 space-y-1">{children}</ul>,
           ol: ({ children }) => <ol className="list-decimal pl-5 my-1.5 space-y-1">{children}</ol>,
-          li: ({ children }) => <li className="text-gray-700 text-sm">{children}</li>,
+          li: ({ children }) => <li className="text-gray-700 text-sm">{applyMentionColor(children)}</li>,
           hr: () => <hr className="border-gray-200 my-3" />,
           table: ({ children }) => (
             <div className="overflow-x-auto my-2">
@@ -1543,8 +1559,8 @@ function ContentRenderer({ text = '' }) {
           thead: ({ children }) => <thead className="bg-gray-100 text-gray-900">{children}</thead>,
           tbody: ({ children }) => <tbody>{children}</tbody>,
           tr: ({ children }) => <tr className="border-b border-gray-200">{children}</tr>,
-          th: ({ children }) => <th className="px-3 py-2 text-left font-semibold">{children}</th>,
-          td: ({ children }) => <td className="px-3 py-2 text-gray-700">{children}</td>,
+          th: ({ children }) => <th className="px-3 py-2 text-left font-semibold">{applyMentionColor(children)}</th>,
+          td: ({ children }) => <td className="px-3 py-2 text-gray-700">{applyMentionColor(children)}</td>,
           code: ({ inline, children }) => inline
             ? <code className="bg-gray-200 text-indigo-600 px-1 rounded text-xs font-mono">{children}</code>
             : (
