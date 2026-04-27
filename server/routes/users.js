@@ -54,8 +54,8 @@ router.get('/search', async (req, res) => {
 
   try {
     const { rows } = await pool.query(
-      `SELECT id, username, name, email, role, is_active, image_url FROM users
-       WHERE (username ILIKE $1 OR name ILIKE $1)
+      `SELECT id, username, name, display_name, email, role, is_active, image_url FROM users
+       WHERE (username ILIKE $1 OR name ILIKE $1 OR display_name ILIKE $1)
        AND is_active = true
        ORDER BY username
        LIMIT 10`,
