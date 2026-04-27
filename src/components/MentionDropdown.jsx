@@ -1,7 +1,10 @@
 export default function MentionDropdown({ users, selectedIdx, onSelect }) {
   if (!users || users.length === 0) return null
   return (
-    <div className="absolute bottom-full left-0 mb-1 z-50 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden min-w-[200px] max-w-xs">
+    <div className="fixed top-2 left-1/2 -translate-x-1/2 z-[9999] bg-white border border-gray-200 rounded-xl shadow-2xl overflow-hidden w-72">
+      <p className="px-3 py-1.5 text-[11px] text-gray-400 border-b border-gray-100 font-medium tracking-wide">
+        멘션할 사용자 선택
+      </p>
       {users.map((user, i) => {
         const displayName = user.display_name || user.name
         const initials = displayName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
@@ -18,7 +21,7 @@ export default function MentionDropdown({ users, selectedIdx, onSelect }) {
               {initials}
             </span>
             <span className="font-medium truncate">@{displayName}</span>
-            {user.username && <span className="text-xs text-gray-400 truncate">{user.username}</span>}
+            {user.username && <span className="text-xs text-gray-400 truncate ml-auto">{user.username}</span>}
           </button>
         )
       })}
