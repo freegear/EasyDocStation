@@ -59,7 +59,7 @@
     "vectorSize": 1024,
     "chunk_size": 800,
     "chunk_overlap": 100,
-    "pdf_parse_strategy": "fast"
+    "pdf_parse_strategy": "auto"
   },
   "agenticai": {
     "num_predict": 2048,
