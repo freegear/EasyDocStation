@@ -38,7 +38,7 @@ function extractMentions(content) {
   return [...names]
 }
 
-async function notifyMentionedUsers(content) {
+async function notifyMentionedUsers(content, { channelId = '', postId = '', commentId = '' } = {}) {
   const names = extractMentions(content)
   if (names.length === 0) return
   try {
@@ -49,6 +49,11 @@ async function notifyMentionedUsers(content) {
     if (!config?.sns?.telegram?.enabled) return
     const botToken = config?.sns?.telegram?.httpApiToken?.trim()
     if (!botToken) return
+
+    const postLink = (channelId && postId) ? buildPostLink(channelId, postId, commentId) : ''
+    const text = postLink
+      ? `게시물이 등록되었습니다.\n${postLink}`
+      : '게시물이 등록되었습니다.'
 
     for (const name of names) {
       const r = await db.query(
@@ -67,7 +72,7 @@ async function notifyMentionedUsers(content) {
       fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ chat_id: chatId, text: '게시물이 등록되었습니다.' }),
+        body: JSON.stringify({ chat_id: chatId, text }),
       }).catch(() => {})
     }
   } catch (e) {
@@ -595,7 +600,10 @@ router.post('/', requireAuth, async (req, res, next) => {
       else clearTrainingStatus('post', postId)
     })()
 
-    notifyMentionedUsers(content)
+    notifyMentionedUsers(content, {
+      channelId,
+      postId,
+    })
     notifyAuthorTelegramPostRegistered({
       authorId: req.user.id,
       channelId,
@@ -760,7 +768,11 @@ router.post('/:id/comments', requireAuth, async (req, res, next) => {
       else clearTrainingStatus('comment', commentId)
     })()
 
-    notifyMentionedUsers(safeContent)
+    notifyMentionedUsers(safeContent, {
+      channelId: channelId || (await findPostLocator(postId))?.channel_id || '',
+      postId,
+      commentId,
+    })
     notifyAuthorTelegramPostRegistered({
       authorId: req.user.id,
       channelId: channelId || (await findPostLocator(postId))?.channel_id || '',
