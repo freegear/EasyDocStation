@@ -5,21 +5,34 @@ NVIDIA GB10, 580.95.05, [N/A]
 [1/8] Ubuntu 패키지 설치
 기존:1 https://repo.download.nvidia.com/baseos/ubuntu/noble/arm64 noble InRelease
 기존:2 https://repo.download.nvidia.com/baseos/ubuntu/noble/arm64 noble-updates InRelease
-기존:4 https://ppa.launchpadcontent.net/canonical-nvidia/linux-firmware-mbssid-patches/ubuntu noble InRelease
-기존:5 http://ports.ubuntu.com/ubuntu-ports noble InRelease
-받기:6 https://esm.ubuntu.com/apps/ubuntu noble-apps-security InRelease [8,371 B]
-기존:7 https://ppa.launchpadcontent.net/canonical-nvidia/nvidia-desktop-edge/ubuntu noble InRelease
-기존:8 https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/sbsa  InRelease
-기존:9 http://ports.ubuntu.com/ubuntu-ports noble-updates InRelease
-기존:10 https://developer.download.nvidia.com/hpc-sdk/ubuntu/arm64  InRelease
+기존:3 http://ports.ubuntu.com/ubuntu-ports noble InRelease
+받기:5 http://ports.ubuntu.com/ubuntu-ports noble-updates InRelease [126 kB]
+기존:6 https://ppa.launchpadcontent.net/canonical-nvidia/linux-firmware-mbssid-patches/ubuntu noble InRelease
+기존:7 https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/sbsa  InRelease
+받기:8 https://esm.ubuntu.com/apps/ubuntu noble-apps-security InRelease [8,371 B]
+기존:9 https://ppa.launchpadcontent.net/canonical-nvidia/nvidia-desktop-edge/ubuntu noble InRelease
+기존:4 https://apache.jfrog.io/artifactory/cassandra-deb 41x InRelease
+기존:10 https://ppa.launchpadcontent.net/canonical-nvidia/vulkan-packages-nv-desktop/ubuntu noble InRelease
 받기:11 https://esm.ubuntu.com/apps/ubuntu noble-apps-updates InRelease [8,220 B]
-기존:3 https://apache.jfrog.io/artifactory/cassandra-deb 41x InRelease
-기존:12 https://ppa.launchpadcontent.net/canonical-nvidia/vulkan-packages-nv-desktop/ubuntu noble InRelease
+받기:12 https://esm.ubuntu.com/infra/ubuntu noble-infra-security InRelease [8,235 B]
 기존:13 http://ports.ubuntu.com/ubuntu-ports noble-backports InRelease
-받기:14 https://esm.ubuntu.com/infra/ubuntu noble-infra-security InRelease [8,235 B]
-기존:15 http://ports.ubuntu.com/ubuntu-ports noble-security InRelease
-받기:16 https://esm.ubuntu.com/infra/ubuntu noble-infra-updates InRelease [8,213 B]
-내려받기 33.0 k바이트, 소요시간 2초 (16.1 k바이트/초)
+기존:14 https://developer.download.nvidia.com/hpc-sdk/ubuntu/arm64  InRelease
+받기:15 https://esm.ubuntu.com/infra/ubuntu noble-infra-updates InRelease [8,213 B]
+받기:16 http://ports.ubuntu.com/ubuntu-ports noble-security InRelease [126 kB]
+받기:17 https://esm.ubuntu.com/apps/ubuntu noble-apps-security/main arm64 Packages [289 kB]
+받기:18 http://ports.ubuntu.com/ubuntu-ports noble-updates/main arm64 Packages [2,044 kB]
+받기:19 http://ports.ubuntu.com/ubuntu-ports noble-updates/main Translation-en [346 kB]
+받기:20 http://ports.ubuntu.com/ubuntu-ports noble-updates/main arm64 c-n-f Metadata [16.8 kB]
+받기:21 http://ports.ubuntu.com/ubuntu-ports noble-updates/universe arm64 Packages [1,663 kB]
+받기:22 http://ports.ubuntu.com/ubuntu-ports noble-updates/universe arm64 c-n-f Metadata [33.0 kB]
+받기:23 http://ports.ubuntu.com/ubuntu-ports noble-security/main arm64 Packages [1,764 kB]
+받기:24 http://ports.ubuntu.com/ubuntu-ports noble-security/main Translation-en [259 kB]
+받기:25 http://ports.ubuntu.com/ubuntu-ports noble-security/main arm64 c-n-f Metadata [10.7 kB]
+받기:26 http://ports.ubuntu.com/ubuntu-ports noble-security/restricted arm64 Packages [4,118 kB]
+받기:27 http://ports.ubuntu.com/ubuntu-ports noble-security/restricted Translation-en [666 kB]
+받기:28 http://ports.ubuntu.com/ubuntu-ports noble-security/universe arm64 Packages [1,192 kB]
+받기:29 http://ports.ubuntu.com/ubuntu-ports noble-security/universe arm64 c-n-f Metadata [22.5 kB]
+내려받기 12.7 M바이트, 소요시간 5초 (2,486 k바이트/초)
 패키지 목록을 읽는 중입니다...
 패키지 목록을 읽는 중입니다...
 의존성 트리를 만드는 중입니다...
@@ -47,7 +60,7 @@ NVIDIA GB10, 580.95.05, [N/A]
 패키지 tesseract-ocr는 이미 최신 버전입니다 (5.3.4-1build5).
 패키지 tesseract-ocr-eng는 이미 최신 버전입니다 (1:4.1.0-2).
 패키지 tesseract-ocr-kor는 이미 최신 버전입니다 (1:4.1.0-2).
-0개 업그레이드, 0개 새로 설치, 0개 제거 및 513개 업그레이드 안 함.
+0개 업그레이드, 0개 새로 설치, 0개 제거 및 520개 업그레이드 안 함.
 [2/8] PostgreSQL 서비스 기동
 [2-0/8] CUPS 인쇄 서비스 기동
 [3/8] PostgreSQL DB/계정 준비
@@ -85,23 +98,80 @@ psql:/home/freegear/EasyDocStation/server/schema.sql:204: NOTICE:  relation "idx
 psql:/home/freegear/EasyDocStation/server/schema.sql:205: NOTICE:  relation "idx_channel_members_ch" already exists, skipping
 psql:/home/freegear/EasyDocStation/server/schema.sql:206: NOTICE:  relation "idx_posts_channel" already exists, skipping
 psql:/home/freegear/EasyDocStation/server/schema.sql:207: NOTICE:  relation "idx_attachments_post" already exists, skipping
-[4/8] Cassandra 설치는 건너뜀 (INSTALL_CASSANDRA=1 로 활성화 가능)
+[4/8] Cassandra 설치/기동
+기존:1 https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/sbsa  InRelease
+기존:2 https://repo.download.nvidia.com/baseos/ubuntu/noble/arm64 noble InRelease
+기존:3 https://repo.download.nvidia.com/baseos/ubuntu/noble/arm64 noble-updates InRelease
+기존:4 http://ports.ubuntu.com/ubuntu-ports noble InRelease
+기존:6 http://ports.ubuntu.com/ubuntu-ports noble-updates InRelease
+기존:7 https://ppa.launchpadcontent.net/canonical-nvidia/linux-firmware-mbssid-patches/ubuntu noble InRelease
+기존:8 https://esm.ubuntu.com/apps/ubuntu noble-apps-security InRelease
+기존:9 https://developer.download.nvidia.com/hpc-sdk/ubuntu/arm64  InRelease
+기존:10 http://ports.ubuntu.com/ubuntu-ports noble-backports InRelease
+기존:11 https://ppa.launchpadcontent.net/canonical-nvidia/nvidia-desktop-edge/ubuntu noble InRelease
+기존:12 https://esm.ubuntu.com/apps/ubuntu noble-apps-updates InRelease
+기존:13 https://ppa.launchpadcontent.net/canonical-nvidia/vulkan-packages-nv-desktop/ubuntu noble InRelease
+기존:14 http://ports.ubuntu.com/ubuntu-ports noble-security InRelease
+기존:15 https://esm.ubuntu.com/infra/ubuntu noble-infra-security InRelease
+기존:16 https://esm.ubuntu.com/infra/ubuntu noble-infra-updates InRelease
+받기:5 https://apache.jfrog.io/artifactory/cassandra-deb 50x InRelease [3,902 B]
+받기:17 https://apache.jfrog.io/artifactory/cassandra-deb 50x/main arm64 Packages [696 B]
+내려받기 4,598 바이트, 소요시간 3초 (1,593 바이트/초)
+패키지 목록을 읽는 중입니다...
+패키지 목록을 읽는 중입니다...
+의존성 트리를 만드는 중입니다...
+상태 정보를 읽는 중입니다...
+제안하는 패키지:
+  cassandra-tools
+다음 새 패키지를 설치할 것입니다:
+  cassandra
+0개 업그레이드, 1개 새로 설치, 0개 제거 및 520개 업그레이드 안 함.
+71.1 M바이트 아카이브를 받아야 합니다.
+이 작업 후 83.7 M바이트의 디스크 공간을 더 사용하게 됩니다.
+받기:1 https://apache.jfrog.io/artifactory/cassandra-deb 50x/main arm64 cassandra all 5.0.8 [71.1 MB]
+내려받기 71.1 M바이트, 소요시간 9초 (7,534 k바이트/초)
+Selecting previously unselected package cassandra.
+(데이터베이스 읽는중 ...(데이터베이스 읽는중 ...5%(데이터베이스 읽는중 ...10%(데이터베이스 읽는중 ...15%(데이터베이스 읽는중 ...20%(데이터베이스 읽는중 ...25%(데이터베이스 읽는중 ...30%(데이터베이스 읽는중 ...35%(데이터베이스 읽는중 ...40%(데이터베이스 읽는중 ...45%(데이터베이스 읽는중 ...50%(데이터베이스 읽는중 ...55%(데이터베이스 읽는중 ...60%(데이터베이스 읽는중 ...65%(데이터베이스 읽는중 ...70%(데이터베이스 읽는중 ...75%(데이터베이스 읽는중 ...80%(데이터베이스 읽는중 ...85%(데이터베이스 읽는중 ...90%(데이터베이스 읽는중 ...95%(데이터베이스 읽는중 ...100%(데이터베이스 읽는중 ...현재 298132개의 파일과 디렉터리가 설치되어 있습니다.)
+Preparing to unpack .../cassandra_5.0.8_all.deb ...
+Unpacking cassandra (5.0.8) ...
+cassandra (5.0.8) 설정하는 중입니다 ...
+info: Selecting GID from range 100 to 999 ...
+info: Adding group `cassandra' (GID 127) ...
+vm.max_map_count = 1048575
+net.ipv4.tcp_keepalive_time = 300
+update-rc.d: warning: start and stop actions are no longer supported; falling back to defaults
+
+Running kernel seems to be up-to-date.
+
+The processor microcode seems to be up-to-date.
+
+Restarting services...
+ systemctl restart plymouth.service
+
+No containers need to be restarted.
+
+No user sessions are running outdated binaries.
+
+No VM guests are running outdated hypervisor (qemu) binaries on this host.
 [5/8] Ollama 설치는 건너뜀 (INSTALL_OLLAMA=1 로 활성화 가능)
 [6/8] Node 패키지 설치
 
-added 1 package, and audited 437 packages in 593ms
+up to date, audited 442 packages in 543ms
 
-176 packages are looking for funding
+180 packages are looking for funding
   run `npm fund` for details
 
-3 moderate severity vulnerabilities
+5 moderate severity vulnerabilities
 
-To address all issues, run:
+To address issues that do not require attention, run:
   npm audit fix
+
+Some issues need review, and may require choosing
+a different dependency.
 
 Run `npm audit` for details.
 
-up to date, audited 144 packages in 448ms
+up to date, audited 144 packages in 324ms
 
 24 packages are looking for funding
   run `npm fund` for details
@@ -116,14 +186,15 @@ Run `npm audit` for details.
 [7/8] Python venv 및 RAG 의존성 설치
 Requirement already satisfied: pip in ./.venv/lib/python3.12/site-packages (24.0)
 Collecting pip
-  Using cached pip-26.0.1-py3-none-any.whl.metadata (4.7 kB)
+  Downloading pip-26.1-py3-none-any.whl.metadata (4.6 kB)
 Collecting wheel
   Using cached wheel-0.47.0-py3-none-any.whl.metadata (2.3 kB)
 Collecting packaging
   Using cached packaging-26.2-py3-none-any.whl.metadata (3.5 kB)
 Collecting setuptools<82
   Using cached setuptools-81.0.0-py3-none-any.whl.metadata (6.6 kB)
-Using cached pip-26.0.1-py3-none-any.whl (1.8 MB)
+Downloading pip-26.1-py3-none-any.whl (1.8 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.8/1.8 MB 25.0 MB/s eta 0:00:00
 Using cached wheel-0.47.0-py3-none-any.whl (32 kB)
 Using cached packaging-26.2-py3-none-any.whl (100 kB)
 Using cached setuptools-81.0.0-py3-none-any.whl (1.1 MB)
@@ -132,7 +203,7 @@ Installing collected packages: setuptools, pip, packaging, wheel
     Found existing installation: pip 24.0
     Uninstalling pip-24.0:
       Successfully uninstalled pip-24.0
-Successfully installed packaging-26.2 pip-26.0.1 setuptools-81.0.0 wheel-0.47.0
+Successfully installed packaging-26.2 pip-26.1 setuptools-81.0.0 wheel-0.47.0
 Collecting torch>=2.6 (from -r /home/freegear/EasyDocStation/server/requirements.txt (line 1))
   Using cached torch-2.11.0-cp312-cp312-manylinux_2_28_aarch64.whl.metadata (29 kB)
 Collecting sentence-transformers (from -r /home/freegear/EasyDocStation/server/requirements.txt (line 2))
@@ -224,7 +295,7 @@ Collecting regex>=2025.10.22 (from transformers<6.0.0,>=4.41.0->sentence-transfo
 Collecting tokenizers<=0.23.0,>=0.22.0 (from transformers<6.0.0,>=4.41.0->sentence-transformers->-r /home/freegear/EasyDocStation/server/requirements.txt (line 2))
   Using cached tokenizers-0.22.2-cp39-abi3-manylinux_2_17_aarch64.manylinux2014_aarch64.whl.metadata (7.3 kB)
 Collecting typer (from transformers<6.0.0,>=4.41.0->sentence-transformers->-r /home/freegear/EasyDocStation/server/requirements.txt (line 2))
-  Using cached typer-0.24.2-py3-none-any.whl.metadata (15 kB)
+  Using cached typer-0.25.0-py3-none-any.whl.metadata (15 kB)
 Collecting safetensors>=0.4.3 (from transformers<6.0.0,>=4.41.0->sentence-transformers->-r /home/freegear/EasyDocStation/server/requirements.txt (line 2))
   Using cached safetensors-0.7.0-cp38-abi3-manylinux_2_17_aarch64.manylinux2014_aarch64.whl.metadata (4.1 kB)
 Collecting hf-xet<2.0.0,>=1.4.3 (from huggingface-hub>=0.23.0->sentence-transformers->-r /home/freegear/EasyDocStation/server/requirements.txt (line 2))
@@ -274,7 +345,7 @@ Collecting dataclasses-json<0.7.0,>=0.6.7 (from langchain-community->-r /home/fr
 Collecting pydantic-settings<3.0.0,>=2.10.1 (from langchain-community->-r /home/freegear/EasyDocStation/server/requirements.txt (line 5))
   Using cached pydantic_settings-2.14.0-py3-none-any.whl.metadata (3.4 kB)
 Collecting langsmith<1.0.0,>=0.1.125 (from langchain-community->-r /home/freegear/EasyDocStation/server/requirements.txt (line 5))
-  Using cached langsmith-0.7.36-py3-none-any.whl.metadata (15 kB)
+  Downloading langsmith-0.7.37-py3-none-any.whl.metadata (15 kB)
 Collecting httpx-sse<1.0.0,>=0.4.0 (from langchain-community->-r /home/freegear/EasyDocStation/server/requirements.txt (line 5))
   Using cached httpx_sse-0.4.3-py3-none-any.whl.metadata (9.7 kB)
 Collecting aiohappyeyeballs>=2.5.0 (from aiohttp<4.0.0,>=3.8.3->langchain-community->-r /home/freegear/EasyDocStation/server/requirements.txt (line 5))
@@ -322,7 +393,7 @@ Collecting python-dotenv>=0.21.0 (from pydantic-settings<3.0.0,>=2.10.1->langcha
 Collecting urllib3<3,>=1.26 (from requests<3.0.0,>=2.32.5->langchain-community->-r /home/freegear/EasyDocStation/server/requirements.txt (line 5))
   Using cached urllib3-2.6.3-py3-none-any.whl.metadata (6.9 kB)
 Collecting greenlet>=1 (from SQLAlchemy<3.0.0,>=1.4.0->langchain-community->-r /home/freegear/EasyDocStation/server/requirements.txt (line 5))
-  Using cached greenlet-3.4.0-cp312-cp312-manylinux_2_24_aarch64.manylinux_2_28_aarch64.whl.metadata (3.7 kB)
+  Downloading greenlet-3.5.0-cp312-cp312-manylinux_2_24_aarch64.manylinux_2_28_aarch64.whl.metadata (3.7 kB)
 Collecting mypy-extensions>=0.3.0 (from typing-inspect<1,>=0.4.0->dataclasses-json<0.7.0,>=0.6.7->langchain-community->-r /home/freegear/EasyDocStation/server/requirements.txt (line 5))
   Using cached mypy_extensions-1.1.0-py3-none-any.whl.metadata (1.1 kB)
 Collecting beautifulsoup4<5.0.0,>=4.14.3 (from unstructured[pdf]->-r /home/freegear/EasyDocStation/server/requirements.txt (line 9))
@@ -368,7 +439,7 @@ Collecting pikepdf<11.0.0,>=10.3.0 (from unstructured[pdf]->-r /home/freegear/Ea
 Collecting pypdf<7.0.0,>=6.6.2 (from unstructured[pdf]->-r /home/freegear/EasyDocStation/server/requirements.txt (line 9))
   Using cached pypdf-6.10.2-py3-none-any.whl.metadata (7.1 kB)
 Collecting unstructured-inference<2.0.0,>=1.6.6 (from unstructured[pdf]->-r /home/freegear/EasyDocStation/server/requirements.txt (line 9))
-  Using cached unstructured_inference-1.6.7-py3-none-any.whl.metadata (5.5 kB)
+  Downloading unstructured_inference-1.6.10-py3-none-any.whl.metadata (5.6 kB)
 Collecting unstructured-pytesseract<1.0.0,>=0.3.15 (from unstructured[pdf]->-r /home/freegear/EasyDocStation/server/requirements.txt (line 9))
   Using cached unstructured.pytesseract-0.3.15-py3-none-any.whl.metadata (11 kB)
 Collecting soupsieve>=1.6.1 (from beautifulsoup4<5.0.0,>=4.14.3->unstructured[pdf]->-r /home/freegear/EasyDocStation/server/requirements.txt (line 9))
@@ -429,7 +500,7 @@ Collecting blis<1.4.0,>=1.3.0 (from thinc<8.4.0,>=8.3.12->spacy<4.0.0,>=3.7.0->u
   Using cached blis-1.3.3-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.whl.metadata (7.5 kB)
 Collecting shellingham>=1.3.0 (from typer->transformers<6.0.0,>=4.41.0->sentence-transformers->-r /home/freegear/EasyDocStation/server/requirements.txt (line 2))
   Using cached shellingham-1.5.4-py2.py3-none-any.whl.metadata (3.5 kB)
-Collecting rich>=12.3.0 (from typer->transformers<6.0.0,>=4.41.0->sentence-transformers->-r /home/freegear/EasyDocStation/server/requirements.txt (line 2))
+Collecting rich>=13.8.0 (from typer->transformers<6.0.0,>=4.41.0->sentence-transformers->-r /home/freegear/EasyDocStation/server/requirements.txt (line 2))
   Using cached rich-15.0.0-py3-none-any.whl.metadata (18 kB)
 Collecting annotated-doc>=0.0.2 (from typer->transformers<6.0.0,>=4.41.0->sentence-transformers->-r /home/freegear/EasyDocStation/server/requirements.txt (line 2))
   Using cached annotated_doc-0.0.4-py3-none-any.whl.metadata (6.6 kB)
@@ -441,7 +512,7 @@ Collecting matplotlib>=3.10.8 (from unstructured-inference<2.0.0,>=1.6.6->unstru
   Using cached matplotlib-3.10.9-cp312-cp312-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl.metadata (52 kB)
 Collecting onnx>=1.20.1 (from unstructured-inference<2.0.0,>=1.6.6->unstructured[pdf]->-r /home/freegear/EasyDocStation/server/requirements.txt (line 9))
   Using cached onnx-1.21.0-cp312-abi3-manylinux_2_26_aarch64.manylinux_2_28_aarch64.whl.metadata (8.5 kB)
-Collecting onnxruntime>=1.18.0 (from unstructured-inference<2.0.0,>=1.6.6->unstructured[pdf]->-r /home/freegear/EasyDocStation/server/requirements.txt (line 9))
+Collecting onnxruntime>=1.25.0 (from unstructured-inference<2.0.0,>=1.6.6->unstructured[pdf]->-r /home/freegear/EasyDocStation/server/requirements.txt (line 9))
   Using cached onnxruntime-1.25.0-cp312-cp312-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl.metadata (5.2 kB)
 Collecting opencv-python>=4.13.0.90 (from unstructured-inference<2.0.0,>=1.6.6->unstructured[pdf]->-r /home/freegear/EasyDocStation/server/requirements.txt (line 9))
   Using cached opencv_python-4.13.0.92-cp37-abi3-manylinux_2_28_aarch64.whl.metadata (19 kB)
@@ -473,15 +544,15 @@ Collecting pyparsing>=3 (from matplotlib>=3.10.8->unstructured-inference<2.0.0,>
   Using cached pyparsing-3.3.2-py3-none-any.whl.metadata (5.8 kB)
 Collecting ml_dtypes>=0.5.0 (from onnx>=1.20.1->unstructured-inference<2.0.0,>=1.6.6->unstructured[pdf]->-r /home/freegear/EasyDocStation/server/requirements.txt (line 9))
   Using cached ml_dtypes-0.5.4-cp312-cp312-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl.metadata (8.9 kB)
-Collecting flatbuffers (from onnxruntime>=1.18.0->unstructured-inference<2.0.0,>=1.6.6->unstructured[pdf]->-r /home/freegear/EasyDocStation/server/requirements.txt (line 9))
+Collecting flatbuffers (from onnxruntime>=1.25.0->unstructured-inference<2.0.0,>=1.6.6->unstructured[pdf]->-r /home/freegear/EasyDocStation/server/requirements.txt (line 9))
   Using cached flatbuffers-25.12.19-py2.py3-none-any.whl.metadata (1.0 kB)
 Collecting pyasn1<0.7.0,>=0.6.1 (from pyasn1-modules>=0.2.1->google-auth!=2.24.0,!=2.25.0,<3.0.0,>=2.14.1->google-cloud-vision<4.0.0,>=3.12.1->unstructured[pdf]->-r /home/freegear/EasyDocStation/server/requirements.txt (line 9))
   Using cached pyasn1-0.6.3-py3-none-any.whl.metadata (8.4 kB)
-Collecting markdown-it-py>=2.2.0 (from rich>=12.3.0->typer->transformers<6.0.0,>=4.41.0->sentence-transformers->-r /home/freegear/EasyDocStation/server/requirements.txt (line 2))
+Collecting markdown-it-py>=2.2.0 (from rich>=13.8.0->typer->transformers<6.0.0,>=4.41.0->sentence-transformers->-r /home/freegear/EasyDocStation/server/requirements.txt (line 2))
   Using cached markdown_it_py-4.0.0-py3-none-any.whl.metadata (7.3 kB)
-Collecting pygments<3.0.0,>=2.13.0 (from rich>=12.3.0->typer->transformers<6.0.0,>=4.41.0->sentence-transformers->-r /home/freegear/EasyDocStation/server/requirements.txt (line 2))
+Collecting pygments<3.0.0,>=2.13.0 (from rich>=13.8.0->typer->transformers<6.0.0,>=4.41.0->sentence-transformers->-r /home/freegear/EasyDocStation/server/requirements.txt (line 2))
   Using cached pygments-2.20.0-py3-none-any.whl.metadata (2.5 kB)
-Collecting mdurl~=0.1 (from markdown-it-py>=2.2.0->rich>=12.3.0->typer->transformers<6.0.0,>=4.41.0->sentence-transformers->-r /home/freegear/EasyDocStation/server/requirements.txt (line 2))
+Collecting mdurl~=0.1 (from markdown-it-py>=2.2.0->rich>=13.8.0->typer->transformers<6.0.0,>=4.41.0->sentence-transformers->-r /home/freegear/EasyDocStation/server/requirements.txt (line 2))
   Using cached mdurl-0.1.2-py3-none-any.whl.metadata (1.6 kB)
 Collecting joblib>=1.3.0 (from scikit-learn>=0.22.0->sentence-transformers->-r /home/freegear/EasyDocStation/server/requirements.txt (line 2))
   Using cached joblib-1.5.3-py3-none-any.whl.metadata (5.5 kB)
@@ -531,7 +602,7 @@ Using cached langchain_classic-1.0.4-py3-none-any.whl (1.0 MB)
 Using cached langchain_text_splitters-1.1.2-py3-none-any.whl (35 kB)
 Using cached langchain_core-1.3.2-py3-none-any.whl (542 kB)
 Using cached jsonpatch-1.33-py2.py3-none-any.whl (12 kB)
-Using cached langsmith-0.7.36-py3-none-any.whl (381 kB)
+Downloading langsmith-0.7.37-py3-none-any.whl (385 kB)
 Using cached marshmallow-3.26.2-py3-none-any.whl (50 kB)
 Using cached multidict-6.7.1-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl (258 kB)
 Using cached pydantic-2.13.3-py3-none-any.whl (471 kB)
@@ -591,9 +662,9 @@ Using cached srsly-2.5.3-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch6
 Using cached thinc-8.3.13-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.whl (3.9 MB)
 Using cached blis-1.3.3-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.whl (2.8 MB)
 Using cached tqdm-4.67.3-py3-none-any.whl (78 kB)
-Using cached typer-0.24.2-py3-none-any.whl (55 kB)
+Using cached typer-0.25.0-py3-none-any.whl (55 kB)
 Using cached unstructured_client-0.43.2-py3-none-any.whl (224 kB)
-Using cached unstructured_inference-1.6.7-py3-none-any.whl (54 kB)
+Downloading unstructured_inference-1.6.10-py3-none-any.whl (55 kB)
 Using cached unstructured.pytesseract-0.3.15-py3-none-any.whl (14 kB)
 Using cached wasabi-1.1.3-py3-none-any.whl (27 kB)
 Using cached weasel-1.0.0-py3-none-any.whl (50 kB)
@@ -614,7 +685,8 @@ Using cached cffi-2.0.0-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64
 Using cached deprecation-2.1.0-py2.py3-none-any.whl (11 kB)
 Using cached frozenlist-1.8.0-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl (243 kB)
 Using cached fsspec-2026.3.0-py3-none-any.whl (202 kB)
-Using cached greenlet-3.4.0-cp312-cp312-manylinux_2_24_aarch64.manylinux_2_28_aarch64.whl (606 kB)
+Downloading greenlet-3.5.0-cp312-cp312-manylinux_2_24_aarch64.manylinux_2_28_aarch64.whl (601 kB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 601.8/601.8 kB 26.3 MB/s  0:00:00
 Using cached h11-0.16.0-py3-none-any.whl (37 kB)
 Using cached jsonpointer-3.1.1-py3-none-any.whl (7.7 kB)
 Using cached lance_namespace-0.7.2-py3-none-any.whl (12 kB)
@@ -672,7 +744,7 @@ Using cached torchvision-0.26.0-cp312-cp312-manylinux_2_28_aarch64.whl (7.8 MB)
 Using cached webencodings-0.5.1-py2.py3-none-any.whl (11 kB)
 Installing collected packages: webencodings, nvidia-cusparselt-cu13, mpmath, flatbuffers, filetype, docx2txt, cuda-toolkit, zstandard, xxhash, wrapt, wasabi, uuid-utils, urllib3, typing-extensions, triton, tqdm, threadpoolctl, tenacity, sympy, spacy-loggers, spacy-legacy, soupsieve, six, shellingham, safetensors, regex, rapidfuzz, pyyaml, python-magic, python-iso639, python-dotenv, pypdfium2, pypdf, pyparsing, pygments, pycparser, pyasn1, pyarrow, psutil, protobuf, propcache, Pillow, orjson, olefile, nvidia-nvtx, nvidia-nvshmem-cu13, nvidia-nvjitlink, nvidia-nccl-cu13, nvidia-curand, nvidia-cufile, nvidia-cuda-runtime, nvidia-cuda-nvrtc, nvidia-cuda-cupti, nvidia-cublas, numpy, networkx, mypy-extensions, murmurhash, multidict, mdurl, marshmallow, MarkupSafe, lxml, llvmlite, kiwisolver, jsonpointer, joblib, installer, idna, httpx-sse, hf-xet, h11, greenlet, fsspec, frozenlist, fonttools, filelock, emoji, deprecation, cymem, cycler, cuda-pathfinder, confection, cloudpathlib, click, charset-normalizer, certifi, catalogue, attrs, annotated-types, annotated-doc, aiohappyeyeballs, aiofiles, yarl, unstructured-pytesseract, typing-inspection, typing-inspect, srsly, SQLAlchemy, smart-open, scipy, requests, python-oxmsg, python-dateutil, pytesseract, pydantic-core, pyasn1-modules, proto-plus, preshed, pi-heif, pdf2image, opencv-python, onnxruntime, nvidia-cusparse, nvidia-cufft, nvidia-cudnn-cu13, numba, ml_dtypes, markdown-it-py, langdetect, langchain-protocol, jsonpatch, jinja2, httpcore, html5lib, grpcio, googleapis-common-protos, Deprecated, cuda-bindings, contourpy, cffi, blis, beautifulsoup4, anyio, aiosignal, scikit-learn, rich, requests-toolbelt, pydantic, pikepdf, pandas, onnx, nvidia-cusolver, matplotlib, httpx, grpcio-status, dataclasses-json, cryptography, aiohttp, unstructured-client, typer, thinc, pydantic-settings, pdfminer.six, langsmith, lance-namespace-urllib3-client, google-auth, weasel, torch, pdfplumber, langchain-core, lance-namespace, huggingface-hub, google-api-core, torchvision, tokenizers, spacy, langchain-text-splitters, lancedb, accelerate, unstructured, transformers, timm, langchain-classic, google-cloud-vision, unstructured-inference, sentence-transformers, langchain-community
 
-Successfully installed Deprecated-1.3.1 MarkupSafe-3.0.3 Pillow-12.2.0 SQLAlchemy-2.0.49 accelerate-1.13.0 aiofiles-25.1.0 aiohappyeyeballs-2.6.1 aiohttp-3.13.5 aiosignal-1.4.0 annotated-doc-0.0.4 annotated-types-0.7.0 anyio-4.13.0 attrs-26.1.0 beautifulsoup4-4.14.3 blis-1.3.3 catalogue-2.0.10 certifi-2026.4.22 cffi-2.0.0 charset-normalizer-3.4.7 click-8.3.3 cloudpathlib-0.23.0 confection-1.3.3 contourpy-1.3.3 cryptography-47.0.0 cuda-bindings-13.2.0 cuda-pathfinder-1.5.3 cuda-toolkit-13.0.2 cycler-0.12.1 cymem-2.0.13 dataclasses-json-0.6.7 deprecation-2.1.0 docx2txt-0.9 emoji-2.15.0 filelock-3.29.0 filetype-1.2.0 flatbuffers-25.12.19 fonttools-4.62.1 frozenlist-1.8.0 fsspec-2026.3.0 google-api-core-2.30.3 google-auth-2.49.2 google-cloud-vision-3.13.0 googleapis-common-protos-1.74.0 greenlet-3.4.0 grpcio-1.80.0 grpcio-status-1.80.0 h11-0.16.0 hf-xet-1.4.3 html5lib-1.1 httpcore-1.0.9 httpx-0.28.1 httpx-sse-0.4.3 huggingface-hub-1.12.0 idna-3.13 installer-0.7.0 jinja2-3.1.6 joblib-1.5.3 jsonpatch-1.33 jsonpointer-3.1.1 kiwisolver-1.5.0 lance-namespace-0.7.2 lance-namespace-urllib3-client-0.7.2 lancedb-0.30.2 langchain-classic-1.0.4 langchain-community-0.4.1 langchain-core-1.3.2 langchain-protocol-0.0.12 langchain-text-splitters-1.1.2 langdetect-1.0.9 langsmith-0.7.36 llvmlite-0.47.0 lxml-6.1.0 markdown-it-py-4.0.0 marshmallow-3.26.2 matplotlib-3.10.9 mdurl-0.1.2 ml_dtypes-0.5.4 mpmath-1.3.0 multidict-6.7.1 murmurhash-1.0.15 mypy-extensions-1.1.0 networkx-3.6.1 numba-0.65.1 numpy-2.4.4 nvidia-cublas-13.1.0.3 nvidia-cuda-cupti-13.0.85 nvidia-cuda-nvrtc-13.0.88 nvidia-cuda-runtime-13.0.96 nvidia-cudnn-cu13-9.19.0.56 nvidia-cufft-12.0.0.61 nvidia-cufile-1.15.1.6 nvidia-curand-10.4.0.35 nvidia-cusolver-12.0.4.66 nvidia-cusparse-12.6.3.3 nvidia-cusparselt-cu13-0.8.0 nvidia-nccl-cu13-2.28.9 nvidia-nvjitlink-13.0.88 nvidia-nvshmem-cu13-3.4.5 nvidia-nvtx-13.0.85 olefile-0.47 onnx-1.21.0 onnxruntime-1.25.0 opencv-python-4.13.0.92 orjson-3.11.8 pandas-3.0.2 pdf2image-1.17.0 pdfminer.six-20251230 pdfplumber-0.11.9 pi-heif-1.3.0 pikepdf-10.5.1 preshed-3.0.13 propcache-0.4.1 proto-plus-1.27.2 protobuf-6.33.6 psutil-7.2.2 pyarrow-24.0.0 pyasn1-0.6.3 pyasn1-modules-0.4.2 pycparser-3.0 pydantic-2.13.3 pydantic-core-2.46.3 pydantic-settings-2.14.0 pygments-2.20.0 pyparsing-3.3.2 pypdf-6.10.2 pypdfium2-5.7.1 pytesseract-0.3.13 python-dateutil-2.9.0.post0 python-dotenv-1.2.2 python-iso639-2026.4.20 python-magic-0.4.27 python-oxmsg-0.0.2 pyyaml-6.0.3 rapidfuzz-3.14.5 regex-2026.4.4 requests-2.33.1 requests-toolbelt-1.0.0 rich-15.0.0 safetensors-0.7.0 scikit-learn-1.8.0 scipy-1.17.1 sentence-transformers-5.4.1 shellingham-1.5.4 six-1.17.0 smart-open-7.6.0 soupsieve-2.8.3 spacy-3.8.14 spacy-legacy-3.0.12 spacy-loggers-1.0.5 srsly-2.5.3 sympy-1.14.0 tenacity-9.1.4 thinc-8.3.13 threadpoolctl-3.6.0 timm-1.0.26 tokenizers-0.22.2 torch-2.11.0 torchvision-0.26.0 tqdm-4.67.3 transformers-5.6.2 triton-3.6.0 typer-0.24.2 typing-extensions-4.15.0 typing-inspect-0.9.0 typing-inspection-0.4.2 unstructured-0.22.23 unstructured-client-0.43.2 unstructured-inference-1.6.7 unstructured-pytesseract-0.3.15 urllib3-2.6.3 uuid-utils-0.14.1 wasabi-1.1.3 weasel-1.0.0 webencodings-0.5.1 wrapt-2.1.2 xxhash-3.7.0 yarl-1.23.0 zstandard-0.25.0
+Successfully installed Deprecated-1.3.1 MarkupSafe-3.0.3 Pillow-12.2.0 SQLAlchemy-2.0.49 accelerate-1.13.0 aiofiles-25.1.0 aiohappyeyeballs-2.6.1 aiohttp-3.13.5 aiosignal-1.4.0 annotated-doc-0.0.4 annotated-types-0.7.0 anyio-4.13.0 attrs-26.1.0 beautifulsoup4-4.14.3 blis-1.3.3 catalogue-2.0.10 certifi-2026.4.22 cffi-2.0.0 charset-normalizer-3.4.7 click-8.3.3 cloudpathlib-0.23.0 confection-1.3.3 contourpy-1.3.3 cryptography-47.0.0 cuda-bindings-13.2.0 cuda-pathfinder-1.5.3 cuda-toolkit-13.0.2 cycler-0.12.1 cymem-2.0.13 dataclasses-json-0.6.7 deprecation-2.1.0 docx2txt-0.9 emoji-2.15.0 filelock-3.29.0 filetype-1.2.0 flatbuffers-25.12.19 fonttools-4.62.1 frozenlist-1.8.0 fsspec-2026.3.0 google-api-core-2.30.3 google-auth-2.49.2 google-cloud-vision-3.13.0 googleapis-common-protos-1.74.0 greenlet-3.5.0 grpcio-1.80.0 grpcio-status-1.80.0 h11-0.16.0 hf-xet-1.4.3 html5lib-1.1 httpcore-1.0.9 httpx-0.28.1 httpx-sse-0.4.3 huggingface-hub-1.12.0 idna-3.13 installer-0.7.0 jinja2-3.1.6 joblib-1.5.3 jsonpatch-1.33 jsonpointer-3.1.1 kiwisolver-1.5.0 lance-namespace-0.7.2 lance-namespace-urllib3-client-0.7.2 lancedb-0.30.2 langchain-classic-1.0.4 langchain-community-0.4.1 langchain-core-1.3.2 langchain-protocol-0.0.12 langchain-text-splitters-1.1.2 langdetect-1.0.9 langsmith-0.7.37 llvmlite-0.47.0 lxml-6.1.0 markdown-it-py-4.0.0 marshmallow-3.26.2 matplotlib-3.10.9 mdurl-0.1.2 ml_dtypes-0.5.4 mpmath-1.3.0 multidict-6.7.1 murmurhash-1.0.15 mypy-extensions-1.1.0 networkx-3.6.1 numba-0.65.1 numpy-2.4.4 nvidia-cublas-13.1.0.3 nvidia-cuda-cupti-13.0.85 nvidia-cuda-nvrtc-13.0.88 nvidia-cuda-runtime-13.0.96 nvidia-cudnn-cu13-9.19.0.56 nvidia-cufft-12.0.0.61 nvidia-cufile-1.15.1.6 nvidia-curand-10.4.0.35 nvidia-cusolver-12.0.4.66 nvidia-cusparse-12.6.3.3 nvidia-cusparselt-cu13-0.8.0 nvidia-nccl-cu13-2.28.9 nvidia-nvjitlink-13.0.88 nvidia-nvshmem-cu13-3.4.5 nvidia-nvtx-13.0.85 olefile-0.47 onnx-1.21.0 onnxruntime-1.25.0 opencv-python-4.13.0.92 orjson-3.11.8 pandas-3.0.2 pdf2image-1.17.0 pdfminer.six-20251230 pdfplumber-0.11.9 pi-heif-1.3.0 pikepdf-10.5.1 preshed-3.0.13 propcache-0.4.1 proto-plus-1.27.2 protobuf-6.33.6 psutil-7.2.2 pyarrow-24.0.0 pyasn1-0.6.3 pyasn1-modules-0.4.2 pycparser-3.0 pydantic-2.13.3 pydantic-core-2.46.3 pydantic-settings-2.14.0 pygments-2.20.0 pyparsing-3.3.2 pypdf-6.10.2 pypdfium2-5.7.1 pytesseract-0.3.13 python-dateutil-2.9.0.post0 python-dotenv-1.2.2 python-iso639-2026.4.20 python-magic-0.4.27 python-oxmsg-0.0.2 pyyaml-6.0.3 rapidfuzz-3.14.5 regex-2026.4.4 requests-2.33.1 requests-toolbelt-1.0.0 rich-15.0.0 safetensors-0.7.0 scikit-learn-1.8.0 scipy-1.17.1 sentence-transformers-5.4.1 shellingham-1.5.4 six-1.17.0 smart-open-7.6.0 soupsieve-2.8.3 spacy-3.8.14 spacy-legacy-3.0.12 spacy-loggers-1.0.5 srsly-2.5.3 sympy-1.14.0 tenacity-9.1.4 thinc-8.3.13 threadpoolctl-3.6.0 timm-1.0.26 tokenizers-0.22.2 torch-2.11.0 torchvision-0.26.0 tqdm-4.67.3 transformers-5.6.2 triton-3.6.0 typer-0.25.0 typing-extensions-4.15.0 typing-inspect-0.9.0 typing-inspection-0.4.2 unstructured-0.22.23 unstructured-client-0.43.2 unstructured-inference-1.6.10 unstructured-pytesseract-0.3.15 urllib3-2.6.3 uuid-utils-0.14.1 wasabi-1.1.3 weasel-1.0.0 webencodings-0.5.1 wrapt-2.1.2 xxhash-3.7.0 yarl-1.23.0 zstandard-0.25.0
 [INFO] installed torch=2.11.0+cu130
 [8/8] 프로젝트 설정 파일 자동 구성
 [8-1/8] 기본 사용자 시드 적용
@@ -683,25 +755,296 @@ Successfully installed Deprecated-1.3.1 MarkupSafe-3.0.3 Pillow-12.2.0 SQLAlchem
   npm run dev:ubuntu
 [1-1/3] 프론트 의존성 설치
 [DGX] 프론트 의존성 정합 시작
-  1) @vitejs/plugin-react 최신화
-npm error code ERESOLVE
-npm error ERESOLVE unable to resolve dependency tree
-npm error
-npm error While resolving: easydocstation@1.0.0
-npm error Found: vite@5.4.21
-npm error node_modules/vite
-npm error   dev vite@"^5.4.19" from the root project
-npm error
-npm error Could not resolve dependency:
-npm error peer vite@"^8.0.0" from @vitejs/plugin-react@6.0.1
-npm error node_modules/@vitejs/plugin-react
-npm error   dev @vitejs/plugin-react@"6.0.1" from the root project
-npm error
-npm error Fix the upstream dependency conflict, or retry
-npm error this command with --force or --legacy-peer-deps
-npm error to accept an incorrect (and potentially broken) dependency resolution.
-npm error
-npm error
-npm error For a full report see:
-npm error /home/freegear/.npm/_logs/2026-04-25T15_51_13_041Z-eresolve-report.txt
-npm error A complete log of this run can be found in: /home/freegear/.npm/_logs/2026-04-25T15_51_13_041Z-debug-0.log
+  1) @vitejs/plugin-react 호환 버전 설치 (^4.7.0)
+
+up to date, audited 442 packages in 2s
+
+180 packages are looking for funding
+  run `npm fund` for details
+
+5 moderate severity vulnerabilities
+
+To address issues that do not require attention, run:
+  npm audit fix
+
+Some issues need review, and may require choosing
+a different dependency.
+
+Run `npm audit` for details.
+  2) 설치 시도: react-to-print
+
+up to date, audited 442 packages in 723ms
+
+180 packages are looking for funding
+  run `npm fund` for details
+
+5 moderate severity vulnerabilities
+
+To address issues that do not require attention, run:
+  npm audit fix
+
+Some issues need review, and may require choosing
+a different dependency.
+
+Run `npm audit` for details.
+  - react-to-print 설치 성공
+  2) 설치 시도: react-colorful
+
+up to date, audited 442 packages in 863ms
+
+180 packages are looking for funding
+  run `npm fund` for details
+
+5 moderate severity vulnerabilities
+
+To address issues that do not require attention, run:
+  npm audit fix
+
+Some issues need review, and may require choosing
+a different dependency.
+
+Run `npm audit` for details.
+  - react-colorful 설치 성공
+  2) 설치 시도: @tiptap/extension-color
+
+up to date, audited 442 packages in 2s
+
+180 packages are looking for funding
+  run `npm fund` for details
+
+5 moderate severity vulnerabilities
+
+To address issues that do not require attention, run:
+  npm audit fix
+
+Some issues need review, and may require choosing
+a different dependency.
+
+Run `npm audit` for details.
+  - @tiptap/extension-color 설치 성공
+  2) 설치 시도: @tiptap/extension-text-style
+
+up to date, audited 442 packages in 550ms
+
+180 packages are looking for funding
+  run `npm fund` for details
+
+5 moderate severity vulnerabilities
+
+To address issues that do not require attention, run:
+  npm audit fix
+
+Some issues need review, and may require choosing
+a different dependency.
+
+Run `npm audit` for details.
+  - @tiptap/extension-text-style 설치 성공
+  2) 설치 시도: @tiptap/extension-table
+
+up to date, audited 442 packages in 544ms
+
+180 packages are looking for funding
+  run `npm fund` for details
+
+5 moderate severity vulnerabilities
+
+To address issues that do not require attention, run:
+  npm audit fix
+
+Some issues need review, and may require choosing
+a different dependency.
+
+Run `npm audit` for details.
+  - @tiptap/extension-table 설치 성공
+  2) 설치 시도: @tiptap/extension-table-row
+
+up to date, audited 442 packages in 587ms
+
+180 packages are looking for funding
+  run `npm fund` for details
+
+5 moderate severity vulnerabilities
+
+To address issues that do not require attention, run:
+  npm audit fix
+
+Some issues need review, and may require choosing
+a different dependency.
+
+Run `npm audit` for details.
+  - @tiptap/extension-table-row 설치 성공
+  2) 설치 시도: @tiptap/extension-table-cell
+
+up to date, audited 442 packages in 828ms
+
+180 packages are looking for funding
+  run `npm fund` for details
+
+5 moderate severity vulnerabilities
+
+To address issues that do not require attention, run:
+  npm audit fix
+
+Some issues need review, and may require choosing
+a different dependency.
+
+Run `npm audit` for details.
+  - @tiptap/extension-table-cell 설치 성공
+  2) 설치 시도: @tiptap/extension-table-header
+
+up to date, audited 442 packages in 559ms
+
+180 packages are looking for funding
+  run `npm fund` for details
+
+5 moderate severity vulnerabilities
+
+To address issues that do not require attention, run:
+  npm audit fix
+
+Some issues need review, and may require choosing
+a different dependency.
+
+Run `npm audit` for details.
+  - @tiptap/extension-table-header 설치 성공
+  2) 설치 시도: @tiptap/extension-table-of-contents
+
+up to date, audited 442 packages in 1s
+
+180 packages are looking for funding
+  run `npm fund` for details
+
+5 moderate severity vulnerabilities
+
+To address issues that do not require attention, run:
+  npm audit fix
+
+Some issues need review, and may require choosing
+a different dependency.
+
+Run `npm audit` for details.
+  - @tiptap/extension-table-of-contents 설치 성공
+[2/3] PyTorch CUDA 빌드 설치
+Requirement already satisfied: pip in ./.venv/lib/python3.12/site-packages (26.1)
+Requirement already satisfied: wheel in ./.venv/lib/python3.12/site-packages (0.47.0)
+Requirement already satisfied: packaging in ./.venv/lib/python3.12/site-packages (26.2)
+Requirement already satisfied: setuptools<82 in ./.venv/lib/python3.12/site-packages (81.0.0)
+Looking in indexes: https://pypi.org/simple, https://pypi.org/simple
+Collecting torch<3,>=2.6
+  Using cached torch-2.11.0-cp312-cp312-manylinux_2_28_aarch64.whl.metadata (29 kB)
+Requirement already satisfied: filelock in ./.venv/lib/python3.12/site-packages (from torch<3,>=2.6) (3.29.0)
+Requirement already satisfied: typing-extensions>=4.10.0 in ./.venv/lib/python3.12/site-packages (from torch<3,>=2.6) (4.15.0)
+Requirement already satisfied: setuptools<82 in ./.venv/lib/python3.12/site-packages (from torch<3,>=2.6) (81.0.0)
+Requirement already satisfied: sympy>=1.13.3 in ./.venv/lib/python3.12/site-packages (from torch<3,>=2.6) (1.14.0)
+Requirement already satisfied: networkx>=2.5.1 in ./.venv/lib/python3.12/site-packages (from torch<3,>=2.6) (3.6.1)
+Requirement already satisfied: jinja2 in ./.venv/lib/python3.12/site-packages (from torch<3,>=2.6) (3.1.6)
+Requirement already satisfied: fsspec>=0.8.5 in ./.venv/lib/python3.12/site-packages (from torch<3,>=2.6) (2026.3.0)
+Requirement already satisfied: cuda-toolkit==13.0.2 in ./.venv/lib/python3.12/site-packages (from cuda-toolkit[cublas,cudart,cufft,cufile,cupti,curand,cusolver,cusparse,nvjitlink,nvrtc,nvtx]==13.0.2; platform_system == "Linux"->torch<3,>=2.6) (13.0.2)
+Requirement already satisfied: cuda-bindings<14,>=13.0.3 in ./.venv/lib/python3.12/site-packages (from torch<3,>=2.6) (13.2.0)
+Requirement already satisfied: nvidia-cudnn-cu13==9.19.0.56 in ./.venv/lib/python3.12/site-packages (from torch<3,>=2.6) (9.19.0.56)
+Requirement already satisfied: nvidia-cusparselt-cu13==0.8.0 in ./.venv/lib/python3.12/site-packages (from torch<3,>=2.6) (0.8.0)
+Requirement already satisfied: nvidia-nccl-cu13==2.28.9 in ./.venv/lib/python3.12/site-packages (from torch<3,>=2.6) (2.28.9)
+Requirement already satisfied: nvidia-nvshmem-cu13==3.4.5 in ./.venv/lib/python3.12/site-packages (from torch<3,>=2.6) (3.4.5)
+Requirement already satisfied: triton==3.6.0 in ./.venv/lib/python3.12/site-packages (from torch<3,>=2.6) (3.6.0)
+Requirement already satisfied: nvidia-cublas==13.1.0.3.* in ./.venv/lib/python3.12/site-packages (from cuda-toolkit[cublas,cudart,cufft,cufile,cupti,curand,cusolver,cusparse,nvjitlink,nvrtc,nvtx]==13.0.2; platform_system == "Linux"->torch<3,>=2.6) (13.1.0.3)
+Requirement already satisfied: nvidia-cuda-runtime==13.0.96.* in ./.venv/lib/python3.12/site-packages (from cuda-toolkit[cublas,cudart,cufft,cufile,cupti,curand,cusolver,cusparse,nvjitlink,nvrtc,nvtx]==13.0.2; platform_system == "Linux"->torch<3,>=2.6) (13.0.96)
+Requirement already satisfied: nvidia-cufft==12.0.0.61.* in ./.venv/lib/python3.12/site-packages (from cuda-toolkit[cublas,cudart,cufft,cufile,cupti,curand,cusolver,cusparse,nvjitlink,nvrtc,nvtx]==13.0.2; platform_system == "Linux"->torch<3,>=2.6) (12.0.0.61)
+Requirement already satisfied: nvidia-cufile==1.15.1.6.* in ./.venv/lib/python3.12/site-packages (from cuda-toolkit[cublas,cudart,cufft,cufile,cupti,curand,cusolver,cusparse,nvjitlink,nvrtc,nvtx]==13.0.2; platform_system == "Linux"->torch<3,>=2.6) (1.15.1.6)
+Requirement already satisfied: nvidia-cuda-cupti==13.0.85.* in ./.venv/lib/python3.12/site-packages (from cuda-toolkit[cublas,cudart,cufft,cufile,cupti,curand,cusolver,cusparse,nvjitlink,nvrtc,nvtx]==13.0.2; platform_system == "Linux"->torch<3,>=2.6) (13.0.85)
+Requirement already satisfied: nvidia-curand==10.4.0.35.* in ./.venv/lib/python3.12/site-packages (from cuda-toolkit[cublas,cudart,cufft,cufile,cupti,curand,cusolver,cusparse,nvjitlink,nvrtc,nvtx]==13.0.2; platform_system == "Linux"->torch<3,>=2.6) (10.4.0.35)
+Requirement already satisfied: nvidia-cusolver==12.0.4.66.* in ./.venv/lib/python3.12/site-packages (from cuda-toolkit[cublas,cudart,cufft,cufile,cupti,curand,cusolver,cusparse,nvjitlink,nvrtc,nvtx]==13.0.2; platform_system == "Linux"->torch<3,>=2.6) (12.0.4.66)
+Requirement already satisfied: nvidia-cusparse==12.6.3.3.* in ./.venv/lib/python3.12/site-packages (from cuda-toolkit[cublas,cudart,cufft,cufile,cupti,curand,cusolver,cusparse,nvjitlink,nvrtc,nvtx]==13.0.2; platform_system == "Linux"->torch<3,>=2.6) (12.6.3.3)
+Requirement already satisfied: nvidia-nvjitlink==13.0.88.* in ./.venv/lib/python3.12/site-packages (from cuda-toolkit[cublas,cudart,cufft,cufile,cupti,curand,cusolver,cusparse,nvjitlink,nvrtc,nvtx]==13.0.2; platform_system == "Linux"->torch<3,>=2.6) (13.0.88)
+Requirement already satisfied: nvidia-cuda-nvrtc==13.0.88.* in ./.venv/lib/python3.12/site-packages (from cuda-toolkit[cublas,cudart,cufft,cufile,cupti,curand,cusolver,cusparse,nvjitlink,nvrtc,nvtx]==13.0.2; platform_system == "Linux"->torch<3,>=2.6) (13.0.88)
+Requirement already satisfied: nvidia-nvtx==13.0.85.* in ./.venv/lib/python3.12/site-packages (from cuda-toolkit[cublas,cudart,cufft,cufile,cupti,curand,cusolver,cusparse,nvjitlink,nvrtc,nvtx]==13.0.2; platform_system == "Linux"->torch<3,>=2.6) (13.0.85)
+Requirement already satisfied: cuda-pathfinder~=1.1 in ./.venv/lib/python3.12/site-packages (from cuda-bindings<14,>=13.0.3->torch<3,>=2.6) (1.5.3)
+Requirement already satisfied: mpmath<1.4,>=1.1.0 in ./.venv/lib/python3.12/site-packages (from sympy>=1.13.3->torch<3,>=2.6) (1.3.0)
+Requirement already satisfied: MarkupSafe>=2.0 in ./.venv/lib/python3.12/site-packages (from jinja2->torch<3,>=2.6) (3.0.3)
+Using cached torch-2.11.0-cp312-cp312-manylinux_2_28_aarch64.whl (419.7 MB)
+Installing collected packages: torch
+ERROR: pip's dependency resolver does not currently take into account all the packages that are installed. This behaviour is the source of the following dependency conflicts.
+unstructured-inference 1.6.10 requires timm>=1.0.24, which is not installed.
+Successfully installed torch-2.11.0
+[2-1/3] Unstructured hi_res 의존성 설치 (torchvision, timm)
+Looking in indexes: https://pypi.org/simple, https://pypi.org/simple
+Collecting torchvision
+  Using cached torchvision-0.26.0-cp312-cp312-manylinux_2_28_aarch64.whl.metadata (5.5 kB)
+Collecting timm
+  Using cached timm-1.0.26-py3-none-any.whl.metadata (39 kB)
+Requirement already satisfied: numpy in ./.venv/lib/python3.12/site-packages (from torchvision) (2.4.4)
+Requirement already satisfied: torch==2.11.0 in ./.venv/lib/python3.12/site-packages (from torchvision) (2.11.0)
+Requirement already satisfied: pillow!=8.3.*,>=5.3.0 in ./.venv/lib/python3.12/site-packages (from torchvision) (12.2.0)
+Requirement already satisfied: filelock in ./.venv/lib/python3.12/site-packages (from torch==2.11.0->torchvision) (3.29.0)
+Requirement already satisfied: typing-extensions>=4.10.0 in ./.venv/lib/python3.12/site-packages (from torch==2.11.0->torchvision) (4.15.0)
+Requirement already satisfied: setuptools<82 in ./.venv/lib/python3.12/site-packages (from torch==2.11.0->torchvision) (81.0.0)
+Requirement already satisfied: sympy>=1.13.3 in ./.venv/lib/python3.12/site-packages (from torch==2.11.0->torchvision) (1.14.0)
+Requirement already satisfied: networkx>=2.5.1 in ./.venv/lib/python3.12/site-packages (from torch==2.11.0->torchvision) (3.6.1)
+Requirement already satisfied: jinja2 in ./.venv/lib/python3.12/site-packages (from torch==2.11.0->torchvision) (3.1.6)
+Requirement already satisfied: fsspec>=0.8.5 in ./.venv/lib/python3.12/site-packages (from torch==2.11.0->torchvision) (2026.3.0)
+Requirement already satisfied: cuda-toolkit==13.0.2 in ./.venv/lib/python3.12/site-packages (from cuda-toolkit[cublas,cudart,cufft,cufile,cupti,curand,cusolver,cusparse,nvjitlink,nvrtc,nvtx]==13.0.2; platform_system == "Linux"->torch==2.11.0->torchvision) (13.0.2)
+Requirement already satisfied: cuda-bindings<14,>=13.0.3 in ./.venv/lib/python3.12/site-packages (from torch==2.11.0->torchvision) (13.2.0)
+Requirement already satisfied: nvidia-cudnn-cu13==9.19.0.56 in ./.venv/lib/python3.12/site-packages (from torch==2.11.0->torchvision) (9.19.0.56)
+Requirement already satisfied: nvidia-cusparselt-cu13==0.8.0 in ./.venv/lib/python3.12/site-packages (from torch==2.11.0->torchvision) (0.8.0)
+Requirement already satisfied: nvidia-nccl-cu13==2.28.9 in ./.venv/lib/python3.12/site-packages (from torch==2.11.0->torchvision) (2.28.9)
+Requirement already satisfied: nvidia-nvshmem-cu13==3.4.5 in ./.venv/lib/python3.12/site-packages (from torch==2.11.0->torchvision) (3.4.5)
+Requirement already satisfied: triton==3.6.0 in ./.venv/lib/python3.12/site-packages (from torch==2.11.0->torchvision) (3.6.0)
+Requirement already satisfied: nvidia-cublas==13.1.0.3.* in ./.venv/lib/python3.12/site-packages (from cuda-toolkit[cublas,cudart,cufft,cufile,cupti,curand,cusolver,cusparse,nvjitlink,nvrtc,nvtx]==13.0.2; platform_system == "Linux"->torch==2.11.0->torchvision) (13.1.0.3)
+Requirement already satisfied: nvidia-cuda-runtime==13.0.96.* in ./.venv/lib/python3.12/site-packages (from cuda-toolkit[cublas,cudart,cufft,cufile,cupti,curand,cusolver,cusparse,nvjitlink,nvrtc,nvtx]==13.0.2; platform_system == "Linux"->torch==2.11.0->torchvision) (13.0.96)
+Requirement already satisfied: nvidia-cufft==12.0.0.61.* in ./.venv/lib/python3.12/site-packages (from cuda-toolkit[cublas,cudart,cufft,cufile,cupti,curand,cusolver,cusparse,nvjitlink,nvrtc,nvtx]==13.0.2; platform_system == "Linux"->torch==2.11.0->torchvision) (12.0.0.61)
+Requirement already satisfied: nvidia-cufile==1.15.1.6.* in ./.venv/lib/python3.12/site-packages (from cuda-toolkit[cublas,cudart,cufft,cufile,cupti,curand,cusolver,cusparse,nvjitlink,nvrtc,nvtx]==13.0.2; platform_system == "Linux"->torch==2.11.0->torchvision) (1.15.1.6)
+Requirement already satisfied: nvidia-cuda-cupti==13.0.85.* in ./.venv/lib/python3.12/site-packages (from cuda-toolkit[cublas,cudart,cufft,cufile,cupti,curand,cusolver,cusparse,nvjitlink,nvrtc,nvtx]==13.0.2; platform_system == "Linux"->torch==2.11.0->torchvision) (13.0.85)
+Requirement already satisfied: nvidia-curand==10.4.0.35.* in ./.venv/lib/python3.12/site-packages (from cuda-toolkit[cublas,cudart,cufft,cufile,cupti,curand,cusolver,cusparse,nvjitlink,nvrtc,nvtx]==13.0.2; platform_system == "Linux"->torch==2.11.0->torchvision) (10.4.0.35)
+Requirement already satisfied: nvidia-cusolver==12.0.4.66.* in ./.venv/lib/python3.12/site-packages (from cuda-toolkit[cublas,cudart,cufft,cufile,cupti,curand,cusolver,cusparse,nvjitlink,nvrtc,nvtx]==13.0.2; platform_system == "Linux"->torch==2.11.0->torchvision) (12.0.4.66)
+Requirement already satisfied: nvidia-cusparse==12.6.3.3.* in ./.venv/lib/python3.12/site-packages (from cuda-toolkit[cublas,cudart,cufft,cufile,cupti,curand,cusolver,cusparse,nvjitlink,nvrtc,nvtx]==13.0.2; platform_system == "Linux"->torch==2.11.0->torchvision) (12.6.3.3)
+Requirement already satisfied: nvidia-nvjitlink==13.0.88.* in ./.venv/lib/python3.12/site-packages (from cuda-toolkit[cublas,cudart,cufft,cufile,cupti,curand,cusolver,cusparse,nvjitlink,nvrtc,nvtx]==13.0.2; platform_system == "Linux"->torch==2.11.0->torchvision) (13.0.88)
+Requirement already satisfied: nvidia-cuda-nvrtc==13.0.88.* in ./.venv/lib/python3.12/site-packages (from cuda-toolkit[cublas,cudart,cufft,cufile,cupti,curand,cusolver,cusparse,nvjitlink,nvrtc,nvtx]==13.0.2; platform_system == "Linux"->torch==2.11.0->torchvision) (13.0.88)
+Requirement already satisfied: nvidia-nvtx==13.0.85.* in ./.venv/lib/python3.12/site-packages (from cuda-toolkit[cublas,cudart,cufft,cufile,cupti,curand,cusolver,cusparse,nvjitlink,nvrtc,nvtx]==13.0.2; platform_system == "Linux"->torch==2.11.0->torchvision) (13.0.85)
+Requirement already satisfied: cuda-pathfinder~=1.1 in ./.venv/lib/python3.12/site-packages (from cuda-bindings<14,>=13.0.3->torch==2.11.0->torchvision) (1.5.3)
+Requirement already satisfied: pyyaml in ./.venv/lib/python3.12/site-packages (from timm) (6.0.3)
+Requirement already satisfied: huggingface_hub in ./.venv/lib/python3.12/site-packages (from timm) (1.12.0)
+Requirement already satisfied: safetensors in ./.venv/lib/python3.12/site-packages (from timm) (0.7.0)
+Requirement already satisfied: mpmath<1.4,>=1.1.0 in ./.venv/lib/python3.12/site-packages (from sympy>=1.13.3->torch==2.11.0->torchvision) (1.3.0)
+Requirement already satisfied: hf-xet<2.0.0,>=1.4.3 in ./.venv/lib/python3.12/site-packages (from huggingface_hub->timm) (1.4.3)
+Requirement already satisfied: httpx<1,>=0.23.0 in ./.venv/lib/python3.12/site-packages (from huggingface_hub->timm) (0.28.1)
+Requirement already satisfied: packaging>=20.9 in ./.venv/lib/python3.12/site-packages (from huggingface_hub->timm) (26.2)
+Requirement already satisfied: tqdm>=4.42.1 in ./.venv/lib/python3.12/site-packages (from huggingface_hub->timm) (4.67.3)
+Requirement already satisfied: typer in ./.venv/lib/python3.12/site-packages (from huggingface_hub->timm) (0.25.0)
+Requirement already satisfied: anyio in ./.venv/lib/python3.12/site-packages (from httpx<1,>=0.23.0->huggingface_hub->timm) (4.13.0)
+Requirement already satisfied: certifi in ./.venv/lib/python3.12/site-packages (from httpx<1,>=0.23.0->huggingface_hub->timm) (2026.4.22)
+Requirement already satisfied: httpcore==1.* in ./.venv/lib/python3.12/site-packages (from httpx<1,>=0.23.0->huggingface_hub->timm) (1.0.9)
+Requirement already satisfied: idna in ./.venv/lib/python3.12/site-packages (from httpx<1,>=0.23.0->huggingface_hub->timm) (3.13)
+Requirement already satisfied: h11>=0.16 in ./.venv/lib/python3.12/site-packages (from httpcore==1.*->httpx<1,>=0.23.0->huggingface_hub->timm) (0.16.0)
+Requirement already satisfied: MarkupSafe>=2.0 in ./.venv/lib/python3.12/site-packages (from jinja2->torch==2.11.0->torchvision) (3.0.3)
+Requirement already satisfied: click>=8.2.1 in ./.venv/lib/python3.12/site-packages (from typer->huggingface_hub->timm) (8.3.3)
+Requirement already satisfied: shellingham>=1.3.0 in ./.venv/lib/python3.12/site-packages (from typer->huggingface_hub->timm) (1.5.4)
+Requirement already satisfied: rich>=13.8.0 in ./.venv/lib/python3.12/site-packages (from typer->huggingface_hub->timm) (15.0.0)
+Requirement already satisfied: annotated-doc>=0.0.2 in ./.venv/lib/python3.12/site-packages (from typer->huggingface_hub->timm) (0.0.4)
+Requirement already satisfied: markdown-it-py>=2.2.0 in ./.venv/lib/python3.12/site-packages (from rich>=13.8.0->typer->huggingface_hub->timm) (4.0.0)
+Requirement already satisfied: pygments<3.0.0,>=2.13.0 in ./.venv/lib/python3.12/site-packages (from rich>=13.8.0->typer->huggingface_hub->timm) (2.20.0)
+Requirement already satisfied: mdurl~=0.1 in ./.venv/lib/python3.12/site-packages (from markdown-it-py>=2.2.0->rich>=13.8.0->typer->huggingface_hub->timm) (0.1.2)
+Using cached torchvision-0.26.0-cp312-cp312-manylinux_2_28_aarch64.whl (7.8 MB)
+Using cached timm-1.0.26-py3-none-any.whl (2.6 MB)
+Installing collected packages: torchvision, timm
+
+Successfully installed timm-1.0.26 torchvision-0.26.0
+[3/3] CUDA 동작 검증
+torch=2.11.0+cu130
+torchvision=0.26.0+cu130
+timm=1.0.26
+cuda_available=True
+cuda_device_count=1
+cuda_device_name=NVIDIA GB10
+
+[검증] DGX-SPARK 런타임 의존성
+  - libreoffice: OK (/usr/bin/libreoffice)
+  - pdftoppm: OK (/usr/bin/pdftoppm)
+  - ffmpeg: OK (/usr/bin/ffmpeg)
+  - tesseract: OK (/usr/bin/tesseract)
+
+[검증] 인쇄 백엔드(CUPS)
+  - cups: active
+system default destination: PDF
+
+DGX Spark 설치가 완료되었습니다.
+실행 명령:
+  npm run dev:dgx-spark

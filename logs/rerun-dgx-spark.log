@@ -1,0 +1,204 @@
+[2026-04-26 20:14:24] stop old process
+[DGX-SPARK] 중지 완료
+[2026-04-26 20:14:25] start new process
+[DGX-SPARK] 백그라운드 실행 시작
+[DGX-SPARK] 로그: /home/freegear/EasyDocStation/logs/run-dgx-spark.log
+[DGX-SPARK] 실행 성공 (PID: 294199)
+[DGX-SPARK] 종료 명령: bash scripts/run-dgx-spark.sh --stop
+[2026-04-26 20:17:40] stop old process
+[DGX-SPARK] 중지 완료
+[2026-04-26 20:17:42] start new process
+[DGX-SPARK] 백그라운드 실행 시작
+[DGX-SPARK] 로그: /home/freegear/EasyDocStation/logs/run-dgx-spark.log
+[DGX-SPARK] 실행 성공 (PID: 294576)
+[DGX-SPARK] 종료 명령: bash scripts/run-dgx-spark.sh --stop
+[2026-04-26 20:19:35] stop old process
+[DGX-SPARK] 중지 완료
+[2026-04-26 20:19:35] start new process
+[DGX-SPARK] 백그라운드 실행 시작
+[DGX-SPARK] 로그: /home/freegear/EasyDocStation/logs/run-dgx-spark.log
+[DGX-SPARK] 실행 성공 (PID: 295207)
+[DGX-SPARK] 종료 명령: bash scripts/run-dgx-spark.sh --stop
+[2026-04-26 20:28:43] stop old process
+[DGX-SPARK] 중지 완료
+[2026-04-26 20:28:45] start new process
+[DGX-SPARK] 백그라운드 실행 시작
+[DGX-SPARK] 로그: /home/freegear/EasyDocStation/logs/run-dgx-spark.log
+[DGX-SPARK] 실행 성공 (PID: 296177)
+[DGX-SPARK] 종료 명령: bash scripts/run-dgx-spark.sh --stop
+[2026-04-26 20:36:34] stop old process
+[DGX-SPARK] 중지 완료
+[2026-04-26 20:36:37] start new process
+[DGX-SPARK] 백그라운드 실행 시작
+[DGX-SPARK] 로그: /home/freegear/EasyDocStation/logs/run-dgx-spark.log
+[DGX-SPARK] 실행 성공 (PID: 303627)
+[DGX-SPARK] 종료 명령: bash scripts/run-dgx-spark.sh --stop
+[2026-04-26 20:37:36] stop old process
+[DGX-SPARK] 중지 완료
+[2026-04-26 20:37:37] start new process
+[DGX-SPARK] 백그라운드 실행 시작
+[DGX-SPARK] 로그: /home/freegear/EasyDocStation/logs/run-dgx-spark.log
+[DGX-SPARK] 실행 성공 (PID: 305560)
+[DGX-SPARK] 종료 명령: bash scripts/run-dgx-spark.sh --stop
+[2026-04-26 20:38:53] stop old process
+[DGX-SPARK] 중지 완료
+[2026-04-26 20:38:54] start new process
+[DGX-SPARK] 백그라운드 실행 시작
+[DGX-SPARK] 로그: /home/freegear/EasyDocStation/logs/run-dgx-spark.log
+[DGX-SPARK] 실행 성공 (PID: 309045)
+[DGX-SPARK] 종료 명령: bash scripts/run-dgx-spark.sh --stop
+[2026-04-26 20:42:31] stop old process
+[DGX-SPARK] 중지 완료
+[2026-04-26 20:42:33] start new process
+[DGX-SPARK] 포트 3001 점유 프로세스 정리: 321485
+[DGX-SPARK] 백그라운드 실행 시작
+[DGX-SPARK] 로그: /home/freegear/EasyDocStation/logs/run-dgx-spark.log
+[DGX-SPARK] 실행 성공 (PID: 321613)
+[DGX-SPARK] 종료 명령: bash scripts/run-dgx-spark.sh --stop
+[2026-04-26 22:01:29] stop old process
+[DGX-SPARK] 중지 완료
+[2026-04-26 22:01:29] start new process
+[DGX-SPARK] 백그라운드 실행 시작
+[DGX-SPARK] 로그: /home/freegear/EasyDocStation/logs/run-dgx-spark.log
+[DGX-SPARK] 실행 성공 (PID: 609615)
+[DGX-SPARK] 종료 명령: bash scripts/run-dgx-spark.sh --stop
+[2026-04-26 22:04:14] stop old process
+[DGX-SPARK] 중지 완료
+[2026-04-26 22:04:15] start new process
+[DGX-SPARK] 포트 3001 점유 프로세스 정리: 621556
+[DGX-SPARK] 백그라운드 실행 시작
+[DGX-SPARK] 로그: /home/freegear/EasyDocStation/logs/run-dgx-spark.log
+[DGX-SPARK] 실행 성공 (PID: 621702)
+[DGX-SPARK] 종료 명령: bash scripts/run-dgx-spark.sh --stop
+[2026-04-26 22:05:03] stop old process
+[DGX-SPARK] 중지 완료
+[2026-04-26 22:05:05] start new process
+[DGX-SPARK] 포트 3001 점유 프로세스 정리: 625903
+[DGX-SPARK] 백그라운드 실행 시작
+[DGX-SPARK] 로그: /home/freegear/EasyDocStation/logs/run-dgx-spark.log
+[DGX-SPARK] 실행 성공 (PID: 626158)
+[DGX-SPARK] 종료 명령: bash scripts/run-dgx-spark.sh --stop
+[2026-04-26 22:05:43] stop old process
+[DGX-SPARK] 중지 완료
+[2026-04-26 22:05:44] start new process
+[DGX-SPARK] 포트 3001 점유 프로세스 정리: 630007
+[DGX-SPARK] 백그라운드 실행 시작
+[DGX-SPARK] 로그: /home/freegear/EasyDocStation/logs/run-dgx-spark.log
+[DGX-SPARK] 실행 성공 (PID: 630256)
+[DGX-SPARK] 종료 명령: bash scripts/run-dgx-spark.sh --stop
+[2026-04-26 22:08:29] stop old process
+[DGX-SPARK] 중지 완료
+[2026-04-26 22:08:31] start new process
+[DGX-SPARK] 포트 3001 점유 프로세스 정리: 648237
+[DGX-SPARK] 백그라운드 실행 시작
+[DGX-SPARK] 로그: /home/freegear/EasyDocStation/logs/run-dgx-spark.log
+[DGX-SPARK] 실행 성공 (PID: 648515)
+[DGX-SPARK] 종료 명령: bash scripts/run-dgx-spark.sh --stop
+[2026-04-26 22:10:57] stop old process
+[DGX-SPARK] 중지 완료
+[2026-04-26 22:10:58] start new process
+[DGX-SPARK] 포트 3001 점유 프로세스 정리: 665160
+[DGX-SPARK] 백그라운드 실행 시작
+[DGX-SPARK] 로그: /home/freegear/EasyDocStation/logs/run-dgx-spark.log
+[DGX-SPARK] 실행 성공 (PID: 665448)
+[DGX-SPARK] 종료 명령: bash scripts/run-dgx-spark.sh --stop
+[2026-04-27 02:05:13] stop old process
+[DGX-SPARK] 중지 완료
+[2026-04-27 02:05:15] start new process
+[DGX-SPARK] 포트 3001 점유 프로세스 정리: 2256305
+[DGX-SPARK] 포트 3001이 여전히 점유되어 있어 시작을 중단합니다.
+[DGX-SPARK] 포트 3001 점유 프로세스 상세:
+[DGX-SPARK]   2256411 freegear node            node index.js
+[DGX-SPARK] 먼저 정리 후 재시도: bash scripts/run-dgx-spark.sh --stop
+[2026-04-27 02:09:03] stop old process
+[DGX-SPARK] 중지 완료
+[2026-04-27 02:09:05] start new process
+[DGX-SPARK] 포트 3001 점유 프로세스 정리: 2282329
+[DGX-SPARK] 포트 3001이 여전히 점유되어 있어 시작을 중단합니다.
+[DGX-SPARK] 포트 3001 점유 프로세스 상세:
+[DGX-SPARK]   2282547 freegear node            node index.js
+[DGX-SPARK] 먼저 정리 후 재시도: bash scripts/run-dgx-spark.sh --stop
+[2026-04-27 05:10:13] stop old process
+[DGX-SPARK] 중지 완료
+[2026-04-27 05:10:16] start new process
+[DGX-SPARK] 백그라운드 실행 시작
+[DGX-SPARK] 로그: /home/freegear/EasyDocStation/logs/run-dgx-spark.log
+[DGX-SPARK] 실행 성공 (PID: 2322018)
+[DGX-SPARK] 종료 명령: bash scripts/run-dgx-spark.sh --stop
+[2026-04-27 05:11:46] stop old process
+[DGX-SPARK] 중지 완료
+[2026-04-27 05:11:47] start new process
+[DGX-SPARK] 백그라운드 실행 시작
+[DGX-SPARK] 로그: /home/freegear/EasyDocStation/logs/run-dgx-spark.log
+[DGX-SPARK] 실행 성공 (PID: 2322484)
+[DGX-SPARK] 종료 명령: bash scripts/run-dgx-spark.sh --stop
+[2026-04-27 05:12:32] stop old process
+[DGX-SPARK] 중지 완료
+[2026-04-27 05:12:33] start new process
+[DGX-SPARK] 백그라운드 실행 시작
+[DGX-SPARK] 로그: /home/freegear/EasyDocStation/logs/run-dgx-spark.log
+[DGX-SPARK] 실행 성공 (PID: 2322960)
+[DGX-SPARK] 종료 명령: bash scripts/run-dgx-spark.sh --stop
+[2026-04-27 05:16:56] stop old process
+[DGX-SPARK] 중지 완료
+[2026-04-27 05:17:00] start new process
+[DGX-SPARK] 백그라운드 실행 시작
+[DGX-SPARK] 로그: /home/freegear/EasyDocStation/logs/run-dgx-spark.log
+[DGX-SPARK] 실행 성공 (PID: 2323436)
+[DGX-SPARK] 종료 명령: bash scripts/run-dgx-spark.sh --stop
+[2026-04-27 05:21:03] stop old process
+[DGX-SPARK] 중지 완료
+[2026-04-27 05:21:06] start new process
+[DGX-SPARK] 백그라운드 실행 시작
+[DGX-SPARK] 로그: /home/freegear/EasyDocStation/logs/run-dgx-spark.log
+[DGX-SPARK] 실행 성공 (PID: 2324131)
+[DGX-SPARK] 종료 명령: bash scripts/run-dgx-spark.sh --stop
+[2026-04-27 20:03:13] stop old process
+[DGX-SPARK] 중지 완료
+[2026-04-27 20:03:17] start new process
+[DGX-SPARK] 백그라운드 실행 시작
+[DGX-SPARK] 로그: /home/freegear/EasyDocStation/logs/run-dgx-spark.log
+[DGX-SPARK] 실행 성공 (PID: 2340100)
+[DGX-SPARK] 종료 명령: bash scripts/run-dgx-spark.sh --stop
+[2026-04-27 20:11:18] stop old process
+[DGX-SPARK] 중지 완료
+[2026-04-27 20:11:22] start new process
+[DGX-SPARK] 백그라운드 실행 시작
+[DGX-SPARK] 로그: /home/freegear/EasyDocStation/logs/run-dgx-spark.log
+[DGX-SPARK] 실행 성공 (PID: 2340865)
+[DGX-SPARK] 종료 명령: bash scripts/run-dgx-spark.sh --stop
+[2026-04-27 20:12:05] stop old process
+[DGX-SPARK] 중지 완료
+[2026-04-27 20:12:08] start new process
+[DGX-SPARK] 백그라운드 실행 시작
+[DGX-SPARK] 로그: /home/freegear/EasyDocStation/logs/run-dgx-spark.log
+[DGX-SPARK] 실행 성공 (PID: 2341290)
+[DGX-SPARK] 종료 명령: bash scripts/run-dgx-spark.sh --stop
+[2026-04-27 20:34:36] stop old process
+[DGX-SPARK] 중지 완료
+[2026-04-27 20:34:40] start new process
+[DGX-SPARK] 백그라운드 실행 시작
+[DGX-SPARK] 로그: /home/freegear/EasyDocStation/logs/run-dgx-spark.log
+[DGX-SPARK] 실행 성공 (PID: 2342494)
+[DGX-SPARK] 종료 명령: bash scripts/run-dgx-spark.sh --stop
+[2026-04-27 20:36:18] stop old process
+[DGX-SPARK] 중지 완료
+[2026-04-27 20:36:21] start new process
+[DGX-SPARK] 백그라운드 실행 시작
+[DGX-SPARK] 로그: /home/freegear/EasyDocStation/logs/run-dgx-spark.log
+[DGX-SPARK] 실행 성공 (PID: 2343082)
+[DGX-SPARK] 종료 명령: bash scripts/run-dgx-spark.sh --stop
+[2026-04-27 20:54:31] stop old process
+[DGX-SPARK] 중지 완료
+[2026-04-27 20:54:35] start new process
+[DGX-SPARK] 백그라운드 실행 시작
+[DGX-SPARK] 로그: /home/freegear/EasyDocStation/logs/run-dgx-spark.log
+[DGX-SPARK] 실행 성공 (PID: 2343727)
+[DGX-SPARK] 종료 명령: bash scripts/run-dgx-spark.sh --stop
+[2026-04-27 20:58:52] stop old process
+[DGX-SPARK] 중지 완료
+[2026-04-27 20:58:56] start new process
+[DGX-SPARK] 백그라운드 실행 시작
+[DGX-SPARK] 로그: /home/freegear/EasyDocStation/logs/run-dgx-spark.log
+[DGX-SPARK] 실행 성공 (PID: 2344216)
+[DGX-SPARK] 종료 명령: bash scripts/run-dgx-spark.sh --stop
