@@ -1910,12 +1910,13 @@ function LinkBubbleMenu({ editor }) {
 }
 
 function TableBubbleMenu({ editor }) {
-  const [openByDoubleClick, setOpenByDoubleClick] = useState(false)
-  const tableBubbleMenuKey = 'tableBubbleMenu'
+  const [menuState, setMenuState] = useState({ open: false, x: 0, y: 0 })
+  const menuRef = useRef(null)
   const isTableSelection = () => (
     editor?.isActive('table')
     || editor?.isActive('tableCell')
     || editor?.isActive('tableHeader')
+    || editor?.isActive('tableRow')
   )
 
   useEffect(() => {
@@ -1930,52 +1931,62 @@ function TableBubbleMenu({ editor }) {
       if (!(target instanceof Element)) return
 
       const inTableDom = Boolean(target.closest('table, td, th'))
-      // 더블클릭 직후 selection 갱신 타이밍을 한 틱 기다려 표 활성 여부를 함께 확인
+      if (!inTableDom) return
+
+      const x = Number(event.clientX || 0)
+      const y = Number(event.clientY || 0)
+
+      // 더블클릭 직후 selection 갱신 타이밍을 한 틱 기다려 표 컨텍스트를 확인
       requestAnimationFrame(() => {
-        const shouldOpen = inTableDom && isTableSelection()
-        setOpenByDoubleClick(shouldOpen)
-        if (shouldOpen) {
-          // BubbleMenu 플러그인에 즉시 위치/표시 갱신을 요청한다.
-          editor.chain().focus().setMeta(tableBubbleMenuKey, 'updatePosition').run()
+        if (isTableSelection()) {
+          setMenuState({ open: true, x, y })
         }
       })
     }
 
-    const handlePointerDown = () => {
-      // 표 안/밖 어디를 클릭하든(다음 클릭부터) 메뉴를 닫는다.
-      setOpenByDoubleClick(false)
+    const handlePointerDown = (event) => {
+      const target = event.target
+      if (menuRef.current && target instanceof Node && menuRef.current.contains(target)) return
+      // 표 안/밖 어디를 클릭하든 메뉴를 닫는다.
+      setMenuState((prev) => ({ ...prev, open: false }))
     }
 
     const handleSelectionUpdate = () => {
       if (!isTableSelection()) {
-        setOpenByDoubleClick(false)
+        setMenuState((prev) => ({ ...prev, open: false }))
       }
     }
 
     dom.addEventListener('dblclick', handleDoubleClick)
-    dom.addEventListener('pointerdown', handlePointerDown)
+    document.addEventListener('pointerdown', handlePointerDown, true)
     editor.on('selectionUpdate', handleSelectionUpdate)
 
     return () => {
       dom.removeEventListener('dblclick', handleDoubleClick)
-      dom.removeEventListener('pointerdown', handlePointerDown)
+      document.removeEventListener('pointerdown', handlePointerDown, true)
       editor.off('selectionUpdate', handleSelectionUpdate)
     }
   }, [editor])
 
   if (!editor) return null
 
+  if (!menuState.open) return null
+
+  const MENU_WIDTH = 520
+  const MARGIN = 12
+  const left = Math.max(MARGIN, Math.min(menuState.x, window.innerWidth - MENU_WIDTH - MARGIN))
+  const top = Math.max(MARGIN, Math.min(menuState.y + 12, window.innerHeight - 180))
+
   return (
-    <BubbleMenu
-      editor={editor}
-      pluginKey={tableBubbleMenuKey}
-      shouldShow={({ editor: ed }) => (
-        ed.isEditable
-        && openByDoubleClick
-        && (ed.isActive('table') || ed.isActive('tableCell') || ed.isActive('tableHeader'))
-      )}
-      tippyOptions={{ duration: 120, placement: 'top', maxWidth: 520 }}
+    <div
+      ref={menuRef}
       className="table-toolbar"
+      style={{
+        position: 'fixed',
+        left: `${left}px`,
+        top: `${top}px`,
+        zIndex: 2000,
+      }}
     >
       <div className="table-toolbar-row">
         <button onMouseDown={(e) => { e.preventDefault(); editor.chain().focus().addColumnBefore().run() }}>
@@ -2011,7 +2022,7 @@ function TableBubbleMenu({ editor }) {
           표 삭제
         </button>
       </div>
-    </BubbleMenu>
+    </div>
   )
 }
 
