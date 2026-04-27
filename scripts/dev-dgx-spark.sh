@@ -89,7 +89,7 @@ fi
 if [[ "${EASYDOC_DAEMON_MODE:-0}" == "1" ]]; then
   echo "[DGX] daemon 모드 실행 (로그아웃 후 지속)"
   BE_LOOP_CMD="bash \"$ROOT_DIR/scripts/backend-loop-dgx.sh\""
-  "$ROOT_DIR/node_modules/.bin/concurrently" -p "[{name}]" -n "Ollama,FE,BE" -c "cyan,magenta,green" \
+  "$ROOT_DIR/node_modules/.bin/concurrently" --kill-others-on-fail -p "[{name}]" -n "Ollama,FE,BE" -c "cyan,magenta,green" \
     "npm run ollama:serve" \
     "npm run dev:frontend" \
     "$BE_LOOP_CMD"
