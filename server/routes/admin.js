@@ -234,7 +234,7 @@ function buildDisplayConfig(config = {}) {
   }
 }
 
-async function getDbLocationSafe() {
+async function getDbLocationSafe(fallbackPath = '') {
   try {
     const dbLocResult = await pool.query("SHOW data_directory")
     let dbLocation = dbLocResult.rows[0]?.data_directory || 'N/A'
@@ -243,22 +243,28 @@ async function getDbLocationSafe() {
     } catch (_) {}
     return dbLocation
   } catch (e) {
-    if (e && e.code === '42501') {
-      return '권한 필요 (pg_read_all_settings)'
+    let safeFallback = String(fallbackPath || '').trim()
+    if (safeFallback) {
+      try { safeFallback = fs.realpathSync(safeFallback) } catch (_) {}
     }
-    return 'N/A'
+    if (e && e.code === '42501') {
+      return safeFallback || '접근 제한됨 (DB 설정 권한 필요)'
+    }
+    return safeFallback || 'N/A'
   }
 }
 
 router.get('/stats', async (req, res) => {
   try {
+    const configPath = path.resolve(__dirname, '../../config.json')
+    const config = JSON.parse(fs.readFileSync(configPath, 'utf8'))
+
     // 1. PostgreSQL DB Stats
     const dbName = getPostgresDatabaseName()
     const dbSizeResult = await pool.query('SELECT pg_size_pretty(pg_database_size($1)) as size', [dbName])
-    const dbLocation = await getDbLocationSafe()
-    
-    const configPath = path.resolve(__dirname, '../../config.json')
-    const config = JSON.parse(fs.readFileSync(configPath, 'utf8'))
+    const configuredPgPath = getDatabasePath(config, 'PostgreSQL Database Path')
+    const dbLocation = await getDbLocationSafe(configuredPgPath)
+
     const uploadPath = getDatabasePath(config, 'ObjectFile Path')
     const cassandraPath = getDatabasePath(config, 'Cassandra Database Path')
     const lancedbPath = getDatabasePath(config, 'lancedb Database Path')
