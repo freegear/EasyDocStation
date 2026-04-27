@@ -27,6 +27,7 @@ import '../../styles/tiptap.css'
 
 const MD_PAGE_MARKER = '<!--md-page-->'
 const MD_IMAGE_META_PREFIX = '<!--md-image-meta:'
+const MD_DOC_META_PREFIX = '<!--md-doc-meta:'
 const ResizableImage = ImageResize.extend({ name: 'image' })
 const FILE_VIEW_URL_PATTERN = /(https?:\/\/[^\s)"']+\/api\/files\/view\/[A-Za-z0-9-]+(?:\?[^\s)"']*)?|\/api\/files\/view\/[A-Za-z0-9-]+(?:\?[^\s)"']*)?)/g
 const TOC_NODE_NAME = 'tocNode'
@@ -183,10 +184,12 @@ const TocNode = Node.create({
 })
 
 function extractImageMeta(mdText = '') {
-  const match = mdText.match(/<!--md-image-meta:([A-Za-z0-9+/=_-]+)-->\s*$/m)
-  if (!match?.[1]) return {}
+  const regex = /<!--md-image-meta:([A-Za-z0-9+/=_-]+)-->/g
+  const matches = Array.from(String(mdText || '').matchAll(regex))
+  const encoded = matches.length > 0 ? matches[matches.length - 1]?.[1] : ''
+  if (!encoded) return {}
   try {
-    const decoded = atob(match[1])
+    const decoded = atob(encoded)
     try {
       return normalizeImageMetaKeys(JSON.parse(decoded) || {})
     } catch {
@@ -199,7 +202,54 @@ function extractImageMeta(mdText = '') {
 }
 
 function stripImageMeta(mdText = '') {
-  return mdText.replace(/\n?<!--md-image-meta:[A-Za-z0-9+/=_-]+-->\s*$/m, '')
+  return String(mdText || '').replace(/\n?<!--md-image-meta:[A-Za-z0-9+/=_-]+-->\s*/g, '')
+}
+
+function mapDocMetaUrls(node, mapper = (v) => v) {
+  if (Array.isArray(node)) return node.map((child) => mapDocMetaUrls(child, mapper))
+  if (!node || typeof node !== 'object') return node
+
+  const next = { ...node }
+  if (next.attrs && typeof next.attrs === 'object') {
+    next.attrs = { ...next.attrs }
+    if (typeof next.attrs.src === 'string') next.attrs.src = mapper(next.attrs.src)
+    if (typeof next.attrs.href === 'string') next.attrs.href = mapper(next.attrs.href)
+  }
+  if (Array.isArray(next.content)) {
+    next.content = next.content.map((child) => mapDocMetaUrls(child, mapper))
+  }
+  return next
+}
+
+function extractDocMeta(mdText = '') {
+  const regex = /<!--md-doc-meta:([A-Za-z0-9+/=_-]+)-->/g
+  const matches = Array.from(String(mdText || '').matchAll(regex))
+  const encoded = matches.length > 0 ? matches[matches.length - 1]?.[1] : ''
+  if (!encoded) return null
+  try {
+    const decoded = atob(encoded)
+    const parsed = JSON.parse(decodeURIComponent(escape(decoded)))
+    if (!parsed || typeof parsed !== 'object') return null
+    return mapDocMetaUrls(parsed, (url) => stripAuthTokenFromFileViewUrl(url))
+  } catch {
+    return null
+  }
+}
+
+function stripDocMeta(mdText = '') {
+  return String(mdText || '').replace(/\n?<!--md-doc-meta:[A-Za-z0-9+/=_-]+-->\s*/g, '')
+}
+
+function stripAllMdMeta(mdText = '') {
+  return stripDocMeta(stripImageMeta(mdText))
+}
+
+function attachDocMeta(mdText = '', docJson = null) {
+  const plain = stripDocMeta(mdText || '')
+  if (!docJson || typeof docJson !== 'object') return plain
+  const sanitized = mapDocMetaUrls(docJson, (url) => stripAuthTokenFromFileViewUrl(url))
+  const encoded = btoa(unescape(encodeURIComponent(JSON.stringify(sanitized))))
+  return `${plain}\n${MD_DOC_META_PREFIX}${encoded}-->`
 }
 
 function attachImageMeta(mdText = '', imageMeta = {}) {
@@ -429,11 +479,15 @@ export default function MDPageViewer({ post, channelId, onClose }) {
   const initialMdStored = normalizeMarkdownForTableParsing(
     stripAuthTokenFromMarkdown(String(post.content || '').replace(/^<!--md-page-->\n?/, '')),
   )
-  const initialMdRaw = injectAuthTokenIntoMarkdown(initialMdStored, authToken)
+  const initialDocMeta = extractDocMeta(initialMdStored)
+  const initialMdRaw = injectAuthTokenIntoMarkdown(stripAllMdMeta(initialMdStored), authToken)
+  const initialEditorDoc = initialDocMeta
+    ? mapDocMetaUrls(initialDocMeta, (url) => ensureAuthTokenInFileViewUrl(url, authToken))
+    : null
 
   const [mode, setMode] = useState('preview')
-  const [savedContent, setSavedContent] = useState(() => stripImageMeta(initialMdStored))
-  const [sourceText, setSourceText] = useState(() => stripImageMeta(initialMdStored))
+  const [savedContent, setSavedContent] = useState(() => stripAllMdMeta(initialMdStored))
+  const [sourceText, setSourceText] = useState(() => stripAllMdMeta(initialMdStored))
   const [imageMeta, setImageMeta] = useState(() => extractImageMeta(initialMdStored))
   const [savedImageMeta, setSavedImageMeta] = useState(() => extractImageMeta(initialMdStored))
   const [isChanged, setIsChanged] = useState(false)
@@ -696,7 +750,7 @@ export default function MDPageViewer({ post, channelId, onClose }) {
       // html 모드로 fallback 저장/복원을 허용한다.
       Markdown.configure({ html: true, transformCopiedText: true, transformPastedText: true }),
     ],
-    content: stripImageMeta(initialMdRaw),
+    content: initialEditorDoc || initialMdRaw,
     editable: canEdit && mode === 'preview',
     editorProps: {
       handleClick(view, _pos, event) {
@@ -743,7 +797,7 @@ export default function MDPageViewer({ post, channelId, onClose }) {
       },
     },
     onUpdate({ editor }) {
-      const md = stripImageMeta(editor.storage.markdown.getMarkdown())
+      const md = stripAllMdMeta(editor.storage.markdown.getMarkdown())
       const nextImageMeta = collectImageMetaFromDoc(editor.state.doc, imageMetaRef.current)
       const currentDocSignature = getEditorDocSignature(editor)
       const hasDocDiff = Boolean(savedDocSignatureRef.current)
@@ -903,7 +957,7 @@ export default function MDPageViewer({ post, channelId, onClose }) {
   // 소스 → 미리보기 전환: 소스 텍스트를 에디터에 반영
   function switchToPreview() {
     if (mode === 'source' && editor) {
-      const normalizedSource = stripAuthTokenFromMarkdown(sourceText || '')
+      const normalizedSource = stripAuthTokenFromMarkdown(stripAllMdMeta(sourceText || ''))
       const sanitizedSource = normalizeMarkdownForTableParsing(normalizedSource)
       const baseline = sourceBaselineRef.current || ''
       // 소스가 실제로 변경되지 않았다면 setContent를 건너뛰어
@@ -938,16 +992,19 @@ export default function MDPageViewer({ post, channelId, onClose }) {
 
   const getCurrentMarkdown = useCallback(() => {
     if (mode === 'source') {
-      return normalizeMarkdownForTableParsing(stripAuthTokenFromMarkdown(sourceText))
+      return normalizeMarkdownForTableParsing(stripAuthTokenFromMarkdown(stripAllMdMeta(sourceText)))
     }
     return normalizeMarkdownForTableParsing(
-      stripAuthTokenFromMarkdown(stripImageMeta(editor?.storage.markdown.getMarkdown() || '')),
+      stripAuthTokenFromMarkdown(stripAllMdMeta(editor?.storage.markdown.getMarkdown() || '')),
     )
   }, [mode, sourceText, editor])
 
   const handleSave = useCallback(async () => {
       const md = stripAuthTokenFromMarkdown(getCurrentMarkdown())
-      const mdWithMeta = attachImageMeta(md, normalizeImageMetaKeys(imageMeta))
+      const withImageMeta = attachImageMeta(md, normalizeImageMetaKeys(imageMeta))
+      const mdWithMeta = mode === 'preview' && editor
+        ? attachDocMeta(withImageMeta, editor.getJSON())
+        : stripDocMeta(withImageMeta)
     setSaving(true)
     try {
       await updatePost(channelId, post.id, { content: `${MD_PAGE_MARKER}\n${mdWithMeta}` })
