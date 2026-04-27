@@ -1,4 +1,6 @@
-import { useState, useRef, useEffect, useCallback } from 'react'
+import { useState, useRef, useEffect, useCallback, useLayoutEffect } from 'react'
+import useMentionAutocomplete from '../hooks/useMentionAutocomplete'
+import MentionDropdown from './MentionDropdown'
 import { useChat } from '../contexts/ChatContext'
 import { useAuth } from '../contexts/AuthContext'
 import { apiFetch, getToken } from '../lib/api'
@@ -1574,7 +1576,7 @@ function normalizeMarkdownCodeFence(text) {
 
 // ─── Compose bar with file attach ────────────────────────────
 
-function ComposeBar({ onSubmit, isArchived }) {
+function ComposeBar({ onSubmit, isArchived, teamId }) {
   const t = useT()
   const { currentUser, maxAttachmentFileSize } = useAuth()
   const { selectedChannel } = useChat()
@@ -1591,6 +1593,8 @@ function ComposeBar({ onSubmit, isArchived }) {
   const contentRef = useRef(null)
   const fileInputRef = useRef(null)
   const dragCounter = useRef(0)
+  const composeWrapRef = useRef(null)
+  const mention = useMentionAutocomplete(teamId)
 
   function addFiles(newFiles) {
     if (files.length + newFiles.length > 10) {
@@ -1742,6 +1746,25 @@ function ComposeBar({ onSubmit, isArchived }) {
   }
 
   function handleKeyDown(e) {
+    // mention 드롭다운이 열려있을 때 방향키/Enter/Tab/Escape 가로챔
+    if (mention.open) {
+      const handled = mention.handleKeyDown(e)
+      if (handled) {
+        e.preventDefault()
+        if ((e.key === 'Enter' || e.key === 'Tab') && mention.users[mention.selectedIdx]) {
+          mention.selectUser(mention.users[mention.selectedIdx], content, contentRef.current?.selectionStart ?? content.length, (newText, newCursor) => {
+            setContent(newText)
+            requestAnimationFrame(() => {
+              if (contentRef.current) {
+                contentRef.current.selectionStart = newCursor
+                contentRef.current.selectionEnd = newCursor
+              }
+            })
+          })
+        }
+        return
+      }
+    }
     if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
       e.preventDefault()
       handleSend()
@@ -1804,22 +1827,43 @@ function ComposeBar({ onSubmit, isArchived }) {
         {/* Content textarea row */}
         <div className="flex items-start gap-3 px-4 pt-3 pb-2">
           {currentUser && <Avatar letters={currentUser.avatar} size="sm" />}
-          <textarea
-            ref={contentRef}
-            value={content}
-            onChange={e => setContent(e.target.value)}
-            onFocus={() => setFocused(true)}
-            onKeyDown={handleKeyDown}
-            onDragOver={handleTextareaDragOver}
-            onDrop={handleTextareaDrop}
-            placeholder={t.chat.messagePlaceholder}
-            rows={1}
-            className="flex-1 bg-transparent text-gray-800 placeholder-gray-400 text-sm leading-relaxed resize-none focus:outline-none pt-0.5"
-            onInput={e => {
-              e.target.style.height = 'auto'
-              e.target.style.height = Math.min(e.target.scrollHeight, 160) + 'px'
-            }}
-          />
+          <div ref={composeWrapRef} className="flex-1 relative">
+            <textarea
+              ref={contentRef}
+              value={content}
+              onChange={e => {
+                setContent(e.target.value)
+                mention.handleChange(e.target.value, e.target.selectionStart)
+              }}
+              onFocus={() => setFocused(true)}
+              onKeyDown={handleKeyDown}
+              onDragOver={handleTextareaDragOver}
+              onDrop={handleTextareaDrop}
+              placeholder={t.chat.messagePlaceholder}
+              rows={1}
+              className="w-full bg-transparent text-gray-800 placeholder-gray-400 text-sm leading-relaxed resize-none focus:outline-none pt-0.5"
+              onInput={e => {
+                e.target.style.height = 'auto'
+                e.target.style.height = Math.min(e.target.scrollHeight, 160) + 'px'
+              }}
+            />
+            {mention.open && (
+              <MentionDropdown
+                users={mention.users}
+                selectedIdx={mention.selectedIdx}
+                onSelect={user => mention.selectUser(user, content, contentRef.current?.selectionStart ?? content.length, (newText, newCursor) => {
+                  setContent(newText)
+                  requestAnimationFrame(() => {
+                    if (contentRef.current) {
+                      contentRef.current.selectionStart = newCursor
+                      contentRef.current.selectionEnd = newCursor
+                      contentRef.current.focus()
+                    }
+                  })
+                })}
+              />
+            )}
+          </div>
         </div>
 
         {/* Attached files preview */}
@@ -2014,7 +2058,7 @@ function PostList({ posts, onSelect, onSubmit, selectedPostId, onOpenDocumentLis
         )}
       </div>
 
-      <ComposeBar onSubmit={onSubmit} isArchived={selectedChannel?.is_archived} />
+      <ComposeBar onSubmit={onSubmit} isArchived={selectedChannel?.is_archived} teamId={selectedTeam?.id} />
     </div>
   )
 }

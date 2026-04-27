@@ -1,6 +1,8 @@
 const express = require('express')
 const router = express.Router()
 const { v4: uuidv4 } = require('uuid')
+const fs = require('fs')
+const path = require('path')
 const { client, isConnected } = require('../cassandra')
 const db = require('../db')
 const requireAuth = require('../middleware/auth')
@@ -11,6 +13,44 @@ const {
   clearTrainingStatus,
   getTrainingStatus,
 } = require('../trainingStatus')
+
+// ─── Telegram mention 알림 ────────────────────────────────────
+function extractMentions(content) {
+  const matches = String(content || '').matchAll(/@([^\s@]+)/g)
+  return [...new Set([...matches].map(m => m[1]))]
+}
+
+async function notifyMentionedUsers(content) {
+  const names = extractMentions(content)
+  if (names.length === 0) return
+  try {
+    const configPath = path.resolve(__dirname, '../../config.json')
+    const config = JSON.parse(fs.readFileSync(configPath, 'utf8'))
+    const botToken = config?.sns?.telegram?.httpApiToken?.trim()
+    if (!botToken) return
+    for (const name of names) {
+      // display_name 또는 name으로 사용자 검색
+      const r = await db.query(
+        `SELECT telegram_id, use_sns_channel FROM users
+         WHERE (LOWER(display_name) = LOWER($1) OR LOWER(name) = LOWER($1))
+           AND is_active = true LIMIT 1`,
+        [name],
+      )
+      const user = r.rows[0]
+      if (!user) continue
+      if (user.use_sns_channel !== 'telegram') continue
+      const chatId = (user.telegram_id || '').trim()
+      if (!/^-?[0-9]+$/.test(chatId)) continue
+      fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chat_id: chatId, text: '게시물이 등록되었습니다.' }),
+      }).catch(() => {})
+    }
+  } catch (e) {
+    console.error('[notifyMentionedUsers]', e)
+  }
+}
 
 // ─── Helper: UUIDs → enriched attachment objects ──────────────
 async function enrichAttachments(ids) {
@@ -484,6 +524,8 @@ router.post('/', requireAuth, async (req, res, next) => {
       else clearTrainingStatus('post', postId)
     })()
 
+    notifyMentionedUsers(safeContent)
+
     res.status(201).json({ id: postId, channelId, content, authoredAt })
   } catch (err) {
     next(err)
@@ -641,6 +683,8 @@ router.post('/:id/comments', requireAuth, async (req, res, next) => {
       if (success) markTrainingCompleted('comment', commentId)
       else clearTrainingStatus('comment', commentId)
     })()
+
+    notifyMentionedUsers(safeContent)
 
     res.status(201).json(newComment)
   } catch (err) {

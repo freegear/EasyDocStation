@@ -6,10 +6,12 @@ import { useT } from '../../i18n/useT'
 import { isTemplateContent } from '../../templates/formTemplates'
 import { useSelectionClickGuard } from '../../hooks/useSelectionClickGuard'
 import { findDuplicateFileNames } from '../../lib/fileNameValidation'
+import useMentionAutocomplete from '../../hooks/useMentionAutocomplete'
+import MentionDropdown from '../MentionDropdown'
 
 function PostDetailPane({ post, channelId, onClose, helpers = {} }) {
   const t = useT()
-  const { addComment, incrementViews, deletePost, updatePost, deleteComment, updateComment, posts, selectedChannel, openInAgenticAI } = useChat()
+  const { addComment, incrementViews, deletePost, updatePost, deleteComment, updateComment, posts, selectedChannel, selectedTeam, openInAgenticAI } = useChat()
   const { currentUser, maxAttachmentFileSize } = useAuth()
   const {
     Avatar,
@@ -58,6 +60,8 @@ function PostDetailPane({ post, channelId, onClose, helpers = {} }) {
   const [uploadProgress, setUploadProgress] = useState(null)
   const commentSubmittingRef = useRef(false)
   const commentsEndRef = useRef(null)
+  const commentTextareaRef = useRef(null)
+  const mention = useMentionAutocomplete(selectedTeam?.id)
   const fileInputRef = useRef(null)
   const dragCounter = useRef(0)
 
@@ -875,22 +879,62 @@ function PostDetailPane({ post, channelId, onClose, helpers = {} }) {
                   <p className="text-indigo-600 text-sm font-semibold">{t.chat.dropFile}</p>
                 </div>
               )}
-              <textarea
-                value={comment}
-                onChange={e => setComment(e.target.value)}
-                placeholder={t.chat.commentPlaceholder}
-                rows={2}
-                className="w-full bg-transparent text-gray-700 placeholder-gray-400 text-sm px-4 pt-3 pb-2 resize-none focus:outline-none leading-relaxed"
-                onDragOver={handleTextareaDragOver}
-                onDrop={handleTextareaDrop}
-                onKeyDown={e => {
-                  if (e.nativeEvent.isComposing) return
-                  if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault()
-                    e.currentTarget.form?.requestSubmit()
-                  }
-                }}
-              />
+              <div className="relative">
+                <textarea
+                  ref={commentTextareaRef}
+                  value={comment}
+                  onChange={e => {
+                    setComment(e.target.value)
+                    mention.handleChange(e.target.value, e.target.selectionStart)
+                  }}
+                  placeholder={t.chat.commentPlaceholder}
+                  rows={2}
+                  className="w-full bg-transparent text-gray-700 placeholder-gray-400 text-sm px-4 pt-3 pb-2 resize-none focus:outline-none leading-relaxed"
+                  onDragOver={handleTextareaDragOver}
+                  onDrop={handleTextareaDrop}
+                  onKeyDown={e => {
+                    if (e.nativeEvent.isComposing) return
+                    if (mention.open) {
+                      const handled = mention.handleKeyDown(e)
+                      if (handled) {
+                        e.preventDefault()
+                        if ((e.key === 'Enter' || e.key === 'Tab') && mention.users[mention.selectedIdx]) {
+                          mention.selectUser(mention.users[mention.selectedIdx], comment, commentTextareaRef.current?.selectionStart ?? comment.length, (newText, newCursor) => {
+                            setComment(newText)
+                            requestAnimationFrame(() => {
+                              if (commentTextareaRef.current) {
+                                commentTextareaRef.current.selectionStart = newCursor
+                                commentTextareaRef.current.selectionEnd = newCursor
+                              }
+                            })
+                          })
+                        }
+                        return
+                      }
+                    }
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault()
+                      e.currentTarget.form?.requestSubmit()
+                    }
+                  }}
+                />
+                {mention.open && (
+                  <MentionDropdown
+                    users={mention.users}
+                    selectedIdx={mention.selectedIdx}
+                    onSelect={user => mention.selectUser(user, comment, commentTextareaRef.current?.selectionStart ?? comment.length, (newText, newCursor) => {
+                      setComment(newText)
+                      requestAnimationFrame(() => {
+                        if (commentTextareaRef.current) {
+                          commentTextareaRef.current.selectionStart = newCursor
+                          commentTextareaRef.current.selectionEnd = newCursor
+                          commentTextareaRef.current.focus()
+                        }
+                      })
+                    })}
+                  />
+                )}
+              </div>
               {files.length > 0 && (
                 <div className="px-4 pb-2">
                   <div className="flex flex-wrap gap-2">
