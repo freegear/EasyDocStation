@@ -12,7 +12,9 @@
       "Bash(node -e \"const pkg = require\\('./node_modules/tiptap-markdown/package.json'\\); console.log\\(pkg.version\\)\")",
       "Bash(node -e \"console.log\\(process.version\\)\")",
       "Bash(python3 -c ' *)",
-      "Bash(node -e \"require\\('/Users/kevinim/Desktop/EasyDocStation/server/routes/sns.js'\\); console.log\\('OK'\\)\")"
+      "Bash(node -e \"require\\('/Users/kevinim/Desktop/EasyDocStation/server/routes/sns.js'\\); console.log\\('OK'\\)\")",
+      "Bash(node --check /Users/kevinim/Desktop/EasyDocStation/server/routes/posts.js)",
+      "Bash(node --check /Users/kevinim/Desktop/EasyDocStation/src/hooks/useMentionAutocomplete.js)"
     ]
   }
 }
