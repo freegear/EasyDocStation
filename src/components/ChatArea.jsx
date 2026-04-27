@@ -1525,17 +1525,29 @@ function LinkPreviewCards({ links = [] }) {
   )
 }
 
-// @표시이름 을 파란색 span 으로 치환 — ReactMarkdown children(문자열 노드)에 적용
+function renderMentionTokens(text, keyPrefix = 'mention') {
+  if (typeof text !== 'string') return text
+  const parts = text.split(/(@[^\s@]+)/g)
+  if (parts.length <= 1) return text
+  return parts.map((part, i) => (
+    /^@[^\s@]+$/.test(part)
+      ? (
+        <span
+          key={`${keyPrefix}-m${i}`}
+          className="inline-flex items-center px-1.5 py-0.5 rounded-md border border-blue-300 bg-blue-50 text-blue-600 font-semibold"
+        >
+          {part}
+        </span>
+      )
+      : part
+  ))
+}
+
+// @표시이름 을 테두리 배지 span 으로 치환 — ReactMarkdown children(문자열 노드)에 적용
 function applyMentionColor(children) {
   const processNode = (child, keyPrefix) => {
     if (typeof child !== 'string') return child
-    const parts = child.split(/(@[^\s@]+)/g)
-    if (parts.length <= 1) return child
-    return parts.map((part, i) =>
-      /^@[^\s@]+$/.test(part)
-        ? <span key={`${keyPrefix}-m${i}`} className="text-blue-500 font-medium">{part}</span>
-        : part
-    )
+    return renderMentionTokens(child, String(keyPrefix))
   }
   if (Array.isArray(children)) return children.map((c, i) => processNode(c, i))
   return processNode(children, 0)
@@ -2435,7 +2447,9 @@ function PostCard({ post, onSelect, pinned, isSelected }) {
           <div className="flex items-center gap-2 mb-0.5">
             {pinned && <PinIcon />}
             {leadLine && (
-              <p className="text-gray-800 font-semibold text-sm leading-tight group-hover:text-indigo-600 transition-colors overflow-hidden text-ellipsis whitespace-nowrap select-text allow-copy cursor-text">{leadLine}</p>
+              <p className="text-gray-800 font-semibold text-sm leading-tight group-hover:text-indigo-600 transition-colors overflow-hidden text-ellipsis whitespace-nowrap select-text allow-copy cursor-text">
+                {renderMentionTokens(leadLine, `lead-${post.id}`)}
+              </p>
             )}
           </div>
           {/* Meta */}
@@ -2476,7 +2490,7 @@ function PostCard({ post, onSelect, pinned, isSelected }) {
             <p
               className="text-gray-400 text-xs leading-relaxed line-clamp-2 select-text allow-copy cursor-text"
             >
-              {bodyPreview}
+              {renderMentionTokens(bodyPreview, `body-${post.id}`)}
             </p>
           )}
         </div>
