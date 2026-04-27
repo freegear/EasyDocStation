@@ -309,6 +309,7 @@ router.get('/stats', async (req, res) => {
       maxAttachmentFileSize: config.MaxAttachmentFileSize ?? 100,
       DirectMessage: normalizeDirectMessageConfig(config.DirectMessage || {}),
       company: config.company || {},
+      site_url: config.site_url || '',
       sns: normalizeSnsConfig(config.sns || {})
     })
   } catch (err) {
@@ -351,6 +352,7 @@ router.get('/stats', async (req, res) => {
         maxAttachmentFileSize: config.MaxAttachmentFileSize ?? 100,
         DirectMessage: normalizeDirectMessageConfig(config.DirectMessage || {}),
         company: config.company || {},
+        site_url: config.site_url || '',
         sns: normalizeSnsConfig(config.sns || {})
       })
     } catch (innerErr) {

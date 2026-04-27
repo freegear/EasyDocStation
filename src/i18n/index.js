@@ -280,7 +280,7 @@ export const translations = {
       navDisplay: 'Display 설정',
       navRag: 'RAG 학습 설정',
       navAgenticAI: 'AgenticAI 설정',
-      navCompany: '회사 정보 설정',
+      navCompany: '사이트 설정',
       navSns: 'SNS 메신저 설정',
       navReset: '사이트 초기화',
       companyTabTitle: '사이트 정보 설정',
