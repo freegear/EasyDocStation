@@ -1910,12 +1910,51 @@ function LinkBubbleMenu({ editor }) {
 }
 
 function TableBubbleMenu({ editor }) {
+  const [openByDoubleClick, setOpenByDoubleClick] = useState(false)
+
+  useEffect(() => {
+    if (!editor) return undefined
+
+    const dom = editor.view?.dom
+    if (!dom) return undefined
+
+    const handleDoubleClick = (event) => {
+      const target = event.target
+      if (!(target instanceof Element)) return
+      setOpenByDoubleClick(Boolean(target.closest('table')))
+    }
+
+    const handlePointerDown = (event) => {
+      const target = event.target
+      if (!(target instanceof Element)) return
+      if (!target.closest('table')) {
+        setOpenByDoubleClick(false)
+      }
+    }
+
+    const handleSelectionUpdate = () => {
+      if (!editor.isActive('table')) {
+        setOpenByDoubleClick(false)
+      }
+    }
+
+    dom.addEventListener('dblclick', handleDoubleClick)
+    dom.addEventListener('pointerdown', handlePointerDown)
+    editor.on('selectionUpdate', handleSelectionUpdate)
+
+    return () => {
+      dom.removeEventListener('dblclick', handleDoubleClick)
+      dom.removeEventListener('pointerdown', handlePointerDown)
+      editor.off('selectionUpdate', handleSelectionUpdate)
+    }
+  }, [editor])
+
   if (!editor) return null
 
   return (
     <BubbleMenu
       editor={editor}
-      shouldShow={({ editor: ed }) => ed.isEditable && ed.isActive('table')}
+      shouldShow={({ editor: ed }) => ed.isEditable && openByDoubleClick && ed.isActive('table')}
       tippyOptions={{ duration: 120, placement: 'top', maxWidth: 520 }}
       className="table-toolbar"
     >
