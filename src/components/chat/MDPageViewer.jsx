@@ -1911,6 +1911,7 @@ function LinkBubbleMenu({ editor }) {
 
 function TableBubbleMenu({ editor }) {
   const [openByDoubleClick, setOpenByDoubleClick] = useState(false)
+  const tableBubbleMenuKey = 'tableBubbleMenu'
   const isTableSelection = () => (
     editor?.isActive('table')
     || editor?.isActive('tableCell')
@@ -1931,7 +1932,12 @@ function TableBubbleMenu({ editor }) {
       const inTableDom = Boolean(target.closest('table, td, th'))
       // 더블클릭 직후 selection 갱신 타이밍을 한 틱 기다려 표 활성 여부를 함께 확인
       requestAnimationFrame(() => {
-        setOpenByDoubleClick(inTableDom && isTableSelection())
+        const shouldOpen = inTableDom && isTableSelection()
+        setOpenByDoubleClick(shouldOpen)
+        if (shouldOpen) {
+          // BubbleMenu 플러그인에 즉시 위치/표시 갱신을 요청한다.
+          editor.chain().focus().setMeta(tableBubbleMenuKey, 'updatePosition').run()
+        }
       })
     }
 
@@ -1962,6 +1968,7 @@ function TableBubbleMenu({ editor }) {
   return (
     <BubbleMenu
       editor={editor}
+      pluginKey={tableBubbleMenuKey}
       shouldShow={({ editor: ed }) => (
         ed.isEditable
         && openByDoubleClick
