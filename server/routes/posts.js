@@ -57,6 +57,54 @@ async function notifyMentionedUsers(content) {
   }
 }
 
+function buildPostLink(channelId, postId, commentId = '') {
+  const base = String(process.env.CLIENT_ORIGIN || 'http://localhost:5173').replace(/\/+$/, '')
+  const params = new URLSearchParams({
+    channelId: String(channelId || ''),
+    postId: String(postId || ''),
+  })
+  if (commentId) params.set('commentId', String(commentId))
+  return `${base}/?${params.toString()}`
+}
+
+async function notifyAuthorTelegramPostRegistered({ authorId, channelId, postId, commentId = '' }) {
+  if (!authorId || !channelId || !postId) return
+  try {
+    const configPath = path.resolve(__dirname, '../../config.json')
+    const config = JSON.parse(fs.readFileSync(configPath, 'utf8'))
+    if (!config?.sns?.telegram?.enabled) return
+
+    const botToken = String(config?.sns?.telegram?.httpApiToken || '').trim()
+    if (!botToken) return
+
+    const userRes = await db.query(
+      `SELECT telegram_id, use_sns_channel, is_active
+       FROM users
+       WHERE id = $1
+       LIMIT 1`,
+      [authorId],
+    )
+    const u = userRes.rows?.[0]
+    if (!u?.is_active) return
+    if (String(u.use_sns_channel || '').trim() !== 'telegram') return
+
+    const chatId = String(u.telegram_id || '').trim()
+    // 숫자형 chat_id가 등록된 경우를 "활성"으로 본다.
+    if (!/^-?[0-9]+$/.test(chatId)) return
+
+    const postLink = buildPostLink(channelId, postId, commentId)
+    const text = `게시물이 등록되었습니다.\n${postLink}`
+
+    fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: chatId, text }),
+    }).catch(() => {})
+  } catch (e) {
+    console.error('[notifyAuthorTelegramPostRegistered]', e)
+  }
+}
+
 // ─── Helper: UUIDs → enriched attachment objects ──────────────
 async function enrichAttachments(ids) {
   if (!ids || ids.length === 0) return []
@@ -530,6 +578,11 @@ router.post('/', requireAuth, async (req, res, next) => {
     })()
 
     notifyMentionedUsers(content)
+    notifyAuthorTelegramPostRegistered({
+      authorId: req.user.id,
+      channelId,
+      postId,
+    })
 
     res.status(201).json({ id: postId, channelId, content, authoredAt })
   } catch (err) {
@@ -690,6 +743,12 @@ router.post('/:id/comments', requireAuth, async (req, res, next) => {
     })()
 
     notifyMentionedUsers(safeContent)
+    notifyAuthorTelegramPostRegistered({
+      authorId: req.user.id,
+      channelId: channelId || (await findPostLocator(postId))?.channel_id || '',
+      postId,
+      commentId,
+    })
 
     res.status(201).json(newComment)
   } catch (err) {

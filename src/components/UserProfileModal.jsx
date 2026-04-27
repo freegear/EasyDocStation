@@ -105,6 +105,16 @@ export default function UserProfileModal({ onClose, onSaved }) {
     e.preventDefault()
     clearMessages()
 
+    const normalizedName = String(name || '').trim()
+    if (!normalizedName) {
+      alert(`${t.admin.labelName || t.profile.name} 값을 입력해 주세요.`)
+      return
+    }
+    if (/\s/.test(normalizedName)) {
+      alert('사용자 이름 (Full Name)에는 빈칸을 사용할 수 없습니다.')
+      return
+    }
+
     const tryingPasswordChange = Boolean(newPw || confirmPw)
     if (tryingPasswordChange) {
       if (!currentPw) {
@@ -124,7 +134,7 @@ export default function UserProfileModal({ onClose, onSaved }) {
     setSaving(true)
     try {
       const payload = {
-        name,
+        name: normalizedName,
         display_name: displayName || null,
         email,
         phone,
