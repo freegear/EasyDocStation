@@ -48,7 +48,8 @@ npm run setup:dgx-spark
 
 추가 옵션:
 - `EASYDOC_RAG_DEVICE=auto|cuda|cpu|mps` (기본: `auto`)
-- `INSTALL_CASSANDRA=1`, `INSTALL_OLLAMA=1` (기본: 0)
+- `INSTALL_CASSANDRA=1`, `INSTALL_OLLAMA=1` (`setup:ubuntu` 기본: 0, `setup:dgx-spark` 기본: 1)
+- `CASSANDRA_REQUIRED=1|0` (`setup/run:dgx-spark` 기본: 1, 미연결 시 즉시 중단)
 - `APP_DB_USER`, `APP_DB_PASS`, `APP_DB_NAME`, `CLIENT_ORIGIN`
 
 ## DGX-SPARK 전용 실행
@@ -116,7 +117,7 @@ bash scripts/dgx-spark-rerun.sh --help
 
 설치 스크립트가 자동으로 수행하는 내용:
 - PostgreSQL 설치/기동 및 DB/계정 생성
-- (옵션) Cassandra/Ollama 설치
+- Cassandra 설치/기동(`setup:dgx-spark` 기본), Ollama 설치(옵션)
 - Node 의존성 설치
 - Python venv(`.venv`) 생성 + RAG 의존성 설치
 - `config.json` 자동 보정:

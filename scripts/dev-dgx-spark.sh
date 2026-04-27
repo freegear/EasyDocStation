@@ -52,6 +52,8 @@ if [[ -x "$ROOT_DIR/.venv/bin/python3" ]]; then
 fi
 
 export EASYDOC_RAG_DEVICE="${EASYDOC_RAG_DEVICE:-auto}"
+# DGX 운영 모드에서는 Cassandra를 필수로 강제한다.
+export CASSANDRA_REQUIRED="${CASSANDRA_REQUIRED:-1}"
 
 if command -v nvidia-smi >/dev/null 2>&1; then
   echo "[DGX] GPU 상태"

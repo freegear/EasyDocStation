@@ -24,6 +24,66 @@ cleanup() {
 }
 trap cleanup EXIT INT TERM
 
+CASSANDRA_REQUIRED="${CASSANDRA_REQUIRED:-1}"
+
+resolve_cassandra_target() {
+  local target
+  target="$(node -e '
+    const fs = require("fs")
+    const path = require("path")
+    const cfgPath = path.join(process.cwd(), "config.json")
+    let host = "127.0.0.1"
+    let port = "9042"
+    try {
+      const cfg = JSON.parse(fs.readFileSync(cfgPath, "utf8"))
+      const cass = cfg.Cassandra || cfg.cassandra || {}
+      const cp = Array.isArray(cass.contactPoints) ? cass.contactPoints[0] : cass.contactPoints
+      if (typeof cp === "string" && cp.trim()) {
+        const raw = cp.trim()
+        if (raw.includes(":")) {
+          const idx = raw.lastIndexOf(":")
+          host = raw.slice(0, idx) || host
+          port = raw.slice(idx + 1) || port
+        } else {
+          host = raw
+        }
+      }
+    } catch (_) {}
+    process.stdout.write(`${host} ${port}`)
+  ' 2>/dev/null || true)"
+  if [[ -z "${target:-}" ]]; then
+    echo "127.0.0.1 9042"
+    return 0
+  fi
+  echo "$target"
+}
+
+ensure_cassandra_ready_or_exit() {
+  [[ "$CASSANDRA_REQUIRED" == "1" ]] || return 0
+  local host port
+  read -r host port <<< "$(resolve_cassandra_target)"
+  host="${host:-127.0.0.1}"
+  port="${port:-9042}"
+
+  local ok=1
+  if command -v nc >/dev/null 2>&1; then
+    if nc -z -w 2 "$host" "$port" >/dev/null 2>&1; then
+      ok=0
+    fi
+  elif command -v bash >/dev/null 2>&1; then
+    if timeout 2 bash -lc "cat < /dev/null > /dev/tcp/${host}/${port}" >/dev/null 2>&1; then
+      ok=0
+    fi
+  fi
+
+  if [[ "$ok" -ne 0 ]]; then
+    echo "[BE] ❌ Cassandra 필수 모드(CASSANDRA_REQUIRED=1): ${host}:${port} 연결 실패"
+    echo "[BE] ❌ PostgreSQL fallback으로 진행하지 않고 즉시 중단합니다."
+    echo "[BE] 조치: Cassandra 기동 후 다시 실행하세요."
+    exit 1
+  fi
+}
+
 resolve_port_pids() {
   local port="$1"
   local pids=""
@@ -81,6 +141,8 @@ cleanup_port() {
 }
 
 while true; do
+  ensure_cassandra_ready_or_exit
+
   if ! cleanup_port 3001; then
     cleanup_failures=$((cleanup_failures + 1))
     echo "[BE] 포트 3001 점유 프로세스를 정리하지 못했습니다. (${cleanup_failures}/${MAX_CLEANUP_RETRIES})"
