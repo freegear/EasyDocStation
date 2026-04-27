@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback, useLayoutEffect } from 'react'
-import useMentionAutocomplete from '../hooks/useMentionAutocomplete'
+import useMentionAutocomplete, { MENTION_SEPARATOR } from '../hooks/useMentionAutocomplete'
 import MentionDropdown from './MentionDropdown'
 import { useChat } from '../contexts/ChatContext'
 import { useAuth } from '../contexts/AuthContext'
@@ -1527,20 +1527,35 @@ function LinkPreviewCards({ links = [] }) {
 
 function renderMentionTokens(text, keyPrefix = 'mention') {
   if (typeof text !== 'string') return text
-  const parts = text.split(/(@[^\s@]+)/g)
-  if (parts.length <= 1) return text
-  return parts.map((part, i) => (
-    /^@[^\s@]+$/.test(part)
+  const escapedSep = MENTION_SEPARATOR.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const sepMentionRe = new RegExp(`(@[^@\\n${escapedSep}]+${escapedSep})`, 'g')
+  const legacyMentionRe = /(@[^\s@]+)/g
+
+  const renderParts = (parts, isMention, trimSep = false) => parts.map((part, i) => (
+    isMention(part)
       ? (
         <span
           key={`${keyPrefix}-m${i}`}
           className="inline-flex items-center px-1.5 py-0.5 rounded-md border border-blue-300 bg-blue-50 text-blue-600 font-semibold"
         >
-          {part}
+          {trimSep ? part.replaceAll(MENTION_SEPARATOR, '') : part}
         </span>
       )
-      : part
+      : part.replaceAll(MENTION_SEPARATOR, '')
   ))
+
+  const sepParts = text.split(sepMentionRe)
+  if (sepParts.length > 1) {
+    const sepMentionExact = new RegExp(`^@[^@\\n${escapedSep}]+${escapedSep}$`)
+    return renderParts(sepParts, (part) => sepMentionExact.test(part), true)
+  }
+
+  const legacyParts = text.split(legacyMentionRe)
+  if (legacyParts.length > 1) {
+    return renderParts(legacyParts, (part) => /^@[^\s@]+$/.test(part), false)
+  }
+
+  return text.replaceAll(MENTION_SEPARATOR, '')
 }
 
 // @표시이름 을 테두리 배지 span 으로 치환 — ReactMarkdown children(문자열 노드)에 적용

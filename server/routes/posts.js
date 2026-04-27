@@ -16,8 +16,26 @@ const {
 
 // ─── Telegram mention 알림 ────────────────────────────────────
 function extractMentions(content) {
-  const matches = String(content || '').matchAll(/@([^\s@]+)/g)
-  return [...new Set([...matches].map(m => m[1]))]
+  const source = String(content || '')
+  const separator = '\u2063'
+  const escapedSep = separator.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+
+  const names = new Set()
+
+  const sepMatches = source.matchAll(new RegExp(`@([^@\\n${escapedSep}]+)${escapedSep}`, 'g'))
+  for (const m of sepMatches) {
+    const n = String(m[1] || '').trim()
+    if (n) names.add(n)
+  }
+
+  // Backward compatibility: @name 형태도 함께 처리
+  const legacyMatches = source.matchAll(/@([^\s@]+)/g)
+  for (const m of legacyMatches) {
+    const n = String(m[1] || '').trim()
+    if (n) names.add(n)
+  }
+
+  return [...names]
 }
 
 async function notifyMentionedUsers(content) {

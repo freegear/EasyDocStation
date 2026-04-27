@@ -1,6 +1,8 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { apiFetch } from '../lib/api'
 
+export const MENTION_SEPARATOR = '\u2063'
+
 // @word 패턴 감지: 커서 직전 @로 시작하는 단어
 function getMentionQuery(text, cursorPos) {
   const before = text.slice(0, cursorPos)
@@ -17,7 +19,7 @@ function applyMention(text, cursorPos, user) {
   if (!match) return { text, cursor: cursorPos }
   const mentionStart = cursorPos - match[0].length
   const displayName = user.display_name || user.name
-  const inserted = `@${displayName} `
+  const inserted = `@${displayName}${MENTION_SEPARATOR} `
   return {
     text: before.slice(0, mentionStart) + inserted + after,
     cursor: mentionStart + inserted.length,
@@ -60,11 +62,12 @@ export function getCursorCoords(textarea) {
   document.body.removeChild(mirror)
 
   const lineHeight = parseFloat(style.lineHeight) || 20
+  const scrollTop = textarea.scrollTop || 0
 
   // 뷰포트 기준 좌표 (fixed 포지션용)
   return {
     x: markerRect.left,
-    y: markerRect.top + lineHeight,
+    y: markerRect.top + lineHeight - scrollTop,
   }
 }
 
@@ -74,8 +77,27 @@ export default function useMentionAutocomplete(teamId) {
   const [selectedIdx, setSelectedIdx] = useState(0)
   const [open, setOpen] = useState(false)
   const [cursorCoords, setCursorCoords] = useState(null)
+  const [teamMembers, setTeamMembers] = useState([])
   const fetchTimer = useRef(null)
   const activeQuery = useRef(null)
+
+  useEffect(() => {
+    let disposed = false
+    ;(async () => {
+      if (!teamId) {
+        setTeamMembers([])
+        return
+      }
+      try {
+        const data = await apiFetch(`/teams/${teamId}/members`)
+        const members = Array.isArray(data) ? data : (data?.members || [])
+        if (!disposed) setTeamMembers(members)
+      } catch {
+        if (!disposed) setTeamMembers([])
+      }
+    })()
+    return () => { disposed = true }
+  }, [teamId])
 
   useEffect(() => {
     if (query === null) { setOpen(false); return }
@@ -83,9 +105,15 @@ export default function useMentionAutocomplete(teamId) {
     fetchTimer.current = setTimeout(async () => {
       try {
         let results
-        if (teamId && query === '') {
-          const data = await apiFetch(`/teams/${teamId}/members`)
-          results = Array.isArray(data) ? data : (data?.members || [])
+        if (teamId) {
+          const q = String(query || '').trim().toLowerCase()
+          results = (teamMembers || []).filter((u) => {
+            if (!q) return true
+            const name = String(u?.name || '').toLowerCase()
+            const displayName = String(u?.display_name || '').toLowerCase()
+            const username = String(u?.username || '').toLowerCase()
+            return name.includes(q) || displayName.includes(q) || username.includes(q)
+          })
         } else {
           const data = await apiFetch(`/users/search?q=${encodeURIComponent(query)}`)
           results = Array.isArray(data) ? data : []
@@ -99,7 +127,7 @@ export default function useMentionAutocomplete(teamId) {
         setOpen(false)
       }
     }, query === '' ? 0 : 200)
-  }, [query, teamId])
+  }, [query, teamId, teamMembers])
 
   // textarea onChange 에서 호출 — textareaEl 을 넘기면 커서 좌표도 갱신
   const handleChange = useCallback((value, cursorPos, textareaEl) => {
