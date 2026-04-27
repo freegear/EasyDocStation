@@ -1,10 +1,35 @@
-export default function MentionDropdown({ users, selectedIdx, onSelect }) {
-  if (!users || users.length === 0) return null
+import { useEffect, useRef } from 'react'
+
+export default function MentionDropdown({ users, selectedIdx, onSelect, position }) {
+  const ref = useRef(null)
+
+  // 뷰포트 밖으로 벗어나지 않도록 위치 보정
+  useEffect(() => {
+    const el = ref.current
+    if (!el || !position) return
+    const { innerWidth, innerHeight } = window
+    const r = el.getBoundingClientRect()
+
+    let left = position.x
+    let top = position.y
+
+    if (left + r.width > innerWidth - 8) left = innerWidth - r.width - 8
+    if (left < 8) left = 8
+    // 아래 공간이 부족하면 커서 위로 표시
+    if (top + r.height > innerHeight - 8) top = position.y - r.height - (parseFloat(window.getComputedStyle(el).lineHeight) || 20)
+
+    el.style.left = `${left}px`
+    el.style.top  = `${top}px`
+  }, [position, users])
+
+  if (!users || users.length === 0 || !position) return null
+
   return (
-    <div className="fixed top-2 left-1/2 -translate-x-1/2 z-[9999] bg-white border border-gray-200 rounded-xl shadow-2xl overflow-hidden w-72">
-      <p className="px-3 py-1.5 text-[11px] text-gray-400 border-b border-gray-100 font-medium tracking-wide">
-        멘션할 사용자 선택
-      </p>
+    <div
+      ref={ref}
+      style={{ position: 'fixed', left: position.x, top: position.y, zIndex: 9999 }}
+      className="bg-white border border-gray-200 rounded-xl shadow-xl overflow-hidden w-64"
+    >
       {users.map((user, i) => {
         const displayName = user.display_name || user.name
         const initials = displayName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)

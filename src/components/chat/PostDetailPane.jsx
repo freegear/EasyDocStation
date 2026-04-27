@@ -885,7 +885,7 @@ function PostDetailPane({ post, channelId, onClose, helpers = {} }) {
                   value={comment}
                   onChange={e => {
                     setComment(e.target.value)
-                    mention.handleChange(e.target.value, e.target.selectionStart)
+                    mention.handleChange(e.target.value, e.target.selectionStart, e.target)
                   }}
                   placeholder={t.chat.commentPlaceholder}
                   rows={2}
@@ -922,6 +922,7 @@ function PostDetailPane({ post, channelId, onClose, helpers = {} }) {
                   <MentionDropdown
                     users={mention.users}
                     selectedIdx={mention.selectedIdx}
+                    position={mention.cursorCoords}
                     onSelect={user => mention.selectUser(user, comment, commentTextareaRef.current?.selectionStart ?? comment.length, (newText, newCursor) => {
                       setComment(newText)
                       requestAnimationFrame(() => {

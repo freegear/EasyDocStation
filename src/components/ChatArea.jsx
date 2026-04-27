@@ -1833,7 +1833,7 @@ function ComposeBar({ onSubmit, isArchived, teamId }) {
               value={content}
               onChange={e => {
                 setContent(e.target.value)
-                mention.handleChange(e.target.value, e.target.selectionStart)
+                mention.handleChange(e.target.value, e.target.selectionStart, e.target)
               }}
               onFocus={() => setFocused(true)}
               onKeyDown={handleKeyDown}
@@ -1851,6 +1851,7 @@ function ComposeBar({ onSubmit, isArchived, teamId }) {
               <MentionDropdown
                 users={mention.users}
                 selectedIdx={mention.selectedIdx}
+                position={mention.cursorCoords}
                 onSelect={user => mention.selectUser(user, content, contentRef.current?.selectionStart ?? content.length, (newText, newCursor) => {
                   setContent(newText)
                   requestAnimationFrame(() => {
