@@ -100,7 +100,7 @@
     "sender_password": "your-app-password"
   },
   "DirectMessage": {
-    "보존 기한": 1,
+    "보존 기한": 3,
     "무제한보관": false
   }
 }
