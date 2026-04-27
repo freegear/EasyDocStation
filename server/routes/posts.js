@@ -50,9 +50,10 @@ async function notifyMentionedUsers(content, { channelId = '', postId = '', comm
     const botToken = config?.sns?.telegram?.httpApiToken?.trim()
     if (!botToken) return
 
-    const postLink = (channelId && postId) ? buildPostLink(channelId, postId, commentId) : ''
+    const siteUrl = String(config?.site_url || '').trim()
+    const postLink = (channelId && postId) ? buildPostLink(channelId, postId, commentId, siteUrl) : ''
     const text = postLink
-      ? `게시물이 등록되었습니다.\n${postLink}`
+      ? `게시물이 등록되었습니다. ${postLink}`
       : '게시물이 등록되었습니다.'
 
     for (const name of names) {
@@ -80,8 +81,8 @@ async function notifyMentionedUsers(content, { channelId = '', postId = '', comm
   }
 }
 
-function buildPostLink(channelId, postId, commentId = '') {
-  const base = String(process.env.CLIENT_ORIGIN || 'http://localhost:5173').replace(/\/+$/, '')
+function buildPostLink(channelId, postId, commentId = '', siteUrl = '') {
+  const base = String(siteUrl || process.env.CLIENT_ORIGIN || 'http://localhost:5173').replace(/\/+$/, '')
   const params = new URLSearchParams({
     channelId: String(channelId || ''),
     postId: String(postId || ''),
@@ -115,8 +116,9 @@ async function notifyAuthorTelegramPostRegistered({ authorId, channelId, postId,
     // 숫자형 chat_id가 등록된 경우를 "활성"으로 본다.
     if (!/^-?[0-9]+$/.test(chatId)) return
 
-    const postLink = buildPostLink(channelId, postId, commentId)
-    const text = `게시물이 등록되었습니다.\n${postLink}`
+    const siteUrl = String(config?.site_url || '').trim()
+    const postLink = buildPostLink(channelId, postId, commentId, siteUrl)
+    const text = `게시물이 등록되었습니다. ${postLink}`
 
     fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
       method: 'POST',
