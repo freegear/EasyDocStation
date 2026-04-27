@@ -737,6 +737,7 @@ export default function SiteAdminPage({ onClose }) {
   const [ragResetting, setRagResetting] = useState(false)
   const [agenticaiForm, setAgenticaiForm] = useState({ num_predict: 4096, num_ctx: 8192, history: 6, language: 'ko' })
   const [companyForm, setCompanyForm] = useState({ name: '', address: '', phone: '', homepage: '', fax: '', seal: '', logo: '' })
+  const [siteUrl, setSiteUrl] = useState('')
   const [snsForm, setSnsForm] = useState({
     kakao: { enabled: false, apiKey: '' },
     line: { enabled: false, channelAccessToken: '' },
@@ -850,6 +851,7 @@ export default function SiteAdminPage({ onClose }) {
           logo:      data.company.logo      || '',
         })
       }
+      setSiteUrl(String(data.site_url || ''))
       if (data.sns) {
         setSnsForm({
           kakao: {
@@ -1117,6 +1119,7 @@ export default function SiteAdminPage({ onClose }) {
           seal:     companyForm.seal || null,
           logo:     companyForm.logo || null,
         }
+        configData.site_url = siteUrl.trim()
       } else if (activeTab === 'sns') {
         configData.sns = {
           kakao: {
@@ -2592,6 +2595,17 @@ export default function SiteAdminPage({ onClose }) {
             </div>
 
             <div className="space-y-5">
+              <div className="bg-gray-100 border border-gray-200 rounded-2xl p-5">
+                <label className="block text-gray-700 text-sm font-semibold mb-2">SITE URL</label>
+                <input
+                  type="text"
+                  value={siteUrl}
+                  onChange={e => setSiteUrl(e.target.value)}
+                  placeholder="https://example.com"
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-gray-900 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-300 transition-all"
+                />
+              </div>
+
               {/* 회사 도장 */}
               <div className="bg-gray-100 border border-gray-200 rounded-2xl p-6">
                 <label className="block text-gray-700 text-sm font-semibold mb-3">{t.admin.companySeal}</label>
