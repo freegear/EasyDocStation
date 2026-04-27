@@ -26,21 +26,26 @@ async function notifyMentionedUsers(content) {
   try {
     const configPath = path.resolve(__dirname, '../../config.json')
     const config = JSON.parse(fs.readFileSync(configPath, 'utf8'))
+
+    // 전역 텔레그램 봇이 비활성화되어 있으면 전송하지 않는다
+    if (!config?.sns?.telegram?.enabled) return
     const botToken = config?.sns?.telegram?.httpApiToken?.trim()
     if (!botToken) return
+
     for (const name of names) {
-      // display_name 또는 name으로 사용자 검색
       const r = await db.query(
-        `SELECT telegram_id, use_sns_channel FROM users
+        `SELECT telegram_id FROM users
          WHERE (LOWER(display_name) = LOWER($1) OR LOWER(name) = LOWER($1))
            AND is_active = true LIMIT 1`,
         [name],
       )
       const user = r.rows[0]
       if (!user) continue
-      if (user.use_sns_channel !== 'telegram') continue
+
+      // 숫자형 telegram_id 가 등록된 사용자 = 텔레그램 활성화 상태
       const chatId = (user.telegram_id || '').trim()
       if (!/^-?[0-9]+$/.test(chatId)) continue
+
       fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
