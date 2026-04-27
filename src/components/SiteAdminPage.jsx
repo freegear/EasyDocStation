@@ -127,11 +127,22 @@ function UserFormModal({ user, onClose, onSave, teams = [] }) {
     e.preventDefault()
     setError('')
     let usernameToSave = form.username
+    const normalizedName = String(form.name || '').trim()
+
+    if (!normalizedName) {
+      const msg = `${t.admin.labelName || '사용자 이름'} 값을 입력해 주세요.`
+      setRequiredFieldDialogMessage(msg)
+      return
+    }
+    if (/\s/.test(normalizedName)) {
+      alert('사용자 이름 (Full Name)에는 빈칸을 사용할 수 없습니다.')
+      return
+    }
 
     if (isAddMode) {
       const requiredChecks = [
         { missing: !form.username.trim(), label: t.admin.labelUsername },
-        { missing: !form.name.trim(), label: t.admin.labelName },
+        { missing: !normalizedName, label: t.admin.labelName },
         { missing: !form.display_name.trim(), label: t.admin.labelDisplayName },
         { missing: !form.email.trim(), label: t.admin.labelEmail },
         { missing: !form.phone.trim(), label: t.admin.labelPhone },
@@ -175,7 +186,7 @@ function UserFormModal({ user, onClose, onSave, teams = [] }) {
       let result
       if (isEdit) {
         const body = {
-          name: form.name, display_name: form.display_name, email: form.email, phone: form.phone, role: form.role,
+          name: normalizedName, display_name: form.display_name, email: form.email, phone: form.phone, role: form.role,
           is_active: form.is_active, image_url: form.image_url, stamp_picture: form.stamp_picture || null,
           department_id: deptDisabled ? null : (form.department_id || null),
           security_level: form.security_level,
@@ -190,7 +201,7 @@ function UserFormModal({ user, onClose, onSave, teams = [] }) {
         result = await apiFetch('/users', {
           method: 'POST',
           body: JSON.stringify({
-            username: usernameToSave, name: form.name, display_name: form.display_name, email: form.email, phone: form.phone,
+            username: usernameToSave, name: normalizedName, display_name: form.display_name, email: form.email, phone: form.phone,
             password: form.password, role: form.role, image_url: form.image_url,
             stamp_picture: form.stamp_picture || null,
             department_id: deptDisabled ? null : (form.department_id || null),
