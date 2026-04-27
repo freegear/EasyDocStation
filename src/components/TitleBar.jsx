@@ -12,6 +12,14 @@ const LANGUAGES = [
   { code: 'ja', label: '日本語', flag: '🇯🇵' },
 ]
 
+function sanitizePostPreviewText(text = '') {
+  return String(text || '')
+    .replace(/<!--[\s\S]*?-->/g, ' ')
+    .replace(/<[^>\n]*>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
 // ─── Search Bar ───────────────────────────────────────────────
 function SearchBar({ onSelectResult }) {
   const { teams, posts, selectTeam, selectChannel, performSearch } = useChat()
@@ -137,7 +145,7 @@ function SearchBar({ onSelectResult }) {
             <div className="px-4 py-3 text-gray-400 text-sm">{t.titlebar.noResults(query)}</div>
           )}
           {!searching && results.map((item, i) => {
-            const preview = (item.post.content || '').slice(0, 120)
+            const preview = sanitizePostPreviewText(item.post.content || '').slice(0, 120)
             return (
               <button
                 key={`${item.post.id}-${i}`}

@@ -102,6 +102,14 @@ function dataTransferHasFiles(dataTransfer) {
   return Boolean(files && files.length > 0)
 }
 
+function sanitizePostPreviewText(text = '') {
+  return String(text || '')
+    .replace(/<!--[\s\S]*?-->/g, ' ')
+    .replace(/<[^>\n]*>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
 function extractHttpUrls(text = '') {
   const urls = new Set()
 
@@ -2318,7 +2326,8 @@ function PostCard({ post, onSelect, pinned, isSelected }) {
     : null
   // MD 페이지는 마커를 제거한 뒤 파싱
   const rawForParsing = isMd ? getMdPageContent(post.content) : (post.content || '')
-  const plain = isTemplate ? [] : rawForParsing
+  const sanitizedRawForParsing = sanitizePostPreviewText(rawForParsing)
+  const plain = isTemplate ? [] : sanitizedRawForParsing
     .replace(/#{1,3} /g, '').replace(/\*\*/g, '').replace(/`/g, '')
     .split('\n').filter(l => l.trim() && !l.startsWith('|') && !l.startsWith('-'))
   const isQuotation = isTemplate && templateMeta?.id === 'quotation'
