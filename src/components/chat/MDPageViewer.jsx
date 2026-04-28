@@ -1739,6 +1739,7 @@ function getCommentAttachmentPreviewSize(file, cfg) {
   const safe = cfg || DEFAULT_PREVIEW_CONFIG
   const name = String(file?.name || '').toLowerCase()
   const type = String(file?.type || '').toLowerCase()
+  const isHtmlLike = /\.(html?|php|asp|aspx|jsp|cfm)($|\?)/i.test(name)
 
   if (type.startsWith('image/') || /\.(png|jpe?g|gif|webp|bmp|svg)$/i.test(name)) {
     return safe.imagePreview || DEFAULT_PREVIEW_CONFIG.imagePreview
@@ -1750,7 +1751,7 @@ function getCommentAttachmentPreviewSize(file, cfg) {
   if (/\.ppt$/i.test(name) || type.includes('presentation')) return safe.pptPreview || DEFAULT_PREVIEW_CONFIG.pptPreview
   if (/\.xlsx?$/i.test(name) || type.includes('excel') || type.includes('spreadsheet')) return safe.excelPreview || DEFAULT_PREVIEW_CONFIG.excelPreview
   if (/\.docx?$/i.test(name) || type.includes('word')) return safe.wordPreview || DEFAULT_PREVIEW_CONFIG.wordPreview
-  if (/\.html?$/i.test(name) || type === 'text/html') return safe.htmlPreview || DEFAULT_PREVIEW_CONFIG.htmlPreview
+  if (isHtmlLike || type === 'text/html') return safe.htmlPreview || DEFAULT_PREVIEW_CONFIG.htmlPreview
   if (type.startsWith('video/')) return safe.moviePreview || DEFAULT_PREVIEW_CONFIG.moviePreview
   if (type.startsWith('text/') || /\.txt$/i.test(name)) return safe.txtPreview || DEFAULT_PREVIEW_CONFIG.txtPreview
   return safe.pdfPreview || DEFAULT_PREVIEW_CONFIG.pdfPreview
