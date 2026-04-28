@@ -141,10 +141,14 @@ function extractHttpUrls(text = '') {
   return Array.from(urls)
 }
 
+function isHtmlLikeName(name = '') {
+  return /\.(html?|php|asp|aspx|jsp|cfm)($|\?)/i.test(String(name || ''))
+}
+
 function getFileCategory(type, name) {
   if (type.startsWith('image/')) return 'image'
   if (type === 'application/pdf') return 'pdf'
-  if (type === 'text/html' || /\.html?$/i.test(name)) return 'html'
+  if (type === 'text/html' || isHtmlLikeName(name)) return 'html'
   if (type.includes('spreadsheet') || type.includes('excel') || /\.(xls|xlsx|csv)$/i.test(name)) return 'sheet'
   if (type.includes('word') || /\.(doc|docx)$/i.test(name)) return 'doc'
   if (type.includes('presentation') || /\.(ppt|pptx)$/i.test(name)) return 'slide'
@@ -191,7 +195,7 @@ function getPreviewDimensions(
   if (name.endsWith('.docx') || name.endsWith('.doc')) return config.wordPreview || config.imagePreview
   if (isPdf) return pdfPreviewOverride || config.pdfPreview || { width: 480, height: 270 }
   if (/\.(avi|mov|mp4)$/i.test(name)) return moviePreviewOverride || config.moviePreview || config.imagePreview
-  if (/\.html?$/i.test(name)) return htmlPreviewOverride || config.htmlPreview || { width: 480, height: 270 }
+  if (isHtmlLikeName(name)) return htmlPreviewOverride || config.htmlPreview || { width: 480, height: 270 }
   return config.imagePreview
 }
 
