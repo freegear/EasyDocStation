@@ -735,7 +735,7 @@ export default function SiteAdminPage({ onClose }) {
   const [ragDatasetTraining, setRagDatasetTraining] = useState(false)
   const [showRagResetConfirm, setShowRagResetConfirm] = useState(false)
   const [ragResetting, setRagResetting] = useState(false)
-  const [agenticaiForm, setAgenticaiForm] = useState({ num_predict: 4096, num_ctx: 8192, history: 6, language: 'ko' })
+  const [agenticaiForm, setAgenticaiForm] = useState({ num_predict: 4096, num_ctx: 8192, history: 6, language: 'ko', operation_mode: 'server' })
   const [companyForm, setCompanyForm] = useState({ name: '', address: '', phone: '', homepage: '', fax: '', seal: '', logo: '' })
   const [siteUrl, setSiteUrl] = useState('')
   const [snsForm, setSnsForm] = useState({
@@ -830,7 +830,8 @@ export default function SiteAdminPage({ onClose }) {
           num_predict: data.agenticai.num_predict || 4096,
           num_ctx: data.agenticai.num_ctx || 8192,
           history: data.agenticai.history ?? 6,
-          language: ['ko', 'ja', 'en', 'zh'].includes(data.agenticai.language) ? data.agenticai.language : 'ko'
+          language: ['ko', 'ja', 'en', 'zh'].includes(data.agenticai.language) ? data.agenticai.language : 'ko',
+          operation_mode: data.agenticai_operation_mode === 'local' ? 'local' : 'server'
         })
       }
       if (data.maxAttachmentFileSize != null) {
@@ -1109,6 +1110,7 @@ export default function SiteAdminPage({ onClose }) {
           history: parseInt(agenticaiForm.history),
           language: agenticaiForm.language || 'ko'
         }
+        configData.agenticai_operation_mode = agenticaiForm.operation_mode === 'local' ? 'local' : 'server'
       } else if (activeTab === 'company') {
         configData.company = {
           name:     companyForm.name.trim(),
@@ -2568,6 +2570,46 @@ export default function SiteAdminPage({ onClose }) {
                       {opt.label}
                     </button>
                   ))}
+                </div>
+              </div>
+
+              {/* operation mode */}
+              <div className="bg-gray-100 border border-gray-200 rounded-2xl p-8 shadow-xl">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-10 h-10 rounded-xl bg-indigo-50 border border-indigo-200 flex items-center justify-center">
+                    <svg className="w-5 h-5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7h16M4 12h8m-8 5h16" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="text-gray-900 font-bold text-base">운영 모드</h3>
+                    <p className="text-gray-400 text-xs mt-0.5">#1 Cloud/Server Mode, #2 Local AgenticAI Mode</p>
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-3">
+                  <button
+                    onClick={() => setAgenticaiForm(p => ({ ...p, operation_mode: 'server' }))}
+                    className={`px-5 py-2.5 rounded-xl text-sm font-bold transition-all border ${
+                      agenticaiForm.operation_mode === 'server'
+                        ? 'bg-indigo-50 border-indigo-300 text-indigo-700 shadow-lg shadow-indigo-100'
+                        : 'bg-gray-50 border-gray-100 text-gray-400 hover:text-gray-500 hover:border-gray-200'
+                    }`}
+                  >
+                    운영 모드 #1 : Cloud/Server Mode
+                  </button>
+                  <button
+                    onClick={() => setAgenticaiForm(p => ({ ...p, operation_mode: 'local' }))}
+                    className={`px-5 py-2.5 rounded-xl text-sm font-bold transition-all border ${
+                      agenticaiForm.operation_mode === 'local'
+                        ? 'bg-indigo-50 border-indigo-300 text-indigo-700 shadow-lg shadow-indigo-100'
+                        : 'bg-gray-50 border-gray-100 text-gray-400 hover:text-gray-500 hover:border-gray-200'
+                    }`}
+                  >
+                    운영 모드 #2 : Local AgenticAI Mode
+                  </button>
+                </div>
+                <div className="mt-4 p-4 rounded-xl border border-gray-200 bg-gray-50 text-[11px] text-gray-600 whitespace-pre-line">
+                  {'#31.1 운영 모드 1\n[Local@AgenticAI] -- [ Server ] -- [ WebPage ]\n\n#31.2 운영 모드 2\n[ Server ] -- [ WebPage ] / [Local@AgenticAI]\nLocal@AgenticAI가 Server의 RAG DB를 참조하고, LLM은 Local에서 실행'}
                 </div>
               </div>
 

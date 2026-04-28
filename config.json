@@ -67,6 +67,7 @@
     "history": 6,
     "language": "ko"
   },
+  "agenticai_operation_mode": "server",
   "MaxAttachmentFileSize": 200,
   "company": {
     "name": "SiliconCube",

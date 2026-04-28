@@ -210,6 +210,10 @@ function normalizeAgenticAiConfig(ai = {}) {
   }
 }
 
+function normalizeAgenticAiOperationMode(mode) {
+  return String(mode || '').toLowerCase() === 'local' ? 'local' : 'server'
+}
+
 function getDatabasePathConfig(config = {}) {
   return {
     easyDocStationFolder: resolveAppBasePath(config),
@@ -306,6 +310,7 @@ router.get('/stats', async (req, res) => {
       display: buildDisplayConfig(config),
       rag: config.rag || { trainingType: 'manual', dailyTime: '02:00', vectorSize: 1024 },
       agenticai: normalizeAgenticAiConfig(config.agenticai || {}),
+      agenticai_operation_mode: normalizeAgenticAiOperationMode(config.agenticai_operation_mode),
       maxAttachmentFileSize: config.MaxAttachmentFileSize ?? 100,
       DirectMessage: normalizeDirectMessageConfig(config.DirectMessage || {}),
       company: config.company || {},
@@ -349,6 +354,7 @@ router.get('/stats', async (req, res) => {
         display: buildDisplayConfig(config),
         rag: config.rag || { trainingType: 'manual', dailyTime: '02:00', vectorSize: 1024 },
         agenticai: normalizeAgenticAiConfig(config.agenticai || {}),
+        agenticai_operation_mode: normalizeAgenticAiOperationMode(config.agenticai_operation_mode),
         maxAttachmentFileSize: config.MaxAttachmentFileSize ?? 100,
         DirectMessage: normalizeDirectMessageConfig(config.DirectMessage || {}),
         company: config.company || {},
@@ -374,6 +380,11 @@ router.put('/config', requireSiteAdmin, async (req, res) => {
     }
     if (Object.prototype.hasOwnProperty.call(newConfig, 'agenticai')) {
       newConfig.agenticai = normalizeAgenticAiConfig(newConfig.agenticai || {})
+    }
+    if (Object.prototype.hasOwnProperty.call(req.body, 'agenticai_operation_mode')) {
+      newConfig.agenticai_operation_mode = normalizeAgenticAiOperationMode(req.body.agenticai_operation_mode)
+    } else if (!Object.prototype.hasOwnProperty.call(newConfig, 'agenticai_operation_mode')) {
+      newConfig.agenticai_operation_mode = 'server'
     }
     
     fs.writeFileSync(configPath, JSON.stringify(newConfig, null, 2), 'utf8')

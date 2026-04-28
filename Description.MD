@@ -3818,6 +3818,45 @@ DGX-SPARK 의
 메시지를 보인다.
 
 
+# 31 운영모드 
+
+AgenticAI를 Local Machine에서 한다.
+서버와 데이터는 Cloud에 있고, 
+GEMMA 4.0은 Local에서 운영한다.
+
+# 31.1 운영 모드 1
+이에 대한 블럭도를 그려서 정리한다.
+[Local@AgenticAI] -- [ Server ] -- [ WebPage ] 
+
+# 31.2 운영 모드 2
+[ Server ] -- -- [ WebPage ]  / [Local@AgenticAI]
+Local@AgenticAI가 Server에 있는 RAG DB를 가지고 와서 참조하고, 데이터를 받아서 운영할 수 있도록한다.
+
+# 31.3 운영 모드 설정
+
+사이트 관리 페이지 페이지에서
+AgenticAI 설정 페이지에서
+
+제일 밑에 
+- 운영 모드 #1 : Cloud/Server Mode 
+- 운영 모드 #2 : Local AgenticAI Mode
+
+로 설정한다.
+
+config.json으로 하고, 
+config.json 파일에 agenticai_operation_mode : server 또는 local로 한다.
+
+server로 되면 당연히 서버에서 운영되는 LLM으로 하고
+local로 하면 LLM이 Local에 있고 , Local에서 LLM을 운영하도록 한다.
+
+
+
+
+
+
+
+
+
 
 #################################################################################
 # E. Error
@@ -4154,3 +4193,6 @@ AgenticAI를 답변을 빨리 하게  하는 방법
 
 현재 답변이 너무 느리다. 
 코드를 검토해서 빨리 할 수 있는 부분이 있는지 알려줘  
+
+
+##############
