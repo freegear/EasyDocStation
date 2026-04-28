@@ -1459,6 +1459,7 @@ function TemplateRenderer({ html, postId, onContentChange, onSave }) {
 
 function LinkPreviewCards({ links = [] }) {
   const [htmlPreviewSize, setHtmlPreviewSize] = useState(config.htmlPreview || { width: 480, height: 270 })
+  const [failedUrls, setFailedUrls] = useState({})
   const safeLinks = links.filter(Boolean).slice(0, 1)
 
   useEffect(() => {
@@ -1476,9 +1477,6 @@ function LinkPreviewCards({ links = [] }) {
 
   const width = Number(htmlPreviewSize.width) || 480
   const height = Number(htmlPreviewSize.height) || 270
-  const baseViewportWidth = 1366
-  const baseViewportHeight = 768
-  const previewScale = Math.min(width / baseViewportWidth, height / baseViewportHeight)
 
   return (
     <div className="mt-3 space-y-3">
@@ -1501,27 +1499,28 @@ function LinkPreviewCards({ links = [] }) {
               height,
               position: 'relative',
               overflow: 'hidden',
-              background: '#fff',
+              background: '#f3f4f6',
             }}
           >
-            <iframe
-              src={url}
-              title={`link-preview-${url}`}
-              loading="lazy"
-              sandbox="allow-same-origin"
-              style={{
-                width: baseViewportWidth,
-                height: baseViewportHeight,
-                border: 'none',
-                position: 'absolute',
-                left: '50%',
-                top: '50%',
-                transformOrigin: 'center center',
-                transform: `translate(-50%, -50%) scale(${previewScale})`,
-                pointerEvents: 'none',
-                background: '#fff',
-              }}
-            />
+            {!failedUrls[url] ? (
+              <img
+                src={`/api/files/link-preview-image?url=${encodeURIComponent(url)}&width=${width}&height=${height}&auth_token=${encodeURIComponent(getToken() || '')}`}
+                alt={url}
+                loading="lazy"
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'cover',
+                  display: 'block',
+                }}
+                onError={() => setFailedUrls(prev => ({ ...prev, [url]: true }))}
+              />
+            ) : (
+              <div className="w-full h-full flex flex-col items-center justify-center text-gray-400 text-xs gap-1">
+                <span>미리보기를 불러올 수 없습니다.</span>
+                <span className="text-[11px] text-gray-300">새 창에서 링크를 열어주세요.</span>
+              </div>
+            )}
           </div>
         </a>
       ))}
