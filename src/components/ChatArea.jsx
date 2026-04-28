@@ -1487,7 +1487,6 @@ function TemplateRenderer({ html, postId, onContentChange, onSave }) {
 
 function LinkPreviewCards({ links = [] }) {
   const [htmlPreviewSize, setHtmlPreviewSize] = useState(config.htmlPreview || { width: 480, height: 270 })
-  const [failedUrls, setFailedUrls] = useState({})
   const safeLinks = links.filter(Boolean).slice(0, 1)
 
   useEffect(() => {
@@ -1504,7 +1503,14 @@ function LinkPreviewCards({ links = [] }) {
   if (safeLinks.length === 0) return null
 
   const width = Number(htmlPreviewSize.width) || 480
-  const height = Number(htmlPreviewSize.height) || 270
+
+  const parseDomain = (url) => {
+    try {
+      return new URL(url).hostname
+    } catch {
+      return ''
+    }
+  }
 
   return (
     <div className="mt-3 space-y-3">
@@ -1518,37 +1524,20 @@ function LinkPreviewCards({ links = [] }) {
           style={{ width: '100%', maxWidth: width }}
           onClick={(e) => e.stopPropagation()}
         >
-          <div className="px-3 py-2 bg-gray-50 border-b border-gray-200 text-xs text-indigo-600 truncate">
-            {url}
+          <div className="px-3 py-2 bg-gray-50 border-b border-gray-200 text-xs text-indigo-600 truncate font-medium">
+            {url.replace(/^https?:\/\//i, '')}
           </div>
-          <div
-            style={{
-              width: '100%',
-              height,
-              position: 'relative',
-              overflow: 'hidden',
-              background: '#f3f4f6',
-            }}
-          >
-            {!failedUrls[url] ? (
-              <img
-                src={`/api/files/link-preview-image?url=${encodeURIComponent(url)}&width=${width}&height=${height}&auth_token=${encodeURIComponent(getToken() || '')}`}
-                alt={url}
-                loading="lazy"
-                style={{
-                  width: '100%',
-                  height: '100%',
-                  objectFit: 'cover',
-                  display: 'block',
-                }}
-                onError={() => setFailedUrls(prev => ({ ...prev, [url]: true }))}
-              />
-            ) : (
-              <div className="w-full h-full flex flex-col items-center justify-center text-gray-400 text-xs gap-1">
-                <span>미리보기를 불러올 수 없습니다.</span>
-                <span className="text-[11px] text-gray-300">새 창에서 링크를 열어주세요.</span>
+          <div className="px-3 py-3 bg-white flex items-center justify-between gap-3">
+            <div className="min-w-0 flex items-center gap-2">
+              <span className="w-6 h-6 rounded-md bg-indigo-50 border border-indigo-100 text-indigo-500 text-xs flex items-center justify-center flex-shrink-0">
+                ↗
+              </span>
+              <div className="min-w-0">
+                <p className="text-sm text-gray-800 font-semibold truncate">{parseDomain(url) || '외부 링크'}</p>
+                <p className="text-xs text-gray-400 truncate">새 창에서 열기</p>
               </div>
-            )}
+            </div>
+            <span className="text-[11px] text-gray-300 flex-shrink-0">LINK</span>
           </div>
         </a>
       ))}
