@@ -48,6 +48,12 @@ export default function Sidebar({ showCalendar, onToggleCalendar, onCloseCalenda
   const [dmConversations, setDmConversations] = useState([])
   const [dmCollapsedList, setDmCollapsedList] = useState(false)
 
+  function refreshDmConversations() {
+    apiFetch('/dm/conversations')
+      .then(data => setDmConversations(Array.isArray(data) ? data : []))
+      .catch(() => {})
+  }
+
   useEffect(() => {
     apiFetch('/config/version')
       .then(data => setAppVersion(data.version || ''))
@@ -55,10 +61,15 @@ export default function Sidebar({ showCalendar, onToggleCalendar, onCloseCalenda
   }, [])
 
   useEffect(() => {
-    apiFetch('/dm/conversations')
-      .then(data => setDmConversations(Array.isArray(data) ? data : []))
-      .catch(() => {})
+    refreshDmConversations()
   }, [showDM, activeDMConvId])
+
+  useEffect(() => {
+    const interval = setInterval(refreshDmConversations, 5000)
+    return () => clearInterval(interval)
+  }, [])
+
+  const totalDmUnread = dmConversations.reduce((sum, conv) => sum + (Number(conv.unread_count) || 0), 0)
 
   // 채널 관리 권한 체크
   // - site_admin: 모든 채널 관리 가능
@@ -293,6 +304,11 @@ export default function Sidebar({ showCalendar, onToggleCalendar, onCloseCalenda
           >
             <ChatBubbleIcon />
             <span className="font-medium flex-1">Direct Message</span>
+            {totalDmUnread > 0 && (
+              <span className="bg-red-500 text-white text-xs rounded-full px-1.5 py-0.5 font-bold min-w-[18px] text-center">
+                {totalDmUnread}
+              </span>
+            )}
             <span className={`text-xs ${showDM ? 'text-white/80' : 'text-gray-400'}`}>{dmCollapsedList ? '▸' : '▾'}</span>
           </button>
           <button
@@ -323,7 +339,12 @@ export default function Sidebar({ showCalendar, onToggleCalendar, onCloseCalenda
                 }`}
               >
                 <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 flex-shrink-0" />
-                <span className="truncate">{conv.name}</span>
+                <span className="truncate flex-1">{conv.name}</span>
+                {(Number(conv.unread_count) || 0) > 0 && (
+                  <span className="bg-red-500 text-white text-[10px] rounded-full px-1.5 py-0.5 font-bold min-w-[16px] text-center">
+                    {Number(conv.unread_count)}
+                  </span>
+                )}
               </button>
             ))}
           </div>

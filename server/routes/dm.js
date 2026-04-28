@@ -178,11 +178,17 @@ router.get('/conversations', async (req, res) => {
               SELECT (jsonb_array_elements(c.participants)::int)
             )
          ) AS participant_details,
-         (SELECT COUNT(*) FROM dm_messages m WHERE m.conversation_id = c.id) AS message_count
+         (SELECT COUNT(*) FROM dm_messages m WHERE m.conversation_id = c.id) AS message_count,
+         (SELECT COUNT(*)
+            FROM dm_messages m
+           WHERE m.conversation_id = c.id
+             AND m.sender_id <> $2
+             AND NOT (m.read_by @> $3::jsonb)
+         ) AS unread_count
        FROM dm_conversations c
        WHERE c.participants @> $1::jsonb
        ORDER BY c.updated_at DESC`,
-      [JSON.stringify([userId])]
+      [JSON.stringify([userId]), userId, JSON.stringify([userId])]
     )
     res.json(rows)
   } catch (err) {
