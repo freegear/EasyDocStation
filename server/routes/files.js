@@ -96,6 +96,16 @@ async function generateLinkPreviewImage(url, outPath, width, height) {
   }
 }
 
+async function downloadRemotePreviewFallback(url, outPath, width, height) {
+  // thum.io public screenshot fallback
+  const fallbackUrl = `https://image.thum.io/get/width/${Math.max(120, Math.min(1600, width))}/crop/${Math.max(90, Math.min(2000, height))}/?url=${encodeURIComponent(url)}`
+  const res = await fetch(fallbackUrl)
+  if (!res.ok) throw new Error(`fallback preview fetch failed (${res.status})`)
+  const buf = Buffer.from(await res.arrayBuffer())
+  if (!buf.length) throw new Error('fallback preview empty body')
+  fs.writeFileSync(outPath, buf)
+}
+
 function toAsciiFilename(name = '') {
   return String(name || 'download')
     .replace(/[^\x20-\x7E]/g, '_')
@@ -408,7 +418,7 @@ router.get('/view/:id', requireAuth, async (req, res, next) => {
 
 // 외부 링크 HTML Preview 이미지 생성
 // GET /api/files/link-preview-image?url=...&width=480&height=270
-router.get('/link-preview-image', requireAuth, async (req, res) => {
+router.get('/link-preview-image', async (req, res) => {
   try {
     const targetUrl = normalizePreviewUrl(req.query.url)
     const cfg = readConfigSafe()
@@ -434,7 +444,13 @@ router.get('/link-preview-image', requireAuth, async (req, res) => {
       }
     }
 
-    await generateLinkPreviewImage(targetUrl, tmpPath, width, height)
+    try {
+      await generateLinkPreviewImage(targetUrl, tmpPath, width, height)
+    } catch (primaryErr) {
+      // 로컬 렌더 실패 시 원격 스크린샷 fallback 시도
+      console.warn('[link-preview-image] local render failed, try fallback:', primaryErr?.message || primaryErr)
+      await downloadRemotePreviewFallback(targetUrl, tmpPath, width, height)
+    }
     fs.renameSync(tmpPath, imgPath)
     res.setHeader('Content-Type', 'image/png')
     res.setHeader('Cache-Control', 'private, max-age=300')
