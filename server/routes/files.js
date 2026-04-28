@@ -40,6 +40,7 @@ const LINK_PREVIEW_BASE = path.join(PREVIEW_BASE, 'link-previews')
 if (!fs.existsSync(LINK_PREVIEW_BASE)) {
   fs.mkdirSync(LINK_PREVIEW_BASE, { recursive: true })
 }
+const LINK_PREVIEW_CACHE_VERSION = 'v2'
 
 function readConfigSafe() {
   try {
@@ -104,6 +105,69 @@ async function downloadRemotePreviewFallback(url, outPath, width, height) {
   const buf = Buffer.from(await res.arrayBuffer())
   if (!buf.length) throw new Error('fallback preview empty body')
   fs.writeFileSync(outPath, buf)
+}
+
+function decodeHtmlEntities(input = '') {
+  return String(input || '')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+}
+
+function extractMetaImageUrl(html = '', pageUrl = '') {
+  const normalizedHtml = String(html || '')
+  const candidates = []
+  const patterns = [
+    /<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["'][^>]*>/i,
+    /<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["'][^>]*>/i,
+    /<meta[^>]+name=["']twitter:image["'][^>]+content=["']([^"']+)["'][^>]*>/i,
+    /<meta[^>]+content=["']([^"']+)["'][^>]+name=["']twitter:image["'][^>]*>/i,
+  ]
+  for (const re of patterns) {
+    const m = normalizedHtml.match(re)
+    if (m?.[1]) candidates.push(m[1])
+  }
+  for (const raw of candidates) {
+    const decoded = decodeHtmlEntities(raw.trim())
+    if (!decoded) continue
+    try {
+      const resolved = new URL(decoded, pageUrl).toString()
+      if (/^https?:\/\//i.test(resolved)) return resolved
+    } catch {}
+  }
+  return ''
+}
+
+async function fetchMetaPreviewImage(pageUrl) {
+  const pageRes = await fetch(pageUrl, {
+    headers: {
+      'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+      Accept: 'text/html,application/xhtml+xml',
+      'Accept-Language': 'ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7',
+      Referer: pageUrl,
+    },
+  })
+  if (!pageRes.ok) throw new Error(`meta page fetch failed (${pageRes.status})`)
+  const html = await pageRes.text()
+  const imageUrl = extractMetaImageUrl(html, pageUrl)
+  if (!imageUrl) throw new Error('meta image not found')
+
+  const imageRes = await fetch(imageUrl, {
+    headers: {
+      'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+      Referer: pageUrl,
+    },
+  })
+  if (!imageRes.ok) throw new Error(`meta image fetch failed (${imageRes.status})`)
+  const contentType = String(imageRes.headers.get('content-type') || '').toLowerCase()
+  if (!contentType.startsWith('image/')) {
+    throw new Error(`meta image content-type invalid (${contentType || 'unknown'})`)
+  }
+  const bytes = Buffer.from(await imageRes.arrayBuffer())
+  if (!bytes.length) throw new Error('meta image empty')
+  return { bytes, contentType }
 }
 
 function toAsciiFilename(name = '') {
@@ -429,30 +493,41 @@ router.get('/link-preview-image', async (req, res) => {
 
     const key = crypto
       .createHash('sha1')
-      .update(`${targetUrl}|${width}x${height}`)
+      .update(`${LINK_PREVIEW_CACHE_VERSION}|${targetUrl}|${width}x${height}`)
       .digest('hex')
-    const imgPath = path.join(LINK_PREVIEW_BASE, `${key}.png`)
-    const tmpPath = path.join(LINK_PREVIEW_BASE, `${key}.${Date.now()}.tmp.png`)
+    const imgPath = path.join(LINK_PREVIEW_BASE, `${key}.img`)
+    const typePath = path.join(LINK_PREVIEW_BASE, `${key}.type`)
+    const tmpPath = path.join(LINK_PREVIEW_BASE, `${key}.${Date.now()}.tmp.img`)
 
     const maxAgeMs = 1000 * 60 * 30 // 30분 캐시
     if (fs.existsSync(imgPath)) {
       const ageMs = Date.now() - fs.statSync(imgPath).mtimeMs
       if (ageMs < maxAgeMs) {
-        res.setHeader('Content-Type', 'image/png')
+        const contentType = fs.existsSync(typePath) ? (fs.readFileSync(typePath, 'utf8') || 'image/png') : 'image/png'
+        res.setHeader('Content-Type', contentType)
         res.setHeader('Cache-Control', 'private, max-age=300')
         return fs.createReadStream(imgPath).pipe(res)
       }
     }
 
     try {
-      await generateLinkPreviewImage(targetUrl, tmpPath, width, height)
-    } catch (primaryErr) {
-      // 로컬 렌더 실패 시 원격 스크린샷 fallback 시도
-      console.warn('[link-preview-image] local render failed, try fallback:', primaryErr?.message || primaryErr)
-      await downloadRemotePreviewFallback(targetUrl, tmpPath, width, height)
+      const metaImg = await fetchMetaPreviewImage(targetUrl)
+      fs.writeFileSync(tmpPath, metaImg.bytes)
+      fs.writeFileSync(typePath, metaImg.contentType)
+    } catch (metaErr) {
+      console.warn('[link-preview-image] meta image failed, fallback screenshot:', metaErr?.message || metaErr)
+      try {
+        await generateLinkPreviewImage(targetUrl, tmpPath, width, height)
+      } catch (primaryErr) {
+        // 로컬 렌더 실패 시 원격 스크린샷 fallback 시도
+        console.warn('[link-preview-image] local render failed, try remote fallback:', primaryErr?.message || primaryErr)
+        await downloadRemotePreviewFallback(targetUrl, tmpPath, width, height)
+      }
+      fs.writeFileSync(typePath, 'image/png')
     }
     fs.renameSync(tmpPath, imgPath)
-    res.setHeader('Content-Type', 'image/png')
+    const contentType = fs.existsSync(typePath) ? (fs.readFileSync(typePath, 'utf8') || 'image/png') : 'image/png'
+    res.setHeader('Content-Type', contentType)
     res.setHeader('Cache-Control', 'private, max-age=300')
     return fs.createReadStream(imgPath).pipe(res)
   } catch (err) {
