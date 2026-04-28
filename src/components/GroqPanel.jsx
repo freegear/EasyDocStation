@@ -253,12 +253,14 @@ export default function GroqPanel({ width }) {
   const [error, setError] = useState(null)
   const [attachedFile, setAttachedFile] = useState(null)
   const [dragOver, setDragOver] = useState(false)
-  const [aiConfig, setAiConfig] = useState({ num_predict: 2048, num_ctx: 8192, history: 6, language: 'ko' })
+  const [aiConfig, setAiConfig] = useState({ num_predict: 2048, num_ctx: 8192, history: 6, language: 'ko', operation_mode: 'server' })
   const [ragRetrieval, setRagRetrieval] = useState(normalizeRetrievalConfig({}))
   const fileInputRef = useRef(null)
   const bottomRef = useRef(null)
   const textareaRef = useRef(null)
   const dragCounterRef = useRef(0)
+  const abortControllerRef = useRef(null)
+  const [stopping, setStopping] = useState(false)
 
   useEffect(() => {
     if (messages.length === 0) {
@@ -305,6 +307,9 @@ export default function GroqPanel({ width }) {
   async function sendMessage() {
     const text = input.trim()
     if (!text && !attachedFile || loading) return
+    const abortController = new AbortController()
+    abortControllerRef.current = abortController
+    setStopping(false)
 
     const isImage = attachedFile?.type.startsWith('image/')
     let imageUrl = null
@@ -361,6 +366,7 @@ export default function GroqPanel({ width }) {
         }
         const ragResult = await apiFetch('/rag/search', {
           method: 'POST',
+          signal: abortController.signal,
           body: JSON.stringify({
             query: text,
             limit: dynamicLimit,
@@ -425,11 +431,15 @@ export default function GroqPanel({ width }) {
 
     try {
       // 로컬 Ollama Native API 호출 (스트리밍)
-      const response = await fetch('/api/ai/chat', {
+      const aiChatUrl = aiConfig.operation_mode === 'local'
+        ? 'http://127.0.0.1:11434/api/chat'
+        : '/api/ai/chat'
+      const response = await fetch(aiChatUrl, {
         method: 'POST',
+        signal: abortController.signal,
         headers: {
           'Content-Type': 'application/json',
-          ...(getToken() ? { Authorization: `Bearer ${getToken()}` } : {}),
+          ...(aiConfig.operation_mode === 'server' && getToken() ? { Authorization: `Bearer ${getToken()}` } : {}),
         },
         body: JSON.stringify({
           model: selectedModel,
@@ -489,6 +499,14 @@ export default function GroqPanel({ width }) {
         m.id === msgId ? { ...m, streaming: false } : m
       ))
     } catch (err) {
+      if (err?.name === 'AbortError') {
+        setMessages(prev => prev.map(m =>
+          m.id === msgId
+            ? { ...m, content: t.ai.stopped || '요청이 중단되었습니다.', streaming: false }
+            : m
+        ))
+        return
+      }
       setError(err.message)
       setMessages(prev => prev.map(m =>
         m.id === msgId
@@ -496,8 +514,16 @@ export default function GroqPanel({ width }) {
           : m
       ))
     } finally {
+      abortControllerRef.current = null
+      setStopping(false)
       setLoading(false)
     }
+  }
+
+  function handleStop() {
+    if (!loading || !abortControllerRef.current) return
+    setStopping(true)
+    abortControllerRef.current.abort()
   }
 
   function handleKeyDown(e) {
@@ -809,6 +835,14 @@ export default function GroqPanel({ width }) {
                 <div className="w-1.5 h-1.5 rounded-full bg-gray-500 animate-bounce [animation-delay:300ms]" />
               </div>
             </div>
+            <button
+              onClick={handleStop}
+              disabled={stopping}
+              title={t.ai.stop || '중단'}
+              className="mt-1 px-2 py-1 rounded-md border border-red-200 bg-white text-[10px] font-semibold text-red-500 hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {stopping ? (t.ai.stopping || '중단 중...') : (t.ai.stop || '중단')}
+            </button>
           </div>
         )}
         <div ref={bottomRef} />

@@ -177,6 +177,8 @@ fi
 echo "[6/8] Node 패키지 설치"
 npm install
 npm install --prefix server
+sudo npx playwright install-deps
+npx playwright install
 ensure_frontend_dependency "@tiptap/extension-table"
 
 echo "[7/8] Python venv 및 RAG 의존성 설치"

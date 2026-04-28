@@ -37,6 +37,10 @@ install_frontend_dependencies() {
     echo "  3) 우회 설치(--legacy-peer-deps): $pkg"
     npm install "$pkg" --legacy-peer-deps
   done
+
+  echo "  4) Playwright 시스템 의존성/브라우저 설치"
+  sudo npx playwright install-deps
+  npx playwright install
 }
 
 # ARM64(DGX Spark GB10)는 PyPI에서 CUDA 휠을 제공하므로 별도 인덱스 불필요

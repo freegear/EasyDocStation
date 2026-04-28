@@ -32,6 +32,10 @@ function normalizeAgenticAiConfig(ai = {}) {
   }
 }
 
+function normalizeAgenticAiOperationMode(mode) {
+  return String(mode || '').toLowerCase() === 'local' ? 'local' : 'server'
+}
+
 function normalizeRagRetrievalConfig(retrieval = {}) {
   const searchTypeRaw = String(retrieval?.search_type || retrieval?.searchType || 'mmr').toLowerCase()
   const searchType = ['similarity', 'mmr', 'similarity_score_threshold'].includes(searchTypeRaw)
@@ -122,9 +126,12 @@ app.get('/api/config/agenticai', (req, res) => {
     const configPath = path.resolve(__dirname, '../config.json')
     const config = JSON.parse(fs.readFileSync(configPath, 'utf8'))
     const ai = normalizeAgenticAiConfig(config.agenticai || {})
-    res.json(ai)
+    res.json({
+      ...ai,
+      operation_mode: normalizeAgenticAiOperationMode(config.agenticai_operation_mode),
+    })
   } catch (e) {
-    res.json({ num_predict: 4096, num_ctx: 8192, history: 6, language: 'ko' })
+    res.json({ num_predict: 4096, num_ctx: 8192, history: 6, language: 'ko', operation_mode: 'server' })
   }
 })
 
