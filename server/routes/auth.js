@@ -138,10 +138,11 @@ router.get('/me', requireAuth, async (req, res) => {
     if (!rows[0]) return res.status(404).json({ error: '사용자를 찾을 수 없습니다.' })
     const user = rows[0]
 
-    // 세션 유효성 검사: DB의 active_session_id와 JWT의 session_id가 일치해야 함
-    // active_session_id가 DB에 있는데 JWT session_id가 다르면 다른 기기에서 로그인된 것
-    if (user.active_session_id && req.user.session_id !== user.active_session_id) {
-      return res.status(401).json({ error: '다른 기기에서 로그인되었습니다.', code: 'SESSION_INVALIDATED' })
+    // 세션 유효성 검사:
+    // 1) active_session_id가 없으면 로그아웃 처리된 세션
+    // 2) JWT session_id와 DB active_session_id가 다르면 무효 세션
+    if (!user.active_session_id || req.user.session_id !== user.active_session_id) {
+      return res.status(401).json({ error: '세션이 만료되었습니다. 다시 로그인해 주세요.', code: 'SESSION_INVALIDATED' })
     }
 
     res.json(toPublicUser(user))

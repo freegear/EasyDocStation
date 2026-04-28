@@ -9,7 +9,7 @@ const LANGUAGES = [
 ]
 
 export default function LoginScreen() {
-  const { login, language, setLanguage } = useAuth()
+  const { login, language, setLanguage, logoutNotice, clearLogoutNotice } = useAuth()
   const t = useT()
   const [identifier, setIdentifier] = useState('')
   const [password, setPassword] = useState('')
@@ -47,6 +47,28 @@ export default function LoginScreen() {
 
   return (
     <div className="min-h-screen bg-gray-100 flex items-center justify-center px-4">
+      {/* 중복 로그인 Dialog */}
+      {logoutNotice && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl p-6 mx-4 w-full max-w-sm">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center flex-shrink-0">
+                <svg className="w-5 h-5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4m0 4h.01M3 12a9 9 0 1118 0 9 9 0 01-18 0z" />
+                </svg>
+              </div>
+              <h2 className="text-gray-900 font-semibold text-base">자동 로그아웃</h2>
+            </div>
+            <p className="text-gray-600 text-sm mb-6 whitespace-pre-wrap">{logoutNotice}</p>
+            <button
+              onClick={clearLogoutNotice}
+              className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-2.5 rounded-xl text-sm transition-all"
+            >
+              확인
+            </button>
+          </div>
+        </div>
+      )}
       {/* 중복 로그인 Dialog */}
       {isDuplicateLogin && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
