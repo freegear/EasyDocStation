@@ -161,6 +161,18 @@ async function telegramPost(token, method, body) {
   return res.json()
 }
 
+function pickSubjectParticle(name = '') {
+  const text = String(name || '').trim()
+  if (!text) return '이'
+  const lastChar = text[text.length - 1]
+  const code = lastChar.charCodeAt(0)
+  // Hangul syllables: AC00-D7A3, final consonant exists when (code - AC00) % 28 !== 0
+  if (code >= 0xac00 && code <= 0xd7a3) {
+    return ((code - 0xac00) % 28) === 0 ? '가' : '이'
+  }
+  return '이'
+}
+
 async function notifyDmToTelegram({ conversationId, senderId }) {
   try {
     const config = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'))
@@ -175,7 +187,8 @@ async function notifyDmToTelegram({ conversationId, senderId }) {
     )
     const sender = senderRows[0] || {}
     const senderName = sender.display_name || sender.name || sender.username || `${senderId}`
-    const text = `{ @${senderName} } 이 메시지를 보냈습니다.`
+    const particle = pickSubjectParticle(senderName)
+    const text = `@${senderName} ${particle} 메시지를 보냈습니다.`
 
     const { rows: targetRows } = await db.query(
       `SELECT DISTINCT u.telegram_id
