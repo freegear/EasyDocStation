@@ -73,6 +73,26 @@ function normalizePreviewUrl(rawUrl = '') {
   return parsed.toString()
 }
 
+function withTimeout(promise, ms, label = 'timeout') {
+  let timer = null
+  const timeoutPromise = new Promise((_, reject) => {
+    timer = setTimeout(() => reject(new Error(`${label} (${ms}ms)`)), ms)
+  })
+  return Promise.race([promise, timeoutPromise]).finally(() => {
+    if (timer) clearTimeout(timer)
+  })
+}
+
+async function fetchWithTimeout(url, options = {}, timeoutMs = 10000) {
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), timeoutMs)
+  try {
+    return await fetch(url, { ...options, signal: controller.signal })
+  } finally {
+    clearTimeout(timer)
+  }
+}
+
 async function generateLinkPreviewImage(url, outPath, width, height) {
   let playwright
   try {
@@ -81,14 +101,14 @@ async function generateLinkPreviewImage(url, outPath, width, height) {
     throw new Error('playwright 모듈이 설치되어 있지 않습니다.')
   }
 
-  const browser = await playwright.chromium.launch({ headless: true })
+  const browser = await playwright.chromium.launch({ headless: true, timeout: 10000 })
   try {
     const context = await browser.newContext({
       viewport: { width, height },
       javaScriptEnabled: true,
     })
     const page = await context.newPage()
-    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 20000 })
+    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 12000 })
     await page.waitForTimeout(1200)
     await page.screenshot({ path: outPath, type: 'png' })
     await context.close()
@@ -100,7 +120,7 @@ async function generateLinkPreviewImage(url, outPath, width, height) {
 async function downloadRemotePreviewFallback(url, outPath, width, height) {
   // thum.io public screenshot fallback
   const fallbackUrl = `https://image.thum.io/get/width/${Math.max(120, Math.min(1600, width))}/crop/${Math.max(90, Math.min(2000, height))}/?url=${encodeURIComponent(url)}`
-  const res = await fetch(fallbackUrl)
+  const res = await fetchWithTimeout(fallbackUrl, {}, 10000)
   if (!res.ok) throw new Error(`fallback preview fetch failed (${res.status})`)
   const buf = Buffer.from(await res.arrayBuffer())
   if (!buf.length) throw new Error('fallback preview empty body')
@@ -141,25 +161,25 @@ function extractMetaImageUrl(html = '', pageUrl = '') {
 }
 
 async function fetchMetaPreviewImage(pageUrl) {
-  const pageRes = await fetch(pageUrl, {
+  const pageRes = await fetchWithTimeout(pageUrl, {
     headers: {
       'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
       Accept: 'text/html,application/xhtml+xml',
       'Accept-Language': 'ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7',
       Referer: pageUrl,
     },
-  })
+  }, 10000)
   if (!pageRes.ok) throw new Error(`meta page fetch failed (${pageRes.status})`)
   const html = await pageRes.text()
   const imageUrl = extractMetaImageUrl(html, pageUrl)
   if (!imageUrl) throw new Error('meta image not found')
 
-  const imageRes = await fetch(imageUrl, {
+  const imageRes = await fetchWithTimeout(imageUrl, {
     headers: {
       'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
       Referer: pageUrl,
     },
-  })
+  }, 10000)
   if (!imageRes.ok) throw new Error(`meta image fetch failed (${imageRes.status})`)
   const contentType = String(imageRes.headers.get('content-type') || '').toLowerCase()
   if (!contentType.startsWith('image/')) {
@@ -168,6 +188,24 @@ async function fetchMetaPreviewImage(pageUrl) {
   const bytes = Buffer.from(await imageRes.arrayBuffer())
   if (!bytes.length) throw new Error('meta image empty')
   return { bytes, contentType }
+}
+
+function writePlaceholderPng(outPath, width, height, host = '') {
+  const safeHost = String(host || '').slice(0, 80).replace(/[<>&"]/g, '')
+  const svg = `
+<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#eef2ff"/>
+      <stop offset="100%" stop-color="#e5e7eb"/>
+    </linearGradient>
+  </defs>
+  <rect width="100%" height="100%" fill="url(#g)"/>
+  <rect x="1" y="1" width="${Math.max(0, width - 2)}" height="${Math.max(0, height - 2)}" fill="none" stroke="#c7d2fe"/>
+  <text x="50%" y="46%" dominant-baseline="middle" text-anchor="middle" font-size="15" fill="#374151" font-family="Arial, sans-serif">Preview Unavailable</text>
+  <text x="50%" y="58%" dominant-baseline="middle" text-anchor="middle" font-size="12" fill="#6b7280" font-family="Arial, sans-serif">${safeHost}</text>
+</svg>`
+  fs.writeFileSync(outPath, Buffer.from(svg, 'utf8'))
 }
 
 function toAsciiFilename(name = '') {
@@ -511,17 +549,23 @@ router.get('/link-preview-image', async (req, res) => {
     }
 
     try {
-      const metaImg = await fetchMetaPreviewImage(targetUrl)
+      const metaImg = await withTimeout(fetchMetaPreviewImage(targetUrl), 15000, 'meta preview timeout')
       fs.writeFileSync(tmpPath, metaImg.bytes)
       fs.writeFileSync(typePath, metaImg.contentType)
     } catch (metaErr) {
       console.warn('[link-preview-image] meta image failed, fallback screenshot:', metaErr?.message || metaErr)
       try {
-        await generateLinkPreviewImage(targetUrl, tmpPath, width, height)
+        await withTimeout(generateLinkPreviewImage(targetUrl, tmpPath, width, height), 18000, 'local screenshot timeout')
       } catch (primaryErr) {
         // 로컬 렌더 실패 시 원격 스크린샷 fallback 시도
         console.warn('[link-preview-image] local render failed, try remote fallback:', primaryErr?.message || primaryErr)
-        await downloadRemotePreviewFallback(targetUrl, tmpPath, width, height)
+        try {
+          await withTimeout(downloadRemotePreviewFallback(targetUrl, tmpPath, width, height), 12000, 'remote fallback timeout')
+        } catch (remoteErr) {
+          console.warn('[link-preview-image] remote fallback failed, placeholder:', remoteErr?.message || remoteErr)
+          const host = (() => { try { return new URL(targetUrl).host } catch { return '' } })()
+          writePlaceholderPng(tmpPath, width, height, host)
+        }
       }
       fs.writeFileSync(typePath, 'image/png')
     }
