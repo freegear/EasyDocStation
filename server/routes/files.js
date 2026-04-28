@@ -3,6 +3,7 @@ const router = express.Router()
 const jwt = require('jsonwebtoken')
 const path = require('path')
 const fs = require('fs')
+const crypto = require('crypto')
 const { v4: uuidv4 } = require('uuid')
 const { exec, execFile } = require('child_process')
 const { client, isConnected } = require('../cassandra')
@@ -34,6 +35,65 @@ if (!fs.existsSync(THUMBNAIL_BASE)) {
 const PREVIEW_BASE = path.join(STORAGE_BASE, 'previews')
 if (!fs.existsSync(PREVIEW_BASE)) {
   fs.mkdirSync(PREVIEW_BASE, { recursive: true })
+}
+const LINK_PREVIEW_BASE = path.join(PREVIEW_BASE, 'link-previews')
+if (!fs.existsSync(LINK_PREVIEW_BASE)) {
+  fs.mkdirSync(LINK_PREVIEW_BASE, { recursive: true })
+}
+
+function readConfigSafe() {
+  try {
+    return JSON.parse(fs.readFileSync(configPath, 'utf8'))
+  } catch {
+    return {}
+  }
+}
+
+function isPrivateHostname(hostname = '') {
+  const h = String(hostname || '').toLowerCase()
+  if (!h) return true
+  if (h === 'localhost' || h.endsWith('.localhost')) return true
+  if (h === '::1' || h === '[::1]') return true
+  if (/^127\./.test(h)) return true
+  if (/^10\./.test(h)) return true
+  if (/^192\.168\./.test(h)) return true
+  if (/^172\.(1[6-9]|2\d|3[0-1])\./.test(h)) return true
+  return false
+}
+
+function normalizePreviewUrl(rawUrl = '') {
+  const parsed = new URL(String(rawUrl || '').trim())
+  if (!/^https?:$/i.test(parsed.protocol)) {
+    throw new Error('http/https 링크만 지원합니다.')
+  }
+  if (isPrivateHostname(parsed.hostname)) {
+    throw new Error('내부망 주소는 미리보기를 지원하지 않습니다.')
+  }
+  return parsed.toString()
+}
+
+async function generateLinkPreviewImage(url, outPath, width, height) {
+  let playwright
+  try {
+    playwright = require('playwright')
+  } catch {
+    throw new Error('playwright 모듈이 설치되어 있지 않습니다.')
+  }
+
+  const browser = await playwright.chromium.launch({ headless: true })
+  try {
+    const context = await browser.newContext({
+      viewport: { width, height },
+      javaScriptEnabled: true,
+    })
+    const page = await context.newPage()
+    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 20000 })
+    await page.waitForTimeout(1200)
+    await page.screenshot({ path: outPath, type: 'png' })
+    await context.close()
+  } finally {
+    await browser.close()
+  }
 }
 
 function toAsciiFilename(name = '') {
@@ -343,6 +403,45 @@ router.get('/view/:id', requireAuth, async (req, res, next) => {
     stream.pipe(res)
   } catch (err) {
     next(err)
+  }
+})
+
+// 외부 링크 HTML Preview 이미지 생성
+// GET /api/files/link-preview-image?url=...&width=480&height=270
+router.get('/link-preview-image', requireAuth, async (req, res) => {
+  try {
+    const targetUrl = normalizePreviewUrl(req.query.url)
+    const cfg = readConfigSafe()
+    const cfgWidth = Number(cfg?.htmlPreview?.width) || 480
+    const cfgHeight = Number(cfg?.htmlPreview?.height) || 270
+    const width = Math.max(120, Math.min(1920, Number(req.query.width) || cfgWidth))
+    const height = Math.max(90, Math.min(1080, Number(req.query.height) || cfgHeight))
+
+    const key = crypto
+      .createHash('sha1')
+      .update(`${targetUrl}|${width}x${height}`)
+      .digest('hex')
+    const imgPath = path.join(LINK_PREVIEW_BASE, `${key}.png`)
+    const tmpPath = path.join(LINK_PREVIEW_BASE, `${key}.${Date.now()}.tmp.png`)
+
+    const maxAgeMs = 1000 * 60 * 30 // 30분 캐시
+    if (fs.existsSync(imgPath)) {
+      const ageMs = Date.now() - fs.statSync(imgPath).mtimeMs
+      if (ageMs < maxAgeMs) {
+        res.setHeader('Content-Type', 'image/png')
+        res.setHeader('Cache-Control', 'private, max-age=300')
+        return fs.createReadStream(imgPath).pipe(res)
+      }
+    }
+
+    await generateLinkPreviewImage(targetUrl, tmpPath, width, height)
+    fs.renameSync(tmpPath, imgPath)
+    res.setHeader('Content-Type', 'image/png')
+    res.setHeader('Cache-Control', 'private, max-age=300')
+    return fs.createReadStream(imgPath).pipe(res)
+  } catch (err) {
+    console.error('[link-preview-image]', err?.message || err)
+    return res.status(502).json({ error: '링크 미리보기를 생성하지 못했습니다.' })
   }
 })
 
