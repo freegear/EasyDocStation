@@ -125,6 +125,18 @@ bash scripts/dgx-spark-rerun.sh --help
   - DB 경로 4개: `Database/...` 상대경로
 - `server/.env` 자동 생성 (`DATABASE_URL`, `JWT_SECRET`, `PORT`, `CLIENT_ORIGIN`)
 
+### Local AgenticAI (macOS/Windows) Ollama 설치
+
+```bash
+npm run setup:local-ollama
+```
+
+Windows PowerShell에서 직접 실행하려면:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/setup-local-ollama.ps1
+```
+
 ### 2) 실행
 
 ```bash

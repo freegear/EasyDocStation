@@ -112,7 +112,7 @@ export default function useMentionAutocomplete(teamId) {
             const name = String(u?.name || '').toLowerCase()
             const displayName = String(u?.display_name || '').toLowerCase()
             const username = String(u?.username || '').toLowerCase()
-            return name.includes(q) || displayName.includes(q) || username.includes(q)
+            return name.startsWith(q) || displayName.startsWith(q) || username.startsWith(q)
           })
         } else {
           const data = await apiFetch(`/users/search?q=${encodeURIComponent(query)}`)

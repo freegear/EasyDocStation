@@ -887,6 +887,8 @@ function PostDetailPane({ post, channelId, onClose, helpers = {} }) {
                     setComment(e.target.value)
                     mention.handleChange(e.target.value, e.target.selectionStart, e.target)
                   }}
+                  onClick={e => mention.handleChange(e.currentTarget.value, e.currentTarget.selectionStart, e.currentTarget)}
+                  onKeyUp={e => mention.handleChange(e.currentTarget.value, e.currentTarget.selectionStart, e.currentTarget)}
                   placeholder={t.chat.commentPlaceholder}
                   rows={2}
                   className="w-full bg-transparent text-gray-700 placeholder-gray-400 text-sm px-4 pt-3 pb-2 resize-none focus:outline-none leading-relaxed"

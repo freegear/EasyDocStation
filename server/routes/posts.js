@@ -21,18 +21,23 @@ function extractMentions(content) {
   const escapedSep = separator.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 
   const names = new Set()
+  const addName = (raw) => {
+    const n = String(raw || '')
+      .replaceAll(separator, '')
+      .replace(/[.,!?;:)\]]+$/g, '')
+      .trim()
+    if (n) names.add(n.toLowerCase())
+  }
 
   const sepMatches = source.matchAll(new RegExp(`@([^@\\n${escapedSep}]+)${escapedSep}`, 'g'))
   for (const m of sepMatches) {
-    const n = String(m[1] || '').trim()
-    if (n) names.add(n)
+    addName(m[1])
   }
 
   // Backward compatibility: @name 형태도 함께 처리
   const legacyMatches = source.matchAll(/@([^\s@]+)/g)
   for (const m of legacyMatches) {
-    const n = String(m[1] || '').trim()
-    if (n) names.add(n)
+    addName(m[1])
   }
 
   return [...names]

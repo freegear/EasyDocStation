@@ -18,7 +18,8 @@
     "test:e2e": "playwright test",
     "preview": "vite preview",
     "setup:dgx-spark": "bash scripts/setup-dgx-spark.sh",
-    "dev:dgx-spark": "bash scripts/dev-dgx-spark.sh"
+    "dev:dgx-spark": "bash scripts/dev-dgx-spark.sh",
+    "setup:local-ollama": "bash scripts/setup-local-ollama.sh"
   },
   "dependencies": {
     "@tiptap/extension-color": "^3.22.4",
