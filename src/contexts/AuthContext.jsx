@@ -4,7 +4,10 @@ import { apiFetch, setToken, clearToken, getToken, setSessionInvalidatedHandler 
 const AuthContext = createContext(null)
 const LANGUAGE_STORAGE_KEY = 'easydocstation.language'
 const SUPPORTED_LANGUAGES = new Set(['ko', 'en', 'ja'])
-const IDLE_LOGOUT_MS = 30 * 60 * 1000
+const IDLE_LOGOUT_MS = 60 * 60 * 1000
+const AUTH_EVENT_KEY = 'eds.auth.event'
+const AUTH_NOTICE_KEY = 'eds.auth.notice'
+const AUTO_LOGOUT_NOTICE = '1시간 이상 아무런 반응이 없어서 자동으로 로그아웃 되었습니다.'
 
 export function AuthProvider({ children }) {
   const [currentUser, setCurrentUser] = useState(null)
@@ -13,6 +16,7 @@ export function AuthProvider({ children }) {
     return SUPPORTED_LANGUAGES.has(saved) ? saved : 'ko'
   })
   const [loading, setLoading] = useState(true)   // true while restoring session
+  const [logoutNotice, setLogoutNotice] = useState('')
   const [maxAttachmentFileSize, setMaxAttachmentFileSize] = useState(100)
   const currentUserRef = useRef(null)
   const idleTimerRef = useRef(null)
@@ -29,6 +33,25 @@ export function AuthProvider({ children }) {
     clearToken()
     setCurrentUser(null)
     currentUserRef.current = null
+  }
+
+  function pushLogoutNotice(message) {
+    if (!message) return
+    setLogoutNotice(message)
+    localStorage.setItem(AUTH_NOTICE_KEY, message)
+  }
+
+  function consumeStoredLogoutNotice() {
+    const saved = localStorage.getItem(AUTH_NOTICE_KEY) || ''
+    if (!saved) return
+    setLogoutNotice(saved)
+    localStorage.removeItem(AUTH_NOTICE_KEY)
+  }
+
+  function broadcastAuthEvent(event) {
+    try {
+      localStorage.setItem(AUTH_EVENT_KEY, JSON.stringify({ ...event, at: Date.now() }))
+    } catch (_) {}
   }
 
   function redirectToLoginPage(forceReload = false) {
@@ -56,6 +79,11 @@ export function AuthProvider({ children }) {
       currentUserRef.current = null
       redirectToLoginPage(true)
     })
+  }, [])
+
+  // 앱 진입 시 자동 로그아웃 안내 문구 복원
+  useEffect(() => {
+    consumeStoredLogoutNotice()
   }, [])
 
   // currentUser 변경 시 ref 동기화
@@ -86,6 +114,24 @@ export function AuthProvider({ children }) {
     }
     window.addEventListener('focus', handleFocus)
     return () => window.removeEventListener('focus', handleFocus)
+  }, [])
+
+  // 다른 탭에서 강제 로그아웃된 경우 동기화
+  useEffect(() => {
+    function handleStorage(e) {
+      if (e.key !== AUTH_EVENT_KEY || !e.newValue) return
+      try {
+        const payload = JSON.parse(e.newValue)
+        if (payload?.type !== 'FORCE_LOGOUT') return
+        clearLocalSession()
+        if (payload?.reason === 'IDLE') {
+          pushLogoutNotice(AUTO_LOGOUT_NOTICE)
+        }
+        redirectToLoginPage(true)
+      } catch (_) {}
+    }
+    window.addEventListener('storage', handleStorage)
+    return () => window.removeEventListener('storage', handleStorage)
   }, [])
 
   // Load public config limits on startup
@@ -119,10 +165,11 @@ export function AuthProvider({ children }) {
     clearIdleTimer()
     await logoutToServer()
     clearLocalSession()
+    broadcastAuthEvent({ type: 'FORCE_LOGOUT', reason: 'MANUAL' })
     redirectToLoginPage(false)
   }
 
-  // 유휴 시간 30분 초과 시 자동 로그아웃
+  // 유휴 시간 1시간 초과 시 자동 로그아웃
   useEffect(() => {
     if (!currentUser) {
       clearIdleTimer()
@@ -137,6 +184,8 @@ export function AuthProvider({ children }) {
         try {
           await logoutToServer()
         } finally {
+          broadcastAuthEvent({ type: 'FORCE_LOGOUT', reason: 'IDLE' })
+          pushLogoutNotice(AUTO_LOGOUT_NOTICE)
           clearLocalSession()
           isAutoLoggingOutRef.current = false
           redirectToLoginPage(true)
@@ -163,6 +212,30 @@ export function AuthProvider({ children }) {
     }
   }, [currentUser])
 
+  // 세션 동기화: 주기적으로 /auth/me 호출해 서버 세션 만료를 감지
+  useEffect(() => {
+    if (!currentUser) return undefined
+    const timer = window.setInterval(() => {
+      if (!getToken() || !currentUserRef.current) return
+      apiFetch('/auth/me')
+        .then(user => setCurrentUser(user))
+        .catch((err) => {
+          clearLocalSession()
+          if (err?.code === 'SESSION_INVALIDATED') {
+            redirectToLoginPage(true)
+          } else {
+            redirectToLoginPage(false)
+          }
+        })
+    }, 30000)
+    return () => window.clearInterval(timer)
+  }, [currentUser])
+
+  function clearLogoutNotice() {
+    setLogoutNotice('')
+    localStorage.removeItem(AUTH_NOTICE_KEY)
+  }
+
   function setLanguage(nextLanguage) {
     const safeLanguage = SUPPORTED_LANGUAGES.has(nextLanguage) ? nextLanguage : 'ko'
     setLanguageState(safeLanguage)
@@ -178,6 +251,8 @@ export function AuthProvider({ children }) {
       login,
       logout,
       updateProfile,
+      logoutNotice,
+      clearLogoutNotice,
       maxAttachmentFileSize,
       setMaxAttachmentFileSize,
     }}>
