@@ -808,6 +808,7 @@ function AttachmentList({ attachments, compact = false }) {
   const [lightboxFile, setLightboxFile] = useState(null)
   const [videoFile, setVideoFile] = useState(null)
   const [previewFile, setPreviewFile] = useState(null)
+  const [failedHtmlAttachmentPreview, setFailedHtmlAttachmentPreview] = useState({})
 
   useEffect(() => {
     apiFetch('/config/display')
@@ -1096,7 +1097,9 @@ function AttachmentList({ attachments, compact = false }) {
             if (category === 'html') {
               const originalUrl = String(f.url || '')
               const isExternalLink = /^https?:\/\//i.test(originalUrl)
-              const htmlPreviewImageUrl = `/api/files/link-preview-image?url=${encodeURIComponent(originalUrl)}&width=${previewW}&height=${previewH}&auth_token=${encodeURIComponent(getToken() || '')}`
+              const htmlPreviewImageUrl = `/api/files/link-preview-image?url=${encodeURIComponent(originalUrl)}&width=${previewW}&height=${previewH}`
+              const failedKey = String(f.id || f.name || originalUrl)
+              const isFailed = Boolean(failedHtmlAttachmentPreview[failedKey])
               return (
                 <div key={f.id}
                   className="rounded-2xl overflow-hidden border border-gray-200 hover:border-amber-500/50 transition-colors group cursor-pointer flex-shrink-0"
@@ -1105,16 +1108,23 @@ function AttachmentList({ attachments, compact = false }) {
                 >
                   <div style={{ width: w, height: h, position: 'relative', overflow: 'hidden' }}>
                     {isExternalLink ? (
-                      <img
-                        src={htmlPreviewImageUrl}
-                        alt={f.name}
-                        loading="lazy"
-                        className="block bg-gray-100"
-                        style={{ width: w, height: h, objectFit: 'cover' }}
-                        onError={(e) => {
-                          e.currentTarget.style.display = 'none'
-                        }}
-                      />
+                      !isFailed ? (
+                        <img
+                          src={htmlPreviewImageUrl}
+                          alt={f.name}
+                          loading="lazy"
+                          className="block bg-gray-100"
+                          style={{ width: w, height: h, objectFit: 'cover' }}
+                          onError={() => {
+                            setFailedHtmlAttachmentPreview(prev => ({ ...prev, [failedKey]: true }))
+                          }}
+                        />
+                      ) : (
+                        <div className="w-full h-full flex flex-col items-center justify-center text-gray-400 text-xs gap-1 bg-gray-100">
+                          <span>미리보기를 불러올 수 없습니다.</span>
+                          <span className="text-[11px] text-gray-300">새 창에서 링크를 열어주세요.</span>
+                        </div>
+                      )
                     ) : (
                       <iframe
                         src={fileUrl(f)}
