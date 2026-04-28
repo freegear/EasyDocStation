@@ -152,6 +152,55 @@ async function cleanupExpiredDmMessages() {
   }
 }
 
+async function telegramPost(token, method, body) {
+  const res = await fetch(`https://api.telegram.org/bot${token}/${method}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+  return res.json()
+}
+
+async function notifyDmToTelegram({ conversationId, senderId }) {
+  try {
+    const config = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'))
+    const telegramCfg = config?.sns?.telegram || {}
+    if (!telegramCfg.enabled) return
+    const botToken = String(telegramCfg.httpApiToken || '').trim()
+    if (!botToken) return
+
+    const { rows: senderRows } = await db.query(
+      'SELECT username, name, display_name FROM users WHERE id = $1',
+      [senderId]
+    )
+    const sender = senderRows[0] || {}
+    const senderName = sender.display_name || sender.name || sender.username || `${senderId}`
+    const text = `{ @${senderName} } 이 메시지를 보냈습니다.`
+
+    const { rows: targetRows } = await db.query(
+      `SELECT DISTINCT u.telegram_id
+       FROM dm_conversations c
+       JOIN users u ON u.id = ANY(SELECT (jsonb_array_elements(c.participants)::int))
+       WHERE c.id = $1
+         AND u.id <> $2
+         AND u.telegram_id IS NOT NULL
+         AND u.telegram_id ~ '^-?[0-9]+$'`,
+      [conversationId, senderId]
+    )
+
+    for (const row of targetRows) {
+      const chatId = String(row.telegram_id || '').trim()
+      if (!chatId) continue
+      const tg = await telegramPost(botToken, 'sendMessage', { chat_id: chatId, text })
+      if (!tg?.ok) {
+        console.warn('[DM->Telegram] sendMessage failed:', tg?.description || 'unknown error', { conversationId, chatId })
+      }
+    }
+  } catch (err) {
+    console.warn('[DM->Telegram] notify error:', err?.message || err)
+  }
+}
+
 function scheduleDailyDmRetentionCleanup() {
   const now = new Date()
   const nextMidnight = new Date(now)
@@ -474,6 +523,10 @@ router.post('/conversations/:id/messages', async (req, res) => {
        WHERE m.id = $1`,
       [msgId]
     )
+
+    // DM 전송 성공 후 수신자들에게 Telegram 알림 전송 (실패해도 DM 전송은 유지)
+    notifyDmToTelegram({ conversationId: id, senderId: userId }).catch(() => {})
+
     res.status(201).json(full[0])
   } catch (err) {
     console.error(err)
