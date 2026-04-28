@@ -826,12 +826,14 @@ function AttachmentList({ attachments, compact = false }) {
   function fileUrl(f) {
     if (!f.url) return null
     if (f.url.startsWith('blob:')) return f.url
+    if (/^https?:\/\//i.test(f.url)) return f.url
     const token = getToken()
     return token ? `${f.url}?auth_token=${token}` : f.url
   }
 
   function thumbUrl(f) {
     if (!f.thumbnail_url) return null
+    if (/^https?:\/\//i.test(f.thumbnail_url)) return f.thumbnail_url
     const token = getToken()
     return `${f.thumbnail_url}&auth_token=${token}`
   }
@@ -1092,6 +1094,9 @@ function AttachmentList({ attachments, compact = false }) {
 
             // ── HTML → iframe 인라인 미리보기 ────────────────────
             if (category === 'html') {
+              const originalUrl = String(f.url || '')
+              const isExternalLink = /^https?:\/\//i.test(originalUrl)
+              const htmlPreviewImageUrl = `/api/files/link-preview-image?url=${encodeURIComponent(originalUrl)}&width=${previewW}&height=${previewH}&auth_token=${encodeURIComponent(getToken() || '')}`
               return (
                 <div key={f.id}
                   className="rounded-2xl overflow-hidden border border-gray-200 hover:border-amber-500/50 transition-colors group cursor-pointer flex-shrink-0"
@@ -1099,20 +1104,33 @@ function AttachmentList({ attachments, compact = false }) {
                   onClick={e => handleFileClick(e, f)}
                 >
                   <div style={{ width: w, height: h, position: 'relative', overflow: 'hidden' }}>
-                    <iframe
-                      src={fileUrl(f)}
-                      sandbox="allow-same-origin"
-                      title={f.name}
-                      style={{
-                        width: dims.width,
-                        height: dims.height,
-                        border: 'none',
-                        transformOrigin: '0 0',
-                        transform: `scale(${w / dims.width})`,
-                        pointerEvents: 'none',
-                        background: '#fff',
-                      }}
-                    />
+                    {isExternalLink ? (
+                      <img
+                        src={htmlPreviewImageUrl}
+                        alt={f.name}
+                        loading="lazy"
+                        className="block bg-gray-100"
+                        style={{ width: w, height: h, objectFit: 'cover' }}
+                        onError={(e) => {
+                          e.currentTarget.style.display = 'none'
+                        }}
+                      />
+                    ) : (
+                      <iframe
+                        src={fileUrl(f)}
+                        sandbox="allow-same-origin"
+                        title={f.name}
+                        style={{
+                          width: dims.width,
+                          height: dims.height,
+                          border: 'none',
+                          transformOrigin: '0 0',
+                          transform: `scale(${w / dims.width})`,
+                          pointerEvents: 'none',
+                          background: '#fff',
+                        }}
+                      />
+                    )}
                   </div>
                   <div className="px-3 py-2 flex items-center justify-between bg-gray-50">
                     <div className="flex items-center gap-2 min-w-0">
