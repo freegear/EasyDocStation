@@ -565,9 +565,12 @@ router.get('/link-preview-image', async (req, res) => {
           console.warn('[link-preview-image] remote fallback failed, placeholder:', remoteErr?.message || remoteErr)
           const host = (() => { try { return new URL(targetUrl).host } catch { return '' } })()
           writePlaceholderPng(tmpPath, width, height, host)
+          fs.writeFileSync(typePath, 'image/svg+xml')
         }
       }
-      fs.writeFileSync(typePath, 'image/png')
+      if (!fs.existsSync(typePath)) {
+        fs.writeFileSync(typePath, 'image/png')
+      }
     }
     fs.renameSync(tmpPath, imgPath)
     const contentType = fs.existsSync(typePath) ? (fs.readFileSync(typePath, 'utf8') || 'image/png') : 'image/png'
