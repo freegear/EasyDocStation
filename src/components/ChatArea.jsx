@@ -1918,6 +1918,8 @@ function ComposeBar({ onSubmit, isArchived, teamId }) {
                 mention.handleChange(e.target.value, e.target.selectionStart, e.target)
               }}
               onFocus={() => setFocused(true)}
+              onClick={e => mention.handleChange(e.currentTarget.value, e.currentTarget.selectionStart, e.currentTarget)}
+              onKeyUp={e => mention.handleChange(e.currentTarget.value, e.currentTarget.selectionStart, e.currentTarget)}
               onKeyDown={handleKeyDown}
               onDragOver={handleTextareaDragOver}
               onDrop={handleTextareaDrop}
