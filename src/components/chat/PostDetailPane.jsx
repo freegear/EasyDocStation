@@ -9,7 +9,7 @@ import { findDuplicateFileNames } from '../../lib/fileNameValidation'
 import useMentionAutocomplete from '../../hooks/useMentionAutocomplete'
 import MentionDropdown from '../MentionDropdown'
 
-function PostDetailPane({ post, channelId, onClose, helpers = {} }) {
+function PostDetailPane({ post, channelId, onClose, pendingOpenCommentId = null, onConsumePendingOpen = null, helpers = {} }) {
   const t = useT()
   const { addComment, incrementViews, deletePost, updatePost, deleteComment, updateComment, posts, selectedChannel, selectedTeam, openInAgenticAI } = useChat()
   const { currentUser, maxAttachmentFileSize } = useAuth()
@@ -60,6 +60,8 @@ function PostDetailPane({ post, channelId, onClose, helpers = {} }) {
   const [uploadProgress, setUploadProgress] = useState(null)
   const commentSubmittingRef = useRef(false)
   const commentsEndRef = useRef(null)
+  const commentItemRefs = useRef(new Map())
+  const [highlightCommentId, setHighlightCommentId] = useState(null)
   const commentTextareaRef = useRef(null)
   const mention = useMentionAutocomplete(selectedTeam?.id)
   const fileInputRef = useRef(null)
@@ -165,6 +167,24 @@ function PostDetailPane({ post, channelId, onClose, helpers = {} }) {
     dragThreshold: 4,
     blockOnAnySelection: false,
   })
+
+  useEffect(() => {
+    if (!pendingOpenCommentId) return
+    const exists = (freshPost.comments || []).some(c => String(c.id) === String(pendingOpenCommentId))
+    if (!exists) return
+
+    const timer = setTimeout(() => {
+      const el = commentItemRefs.current.get(String(pendingOpenCommentId))
+      if (el && typeof el.scrollIntoView === 'function') {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      }
+      setHighlightCommentId(String(pendingOpenCommentId))
+      onConsumePendingOpen?.()
+      setTimeout(() => setHighlightCommentId(null), 2200)
+    }, 120)
+
+    return () => clearTimeout(timer)
+  }, [pendingOpenCommentId, freshPost.comments, onConsumePendingOpen])
 
   function guardSelectionMouseDownCapture(e, guard) {
     guard.handleMouseDown(e)
@@ -756,7 +776,19 @@ function PostDetailPane({ post, channelId, onClose, helpers = {} }) {
           ) : (
             <div className="flex flex-col gap-4">
               {(freshPost.comments || []).map(c => (
-                <div key={c.id} className="flex items-start gap-3 group">
+                <div
+                  key={c.id}
+                  ref={(el) => {
+                    if (!el) {
+                      commentItemRefs.current.delete(String(c.id))
+                      return
+                    }
+                    commentItemRefs.current.set(String(c.id), el)
+                  }}
+                  className={`flex items-start gap-3 group rounded-xl transition-colors ${
+                    String(highlightCommentId || '') === String(c.id) ? 'bg-indigo-50/70 ring-1 ring-indigo-200' : ''
+                  }`}
+                >
                   <Avatar letters={c.author?.avatar || '?'} imageUrl={c.author?.image_url} size="sm" />
                   <div className="flex-1 bg-gray-100 rounded-xl px-4 py-3 border border-gray-200" style={{ WebkitAppRegion: 'no-drag' }}>
                     <div className="flex items-baseline gap-2 mb-1.5">

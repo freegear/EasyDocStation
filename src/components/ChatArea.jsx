@@ -2569,6 +2569,7 @@ export default function ChatArea({ autoOpenPostId }) {
     posts,
     addPost,
     pendingOpenPostId,
+    pendingOpenCommentId,
     clearPendingPost,
     setSelectedPostContext,
     clearSelectedPostContext,
@@ -2595,9 +2596,8 @@ export default function ChatArea({ autoOpenPostId }) {
     const target = channelPosts.find(p => String(p.id) === String(pendingOpenPostId))
     if (target) {
       setSelectedPost(target)
-      clearPendingPost()
     }
-  }, [pendingOpenPostId, selectedChannel?.id, posts, clearPendingPost])
+  }, [pendingOpenPostId, selectedChannel?.id, posts])
 
   const startResizing = useCallback(() => {
     setResizing(true)
@@ -2742,12 +2742,14 @@ export default function ChatArea({ autoOpenPostId }) {
       {/* Right panel — post detail */}
       {selectedPost && (
         <div className="flex-1 flex flex-col min-h-0 min-w-0 overflow-hidden">
-          <PostDetailPane
-            post={selectedPost}
-            channelId={selectedChannel.id}
-            onClose={() => setSelectedPost(null)}
-            helpers={postDetailHelpers}
-          />
+        <PostDetailPane
+          post={selectedPost}
+          channelId={selectedChannel.id}
+          onClose={() => setSelectedPost(null)}
+          pendingOpenCommentId={pendingOpenCommentId}
+          onConsumePendingOpen={clearPendingPost}
+          helpers={postDetailHelpers}
+        />
         </div>
       )}
         </>
