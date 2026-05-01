@@ -21,8 +21,13 @@ async function seed() {
       `INSERT INTO users (username, name, email, password_hash, role)
        VALUES ($1, $2, $3, $4, $5)
        ON CONFLICT (email) DO UPDATE
-         SET name = EXCLUDED.name,
+         SET username = EXCLUDED.username,
+             name = EXCLUDED.name,
              role = EXCLUDED.role,
+             password_hash = EXCLUDED.password_hash,
+             is_active = true,
+             failed_login_attempts = 0,
+             active_session_id = NULL,
              updated_at = NOW()`,
       [u.username, u.name, u.email, hash, u.role]
     )
