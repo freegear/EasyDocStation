@@ -74,6 +74,8 @@ function ensureMermaidInitialized() {
   mermaid.initialize({
     startOnLoad: false,
     securityLevel: 'strict',
+    // PNG export 시 canvas taint를 유발할 수 있는 foreignObject 기반 html label을 비활성화
+    flowchart: { htmlLabels: false },
   })
   mermaidInitialized = true
 }
