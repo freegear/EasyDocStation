@@ -160,6 +160,8 @@ else
 fi
 
 echo "[6/8] Node 패키지 설치"
+# stale lock file이 peer dependency 버전 충돌을 일으킬 수 있으므로 삭제 후 설치
+rm -f package-lock.json
 npm install
 npm install --prefix server
 sudo npx playwright install-deps
