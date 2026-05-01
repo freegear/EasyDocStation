@@ -102,6 +102,29 @@
   font-family: ui-monospace, monospace;
 }
 
+.tiptap-editor .ProseMirror .md-mermaid-render {
+  margin: 0.75rem 0 1rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.75rem;
+  background: #ffffff;
+  padding: 0.875rem;
+  overflow-x: auto;
+}
+
+.tiptap-editor .ProseMirror .md-mermaid-rendering {
+  color: #4b5563;
+  font-size: 0.875rem;
+}
+
+.tiptap-editor .ProseMirror .md-mermaid-error {
+  margin: 0;
+  color: #b91c1c;
+  background: #fef2f2;
+  border-radius: 0.5rem;
+  padding: 0.625rem 0.75rem;
+  white-space: pre-wrap;
+}
+
 .tiptap-editor .ProseMirror a {
   color: #4f46e5;
   text-decoration: underline;

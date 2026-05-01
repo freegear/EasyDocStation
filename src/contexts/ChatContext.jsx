@@ -266,16 +266,17 @@ export function ChatProvider({ children }) {
   async function navigateToPost(channelId, postId, meta = {}) {
     // teams에서 channelId에 해당하는 채널 객체를 찾아 이동
     for (const team of teams) {
-      const ch = (team.channels || []).find(c => c.id === channelId)
+      const ch = (team.channels || []).find(c => String(c.id) === String(channelId))
       if (ch) {
         setSelectedTeam(team)
         await selectChannel(ch)
         if (postId) setPendingOpenPostId(postId)
         if (meta.commentId) setPendingOpenCommentId(meta.commentId)
         if (meta.attachmentId) setPendingOpenAttachmentId(meta.attachmentId)
-        return
+        return true
       }
     }
+    return false
   }
 
   function clearPendingPost() {

@@ -16,6 +16,7 @@ import { TableOfContents } from '@tiptap/extension-table-of-contents'
 import { Table, TableRow, TableCell, TableHeader } from '@tiptap/extension-table'
 import ImageResize from 'tiptap-extension-resize-image'
 import { Markdown } from 'tiptap-markdown'
+import mermaid from 'mermaid'
 import { HexColorPicker } from 'react-colorful'
 import { useChat } from '../../contexts/ChatContext'
 import { useAuth } from '../../contexts/AuthContext'
@@ -43,6 +44,25 @@ const DEFAULT_PREVIEW_CONFIG = {
   wordPreview: { width: 270, height: 480 },
   moviePreview: { width: 480, height: 270 },
   htmlPreview: { width: 480, height: 270 },
+}
+const MERMAID_RENDER_CLASS = 'md-mermaid-render'
+
+function hashText(source = '') {
+  let hash = 0
+  for (let i = 0; i < source.length; i += 1) {
+    hash = ((hash << 5) - hash) + source.charCodeAt(i)
+    hash |= 0
+  }
+  return String(hash)
+}
+
+function escapeHtml(source = '') {
+  return String(source)
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;')
 }
 
 function collectHeadingItems(doc, limit = 10) {
@@ -515,6 +535,8 @@ export default function MDPageViewer({ post, channelId, onClose }) {
   const [commentDragOver, setCommentDragOver] = useState(false)
   const [commentSubmitting, setCommentSubmitting] = useState(false)
   const [pendingDeleteCommentId, setPendingDeleteCommentId] = useState(null)
+  const mermaidInitializedRef = useRef(false)
+  const mermaidRenderSeqRef = useRef(0)
   const [previewConfig, setPreviewConfig] = useState(DEFAULT_PREVIEW_CONFIG)
   const splitAreaRef = useRef(null)
   const resizeStartRef = useRef({ x: 0, width: 420 })
@@ -864,6 +886,75 @@ export default function MDPageViewer({ post, channelId, onClose }) {
       editor.off('selectionUpdate', rafApply)
     }
   }, [editor])
+
+  useEffect(() => {
+    if (!editor || mode !== 'preview') return undefined
+    if (!mermaidInitializedRef.current) {
+      mermaid.initialize({
+        startOnLoad: false,
+        securityLevel: 'strict',
+      })
+      mermaidInitializedRef.current = true
+    }
+
+    let cancelled = false
+
+    const renderMermaidBlocks = async () => {
+      const root = editor.view?.dom
+      if (!(root instanceof HTMLElement)) return
+
+      const codeBlocks = Array.from(root.querySelectorAll('pre code.language-mermaid, pre code.lang-mermaid'))
+      const usedContainers = new Set()
+
+      for (const codeBlock of codeBlocks) {
+        const pre = codeBlock.closest('pre')
+        if (!(pre instanceof HTMLElement)) continue
+
+        const source = String(codeBlock.textContent || '').trim()
+        if (!source) continue
+
+        let container = pre.nextElementSibling
+        if (!(container instanceof HTMLElement) || !container.classList.contains(MERMAID_RENDER_CLASS)) {
+          container = document.createElement('div')
+          container.className = MERMAID_RENDER_CLASS
+          pre.insertAdjacentElement('afterend', container)
+        }
+        usedContainers.add(container)
+
+        const sourceHash = hashText(source)
+        if (container.dataset.sourceHash === sourceHash) continue
+
+        container.dataset.sourceHash = sourceHash
+        container.innerHTML = '<div class="md-mermaid-rendering">Mermaid 렌더링 중...</div>'
+
+        try {
+          const renderId = `md-mermaid-${Date.now()}-${mermaidRenderSeqRef.current}`
+          mermaidRenderSeqRef.current += 1
+          const { svg } = await mermaid.render(renderId, source)
+          if (cancelled) return
+          container.innerHTML = svg
+        } catch (err) {
+          if (cancelled) return
+          const message = err instanceof Error ? err.message : String(err)
+          container.innerHTML = `<pre class="md-mermaid-error">${escapeHtml(message)}</pre>`
+        }
+      }
+
+      Array.from(root.querySelectorAll(`.${MERMAID_RENDER_CLASS}`)).forEach((container) => {
+        if (!(container instanceof HTMLElement)) return
+        if (usedContainers.has(container)) return
+        container.remove()
+      })
+    }
+
+    const renderOnFrame = () => window.requestAnimationFrame(() => { void renderMermaidBlocks() })
+    renderOnFrame()
+    editor.on('update', renderOnFrame)
+    return () => {
+      cancelled = true
+      editor.off('update', renderOnFrame)
+    }
+  }, [editor, mode])
 
   useEffect(() => {
     if (!editor) return
