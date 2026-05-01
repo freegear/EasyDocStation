@@ -19,6 +19,7 @@ import { Table, TableRow, TableCell, TableHeader } from '@tiptap/extension-table
 import ImageResize from 'tiptap-extension-resize-image'
 import { Markdown } from 'tiptap-markdown'
 import mermaid from 'mermaid'
+import * as echarts from 'echarts'
 import { HexColorPicker } from 'react-colorful'
 import { useChat } from '../../contexts/ChatContext'
 import { useAuth } from '../../contexts/AuthContext'
@@ -49,6 +50,8 @@ const DEFAULT_PREVIEW_CONFIG = {
 }
 const MERMAID_RENDER_CLASS = 'md-mermaid-render'
 const MERMAID_PLUGIN_KEY = new PluginKey('md-mermaid-preview')
+const ECHARTS_RENDER_CLASS = 'md-echarts-render'
+const ECHARTS_PLUGIN_KEY = new PluginKey('md-echarts-preview')
 let mermaidInitialized = false
 
 function hashText(source = '') {
@@ -165,6 +168,89 @@ async function renderMermaidSvgForExport(source = '') {
   const renderId = `md-mermaid-export-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
   const { svg } = await mermaid.render(renderId, exportSource)
   return sanitizeSvgForCanvas(svg)
+}
+
+function parseEchartsOption(source = '') {
+  const text = String(source || '').trim()
+  if (!text) return {}
+  try {
+    return JSON.parse(text)
+  } catch (_) {
+    try {
+      // eslint-disable-next-line no-new-func
+      return Function(`"use strict"; return (${text});`)()
+    } catch (err) {
+      throw new Error(`ECharts 옵션 파싱 실패: ${err instanceof Error ? err.message : String(err)}`)
+    }
+  }
+}
+
+function buildEchartsExportBaseName(source = '') {
+  const option = parseEchartsOption(source)
+  const title = typeof option?.title?.text === 'string' ? option.title.text : 'echarts-diagram'
+  return sanitizeFilenamePart(title || 'echarts-diagram')
+}
+
+function ensureEchartsSize(option = {}) {
+  const cloned = { ...option }
+  if (!cloned.animation) cloned.animation = false
+  return cloned
+}
+
+function downloadDataUrl(filename, dataUrl) {
+  const a = document.createElement('a')
+  a.href = dataUrl
+  a.download = filename
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+}
+
+async function exportEchartsAsPng(source = '', minWidth = 2000) {
+  const option = ensureEchartsSize(parseEchartsOption(source))
+  const host = document.createElement('div')
+  host.style.cssText = 'position:fixed;left:-10000px;top:-10000px;width:1200px;height:800px;'
+  document.body.appendChild(host)
+  try {
+    const chart = echarts.init(host, null, { renderer: 'canvas' })
+    chart.setOption(option, true)
+    chart.resize()
+    const w = Math.max(1, chart.getWidth() || 1200)
+    const pixelRatio = Math.max(1, Math.ceil((Number(minWidth) || 2000) / w))
+    const dataUrl = chart.getDataURL({
+      type: 'png',
+      pixelRatio,
+      backgroundColor: '#ffffff',
+      excludeComponents: ['toolbox'],
+    })
+    chart.dispose()
+    return dataUrl
+  } finally {
+    host.remove()
+  }
+}
+
+async function exportEchartsAsSvg(source = '') {
+  const option = ensureEchartsSize(parseEchartsOption(source))
+  const host = document.createElement('div')
+  host.style.cssText = 'position:fixed;left:-10000px;top:-10000px;width:1200px;height:800px;'
+  document.body.appendChild(host)
+  try {
+    const chart = echarts.init(host, null, { renderer: 'svg' })
+    chart.setOption(option, true)
+    chart.resize()
+    const svgEl = host.querySelector('svg')
+    if (!(svgEl instanceof SVGElement)) {
+      chart.dispose()
+      throw new Error('SVG 렌더를 생성하지 못했습니다.')
+    }
+    const serializer = new XMLSerializer()
+    const svg = serializer.serializeToString(svgEl)
+    chart.dispose()
+    return svg
+  } finally {
+    host.remove()
+  }
 }
 
 const MermaidPreviewExtension = Extension.create({
@@ -317,6 +403,178 @@ const MermaidPreviewExtension = Extension.create({
             if (tr.docChanged || (meta && meta.refresh)) {
               return buildDecorations(newState.doc)
             }
+            return oldDecos.map(tr.mapping, tr.doc)
+          },
+        },
+        props: {
+          decorations(state) {
+            return this.getState(state)
+          },
+        },
+        view(view) {
+          viewRef = view
+          return {
+            destroy() {
+              viewRef = null
+            },
+          }
+        },
+      }),
+    ]
+  },
+})
+
+const EchartsPreviewExtension = Extension.create({
+  name: 'mdEchartsPreview',
+
+  addProseMirrorPlugins() {
+    const cache = new Map()
+    let refreshTick = 0
+    let viewRef = null
+
+    const buildDecorations = (doc) => {
+      const decorations = []
+      doc.descendants((node, pos) => {
+        if (node.type.name !== 'codeBlock') return
+        const language = String(node.attrs?.language || '').trim().toLowerCase()
+        if (language !== 'echarts') return
+
+        const source = String(node.textContent || '').trim()
+        if (!source) return
+        const sourceHash = hashText(source)
+        const widgetPos = pos + node.nodeSize
+        decorations.push(Decoration.node(pos, pos + node.nodeSize, {
+          class: 'md-echarts-source-hidden',
+        }))
+
+        decorations.push(Decoration.widget(widgetPos, () => {
+          const container = document.createElement('div')
+          container.className = ECHARTS_RENDER_CLASS
+          container.setAttribute('contenteditable', 'false')
+
+          const header = document.createElement('div')
+          header.className = 'md-echarts-actions'
+
+          const svgBtn = document.createElement('button')
+          svgBtn.type = 'button'
+          svgBtn.className = 'md-echarts-action-btn'
+          svgBtn.textContent = 'SVG 저장'
+          svgBtn.onclick = async () => {
+            try {
+              const base = buildEchartsExportBaseName(source)
+              const svg = await exportEchartsAsSvg(source)
+              downloadTextFile(`${base}.svg`, svg, 'image/svg+xml;charset=utf-8')
+            } catch (e) {
+              const msg = e instanceof Error ? e.message : String(e)
+              window.alert(`SVG 저장 실패: ${msg}`)
+            }
+          }
+
+          const png2kBtn = document.createElement('button')
+          png2kBtn.type = 'button'
+          png2kBtn.className = 'md-echarts-action-btn'
+          png2kBtn.textContent = 'PNG 2000px'
+          png2kBtn.onclick = async () => {
+            try {
+              const base = buildEchartsExportBaseName(source)
+              const dataUrl = await exportEchartsAsPng(source, 2000)
+              downloadDataUrl(`${base}.png`, dataUrl)
+            } catch (e) {
+              const msg = e instanceof Error ? e.message : String(e)
+              window.alert(`PNG 저장 실패: ${msg}`)
+            }
+          }
+
+          const png4kBtn = document.createElement('button')
+          png4kBtn.type = 'button'
+          png4kBtn.className = 'md-echarts-action-btn'
+          png4kBtn.textContent = 'PNG 4000px'
+          png4kBtn.onclick = async () => {
+            try {
+              const base = buildEchartsExportBaseName(source)
+              const dataUrl = await exportEchartsAsPng(source, 4000)
+              downloadDataUrl(`${base}.png`, dataUrl)
+            } catch (e) {
+              const msg = e instanceof Error ? e.message : String(e)
+              window.alert(`PNG 저장 실패: ${msg}`)
+            }
+          }
+
+          const png6kBtn = document.createElement('button')
+          png6kBtn.type = 'button'
+          png6kBtn.className = 'md-echarts-action-btn'
+          png6kBtn.textContent = 'PNG 6000px'
+          png6kBtn.onclick = async () => {
+            try {
+              const base = buildEchartsExportBaseName(source)
+              const dataUrl = await exportEchartsAsPng(source, 6000)
+              downloadDataUrl(`${base}.png`, dataUrl)
+            } catch (e) {
+              const msg = e instanceof Error ? e.message : String(e)
+              window.alert(`PNG 저장 실패: ${msg}`)
+            }
+          }
+
+          header.appendChild(svgBtn)
+          header.appendChild(png2kBtn)
+          header.appendChild(png4kBtn)
+          header.appendChild(png6kBtn)
+          container.appendChild(header)
+
+          const chartWrap = document.createElement('div')
+          chartWrap.className = 'md-echarts-wrap'
+          container.appendChild(chartWrap)
+
+          const cached = cache.get(sourceHash)
+          if (cached?.status === 'error') {
+            chartWrap.innerHTML = `<pre class="md-echarts-error">${escapeHtml(cached.message)}</pre>`
+            return container
+          }
+
+          chartWrap.innerHTML = '<div class="md-echarts-rendering">ECharts 렌더링 중...</div>'
+          window.requestAnimationFrame(() => {
+            try {
+              const option = ensureEchartsSize(parseEchartsOption(source))
+              chartWrap.innerHTML = ''
+              const host = document.createElement('div')
+              host.style.width = '100%'
+              host.style.minHeight = '380px'
+              host.style.height = '420px'
+              chartWrap.appendChild(host)
+              const chart = echarts.init(host, null, { renderer: 'canvas' })
+              chart.setOption(option, true)
+              chart.resize()
+              cache.set(sourceHash, { status: 'ok' })
+            } catch (err) {
+              const message = err instanceof Error ? err.message : String(err)
+              cache.set(sourceHash, { status: 'error', message })
+              chartWrap.innerHTML = `<pre class="md-echarts-error">${escapeHtml(message)}</pre>`
+            } finally {
+              refreshTick += 1
+              if (viewRef) {
+                const tr = viewRef.state.tr.setMeta(ECHARTS_PLUGIN_KEY, { refresh: true })
+                viewRef.dispatch(tr)
+              }
+            }
+          })
+
+          return container
+        }, {
+          key: `md-echarts-${widgetPos}-${sourceHash}-${refreshTick}`,
+          side: 1,
+        }))
+      })
+      return DecorationSet.create(doc, decorations)
+    }
+
+    return [
+      new Plugin({
+        key: ECHARTS_PLUGIN_KEY,
+        state: {
+          init: (_, state) => buildDecorations(state.doc),
+          apply: (tr, oldDecos, _oldState, newState) => {
+            const meta = tr.getMeta(ECHARTS_PLUGIN_KEY)
+            if (tr.docChanged || (meta && meta.refresh)) return buildDecorations(newState.doc)
             return oldDecos.map(tr.mapping, tr.doc)
           },
         },
@@ -1036,6 +1294,7 @@ export default function MDPageViewer({ post, channelId, onClose }) {
       TableOfContents,
       TocNode,
       MermaidPreviewExtension,
+      EchartsPreviewExtension,
       ResizableImage.configure({
         minWidth: 120,
         maxWidth: 1200,

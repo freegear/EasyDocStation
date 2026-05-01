@@ -107,6 +107,8 @@ bash scripts/dgx-spark-rerun.sh --help
 - 설치 시 프론트 의존성에 아래 컴포넌트가 포함됩니다.
   - `react-to-print`
   - `react-colorful`
+  - `mermaid`
+  - `echarts`
   - `@tiptap/extension-color`
   - `@tiptap/extension-text-style`
   - `@tiptap/extension-table`
