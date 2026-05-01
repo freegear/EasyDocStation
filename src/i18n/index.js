@@ -93,7 +93,7 @@ export const translations = {
       greeting: '안녕하세요! EasyStation AgenticAI 어시스턴트입니다. 무엇이든 물어보세요!',
       cleared: '대화가 초기화되었습니다. 새로운 질문을 입력해주세요.',
       noData: '죄송합니다. 관련 데이터를 찾을 수 없습니다.\n\nRAG 데이터베이스에 해당 질문과 관련된 정보가 없습니다. 게시판에 관련 내용을 먼저 등록해 주세요.',
-      errorPrefix: '오류가 발생했습니다: ', copied: 'Copied!', copy: 'Copy',
+      errorPrefix: '오류가 발생했습니다: ', copied: '복사됨!', copy: '복사',
       attachedImage: '첨부 이미지', copyAnswer: '답변 복사',
       stop: '중단',
       stopping: '중단 중...',
