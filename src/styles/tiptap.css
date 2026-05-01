@@ -121,6 +121,15 @@
   gap: 0.5rem;
   justify-content: flex-end;
   margin-bottom: 0.5rem;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+}
+
+.tiptap-editor .ProseMirror .md-mermaid-render:hover .md-mermaid-actions,
+.tiptap-editor .ProseMirror .md-mermaid-render:focus-within .md-mermaid-actions {
+  opacity: 1;
+  pointer-events: auto;
 }
 
 .tiptap-editor .ProseMirror .md-mermaid-action-btn {
@@ -159,6 +168,15 @@
   gap: 0.5rem;
   justify-content: flex-end;
   margin-bottom: 0.5rem;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+}
+
+.tiptap-editor .ProseMirror .md-echarts-render:hover .md-echarts-actions,
+.tiptap-editor .ProseMirror .md-echarts-render:focus-within .md-echarts-actions {
+  opacity: 1;
+  pointer-events: auto;
 }
 
 .tiptap-editor .ProseMirror .md-echarts-action-btn {
