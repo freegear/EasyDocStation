@@ -1,7 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useEditor, EditorContent } from '@tiptap/react'
 import { BubbleMenu } from '@tiptap/react/menus'
-import { Node, mergeAttributes } from '@tiptap/core'
+import { Node, Extension, mergeAttributes } from '@tiptap/core'
+import { Plugin, PluginKey } from '@tiptap/pm/state'
+import { Decoration, DecorationSet } from '@tiptap/pm/view'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import html2canvas from 'html2canvas'
@@ -46,6 +48,8 @@ const DEFAULT_PREVIEW_CONFIG = {
   htmlPreview: { width: 480, height: 270 },
 }
 const MERMAID_RENDER_CLASS = 'md-mermaid-render'
+const MERMAID_PLUGIN_KEY = new PluginKey('md-mermaid-preview')
+let mermaidInitialized = false
 
 function hashText(source = '') {
   let hash = 0
@@ -64,6 +68,115 @@ function escapeHtml(source = '') {
     .replaceAll('"', '&quot;')
     .replaceAll("'", '&#39;')
 }
+
+function ensureMermaidInitialized() {
+  if (mermaidInitialized) return
+  mermaid.initialize({
+    startOnLoad: false,
+    securityLevel: 'strict',
+  })
+  mermaidInitialized = true
+}
+
+const MermaidPreviewExtension = Extension.create({
+  name: 'mdMermaidPreview',
+
+  addProseMirrorPlugins() {
+    const cache = new Map()
+    const pending = new Map()
+    let viewRef = null
+    let seq = 0
+
+    const buildDecorations = (doc) => {
+      const widgets = []
+      doc.descendants((node, pos) => {
+        if (node.type.name !== 'codeBlock') return
+        const language = String(node.attrs?.language || '').trim().toLowerCase()
+        if (language !== 'mermaid') return
+
+        const source = String(node.textContent || '').trim()
+        if (!source) return
+        const sourceHash = hashText(source)
+        const widgetPos = pos + node.nodeSize
+
+        widgets.push(Decoration.widget(widgetPos, () => {
+          const container = document.createElement('div')
+          container.className = MERMAID_RENDER_CLASS
+          container.setAttribute('contenteditable', 'false')
+
+          const cached = cache.get(sourceHash)
+          if (cached?.status === 'ok') {
+            container.innerHTML = cached.svg
+            return container
+          }
+          if (cached?.status === 'error') {
+            container.innerHTML = `<pre class="md-mermaid-error">${escapeHtml(cached.message)}</pre>`
+            return container
+          }
+
+          container.innerHTML = '<div class="md-mermaid-rendering">Mermaid 렌더링 중...</div>'
+
+          if (!pending.has(sourceHash)) {
+            ensureMermaidInitialized()
+            const renderId = `md-mermaid-${Date.now()}-${seq}`
+            seq += 1
+            const task = mermaid.render(renderId, source)
+              .then(({ svg }) => {
+                cache.set(sourceHash, { status: 'ok', svg })
+              })
+              .catch((err) => {
+                const message = err instanceof Error ? err.message : String(err)
+                cache.set(sourceHash, { status: 'error', message })
+              })
+              .finally(() => {
+                pending.delete(sourceHash)
+                if (viewRef) {
+                  const tr = viewRef.state.tr.setMeta(MERMAID_PLUGIN_KEY, { refresh: true })
+                  viewRef.dispatch(tr)
+                }
+              })
+            pending.set(sourceHash, task)
+          }
+
+          return container
+        }, {
+          key: `md-mermaid-${widgetPos}-${sourceHash}`,
+          side: 1,
+        }))
+      })
+      return DecorationSet.create(doc, widgets)
+    }
+
+    return [
+      new Plugin({
+        key: MERMAID_PLUGIN_KEY,
+        state: {
+          init: (_, state) => buildDecorations(state.doc),
+          apply: (tr, oldDecos, _oldState, newState) => {
+            const meta = tr.getMeta(MERMAID_PLUGIN_KEY)
+            if (tr.docChanged || (meta && meta.refresh)) {
+              return buildDecorations(newState.doc)
+            }
+            return oldDecos.map(tr.mapping, tr.doc)
+          },
+        },
+        props: {
+          decorations(state) {
+            return this.getState(state)
+          },
+        },
+        view(view) {
+          viewRef = view
+          return {
+            destroy() {
+              viewRef = null
+            },
+          }
+        },
+      }),
+    ]
+  },
+})
 
 function collectHeadingItems(doc, limit = 10) {
   const items = []
@@ -535,8 +648,6 @@ export default function MDPageViewer({ post, channelId, onClose }) {
   const [commentDragOver, setCommentDragOver] = useState(false)
   const [commentSubmitting, setCommentSubmitting] = useState(false)
   const [pendingDeleteCommentId, setPendingDeleteCommentId] = useState(null)
-  const mermaidInitializedRef = useRef(false)
-  const mermaidRenderSeqRef = useRef(0)
   const [previewConfig, setPreviewConfig] = useState(DEFAULT_PREVIEW_CONFIG)
   const splitAreaRef = useRef(null)
   const resizeStartRef = useRef({ x: 0, width: 420 })
@@ -759,6 +870,7 @@ export default function MDPageViewer({ post, channelId, onClose }) {
       TableCell,
       TableOfContents,
       TocNode,
+      MermaidPreviewExtension,
       ResizableImage.configure({
         minWidth: 120,
         maxWidth: 1200,
@@ -886,99 +998,6 @@ export default function MDPageViewer({ post, channelId, onClose }) {
       editor.off('selectionUpdate', rafApply)
     }
   }, [editor])
-
-  useEffect(() => {
-    if (!editor || mode !== 'preview') return undefined
-    if (!mermaidInitializedRef.current) {
-      mermaid.initialize({
-        startOnLoad: false,
-        securityLevel: 'strict',
-      })
-      mermaidInitializedRef.current = true
-    }
-
-    let cancelled = false
-
-    const renderMermaidBlocks = async () => {
-      const root = editor.view?.dom
-      if (!(root instanceof HTMLElement)) return
-      // ProseMirror 편집 영역 내부 DOM을 직접 주입하면 mutation 루프가 생길 수 있다.
-      // 편집 가능 상태에서는 Mermaid 결과 주입을 건너뛰고, 읽기 전용일 때만 렌더한다.
-      if (editor.isEditable) {
-        root.querySelectorAll(`.${MERMAID_RENDER_CLASS}`).forEach((el) => el.remove())
-        return
-      }
-
-      const codeBlocks = Array.from(root.querySelectorAll('pre code.language-mermaid, pre code.lang-mermaid'))
-      const usedContainers = new Set()
-
-      for (const codeBlock of codeBlocks) {
-        const pre = codeBlock.closest('pre')
-        if (!(pre instanceof HTMLElement)) continue
-
-        const source = String(codeBlock.textContent || '').trim()
-        if (!source) continue
-
-        let container = pre.nextElementSibling
-        if (!(container instanceof HTMLElement) || !container.classList.contains(MERMAID_RENDER_CLASS)) {
-          container = document.createElement('div')
-          container.className = MERMAID_RENDER_CLASS
-          container.setAttribute('contenteditable', 'false')
-          pre.insertAdjacentElement('afterend', container)
-        }
-        usedContainers.add(container)
-
-        const sourceHash = hashText(source)
-        if (container.dataset.sourceHash === sourceHash) continue
-        // 이미 렌더링 중인 블록은 동시 render 방지
-        if (container.dataset.rendering === '1') continue
-
-        container.dataset.rendering = '1'
-        container.innerHTML = '<div class="md-mermaid-rendering">Mermaid 렌더링 중...</div>'
-
-        const renderId = `md-mermaid-${Date.now()}-${mermaidRenderSeqRef.current}`
-        mermaidRenderSeqRef.current += 1
-
-        try {
-          const { svg } = await mermaid.render(renderId, source)
-          if (cancelled) return
-          container.innerHTML = svg
-          // render 성공 후에만 hash 설정 (취소 시 재시도 가능하도록)
-          container.dataset.sourceHash = sourceHash
-        } catch (err) {
-          if (cancelled) return
-          const message = err instanceof Error ? err.message : String(err)
-          container.innerHTML = `<pre class="md-mermaid-error">${escapeHtml(message)}</pre>`
-          // 에러도 hash 설정해서 동일 소스 재시도 루프 방지
-          container.dataset.sourceHash = sourceHash
-        } finally {
-          delete container.dataset.rendering
-        }
-      }
-
-      Array.from(root.querySelectorAll(`.${MERMAID_RENDER_CLASS}`)).forEach((container) => {
-        if (!(container instanceof HTMLElement)) return
-        if (usedContainers.has(container)) return
-        container.remove()
-      })
-    }
-
-    const renderOnFrame = () => window.requestAnimationFrame(() => { void renderMermaidBlocks() })
-    renderOnFrame()
-    editor.on('update', renderOnFrame)
-    return () => {
-      cancelled = true
-      // 취소 시 rendering 플래그 초기화 → 다음 effect 실행에서 재시도 가능
-      const rootEl = editor.view?.dom
-      if (rootEl instanceof HTMLElement) {
-        rootEl.querySelectorAll(`.${MERMAID_RENDER_CLASS}[data-rendering="1"]`).forEach((el) => {
-          delete el.dataset.rendering
-          delete el.dataset.sourceHash
-        })
-      }
-      editor.off('update', renderOnFrame)
-    }
-  }, [editor, mode])
 
   useEffect(() => {
     if (!editor) return
