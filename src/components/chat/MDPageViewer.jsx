@@ -101,7 +101,7 @@ function sanitizeFilenamePart(text = '') {
     .slice(0, 40) || 'diagram'
 }
 
-async function downloadSvgAsPng(svgMarkup, filenameBase = 'mermaid-diagram') {
+async function downloadSvgAsPng(svgMarkup, filenameBase = 'mermaid-diagram', minWidth = 2000) {
   const svgBlob = new Blob([svgMarkup], { type: 'image/svg+xml;charset=utf-8' })
   const svgUrl = URL.createObjectURL(svgBlob)
   try {
@@ -112,8 +112,13 @@ async function downloadSvgAsPng(svgMarkup, filenameBase = 'mermaid-diagram') {
       img.src = svgUrl
     })
 
-    const width = Math.max(1, Math.ceil(img.width || 1200))
-    const height = Math.max(1, Math.ceil(img.height || 800))
+    const intrinsicWidth = Math.max(1, Math.ceil(img.width || 1200))
+    const intrinsicHeight = Math.max(1, Math.ceil(img.height || 800))
+    const targetWidth = Math.max(Number(minWidth) || 2000, intrinsicWidth)
+    const targetHeight = Math.max(1, Math.round((intrinsicHeight * targetWidth) / intrinsicWidth))
+
+    const width = targetWidth
+    const height = targetHeight
     const canvas = document.createElement('canvas')
     canvas.width = width
     canvas.height = height
@@ -185,11 +190,39 @@ const MermaidPreviewExtension = Extension.create({
             const pngBtn = document.createElement('button')
             pngBtn.type = 'button'
             pngBtn.className = 'md-mermaid-action-btn'
-            pngBtn.textContent = 'PNG 저장'
+            pngBtn.textContent = 'PNG 2000px'
             pngBtn.onclick = async () => {
               try {
                 const name = sanitizeFilenamePart(source.split('\n')[0] || 'mermaid-diagram')
-                await downloadSvgAsPng(cached.svg, name)
+                await downloadSvgAsPng(cached.svg, name, 2000)
+              } catch (e) {
+                const msg = e instanceof Error ? e.message : String(e)
+                window.alert(`PNG 저장 실패: ${msg}`)
+              }
+            }
+
+            const png4kBtn = document.createElement('button')
+            png4kBtn.type = 'button'
+            png4kBtn.className = 'md-mermaid-action-btn'
+            png4kBtn.textContent = 'PNG 4000px'
+            png4kBtn.onclick = async () => {
+              try {
+                const name = sanitizeFilenamePart(source.split('\n')[0] || 'mermaid-diagram')
+                await downloadSvgAsPng(cached.svg, name, 4000)
+              } catch (e) {
+                const msg = e instanceof Error ? e.message : String(e)
+                window.alert(`PNG 저장 실패: ${msg}`)
+              }
+            }
+
+            const png6kBtn = document.createElement('button')
+            png6kBtn.type = 'button'
+            png6kBtn.className = 'md-mermaid-action-btn'
+            png6kBtn.textContent = 'PNG 6000px'
+            png6kBtn.onclick = async () => {
+              try {
+                const name = sanitizeFilenamePart(source.split('\n')[0] || 'mermaid-diagram')
+                await downloadSvgAsPng(cached.svg, name, 6000)
               } catch (e) {
                 const msg = e instanceof Error ? e.message : String(e)
                 window.alert(`PNG 저장 실패: ${msg}`)
@@ -198,6 +231,8 @@ const MermaidPreviewExtension = Extension.create({
 
             header.appendChild(svgBtn)
             header.appendChild(pngBtn)
+            header.appendChild(png4kBtn)
+            header.appendChild(png6kBtn)
             container.appendChild(header)
 
             const svgWrap = document.createElement('div')
