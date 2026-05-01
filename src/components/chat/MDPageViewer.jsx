@@ -821,9 +821,9 @@ export default function MDPageViewer({ post, channelId, onClose }) {
   useEffect(() => { savedContentRef.current = savedContent }, [savedContent])
   useEffect(() => { savedImageMetaRef.current = savedImageMeta }, [savedImageMeta])
   useEffect(() => { modeRef.current = mode }, [mode])
-  useEffect(() => { canEditRef.current = canEdit }, [canEdit])
 
   const canEdit = String(post.author?.id ?? '') === String(currentUser?.id ?? '')
+  useEffect(() => { canEditRef.current = canEdit }, [canEdit])
   const freshPost = posts[channelId]?.find((p) => p.id === post.id) || post
   const comments = Array.isArray(freshPost.comments) ? freshPost.comments : []
 
