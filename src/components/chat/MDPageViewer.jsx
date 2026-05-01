@@ -78,6 +78,65 @@ function ensureMermaidInitialized() {
   mermaidInitialized = true
 }
 
+function downloadTextFile(filename, content, mimeType = 'text/plain;charset=utf-8') {
+  const blob = new Blob([content], { type: mimeType })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+  URL.revokeObjectURL(url)
+}
+
+function sanitizeFilenamePart(text = '') {
+  return String(text || '')
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9_-]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 40) || 'diagram'
+}
+
+async function downloadSvgAsPng(svgMarkup, filenameBase = 'mermaid-diagram') {
+  const svgBlob = new Blob([svgMarkup], { type: 'image/svg+xml;charset=utf-8' })
+  const svgUrl = URL.createObjectURL(svgBlob)
+  try {
+    const img = new Image()
+    await new Promise((resolve, reject) => {
+      img.onload = resolve
+      img.onerror = reject
+      img.src = svgUrl
+    })
+
+    const width = Math.max(1, Math.ceil(img.width || 1200))
+    const height = Math.max(1, Math.ceil(img.height || 800))
+    const canvas = document.createElement('canvas')
+    canvas.width = width
+    canvas.height = height
+    const ctx = canvas.getContext('2d')
+    if (!ctx) throw new Error('canvas context를 생성할 수 없습니다.')
+
+    ctx.fillStyle = '#ffffff'
+    ctx.fillRect(0, 0, width, height)
+    ctx.drawImage(img, 0, 0, width, height)
+
+    const pngBlob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/png'))
+    if (!pngBlob) throw new Error('PNG 변환에 실패했습니다.')
+    const pngUrl = URL.createObjectURL(pngBlob)
+    const a = document.createElement('a')
+    a.href = pngUrl
+    a.download = `${filenameBase}.png`
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+    URL.revokeObjectURL(pngUrl)
+  } finally {
+    URL.revokeObjectURL(svgUrl)
+  }
+}
+
 const MermaidPreviewExtension = Extension.create({
   name: 'mdMermaidPreview',
 
@@ -109,7 +168,40 @@ const MermaidPreviewExtension = Extension.create({
 
           const cached = cache.get(sourceHash)
           if (cached?.status === 'ok') {
-            container.innerHTML = cached.svg
+            const header = document.createElement('div')
+            header.className = 'md-mermaid-actions'
+
+            const svgBtn = document.createElement('button')
+            svgBtn.type = 'button'
+            svgBtn.className = 'md-mermaid-action-btn'
+            svgBtn.textContent = 'SVG 저장'
+            svgBtn.onclick = () => {
+              const name = sanitizeFilenamePart(source.split('\n')[0] || 'mermaid-diagram')
+              downloadTextFile(`${name}.svg`, cached.svg, 'image/svg+xml;charset=utf-8')
+            }
+
+            const pngBtn = document.createElement('button')
+            pngBtn.type = 'button'
+            pngBtn.className = 'md-mermaid-action-btn'
+            pngBtn.textContent = 'PNG 저장'
+            pngBtn.onclick = async () => {
+              try {
+                const name = sanitizeFilenamePart(source.split('\n')[0] || 'mermaid-diagram')
+                await downloadSvgAsPng(cached.svg, name)
+              } catch (e) {
+                const msg = e instanceof Error ? e.message : String(e)
+                window.alert(`PNG 저장 실패: ${msg}`)
+              }
+            }
+
+            header.appendChild(svgBtn)
+            header.appendChild(pngBtn)
+            container.appendChild(header)
+
+            const svgWrap = document.createElement('div')
+            svgWrap.className = 'md-mermaid-svg-wrap'
+            svgWrap.innerHTML = cached.svg
+            container.appendChild(svgWrap)
             return container
           }
           if (cached?.status === 'error') {
