@@ -3758,8 +3758,18 @@ const ColorPicker = ({ editor }) => {
 
 # 28.12 TipTap에 Mermaid 붙이기 
 
-TipTap 페이지에 Mermaid를 붙여줘
-설치가 필요한 것은 설치 스크립트에 추가해줘
+EasyDoc 페이지는 TipTap을 이용한 MD 페이지다.
+이 페이지에 Mermaid 문법을 지원하는 기능을 추가해줘
+설치가 필요한 경우 설치 스크립트를 추가해줘
+
+mermaid 코드를 넣어서 렌더링이 되었는데
+렌더링이 되었지만, 
+mermaid 코드도 보인다. 
+
+렌더링이 되면, mermaid코드는 안보여야 한다.
+소스코드 보기에서는  mermaid코드를 보이고, 
+MD 보기에서는 렌더링이 보이도록 한다.
+
 
 
 
