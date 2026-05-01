@@ -812,11 +812,16 @@ export default function MDPageViewer({ post, channelId, onClose }) {
   const splitAreaRef = useRef(null)
   const resizeStartRef = useRef({ x: 0, width: 420 })
   const commentFileInputRef = useRef(null)
+  const modeRef = useRef(mode)
+  const canEditRef = useRef(false)
+  const hadCodeFenceRef = useRef(/```/.test(stripAllMdMeta(initialMdStored)))
 
   useEffect(() => { showSaveDialogRef.current = showSaveDialog }, [showSaveDialog])
   useEffect(() => { imageMetaRef.current = imageMeta }, [imageMeta])
   useEffect(() => { savedContentRef.current = savedContent }, [savedContent])
   useEffect(() => { savedImageMetaRef.current = savedImageMeta }, [savedImageMeta])
+  useEffect(() => { modeRef.current = mode }, [mode])
+  useEffect(() => { canEditRef.current = canEdit }, [canEdit])
 
   const canEdit = String(post.author?.id ?? '') === String(currentUser?.id ?? '')
   const freshPost = posts[channelId]?.find((p) => p.id === post.id) || post
@@ -1092,6 +1097,19 @@ export default function MDPageViewer({ post, channelId, onClose }) {
     },
     onUpdate({ editor }) {
       const md = stripAllMdMeta(editor.storage.markdown.getMarkdown())
+      const hasCodeFence = /```/.test(md)
+      const hasCodeBlockNode = (() => {
+        let found = false
+        editor.state.doc.descendants((node) => {
+          if (node.type.name === 'codeBlock') {
+            found = true
+            return false
+          }
+          return true
+        })
+        return found
+      })()
+      const hasAnyCode = hasCodeFence || hasCodeBlockNode
       const nextImageMeta = collectImageMetaFromDoc(editor.state.doc, imageMetaRef.current)
       const currentDocSignature = getEditorDocSignature(editor)
       const hasDocDiff = Boolean(savedDocSignatureRef.current)
@@ -1102,6 +1120,22 @@ export default function MDPageViewer({ post, channelId, onClose }) {
         || !sameImageMeta(nextImageMeta, savedImageMetaRef.current)
         || hasDocDiff
       )
+
+      // MD 보기에서 코드를 입력한 순간 code(source) 보기로 자동 전환
+      if (
+        modeRef.current === 'preview'
+        && canEditRef.current
+        && !hadCodeFenceRef.current
+        && hasAnyCode
+      ) {
+        sourceBaselineRef.current = normalizeMarkdownForTableParsing(
+          stripAuthTokenFromMarkdown(md),
+        )
+        setSourceText(sourceBaselineRef.current)
+        setMode('source')
+      }
+
+      hadCodeFenceRef.current = hasAnyCode
     },
   })
 
