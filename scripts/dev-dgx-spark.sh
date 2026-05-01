@@ -16,6 +16,7 @@ install_frontend_dependencies() {
     "react-to-print"
     "react-colorful"
     "mermaid"
+    "echarts"
     "@tiptap/extension-color"
     "@tiptap/extension-text-style"
     "@tiptap/extension-table"

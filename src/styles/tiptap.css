@@ -142,6 +142,59 @@
   overflow-x: auto;
 }
 
+.tiptap-editor .ProseMirror .md-echarts-source-hidden {
+  display: none !important;
+}
+
+.tiptap-editor .ProseMirror .md-echarts-render {
+  margin: 0.75rem 0 1rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.75rem;
+  background: #ffffff;
+  padding: 0.875rem;
+}
+
+.tiptap-editor .ProseMirror .md-echarts-actions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+  margin-bottom: 0.5rem;
+}
+
+.tiptap-editor .ProseMirror .md-echarts-action-btn {
+  border: 1px solid #d1d5db;
+  background: #ffffff;
+  color: #374151;
+  border-radius: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.25rem 0.5rem;
+  cursor: pointer;
+}
+
+.tiptap-editor .ProseMirror .md-echarts-action-btn:hover {
+  background: #f9fafb;
+}
+
+.tiptap-editor .ProseMirror .md-echarts-wrap {
+  width: 100%;
+  min-height: 380px;
+}
+
+.tiptap-editor .ProseMirror .md-echarts-rendering {
+  color: #4b5563;
+  font-size: 0.875rem;
+}
+
+.tiptap-editor .ProseMirror .md-echarts-error {
+  margin: 0;
+  color: #b91c1c;
+  background: #fef2f2;
+  border-radius: 0.5rem;
+  padding: 0.625rem 0.75rem;
+  white-space: pre-wrap;
+}
+
 .tiptap-editor .ProseMirror .md-mermaid-rendering {
   color: #4b5563;
   font-size: 0.875rem;
