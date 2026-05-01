@@ -515,9 +515,19 @@ function PostDetailPane({ post, channelId, onClose, pendingOpenCommentId = null,
                   : freshPost.content,
                 `post:${post.id}`
               )}
-              className="flex items-center gap-1 text-gray-500 hover:text-gray-800 text-xs transition-colors"
+              title={copiedKey === `post:${post.id}` ? (t.ai.copied || 'Copied!') : (t.ai.copy || 'Copy')}
+              aria-label={copiedKey === `post:${post.id}` ? (t.ai.copied || 'Copied!') : (t.ai.copy || 'Copy')}
+              className="text-gray-500 hover:text-gray-800 transition-colors"
             >
-              {copiedKey === `post:${post.id}` ? (t.ai.copied || 'Copied!') : (t.ai.copy || 'Copy')}
+              {copiedKey === `post:${post.id}` ? (
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              ) : (
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V5a2 2 0 012-2h6a2 2 0 012 2v6m-2 10H8a2 2 0 01-2-2V9a2 2 0 012-2h8a2 2 0 012 2v8a2 2 0 01-2 2z" />
+                </svg>
+              )}
             </button>
             <button onClick={handleSendPostToAgenticAI} className="flex items-center gap-1 text-sky-600 hover:text-sky-700 text-xs transition-colors">
               <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -849,9 +859,19 @@ function PostDetailPane({ post, channelId, onClose, pendingOpenCommentId = null,
                         <div className="ml-auto flex items-center gap-2 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-opacity">
                           <button
                             onClick={() => copyTextContent(c.text, `comment:${c.id}`)}
-                            className="text-gray-500 hover:text-gray-800 text-[10px] font-medium uppercase tracking-tight"
+                            title={copiedKey === `comment:${c.id}` ? (t.ai.copied || 'Copied!') : (t.ai.copy || 'Copy')}
+                            aria-label={copiedKey === `comment:${c.id}` ? (t.ai.copied || 'Copied!') : (t.ai.copy || 'Copy')}
+                            className="text-gray-500 hover:text-gray-800 transition-colors"
                           >
-                            {copiedKey === `comment:${c.id}` ? (t.ai.copied || 'Copied!') : (t.ai.copy || 'Copy')}
+                            {copiedKey === `comment:${c.id}` ? (
+                              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                              </svg>
+                            ) : (
+                              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V5a2 2 0 012-2h6a2 2 0 012 2v6m-2 10H8a2 2 0 01-2-2V9a2 2 0 012-2h8a2 2 0 012 2v8a2 2 0 01-2 2z" />
+                              </svg>
+                            )}
                           </button>
                           <button onClick={() => handleSendCommentToAgenticAI(c)} className="text-sky-600 hover:text-sky-700 text-[10px] font-medium uppercase tracking-tight">{t.chat.sendToAgenticAI || 'AgenticAI'}</button>
                           {String(c.author?.id ?? '') === String(currentUser?.id ?? '') && (
