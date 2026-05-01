@@ -1,1 +1,1 @@
-/opt/homebrew/Cellar/postgresql@16/16.13/bin/postgres "-D" "/opt/homebrew/var/postgresql@16"
+/opt/homebrew/Cellar/postgresql@16/16.13/bin/postgres "-D" "Database/PoseSQLDB"
