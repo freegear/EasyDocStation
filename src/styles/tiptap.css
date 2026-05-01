@@ -102,6 +102,11 @@
   font-family: ui-monospace, monospace;
 }
 
+/* In MD preview, hide Mermaid source code block and keep only rendered diagram. */
+.tiptap-editor .ProseMirror .md-mermaid-source-hidden {
+  display: none !important;
+}
+
 .tiptap-editor .ProseMirror .md-mermaid-render {
   margin: 0.75rem 0 1rem;
   border: 1px solid #e5e7eb;

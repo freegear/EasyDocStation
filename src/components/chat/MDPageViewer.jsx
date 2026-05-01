@@ -88,7 +88,7 @@ const MermaidPreviewExtension = Extension.create({
     let seq = 0
 
     const buildDecorations = (doc) => {
-      const widgets = []
+      const decorations = []
       doc.descendants((node, pos) => {
         if (node.type.name !== 'codeBlock') return
         const language = String(node.attrs?.language || '').trim().toLowerCase()
@@ -98,8 +98,11 @@ const MermaidPreviewExtension = Extension.create({
         if (!source) return
         const sourceHash = hashText(source)
         const widgetPos = pos + node.nodeSize
+        decorations.push(Decoration.node(pos, pos + node.nodeSize, {
+          class: 'md-mermaid-source-hidden',
+        }))
 
-        widgets.push(Decoration.widget(widgetPos, () => {
+        decorations.push(Decoration.widget(widgetPos, () => {
           const container = document.createElement('div')
           container.className = MERMAID_RENDER_CLASS
           container.setAttribute('contenteditable', 'false')
@@ -144,7 +147,7 @@ const MermaidPreviewExtension = Extension.create({
           side: 1,
         }))
       })
-      return DecorationSet.create(doc, widgets)
+      return DecorationSet.create(doc, decorations)
     }
 
     return [
