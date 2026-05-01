@@ -2596,8 +2596,11 @@ export default function ChatArea({ autoOpenPostId }) {
     const target = channelPosts.find(p => String(p.id) === String(pendingOpenPostId))
     if (target) {
       setSelectedPost(target)
+      if (!pendingOpenCommentId) {
+        clearPendingPost()
+      }
     }
-  }, [pendingOpenPostId, selectedChannel?.id, posts])
+  }, [pendingOpenPostId, pendingOpenCommentId, selectedChannel?.id, posts, clearPendingPost])
 
   const startResizing = useCallback(() => {
     setResizing(true)

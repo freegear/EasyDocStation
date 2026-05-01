@@ -71,7 +71,6 @@ function MainLayout() {
   }
 
   useEffect(() => {
-    if (deepLinkHandledRef.current) return
     if (!Array.isArray(teams) || teams.length === 0) return
 
     const params = new URLSearchParams(window.location.search)
@@ -80,15 +79,18 @@ function MainLayout() {
     const commentId = params.get('commentId')
     const attachmentId = params.get('attachmentId')
 
-    deepLinkHandledRef.current = true
     if (!channelId || !postId) return
+    const signature = `${channelId}|${postId}|${commentId || ''}|${attachmentId || ''}`
+    if (deepLinkHandledRef.current === signature) return
 
     setShowCalendar(false)
     setShowDM(false)
     setActiveDMConv(null)
 
     navigateToPost(channelId, postId, { commentId, attachmentId })
-      .finally(() => {
+      .then((opened) => {
+        if (!opened) return
+        deepLinkHandledRef.current = signature
         const url = new URL(window.location.href)
         url.searchParams.delete('channelId')
         url.searchParams.delete('postId')

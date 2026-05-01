@@ -180,6 +180,7 @@ npm install --prefix server
 sudo npx playwright install-deps
 npx playwright install
 ensure_frontend_dependency "@tiptap/extension-table"
+ensure_frontend_dependency "mermaid"
 
 echo "[7/8] Python venv 및 RAG 의존성 설치"
 if [[ -e "$ROOT_DIR/.venv" && ! -w "$ROOT_DIR/.venv" ]]; then
