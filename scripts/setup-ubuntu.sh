@@ -4,21 +4,6 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
 
-ensure_frontend_dependency() {
-  local pkg="$1"
-  if npm ls "$pkg" --depth=0 >/dev/null 2>&1; then
-    echo "[INFO] 프론트 의존성 이미 설치됨: $pkg"
-    return 0
-  fi
-
-  echo "[INFO] 프론트 의존성 설치: $pkg"
-  if npm install "$pkg"; then
-    return 0
-  fi
-
-  echo "[WARN] 일반 설치 실패, --legacy-peer-deps 재시도: $pkg"
-  npm install "$pkg" --legacy-peer-deps
-}
 
 if ! grep -qi ubuntu /etc/os-release 2>/dev/null; then
   echo "[WARN] Ubuntu가 아닌 환경으로 보입니다. 계속 진행합니다."
@@ -179,8 +164,6 @@ npm install
 npm install --prefix server
 sudo npx playwright install-deps
 npx playwright install
-ensure_frontend_dependency "@tiptap/extension-table"
-ensure_frontend_dependency "mermaid"
 
 echo "[7/8] Python venv 및 RAG 의존성 설치"
 if [[ -e "$ROOT_DIR/.venv" && ! -w "$ROOT_DIR/.venv" ]]; then

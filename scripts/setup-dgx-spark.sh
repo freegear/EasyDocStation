@@ -9,37 +9,12 @@ TORCH_VERSION="${TORCH_VERSION:-}"
 TORCH_MIN_VERSION="${TORCH_MIN_VERSION:-2.6}"
 
 install_frontend_dependencies() {
-  echo "[DGX] 프론트 의존성 정합 시작"
-  local plugin_react_version="${PLUGIN_REACT_VERSION:-^4.7.0}"
-  echo "  1) @vitejs/plugin-react 호환 버전 설치 (${plugin_react_version})"
-  if ! npm install -D "@vitejs/plugin-react@${plugin_react_version}"; then
-    npm install -D "@vitejs/plugin-react@${plugin_react_version}" --legacy-peer-deps
-  fi
+  # 모든 프론트엔드 의존성은 package.json에 exact 버전으로 고정되어 있으므로
+  # npm install 한 번으로 충분하다. 개별 패키지 재설치는 버전 충돌을 유발한다.
+  echo "[DGX] 프론트 의존성 설치 (package.json 기준)"
+  npm install
 
-  local packages=(
-    "react-to-print"
-    "react-colorful"
-    "mermaid"
-    "@tiptap/extension-color"
-    "@tiptap/extension-text-style"
-    "@tiptap/extension-table"
-    "@tiptap/extension-table-row"
-    "@tiptap/extension-table-cell"
-    "@tiptap/extension-table-header"
-    "@tiptap/extension-table-of-contents"
-  )
-
-  for pkg in "${packages[@]}"; do
-    echo "  2) 설치 시도: $pkg"
-    if npm install "$pkg"; then
-      echo "  - $pkg 설치 성공"
-      continue
-    fi
-    echo "  3) 우회 설치(--legacy-peer-deps): $pkg"
-    npm install "$pkg" --legacy-peer-deps
-  done
-
-  echo "  4) Playwright 시스템 의존성/브라우저 설치"
+  echo "  Playwright 시스템 의존성/브라우저 설치"
   sudo npx playwright install-deps
   npx playwright install
 }
