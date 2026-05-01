@@ -902,6 +902,12 @@ export default function MDPageViewer({ post, channelId, onClose }) {
     const renderMermaidBlocks = async () => {
       const root = editor.view?.dom
       if (!(root instanceof HTMLElement)) return
+      // ProseMirror 편집 영역 내부 DOM을 직접 주입하면 mutation 루프가 생길 수 있다.
+      // 편집 가능 상태에서는 Mermaid 결과 주입을 건너뛰고, 읽기 전용일 때만 렌더한다.
+      if (editor.isEditable) {
+        root.querySelectorAll(`.${MERMAID_RENDER_CLASS}`).forEach((el) => el.remove())
+        return
+      }
 
       const codeBlocks = Array.from(root.querySelectorAll('pre code.language-mermaid, pre code.lang-mermaid'))
       const usedContainers = new Set()
@@ -917,6 +923,7 @@ export default function MDPageViewer({ post, channelId, onClose }) {
         if (!(container instanceof HTMLElement) || !container.classList.contains(MERMAID_RENDER_CLASS)) {
           container = document.createElement('div')
           container.className = MERMAID_RENDER_CLASS
+          container.setAttribute('contenteditable', 'false')
           pre.insertAdjacentElement('afterend', container)
         }
         usedContainers.add(container)
