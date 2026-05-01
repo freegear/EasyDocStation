@@ -453,10 +453,6 @@ const EchartsPreviewExtension = Extension.create({
   name: 'mdEchartsPreview',
 
   addProseMirrorPlugins() {
-    const cache = new Map()
-    let refreshTick = 0
-    let viewRef = null
-
     const buildDecorations = (doc) => {
       const decorations = []
       doc.descendants((node, pos) => {
@@ -471,7 +467,6 @@ const EchartsPreviewExtension = Extension.create({
           && isLikelyEchartsOption(source)
         if (!isEchartsLanguage && !isFallbackJsonOption) return
 
-        const sourceHash = hashText(source)
         const widgetPos = pos + node.nodeSize
         decorations.push(Decoration.node(pos, pos + node.nodeSize, {
           class: 'md-echarts-source-hidden',
@@ -555,12 +550,6 @@ const EchartsPreviewExtension = Extension.create({
           chartWrap.className = 'md-echarts-wrap'
           container.appendChild(chartWrap)
 
-          const cached = cache.get(sourceHash)
-          if (cached?.status === 'error') {
-            chartWrap.innerHTML = `<pre class="md-echarts-error">${escapeHtml(cached.message)}</pre>`
-            return container
-          }
-
           chartWrap.innerHTML = '<div class="md-echarts-rendering">ECharts 렌더링 중...</div>'
           window.requestAnimationFrame(() => {
             try {
@@ -574,23 +563,15 @@ const EchartsPreviewExtension = Extension.create({
               const chart = echarts.init(host, null, { renderer: 'canvas' })
               chart.setOption(option, true)
               chart.resize()
-              cache.set(sourceHash, { status: 'ok' })
             } catch (err) {
               const message = err instanceof Error ? err.message : String(err)
-              cache.set(sourceHash, { status: 'error', message })
               chartWrap.innerHTML = `<pre class="md-echarts-error">${escapeHtml(message)}</pre>`
-            } finally {
-              refreshTick += 1
-              if (viewRef) {
-                const tr = viewRef.state.tr.setMeta(ECHARTS_PLUGIN_KEY, { refresh: true })
-                viewRef.dispatch(tr)
-              }
             }
           })
 
           return container
         }, {
-          key: `md-echarts-${widgetPos}-${sourceHash}-${refreshTick}`,
+          key: `md-echarts-${widgetPos}-${hashText(source)}`,
           side: 1,
         }))
       })
@@ -612,14 +593,6 @@ const EchartsPreviewExtension = Extension.create({
           decorations(state) {
             return this.getState(state)
           },
-        },
-        view(view) {
-          viewRef = view
-          return {
-            destroy() {
-              viewRef = null
-            },
-          }
         },
       }),
     ]
