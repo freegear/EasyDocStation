@@ -1016,6 +1016,28 @@ function normalizeHexColor(raw, fallback = '#111827') {
   return fallback
 }
 
+function normalizeHexForColorInput(raw = '#000000') {
+  const hex = String(raw || '').trim()
+  if (/^#[0-9a-f]{6}$/i.test(hex)) return hex
+  if (/^#[0-9a-f]{3}$/i.test(hex)) {
+    return `#${hex.slice(1).split('').map(ch => `${ch}${ch}`).join('')}`
+  }
+  return '#000000'
+}
+
+function findHexTokenAt(text = '', cursorIndex = 0) {
+  const src = String(text || '')
+  const idx = Number.isFinite(cursorIndex) ? cursorIndex : 0
+  const re = /#[0-9a-fA-F]{3,8}\b/g
+  let m
+  while ((m = re.exec(src)) !== null) {
+    const start = m.index
+    const end = start + m[0].length
+    if (idx >= start && idx <= end) return { start, end, value: m[0] }
+  }
+  return null
+}
+
 function getEditorDocSignature(editor) {
   if (!editor) return ''
   try {
@@ -1073,6 +1095,8 @@ export default function MDPageViewer({ post, channelId, onClose }) {
   const splitAreaRef = useRef(null)
   const resizeStartRef = useRef({ x: 0, width: 420 })
   const commentFileInputRef = useRef(null)
+  const sourceColorInputRef = useRef(null)
+  const sourceColorRangeRef = useRef(null)
   const modeRef = useRef(mode)
   const canEditRef = useRef(false)
   const hadCodeFenceRef = useRef(/```/.test(stripAllMdMeta(initialMdStored)))
@@ -1580,6 +1604,32 @@ export default function MDPageViewer({ post, channelId, onClose }) {
     setMode('source')
   }
 
+  function handleSourceColorPickTrigger(e) {
+    if (!canEdit || mode !== 'source') return
+    const ta = e.currentTarget
+    if (!(ta instanceof HTMLTextAreaElement)) return
+    if (ta.selectionStart !== ta.selectionEnd) return
+    const token = findHexTokenAt(ta.value, ta.selectionStart)
+    if (!token) return
+    sourceColorRangeRef.current = { start: token.start, end: token.end }
+    if (sourceColorInputRef.current) {
+      sourceColorInputRef.current.value = normalizeHexForColorInput(token.value)
+      sourceColorInputRef.current.click()
+    }
+  }
+
+  function handleSourceColorChange(e) {
+    const chosen = normalizeHexForColorInput(e.target.value)
+    const range = sourceColorRangeRef.current
+    if (!range) return
+    setSourceText((prev) => {
+      const text = String(prev || '')
+      const next = text.slice(0, range.start) + chosen + text.slice(range.end)
+      setIsChanged(next !== savedContent || !sameImageMeta(imageMetaRef.current, savedImageMetaRef.current))
+      return next
+    })
+  }
+
   const getCurrentMarkdown = useCallback(() => {
     if (mode === 'source') {
       return normalizeMarkdownForTableParsing(stripAuthTokenFromMarkdown(stripAllMdMeta(sourceText)))
@@ -2059,18 +2109,29 @@ export default function MDPageViewer({ post, channelId, onClose }) {
         >
           {mode === 'source' ? (
             /* 소스 모드: 마크다운 텍스트 표시 */
-            <textarea
-              className="w-full h-full p-6 font-mono text-sm text-gray-800 bg-gray-50 resize-none focus:outline-none focus:bg-white transition-colors"
-              value={sourceText}
-              onChange={canEdit ? e => {
-                const nextSource = e.target.value
-                setSourceText(nextSource)
-                setIsChanged(nextSource !== savedContent || !sameImageMeta(imageMeta, savedImageMeta))
-              } : undefined}
-              readOnly={!canEdit}
-              spellCheck={false}
-              placeholder={t.mdPage.sourcePlaceholder}
-            />
+            <>
+              <textarea
+                className="w-full h-full p-6 font-mono text-sm text-gray-800 bg-gray-50 resize-none focus:outline-none focus:bg-white transition-colors"
+                value={sourceText}
+                onChange={canEdit ? e => {
+                  const nextSource = e.target.value
+                  setSourceText(nextSource)
+                  setIsChanged(nextSource !== savedContent || !sameImageMeta(imageMeta, savedImageMeta))
+                } : undefined}
+                onClick={handleSourceColorPickTrigger}
+                readOnly={!canEdit}
+                spellCheck={false}
+                placeholder={t.mdPage.sourcePlaceholder}
+              />
+              <input
+                ref={sourceColorInputRef}
+                type="color"
+                className="sr-only"
+                onChange={handleSourceColorChange}
+                tabIndex={-1}
+                aria-hidden="true"
+              />
+            </>
           ) : (
             /* 미리보기 모드: TipTap WYSIWYG 에디터 */
             <div className="max-w-4xl mx-auto px-8 py-8 relative">
