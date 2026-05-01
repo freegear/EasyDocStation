@@ -53,6 +53,7 @@ function PostDetailPane({ post, channelId, onClose, pendingOpenCommentId = null,
   const [commentErrorDialog, setCommentErrorDialog] = useState(null)
   const [dmNoticeDialog, setDmNoticeDialog] = useState(null)
   const [duplicateFileDialog, setDuplicateFileDialog] = useState(null)
+  const [copiedKey, setCopiedKey] = useState('')
 
   const [files, setFiles] = useState([])
   const [dragOver, setDragOver] = useState(false)
@@ -223,6 +224,42 @@ function PostDetailPane({ post, channelId, onClose, pendingOpenCommentId = null,
 
   function isTripTemplate(content = '') {
     return isTemplateContent(content) && /id=['"]trip-doc-no['"]/i.test(content)
+  }
+
+  function toPlainTextFromHtml(html = '') {
+    if (!html) return ''
+    if (typeof window === 'undefined' || !window.document) return String(html || '')
+    const el = window.document.createElement('div')
+    el.innerHTML = html
+    return (el.textContent || el.innerText || '').trim()
+  }
+
+  async function copyTextContent(text, key) {
+    const normalized = String(text || '').trim()
+    if (!normalized) return
+    try {
+      if (navigator?.clipboard?.writeText) {
+        await navigator.clipboard.writeText(normalized)
+      } else {
+        const ta = document.createElement('textarea')
+        ta.value = normalized
+        document.body.appendChild(ta)
+        ta.select()
+        document.execCommand('copy')
+        document.body.removeChild(ta)
+      }
+      setCopiedKey(key)
+      setTimeout(() => setCopiedKey(prev => (prev === key ? '' : prev)), 1500)
+    } catch {
+      const ta = document.createElement('textarea')
+      ta.value = normalized
+      document.body.appendChild(ta)
+      ta.select()
+      document.execCommand('copy')
+      document.body.removeChild(ta)
+      setCopiedKey(key)
+      setTimeout(() => setCopiedKey(prev => (prev === key ? '' : prev)), 1500)
+    }
   }
 
   async function handleComment(e) {
@@ -471,6 +508,17 @@ function PostDetailPane({ post, channelId, onClose, pendingOpenCommentId = null,
         )}
         {!isEditingPost && !selectedChannel?.is_archived && (
           <div className="flex items-center gap-2">
+            <button
+              onClick={() => copyTextContent(
+                isTemplateContent(freshPost.content)
+                  ? toPlainTextFromHtml(freshPost.content)
+                  : freshPost.content,
+                `post:${post.id}`
+              )}
+              className="flex items-center gap-1 text-gray-500 hover:text-gray-800 text-xs transition-colors"
+            >
+              {copiedKey === `post:${post.id}` ? (t.ai.copied || 'Copied!') : (t.ai.copy || 'Copy')}
+            </button>
             <button onClick={handleSendPostToAgenticAI} className="flex items-center gap-1 text-sky-600 hover:text-sky-700 text-xs transition-colors">
               <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
@@ -799,6 +847,12 @@ function PostDetailPane({ post, channelId, onClose, pendingOpenCommentId = null,
                       <span className="text-gray-400 text-xs">{formatDate(c.createdAt, t)}</span>
                       {editingCommentId !== c.id && !selectedChannel?.is_archived && (
                         <div className="ml-auto flex items-center gap-2 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-opacity">
+                          <button
+                            onClick={() => copyTextContent(c.text, `comment:${c.id}`)}
+                            className="text-gray-500 hover:text-gray-800 text-[10px] font-medium uppercase tracking-tight"
+                          >
+                            {copiedKey === `comment:${c.id}` ? (t.ai.copied || 'Copied!') : (t.ai.copy || 'Copy')}
+                          </button>
                           <button onClick={() => handleSendCommentToAgenticAI(c)} className="text-sky-600 hover:text-sky-700 text-[10px] font-medium uppercase tracking-tight">{t.chat.sendToAgenticAI || 'AgenticAI'}</button>
                           {String(c.author?.id ?? '') === String(currentUser?.id ?? '') && (
                             <button onClick={() => startCommentEdit(c)} className="text-gray-400 hover:text-gray-900 text-[10px] font-medium uppercase tracking-tight">{t.chat.edit}</button>
