@@ -3,7 +3,6 @@ const fs = require('fs')
 const path = require('path')
 const crypto = require('crypto')
 const { execFile } = require('child_process')
-const { v4: uuidv4 } = require('uuid')
 const db = require('../db')
 const requireAuth = require('../middleware/auth')
 const { getDatabasePath } = require('../databasePaths')
@@ -294,7 +293,7 @@ router.post('/conversations', async (req, res) => {
   }
 
   try {
-    const id = uuidv4()
+    const id = crypto.randomUUID()
     const { rows } = await db.query(
       `INSERT INTO dm_conversations (id, name, created_by, participants)
        VALUES ($1, $2, $3, $4) RETURNING *`,
@@ -517,7 +516,7 @@ router.post('/conversations/:id/messages', async (req, res) => {
 
   // 클라이언트 제공 msgId 검증 (UUID 형식이면 사용, 아니면 새로 생성)
   const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
-  const msgId = (clientMsgId && UUID_RE.test(clientMsgId)) ? clientMsgId : uuidv4()
+  const msgId = (clientMsgId && UUID_RE.test(clientMsgId)) ? clientMsgId : crypto.randomUUID()
 
   try {
     // 발신자는 보낸 즉시 읽음 처리
@@ -633,7 +632,7 @@ router.post('/conversations/:id/upload-url', async (req, res) => {
   if (!conv[0]) return res.status(404).json({ error: '대화를 찾을 수 없습니다.' })
 
   const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
-  const msgId = (clientMsgId && UUID_RE.test(clientMsgId)) ? clientMsgId : uuidv4()
+  const msgId = (clientMsgId && UUID_RE.test(clientMsgId)) ? clientMsgId : crypto.randomUUID()
 
   const storageBase = getStorageBase()
   // 경로: ObjectFiles/DirectMessage/{conv_id}/{msg_id}/{filename}
