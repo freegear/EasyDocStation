@@ -923,20 +923,29 @@ export default function MDPageViewer({ post, channelId, onClose }) {
 
         const sourceHash = hashText(source)
         if (container.dataset.sourceHash === sourceHash) continue
+        // 이미 렌더링 중인 블록은 동시 render 방지
+        if (container.dataset.rendering === '1') continue
 
-        container.dataset.sourceHash = sourceHash
+        container.dataset.rendering = '1'
         container.innerHTML = '<div class="md-mermaid-rendering">Mermaid 렌더링 중...</div>'
 
+        const renderId = `md-mermaid-${Date.now()}-${mermaidRenderSeqRef.current}`
+        mermaidRenderSeqRef.current += 1
+
         try {
-          const renderId = `md-mermaid-${Date.now()}-${mermaidRenderSeqRef.current}`
-          mermaidRenderSeqRef.current += 1
           const { svg } = await mermaid.render(renderId, source)
           if (cancelled) return
           container.innerHTML = svg
+          // render 성공 후에만 hash 설정 (취소 시 재시도 가능하도록)
+          container.dataset.sourceHash = sourceHash
         } catch (err) {
           if (cancelled) return
           const message = err instanceof Error ? err.message : String(err)
           container.innerHTML = `<pre class="md-mermaid-error">${escapeHtml(message)}</pre>`
+          // 에러도 hash 설정해서 동일 소스 재시도 루프 방지
+          container.dataset.sourceHash = sourceHash
+        } finally {
+          delete container.dataset.rendering
         }
       }
 
@@ -952,6 +961,14 @@ export default function MDPageViewer({ post, channelId, onClose }) {
     editor.on('update', renderOnFrame)
     return () => {
       cancelled = true
+      // 취소 시 rendering 플래그 초기화 → 다음 effect 실행에서 재시도 가능
+      const rootEl = editor.view?.dom
+      if (rootEl instanceof HTMLElement) {
+        rootEl.querySelectorAll(`.${MERMAID_RENDER_CLASS}[data-rendering="1"]`).forEach((el) => {
+          delete el.dataset.rendering
+          delete el.dataset.sourceHash
+        })
+      }
       editor.off('update', renderOnFrame)
     }
   }, [editor, mode])

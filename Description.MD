@@ -3758,6 +3758,10 @@ const ColorPicker = ({ editor }) => {
 
 # 28.12 TipTap에 Mermaid 붙이기 
 
+TipTap 페이지에 Mermaid를 붙여줘
+설치가 필요한 것은 설치 스크립트에 추가해줘
+
+
 
 ########
 
