@@ -10,4 +10,3 @@ node_modules/
 *.pptx
 *.mp4
 Database/ObjectFile/
-Database/CassandraDB/
