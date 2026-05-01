@@ -185,6 +185,31 @@ function parseEchartsOption(source = '') {
   }
 }
 
+function getCodeBlockLanguage(node) {
+  const attrs = node?.attrs || {}
+  const raw = String(
+    attrs.language
+    ?? attrs.lang
+    ?? attrs.params
+    ?? attrs.syntax
+    ?? '',
+  ).trim().toLowerCase()
+  if (!raw) return ''
+  const first = raw.split(/\s+/)[0] || ''
+  return first.replace(/^language-/, '')
+}
+
+function isLikelyEchartsOption(source = '') {
+  try {
+    const option = parseEchartsOption(source)
+    if (!option || typeof option !== 'object' || Array.isArray(option)) return false
+    const keys = ['series', 'xAxis', 'yAxis', 'dataset', 'title', 'legend', 'tooltip', 'grid', 'radar', 'geo']
+    return keys.some((k) => Object.prototype.hasOwnProperty.call(option, k))
+  } catch {
+    return false
+  }
+}
+
 function buildEchartsExportBaseName(source = '') {
   const option = parseEchartsOption(source)
   const title = typeof option?.title?.text === 'string' ? option.title.text : 'echarts-diagram'
@@ -436,11 +461,16 @@ const EchartsPreviewExtension = Extension.create({
       const decorations = []
       doc.descendants((node, pos) => {
         if (node.type.name !== 'codeBlock') return
-        const language = String(node.attrs?.language || '').trim().toLowerCase()
-        if (language !== 'echarts') return
+        const language = getCodeBlockLanguage(node)
 
         const source = String(node.textContent || '').trim()
         if (!source) return
+        const isEchartsLanguage = ['echarts', 'echart'].includes(language)
+        const isFallbackJsonOption =
+          (!language || ['json', 'javascript', 'js'].includes(language))
+          && isLikelyEchartsOption(source)
+        if (!isEchartsLanguage && !isFallbackJsonOption) return
+
         const sourceHash = hashText(source)
         const widgetPos = pos + node.nodeSize
         decorations.push(Decoration.node(pos, pos + node.nodeSize, {
