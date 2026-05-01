@@ -1,6 +1,6 @@
 const express = require('express')
 const router = express.Router()
-const { v4: uuidv4 } = require('uuid')
+const { randomUUID } = require('crypto')
 const fs = require('fs')
 const path = require('path')
 const { client, isConnected } = require('../cassandra')
@@ -523,7 +523,7 @@ router.post('/', requireAuth, async (req, res, next) => {
     const defaultLevel = Math.min(1, userLevel)
     const safePostLevel = Math.min(Math.max(parseInt(security_level ?? defaultLevel) || 0, 0), userLevel)
 
-    const postId = uuidv4()
+    const postId = randomUUID()
     const authoredAt = new Date()
     const ids = (attachmentIds || [])
     const attCols = Array(10).fill(null)
@@ -745,7 +745,7 @@ router.post('/:id/comments', requireAuth, async (req, res, next) => {
     const defaultLevel = Math.min(1, userLevel)
     const safeCommentLevel = Math.min(Math.max(parseInt(security_level ?? defaultLevel) || 0, 0), userLevel)
 
-    const commentId = `c-${uuidv4()}`
+    const commentId = `c-${randomUUID()}`
     const createdAt = new Date()
 
     // ── Cassandra write ───────────────────────────────────────

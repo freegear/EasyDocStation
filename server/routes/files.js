@@ -4,7 +4,6 @@ const jwt = require('jsonwebtoken')
 const path = require('path')
 const fs = require('fs')
 const crypto = require('crypto')
-const { v4: uuidv4 } = require('uuid')
 const { exec, execFile } = require('child_process')
 const { client, isConnected } = require('../cassandra')
 const db = require('../db')
@@ -405,7 +404,7 @@ async function convertOfficeToPdf(fileUuid, fullPath) {
 router.post('/get-upload-url', requireAuth, async (req, res, next) => {
   try {
     const { filename, contentType, channelId } = req.body
-    const file_uuid = uuidv4()
+    const file_uuid = crypto.randomUUID()
 
     // DS.002: ChannelID로 만든 폴더 밑에 File마다 폴더를 둔다.
     const key = path.join(channelId || 'unknown', file_uuid, filename)
