@@ -144,6 +144,29 @@ async function downloadSvgAsPng(svgMarkup, filenameBase = 'mermaid-diagram', min
   }
 }
 
+function buildExportSafeMermaidSource(source = '') {
+  const initDirective = '%%{init: {"securityLevel":"strict","flowchart":{"htmlLabels":false}}}%%'
+  const raw = String(source || '').trim()
+  if (!raw) return initDirective
+  if (raw.startsWith('%%{init:') || raw.startsWith('%%{initialize:')) return raw
+  return `${initDirective}\n${raw}`
+}
+
+function sanitizeSvgForCanvas(svgMarkup = '') {
+  // External url() / @import가 남아 있으면 canvas taint 가능성이 높아져 제거한다.
+  return String(svgMarkup || '')
+    .replace(/@import\s+url\([^)]+\)\s*;?/gi, '')
+    .replace(/url\(\s*['"]?https?:\/\/[^)'" ]+['"]?\s*\)/gi, 'none')
+}
+
+async function renderMermaidSvgForExport(source = '') {
+  ensureMermaidInitialized()
+  const exportSource = buildExportSafeMermaidSource(source)
+  const renderId = `md-mermaid-export-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+  const { svg } = await mermaid.render(renderId, exportSource)
+  return sanitizeSvgForCanvas(svg)
+}
+
 const MermaidPreviewExtension = Extension.create({
   name: 'mdMermaidPreview',
 
@@ -152,6 +175,7 @@ const MermaidPreviewExtension = Extension.create({
     const pending = new Map()
     let viewRef = null
     let seq = 0
+    let refreshTick = 0
 
     const buildDecorations = (doc) => {
       const decorations = []
@@ -194,7 +218,8 @@ const MermaidPreviewExtension = Extension.create({
             pngBtn.onclick = async () => {
               try {
                 const name = sanitizeFilenamePart(source.split('\n')[0] || 'mermaid-diagram')
-                await downloadSvgAsPng(cached.svg, name, 2000)
+                const exportSvg = await renderMermaidSvgForExport(source)
+                await downloadSvgAsPng(exportSvg, name, 2000)
               } catch (e) {
                 const msg = e instanceof Error ? e.message : String(e)
                 window.alert(`PNG 저장 실패: ${msg}`)
@@ -208,7 +233,8 @@ const MermaidPreviewExtension = Extension.create({
             png4kBtn.onclick = async () => {
               try {
                 const name = sanitizeFilenamePart(source.split('\n')[0] || 'mermaid-diagram')
-                await downloadSvgAsPng(cached.svg, name, 4000)
+                const exportSvg = await renderMermaidSvgForExport(source)
+                await downloadSvgAsPng(exportSvg, name, 4000)
               } catch (e) {
                 const msg = e instanceof Error ? e.message : String(e)
                 window.alert(`PNG 저장 실패: ${msg}`)
@@ -222,7 +248,8 @@ const MermaidPreviewExtension = Extension.create({
             png6kBtn.onclick = async () => {
               try {
                 const name = sanitizeFilenamePart(source.split('\n')[0] || 'mermaid-diagram')
-                await downloadSvgAsPng(cached.svg, name, 6000)
+                const exportSvg = await renderMermaidSvgForExport(source)
+                await downloadSvgAsPng(exportSvg, name, 6000)
               } catch (e) {
                 const msg = e instanceof Error ? e.message : String(e)
                 window.alert(`PNG 저장 실패: ${msg}`)
@@ -263,6 +290,7 @@ const MermaidPreviewExtension = Extension.create({
               .finally(() => {
                 pending.delete(sourceHash)
                 if (viewRef) {
+                  refreshTick += 1
                   const tr = viewRef.state.tr.setMeta(MERMAID_PLUGIN_KEY, { refresh: true })
                   viewRef.dispatch(tr)
                 }
@@ -272,7 +300,7 @@ const MermaidPreviewExtension = Extension.create({
 
           return container
         }, {
-          key: `md-mermaid-${widgetPos}-${sourceHash}`,
+          key: `md-mermaid-${widgetPos}-${sourceHash}-${refreshTick}`,
           side: 1,
         }))
       })
