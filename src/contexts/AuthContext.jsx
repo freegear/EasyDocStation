@@ -99,6 +99,17 @@ export function AuthProvider({ children }) {
     }
   }
 
+  async function restoreLegacySession() {
+    try {
+      const user = await apiFetch('/auth/me')
+      setCurrentUser(user)
+      return true
+    } catch (_) {
+      clearLocalSession()
+      return false
+    }
+  }
+
   // 세션 강제 만료 핸들러 (다른 기기 로그인 감지)
   useEffect(() => {
     setSessionInvalidatedHandler(() => {
@@ -122,29 +133,31 @@ export function AuthProvider({ children }) {
   // Restore session on app load
   useEffect(() => {
     if (!isSupabaseConfigured || !supabase) {
-      apiFetch('/auth/me')
-        .then(user => setCurrentUser(user))
-        .catch(() => clearLocalSession())
+      restoreLegacySession()
         .finally(() => setLoading(false))
       return
     }
 
     supabase.auth.getSession()
       .then(async ({ data }) => {
-        await syncSessionFromSupabase(data?.session || null)
+        if (data?.session) {
+          await syncSessionFromSupabase(data.session)
+          return
+        }
+        await restoreLegacySession()
       })
-      .catch(() => clearLocalSession())
+      .catch(() => restoreLegacySession())
       .finally(() => setLoading(false))
 
     const { data: sub } = supabase.auth.onAuthStateChange(async (_event, session) => {
       if (!session) {
-        clearLocalSession()
+        await restoreLegacySession()
         return
       }
       try {
         await syncSessionFromSupabase(session)
       } catch (_) {
-        clearLocalSession()
+        await restoreLegacySession()
       }
     })
 
@@ -194,9 +207,6 @@ export function AuthProvider({ children }) {
   }, [])
 
   async function login(identifier, password, options = {}) {
-    if (isSupabaseConfigured && supabase) {
-      throw new Error('Supabase OAuth 로그인 버튼을 사용해 주세요.')
-    }
     const { forceRelogin = false } = options
     const data = await apiFetch('/auth/login', {
       method: 'POST',
