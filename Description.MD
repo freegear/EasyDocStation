@@ -514,6 +514,54 @@ HTML Preview 설정 에 따른 사이즈에
 버튼을 누르면, 계시글이나 댓글의 내용이 복사되어 메모리에 저장된다.
 
 
+# 1.2.16 게시글/댓글에서 
+
+표시 위치
+글 리스트 카드 렌더링 지점인 ChatArea.jsx (line 2380)의 PostCard 안에 preview 블록을 추가합니다.
+Preview위치는 텍스트 bodyPreview  오른쪽 끝애 해줘
+
+
+
+“preview 가능한 컨텐츠” 판별 기준
+본문 URL: 이미 URL 추출 유틸이 있으므로 ChatArea.jsx (line 113)의 extractHttpUrls 재사용
+첨부 미리보기: post.attachments 중 이미지/PDF/HTML/video 썸네일 가능 파일 우선
+우선순위: 첨부 preview > 링크 preview (리스트에서는 1개만 노출 권장)
+
+
+
+1/3 크기 규칙
+
+기존 preview 기준 크기(예: html 480x270)를 가져와 Math.round(width / 3), Math.round(height / 3) 적용
+너무 작아지는 것 방지로 최소치 권장: minWidth 120, minHeight 72
+즉 “정확히 1/3”을 기본으로 하되 최소치만 보정
+
+
+
+컴포넌트 구조 제안
+PostCardPreview(신규)로 분리
+링크는 기존 ChatArea.jsx (line 1488)의 LinkPreviewCards 로직을 공유하고, 리스트용 variant(compact, scale=1/3) 추가
+첨부는 AttachmentList를 직접 재사용하지 말고(기능 과다), 리스트용 경량 렌더러 별도 작성 권장
+
+
+
+댓글까지 반영하는 방법(요구사항 “게시글/댓글”)
+기본안: 포스트 본문만 우선 적용
+확장안: post.comments 최신 1개(or 최근 preview 있는 댓글 1개)도 검사해서 preview 있으면 보조 배지로 표시
+성능상 댓글 전체 순회는 카드 렌더 시 매번 하지 말고 useMemo로 캐시
+
+
+
+성능/안정성
+리스트는 카드 수가 많으므로 preview는 카드당 최대 1개
+loading="lazy" 필수
+실패 시 카드 전체 레이아웃은 유지하고 placeholder만 표시
+클릭 이벤트는 stopPropagation() 처리해서 카드 열기 동작과 충돌 방지
+
+
+원하시면 이 방향으로 바로 구현까지 진행할게요.
+추천 순서는 PostCard 본문 preview 1/3 먼저, 그 다음 댓글 preview 확장입니다.
+
+
 
 # 1.3 언어 확장
 
