@@ -24,7 +24,7 @@ function requireSiteAdmin(req, res, next) {
 }
 
 function syncSupabaseEnvFromConfig(config) {
-  const envPath = path.resolve(__dirname, '../../.env')
+  const envPath = path.resolve(__dirname, '../.env')
   const supabaseUrl = String(config.VITE_SUPABASE_URL || '').trim()
   const supabaseAnonKey = String(config.VITE_SUPABASE_ANON_KEY || '').trim()
 
