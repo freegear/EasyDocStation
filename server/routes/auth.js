@@ -9,6 +9,20 @@ const { encryptSecret, maskSecret, isMaskedValue } = require('../lib/secrets')
 
 const router = express.Router()
 
+async function getUsersColumnSupport() {
+  const { rows } = await pool.query(
+    `SELECT column_name
+     FROM information_schema.columns
+     WHERE table_name = 'users'`
+  )
+  const names = new Set(rows.map(r => String(r.column_name || '')))
+  return {
+    hasFailedLoginAttempts: names.has('failed_login_attempts'),
+    hasActiveSessionId: names.has('active_session_id'),
+    hasLastLoginAt: names.has('last_login_at'),
+  }
+}
+
 function toPublicUser(u) {
   return {
     id: u.id,
@@ -35,12 +49,27 @@ function toPublicUser(u) {
 
 const MAX_FAILED_ATTEMPTS = 3
 
-async function issueLegacySessionCookie(res, user, meta = {}) {
+async function issueLegacySessionCookie(res, user, meta = {}, columnSupport = null) {
+  const cs = columnSupport || await getUsersColumnSupport()
   const newSessionId = randomUUID()
-  await pool.query(
-    'UPDATE users SET failed_login_attempts = 0, last_login_at = NOW(), active_session_id = $2 WHERE id = $1',
-    [user.id, newSessionId]
-  )
+  const sets = []
+  const vals = []
+  let i = 1
+  if (cs.hasFailedLoginAttempts) {
+    sets.push(`failed_login_attempts = $${i++}`)
+    vals.push(0)
+  }
+  if (cs.hasLastLoginAt) {
+    sets.push('last_login_at = NOW()')
+  }
+  if (cs.hasActiveSessionId) {
+    sets.push(`active_session_id = $${i++}`)
+    vals.push(newSessionId)
+  }
+  if (sets.length > 0) {
+    vals.push(user.id)
+    await pool.query(`UPDATE users SET ${sets.join(', ')} WHERE id = $${i}`, vals)
+  }
   await pool.query(
     'INSERT INTO login_history (user_id, ip_address, user_agent) VALUES ($1, $2, $3)',
     [user.id, meta.ip, meta.userAgent]
@@ -60,6 +89,7 @@ router.post('/login', async (req, res) => {
   if (!loginId || !password) return res.status(400).json({ error: '아이디와 비밀번호를 입력하세요.' })
 
   try {
+    const columnSupport = await getUsersColumnSupport()
     const normalizedId = loginId.toLowerCase()
     const { rows } = await pool.query(
       'SELECT * FROM users WHERE lower(username) = $1 OR lower(email) = $1 LIMIT 1',
@@ -79,31 +109,34 @@ router.post('/login', async (req, res) => {
 
     const valid = await bcrypt.compare(password, user.password_hash)
     if (!valid) {
-      const newAttempts = (user.failed_login_attempts || 0) + 1
+      if (columnSupport.hasFailedLoginAttempts) {
+        const newAttempts = (user.failed_login_attempts || 0) + 1
 
-      if (newAttempts >= MAX_FAILED_ATTEMPTS) {
-        // 3회 이상 실패 → 계정 비활성화
+        if (newAttempts >= MAX_FAILED_ATTEMPTS) {
+          await pool.query(
+            'UPDATE users SET failed_login_attempts = $1, is_active = false WHERE id = $2',
+            [newAttempts, user.id]
+          )
+          return res.status(401).json({
+            error: `비밀번호를 ${MAX_FAILED_ATTEMPTS}회 이상 틀렸습니다. 계정이 잠겼습니다. 관리자에게 문의하세요.`,
+            code: 'ACCOUNT_LOCKED',
+          })
+        }
+
         await pool.query(
-          'UPDATE users SET failed_login_attempts = $1, is_active = false WHERE id = $2',
+          'UPDATE users SET failed_login_attempts = $1 WHERE id = $2',
           [newAttempts, user.id]
         )
         return res.status(401).json({
-          error: `비밀번호를 ${MAX_FAILED_ATTEMPTS}회 이상 틀렸습니다. 계정이 잠겼습니다. 관리자에게 문의하세요.`,
-          code: 'ACCOUNT_LOCKED',
+          error: `비밀번호가 올바르지 않습니다. (${newAttempts}/${MAX_FAILED_ATTEMPTS}회 실패)`,
         })
       }
 
-      await pool.query(
-        'UPDATE users SET failed_login_attempts = $1 WHERE id = $2',
-        [newAttempts, user.id]
-      )
-      return res.status(401).json({
-        error: `비밀번호가 올바르지 않습니다. (${newAttempts}/${MAX_FAILED_ATTEMPTS}회 실패)`,
-      })
+      return res.status(401).json({ error: '아이디 또는 비밀번호가 올바르지 않습니다.' })
     }
 
     // 중복 로그인 체크: active_session_id가 있고 JWT 유효 기간(7일) 이내이면 차단
-    if (user.active_session_id && !forceRelogin) {
+    if (columnSupport.hasActiveSessionId && user.active_session_id && !forceRelogin) {
       const loginAge = user.last_login_at
         ? Date.now() - new Date(user.last_login_at).getTime()
         : 0
@@ -116,7 +149,7 @@ router.post('/login', async (req, res) => {
       }
     }
 
-    await issueLegacySessionCookie(res, user, { ip: req.ip, userAgent: req.headers['user-agent'] })
+    await issueLegacySessionCookie(res, user, { ip: req.ip, userAgent: req.headers['user-agent'] }, columnSupport)
     res.json({ user: { ...toPublicUser(user), last_login_at: new Date().toISOString() } })
   } catch (err) {
     console.error(err)
@@ -134,7 +167,8 @@ router.post('/supabase/exchange', requireAuth, async (req, res) => {
     const { rows } = await pool.query('SELECT * FROM users WHERE id = $1', [req.user.id])
     if (!rows[0]) return res.status(404).json({ error: '사용자를 찾을 수 없습니다.' })
     const user = rows[0]
-    await issueLegacySessionCookie(res, user, { ip: req.ip, userAgent: req.headers['user-agent'] })
+    const columnSupport = await getUsersColumnSupport()
+    await issueLegacySessionCookie(res, user, { ip: req.ip, userAgent: req.headers['user-agent'] }, columnSupport)
     res.json({ ok: true })
   } catch (err) {
     console.error('[auth/supabase/exchange]', err)
@@ -145,7 +179,8 @@ router.post('/supabase/exchange', requireAuth, async (req, res) => {
 // POST /api/auth/logout
 router.post('/logout', requireAuth, async (req, res) => {
   try {
-    if (req.authProvider !== 'supabase') {
+    const columnSupport = await getUsersColumnSupport()
+    if (req.authProvider !== 'supabase' && columnSupport.hasActiveSessionId) {
       await pool.query('UPDATE users SET active_session_id = NULL WHERE id = $1', [req.user.id])
     }
     res.clearCookie('eds_auth', getAuthCookieClearOptions())
@@ -158,12 +193,13 @@ router.post('/logout', requireAuth, async (req, res) => {
 // GET /api/auth/me
 router.get('/me', requireAuth, async (req, res) => {
   try {
+    const columnSupport = await getUsersColumnSupport()
     const { rows } = await pool.query('SELECT * FROM users WHERE id = $1', [req.user.id])
     if (!rows[0]) return res.status(404).json({ error: '사용자를 찾을 수 없습니다.' })
     const user = rows[0]
 
     // Legacy JWT session validation only
-    if (req.authProvider !== 'supabase') {
+    if (req.authProvider !== 'supabase' && columnSupport.hasActiveSessionId) {
       if (!user.active_session_id || req.user.session_id !== user.active_session_id) {
         return res.status(401).json({ error: '세션이 만료되었습니다. 다시 로그인해 주세요.', code: 'SESSION_INVALIDATED' })
       }
