@@ -2844,7 +2844,12 @@ export default function SiteAdminPage({ onClose }) {
                   value={siteBackUpKey}
                   onChange={e => setSiteBackUpKey(e.target.value)}
                   placeholder="SiteBackUp Key"
-                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-gray-900 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-300 transition-all"
+                  disabled={!enableDataBackup}
+                  className={`w-full border rounded-xl px-4 py-2.5 text-sm placeholder-gray-400 transition-all ${
+                    enableDataBackup
+                      ? 'bg-gray-50 border-gray-200 text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-300'
+                      : 'bg-gray-200 border-gray-100 text-gray-400 cursor-not-allowed'
+                  }`}
                 />
                 <p className="text-gray-400 text-xs mt-2">
                   SiteBackUp Key 값입니다. FTP Server 프로토콜용 특수 키이며, 현재는 사용하지 않습니다.
