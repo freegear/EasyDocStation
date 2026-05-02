@@ -23,6 +23,37 @@ function requireSiteAdmin(req, res, next) {
   next()
 }
 
+function syncSupabaseEnvFromConfig(config) {
+  const envPath = path.resolve(__dirname, '../../.env')
+  const supabaseUrl = String(config.VITE_SUPABASE_URL || '').trim()
+  const supabaseAnonKey = String(config.VITE_SUPABASE_ANON_KEY || '').trim()
+
+  let envText = ''
+  if (fs.existsSync(envPath)) {
+    envText = fs.readFileSync(envPath, 'utf8')
+  }
+
+  const upsertLine = (source, key, value) => {
+    const escaped = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    const regex = new RegExp(`^${escaped}=.*$`, 'm')
+    const line = `${key}=${value}`
+    if (regex.test(source)) return source.replace(regex, line)
+    return source + (source.endsWith('\n') || source.length === 0 ? '' : '\n') + line + '\n'
+  }
+
+  let updated = envText
+  updated = upsertLine(updated, 'VITE_SUPABASE_URL', supabaseUrl)
+  updated = upsertLine(updated, 'VITE_SUPABASE_ANON_KEY', supabaseAnonKey)
+  fs.writeFileSync(envPath, updated, 'utf8')
+
+  return {
+    synced: true,
+    path: envPath,
+    hasUrl: Boolean(supabaseUrl),
+    hasAnonKey: Boolean(supabaseAnonKey),
+  }
+}
+
 // Apply auth/authorization BEFORE declaring admin routes
 router.use(requireAuth)
 router.use(requireSiteAdmin)
@@ -401,9 +432,23 @@ router.put('/config', requireSiteAdmin, async (req, res) => {
     } else if (!Object.prototype.hasOwnProperty.call(newConfig, 'agenticai_operation_mode')) {
       newConfig.agenticai_operation_mode = 'server'
     }
-    
+
     fs.writeFileSync(configPath, JSON.stringify(newConfig, null, 2), 'utf8')
-    res.json({ success: true, config: newConfig })
+
+    let envSync = null
+    const touchedSupabaseSettings =
+      Object.prototype.hasOwnProperty.call(req.body, 'VITE_SUPABASE_URL') ||
+      Object.prototype.hasOwnProperty.call(req.body, 'VITE_SUPABASE_ANON_KEY')
+    if (touchedSupabaseSettings) {
+      envSync = syncSupabaseEnvFromConfig(newConfig)
+    }
+
+    res.json({
+      success: true,
+      config: newConfig,
+      envSync,
+      restartRequired: Boolean(envSync),
+    })
   } catch (err) {
     console.error('Save Config Error:', err)
     res.status(500).json({ error: '설정을 저장하는 중 오류가 발생했습니다.' })

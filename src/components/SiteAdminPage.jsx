@@ -1181,6 +1181,8 @@ export default function SiteAdminPage({ onClose }) {
           } catch (reinitErr) {
             setSaveConfigDialogMessage(t.admin.settingsReinitFailed(reinitErr.message))
           }
+        } else if (activeTab === 'supabase') {
+          setSaveConfigDialogMessage(`${t.admin.settingsSaved}\n프론트 재시작이 필요합니다. (.env 반영)`)
         } else {
           setSaveConfigDialogMessage(t.admin.settingsSaved)
         }
