@@ -4460,6 +4460,30 @@ print(latest_data[['text', 'metadata']])
 
 
 
+# E.8 파일 다운로드 오류
+
+다이렉트 메시지 창을 클릭할 때 
+갑자기 파일이 다운로드 된다. 
+원인과 이유를 밝혀줘
+
+원인은 DM 첨부파일 API가 **항상 다운로드 응답**을 보내기 때문입니다.
+
+- 코드 위치: [dm.js](/Users/kevinim/Desktop/EasyDocStation/server/routes/dm.js:684) ~ [dm.js](/Users/kevinim/Desktop/EasyDocStation/server/routes/dm.js:732)
+- 핵심: `GET /api/dm/files`의 기본 분기에서 `res.download(fullPath, originalName)`를 사용합니다.  
+  즉, 브라우저는 이 URL을 열면 “보기”가 아니라 “다운로드”로 처리합니다.
+
+왜 “DM 창 클릭 시” 발생하나:
+- DM 메시지 UI는 첨부 미리보기를 `iframe/src`로 로드합니다.
+- 코드 위치: [DirectMessageView.jsx](/Users/kevinim/Desktop/EasyDocStation/src/components/DirectMessageView.jsx:624)
+- `pdf`가 아닌 `html/txt` 등은 `preview=pdf` 없이 `/api/dm/files?...`를 그대로 `iframe`에 넣고 있어, 로드 순간 다운로드가 시작될 수 있습니다.
+
+정리:
+- 프론트는 “미리보기”를 시도했는데,
+- 백엔드는 해당 URL을 “다운로드”로 응답해서,
+- DM 창 열기/클릭 시 갑자기 파일 다운로드가 발생합니다.
+
+
+
 #######################################################
 # Do.001 
 비전 인식 모델이 있는지 확인 할 것.

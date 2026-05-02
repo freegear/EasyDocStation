@@ -724,7 +724,12 @@ router.get('/files', async (req, res) => {
     return
   }
 
-  res.download(fullPath, originalName)
+  if (String(req.query.download || '') === '1') {
+    return res.download(fullPath, originalName)
+  }
+
+  res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(originalName)}"`)
+  return res.sendFile(fullPath)
 })
 
 module.exports = router

@@ -92,9 +92,10 @@ const DEFAULT_DISPLAY_CONFIG = {
   htmlPreview: { width: 480, height: 270 },
 }
 
-function dmAttachmentUrl(att) {
+function dmAttachmentUrl(att, options = {}) {
   const token = getToken()
-  return `/api/dm/files?storagePath=${encodeURIComponent(att.storagePath)}&filename=${encodeURIComponent(att.filename)}${token ? `&auth_token=${encodeURIComponent(token)}` : ''}`
+  const modeQuery = options.download ? '&download=1' : '&inline=1'
+  return `/api/dm/files?storagePath=${encodeURIComponent(att.storagePath)}&filename=${encodeURIComponent(att.filename)}${modeQuery}${token ? `&auth_token=${encodeURIComponent(token)}` : ''}`
 }
 
 function dmPreviewPdfUrl(att) {
@@ -522,7 +523,7 @@ function MessageBubble({
   }
 
   function downloadFile(att) {
-    const url = dmAttachmentUrl(att)
+    const url = dmAttachmentUrl(att, { download: true })
     const a = document.createElement('a')
     a.href = url
     a.download = att.filename
