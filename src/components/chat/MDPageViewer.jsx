@@ -1049,6 +1049,21 @@ function getEditorDocSignature(editor) {
   }
 }
 
+function findTaskItemPosFromTarget(view, targetEl) {
+  if (!(targetEl instanceof Element)) return null
+  const taskItemEl = targetEl.closest('li[data-type="taskItem"]')
+  if (!(taskItemEl instanceof HTMLElement)) return null
+  try {
+    const pos = view.posAtDOM(taskItemEl, 0)
+    if (!Number.isFinite(pos)) return null
+    const node = view.state.doc.nodeAt(pos)
+    if (!node || node.type?.name !== 'taskItem') return null
+    return pos
+  } catch (_) {
+    return null
+  }
+}
+
 export default function MDPageViewer({ post, channelId, onClose }) {
   const { updatePost, deletePost, addComment, deleteComment, posts } = useChat()
   const { currentUser, maxAttachmentFileSize } = useAuth()
@@ -1317,6 +1332,7 @@ export default function MDPageViewer({ post, channelId, onClose }) {
       TaskList,
       TaskItem.configure({
         nested: true,
+        onReadOnlyChecked: () => false,
       }),
       Table.configure({
         resizable: true,
@@ -1347,6 +1363,27 @@ export default function MDPageViewer({ post, channelId, onClose }) {
       handleClick(view, _pos, event) {
         const target = event.target
         if (!(target instanceof Element)) return false
+
+        if (target.closest('input[type="checkbox"]')) {
+          const taskItemPos = findTaskItemPosFromTarget(view, target)
+          if (!Number.isFinite(taskItemPos)) return false
+
+          event.preventDefault()
+          event.stopPropagation()
+
+          if (!canEditRef.current || modeRef.current !== 'preview') return true
+
+          const node = view.state.doc.nodeAt(taskItemPos)
+          if (!node || node.type?.name !== 'taskItem') return true
+          const nextChecked = !Boolean(node.attrs?.checked)
+          const tr = view.state.tr.setNodeMarkup(taskItemPos, undefined, {
+            ...node.attrs,
+            checked: nextChecked,
+          })
+          view.dispatch(tr)
+          return true
+        }
+
         const anchor = target.closest('a[href]')
         if (!(anchor instanceof HTMLAnchorElement)) return false
         const href = String(anchor.getAttribute('href') || '').trim()
