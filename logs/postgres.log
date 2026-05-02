@@ -5611,3 +5611,5 @@
 2026-05-03 00:03:11.165 KST [39643] LOG:  checkpoint complete: wrote 2 buffers (0.0%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.103 s, sync=0.001 s, total=0.109 s; sync files=2, longest=0.001 s, average=0.001 s; distance=3 kB, estimate=883 kB; lsn=0/5E32780, redo lsn=0/5E32748
 2026-05-03 00:43:11.170 KST [39643] LOG:  checkpoint starting: time
 2026-05-03 00:43:13.105 KST [39643] LOG:  checkpoint complete: wrote 20 buffers (0.1%); 0 WAL file(s) added, 0 removed, 0 recycled; write=1.930 s, sync=0.002 s, total=1.936 s; sync files=13, longest=0.001 s, average=0.001 s; distance=121 kB, estimate=807 kB; lsn=0/5E50F08, redo lsn=0/5E50ED0
+2026-05-03 00:58:11.120 KST [39643] LOG:  checkpoint starting: time
+2026-05-03 00:58:11.835 KST [39643] LOG:  checkpoint complete: wrote 8 buffers (0.0%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.712 s, sync=0.001 s, total=0.716 s; sync files=8, longest=0.001 s, average=0.001 s; distance=12 kB, estimate=727 kB; lsn=0/5E53F10, redo lsn=0/5E53ED8
