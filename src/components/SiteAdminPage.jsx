@@ -738,6 +738,7 @@ export default function SiteAdminPage({ onClose }) {
   const [agenticaiForm, setAgenticaiForm] = useState({ num_predict: 4096, num_ctx: 8192, history: 6, language: 'ko', operation_mode: 'server' })
   const [companyForm, setCompanyForm] = useState({ name: '', address: '', phone: '', homepage: '', fax: '', seal: '', logo: '' })
   const [siteUrl, setSiteUrl] = useState('')
+  const [enableDataBackup, setEnableDataBackup] = useState(false)
   const [siteBackUpKey, setSiteBackUpKey] = useState('')
   const [snsForm, setSnsForm] = useState({
     kakao: { enabled: false, apiKey: '' },
@@ -854,6 +855,7 @@ export default function SiteAdminPage({ onClose }) {
         })
       }
       setSiteUrl(String(data.site_url || ''))
+      setEnableDataBackup(Boolean(data.enable_data_backup))
       setSiteBackUpKey(String(data.site_backup_key || ''))
       if (data.sns) {
         setSnsForm({
@@ -1125,6 +1127,7 @@ export default function SiteAdminPage({ onClose }) {
         }
       } else if (activeTab === 'site') {
         configData.site_url = siteUrl.trim()
+        configData.enable_data_backup = Boolean(enableDataBackup)
         configData['SiteBackUp Key'] = siteBackUpKey.trim()
       } else if (activeTab === 'sns') {
         configData.sns = {
@@ -2820,6 +2823,18 @@ export default function SiteAdminPage({ onClose }) {
                   placeholder="https://example.com"
                   className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-gray-900 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-300 transition-all"
                 />
+              </div>
+
+              <div className="bg-gray-100 border border-gray-200 rounded-2xl p-5">
+                <label className="flex items-center gap-2 text-gray-700 text-sm font-semibold">
+                  <input
+                    type="checkbox"
+                    checked={enableDataBackup}
+                    onChange={e => setEnableDataBackup(e.target.checked)}
+                    className="w-4 h-4 rounded accent-indigo-600"
+                  />
+                  데이터 백업 활성화
+                </label>
               </div>
 
               <div className="bg-gray-100 border border-gray-200 rounded-2xl p-5">

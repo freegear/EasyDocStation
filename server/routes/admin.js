@@ -316,6 +316,7 @@ router.get('/stats', async (req, res) => {
       company: config.company || {},
       site_url: config.site_url || '',
       site_backup_key: config['SiteBackUp Key'] || '',
+      enable_data_backup: Boolean(config.enable_data_backup),
       sns: normalizeSnsConfig(config.sns || {})
     })
   } catch (err) {
@@ -361,6 +362,7 @@ router.get('/stats', async (req, res) => {
         company: config.company || {},
         site_url: config.site_url || '',
         site_backup_key: config['SiteBackUp Key'] || '',
+        enable_data_backup: Boolean(config.enable_data_backup),
         sns: normalizeSnsConfig(config.sns || {})
       })
     } catch (innerErr) {
