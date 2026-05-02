@@ -2826,19 +2826,21 @@ export default function SiteAdminPage({ onClose }) {
               </div>
 
               <div className="bg-gray-100 border border-gray-200 rounded-2xl p-5">
-                <label className="flex items-center gap-2 text-gray-700 text-sm font-semibold">
-                  <input
-                    type="checkbox"
-                    checked={enableDataBackup}
-                    onChange={e => setEnableDataBackup(e.target.checked)}
-                    className="w-4 h-4 rounded accent-indigo-600"
-                  />
-                  데이터 백업 활성화
-                </label>
-              </div>
-
-              <div className="bg-gray-100 border border-gray-200 rounded-2xl p-5">
-                <label className="block text-gray-700 text-sm font-semibold mb-2">Data Back Up</label>
+                <div className="flex items-center justify-between gap-4 mb-4">
+                  <label className="flex items-center gap-2 text-gray-700 text-sm font-semibold">
+                    <input
+                      type="checkbox"
+                      checked={enableDataBackup}
+                      onChange={e => setEnableDataBackup(e.target.checked)}
+                      className="w-4 h-4 rounded accent-indigo-600"
+                    />
+                    데이터 백업 활성화
+                  </label>
+                  <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${enableDataBackup ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-500'}`}>
+                    {enableDataBackup ? 'Enabled' : 'Disabled'}
+                  </span>
+                </div>
+                <label className="block text-gray-700 text-sm font-semibold mb-2">Data Back Up Key</label>
                 <input
                   type="text"
                   value={siteBackUpKey}
