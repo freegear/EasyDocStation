@@ -30,6 +30,9 @@ export function ChatProvider({ children }) {
         if (cancelled) return
         setPosts(prev => ({ ...prev, [channelId]: data }))
       } catch (err) {
+        if (err?.status === 403) {
+          window.dispatchEvent(new CustomEvent('channel-access-denied'))
+        }
         console.error('Failed to refresh channel posts:', err)
       }
     }
@@ -151,6 +154,9 @@ export function ChatProvider({ children }) {
       const data = await apiFetch(`/posts?channelId=${channel.id}`)
       setPosts(prev => ({ ...prev, [channel.id]: data }))
     } catch (err) {
+      if (err?.status === 403) {
+        window.dispatchEvent(new CustomEvent('channel-access-denied'))
+      }
       console.error('Failed to fetch posts:', err)
       setPosts(prev => ({ ...prev, [channel.id]: [] }))
     }

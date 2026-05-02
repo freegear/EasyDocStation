@@ -3,6 +3,7 @@ const router = express.Router()
 const db = require('../db')
 const requireAuth = require('../middleware/auth')
 const { client, isConnected } = require('../cassandra')
+const { ACCESS_DENIED_MESSAGE, canAccessChannel, getAccessibleChannelIds } = require('../lib/channelAccess')
 
 // ─── Unread counts ────────────────────────────────────────────
 
@@ -10,20 +11,7 @@ const { client, isConnected } = require('../cassandra')
 router.get('/unread', requireAuth, async (req, res, next) => {
   try {
     const userId = req.user.id
-
-    // 사용자가 접근 가능한 모든 채널 ID 조회 (소속 팀의 public + 멤버인 private)
-    const channelsRes = await db.query(`
-      SELECT DISTINCT c.id
-      FROM channels c
-      JOIN team_members tm ON tm.team_id = c.team_id AND tm.user_id = $1
-      WHERE c.is_archived = false
-        AND (
-          c.type = 'public'
-          OR c.id IN (SELECT channel_id FROM channel_members WHERE user_id = $1)
-        )
-    `, [userId])
-
-    const channelIds = channelsRes.rows.map(r => r.id)
+    const channelIds = await getAccessibleChannelIds(db, req.user)
     if (channelIds.length === 0) return res.json({})
 
     // 마지막 읽은 시각 조회
@@ -85,6 +73,8 @@ router.get('/unread', requireAuth, async (req, res, next) => {
 router.post('/:id/read', requireAuth, async (req, res, next) => {
   try {
     const { id } = req.params
+    const allowed = await canAccessChannel(db, req.user, id)
+    if (!allowed) return res.status(403).json({ error: ACCESS_DENIED_MESSAGE })
     await db.query(`
       INSERT INTO channel_last_read (user_id, channel_id, last_read_at)
       VALUES ($1, $2, NOW())
@@ -103,6 +93,8 @@ router.post('/:id/read', requireAuth, async (req, res, next) => {
 router.get('/:id', requireAuth, async (req, res, next) => {
   try {
     const { id } = req.params
+    const allowed = await canAccessChannel(db, req.user, id)
+    if (!allowed) return res.status(403).json({ error: ACCESS_DENIED_MESSAGE })
     const result = await db.query('SELECT * FROM channels WHERE id = $1', [id])
     if (result.rows.length === 0) {
       return res.status(404).json({ error: '채널을 찾을 수 없습니다.' })
@@ -190,6 +182,8 @@ router.delete('/:id', requireAuth, async (req, res, next) => {
 router.get('/:id/stats', requireAuth, async (req, res, next) => {
   try {
     const { id } = req.params
+    const allowed = await canAccessChannel(db, req.user, id)
+    if (!allowed) return res.status(403).json({ error: ACCESS_DENIED_MESSAGE })
     const stats = await db.query(`
       SELECT 
         ( (SELECT COUNT(*) FROM posts WHERE channel_id = $1) + (SELECT COUNT(*) FROM comments WHERE channel_id = $1) ) as message_count,
@@ -209,6 +203,8 @@ router.get('/:id/stats', requireAuth, async (req, res, next) => {
 router.get('/:id/admins', requireAuth, async (req, res, next) => {
   try {
     const { id } = req.params
+    const allowed = await canAccessChannel(db, req.user, id)
+    if (!allowed) return res.status(403).json({ error: ACCESS_DENIED_MESSAGE })
     const result = await db.query(`
       SELECT u.id, u.username, u.name, u.email
       FROM users u
@@ -225,6 +221,8 @@ router.get('/:id/admins', requireAuth, async (req, res, next) => {
 router.get('/:id/members', requireAuth, async (req, res, next) => {
   try {
     const { id } = req.params
+    const allowed = await canAccessChannel(db, req.user, id)
+    if (!allowed) return res.status(403).json({ error: ACCESS_DENIED_MESSAGE })
     const result = await db.query(`
       SELECT u.id, u.username, u.name, u.email, u.role
       FROM users u

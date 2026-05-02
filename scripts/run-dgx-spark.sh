@@ -6,7 +6,8 @@ cd "$ROOT_DIR"
 
 LOG_DIR="${EASYDOC_LOG_DIR:-$ROOT_DIR/logs}"
 mkdir -p "$LOG_DIR"
-LOG_FILE="$LOG_DIR/run-dgx-spark.log"
+LOG_DATE="$(date +%Y%m%d)"
+LOG_FILE="$LOG_DIR/run-dgx-spark-${LOG_DATE}.log"
 PID_FILE="$LOG_DIR/dgx-spark.pid"
 
 resolve_port_pids() {

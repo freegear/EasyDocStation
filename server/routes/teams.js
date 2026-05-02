@@ -2,6 +2,7 @@ const express = require('express')
 const router = express.Router()
 const db = require('../db')
 const requireAuth = require('../middleware/auth')
+const { getUserSecurityLevel } = require('../lib/channelAccess')
 
 // GET /api/teams — 역할에 따른 팀/채널 목록 반환
 //   site_admin  : 모든 팀 + 모든 채널
@@ -11,6 +12,7 @@ router.get('/', requireAuth, async (req, res, next) => {
   try {
     const userId = req.user.id
     const isSiteAdmin = req.user.role === 'site_admin'
+    const userSecurityLevel = getUserSecurityLevel(req.user)
 
     const result = await db.query(`
       SELECT t.*,
@@ -33,10 +35,14 @@ router.get('/', requireAuth, async (req, res, next) => {
         WHERE c.team_id = t.id
           AND (
             $2::boolean = true
+            OR $3::int >= 4
             OR EXISTS (SELECT 1 FROM team_admins ta WHERE ta.team_id = t.id AND ta.user_id = $1)
-            OR c.type = 'public'
-            OR EXISTS (SELECT 1 FROM channel_members cm WHERE cm.channel_id = c.id AND cm.user_id = $1)
             OR EXISTS (SELECT 1 FROM channel_admins ca WHERE ca.channel_id = c.id AND ca.user_id = $1)
+            OR EXISTS (SELECT 1 FROM channel_members cm WHERE cm.channel_id = c.id AND cm.user_id = $1)
+            OR (
+              $3::int >= 3
+              AND EXISTS (SELECT 1 FROM team_members tm2 WHERE tm2.team_id = t.id AND tm2.user_id = $1)
+            )
           )
         ) as channels,
         (SELECT json_agg(u.username)
@@ -47,10 +53,12 @@ router.get('/', requireAuth, async (req, res, next) => {
       FROM teams t
       WHERE (
         $2::boolean = true
+        OR $3::int >= 4
+        OR EXISTS (SELECT 1 FROM team_admins ta WHERE ta.team_id = t.id AND ta.user_id = $1)
         OR EXISTS (SELECT 1 FROM team_members tm WHERE tm.team_id = t.id AND tm.user_id = $1)
       )
       ORDER BY t.created_at ASC
-    `, [userId, isSiteAdmin])
+    `, [userId, isSiteAdmin, userSecurityLevel])
 
     res.json(result.rows)
   } catch (err) {
