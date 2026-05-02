@@ -11,7 +11,7 @@ import MentionDropdown from '../MentionDropdown'
 
 function PostDetailPane({ post, channelId, onClose, pendingOpenCommentId = null, onConsumePendingOpen = null, helpers = {} }) {
   const t = useT()
-  const { addComment, incrementViews, deletePost, updatePost, deleteComment, updateComment, posts, selectedChannel, selectedTeam, openInAgenticAI } = useChat()
+  const { addComment, incrementViews, deletePost, updatePost, togglePostPin, deleteComment, updateComment, posts, selectedChannel, selectedTeam, openInAgenticAI } = useChat()
   const { currentUser, maxAttachmentFileSize } = useAuth()
   const {
     Avatar,
@@ -154,8 +154,10 @@ function PostDetailPane({ post, channelId, onClose, pendingOpenCommentId = null,
 
   const freshPost = posts[channelId]?.find(p => p.id === post.id) || post
   const isSiteAdmin = currentUser?.role === 'site_admin'
+  const isPinManagerRole = ['site_admin', 'team_admin', 'channel_admin'].includes(String(currentUser?.role || ''))
   const canEditPost = String(freshPost.author?.id ?? '') === String(currentUser?.id ?? '')
   const canDeletePost = isSiteAdmin || canEditPost
+  const canPinPost = isPinManagerRole || canEditPost
   const maxSelectableLevel = isSiteAdmin ? 4 : (currentUser?.security_level ?? 0)
   const postTrainingStatus = freshPost.training_status || null
   const postBodySelectionGuard = useSelectionClickGuard({
@@ -361,6 +363,14 @@ function PostDetailPane({ post, channelId, onClose, pendingOpenCommentId = null,
     }
   }
 
+  async function handleTogglePin() {
+    try {
+      await togglePostPin(channelId, post.id, !Boolean(freshPost.pinned))
+    } catch (err) {
+      alert(`핀 상태 변경에 실패했습니다: ${err.message || err}`)
+    }
+  }
+
   function handleDelete() {
     setShowPostDeleteConfirm(true)
   }
@@ -495,8 +505,21 @@ function PostDetailPane({ post, channelId, onClose, pendingOpenCommentId = null,
     <div className="flex-1 flex flex-col min-h-0" style={{ WebkitAppRegion: 'no-drag' }}>
       <div className="flex items-center gap-3 px-6 py-3 border-b border-gray-200 flex-shrink-0">
         <div className="flex-1" />
-        {(canEditPost || canDeletePost) && !isEditingPost && !selectedChannel?.is_archived && (
+        {(canPinPost || canEditPost || canDeletePost) && !isEditingPost && !selectedChannel?.is_archived && (
           <div className="flex items-center gap-2">
+            {canPinPost && (
+              <button
+                onClick={handleTogglePin}
+                title={freshPost.pinned ? (t.chat.unpinPost || '핀해제') : (t.chat.pinPost || '핀고정')}
+                aria-label={freshPost.pinned ? (t.chat.unpinPost || '핀해제') : (t.chat.pinPost || '핀고정')}
+                className={`flex items-center gap-1 text-xs transition-colors ${freshPost.pinned ? 'text-amber-600 hover:text-amber-700' : 'text-gray-500 hover:text-gray-800'}`}
+              >
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7V4a1 1 0 00-1-1H9a1 1 0 00-1 1v3m8 0H8m8 0l-1.2 11.2a1 1 0 01-.995.8H10.2a1 1 0 01-.995-.8L8 7m4 4v6" />
+                </svg>
+                <span>{freshPost.pinned ? (t.chat.unpinPost || '핀해제') : (t.chat.pinPost || '핀고정')}</span>
+              </button>
+            )}
             <button
               onClick={() => copyPermalink({ postId: post.id }, `post-link:${post.id}`)}
               title={copiedKey === `post-link:${post.id}` ? (t.ai.copied || 'Copied!') : (t.chat.copyLink || '링크복사')}

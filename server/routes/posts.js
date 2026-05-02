@@ -15,6 +15,39 @@ const {
 } = require('../trainingStatus')
 const { ACCESS_DENIED_MESSAGE, canAccessChannel, getAccessibleChannelIds } = require('../lib/channelAccess')
 
+async function ensurePostPinTable() {
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS post_pins (
+      post_id TEXT PRIMARY KEY,
+      channel_id TEXT NOT NULL,
+      pinned BOOLEAN NOT NULL DEFAULT false,
+      pinned_at TIMESTAMPTZ NULL,
+      pinned_by TEXT NULL,
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `)
+  await db.query('CREATE INDEX IF NOT EXISTS idx_post_pins_channel_id ON post_pins(channel_id)')
+}
+
+async function getPinnedMapByChannel(channelId) {
+  await ensurePostPinTable()
+  const r = await db.query(
+    `SELECT post_id, pinned, pinned_at, pinned_by
+     FROM post_pins
+     WHERE channel_id = $1`,
+    [String(channelId)],
+  )
+  const map = new Map()
+  for (const row of r.rows || []) {
+    map.set(String(row.post_id), {
+      pinned: Boolean(row.pinned),
+      pinned_at: row.pinned_at || null,
+      pinned_by: row.pinned_by || null,
+    })
+  }
+  return map
+}
+
 // ─── Telegram mention 알림 ────────────────────────────────────
 function extractMentions(content) {
   const source = String(content || '')
@@ -425,6 +458,7 @@ router.get('/', requireAuth, async (req, res, next) => {
 
     // ── Cassandra path ────────────────────────────────────────
     if (isConnected()) {
+      const pinnedMap = await getPinnedMapByChannel(channelId)
       const result = await client.execute(
         'SELECT * FROM posts WHERE channel_id = ? ORDER BY created_at ASC',
         [channelId], { prepare: true }
@@ -446,6 +480,7 @@ router.get('/', requireAuth, async (req, res, next) => {
         
         const attachments = await enrichAttachments(attachmentIds)
         const comments = await fetchComments(row.id.toString())
+        const pinInfo = pinnedMap.get(String(row.id)) || null
         return {
           id: row.id.toString(),
           channel_id: row.channel_id,
@@ -462,7 +497,11 @@ router.get('/', requireAuth, async (req, res, next) => {
           comments,
           ...getTrainingStatus('post', row.id.toString()),
           security_level: row.security_level || 0,
-          tags: [], pinned: false, views: 0,
+          tags: [],
+          pinned: Boolean(pinInfo?.pinned),
+          pinned_at: pinInfo?.pinned_at || null,
+          pinned_by: pinInfo?.pinned_by || null,
+          views: 0,
         }
       }))
 
@@ -470,6 +509,7 @@ router.get('/', requireAuth, async (req, res, next) => {
     }
 
     // ── PostgreSQL fallback ───────────────────────────────────
+    const pinnedMap = await getPinnedMapByChannel(channelId)
     const result = await db.query(`
       SELECT p.*, u.id AS u_id, u.name AS author_name, u.username, u.image_url
       FROM posts p
@@ -501,6 +541,7 @@ router.get('/', requireAuth, async (req, res, next) => {
 
       const avatarLetters = row.author_name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
       const comments = await fetchComments(row.id)
+      const pinInfo = pinnedMap.get(String(row.id)) || null
       return {
         id: row.id,
         channel_id: row.channel_id,
@@ -517,7 +558,11 @@ router.get('/', requireAuth, async (req, res, next) => {
         comments,
         ...getTrainingStatus('post', row.id),
         security_level: row.security_level || 0,
-        tags: [], pinned: false, views: row.views || 0,
+        tags: [],
+        pinned: Boolean(pinInfo?.pinned),
+        pinned_at: pinInfo?.pinned_at || null,
+        pinned_by: pinInfo?.pinned_by || null,
+        views: row.views || 0,
       }
     }))
 
@@ -732,6 +777,65 @@ router.put('/:id', requireAuth, async (req, res, next) => {
     })()
 
     res.json({ success: true })
+  } catch (err) {
+    next(err)
+  }
+})
+
+// ─── PUT /api/posts/:id/pin ──────────────────────────────────
+router.put('/:id/pin', requireAuth, async (req, res, next) => {
+  try {
+    const { id } = req.params
+    const pinned = Boolean(req.body?.pinned)
+    const row = await findPostLocator(id)
+    if (!row) return res.status(404).json({ error: '게시글을 찾을 수 없습니다.' })
+
+    const allowedChannel = await canAccessChannel(db, req.user, row.channel_id)
+    if (!allowedChannel) return res.status(403).json({ error: ACCESS_DENIED_MESSAGE })
+
+    const role = String(req.user?.role || '')
+    const isPrivilegedRole = ['site_admin', 'team_admin', 'channel_admin'].includes(role)
+    const isAuthor = String(row.author_id) === String(req.user?.id)
+    if (!isPrivilegedRole && !isAuthor) {
+      return res.status(403).json({ error: '권한이 없습니다.' })
+    }
+
+    await ensurePostPinTable()
+
+    if (pinned) {
+      await db.query(
+        `INSERT INTO post_pins (post_id, channel_id, pinned, pinned_at, pinned_by, updated_at)
+         VALUES ($1, $2, true, NOW(), $3, NOW())
+         ON CONFLICT (post_id)
+         DO UPDATE SET
+           channel_id = EXCLUDED.channel_id,
+           pinned = true,
+           pinned_at = NOW(),
+           pinned_by = EXCLUDED.pinned_by,
+           updated_at = NOW()`,
+        [String(id), String(row.channel_id), String(req.user.id)],
+      )
+    } else {
+      await db.query(
+        `INSERT INTO post_pins (post_id, channel_id, pinned, pinned_at, pinned_by, updated_at)
+         VALUES ($1, $2, false, NULL, NULL, NOW())
+         ON CONFLICT (post_id)
+         DO UPDATE SET
+           channel_id = EXCLUDED.channel_id,
+           pinned = false,
+           pinned_at = NULL,
+           pinned_by = NULL,
+           updated_at = NOW()`,
+        [String(id), String(row.channel_id)],
+      )
+    }
+
+    return res.json({
+      success: true,
+      postId: String(id),
+      channelId: String(row.channel_id),
+      pinned,
+    })
   } catch (err) {
     next(err)
   }
