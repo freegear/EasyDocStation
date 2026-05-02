@@ -5607,3 +5607,7 @@
 2026-05-02 03:47:16.696 KST [39984] LOG:  could not receive data from client: Connection reset by peer
 2026-05-02 03:51:40.257 KST [39643] LOG:  checkpoint starting: time
 2026-05-02 03:51:43.301 KST [39643] LOG:  checkpoint complete: wrote 31 buffers (0.2%); 0 WAL file(s) added, 0 removed, 0 recycled; write=3.036 s, sync=0.005 s, total=3.045 s; sync files=21, longest=0.001 s, average=0.001 s; distance=129 kB, estimate=981 kB; lsn=0/5E31B48, redo lsn=0/5E31B10
+2026-05-03 00:03:11.057 KST [39643] LOG:  checkpoint starting: time
+2026-05-03 00:03:11.165 KST [39643] LOG:  checkpoint complete: wrote 2 buffers (0.0%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.103 s, sync=0.001 s, total=0.109 s; sync files=2, longest=0.001 s, average=0.001 s; distance=3 kB, estimate=883 kB; lsn=0/5E32780, redo lsn=0/5E32748
+2026-05-03 00:43:11.170 KST [39643] LOG:  checkpoint starting: time
+2026-05-03 00:43:13.105 KST [39643] LOG:  checkpoint complete: wrote 20 buffers (0.1%); 0 WAL file(s) added, 0 removed, 0 recycled; write=1.930 s, sync=0.002 s, total=1.936 s; sync files=13, longest=0.001 s, average=0.001 s; distance=121 kB, estimate=807 kB; lsn=0/5E50F08, redo lsn=0/5E50ED0

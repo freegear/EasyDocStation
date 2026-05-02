@@ -20,7 +20,10 @@ try {
 }
 
 const STORAGE_BASE = getDatabasePath(config, 'ObjectFile Path')
-const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret'
+const JWT_SECRET = String(process.env.JWT_SECRET || '').trim()
+if (!JWT_SECRET) {
+  throw new Error('JWT_SECRET is required. Refusing to start with insecure fallback secret.')
+}
 
 // Ensure storage base exists
 if (!fs.existsSync(STORAGE_BASE)) {

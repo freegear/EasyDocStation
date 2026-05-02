@@ -15,6 +15,18 @@ const { getPythonExecutable } = require('../pythonRuntime')
 
 // ... (existing code helpers)
 
+// Check if user is site_admin
+function requireSiteAdmin(req, res, next) {
+  if (req.user.role !== 'site_admin') {
+    return res.status(403).json({ error: '사이트 관리자 권한이 필요합니다.' })
+  }
+  next()
+}
+
+// Apply auth/authorization BEFORE declaring admin routes
+router.use(requireAuth)
+router.use(requireSiteAdmin)
+
 // POST /api/admin/reset — Full Site Reset
 router.post('/reset', async (req, res) => {
   const { confirmation } = req.body
@@ -127,17 +139,6 @@ router.post('/reset', async (req, res) => {
     res.status(500).json({ error: '초기화 작업 중 오류가 발생했습니다: ' + err.message })
   }
 })
-
-// Check if user is site_admin
-function requireSiteAdmin(req, res, next) {
-  if (req.user.role !== 'site_admin') {
-    return res.status(403).json({ error: '사이트 관리자 권한이 필요합니다.' })
-  }
-  next()
-}
-
-router.use(requireAuth)
-router.use(requireSiteAdmin)
 
 // Helper to get directory size recursively
 function getDirSize(dirPath) {

@@ -2,6 +2,7 @@ const express = require('express')
 const bcrypt = require('bcryptjs')
 const pool = require('../db')
 const requireAuth = require('../middleware/auth')
+const { encryptSecret, maskSecret, isMaskedValue } = require('../lib/secrets')
 
 const router = express.Router()
 router.use(requireAuth)
@@ -16,8 +17,8 @@ function toPublicUser(u) {
     email: u.email,
     phone: u.phone ?? null,
     telegram_id: u.telegram_id ?? null,
-    kakaotalk_api_key: u.kakaotalk_api_key ?? null,
-    line_channel_access_token: u.line_channel_access_token ?? null,
+    kakaotalk_api_key: maskSecret(u.kakaotalk_api_key),
+    line_channel_access_token: maskSecret(u.line_channel_access_token),
     use_sns_channel: u.use_sns_channel ?? null,
     role: u.role,
     is_active: u.is_active,
@@ -146,7 +147,10 @@ router.post('/', requireSiteAdmin, async (req, res) => {
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16) RETURNING *`,
       [normalizedUsername, name.trim(), display_name?.trim() || null, email.trim().toLowerCase(), phone?.trim() || null, hash, assignRole,
        image_url || null, stamp_picture || null, department_id || null, secLevel, active,
-       telegram_id?.trim() || null, kakaotalk_api_key?.trim() || null, line_channel_access_token?.trim() || null, useSns]
+       telegram_id?.trim() || null,
+       (kakaotalk_api_key?.trim() ? encryptSecret(kakaotalk_api_key.trim()) : null),
+       (line_channel_access_token?.trim() ? encryptSecret(line_channel_access_token.trim()) : null),
+       useSns]
     )
     res.status(201).json(toPublicUser(rows[0]))
   } catch (err) {
@@ -188,8 +192,16 @@ router.put('/:id', requireSiteAdmin, async (req, res) => {
     if (department_id !== undefined)    { sets.push(`department_id = $${i++}`);    vals.push(department_id || null) }
     if (security_level !== undefined)   { sets.push(`security_level = $${i++}`);   vals.push(parseInt(security_level)) }
     if (telegram_id !== undefined)      { sets.push(`telegram_id = $${i++}`);      vals.push(telegram_id?.trim() || null) }
-    if (kakaotalk_api_key !== undefined) { sets.push(`kakaotalk_api_key = $${i++}`); vals.push(kakaotalk_api_key?.trim() || null) }
-    if (line_channel_access_token !== undefined) { sets.push(`line_channel_access_token = $${i++}`); vals.push(line_channel_access_token?.trim() || null) }
+    if (kakaotalk_api_key !== undefined && !isMaskedValue(kakaotalk_api_key)) {
+      const plain = kakaotalk_api_key?.trim() || null
+      sets.push(`kakaotalk_api_key = $${i++}`)
+      vals.push(plain ? encryptSecret(plain) : null)
+    }
+    if (line_channel_access_token !== undefined && !isMaskedValue(line_channel_access_token)) {
+      const plain = line_channel_access_token?.trim() || null
+      sets.push(`line_channel_access_token = $${i++}`)
+      vals.push(plain ? encryptSecret(plain) : null)
+    }
     if (use_sns_channel !== undefined)  { sets.push(`use_sns_channel = $${i++}`);  vals.push(use_sns_channel || null) }
     if (password) {
       const hash = await bcrypt.hash(password, 10)

@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, useRef } from 'react'
-import { apiFetch, setToken, clearToken, getToken, setSessionInvalidatedHandler } from '../lib/api'
+import { apiFetch, clearToken, setSessionInvalidatedHandler } from '../lib/api'
+import { supabase, isSupabaseConfigured } from '../lib/supabase'
 
 const AuthContext = createContext(null)
 const LANGUAGE_STORAGE_KEY = 'easydocstation.language'
@@ -21,6 +22,7 @@ export function AuthProvider({ children }) {
   const currentUserRef = useRef(null)
   const idleTimerRef = useRef(null)
   const isAutoLoggingOutRef = useRef(false)
+  const supabaseSyncInFlightRef = useRef(false)
 
   function clearIdleTimer() {
     if (idleTimerRef.current) {
@@ -71,6 +73,32 @@ export function AuthProvider({ children }) {
     }
   }
 
+  async function syncSessionFromSupabase(session) {
+    if (!session?.access_token) {
+      clearLocalSession()
+      return
+    }
+    if (supabaseSyncInFlightRef.current) return
+    supabaseSyncInFlightRef.current = true
+    try {
+      const exchangeRes = await fetch('/api/auth/supabase/exchange', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        credentials: 'include',
+      })
+      if (!exchangeRes.ok) {
+        throw new Error('Supabase 세션 교환에 실패했습니다.')
+      }
+      const user = await apiFetch('/auth/me')
+      setCurrentUser(user)
+    } finally {
+      supabaseSyncInFlightRef.current = false
+    }
+  }
+
   // 세션 강제 만료 핸들러 (다른 기기 로그인 감지)
   useEffect(() => {
     setSessionInvalidatedHandler(() => {
@@ -93,23 +121,46 @@ export function AuthProvider({ children }) {
 
   // Restore session on app load
   useEffect(() => {
-    const token = getToken()
-    if (!token) { setLoading(false); return }
-    apiFetch('/auth/me')
-      .then(user => setCurrentUser(user))
-      .catch(() => clearToken())
+    if (!isSupabaseConfigured || !supabase) {
+      apiFetch('/auth/me')
+        .then(user => setCurrentUser(user))
+        .catch(() => clearLocalSession())
+        .finally(() => setLoading(false))
+      return
+    }
+
+    supabase.auth.getSession()
+      .then(async ({ data }) => {
+        await syncSessionFromSupabase(data?.session || null)
+      })
+      .catch(() => clearLocalSession())
       .finally(() => setLoading(false))
+
+    const { data: sub } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (!session) {
+        clearLocalSession()
+        return
+      }
+      try {
+        await syncSessionFromSupabase(session)
+      } catch (_) {
+        clearLocalSession()
+      }
+    })
+
+    return () => {
+      sub?.subscription?.unsubscribe?.()
+    }
   }, [])
 
   // 윈도우 포커스 시 세션 재검증 (다른 탭/브라우저에서 로그인 감지)
   useEffect(() => {
     function handleFocus() {
-      if (!getToken() || !currentUserRef.current) return
+      if (!currentUserRef.current) return
       apiFetch('/auth/me')
         .then(user => setCurrentUser(user))
         .catch(() => {
-          clearToken()
-          setCurrentUser(null)
+          clearLocalSession()
         })
     }
     window.addEventListener('focus', handleFocus)
@@ -143,13 +194,27 @@ export function AuthProvider({ children }) {
   }, [])
 
   async function login(identifier, password, options = {}) {
+    if (isSupabaseConfigured && supabase) {
+      throw new Error('Supabase OAuth 로그인 버튼을 사용해 주세요.')
+    }
     const { forceRelogin = false } = options
     const data = await apiFetch('/auth/login', {
       method: 'POST',
       body: JSON.stringify({ identifier, password, forceRelogin }),
     })
-    setToken(data.token)
     setCurrentUser(data.user)
+  }
+
+  async function loginWithProvider(provider) {
+    if (!isSupabaseConfigured || !supabase) {
+      throw new Error('Supabase 설정(VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY)이 필요합니다.')
+    }
+    const redirectTo = window.location.origin
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider,
+      options: { redirectTo },
+    })
+    if (error) throw error
   }
 
   async function updateProfile(updates) {
@@ -163,6 +228,9 @@ export function AuthProvider({ children }) {
 
   async function logout() {
     clearIdleTimer()
+    if (isSupabaseConfigured && supabase) {
+      try { await supabase.auth.signOut() } catch (_) {}
+    }
     await logoutToServer()
     clearLocalSession()
     broadcastAuthEvent({ type: 'FORCE_LOGOUT', reason: 'MANUAL' })
@@ -216,7 +284,7 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     if (!currentUser) return undefined
     const timer = window.setInterval(() => {
-      if (!getToken() || !currentUserRef.current) return
+      if (!currentUserRef.current) return
       apiFetch('/auth/me')
         .then(user => setCurrentUser(user))
         .catch((err) => {
@@ -249,6 +317,7 @@ export function AuthProvider({ children }) {
       language,
       setLanguage,
       login,
+      loginWithProvider,
       logout,
       updateProfile,
       logoutNotice,
