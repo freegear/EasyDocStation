@@ -2060,7 +2060,13 @@ function ComposeBar({ onSubmit, isArchived, teamId }) {
 function PostList({ posts, onSelect, onSubmit, selectedPostId, onOpenDocumentList }) {
   const t = useT()
   const { selectedChannel, selectedTeam, refreshTeams } = useChat()
-  const pinnedPosts = posts.filter(p => p.pinned)
+  const pinnedPosts = posts
+    .filter(p => p.pinned)
+    .sort((a, b) => {
+      const ta = new Date(a.pinned_at || a.createdAt || 0).getTime()
+      const tb = new Date(b.pinned_at || b.createdAt || 0).getTime()
+      return tb - ta
+    })
   const normalPosts = posts.filter(p => !p.pinned)
   const bottomRef = useRef(null)
   const [showManageModal, setShowManageModal] = useState(false)
@@ -2134,14 +2140,16 @@ function PostList({ posts, onSelect, onSubmit, selectedPostId, onOpenDocumentLis
         ) : (
           <div className="flex flex-col gap-3">
             {pinnedPosts.length > 0 && (
-              <>
-                <div className="flex items-center gap-2 text-amber-600/60 text-xs font-medium uppercase tracking-widest mb-1">
+              <div className="sticky top-0 z-20 -mx-2 px-2 py-2 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80 border-b border-amber-100 rounded-xl">
+                <div className="flex items-center gap-2 text-amber-600/70 text-xs font-medium uppercase tracking-widest mb-2">
                   <PinIcon /><span>{t.chat.pinnedPost}</span>
                 </div>
-                {pinnedPosts.map(p => <PostCard key={p.id} post={p} onSelect={onSelect} pinned isSelected={p.id === selectedPostId} />)}
-                {normalPosts.length > 0 && <div className="border-t border-gray-100 my-1" />}
-              </>
+                <div className="flex flex-col gap-2 max-h-[38vh] overflow-y-auto pr-1">
+                  {pinnedPosts.map(p => <PostCard key={p.id} post={p} onSelect={onSelect} pinned isSelected={p.id === selectedPostId} />)}
+                </div>
+              </div>
             )}
+            {pinnedPosts.length > 0 && normalPosts.length > 0 && <div className="border-t border-gray-100 my-1" />}
             {normalPosts.map(p => <PostCard key={p.id} post={p} onSelect={onSelect} isSelected={p.id === selectedPostId} />)}
             <div ref={bottomRef} />
           </div>

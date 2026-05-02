@@ -232,6 +232,36 @@ export function ChatProvider({ children }) {
     }
   }
 
+  async function togglePostPin(channelId, postId, pinned) {
+    const nextPinned = Boolean(pinned)
+    const prevChannelPosts = posts[channelId] || []
+    setPosts(prev => ({
+      ...prev,
+      [channelId]: (prev[channelId] || []).map(p => (
+        p.id === postId
+          ? {
+            ...p,
+            pinned: nextPinned,
+            pinned_at: nextPinned ? new Date().toISOString() : null,
+            pinned_by: nextPinned ? 'me' : null,
+          }
+          : p
+      )),
+    }))
+    try {
+      await apiFetch(`/posts/${postId}/pin`, {
+        method: 'PUT',
+        body: JSON.stringify({ pinned: nextPinned }),
+      })
+      const data = await apiFetch(`/posts?channelId=${channelId}`)
+      setPosts(prev => ({ ...prev, [channelId]: data }))
+      return true
+    } catch (err) {
+      setPosts(prev => ({ ...prev, [channelId]: prevChannelPosts }))
+      throw err
+    }
+  }
+
   // ─── 댓글 삭제 — DB에서 삭제 후 state 반영 ──────────────────
   async function deleteComment(channelId, postId, commentId) {
     try {
@@ -368,6 +398,7 @@ export function ChatProvider({ children }) {
       incrementViews,
       deletePost,
       updatePost,
+      togglePostPin,
       deleteComment,
       updateComment,
       refreshTeams,
