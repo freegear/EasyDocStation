@@ -165,6 +165,7 @@ rm -f package-lock.json
 npm install
 npm install @supabase/supabase-js
 npm install --prefix server
+npm install jose --prefix server
 sudo npx playwright install-deps
 npx playwright install
 

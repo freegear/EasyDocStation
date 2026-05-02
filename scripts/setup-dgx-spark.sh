@@ -13,6 +13,7 @@ install_frontend_dependencies() {
   echo "[DGX] 프론트 의존성 설치 (package.json 기준)"
   npm install
   npm install @supabase/supabase-js
+  npm install jose --prefix server
 
   echo "  Playwright 시스템 의존성/브라우저 설치"
   sudo npx playwright install-deps
