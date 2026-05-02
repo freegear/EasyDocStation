@@ -4041,6 +4041,38 @@ logs/run-dgx-spark-{YYYYMMDD}.log
 
 정보가 들어간다.
 
+# 29.2.2 로그 작성 2
+[BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table' already exists
+[BE] [RAG] comment=c-ae9092c7-878b-4794-9c6a-10ada13d61d8 post=c6e39cd1-411f-4bcc-9dc7-5396fbaffec5 text → 1청크
+[BE] [RAG] 학습 진행률: 50% (댓글 본문)
+[BE] [RAG] 저장 완료 — 1청크 / 0개 게시글 / 1개 댓글
+[BE] [RAG] 학습 진행률: 100% (저장)
+
+
+적용했습니다. 이제 해당 `RAG` 로그도 시간정보가 앞에 붙어서 나옵니다.
+
+수정 파일:
+- [backend-loop-dgx.sh](/Users/kevinim/Desktop/EasyDocStation/scripts/backend-loop-dgx.sh)
+
+핵심 변경:
+- `backend-loop` 자체 로그를 `log_be()`로 통일:
+  - `[$(date '+%Y%m%d-%H:%M:%S')][BE] ...`
+- 가장 중요한 부분:
+  - `npm run start --prefix server` 출력 전체를 한 줄씩 받아
+  - 각 줄 앞에 `[$YYYYMMDD-HH:MM:SS][BE]`를 붙여서 출력하도록 변경
+
+그래서 기존:
+- `[BE] [RAG] ...`
+
+변경 후:
+- `[BE] [20260502-13:43:25][BE] [RAG] ...`  
+  (바깥 `[BE]`는 `concurrently` 프리픽스)
+
+참고:
+- 이미 실행 중인 프로세스에는 즉시 반영되지 않으니 재시작이 필요합니다.
+- `bash scripts/run-dgx-spark.sh --stop` 후 다시 실행하면 새 포맷으로 확인됩니다.
+
+
 
 
 #################################################################################
@@ -4106,6 +4138,17 @@ print(latest_data[['text', 'metadata']])
 
 # E.6 캘린더 등록시 학습 해 둘것. [완료]
 캘랜더의 이벤트가 등록되면, 해당 이벤트의 내용을 RAG로 학습한다.
+
+
+# E.7 오류 발생
+
+# E.7.1 오류 발생
+
+[BE] [20260502-13:43:25][BE] [link-preview-image] meta image failed, fallback screenshot: meta page fetch failed (403)
+[BE] [20260502-13:43:25][BE] [link-preview-image] meta image failed, fallback screenshot: meta page fetch failed (403)
+[BE] [20260502-13:43:25][BE] [link-preview-image] meta image failed, fallback screenshot: meta page fetch failed (403)
+[BE] [20260502-13:43:25][BE] [link-preview-image] meta image failed, fallback screenshot: meta page fetch failed (403)
+
 
 
 #######################################################
