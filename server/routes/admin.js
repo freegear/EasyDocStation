@@ -318,6 +318,11 @@ router.get('/stats', async (req, res) => {
       site_url: config.site_url || '',
       site_backup_key: config['SiteBackUp Key'] || '',
       enable_data_backup: Boolean(config.enable_data_backup),
+      supabase_url: config.SUPABASE_URL || '',
+      supabase_jwt_audience: config.SUPABASE_JWT_AUDIENCE || 'authenticated',
+      jwt_secret: config.JWT_SECRET || '',
+      vite_supabase_url: config.VITE_SUPABASE_URL || '',
+      vite_supabase_anon_key: config.VITE_SUPABASE_ANON_KEY || '',
       sns: normalizeSnsConfig(config.sns || {})
     })
   } catch (err) {
@@ -364,6 +369,11 @@ router.get('/stats', async (req, res) => {
         site_url: config.site_url || '',
         site_backup_key: config['SiteBackUp Key'] || '',
         enable_data_backup: Boolean(config.enable_data_backup),
+        supabase_url: config.SUPABASE_URL || '',
+        supabase_jwt_audience: config.SUPABASE_JWT_AUDIENCE || 'authenticated',
+        jwt_secret: config.JWT_SECRET || '',
+        vite_supabase_url: config.VITE_SUPABASE_URL || '',
+        vite_supabase_anon_key: config.VITE_SUPABASE_ANON_KEY || '',
         sns: normalizeSnsConfig(config.sns || {})
       })
     } catch (innerErr) {
