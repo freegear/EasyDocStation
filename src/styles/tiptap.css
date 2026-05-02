@@ -90,6 +90,46 @@
   margin: 0;
 }
 
+/* Fallback for task list rendered without data-type attrs (li + input[type=checkbox]) */
+.tiptap-editor .ProseMirror li:has(> input[type="checkbox"]) {
+  list-style: none;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin: 0.25rem 0;
+}
+
+.tiptap-editor .ProseMirror li:has(> input[type="checkbox"]) > input[type="checkbox"] {
+  margin: 0.12rem 0 0;
+  flex-shrink: 0;
+}
+
+.tiptap-editor .ProseMirror li:has(> input[type="checkbox"]) > p {
+  margin: 0;
+  flex: 1 1 auto;
+}
+
+.tiptap-editor .ProseMirror li:has(> input[type="checkbox"]) > div {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.tiptap-editor .ProseMirror li:has(> input[type="checkbox"]) > div > p {
+  margin: 0;
+}
+
+/* Broad fallback: keep checkbox line compact even when parent selector support is limited */
+.tiptap-editor .ProseMirror li > input[type="checkbox"] {
+  margin-right: 0.5rem;
+  vertical-align: text-top;
+}
+
+.tiptap-editor .ProseMirror li > input[type="checkbox"] + p,
+.tiptap-editor .ProseMirror li > input[type="checkbox"] + div > p {
+  display: inline;
+  margin: 0;
+}
+
 .tiptap-editor .ProseMirror blockquote {
   border-left: 4px solid #a5b4fc;
   background: #eef2ff;
