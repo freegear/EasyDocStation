@@ -1613,7 +1613,7 @@ function ContentRenderer({ text = '' }) {
           h1: ({ children }) => <h1 className="mt-4 mb-2 text-gray-900 font-bold text-lg">{applyMentionColor(children)}</h1>,
           h2: ({ children }) => <h2 className="mt-4 mb-2 text-gray-900 font-bold text-base">{applyMentionColor(children)}</h2>,
           h3: ({ children }) => <h3 className="mt-3 mb-1.5 text-gray-900 font-semibold text-sm">{applyMentionColor(children)}</h3>,
-          ul: ({ children }) => <ul className="list-disc pl-5 my-1.5 space-y-1">{children}</ul>,
+          ul: ({ children }) => <ul className="list-disc pl-9 my-1.5 space-y-1">{children}</ul>,
           ol: ({ children }) => <ol className="list-decimal pl-5 my-1.5 space-y-1">{children}</ol>,
           li: ({ children }) => <li className="text-gray-700 text-sm">{applyMentionColor(children)}</li>,
           hr: () => <hr className="border-gray-200 my-3" />,

@@ -2259,6 +2259,8 @@ export default function MDPageViewer({ post, channelId, onClose }) {
                               remarkPlugins={[remarkGfm]}
                               components={{
                                 a: ({ ...props }) => <a {...props} target="_blank" rel="noreferrer noopener" />,
+                                ul: ({ children }) => <ul className="list-disc pl-9 my-1.5 space-y-1">{children}</ul>,
+                                ol: ({ children }) => <ol className="list-decimal pl-5 my-1.5 space-y-1">{children}</ol>,
                               }}
                             >
                               {String(comment?.content || '')}
