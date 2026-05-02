@@ -745,9 +745,18 @@ export default function GroqPanel({ width }) {
                     li: ({ children }) => <li>{children}</li>,
                     strong: ({ children }) => <strong className="font-semibold text-gray-900">{children}</strong>,
                     em: ({ children }) => <em className="italic text-gray-600">{children}</em>,
-                    code: ({ inline, children }) => inline
-                      ? <code className="bg-gray-200 px-1 py-0.5 rounded text-green-300 font-mono">{children}</code>
-                      : <pre className="bg-black/40 rounded-lg p-2 mt-1 mb-1.5 overflow-x-auto"><code className="text-green-300 font-mono text-[10px]">{children}</code></pre>,
+                    code: ({ className, children }) => {
+                      const text = String(children ?? '')
+                      const isBlock = /language-/.test(String(className || '')) || text.includes('\n')
+                      if (!isBlock) {
+                        return <code className="bg-gray-200 px-1 py-0.5 rounded text-green-300 font-mono">{children}</code>
+                      }
+                      return (
+                        <pre className="bg-black/40 rounded-lg p-2 mt-1 mb-1.5 overflow-x-auto">
+                          <code className={`text-green-300 font-mono text-[10px] ${className || ''}`.trim()}>{children}</code>
+                        </pre>
+                      )
+                    },
                     blockquote: ({ children }) => <blockquote className="border-l-2 border-white/30 pl-2 text-gray-500 italic my-1">{children}</blockquote>,
                     hr: () => <hr className="border-gray-200 my-2" />,
                     a: ({ href, children }) => <a href={href} target="_blank" rel="noreferrer" className="text-indigo-600 underline hover:text-indigo-600">{children}</a>,

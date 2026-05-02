@@ -1627,13 +1627,18 @@ function ContentRenderer({ text = '' }) {
           tr: ({ children }) => <tr className="border-b border-gray-200">{children}</tr>,
           th: ({ children }) => <th className="px-3 py-2 text-left font-semibold">{applyMentionColor(children)}</th>,
           td: ({ children }) => <td className="px-3 py-2 text-gray-700">{applyMentionColor(children)}</td>,
-          code: ({ inline, children }) => inline
-            ? <code className="bg-gray-200 text-indigo-600 px-1 rounded text-xs font-mono">{children}</code>
-            : (
+          code: ({ className, children }) => {
+            const text = String(children ?? '')
+            const isBlock = /language-/.test(String(className || '')) || text.includes('\n')
+            if (!isBlock) {
+              return <code className="bg-gray-200 text-indigo-600 px-1 rounded text-xs font-mono">{children}</code>
+            }
+            return (
               <pre className="bg-gray-900 text-gray-100 rounded-xl p-3 my-2 overflow-x-auto border border-gray-700">
-                <code className="font-mono text-xs leading-relaxed">{children}</code>
+                <code className={`font-mono text-xs leading-relaxed ${className || ''}`.trim()}>{children}</code>
               </pre>
-            ),
+            )
+          },
         }}
       >
         {normalized}
