@@ -315,6 +315,7 @@ router.get('/stats', async (req, res) => {
       DirectMessage: normalizeDirectMessageConfig(config.DirectMessage || {}),
       company: config.company || {},
       site_url: config.site_url || '',
+      site_backup_key: config['SiteBackUp Key'] || '',
       sns: normalizeSnsConfig(config.sns || {})
     })
   } catch (err) {
@@ -359,6 +360,7 @@ router.get('/stats', async (req, res) => {
         DirectMessage: normalizeDirectMessageConfig(config.DirectMessage || {}),
         company: config.company || {},
         site_url: config.site_url || '',
+        site_backup_key: config['SiteBackUp Key'] || '',
         sns: normalizeSnsConfig(config.sns || {})
       })
     } catch (innerErr) {

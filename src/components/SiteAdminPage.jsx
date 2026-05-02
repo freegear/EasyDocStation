@@ -738,6 +738,7 @@ export default function SiteAdminPage({ onClose }) {
   const [agenticaiForm, setAgenticaiForm] = useState({ num_predict: 4096, num_ctx: 8192, history: 6, language: 'ko', operation_mode: 'server' })
   const [companyForm, setCompanyForm] = useState({ name: '', address: '', phone: '', homepage: '', fax: '', seal: '', logo: '' })
   const [siteUrl, setSiteUrl] = useState('')
+  const [siteBackUpKey, setSiteBackUpKey] = useState('')
   const [snsForm, setSnsForm] = useState({
     kakao: { enabled: false, apiKey: '' },
     line: { enabled: false, channelAccessToken: '' },
@@ -853,6 +854,7 @@ export default function SiteAdminPage({ onClose }) {
         })
       }
       setSiteUrl(String(data.site_url || ''))
+      setSiteBackUpKey(String(data.site_backup_key || ''))
       if (data.sns) {
         setSnsForm({
           kakao: {
@@ -1123,6 +1125,7 @@ export default function SiteAdminPage({ onClose }) {
         }
       } else if (activeTab === 'site') {
         configData.site_url = siteUrl.trim()
+        configData['SiteBackUp Key'] = siteBackUpKey.trim()
       } else if (activeTab === 'sns') {
         configData.sns = {
           kakao: {
@@ -2817,6 +2820,20 @@ export default function SiteAdminPage({ onClose }) {
                   placeholder="https://example.com"
                   className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-gray-900 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-300 transition-all"
                 />
+              </div>
+
+              <div className="bg-gray-100 border border-gray-200 rounded-2xl p-5">
+                <label className="block text-gray-700 text-sm font-semibold mb-2">Data Back Up</label>
+                <input
+                  type="text"
+                  value={siteBackUpKey}
+                  onChange={e => setSiteBackUpKey(e.target.value)}
+                  placeholder="SiteBackUp Key"
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-gray-900 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-300 transition-all"
+                />
+                <p className="text-gray-400 text-xs mt-2">
+                  SiteBackUp Key 값입니다. FTP Server 프로토콜용 특수 키이며, 현재는 사용하지 않습니다.
+                </p>
               </div>
             </div>
           </div>

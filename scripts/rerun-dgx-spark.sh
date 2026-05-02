@@ -6,7 +6,8 @@ cd "$ROOT_DIR"
 
 LOG_DIR="${EASYDOC_LOG_DIR:-$ROOT_DIR/logs}"
 mkdir -p "$LOG_DIR"
-LOG_FILE="$LOG_DIR/rerun-dgx-spark.log"
+LOG_DATE="$(date +%Y%m%d)"
+LOG_FILE="$LOG_DIR/rerun-dgx-spark-${LOG_DATE}.log"
 
 if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
   cat <<'EOF'

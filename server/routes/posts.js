@@ -13,6 +13,7 @@ const {
   clearTrainingStatus,
   getTrainingStatus,
 } = require('../trainingStatus')
+const { ACCESS_DENIED_MESSAGE, canAccessChannel, getAccessibleChannelIds } = require('../lib/channelAccess')
 
 // ─── Telegram mention 알림 ────────────────────────────────────
 function extractMentions(content) {
@@ -300,6 +301,15 @@ async function findCommentLocator(postId, commentId) {
   return row
 }
 
+async function resolveChannelIdForPost(postId) {
+  if (isConnected()) {
+    const locator = await findPostLocator(postId)
+    return locator?.channel_id ? String(locator.channel_id) : ''
+  }
+  const row = await db.query('SELECT channel_id FROM posts WHERE id = $1', [postId])
+  return row.rows[0]?.channel_id ? String(row.rows[0].channel_id) : ''
+}
+
 // ─── GET /api/posts/search ────────────────────────────────────
 router.get('/search', requireAuth, async (req, res, next) => {
   try {
@@ -315,22 +325,29 @@ router.get('/search', requireAuth, async (req, res, next) => {
       client.execute('SELECT * FROM comments ALLOW FILTERING', [], { prepare: true }),
     ])
 
-    const matchedPosts    = allPostsResult.rows.filter(r => r.id != null && r.content && r.content.toLowerCase().includes(lower))
-    const matchedComments = allCommentsResult.rows.filter(r => r.id != null && r.content && r.content.toLowerCase().includes(lower))
+    const matchedPostsRaw = allPostsResult.rows.filter(r => r.id != null && r.content && r.content.toLowerCase().includes(lower))
+    const matchedCommentsRaw = allCommentsResult.rows.filter(r => r.id != null && r.content && r.content.toLowerCase().includes(lower))
 
-    if (matchedPosts.length === 0 && matchedComments.length === 0) return res.json([])
+    if (matchedPostsRaw.length === 0 && matchedCommentsRaw.length === 0) return res.json([])
 
     // ── 2. 댓글의 channel_id는 게시글에서 조회 ──────────────────
     const postMap = new Map(allPostsResult.rows.filter(p => p.id != null).map(p => [p.id.toString(), p]))
 
     // ── 3. 필요한 channel_id / author_id 일괄 수집 ──────────────
     const channelIds = new Set([
-      ...matchedPosts.map(p => p.channel_id),
-      ...matchedComments.map(c => {
+      ...matchedPostsRaw.map(p => p.channel_id),
+      ...matchedCommentsRaw.map(c => {
         const post = postMap.get(c.post_id.toString())
         return post ? post.channel_id : null
       }).filter(Boolean),
     ])
+    const accessibleChannelIds = new Set(await getAccessibleChannelIds(db, req.user, [...channelIds]))
+    const matchedPosts = matchedPostsRaw.filter(p => accessibleChannelIds.has(p.channel_id))
+    const matchedComments = matchedCommentsRaw.filter(c => {
+      const post = postMap.get(c.post_id.toString())
+      return post && accessibleChannelIds.has(post.channel_id)
+    })
+    if (matchedPosts.length === 0 && matchedComments.length === 0) return res.json([])
     const authorIds = new Set([
       ...matchedPosts.map(p => p.author_id),
       ...matchedComments.map(c => c.author_id),
@@ -403,6 +420,8 @@ router.get('/', requireAuth, async (req, res, next) => {
   try {
     const { channelId } = req.query
     if (!channelId) return res.status(400).json({ error: 'channelId is required' })
+    const allowed = await canAccessChannel(db, req.user, channelId)
+    if (!allowed) return res.status(403).json({ error: ACCESS_DENIED_MESSAGE })
 
     // ── Cassandra path ────────────────────────────────────────
     if (isConnected()) {
@@ -513,6 +532,8 @@ router.post('/', requireAuth, async (req, res, next) => {
   try {
     const { channelId, content, attachmentIds, security_level } = req.body
     if (!channelId || !content) return res.status(400).json({ error: 'channelId and content are required' })
+    const allowed = await canAccessChannel(db, req.user, channelId)
+    if (!allowed) return res.status(403).json({ error: ACCESS_DENIED_MESSAGE })
 
     if (attachmentIds && attachmentIds.length > 10) {
       return res.status(400).json({ error: '첨부파일은 최대 10개까지만 가능합니다.' })
@@ -719,6 +740,10 @@ router.put('/:id', requireAuth, async (req, res, next) => {
 // ─── GET /api/posts/:id/comments ─────────────────────────────
 router.get('/:id/comments', requireAuth, async (req, res, next) => {
   try {
+    const channelId = await resolveChannelIdForPost(req.params.id)
+    if (!channelId) return res.status(404).json({ error: '게시글을 찾을 수 없습니다.' })
+    const allowed = await canAccessChannel(db, req.user, channelId)
+    if (!allowed) return res.status(403).json({ error: ACCESS_DENIED_MESSAGE })
     const comments = await fetchComments(req.params.id)
     res.json(comments)
   } catch (err) {
@@ -731,6 +756,10 @@ router.post('/:id/comments', requireAuth, async (req, res, next) => {
   try {
     const { id: postId } = req.params
     const { content, attachmentIds = [], channelId, security_level } = req.body
+    const resolvedChannelId = channelId || (await resolveChannelIdForPost(postId))
+    if (!resolvedChannelId) return res.status(404).json({ error: '게시글을 찾을 수 없습니다.' })
+    const allowed = await canAccessChannel(db, req.user, resolvedChannelId)
+    if (!allowed) return res.status(403).json({ error: ACCESS_DENIED_MESSAGE })
     const safeContent = String(content || '').trim()
     const safeAttachmentIds = Array.isArray(attachmentIds) ? attachmentIds.filter(Boolean) : []
     if (!safeContent && safeAttachmentIds.length === 0) {

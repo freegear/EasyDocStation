@@ -15,6 +15,7 @@ import ConfirmDialog from './components/ConfirmDialog'
 import SelectionGuardPlaywrightFixture from './components/dev/SelectionGuardPlaywrightFixture'
 
 function MainLayout() {
+  const accessDeniedMessage = '당신은 권한이 없습니다. 필요하시면 채널관리자/팀 관리자/채널관리자 에게 연락하여 주시기바랍니다.'
   const [showProfile, setShowProfile] = useState(false)
   const [showProfileSavedDialog, setShowProfileSavedDialog] = useState(false)
   const [showSiteAdmin, setShowSiteAdmin] = useState(false)
@@ -23,6 +24,7 @@ function MainLayout() {
   const [showDM, setShowDM] = useState(false)
   const [activeDMConv, setActiveDMConv] = useState(null)
   const [showNewDM, setShowNewDM] = useState(false)
+  const [showAccessDeniedDialog, setShowAccessDeniedDialog] = useState(false)
   const { isSearchMode, teams, navigateToPost } = useChat()
   const deepLinkHandledRef = useRef(false)
 
@@ -89,7 +91,10 @@ function MainLayout() {
 
     navigateToPost(channelId, postId, { commentId, attachmentId })
       .then((opened) => {
-        if (!opened) return
+        if (!opened) {
+          setShowAccessDeniedDialog(true)
+          return
+        }
         deepLinkHandledRef.current = signature
         const url = new URL(window.location.href)
         url.searchParams.delete('channelId')
@@ -107,6 +112,14 @@ function MainLayout() {
     }
     window.addEventListener('open-agentic-panel', handleOpenAgenticPanel)
     return () => window.removeEventListener('open-agentic-panel', handleOpenAgenticPanel)
+  }, [])
+
+  useEffect(() => {
+    function handleChannelAccessDenied() {
+      setShowAccessDeniedDialog(true)
+    }
+    window.addEventListener('channel-access-denied', handleChannelAccessDenied)
+    return () => window.removeEventListener('channel-access-denied', handleChannelAccessDenied)
   }, [])
 
   return (
@@ -181,6 +194,14 @@ function MainLayout() {
           hideCancel
           onConfirm={() => setShowProfileSavedDialog(false)}
           onCancel={() => setShowProfileSavedDialog(false)}
+        />
+      )}
+      {showAccessDeniedDialog && (
+        <ConfirmDialog
+          title="권한 없음"
+          message={accessDeniedMessage}
+          confirmText="확인"
+          onConfirm={() => setShowAccessDeniedDialog(false)}
         />
       )}
     </div>
