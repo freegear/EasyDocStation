@@ -4872,6 +4872,132 @@ Supabase Auth 기준으로 기존 JWT 로그인에서 병행 전환까지 코드
 
 
 
+# 32.3.3 Supabase 를 사용해서 카카오 로그인을 하도록 설정하는 방법을 알려줘
+
+좋아요. **Supabase + Kakao 로그인**은 아래 순서로 설정하면 됩니다.
+
+1. **Supabase에서 Kakao Provider 활성화**
+- Supabase Dashboard → `Authentication` → `Providers` → `Kakao`
+- `Enable` ON
+- 여기서 **Callback URL** 확인:
+  - `https://<project-ref>.supabase.co/auth/v1/callback`
+
+  https://doaxugndsqewxdwnwskx.supabase.co/auth/v1/callback
+
+
+
+2. **Kakao Developers 앱 설정**
+- Kakao Developers에서 앱 생성
+- `REST API Key` 확인 (Supabase의 `Client ID`로 사용)
+  
+   0a94e4e0abbe19dd565b0b9055f751e9
+
+
+- `Kakao Login Client Secret` 발급/활성화 (Supabase의 `Client Secret`으로 사용)
+
+   0a94e4e0abbe19dd565b0b9055f751e9
+
+- `Kakao Login` 사용 ON
+- Redirect URI에 아래 등록:
+  - `https://<project-ref>.supabase.co/auth/v1/callback`
+  - 로컬 테스트 시: `http://localhost:54321/auth/v1/callback` (Supabase CLI 사용 시)
+
+  https://doaxugndsqewxdwnwskx.supabase.co/auth/v1/callback
+
+
+3. **동의항목/보안 설정**
+- Kakao Login에서 필요한 동의항목 추가 (`profile_nickname`, `profile_image`, 필요시 `account_email`)
+- OIDC를 쓸 경우 Kakao에서 OpenID Connect 활성화 및 `openid` scope 사용
+
+4. **Supabase에 Kakao 키 입력 저장**
+- Supabase Kakao Provider 화면에
+  - `Client ID` = Kakao REST API Key
+  - `Client Secret` = Kakao Login Client Secret
+- 저장
+
+5. **프론트 코드 연결**
+```js
+import { createClient } from '@supabase/supabase-js'
+
+const supabase = createClient(import.meta.env.VITE_SUPABASE_URL, import.meta.env.VITE_SUPABASE_ANON_KEY)
+
+async function signInWithKakao() {
+  const { error } = await supabase.auth.signInWithOAuth({
+    provider: 'kakao',
+    options: {
+      redirectTo: `${window.location.origin}/auth/callback`,
+    },
+  })
+  if (error) console.error(error)
+}
+```
+
+6. **Supabase Redirect Allow List 추가**
+- Supabase → `Authentication` → URL/Redirect 설정에서
+  - `https://your-domain.com/auth/callback`
+  - `http://localhost:5173/auth/callback`  
+  등을 허용 목록에 추가
+
+자주 나는 오류:
+- `redirect_uri mismatch`: Kakao에 등록한 URI와 Supabase callback URI가 1글자라도 다름
+- 로그인 후 돌아오지 않음: Supabase Redirect Allow List 누락
+- 이메일 없음 오류: Kakao `account_email` 동의 미설정 또는 Supabase에서 이메일 없는 사용자 허용 미설정
+
+출처:
+- Supabase Kakao 가이드: https://supabase.com/docs/guides/auth/social-login/auth-kakao  
+- Kakao Login 사전 설정: https://developers.kakao.com/docs/latest/ko/kakaologin/prerequisite
+
+
+VITE_SUPABASE_ANON_KEY :
+
+원인은 화면 메시지 그대로입니다.  
+프론트에서 `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`를 못 읽고 있습니다.
+
+해결 순서:
+
+1. `config.json`에 값 저장 확인
+- 사이트관리 → `SUPABASE 설정`에서 아래 2개를 반드시 입력 후 저장
+- `VITE_SUPABASE_URL` = `https://<project-ref>.supabase.co`
+- `VITE_SUPABASE_ANON_KEY` = Supabase 프로젝트의 anon public key
+
+2. Supabase 값 확인 위치
+- Supabase Dashboard → `Settings` → `API`
+- `Project URL` → `VITE_SUPABASE_URL`
+- `anon public` key → `VITE_SUPABASE_ANON_KEY`
+
+3. 프론트/백엔드 재시작
+- Vite는 환경값/설정 캐시 때문에 **재시작**이 필요할 수 있습니다.
+- 서버와 프론트 둘 다 재시작하세요.
+
+4. 여전히 동일하면 점검
+- URL 오타(`https://` 포함 여부)
+- anon key 앞뒤 공백
+- 저장 API 성공 여부 (`/api/admin/config` 200)
+- `config.json`에 실제 키가 써졌는지 확인
+
+원하시면 제가 코드에서 현재 로그인 페이지가 `config.json` 기반으로 읽는지, 아니면 `.env`만 읽는지 바로 확인해서 정확히 어떤 경로를 고쳐야 하는지 바로 잡아드릴게요.
+
+
+
+
+
+SUPABASE 설정 페이지에서 설정을 저장하면, 
+
+.env(또는 배포 환경변수)에 아래 2개를 넣으세요.
+
+config.json 파일에 있는
+
+VITE_SUPABASE_URL=https://<project-ref>.supabase.co
+VITE_SUPABASE_ANON_KEY=<anon public key>
+
+값을 복사해서 
+.env 파일에 복사해줘
+
+
+
+
+
+
 
 #################################################################################
 # E. Error
