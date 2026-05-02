@@ -159,11 +159,38 @@ export default function GroqPanel({ width }) {
     setNoticeDialog({ title, message })
   }
 
-  function copyToClipboard(id, text) {
-    navigator.clipboard.writeText(text).then(() => {
+  async function copyToClipboard(id, text) {
+    const normalized = String(text || '').trim()
+    if (!normalized) return
+    try {
+      if (navigator?.clipboard?.writeText) {
+        await navigator.clipboard.writeText(normalized)
+      } else {
+        const ta = document.createElement('textarea')
+        ta.value = normalized
+        ta.setAttribute('readonly', '')
+        ta.style.position = 'fixed'
+        ta.style.opacity = '0'
+        document.body.appendChild(ta)
+        ta.select()
+        document.execCommand('copy')
+        document.body.removeChild(ta)
+      }
       setCopiedId(id)
       setTimeout(() => setCopiedId(null), 2000)
-    })
+    } catch {
+      const ta = document.createElement('textarea')
+      ta.value = normalized
+      ta.setAttribute('readonly', '')
+      ta.style.position = 'fixed'
+      ta.style.opacity = '0'
+      document.body.appendChild(ta)
+      ta.select()
+      document.execCommand('copy')
+      document.body.removeChild(ta)
+      setCopiedId(id)
+      setTimeout(() => setCopiedId(null), 2000)
+    }
   }
 
   function findChannelById(channelId) {
