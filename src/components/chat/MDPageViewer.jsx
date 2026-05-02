@@ -876,9 +876,26 @@ function injectAuthTokenIntoMarkdown(md = '', token = '') {
 
 function normalizeMarkdownForTableParsing(md = '') {
   const text = String(md || '').replace(/\r\n?/g, '\n')
+  const lines = text.split('\n')
+  // 리스트 항목 내부에서 "들여쓴 백틱 1줄"이 indented code block으로 오인되는 케이스 보정
+  for (let i = 0; i < lines.length; i += 1) {
+    const line = lines[i]
+    if (!/^\s{4,}`[^`\n]+`\s*$/.test(line)) continue
+
+    let prev = i - 1
+    while (prev >= 0 && lines[prev].trim() === '') prev -= 1
+    if (prev < 0) continue
+
+    const prevLine = lines[prev]
+    const isListLine = /^\s*(?:[-*+]\s+|\d+\.\s+)/.test(prevLine)
+    if (!isListLine) continue
+
+    lines[i] = `  ${line.trim()}`
+  }
+  const normalizedText = lines.join('\n')
   // Markdown image line 바로 아래에 GFM table 헤더가 붙으면 표 파싱이 깨지는 케이스가 있어
   // 블록 경계를 명확히 하기 위해 빈 줄을 강제한다.
-  return text
+  return normalizedText
     .replace(/(!\[[^\]]*]\([^)]*\))(?=\|)/g, '$1\n\n')
     .replace(/(<img\b[^>]*>)(?=\|)/gi, '$1\n\n')
     .replace(/(!\[[^\]]*]\([^)]+\)(?:\{[^}]*\})?[^\n]*)\n(?=\|.+\|)/g, '$1\n\n')
