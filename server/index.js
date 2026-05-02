@@ -1,6 +1,38 @@
 require('dotenv').config({ override: true })
 const express = require('express')
 const cors = require('cors')
+const util = require('util')
+
+function pad2(n) {
+  return String(n).padStart(2, '0')
+}
+
+function logTimestamp() {
+  const d = new Date()
+  const y = d.getFullYear()
+  const m = pad2(d.getMonth() + 1)
+  const day = pad2(d.getDate())
+  const hh = pad2(d.getHours())
+  const mm = pad2(d.getMinutes())
+  const ss = pad2(d.getSeconds())
+  return `${y}${m}${day}-${hh}:${mm}:${ss}`
+}
+
+function installBackendLogPrefix() {
+  const methods = ['log', 'info', 'warn', 'error', 'debug']
+  for (const method of methods) {
+    const original = console[method]?.bind(console)
+    if (!original) continue
+    console[method] = (...args) => {
+      const rendered = args.length > 0
+        ? util.formatWithOptions({ colors: false, depth: null }, ...args)
+        : ''
+      original(`[${logTimestamp()}][BE] ${rendered}`)
+    }
+  }
+}
+
+installBackendLogPrefix()
 
 const authRouter = require('./routes/auth')
 const usersRouter = require('./routes/users')

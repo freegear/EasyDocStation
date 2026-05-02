@@ -4005,7 +4005,7 @@ DGX-SPARK 의
 
 
 
-# 29.2 Log 작성
+# 29.2 Log 파일 작성
 
 log를 만들때 용량이 커지면 곤란하다.
 우선 매일 매일 log 파일을 새로만든다.
@@ -4020,6 +4020,26 @@ logs/run-dgx-spark-{YYYYMMDD}.log
 로 로그파일이 매일 새로운 파일로 생성되도록 한다.
 동일하게 rerun 로그도 날짜별 파일로 생성한다.
 예: logs/rerun-dgx-spark-{YYYYMMDD}.log
+
+# 29.2.1 로그 작성
+
+로그 작성에서는 반드시 시간이 들어가야 한다.
+
+예를 들어서
+
+[BE] [RAG] 댓글 학습 시작 — 1개 댓글 (제외: 0개)
+[BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table' already exists
+[BE] [RAG] comment=c-de5f77f2-c8e6-4da5-acf4-ed80cfc062e7 post=1a4c6de1-93c1-4da3-80ce-f3907be3e26b text → 2청크
+[BE] [RAG] 학습 진행률: 50% (댓글 본문)
+[BE] [RAG] 저장 완료 — 2청크 / 0개 게시글 / 1개 댓글
+[BE] [RAG] 학습 진행률: 100% (저장)
+[BE] [RAG] 댓글 학습 완료 — 1개 댓글 (3.9s)
+
+이 되면 안되고
+
+[YYYYMMDD-HH:MM:SS][BE] [RAG] 댓글 학습 완료 — 1개 댓글 (3.9s)
+
+정보가 들어간다.
 
 
 
