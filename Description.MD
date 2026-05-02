@@ -4073,6 +4073,182 @@ logs/run-dgx-spark-{YYYYMMDD}.log
 - `bash scripts/run-dgx-spark.sh --stop` 후 다시 실행하면 새 포맷으로 확인됩니다.
 
 
+# 30. 플랫폼 분기
+
+# 30.1 플랫폼 지원
+
+EasyAIStation은 하나의 기반 플랫폼으로 구축한다.
+
+A사를 위한 
+- EasyAIStation-Safe114
+B사를 위한 
+- EasyAIStation-ProposalBestWinTech
+이렇게 분류하고, 해당 플랫폼에 고유한 기능이 들어간다.
+하지만 코드는 하나로 통합해서 관리하고 싶다.
+이것을 위한 최적의 코딩 관리 방법은 어떤 것인가 ?
+
+
+--> 제안 사항
+
+**제안: “Core + Tenant Overlay + Plugin” 단일 코드베이스 아키텍처**
+
+1. 목표
+- 코드 저장소는 1개(`main` 중심)
+- 플랫폼 2종 동시 지원
+  - `safe114` (EasyAIStation-Safe114)
+  - `proposalbestwintech` (EasyAIStation-ProposalBestWinTech)
+- 공통 기능 재사용 + 플랫폼별 고유 기능 분리
+
+2. 디렉터리 구조
+```txt
+EasyAIStation/
+  apps/
+    web/                      # 프론트엔드 엔트리
+    server/                   # 백엔드 엔트리
+  core/                       # 공통 도메인/비즈니스 로직
+    auth/
+    channel/
+    rag/
+    files/
+    ui/
+    api/
+  tenants/
+    safe114/
+      config/
+        app.json              # 메뉴/기능플래그/브랜딩/정책
+      theme/
+      i18n/
+      overrides/              # 최소한의 화면/문구 override
+    proposalbestwintech/
+      config/
+        app.json
+      theme/
+      i18n/
+      overrides/
+  plugins/
+    safe114-*/                # Safe114 전용 기능 모듈
+    pbtw-*/                   # ProposalBestWinTech 전용 기능 모듈
+  config/
+    base.json                 # 전체 공통 기본값
+    env/
+      development.json
+      production.json
+  scripts/
+    build-tenant.sh
+    run-tenant.sh
+  package.json
+```
+
+3. 동작 원리
+- 실행 시 `APP_TENANT` 선택:
+  - `safe114` 또는 `proposalbestwintech`
+- 로딩 순서:
+  1) `config/base.json`
+  2) `tenants/<tenant>/config/app.json`
+  3) `env` 설정
+- 최종 설정으로
+  - 기능 플래그
+  - 메뉴/권한/정책
+  - 테마/로고/문구
+  - 활성 플러그인
+  을 결정
+
+4. 개발 규칙
+- 공통 로직은 무조건 `core`에
+- 고객 전용은 `plugins` 또는 `tenants/*/overrides`에만
+- `if (tenant===...)` 분기를 업무 코드에 직접 남발 금지
+- 분기는 “설정/플러그인 등록”에서만 처리
+
+5. 배포 전략
+- 하나의 CI 파이프라인에서 테넌트별 2개 산출물 생성
+  - `APP_TENANT=safe114`
+  - `APP_TENANT=proposalbestwintech`
+- 버전은 동일 태그, 릴리스 노트만 테넌트별 섹션 분리
+
+6. 이 방식의 장점
+- 코드 일원화 유지
+- 고객별 요구 수용 가능
+- 유지보수/병합 비용 최소화
+- 기능 확장 시 새 테넌트 추가가 쉬움
+
+원하면 다음 단계로, 현재 레포에 맞춘 **실제 마이그레이션 순서(1~2주 단위)**까지 이어서 작성해드리겠습니다.
+
+
+제안: **단일 코드베이스 멀티-테넌트 아키텍처**로 운영하세요.  
+대상은 `Safe114`, `ProposalBestWinTech`, `BlueTop` 3개 플랫폼입니다.
+
+핵심 구조:
+1. `core` (공통 기능)
+- 인증, 채널, 권한, RAG, 파일, 공통 UI/API 등
+
+2. `tenants/<tenant>` (고객별 오버레이)
+- 설정(`app.json`), 브랜딩, 테마, 문구(i18n), 정책
+
+3. `plugins/<tenant>-*` (고객 전용 기능)
+- 고객별 특수 기능은 플러그인으로 분리
+
+권장 디렉터리:
+```txt
+EasyAIStation/
+  apps/web
+  apps/server
+  core/
+  tenants/
+    safe114/
+    proposalbestwintech/
+    bluetop/
+  plugins/
+    safe114-*/
+    pbtw-*/
+    bluetop-*/
+  config/base.json
+  scripts/build-tenant.sh
+  scripts/run-tenant.sh
+```
+
+동작 방식:
+1. 실행/빌드 시 `tenant id`를 인자로 전달
+- `safe114`
+- `proposalbestwintech`
+- `bluetop`
+
+2. 설정 병합
+- `config/base.json`
+- `tenants/<tenant>/config/app.json`
+- 환경별 설정(`env`)
+
+3. 최종 설정으로
+- 기능 플래그
+- 메뉴/권한/정책
+- 테마/로고/문구
+- 활성 플러그인
+을 결정
+
+스크립트 전략:
+- 회사별로 스크립트 파일을 복제하지 말고,
+- **공통 스크립트 + 인자** 방식 사용
+
+예:
+```bash
+bash scripts/build-tenant.sh safe114
+bash scripts/build-tenant.sh proposalbestwintech
+bash scripts/run-tenant.sh bluetop
+```
+
+즉, “각 플랫폼마다 완전히 별도 코드”가 아니라,  
+**공통 코어 1개 + 테넌트 설정/플러그인 분리**로 통합 관리하는 방식이 최적입니다.
+
+운영 규칙(중요):
+1. 공통 로직은 `core`에만
+2. 고객 전용은 `tenants/*`, `plugins/*`에만
+3. 업무 코드에 `if (tenant===...)` 분기 남발 금지
+- 분기는 설정/플러그인 레이어에서 처리
+
+이 방식의 효과:
+- 코드 중복 최소화
+- 버그 수정 1회로 3개 플랫폼 동시 반영
+- 고객별 요구 확장(4번째, 5번째 회사)도 저비용으로 가능
+
 
 
 #################################################################################
