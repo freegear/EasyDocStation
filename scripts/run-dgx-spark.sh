@@ -10,6 +10,10 @@ LOG_DATE="$(date +%Y%m%d)"
 LOG_FILE="$LOG_DIR/run-dgx-spark-${LOG_DATE}.log"
 PID_FILE="$LOG_DIR/dgx-spark.pid"
 
+log() {
+  echo "[$(date '+%Y%m%d-%H:%M:%S')][DGX-SPARK] $*"
+}
+
 resolve_port_pids() {
   local port="$1"
   local pids=""
@@ -48,7 +52,7 @@ kill_by_port() {
   local pids=""
   pids="$(resolve_port_pids "$port")"
   if [[ -n "${pids:-}" ]]; then
-    echo "[DGX-SPARK] 포트 ${port} 점유 프로세스 정리: ${pids//$'\n'/ }"
+    log "포트 ${port} 점유 프로세스 정리: ${pids//$'\n'/ }"
     while IFS= read -r pid; do
       [[ -z "${pid:-}" ]] && continue
       kill_tree "$pid"
@@ -116,12 +120,12 @@ if [[ "${1:-}" == "--status" ]]; then
   if [[ -f "$PID_FILE" ]]; then
     pid="$(cat "$PID_FILE" 2>/dev/null || true)"
     if [[ -n "${pid:-}" ]] && kill -0 "$pid" 2>/dev/null; then
-      echo "[DGX-SPARK] 실행 중 (PID: $pid)"
-      echo "[DGX-SPARK] 로그: $LOG_FILE"
+      log "실행 중 (PID: $pid)"
+      log "로그: $LOG_FILE"
       exit 0
     fi
   fi
-  echo "[DGX-SPARK] 실행 중이 아닙니다."
+  log "실행 중이 아닙니다."
   exit 1
 fi
 
@@ -146,23 +150,23 @@ if [[ "${1:-}" == "--stop" ]]; then
   done
 
   if ! wait_port_free 3001 30 0.5; then
-    echo "[DGX-SPARK] 경고: 포트 3001 점유가 남아 있습니다."
+    log "경고: 포트 3001 점유가 남아 있습니다."
     print_port_holders 3001
   fi
   if has_dgx_processes; then
-    echo "[DGX-SPARK] 경고: 일부 DGX 실행 프로세스가 남아 있습니다."
+    log "경고: 일부 DGX 실행 프로세스가 남아 있습니다."
     pgrep -af "$ROOT_DIR/node_modules/.bin/concurrently" || true
     pgrep -af "scripts/backend-loop-dgx.sh" || true
     pgrep -af "npm run start --prefix server" || true
     pgrep -af "node index.js" || true
   fi
-  echo "[DGX-SPARK] 중지 완료"
+  log "중지 완료"
   exit 0
 fi
 
 if [[ ! -f "$ROOT_DIR/server/.env" ]]; then
-  echo "[ERROR] server/.env 파일이 없습니다."
-  echo "먼저 설치를 실행하세요: bash scripts/install-dgx-spark.sh"
+  echo "[$(date '+%Y%m%d-%H:%M:%S')][ERROR] server/.env 파일이 없습니다."
+  echo "[$(date '+%Y%m%d-%H:%M:%S')][ERROR] 먼저 설치를 실행하세요: bash scripts/install-dgx-spark.sh"
   exit 1
 fi
 
@@ -176,21 +180,21 @@ print_port_holders() {
   fi
   pids="$(echo "$pids" | tr ' ' '\n' | awk 'NF' | sort -u)"
   if [[ -z "${pids:-}" ]]; then
-    echo "[DGX-SPARK] 포트 ${port} 점유 프로세스 없음"
+    log "포트 ${port} 점유 프로세스 없음"
     return 0
   fi
-  echo "[DGX-SPARK] 포트 ${port} 점유 프로세스 상세:"
+  log "포트 ${port} 점유 프로세스 상세:"
   while IFS= read -r pid; do
     [[ -z "${pid:-}" ]] && continue
-    ps -p "$pid" -o pid=,user=,comm=,args= 2>/dev/null | sed 's/^/[DGX-SPARK]   /' || true
+    ps -p "$pid" -o pid=,user=,comm=,args= 2>/dev/null | sed "s/^/[$(date '+%Y%m%d-%H:%M:%S')][DGX-SPARK]   /" || true
   done <<< "$pids"
 }
 
 if [[ -f "$PID_FILE" ]]; then
   old_pid="$(cat "$PID_FILE" 2>/dev/null || true)"
   if [[ -n "${old_pid:-}" ]] && kill -0 "$old_pid" 2>/dev/null; then
-    echo "[DGX-SPARK] 이미 실행 중입니다. (PID: $old_pid)"
-    echo "[DGX-SPARK] 로그: $LOG_FILE"
+    log "이미 실행 중입니다. (PID: $old_pid)"
+    log "로그: $LOG_FILE"
     exit 0
   fi
   rm -f "$PID_FILE"
@@ -204,31 +208,31 @@ kill_by_port 5173
 kill_by_port 3001
 
 if ! wait_port_free 3001 20 0.5; then
-  echo "[DGX-SPARK] 포트 3001 정리가 완료되지 않았습니다. 시작을 중단합니다."
+  log "포트 3001 정리가 완료되지 않았습니다. 시작을 중단합니다."
   print_port_holders 3001
-  echo "[DGX-SPARK] 수동 정리 후 재시도: bash scripts/run-dgx-spark.sh --stop"
+  log "수동 정리 후 재시도: bash scripts/run-dgx-spark.sh --stop"
   exit 1
 fi
 
 # 3001이 계속 점유되어 있으면 시작 자체를 중단해 무한 루프를 방지한다.
 if command -v lsof >/dev/null 2>&1; then
   if lsof -ti tcp:3001 >/dev/null 2>&1; then
-    echo "[DGX-SPARK] 포트 3001이 여전히 점유되어 있어 시작을 중단합니다."
+    log "포트 3001이 여전히 점유되어 있어 시작을 중단합니다."
     print_port_holders 3001
-    echo "[DGX-SPARK] 먼저 정리 후 재시도: bash scripts/run-dgx-spark.sh --stop"
+    log "먼저 정리 후 재시도: bash scripts/run-dgx-spark.sh --stop"
     exit 1
   fi
 elif command -v fuser >/dev/null 2>&1; then
   if fuser -n tcp 3001 >/dev/null 2>&1; then
-    echo "[DGX-SPARK] 포트 3001이 여전히 점유되어 있어 시작을 중단합니다."
+    log "포트 3001이 여전히 점유되어 있어 시작을 중단합니다."
     print_port_holders 3001
-    echo "[DGX-SPARK] 먼저 정리 후 재시도: bash scripts/run-dgx-spark.sh --stop"
+    log "먼저 정리 후 재시도: bash scripts/run-dgx-spark.sh --stop"
     exit 1
   fi
 fi
 
-echo "[DGX-SPARK] 백그라운드 실행 시작"
-echo "[DGX-SPARK] 로그: $LOG_FILE"
+log "백그라운드 실행 시작"
+log "로그: $LOG_FILE"
 
 nohup env EASYDOC_DAEMON_MODE=1 bash "$ROOT_DIR/scripts/dev-dgx-spark.sh" >>"$LOG_FILE" 2>&1 < /dev/null &
 new_pid=$!
@@ -237,11 +241,11 @@ echo "$new_pid" > "$PID_FILE"
 
 sleep 1
 if kill -0 "$new_pid" 2>/dev/null; then
-  echo "[DGX-SPARK] 실행 성공 (PID: $new_pid)"
-  echo "[DGX-SPARK] 종료 명령: bash scripts/run-dgx-spark.sh --stop"
+  log "실행 성공 (PID: $new_pid)"
+  log "종료 명령: bash scripts/run-dgx-spark.sh --stop"
   exit 0
 fi
 
-echo "[DGX-SPARK] 실행 실패. 로그를 확인하세요: $LOG_FILE"
+log "실행 실패. 로그를 확인하세요: $LOG_FILE"
 rm -f "$PID_FILE"
 exit 1

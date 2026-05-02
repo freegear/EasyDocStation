@@ -9,6 +9,10 @@ mkdir -p "$LOG_DIR"
 LOG_DATE="$(date +%Y%m%d)"
 LOG_FILE="$LOG_DIR/rerun-dgx-spark-${LOG_DATE}.log"
 
+log() {
+  echo "[$(date '+%Y%m%d-%H:%M:%S')][DGX-SPARK] $*"
+}
+
 if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
   cat <<'EOF'
 Usage:
@@ -21,12 +25,12 @@ EOF
   exit 0
 fi
 
-echo "[DGX-SPARK] 재실행 시작"
-echo "[DGX-SPARK] 로그: $LOG_FILE"
+log "재실행 시작"
+log "로그: $LOG_FILE"
 
 {
-  echo "[$(date '+%F %T')] stop old process"
+  echo "[$(date '+%Y%m%d-%H:%M:%S')][DGX-SPARK] stop old process"
   bash "$ROOT_DIR/scripts/run-dgx-spark.sh" --stop
-  echo "[$(date '+%F %T')] start new process"
+  echo "[$(date '+%Y%m%d-%H:%M:%S')][DGX-SPARK] start new process"
   bash "$ROOT_DIR/scripts/run-dgx-spark.sh"
 } >>"$LOG_FILE" 2>&1
