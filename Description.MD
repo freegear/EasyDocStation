@@ -1767,6 +1767,29 @@ EasyDoc AgenticAI
 보일때에는 파란색으로, 안 보일때에는 회색으로 버튼 색을 설정한다.
 이 버튼의 위치는 언어 선택과 검색의 중간에 추가한다.
 
+# 14.6.1 복사 버튼
+
+AgenticAI 패널에서 답글에 달려 있는 복사 버튼이 동작을 안한다.
+원인을 분석해줘, 이유를 확인 해 줘
+
+원인 확인 결과, **AgenticAI 패널의 복사 버튼 구현만 예외 처리/폴백이 빠져 있어서** 환경에 따라 실패하고, UI상으로는 “아무 반응 없음”처럼 보입니다.
+
+- 문제 코드: [GroqPanel.jsx](/Users/kevinim/Desktop/EasyDocStation/src/components/GroqPanel.jsx:162)  
+  - `copyToClipboard()`가 `navigator.clipboard.writeText(text).then(...)`만 사용
+  - `catch`가 없어서 권한 거부/비보안 컨텍스트/브라우저 제약 시 실패 처리 안 됨
+- 버튼 연결: [GroqPanel.jsx](/Users/kevinim/Desktop/EasyDocStation/src/components/GroqPanel.jsx:814)  
+  - 복사 버튼 클릭 시 위 함수 호출
+
+비교해보면, 다른 화면 복사 기능은 정상 대비가 되어 있습니다.
+
+- 정상 패턴 예시: [PostDetailPane.jsx](/Users/kevinim/Desktop/EasyDocStation/src/components/chat/PostDetailPane.jsx:237)  
+  - `try/catch` + `navigator.clipboard` 미지원 시 `document.execCommand('copy')` 폴백
+- 정상 패턴 예시: [MDPageViewer.jsx](/Users/kevinim/Desktop/EasyDocStation/src/components/chat/MDPageViewer.jsx:1667)
+
+즉, **같은 프로젝트 내에서도 GroqPanel만 복사 실패 내구성이 부족한 상태**가 직접 원인입니다.  
+원하면 바로 동일한 폴백 로직으로 패치해드릴게요.
+
+
 
 
 # 15. 사이트 완전 초기화
