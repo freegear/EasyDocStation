@@ -740,6 +740,11 @@ export default function SiteAdminPage({ onClose }) {
   const [siteUrl, setSiteUrl] = useState('')
   const [enableDataBackup, setEnableDataBackup] = useState(false)
   const [siteBackUpKey, setSiteBackUpKey] = useState('')
+  const [supabaseUrl, setSupabaseUrl] = useState('')
+  const [supabaseJwtAudience, setSupabaseJwtAudience] = useState('authenticated')
+  const [jwtSecret, setJwtSecret] = useState('')
+  const [viteSupabaseUrl, setViteSupabaseUrl] = useState('')
+  const [viteSupabaseAnonKey, setViteSupabaseAnonKey] = useState('')
   const [snsForm, setSnsForm] = useState({
     kakao: { enabled: false, apiKey: '' },
     line: { enabled: false, channelAccessToken: '' },
@@ -857,6 +862,11 @@ export default function SiteAdminPage({ onClose }) {
       setSiteUrl(String(data.site_url || ''))
       setEnableDataBackup(Boolean(data.enable_data_backup))
       setSiteBackUpKey(String(data.site_backup_key || ''))
+      setSupabaseUrl(String(data.supabase_url || ''))
+      setSupabaseJwtAudience(String(data.supabase_jwt_audience || 'authenticated'))
+      setJwtSecret(String(data.jwt_secret || ''))
+      setViteSupabaseUrl(String(data.vite_supabase_url || ''))
+      setViteSupabaseAnonKey(String(data.vite_supabase_anon_key || ''))
       if (data.sns) {
         setSnsForm({
           kakao: {
@@ -998,7 +1008,7 @@ export default function SiteAdminPage({ onClose }) {
 
   useEffect(() => { loadUsers(); loadTeams() }, [])
   useEffect(() => {
-    if (activeTab === 'db' || activeTab === 'display' || activeTab === 'rag' || activeTab === 'agenticai' || activeTab === 'company' || activeTab === 'site' || activeTab === 'sns') loadDbStats()
+    if (activeTab === 'db' || activeTab === 'display' || activeTab === 'rag' || activeTab === 'agenticai' || activeTab === 'company' || activeTab === 'site' || activeTab === 'supabase' || activeTab === 'sns') loadDbStats()
     if (activeTab === 'sns') loadTelegramWebhookInfo()
     if (activeTab === 'rag-learning') loadRagDatasets()
   }, [activeTab])
@@ -1129,6 +1139,12 @@ export default function SiteAdminPage({ onClose }) {
         configData.site_url = siteUrl.trim()
         configData.enable_data_backup = Boolean(enableDataBackup)
         configData['SiteBackUp Key'] = siteBackUpKey.trim()
+      } else if (activeTab === 'supabase') {
+        configData.SUPABASE_URL = supabaseUrl.trim()
+        configData.SUPABASE_JWT_AUDIENCE = supabaseJwtAudience.trim() || 'authenticated'
+        configData.JWT_SECRET = jwtSecret.trim()
+        configData.VITE_SUPABASE_URL = viteSupabaseUrl.trim()
+        configData.VITE_SUPABASE_ANON_KEY = viteSupabaseAnonKey.trim()
       } else if (activeTab === 'sns') {
         configData.sns = {
           kakao: {
@@ -2856,6 +2872,112 @@ export default function SiteAdminPage({ onClose }) {
                 <p className="text-gray-400 text-xs mt-2">
                   SiteBackUp Key 값입니다. FTP Server 프로토콜용 특수 키이며, 현재는 사용하지 않습니다.
                 </p>
+              </div>
+
+              <div className="bg-indigo-50 border border-indigo-200 rounded-2xl p-5">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <h3 className="text-indigo-900 text-sm font-semibold">SUPABASE 설정</h3>
+                    <p className="text-indigo-700/80 text-xs mt-1">Supabase 인증/연동 환경변수를 설정합니다.</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('supabase')}
+                    className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold transition-all"
+                  >
+                    SUPABASE 설정
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : activeTab === 'supabase' ? (
+          <div className="max-w-3xl mx-auto py-4">
+            <div className="flex items-center justify-between mb-8">
+              <div>
+                <h2 className="text-gray-900 font-bold text-lg">SUPABASE 설정</h2>
+                <p className="text-gray-400 text-xs mt-1">Supabase/Auth 관련 서버·프론트 환경변수를 설정합니다.</p>
+              </div>
+              <button
+                onClick={handleSaveConfig}
+                disabled={savingConfig}
+                className="flex items-center gap-2 px-6 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-sm font-semibold transition-all shadow-lg shadow-indigo-200 active:scale-95"
+              >
+                {savingConfig ? t.admin.savingConfig : t.admin.saveSettings}
+              </button>
+            </div>
+
+            <div className="space-y-5">
+              <div className="bg-gray-100 border border-gray-200 rounded-2xl p-5">
+                <h3 className="text-gray-900 text-sm font-semibold mb-4">1. 서버 환경변수</h3>
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-gray-700 text-xs font-semibold mb-1">SUPABASE_URL</label>
+                    <input
+                      type="text"
+                      value={supabaseUrl}
+                      onChange={e => setSupabaseUrl(e.target.value)}
+                      placeholder="https://<project-ref>.supabase.co"
+                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-gray-900 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-300 transition-all"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-gray-700 text-xs font-semibold mb-1">SUPABASE_JWT_AUDIENCE</label>
+                    <input
+                      type="text"
+                      value={supabaseJwtAudience}
+                      onChange={e => setSupabaseJwtAudience(e.target.value)}
+                      placeholder="authenticated"
+                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-gray-900 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-300 transition-all"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-gray-700 text-xs font-semibold mb-1">JWT_SECRET</label>
+                    <input
+                      type="text"
+                      value={jwtSecret}
+                      onChange={e => setJwtSecret(e.target.value)}
+                      placeholder="강한 랜덤값"
+                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-gray-900 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-300 transition-all"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-gray-100 border border-gray-200 rounded-2xl p-5">
+                <h3 className="text-gray-900 text-sm font-semibold mb-4">2. 프론트 환경변수</h3>
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-gray-700 text-xs font-semibold mb-1">VITE_SUPABASE_URL</label>
+                    <input
+                      type="text"
+                      value={viteSupabaseUrl}
+                      onChange={e => setViteSupabaseUrl(e.target.value)}
+                      placeholder="https://<project-ref>.supabase.co"
+                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-gray-900 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-300 transition-all"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-gray-700 text-xs font-semibold mb-1">VITE_SUPABASE_ANON_KEY</label>
+                    <input
+                      type="text"
+                      value={viteSupabaseAnonKey}
+                      onChange={e => setViteSupabaseAnonKey(e.target.value)}
+                      placeholder="Supabase anon key"
+                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-gray-900 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-300 transition-all"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('site')}
+                  className="text-sm text-indigo-600 hover:text-indigo-500 font-semibold"
+                >
+                  ← 사이트 설정으로 돌아가기
+                </button>
               </div>
             </div>
           </div>
