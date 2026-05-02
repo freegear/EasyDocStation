@@ -2030,7 +2030,7 @@ export default function MDPageViewer({ post, channelId, onClose }) {
             onClick={() => setShowComments(prev => !prev)}
             className={`px-3 py-1.5 border-l border-gray-200 transition-colors ${showComments ? 'bg-indigo-600 text-white' : 'text-gray-500 hover:bg-gray-50'}`}
           >
-            댓글보기 ({comments.length})
+            {t.mdPage.viewComments?.(comments.length) || `댓글보기 (${comments.length})`}
           </button>
         </div>
 
@@ -2069,7 +2069,7 @@ export default function MDPageViewer({ post, channelId, onClose }) {
             disabled={deleting}
             className="px-3 py-1.5 rounded-lg border border-red-200 text-xs text-red-600 hover:bg-red-50 transition-colors flex-shrink-0 disabled:opacity-60"
           >
-            {deleting ? '삭제 중...' : '삭제'}
+            {deleting ? (t.mdPage.deleting || '삭제 중...') : (t.mdPage.delete || '삭제')}
           </button>
         )}
 
@@ -2086,6 +2086,7 @@ export default function MDPageViewer({ post, channelId, onClose }) {
       {canEdit && mode === 'preview' && editor && (
         <TipTapToolbar
           editor={editor}
+          t={t}
           onInsertImage={handleImagePickClick}
           onInsertToc={handleInsertToc}
           isUploadingImage={isUploadingImage}
@@ -2411,8 +2412,9 @@ function getCommentAttachmentPreviewSize(file, cfg) {
 /* ─────────────────────────────────────────
    TipTap 툴바 컴포넌트
 ───────────────────────────────────────── */
-function TipTapToolbar({ editor, onInsertImage, onInsertToc, isUploadingImage = false }) {
+function TipTapToolbar({ editor, t, onInsertImage, onInsertToc, isUploadingImage = false }) {
   if (!editor) return null
+  const mdT = t?.mdPage || {}
 
   const btn = (active, onClick, label, title) => (
     <button
@@ -2433,34 +2435,35 @@ function TipTapToolbar({ editor, onInsertImage, onInsertToc, isUploadingImage = 
 
   return (
     <div className="flex items-center gap-0.5 px-4 py-1.5 border-b border-gray-100 bg-gray-50 flex-wrap flex-shrink-0">
-      {btn(editor.isActive('bold'),      () => editor.chain().focus().toggleBold().run(),      'B',  '굵게 (Ctrl+B)')}
-      {btn(editor.isActive('italic'),    () => editor.chain().focus().toggleItalic().run(),    'I',  '기울임 (Ctrl+I)')}
-      {btn(editor.isActive('strike'),    () => editor.chain().focus().toggleStrike().run(),    'S̶',  '취소선')}
-      {btn(editor.isActive('code'),      () => editor.chain().focus().toggleCode().run(),      '<>',  '인라인 코드')}
+      {btn(editor.isActive('bold'),      () => editor.chain().focus().toggleBold().run(),      'B',  mdT.toolbarBold || 'Bold (Ctrl+B)')}
+      {btn(editor.isActive('italic'),    () => editor.chain().focus().toggleItalic().run(),    'I',  mdT.toolbarItalic || 'Italic (Ctrl+I)')}
+      {btn(editor.isActive('strike'),    () => editor.chain().focus().toggleStrike().run(),    'S̶',  mdT.toolbarStrike || 'Strikethrough')}
+      {btn(editor.isActive('code'),      () => editor.chain().focus().toggleCode().run(),      '<>',  mdT.toolbarInlineCode || 'Inline code')}
       {sep('s1')}
-      {btn(editor.isActive('heading', { level: 1 }), () => editor.chain().focus().toggleHeading({ level: 1 }).run(), 'H1', '제목 1')}
-      {btn(editor.isActive('heading', { level: 2 }), () => editor.chain().focus().toggleHeading({ level: 2 }).run(), 'H2', '제목 2')}
-      {btn(editor.isActive('heading', { level: 3 }), () => editor.chain().focus().toggleHeading({ level: 3 }).run(), 'H3', '제목 3')}
+      {btn(editor.isActive('heading', { level: 1 }), () => editor.chain().focus().toggleHeading({ level: 1 }).run(), 'H1', mdT.toolbarHeading1 || 'Heading 1')}
+      {btn(editor.isActive('heading', { level: 2 }), () => editor.chain().focus().toggleHeading({ level: 2 }).run(), 'H2', mdT.toolbarHeading2 || 'Heading 2')}
+      {btn(editor.isActive('heading', { level: 3 }), () => editor.chain().focus().toggleHeading({ level: 3 }).run(), 'H3', mdT.toolbarHeading3 || 'Heading 3')}
       {sep('s2')}
-      {btn(editor.isActive('bulletList'),  () => editor.chain().focus().toggleBulletList().run(),  '•  목록',  '글머리 기호 목록')}
-      {btn(editor.isActive('orderedList'), () => editor.chain().focus().toggleOrderedList().run(), '1. 목록', '번호 목록')}
+      {btn(editor.isActive('bulletList'),  () => editor.chain().focus().toggleBulletList().run(),  mdT.toolbarBulletList || '• List',  mdT.toolbarBulletListTitle || 'Bulleted list')}
+      {btn(editor.isActive('orderedList'), () => editor.chain().focus().toggleOrderedList().run(), mdT.toolbarOrderedList || '1. List', mdT.toolbarOrderedListTitle || 'Numbered list')}
       {sep('s3')}
-      {btn(false, onInsertToc, '목차추가', '문서 내 TOC 노드 삽입')}
-      {btn(editor.isActive('blockquote'),  () => editor.chain().focus().toggleBlockquote().run(),   '"  인용',   '인용구')}
-      {btn(editor.isActive('codeBlock'),   () => editor.chain().focus().toggleCodeBlock().run(),    '코드 블록', '코드 블록')}
-      {btn(editor.isActive('table'), () => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run(), '표 추가', '3x3 표 추가')}
-      <TextColorControl editor={editor} />
-      {btn(false, () => editor.chain().focus().setHorizontalRule().run(), '──', '가로 구분선')}
-      {btn(false, onInsertImage, isUploadingImage ? '업로드 중' : '🖼', '이미지 업로드 및 삽입')}
+      {btn(false, onInsertToc, mdT.toolbarInsertToc || 'Insert TOC', mdT.toolbarInsertTocTitle || 'Insert table of contents')}
+      {btn(editor.isActive('blockquote'),  () => editor.chain().focus().toggleBlockquote().run(),   mdT.toolbarQuote || '" Quote',   mdT.toolbarQuoteTitle || 'Quote')}
+      {btn(editor.isActive('codeBlock'),   () => editor.chain().focus().toggleCodeBlock().run(),    mdT.toolbarCodeBlock || 'Code block', mdT.toolbarCodeBlockTitle || 'Code block')}
+      {btn(editor.isActive('table'), () => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run(), mdT.toolbarInsertTable || 'Insert table', mdT.toolbarInsertTableTitle || 'Insert 3x3 table')}
+      <TextColorControl editor={editor} t={t} />
+      {btn(false, () => editor.chain().focus().setHorizontalRule().run(), '──', mdT.toolbarHorizontalRule || 'Horizontal rule')}
+      {btn(false, onInsertImage, isUploadingImage ? (mdT.toolbarUploading || 'Uploading...') : '🖼', mdT.toolbarInsertImageTitle || 'Upload and insert image')}
       {sep('s4')}
-      {btn(false, () => editor.chain().focus().undo().run(), '↩', '실행취소 (Ctrl+Z)')}
-      {btn(false, () => editor.chain().focus().redo().run(), '↪', '다시실행 (Ctrl+Y)')}
+      {btn(false, () => editor.chain().focus().undo().run(), '↩', mdT.toolbarUndo || 'Undo (Ctrl+Z)')}
+      {btn(false, () => editor.chain().focus().redo().run(), '↪', mdT.toolbarRedo || 'Redo (Ctrl+Y)')}
     </div>
   )
 }
 
-function TextColorControl({ editor }) {
+function TextColorControl({ editor, t }) {
   const wrapperRef = useRef(null)
+  const mdT = t?.mdPage || {}
   const [open, setOpen] = useState(false)
   const [currentColor, setCurrentColor] = useState('#111827')
   const [inputColor, setInputColor] = useState('#111827')
@@ -2507,7 +2510,7 @@ function TextColorControl({ editor }) {
           e.preventDefault()
           setOpen(prev => !prev)
         }}
-        title="글자 색상"
+        title={mdT.toolbarTextColor || 'Text color'}
         className="px-2 py-1 rounded text-sm text-gray-500 hover:bg-gray-100 hover:text-gray-800"
       >
         A
@@ -2519,10 +2522,10 @@ function TextColorControl({ editor }) {
           e.preventDefault()
           editor.chain().focus().unsetColor().run()
         }}
-        title="색상 해제"
+        title={mdT.toolbarClearColor || 'Clear color'}
         className="px-2 py-1 rounded text-sm text-gray-500 hover:bg-gray-100 hover:text-gray-800"
       >
-        색상해제
+        {mdT.toolbarClearColorLabel || 'Clear color'}
       </button>
 
       {open && (
