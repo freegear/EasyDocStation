@@ -262,6 +262,11 @@ function PostDetailPane({ post, channelId, onClose, pendingOpenCommentId = null,
     }
   }
 
+  async function copyPermalink({ postId, commentId = '' } = {}, key = '') {
+    const link = `${window.location.origin}/?channelId=${encodeURIComponent(channelId)}&postId=${encodeURIComponent(postId || post.id)}${commentId ? `&commentId=${encodeURIComponent(commentId)}` : ''}`
+    await copyTextContent(link, key || `link:${postId || post.id}:${commentId || 'post'}`)
+  }
+
   async function handleComment(e) {
     e.preventDefault()
     if (commentSubmittingRef.current) return
@@ -492,6 +497,23 @@ function PostDetailPane({ post, channelId, onClose, pendingOpenCommentId = null,
         <div className="flex-1" />
         {(canEditPost || canDeletePost) && !isEditingPost && !selectedChannel?.is_archived && (
           <div className="flex items-center gap-2">
+            <button
+              onClick={() => copyPermalink({ postId: post.id }, `post-link:${post.id}`)}
+              title={copiedKey === `post-link:${post.id}` ? (t.ai.copied || 'Copied!') : (t.chat.copyLink || '링크복사')}
+              aria-label={copiedKey === `post-link:${post.id}` ? (t.ai.copied || 'Copied!') : (t.chat.copyLink || '링크복사')}
+              className="flex items-center gap-1 text-gray-500 hover:text-gray-800 text-xs transition-colors"
+            >
+              {copiedKey === `post-link:${post.id}` ? (
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              ) : (
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 010 5.656l-3 3a4 4 0 01-5.656-5.656l1.5-1.5M10.172 13.828a4 4 0 010-5.656l3-3a4 4 0 115.656 5.656l-1.5 1.5" />
+                </svg>
+              )}
+              <span>{t.chat.copyLink || '링크복사'}</span>
+            </button>
             {canEditPost && (
               <button onClick={startPostEdit} className="flex items-center gap-1 text-gray-400 hover:text-gray-900 text-xs transition-colors">
                 <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
@@ -876,6 +898,16 @@ function PostDetailPane({ post, channelId, onClose, pendingOpenCommentId = null,
                             <span>{t.ai.copy || 'Copy'}</span>
                           </button>
                           <button onClick={() => handleSendCommentToAgenticAI(c)} className="text-sky-600 hover:text-sky-700 text-[10px] font-medium uppercase tracking-tight">{t.chat.sendToAgenticAI || 'AgenticAI'}</button>
+                          {String(c.author?.id ?? '') === String(currentUser?.id ?? '') && (
+                            <button
+                              onClick={() => copyPermalink({ postId: post.id, commentId: c.id }, `comment-link:${c.id}`)}
+                              title={copiedKey === `comment-link:${c.id}` ? (t.ai.copied || 'Copied!') : (t.chat.copyLink || '링크복사')}
+                              aria-label={copiedKey === `comment-link:${c.id}` ? (t.ai.copied || 'Copied!') : (t.chat.copyLink || '링크복사')}
+                              className="text-gray-500 hover:text-gray-800 text-[10px] font-medium uppercase tracking-tight"
+                            >
+                              {t.chat.copyLink || '링크복사'}
+                            </button>
+                          )}
                           {String(c.author?.id ?? '') === String(currentUser?.id ?? '') && (
                             <button onClick={() => startCommentEdit(c)} className="text-gray-400 hover:text-gray-900 text-[10px] font-medium uppercase tracking-tight">{t.chat.edit}</button>
                           )}
