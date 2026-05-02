@@ -1391,6 +1391,15 @@ export default function SiteAdminPage({ onClose }) {
             {t.admin.navSite}
           </button>
           <button
+            onClick={() => setActiveTab('supabase')}
+            className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${activeTab === 'supabase' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-200'}`}
+          >
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 12h14M12 5l7 7-7 7" />
+            </svg>
+            SUPABASE 설정
+          </button>
+          <button
             onClick={() => setActiveTab('sns')}
             className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${activeTab === 'sns' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-200'}`}
           >
@@ -2874,21 +2883,6 @@ export default function SiteAdminPage({ onClose }) {
                 </p>
               </div>
 
-              <div className="bg-indigo-50 border border-indigo-200 rounded-2xl p-5">
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <h3 className="text-indigo-900 text-sm font-semibold">SUPABASE 설정</h3>
-                    <p className="text-indigo-700/80 text-xs mt-1">Supabase 인증/연동 환경변수를 설정합니다.</p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab('supabase')}
-                    className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold transition-all"
-                  >
-                    SUPABASE 설정
-                  </button>
-                </div>
-              </div>
             </div>
           </div>
         ) : activeTab === 'supabase' ? (
