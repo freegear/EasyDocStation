@@ -79,6 +79,7 @@
   display: inline-flex;
   align-items: center;
   margin-top: 0.12rem;
+  flex: 0 0 auto;
 }
 
 .tiptap-editor .ProseMirror li[data-type="taskItem"] > div {
@@ -127,6 +128,41 @@
 .tiptap-editor .ProseMirror li > input[type="checkbox"] + p,
 .tiptap-editor .ProseMirror li > input[type="checkbox"] + div > p {
   display: inline;
+  margin: 0;
+}
+
+/* Real-world fallback: li > label > input + div > p (when data-type attrs are missing) */
+.tiptap-editor .ProseMirror li:has(> label > input[type="checkbox"]) {
+  list-style: none;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin: 0.25rem 0;
+}
+
+.tiptap-editor .ProseMirror li:has(> label > input[type="checkbox"]) > label {
+  display: inline-flex;
+  align-items: center;
+  margin: 0.12rem 0 0;
+  flex: 0 0 auto;
+}
+
+.tiptap-editor .ProseMirror li:has(> label > input[type="checkbox"]) > div {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.tiptap-editor .ProseMirror li:has(> label > input[type="checkbox"]) > div > p {
+  margin: 0;
+}
+
+/* Browser-compat fallback without :has */
+.tiptap-editor .ProseMirror li > label > input[type="checkbox"] {
+  margin: 0;
+  flex-shrink: 0;
+}
+
+.tiptap-editor .ProseMirror li > label + div > p {
   margin: 0;
 }
 
