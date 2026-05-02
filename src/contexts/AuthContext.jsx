@@ -219,7 +219,7 @@ export function AuthProvider({ children }) {
     if (!isSupabaseConfigured || !supabase) {
       throw new Error('Supabase 설정(VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY)이 필요합니다.')
     }
-    const redirectTo = window.location.origin
+    const redirectTo = `${window.location.origin}/auth/callback`
     const { error } = await supabase.auth.signInWithOAuth({
       provider,
       options: { redirectTo },
