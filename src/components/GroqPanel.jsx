@@ -103,8 +103,15 @@ function normalizeRetrievalConfig(cfg = {}) {
   return { search_type, k, fetch_k, score_threshold, mmr_lambda, filter }
 }
 
-function formatTime(isoString) {
-  return new Date(isoString).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })
+function formatTime(isoString, language = 'ko') {
+  const localeMap = {
+    ko: 'ko-KR',
+    ja: 'ja-JP',
+    en: 'en-US',
+    zh: 'zh-CN',
+  }
+  const locale = localeMap[language] || 'ko-KR'
+  return new Date(isoString).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })
 }
 
 function normalizeGatewayUrl(url) {
@@ -142,7 +149,7 @@ export default function GroqPanel({ width }) {
     teams,
     activePostSelection,
   } = useChat()
-  const { currentUser } = useAuth()
+  const { currentUser, language } = useAuth()
   const t = useT()
   const [copiedId, setCopiedId] = useState(null)
   const [postingId, setPostingId] = useState(null)
@@ -272,6 +279,16 @@ export default function GroqPanel({ width }) {
       }])
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [t.ai.greeting])
+
+  useEffect(() => {
+    setMessages(prev => {
+      if (prev.length !== 1) return prev
+      const only = prev[0]
+      if (!only || only.id !== 'init' || only.role !== 'assistant') return prev
+      if (only.content === t.ai.greeting) return prev
+      return [{ ...only, content: t.ai.greeting }]
+    })
   }, [t.ai.greeting])
 
   useEffect(() => {
@@ -668,7 +685,7 @@ export default function GroqPanel({ width }) {
                   U
                 </div>
               )}
-              <span className="text-gray-400 text-xs">{formatTime(msg.time)}</span>
+              <span className="text-gray-400 text-xs">{formatTime(msg.time, language)}</span>
             </div>
             <div className={`px-3 py-2 rounded-xl text-xs leading-relaxed max-w-full ${msg.role === 'user'
                 ? 'bg-indigo-600 text-white rounded-tr-sm whitespace-pre-wrap'
