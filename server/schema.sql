@@ -56,6 +56,7 @@ CREATE TABLE IF NOT EXISTS users (
   kakaotalk_api_key TEXT,
   line_channel_access_token TEXT,
   use_sns_channel VARCHAR(20) CHECK (use_sns_channel IN ('telegram', 'kakaotalk', 'line')),
+  supabase_user_id UUID UNIQUE,
   role          VARCHAR(20)  NOT NULL DEFAULT 'user'
                   CHECK (role IN ('site_admin', 'team_admin', 'channel_admin', 'user')),
   display_name  VARCHAR(100),
@@ -82,6 +83,8 @@ DO $$ BEGIN
   THEN ALTER TABLE users ADD COLUMN use_sns_channel VARCHAR(20); END IF;
   IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='active_session_id')
   THEN ALTER TABLE users ADD COLUMN active_session_id TEXT; END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='supabase_user_id')
+  THEN ALTER TABLE users ADD COLUMN supabase_user_id UUID; END IF;
 END $$;
 
 -- ─── Login history ───────────────────────────────────────────

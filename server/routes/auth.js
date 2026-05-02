@@ -4,6 +4,8 @@ const jwt = require('jsonwebtoken')
 const { randomUUID } = require('crypto')
 const pool = require('../db')
 const requireAuth = require('../middleware/auth')
+const { getAuthCookieOptions, getAuthCookieClearOptions } = require('../lib/authToken')
+const { encryptSecret, maskSecret, isMaskedValue } = require('../lib/secrets')
 
 const router = express.Router()
 
@@ -16,8 +18,8 @@ function toPublicUser(u) {
     email: u.email,
     phone: u.phone ?? null,
     telegram_id: u.telegram_id ?? null,
-    kakaotalk_api_key: u.kakaotalk_api_key ?? null,
-    line_channel_access_token: u.line_channel_access_token ?? null,
+    kakaotalk_api_key: maskSecret(u.kakaotalk_api_key),
+    line_channel_access_token: maskSecret(u.line_channel_access_token),
     use_sns_channel: u.use_sns_channel ?? null,
     role: u.role,
     is_active: u.is_active,
@@ -32,6 +34,24 @@ function toPublicUser(u) {
 }
 
 const MAX_FAILED_ATTEMPTS = 3
+
+async function issueLegacySessionCookie(res, user, meta = {}) {
+  const newSessionId = randomUUID()
+  await pool.query(
+    'UPDATE users SET failed_login_attempts = 0, last_login_at = NOW(), active_session_id = $2 WHERE id = $1',
+    [user.id, newSessionId]
+  )
+  await pool.query(
+    'INSERT INTO login_history (user_id, ip_address, user_agent) VALUES ($1, $2, $3)',
+    [user.id, meta.ip, meta.userAgent]
+  )
+  const token = jwt.sign(
+    { id: user.id, email: user.email, role: user.role, security_level: user.security_level || 0, session_id: newSessionId },
+    process.env.JWT_SECRET,
+    { expiresIn: '7d' }
+  )
+  res.cookie('eds_auth', token, getAuthCookieOptions())
+}
 
 // POST /api/auth/login
 router.post('/login', async (req, res) => {
@@ -96,35 +116,39 @@ router.post('/login', async (req, res) => {
       }
     }
 
-    // 로그인 성공 — 실패 횟수 초기화 및 세션 ID 갱신
-    const newSessionId = randomUUID()
-    await pool.query(
-      'UPDATE users SET failed_login_attempts = 0, last_login_at = NOW(), active_session_id = $2 WHERE id = $1',
-      [user.id, newSessionId]
-    )
-    await pool.query(
-      'INSERT INTO login_history (user_id, ip_address, user_agent) VALUES ($1, $2, $3)',
-      [user.id, req.ip, req.headers['user-agent']]
-    )
-
-    // session_id를 JWT에 포함 → /auth/me에서 검증
-    const token = jwt.sign(
-      { id: user.id, email: user.email, role: user.role, security_level: user.security_level || 0, session_id: newSessionId },
-      process.env.JWT_SECRET,
-      { expiresIn: '7d' }
-    )
-
-    res.json({ token, user: { ...toPublicUser(user), last_login_at: new Date().toISOString() } })
+    await issueLegacySessionCookie(res, user, { ip: req.ip, userAgent: req.headers['user-agent'] })
+    res.json({ user: { ...toPublicUser(user), last_login_at: new Date().toISOString() } })
   } catch (err) {
     console.error(err)
     res.status(500).json({ error: '서버 오류가 발생했습니다.' })
   }
 })
 
+// POST /api/auth/supabase/exchange
+// Supabase Bearer token을 검증한 뒤 EasyStation 세션 쿠키를 발급한다.
+router.post('/supabase/exchange', requireAuth, async (req, res) => {
+  try {
+    if (req.authProvider !== 'supabase') {
+      return res.status(400).json({ error: 'Supabase 인증 토큰이 필요합니다.' })
+    }
+    const { rows } = await pool.query('SELECT * FROM users WHERE id = $1', [req.user.id])
+    if (!rows[0]) return res.status(404).json({ error: '사용자를 찾을 수 없습니다.' })
+    const user = rows[0]
+    await issueLegacySessionCookie(res, user, { ip: req.ip, userAgent: req.headers['user-agent'] })
+    res.json({ ok: true })
+  } catch (err) {
+    console.error('[auth/supabase/exchange]', err)
+    res.status(500).json({ error: '세션 교환 중 오류가 발생했습니다.' })
+  }
+})
+
 // POST /api/auth/logout
 router.post('/logout', requireAuth, async (req, res) => {
   try {
-    await pool.query('UPDATE users SET active_session_id = NULL WHERE id = $1', [req.user.id])
+    if (req.authProvider !== 'supabase') {
+      await pool.query('UPDATE users SET active_session_id = NULL WHERE id = $1', [req.user.id])
+    }
+    res.clearCookie('eds_auth', getAuthCookieClearOptions())
     res.json({ ok: true })
   } catch (err) {
     res.status(500).json({ error: '서버 오류가 발생했습니다.' })
@@ -138,11 +162,11 @@ router.get('/me', requireAuth, async (req, res) => {
     if (!rows[0]) return res.status(404).json({ error: '사용자를 찾을 수 없습니다.' })
     const user = rows[0]
 
-    // 세션 유효성 검사:
-    // 1) active_session_id가 없으면 로그아웃 처리된 세션
-    // 2) JWT session_id와 DB active_session_id가 다르면 무효 세션
-    if (!user.active_session_id || req.user.session_id !== user.active_session_id) {
-      return res.status(401).json({ error: '세션이 만료되었습니다. 다시 로그인해 주세요.', code: 'SESSION_INVALIDATED' })
+    // Legacy JWT session validation only
+    if (req.authProvider !== 'supabase') {
+      if (!user.active_session_id || req.user.session_id !== user.active_session_id) {
+        return res.status(401).json({ error: '세션이 만료되었습니다. 다시 로그인해 주세요.', code: 'SESSION_INVALIDATED' })
+      }
     }
 
     res.json(toPublicUser(user))
@@ -170,8 +194,16 @@ router.put('/me', requireAuth, async (req, res) => {
     if (email?.trim()) { sets.push(`email = $${i++}`); vals.push(email.trim().toLowerCase()) }
     if (phone !== undefined) { sets.push(`phone = $${i++}`); vals.push(phone?.trim() || null) }
     if (telegram_id !== undefined) { sets.push(`telegram_id = $${i++}`); vals.push(telegram_id?.trim() || null) }
-    if (kakaotalk_api_key !== undefined) { sets.push(`kakaotalk_api_key = $${i++}`); vals.push(kakaotalk_api_key?.trim() || null) }
-    if (line_channel_access_token !== undefined) { sets.push(`line_channel_access_token = $${i++}`); vals.push(line_channel_access_token?.trim() || null) }
+    if (kakaotalk_api_key !== undefined && !isMaskedValue(kakaotalk_api_key)) {
+      const plain = kakaotalk_api_key?.trim() || null
+      sets.push(`kakaotalk_api_key = $${i++}`)
+      vals.push(plain ? encryptSecret(plain) : null)
+    }
+    if (line_channel_access_token !== undefined && !isMaskedValue(line_channel_access_token)) {
+      const plain = line_channel_access_token?.trim() || null
+      sets.push(`line_channel_access_token = $${i++}`)
+      vals.push(plain ? encryptSecret(plain) : null)
+    }
     if (use_sns_channel !== undefined) {
       if (use_sns_channel !== null && use_sns_channel !== '' && !['telegram', 'kakaotalk', 'line'].includes(use_sns_channel)) {
         return res.status(400).json({ error: 'UseSNSChannel 값이 올바르지 않습니다.' })

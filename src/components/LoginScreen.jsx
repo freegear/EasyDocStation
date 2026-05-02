@@ -9,13 +9,14 @@ const LANGUAGES = [
 ]
 
 export default function LoginScreen() {
-  const { login, language, setLanguage, logoutNotice, clearLogoutNotice } = useAuth()
+  const { login, loginWithProvider, language, setLanguage, logoutNotice, clearLogoutNotice } = useAuth()
   const t = useT()
   const [identifier, setIdentifier] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [isLocked, setIsLocked] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [oauthLoading, setOauthLoading] = useState('')
   const [isDuplicateLogin, setIsDuplicateLogin] = useState(false)
   const [pendingDuplicateCredentials, setPendingDuplicateCredentials] = useState(null)
 
@@ -42,6 +43,18 @@ export default function LoginScreen() {
       setError(msg)
     } finally {
       setLoading(false)
+    }
+  }
+
+  async function handleOAuthLogin(provider) {
+    setError('')
+    setOauthLoading(provider)
+    try {
+      await loginWithProvider(provider)
+    } catch (err) {
+      setError(err.message || '소셜 로그인 중 오류가 발생했습니다.')
+    } finally {
+      setOauthLoading('')
     }
   }
 
@@ -148,6 +161,50 @@ export default function LoginScreen() {
           </div>
 
           {/* Form */}
+          <div className="flex flex-col gap-2 mb-5">
+            <button
+              type="button"
+              onClick={() => handleOAuthLogin('kakao')}
+              disabled={Boolean(oauthLoading)}
+              className="w-full bg-yellow-300 hover:bg-yellow-200 disabled:opacity-60 text-gray-900 font-semibold py-2.5 rounded-xl text-sm transition-all"
+            >
+              {oauthLoading === 'kakao' ? 'Kakao 연결 중...' : 'Kakao로 로그인'}
+            </button>
+            <button
+              type="button"
+              onClick={() => handleOAuthLogin('google')}
+              disabled={Boolean(oauthLoading)}
+              className="w-full bg-white hover:bg-gray-50 disabled:opacity-60 text-gray-800 border border-gray-300 font-semibold py-2.5 rounded-xl text-sm transition-all"
+            >
+              {oauthLoading === 'google' ? 'Google 연결 중...' : 'Google로 로그인'}
+            </button>
+            <button
+              type="button"
+              onClick={() => handleOAuthLogin('apple')}
+              disabled={Boolean(oauthLoading)}
+              className="w-full bg-black hover:bg-gray-900 disabled:opacity-60 text-white font-semibold py-2.5 rounded-xl text-sm transition-all"
+            >
+              {oauthLoading === 'apple' ? 'Apple 연결 중...' : 'Apple로 로그인'}
+            </button>
+            <button
+              type="button"
+              onClick={() => handleOAuthLogin('custom:naver')}
+              disabled={Boolean(oauthLoading)}
+              className="w-full bg-green-600 hover:bg-green-500 disabled:opacity-60 text-white font-semibold py-2.5 rounded-xl text-sm transition-all"
+            >
+              {oauthLoading === 'custom:naver' ? 'Naver 연결 중...' : 'Naver로 로그인'}
+            </button>
+          </div>
+
+          <div className="relative my-4">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t border-gray-200" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-white px-2 text-gray-400">Legacy Login</span>
+            </div>
+          </div>
+
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             <div>
               <label className="block text-gray-500 text-sm mb-1.5 font-medium">{t.login.email}</label>

@@ -9,10 +9,10 @@ TORCH_VERSION="${TORCH_VERSION:-}"
 TORCH_MIN_VERSION="${TORCH_MIN_VERSION:-2.6}"
 
 install_frontend_dependencies() {
-  # 모든 프론트엔드 의존성은 package.json에 exact 버전으로 고정되어 있으므로
-  # npm install 한 번으로 충분하다. 개별 패키지 재설치는 버전 충돌을 유발한다.
+  # Supabase Auth 사용을 위해 SDK 설치를 포함한다.
   echo "[DGX] 프론트 의존성 설치 (package.json 기준)"
   npm install
+  npm install @supabase/supabase-js
 
   echo "  Playwright 시스템 의존성/브라우저 설치"
   sudo npx playwright install-deps
