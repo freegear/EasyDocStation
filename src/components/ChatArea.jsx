@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback, useLayoutEffect } from 'react'
+import { useState, useRef, useEffect, useCallback, useLayoutEffect, useMemo } from 'react'
 import useMentionAutocomplete, { MENTION_SEPARATOR } from '../hooks/useMentionAutocomplete'
 import MentionDropdown from './MentionDropdown'
 import { useChat } from '../contexts/ChatContext'
@@ -2377,6 +2377,80 @@ function ChannelDocumentListPage({ posts, onBack, onOpenPost }) {
   )
 }
 
+function resolvePreviewUrl(rawUrl = '', withToken = false) {
+  if (!rawUrl) return ''
+  if (/^https?:\/\//i.test(rawUrl) || rawUrl.startsWith('blob:')) return rawUrl
+  if (!withToken) return rawUrl
+  const token = getToken()
+  if (!token) return rawUrl
+  return rawUrl.includes('?') ? `${rawUrl}&auth_token=${token}` : `${rawUrl}?auth_token=${token}`
+}
+
+function PostCardPreview({ post, rawForParsing = '', isTemplate = false }) {
+  const [failed, setFailed] = useState(false)
+  const width = Math.max(120, Math.round(480 / 3))
+  const height = Math.max(72, Math.round(270 / 3))
+
+  const preview = useMemo(() => {
+    const previewAttachment = (post.attachments || []).find((f) => {
+      const category = getFileCategory(String(f?.type || ''), String(f?.name || ''))
+      if (!['image', 'pdf', 'html', 'video'].includes(category)) return false
+      if (category === 'image') return Boolean(f?.url)
+      return Boolean(f?.thumbnail_url)
+    }) || null
+
+    if (previewAttachment) {
+      const category = getFileCategory(String(previewAttachment.type || ''), String(previewAttachment.name || ''))
+      const src = category === 'image'
+        ? resolvePreviewUrl(previewAttachment.url, true)
+        : resolvePreviewUrl(previewAttachment.thumbnail_url, true)
+      return src ? { kind: 'attachment', src, alt: previewAttachment.name || 'preview' } : null
+    }
+
+    if (!isTemplate) {
+      const firstUrl = extractHttpUrls(rawForParsing)[0]
+      if (firstUrl) {
+        return {
+          kind: 'link',
+          src: `/api/files/link-preview-image?url=${encodeURIComponent(firstUrl)}&width=480&height=270&auth_token=${encodeURIComponent(getToken() || '')}`,
+          alt: 'link preview',
+        }
+      }
+    }
+    return null
+  }, [isTemplate, post.attachments, rawForParsing])
+
+  useEffect(() => {
+    setFailed(false)
+  }, [preview?.src])
+
+  if (!preview) return null
+
+  return (
+    <div className="flex-shrink-0 self-start ml-2">
+      <div
+        className="rounded-lg overflow-hidden border border-gray-200 bg-gray-100"
+        style={{ width, height }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {!failed ? (
+          <img
+            src={preview.src}
+            alt={preview.alt}
+            loading="lazy"
+            className="block w-full h-full object-cover"
+            onError={() => setFailed(true)}
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center text-[10px] text-gray-400">
+            preview
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 function PostCard({ post, onSelect, pinned, isSelected }) {
   const t = useT()
   const isTemplate = isTemplateContent(post.content)
@@ -2542,6 +2616,7 @@ function PostCard({ post, onSelect, pinned, isSelected }) {
             </p>
           )}
         </div>
+        <PostCardPreview post={post} rawForParsing={rawForParsing} isTemplate={isTemplate} />
       </div>
       </div>
       {copyToast && (
