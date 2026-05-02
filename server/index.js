@@ -27,7 +27,7 @@ function installBackendLogPrefix() {
       const rendered = args.length > 0
         ? util.formatWithOptions({ colors: false, depth: null }, ...args)
         : ''
-      original(`[${logTimestamp()}][BE] ${rendered}`)
+      original(`[${logTimestamp()}] ${rendered}`)
     }
   }
 }
