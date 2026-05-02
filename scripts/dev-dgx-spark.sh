@@ -19,6 +19,8 @@ install_frontend_dependencies() {
     "echarts"
     "@tiptap/extension-color"
     "@tiptap/extension-text-style"
+    "@tiptap/extension-task-list"
+    "@tiptap/extension-task-item"
     "@tiptap/extension-table"
     "@tiptap/extension-table-row"
     "@tiptap/extension-table-cell"

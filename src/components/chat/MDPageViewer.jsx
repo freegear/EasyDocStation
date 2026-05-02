@@ -14,6 +14,8 @@ import Dropcursor from '@tiptap/extension-dropcursor'
 import Link from '@tiptap/extension-link'
 import Color from '@tiptap/extension-color'
 import { TextStyle } from '@tiptap/extension-text-style'
+import TaskList from '@tiptap/extension-task-list'
+import TaskItem from '@tiptap/extension-task-item'
 import { TableOfContents } from '@tiptap/extension-table-of-contents'
 import { Table, TableRow, TableCell, TableHeader } from '@tiptap/extension-table'
 import ImageResize from 'tiptap-extension-resize-image'
@@ -1312,6 +1314,10 @@ export default function MDPageViewer({ post, channelId, onClose }) {
       }),
       TextStyle,
       Color,
+      TaskList,
+      TaskItem.configure({
+        nested: true,
+      }),
       Table.configure({
         resizable: true,
       }),
