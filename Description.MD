@@ -5045,6 +5045,50 @@ SUPABASE 설정 저장 시 config.json -> .env 자동 동기화
 (선택) 관리자 화면에 재시작 안내 배너 추가
 
 
+# 32.3.4 오류 #1 
+
+http://218.237.25.214:5173/auth/callback?error=invalid_request&error_code=bad_oauth_callback&error_description=OAuth+state+parameter+missing
+
+
+원인부터 정리하면, 이 에러는 **OAuth 시작 시 생성된 `state` 값이 콜백에 없을 때** 발생합니다.  
+즉, 로그인 흐름이 중간에 끊겼거나 리디렉트 설정이 잘못된 상태입니다.
+
+가장 흔한 원인:
+1. Kakao Redirect URI를 앱 URL(`/auth/callback`)로 등록함  
+- 올바른 값은 **Supabase 콜백**이어야 합니다:  
+`https://<project-ref>.supabase.co/auth/v1/callback`
+
+2. 사용자가 `/auth/callback` URL을 직접 열었거나, 이전 실패 URL 재사용
+
+3. 도메인/프로토콜 불일치로 state 저장 쿠키/세션이 소실  
+- `http`/`https`, `www` 유무, 포트가 다르면 문제 발생 가능
+
+해결 순서:
+1. **Kakao Developers**에서 Redirect URI를 정확히 1개 확인  
+- `https://<project-ref>.supabase.co/auth/v1/callback`
+
+2. **Supabase Auth > URL Configuration**에서 허용 URL 확인  
+- `Site URL`: `http://218.237.25.214:5173` (또는 실제 운영 도메인)  
+- Redirect allow list에  
+  `http://218.237.25.214:5173/auth/callback` 추가
+
+3. 앱에서 로그인 시작은 반드시 버튼으로만 진행  
+- `/auth/callback` 직접 접속 금지
+
+4. 브라우저에서 해당 사이트 쿠키/스토리지 삭제 후 재시도  
+- 특히 시크릿 모드로 1회 테스트 권장
+
+5. 프론트 코드에서 `signInWithOAuth` 호출 시 `redirectTo`가 현재 도메인과 정확히 일치하는지 확인  
+- 예: `redirectTo: 'http://218.237.25.214:5173/auth/callback'`
+
+원하시면 지금 프로젝트 코드에서 `loginWithProvider()`의 `redirectTo`를 콜백 경로로 고정하고, 실패 시 사용자에게 재시도 안내 메시지까지 바로 넣어드리겠습니다.
+
+출처:
+- Supabase Auth Error Codes (`bad_oauth_callback`): https://supabase.com/docs/guides/auth/debugging/error-codes
+- Supabase OAuth 흐름(`state` 필요): https://supabase.com/docs/guides/auth/oauth-server/oauth-flows
+- Supabase Kakao 설정 가이드: https://supabase.com/docs/guides/auth/social-login/auth-kakao
+
+
 
 
 
