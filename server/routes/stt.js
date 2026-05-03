@@ -215,7 +215,7 @@ function renderSttBlock({ jobId, status, progress = 0, transcript = '', summary 
     return `${head}\n\n## STT 상태\n실패\n\n사유: ${error || '알 수 없는 오류'}\n\n${tail}`
   }
   const safeTranscript = sanitizeTranscriptText(transcript || '')
-  const safeSummary = String(summary || '').trim()
+  const safeSummary = sanitizeTranscriptText(summary || '')
   return `${head}\n\n## STT 상태\n완료\n\n### 전사문\n\`\`\`text\n${safeTranscript || '(전사문 없음)'}\n\`\`\`\n\n### 회의 요약\n\`\`\`text\n${safeSummary || '(요약 없음)'}\n\`\`\`\n\n${tail}`
 }
 
@@ -408,6 +408,10 @@ function sanitizeTranscriptText(input = '') {
   const dropContains = [
     '다음 오디오를 한국어로 정확히 전사해줘',
     '군더더기 설명 없이 전사문만 출력해줘',
+    '다음 전사문을 회의록 형식으로 요약해줘',
+    '안건, 결정사항, 액션아이템을 구분해줘',
+    'Summarize transcript into meeting minutes',
+    '회의록 형식으로 요약해줘',
     'Transcribe this audio accurately. Output transcript only.',
   ]
 
