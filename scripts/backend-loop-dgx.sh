@@ -8,8 +8,10 @@ LOG_DIR="${EASYDOC_LOG_DIR:-$ROOT_DIR/logs}"
 mkdir -p "$LOG_DIR"
 LOOP_PID_FILE="$LOG_DIR/dgx-be-loop.pid"
 LOOP_LOCK_FILE="$LOG_DIR/dgx-be-loop.lock"
+LOOP_LOCK_DIR="$LOG_DIR/dgx-be-loop.lockdir"
 MAX_CLEANUP_RETRIES="${MAX_CLEANUP_RETRIES:-8}"
 cleanup_failures=0
+LOCK_MODE=""
 
 log_be() {
   echo "[$(date '+%Y%m%d-%H:%M:%S')][BE] $*"
@@ -23,16 +25,28 @@ if [[ -f "$LOOP_PID_FILE" ]]; then
   fi
 fi
 
-# PID 파일만으로는 경쟁 상태를 막지 못하므로 flock으로 단일 인스턴스를 강제한다.
-exec 9>"$LOOP_LOCK_FILE"
-if ! flock -n 9; then
-  log_be "backend-loop lock이 이미 점유되어 있습니다. 다른 인스턴스가 실행 중입니다."
-  exit 0
+# PID 파일만으로는 경쟁 상태를 막지 못하므로 lock으로 단일 인스턴스를 강제한다.
+if command -v flock >/dev/null 2>&1; then
+  exec 9>"$LOOP_LOCK_FILE"
+  if ! flock -n 9; then
+    log_be "backend-loop lock이 이미 점유되어 있습니다. 다른 인스턴스가 실행 중입니다."
+    exit 0
+  fi
+  LOCK_MODE="flock"
+else
+  if ! mkdir "$LOOP_LOCK_DIR" 2>/dev/null; then
+    log_be "backend-loop lockdir이 이미 존재합니다. 다른 인스턴스가 실행 중입니다."
+    exit 0
+  fi
+  LOCK_MODE="mkdir"
 fi
 
 echo "$$" > "$LOOP_PID_FILE"
 cleanup() {
   rm -f "$LOOP_PID_FILE"
+  if [[ "$LOCK_MODE" == "mkdir" ]]; then
+    rmdir "$LOOP_LOCK_DIR" >/dev/null 2>&1 || true
+  fi
 }
 trap cleanup EXIT INT TERM
 
