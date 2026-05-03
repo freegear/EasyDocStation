@@ -4,7 +4,7 @@ const pool = require('../db')
 const requireAuth = require('../middleware/auth')
 const path = require('path')
 const fs = require('fs')
-const { execFile } = require('child_process')
+const { execFile, spawn } = require('child_process')
 const bcrypt = require('bcryptjs')
 const { client: cassandraClient } = require('../cassandra')
 const { runManualTraining, reloadRagConfig, getState: getRagState } = require('../rag')
@@ -525,6 +525,40 @@ print(f"벡터 크기 ${dim}으로 재설정 완료: {table.count_rows()}건")
     })
   } catch (err) {
     res.status(500).json({ error: err.message })
+  }
+})
+
+// POST /api/admin/restart — restart EasyDocStation services via restart script
+router.post('/restart', async (req, res) => {
+  try {
+    const appRoot = path.resolve(__dirname, '../../')
+    const ubuntuScript = path.resolve(appRoot, 'scripts/restart-ubuntu.sh')
+    const dgxScript = path.resolve(appRoot, 'scripts/restart-dgx-spark.sh')
+    const restartScript = fs.existsSync(ubuntuScript)
+      ? ubuntuScript
+      : fs.existsSync(dgxScript)
+        ? dgxScript
+        : null
+
+    if (!restartScript) {
+      return res.status(500).json({ error: '재시작 스크립트를 찾을 수 없습니다. scripts/restart-ubuntu.sh 또는 scripts/restart-dgx-spark.sh를 확인하세요.' })
+    }
+
+    const child = spawn('bash', [restartScript], {
+      cwd: appRoot,
+      detached: true,
+      stdio: 'ignore',
+    })
+    child.unref()
+
+    res.json({
+      success: true,
+      message: '재시작 요청을 실행했습니다. 잠시 후 다시 접속해 주세요.',
+      script: path.basename(restartScript),
+    })
+  } catch (err) {
+    console.error('[admin/restart]', err)
+    res.status(500).json({ error: '재시작 요청 중 오류가 발생했습니다.' })
   }
 })
 

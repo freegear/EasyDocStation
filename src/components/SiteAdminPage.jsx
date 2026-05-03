@@ -763,6 +763,8 @@ export default function SiteAdminPage({ onClose }) {
   const ragDatasetFileInputRef = useRef(null)
   const [savingConfig, setSavingConfig] = useState(false)
   const [saveConfigDialogMessage, setSaveConfigDialogMessage] = useState('')
+  const [saveConfigNeedsRestart, setSaveConfigNeedsRestart] = useState(false)
+  const [restartingService, setRestartingService] = useState(false)
   const [trainingStatus, setTrainingStatus] = useState(null) // 'running', 'done', null
   const [showRagTrainingConfirm, setShowRagTrainingConfirm] = useState(false)
   const [ragTrainingDoneMessage, setRagTrainingDoneMessage] = useState(null)
@@ -1189,8 +1191,10 @@ export default function SiteAdminPage({ onClose }) {
           }
         } else if (activeTab === 'supabase') {
           setSaveConfigDialogMessage(`${t.admin.settingsSaved}\n프론트 재시작이 필요합니다. (.env 반영)`)
+          setSaveConfigNeedsRestart(true)
         } else {
           setSaveConfigDialogMessage(t.admin.settingsSaved)
+          setSaveConfigNeedsRestart(false)
         }
         loadDbStats()
       }
@@ -1198,6 +1202,23 @@ export default function SiteAdminPage({ onClose }) {
       setSaveConfigDialogMessage(t.admin.settingsSaveFailed(err.message))
     } finally {
       setSavingConfig(false)
+    }
+  }
+
+  async function handleRestartService() {
+    setRestartingService(true)
+    try {
+      const result = await apiFetch('/admin/restart', { method: 'POST' })
+      setSaveConfigDialogMessage(result?.message || '재시작 요청을 실행했습니다. 잠시 후 다시 접속해 주세요.')
+      setSaveConfigNeedsRestart(false)
+      setTimeout(() => {
+        window.location.href = '/'
+      }, 2000)
+    } catch (err) {
+      setSaveConfigDialogMessage(`재시작 요청 실패: ${err.message}`)
+      setSaveConfigNeedsRestart(false)
+    } finally {
+      setRestartingService(false)
     }
   }
 
@@ -3283,10 +3304,18 @@ export default function SiteAdminPage({ onClose }) {
         <ConfirmDialog
           title={t.admin.saveSettings || '설정 저장'}
           message={saveConfigDialogMessage}
-          confirmText={t.admin.confirm || '확인'}
-          hideCancel
-          onConfirm={() => setSaveConfigDialogMessage('')}
-          onCancel={() => setSaveConfigDialogMessage('')}
+          confirmText={saveConfigNeedsRestart ? '재시작' : (t.admin.confirm || '확인')}
+          cancelText={saveConfigNeedsRestart ? '닫기' : (t.admin.cancel || '취소')}
+          hideCancel={!saveConfigNeedsRestart}
+          loading={restartingService}
+          onConfirm={saveConfigNeedsRestart ? handleRestartService : (() => {
+            setSaveConfigDialogMessage('')
+            setSaveConfigNeedsRestart(false)
+          })}
+          onCancel={() => {
+            setSaveConfigDialogMessage('')
+            setSaveConfigNeedsRestart(false)
+          }}
         />
       )}
     </div>
