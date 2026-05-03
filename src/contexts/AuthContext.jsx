@@ -94,6 +94,9 @@ export function AuthProvider({ children }) {
       }
       const user = await apiFetch('/auth/me')
       setCurrentUser(user)
+      if (window.location.pathname === '/auth/callback' || window.location.hash) {
+        window.history.replaceState({}, '', '/')
+      }
     } finally {
       supabaseSyncInFlightRef.current = false
     }
