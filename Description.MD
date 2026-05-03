@@ -6623,6 +6623,467 @@ AI 회의록 버튼을 더블클릭하면 회의록 게시글로 나타난다.
 
 
 
+# 34. 계시글과 댓글의 화면 표시
+
+# 34.1 게시글
+
+게시글은 클릭하면, 게시글에 모두 나타나도록 하고, 
+댓글 창에는 댓글들만 나오도록 해줘
+
+
+# 34.2 세구 부현 방안
+
+좋은 질문입니다. 결론부터 말하면:
+
+- **화면 분리(게시글/댓글 UI 분리)**는 표시 로직이라서,
+- **첨부파일 삭제 안전성은 백엔드 삭제 로직**으로 보장됩니다.
+- 현재 코드 기준으로 `posts.js`에 이미 게시글/댓글 삭제 시 첨부+실파일 삭제 경로가 들어가 있습니다.
+
+확인된 포인트:
+1. 게시글 삭제 시
+- 게시글 첨부 + 댓글 첨부 ID를 수집
+- `deleteAttachmentPhysicalAndRecords()`로 `attachments` 레코드 + `./Database/ObjectFile/...` 실제 파일 삭제
+- STT 관련 DB(`stt_jobs`, `stt_segments`, `stt_summaries`)도 post 기준 정리
+
+2. 댓글 삭제 시
+- 해당 댓글의 첨부 ID 수집
+- 같은 `deleteAttachmentPhysicalAndRecords()` 호출
+
+3. 안전장치
+- `isAttachmentReferencedElsewhere()`로 다른 게시글/댓글 참조 여부 확인 후 삭제
+- 참조 중이면 삭제하지 않아 “다른 글 파일 오삭제” 방지
+
+---
+
+구현 방안(34 UI 분리 + 삭제 안정성 포함):
+
+1. UI 분리 구현
+- `PostDetailPane`를 `본문 섹션`/`댓글 섹션`으로 명확 분리
+- 댓글 렌더에서 게시글 본문 fallback 제거
+
+2. 삭제 API 경로 유지
+- 게시글 삭제: 기존 `DELETE /api/posts/:id`
+- 댓글 삭제: 기존 `DELETE /api/posts/:postId/comments/:commentId`
+- 프론트에서 별도 파일 삭제 로직 추가 금지(서버 단일 책임)
+
+3. 삭제 후 상태 반영
+- 게시글 삭제 성공: 목록에서 post 제거 + 상세 닫기
+- 댓글 삭제 성공: 댓글 목록만 재조회/로컬 제거
+- 실패 시 서버 메시지 표시
+
+4. 회귀 방지 체크(필수)
+- 게시글 삭제: 해당 post 첨부 파일/썸네일/STT 부산물이 `ObjectFile`에서 사라지는지
+- 댓글 삭제: 해당 comment 첨부만 삭제되고, 다른 글 첨부는 유지되는지
+- 동일 첨부를 다른 곳이 참조하면 삭제되지 않는지(참조 보호)
+
+5. 운영 로그 보강(권장)
+- 삭제 로그에 `actorUserId`, `postId/commentId`, `attachmentId`, `reason(OK/STILL_REFERENCED)` 출력
+- 문제 발생 시 추적 가능하게 고정
+
+원하면 다음 턴에 34 UI 분리 작업을 하면서, 위 삭제 검증용 체크리스트까지 바로 실행 가능한 형태로 붙여드리겠습니다.
+
+
+# 34.2.1 세부 구현 방안 2
+
+**통합 구현안 (UI 분리 + 오삭제 0에 가까운 첨부 삭제)**
+
+1. **적용 범위**
+- UI: `PostDetailPane` 본문/댓글 렌더 분리
+- 백엔드: `attachments` 삭제를 참조기반(ref-count)으로 강화
+- 목표: UX 개선 + 공유 첨부 오삭제 구조적 차단
+
+2. **파일 단위 작업**
+- 프론트:
+  - [PostDetailPane.jsx](/Users/kevinim/Desktop/EasyDocStation/src/components/chat/PostDetailPane.jsx)
+  - [ChatContext.jsx](/Users/kevinim/Desktop/EasyDocStation/src/contexts/ChatContext.jsx)
+- 백엔드:
+  - [posts.js](/Users/kevinim/Desktop/EasyDocStation/server/routes/posts.js)
+  - (선택) [dm.js](/Users/kevinim/Desktop/EasyDocStation/server/routes/dm.js), [expense.js](/Users/kevinim/Desktop/EasyDocStation/server/routes/expense.js) ref 연동
+
+3. **DB 스키마 (신규)**
+- `attachment_refs`
+  - `attachment_id TEXT NOT NULL`
+  - `owner_type TEXT NOT NULL` (`post|comment|dm|expense|stt`)
+  - `owner_id TEXT NOT NULL`
+  - `created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()`
+  - PK: `(attachment_id, owner_type, owner_id)`
+- `attachments` 확장
+  - `ref_count INTEGER NOT NULL DEFAULT 0`
+  - `delete_status TEXT NOT NULL DEFAULT 'active'` (`active|deleting`)
+  - `delete_requested_at TIMESTAMPTZ NULL`
+- 인덱스
+  - `idx_attachment_refs_owner(owner_type, owner_id)`
+  - `idx_attachments_delete_status(delete_status)`
+
+4. **참조 동기화 규칙**
+- 게시글/댓글 생성/수정 시:
+  - 새 첨부: `attachment_refs upsert` + `ref_count +1`(중복 방지)
+  - 제거된 첨부: `attachment_refs delete` + `ref_count -1`
+- 삭제 시:
+  - 관련 owner ref 일괄 삭제
+  - `ref_count` 재계산(or 원자 감소)
+- 운영 안전:
+  - 주기적 reconcile job으로 `ref_count`와 실제 refs 수 보정
+
+5. **삭제 알고리즘 (핵심)**
+- 함수: `safeDeleteAttachmentIfUnreferenced(attachmentId, actor)`
+1. 트랜잭션 시작
+2. `SELECT ... FOR UPDATE`로 attachment row 잠금
+3. `attachment_refs` count 조회
+4. count>0이면 삭제 중단(log: `STILL_REFERENCED`)
+5. count==0이면 `delete_status='deleting'`, `delete_requested_at` 기록 후 커밋
+6. 별도 worker가 hard-delete 수행 전 count 재확인
+7. 0이면 파일/썸네일/STT 부산물 삭제 + attachment row delete
+8. >0이면 `delete_status='active'` 롤백 복구
+- 절대 즉시 물리삭제 단독 실행 금지
+
+6. **물리 삭제 안전장치**
+- 기존 `resolveStoragePathSafe` 유지/강화:
+  - ObjectFile 하위 경로만 허용
+  - `..`/symlink 탈출 방지
+- 폴더 삭제:
+  - 첨부 폴더 단위만
+  - 비어 있을 때만 삭제
+- 금지:
+  - channel/post 상위 디렉터리 통삭제
+
+7. **UI 분리 구현**
+- `PostDetailPane`
+  - `PostBodySection`(본문/첨부/STT)
+  - `CommentSection`(댓글 리스트/입력/수정/삭제)
+- 규칙:
+  - 본문은 본문 영역에만
+  - 댓글 영역엔 댓글만
+- 삭제 버튼 동작:
+  - 기존 API 호출 유지 (`DELETE /posts/:id`, `DELETE /posts/:postId/comments/:commentId`)
+  - 프론트에서 파일 직접 삭제 로직 금지
+
+8. **API/서비스 영향 최소화**
+- 1차는 기존 `GET /api/posts` 유지 (기능 안정)
+- 2차 최적화:
+  - `GET /api/posts`에서 comments 포함 옵션화
+  - 상세 진입 시 `GET /api/posts/:id/comments` 사용
+
+9. **로그/감사**
+- 모든 삭제 이벤트에:
+  - `actorUserId`, `attachmentId`, `owner_type`, `owner_id`
+  - `refs_before`, `refs_after`
+  - `delete_status`, `result(OK|STILL_REFERENCED|ROLLBACK)`
+- 실패/보류도 반드시 로그
+
+10. **QA 시나리오**
+- 공유 첨부:
+  - A게시글+B댓글이 같은 첨부 참조
+  - A삭제 시 파일 유지, B삭제 후 최종 삭제
+- 경합:
+  - 동시에 삭제/수정 요청 시 오삭제 없는지
+- UI:
+  - 본문/댓글 분리 후 댓글에 본문 중복 미표시
+- STT:
+  - 게시글 삭제 시 STT DB/산출물 정리 유지
+
+11. **롤아웃 순서**
+1. DB 마이그레이션(`attachment_refs`, `ref_count`, `delete_status`)
+2. 백엔드 참조기반 삭제 적용(`posts.js` 우선)
+3. UI 분리(`PostDetailPane`)
+4. QA/로그 검증
+5. 2차로 `dm/expense` ref 연동 확대
+
+원하면 이 통합안을 다음 단계에서 **실제 패치 순서(커밋 단위)**로 바로 쪼개서 진행하겠습니다.
+
+
+# 34.3 날자 경계선
+
+게시글과 댓글에서 새로운 날자가 시작되는 게시물 / 댓글과  이전 날자의 게시물 / 댓글의 사이에 
+-------- YYYY년 MM 월 DD 일 ---------
+이렇게 줄과 글을 넣어서 날자 경계선을 만들어주는 것에 대해서 의견을 줘
+
+# 34.3.1 의견 #1
+
+좋은 UX입니다. 적용 추천합니다.
+
+핵심 의견:
+1. 가독성 크게 개선
+- 긴 채널/댓글 흐름에서 “언제 작성된 내용인지” 빠르게 구분됩니다.
+
+2. 구현은 프론트 렌더 단계에서만 처리
+- DB 본문/댓글 content에 경계 텍스트를 저장하지 말고, 리스트 렌더 시 동적으로 삽입하는 게 안전합니다.
+
+3. 적용 위치
+- 게시글 목록: post 카드 사이
+- 댓글 목록: comment 아이템 사이
+- 기준: `createdAt`의 날짜(`YYYY-MM-DD`)가 이전 항목과 달라질 때만 삽입
+
+4. 형식 권장
+- `──────── 2026년 05월 04일 ────────`
+- 날짜는 `Asia/Seoul` 기준으로 고정(서버/클라이언트 시간대 혼선 방지)
+
+5. 주의점
+- 실시간 새 글 추가 시 경계 중복 삽입 방지
+- 무한스크롤/페이지네이션에서 앞뒤 페이지 경계도 재계산 필요
+
+결론:
+- 저장 데이터는 그대로 두고, 렌더링에서 날짜 경계선을 동적으로 넣는 방식이 가장 깔끔하고 부작용이 적습니다.
+
+# 34.3.2 구체적인 구현 방안 #1
+
+**목표**
+- 게시글/댓글 리스트에서 날짜가 바뀌는 지점마다
+`──────── YYYY년 MM월 DD일 ────────`
+경계선 표시
+
+**1) 적용 원칙**
+1. DB 저장 금지  
+- 본문/댓글 텍스트에 경계선 저장하지 않음
+- 렌더 시 동적 삽입만 허용
+
+2. 기준 시간대 고정  
+- `Asia/Seoul` 기준 날짜키 사용
+- `createdAt`을 KST 날짜 문자열로 변환 후 비교
+
+**2) 공통 유틸 추가**
+대상: [ChatArea.jsx](/Users/kevinim/Desktop/EasyDocStation/src/components/ChatArea.jsx) 또는 공용 util 파일
+
+1. `toKstDateKey(iso)`  
+- 반환: `YYYY-MM-DD`
+
+2. `formatKstDividerLabel(iso)`  
+- 반환: `YYYY년 MM월 DD일`
+
+3. `insertDateDividers(items, getDate)`  
+- 정렬된 목록 순회
+- 이전 항목과 날짜키 다르면 divider 항목 삽입
+- 반환 예:
+  - `{ type: 'divider', key: 'd-2026-05-04', label: '2026년 05월 04일' }`
+  - `{ type: 'item', data: postOrComment }`
+
+**3) 게시글 목록 적용**
+대상: `PostList` 렌더 블록 (ChatArea 내부)
+
+1. 기존 `posts.map(...)` 대신:
+- `const rows = insertDateDividers(normalPosts, p => p.createdAt)`
+
+2. 렌더 분기:
+- `row.type==='divider'`면 경계선 UI
+- `row.type==='item'`면 기존 `PostCard`
+
+3. 핀 고정 게시글 처리
+- `pinnedPosts`는 상단 고정 유지(날짜 경계선 제외 권장)
+- 일반 목록 `normalPosts`에만 날짜 경계선 적용
+
+**4) 댓글 목록 적용**
+대상: [PostDetailPane.jsx](/Users/kevinim/Desktop/EasyDocStation/src/components/chat/PostDetailPane.jsx)
+
+1. 기존 `(freshPost.comments || []).map(...)` 대신:
+- `const commentRows = insertDateDividers(freshPost.comments || [], c => c.createdAt)`
+
+2. 렌더 분기:
+- divider: 댓글 카드 사이에 경계선
+- item: 기존 댓글 카드 렌더
+
+3. ref/하이라이트 처리 주의
+- divider에는 `commentItemRefs` 연결 금지
+- 실제 comment row에만 기존 로직 적용
+
+**5) 경계선 UI 스펙**
+1. 클래스 예시
+- 컨테이너: `flex items-center gap-3 my-3`
+- 좌우선: `flex-1 h-px bg-gray-200`
+- 라벨: `text-[11px] text-gray-400 font-medium whitespace-nowrap`
+
+2. 출력 예시
+- `──────── 2026년 05월 04일 ────────` 느낌 구현
+
+**6) 정렬/데이터 전제**
+1. 게시글: `createdAt ASC` 또는 현재 정렬 기준 유지
+2. 댓글: `createdAt ASC` 유지
+3. 정렬이 바뀌면 divider도 같은 순서 기준으로 재계산
+
+**7) 페이지네이션/무한스크롤 대비**
+1. append 시 마지막 항목 날짜와 새 첫 항목 날짜 비교
+2. 같으면 첫 divider 제거(중복 방지)
+3. 새로고침/재조회 시 전체 재계산이 가장 안전
+
+**8) QA 체크리스트**
+1. 같은 날짜 연속 항목에 divider 1회만 표시
+2. 날짜 변경 지점에 정확히 1회 표시
+3. 댓글 편집/삭제 후 divider 중복/누락 없음
+4. 모바일/PC에서 줄바꿈, 폭 깨짐 없음
+5. 핀 영역과 일반 게시글 경계 충돌 없음
+
+**9) 구현 순서**
+1. 공통 유틸 작성 (`toKstDateKey`, `insertDateDividers`)
+2. 게시글 리스트 적용
+3. 댓글 리스트 적용
+4. QA 5개 시나리오 점검
+
+원하면 다음 턴에 이 설계대로 실제 코드 패치까지 바로 진행하겠습니다.
+
+# 34.3.3 세부적인 구현 방안 
+
+영향은 **작고 관리 가능**합니다. 다만 아래는 체크 필요합니다.
+
+1. 성능 영향
+- 리스트 렌더 때 divider 계산 1회 추가(O(n)).
+- 게시글/댓글 수가 매우 많아도 보통 체감은 미미합니다.
+
+2. 스크롤/하이라이트 영향
+- 댓글에 divider 행이 끼어들면 인덱스 기반 스크롤 로직은 어긋날 수 있습니다.
+- 현재처럼 `commentId` 기반 ref를 쓰면 문제 거의 없습니다.
+
+3. 핀 고정 게시글 영역
+- pinned/normal 구간이 분리돼 있으면 divider도 normal에만 넣어야 혼선이 없습니다.
+
+4. 검색/필터 결과
+- 필터링 후 리스트에도 divider가 재계산되어야 합니다.
+- 재계산 안 하면 날짜선 위치가 틀어질 수 있습니다.
+
+5. 무한스크롤/추가 로딩
+- 페이지 경계에서 divider 중복 가능성이 있습니다.
+- append 시 앞뒤 날짜 비교로 중복 제거 필요합니다.
+
+6. 테스트 스냅샷/UI 테스트
+- DOM 노드 수가 늘어 기존 테스트가 깨질 수 있습니다.
+- divider 허용하도록 테스트 갱신 필요합니다.
+
+7. 데이터/삭제 로직 영향
+- 없음. 저장 데이터나 첨부 삭제 로직에는 영향 없습니다.
+
+정리하면, **렌더링 계층 영향만 있고 백엔드/데이터 정합성 영향은 없습니다.**  
+핵심은 `id 기반 ref 유지 + pinned 구간 분리 + append 중복 방지` 3가지만 지키면 안전합니다.
+
+# 34.3.4 세부적인 구현 방안 #2
+
+**목표**
+- 게시글/댓글 사이에 날짜 경계선 표시
+- 기존 기능(삭제/첨부/STT/하이라이트) 영향 최소화
+
+**1) 적용 범위**
+1. 게시글 리스트(`normalPosts`)만 적용  
+- `pinnedPosts`는 제외
+
+2. 댓글 리스트 전체 적용  
+- 단, ref/하이라이트는 기존처럼 실제 댓글 row만 대상
+
+**2) 공통 유틸 설계**
+대상: [ChatArea.jsx](/Users/kevinim/Desktop/EasyDocStation/src/components/ChatArea.jsx) (또는 util 분리)
+
+1. `toKstDateKey(iso)`  
+- 반환: `YYYY-MM-DD` (KST 고정)
+
+2. `formatKstDateLabel(iso)`  
+- 반환: `YYYY년 MM월 DD일`
+
+3. `buildDateSeparatedRows(items, getCreatedAt, getId)`  
+- 입력: 정렬된 배열
+- 출력:
+  - `{ type:'divider', key:'divider-YYYY-MM-DD', dateKey, label }`
+  - `{ type:'item', key:getId(item), item }`
+- 규칙:
+  - 이전 dateKey와 다를 때만 divider 삽입
+  - `createdAt` 없음/파싱 실패는 `unknown-date`로 묶어 1회만 표시
+
+**3) 게시글 영역 구현**
+대상: `PostList` 렌더 구간
+
+1. 현재 구조 유지
+- `pinnedPosts` 렌더는 그대로
+
+2. `normalPosts` 렌더 변경
+- `normalPosts.map(...)` → `rows.map(...)` (`buildDateSeparatedRows` 결과)
+
+3. divider UI
+- 좌우 선 + 중앙 날짜 라벨
+- `my-3`, `text-[11px] text-gray-400`, `flex-1 h-px bg-gray-200`
+
+**4) 댓글 영역 구현**
+대상: [PostDetailPane.jsx](/Users/kevinim/Desktop/EasyDocStation/src/components/chat/PostDetailPane.jsx)
+
+1. `(freshPost.comments || []).map(...)` → `commentRows.map(...)`
+2. divider row는 별도 `div` 렌더
+3. 기존 `commentItemRefs`는 `type==='item'`일 때만 설정
+4. 하이라이트/scroll-open은 `commentId` 기준 유지 (인덱스 사용 금지)
+
+**5) 영향 최소화 가드**
+1. 삭제/수정 API 변경 없음  
+- 렌더만 변경
+
+2. STT/첨부 렌더 변경 없음  
+- 댓글 본문/첨부 카드 로직 그대로
+
+3. 이벤트 바인딩 보호
+- divider row에는 click/edit/delete 이벤트 없음
+
+**6) 페이지네이션/추가 로딩 대비(선반영 구조)**
+1. `buildDateSeparatedRows`는 항상 “현재 화면 데이터 전체” 기준 재계산
+2. 향후 append 방식 도입 시:
+- 직전 마지막 item 날짜와 새 첫 item 날짜 같으면 중복 divider 제거 로직 추가
+
+**7) 테스트 체크리스트**
+1. 게시글:
+- pinned 영역엔 divider 없음
+- normal 영역 날짜 바뀔 때만 divider 표시
+
+2. 댓글:
+- 날짜 경계 정상 표시
+- 댓글 링크 진입 하이라이트/스크롤 정상
+
+3. 기능 회귀:
+- 댓글 수정/삭제 후 divider 중복/누락 없음
+- 모바일/PC 레이아웃 깨짐 없음
+
+4. 데이터 무영향:
+- DB content/comments 원문에 divider 텍스트 저장되지 않음
+
+**8) 구현 순서**
+1. 공통 유틸 추가
+2. `PostList` normalPosts 적용
+3. `PostDetailPane` comments 적용
+4. QA(게시글/댓글/하이라이트/삭제 시나리오)
+
+원하면 다음 턴에 이 계획 그대로 실제 코드 패치까지 이어서 진행하겠습니다.
+
+
+
+구현 완료했습니다. 요청하신 날짜 경계선이 게시글/댓글에 동적으로 표시됩니다.
+
+변경 파일:
+- [ChatArea.jsx](/Users/kevinim/Desktop/EasyDocStation/src/components/ChatArea.jsx)
+- [PostDetailPane.jsx](/Users/kevinim/Desktop/EasyDocStation/src/components/chat/PostDetailPane.jsx)
+- (이전 턴 반영) [posts.js](/Users/kevinim/Desktop/EasyDocStation/server/routes/posts.js)
+
+적용 내용:
+1. KST 기준 날짜 경계 유틸 추가
+- `toKstDateKey`
+- `formatKstDividerLabel`
+- `buildDateSeparatedRows`
+
+2. 게시글 목록 적용
+- `pinnedPosts`는 그대로 유지
+- `normalPosts`에만 날짜 경계선 삽입
+- 표시 형식: `──────── YYYY년 MM월 DD일 ────────`
+
+3. 댓글 목록 적용
+- 댓글 사이 날짜 변경 지점에 경계선 삽입
+- 기존 `commentId` 기반 ref/하이라이트 로직 유지 (divider에는 ref 미부착)
+
+4. 안전성
+- 렌더 계층만 변경 (DB 저장 데이터 변경 없음)
+- 삭제/첨부/STT 로직 영향 없음
+
+5. 참고
+- 로컬 빌드 검증을 시도했지만 현재 환경에서 `vite`가 없어(`vite: command not found`) 번들 빌드는 못 돌렸습니다.
+- 문법 체크는 서버 파일(`posts.js`) 기준 통과했습니다.
+
+원하시면 다음으로, 날짜 경계선 스타일(색상/두께/여백)을 모바일/PC 별로 더 읽기 좋게 미세 조정해드리겠습니다.
+
+
+
+# 34.4 
+
+
+
+
 
 
 
