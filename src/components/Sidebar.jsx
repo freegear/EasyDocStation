@@ -32,7 +32,19 @@ function LockIcon() {
   )
 }
 
-export default function Sidebar({ showCalendar, onToggleCalendar, onCloseCalendar, showDM, onToggleDM, onOpenDM, onNewDM, activeDMConvId }) {
+export default function Sidebar({
+  showCalendar,
+  onToggleCalendar,
+  onCloseCalendar,
+  showDM,
+  onToggleDM,
+  onOpenDM,
+  onNewDM,
+  activeDMConvId,
+  isMobile = false,
+  onCloseMobile,
+  panelId,
+}) {
   const { teams, setTeams, selectedTeam, selectedChannel, selectTeam, selectChannel, refreshTeams, addPost } = useChat()
   const { currentUser } = useAuth()
   const t = useT()
@@ -122,9 +134,15 @@ export default function Sidebar({ showCalendar, onToggleCalendar, onCloseCalenda
   }
 
   const totalUnread = (selectedTeam?.channels || []).reduce((sum, ch) => sum + (ch.unread || 0), 0)
+  const closeMobileIfNeeded = () => {
+    if (isMobile) onCloseMobile?.()
+  }
 
   return (
-    <aside className="w-64 flex-shrink-0 bg-gray-200 flex flex-col h-full border-r border-gray-100">
+    <aside
+      id={panelId}
+      className={`${isMobile ? 'w-full' : 'w-64'} flex-shrink-0 bg-gray-200 flex flex-col h-full border-r border-gray-100`}
+    >
       {/* Scrollable: 팀 목록 + 채널/DM/서식 전체 포함 (9.6) */}
       <div className="flex-1 overflow-y-auto py-2">
         {/* Team selector */}
@@ -143,7 +161,7 @@ export default function Sidebar({ showCalendar, onToggleCalendar, onCloseCalenda
               return (
                 <button
                   key={team.id}
-                  onClick={() => { selectTeam(team); onCloseCalendar?.() }}
+                  onClick={() => { selectTeam(team); onCloseCalendar?.(); closeMobileIfNeeded() }}
                   onDoubleClick={() => {
                     if (!canManageTeam()) return
                     setEditingTeam(team)
@@ -197,7 +215,7 @@ export default function Sidebar({ showCalendar, onToggleCalendar, onCloseCalenda
                 return (
                   <button
                     key={ch.id}
-                    onClick={() => { selectChannel(ch); onCloseCalendar?.() }}
+                    onClick={() => { selectChannel(ch); onCloseCalendar?.(); closeMobileIfNeeded() }}
                     onDoubleClick={() => {
                       if (!canManageChannel(ch)) return  // 권한 없으면 아무 동작 없음
                       setEditingChannel(ch)
@@ -291,9 +309,11 @@ export default function Sidebar({ showCalendar, onToggleCalendar, onCloseCalenda
             onDoubleClick={() => {
               if (dmConversations.length > 0) {
                 onOpenDM?.(dmConversations[0])
+                closeMobileIfNeeded()
                 return
               }
               onNewDM?.()
+              closeMobileIfNeeded()
             }}
             className={`flex items-center gap-2.5 flex-1 px-2 py-2 rounded-lg text-sm text-left transition-all ${
               showDM
@@ -312,7 +332,10 @@ export default function Sidebar({ showCalendar, onToggleCalendar, onCloseCalenda
             <span className={`text-xs ${showDM ? 'text-white/80' : 'text-gray-400'}`}>{dmCollapsedList ? '▸' : '▾'}</span>
           </button>
           <button
-            onClick={onNewDM}
+            onClick={() => {
+              onNewDM?.()
+              closeMobileIfNeeded()
+            }}
             className={`w-8 h-8 flex items-center justify-center rounded-lg text-lg leading-none transition-colors ${
               showDM
                 ? 'text-white/85 bg-indigo-600 hover:bg-indigo-700'
@@ -331,7 +354,10 @@ export default function Sidebar({ showCalendar, onToggleCalendar, onCloseCalenda
             {dmConversations.slice(0, 8).map(conv => (
               <button
                 key={conv.id}
-                onClick={() => onOpenDM?.(conv)}
+                onClick={() => {
+                  onOpenDM?.(conv)
+                  closeMobileIfNeeded()
+                }}
                 className={`flex items-center gap-2 w-full px-2 py-1.5 rounded-md text-xs text-left transition-all ${
                   activeDMConvId === conv.id
                     ? 'bg-indigo-500/20 text-gray-900 font-medium'
@@ -354,7 +380,10 @@ export default function Sidebar({ showCalendar, onToggleCalendar, onCloseCalenda
       {/* Calendar button */}
       <div className="px-3 pb-1 pt-1">
         <button
-          onClick={onToggleCalendar}
+          onClick={() => {
+            onToggleCalendar?.()
+            closeMobileIfNeeded()
+          }}
           className={`flex items-center gap-2.5 w-full px-2 py-2 rounded-lg text-sm text-left transition-all ${
             showCalendar
               ? 'bg-indigo-600 text-white shadow-lg'
