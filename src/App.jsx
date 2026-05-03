@@ -15,6 +15,7 @@ import ConfirmDialog from './components/ConfirmDialog'
 import SelectionGuardPlaywrightFixture from './components/dev/SelectionGuardPlaywrightFixture'
 
 function MainLayout() {
+  const SIDEBAR_STORAGE_KEY = 'ui.sidebar.visible'
   const accessDeniedMessage = '당신은 권한이 없습니다. 필요하시면 채널관리자/팀 관리자/채널관리자 에게 연락하여 주시기바랍니다.'
   const [showProfile, setShowProfile] = useState(false)
   const [showProfileSavedDialog, setShowProfileSavedDialog] = useState(false)
@@ -31,6 +32,13 @@ function MainLayout() {
   const [groqWidth, setGroqWidth] = useState(320)
   const [resizingGroq, setResizingGroq] = useState(false)
   const [showAgenticPanel, setShowAgenticPanel] = useState(true)
+  const [showSidebar, setShowSidebar] = useState(() => {
+    if (typeof window === 'undefined') return true
+    const saved = window.localStorage.getItem(SIDEBAR_STORAGE_KEY)
+    if (saved === 'true') return true
+    if (saved === 'false') return false
+    return !window.matchMedia('(max-width: 768px)').matches
+  })
   const mainRef = useRef(null)
 
   const startGroqResize = useCallback((e) => {
@@ -122,26 +130,35 @@ function MainLayout() {
     return () => window.removeEventListener('channel-access-denied', handleChannelAccessDenied)
   }, [])
 
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    window.localStorage.setItem(SIDEBAR_STORAGE_KEY, String(showSidebar))
+  }, [showSidebar])
+
   return (
     <div className="flex flex-col h-screen bg-gray-50 overflow-hidden">
       <TitleBar
         onOpenProfile={() => setShowProfile(true)}
         onOpenSiteAdmin={() => setShowSiteAdmin(true)}
         onSelectSearchResult={handleSearchSelect}
+        showSidebar={showSidebar}
+        onToggleSidebar={() => setShowSidebar(v => !v)}
         showAgenticPanel={showAgenticPanel}
         onToggleAgenticPanel={() => setShowAgenticPanel(v => !v)}
       />
       <div ref={mainRef} className="flex flex-1 min-h-0">
-        <Sidebar
-          showCalendar={showCalendar}
-          onToggleCalendar={() => { setShowCalendar(v => !v); setShowDM(false) }}
-          onCloseCalendar={() => setShowCalendar(false)}
-          showDM={showDM}
-          onToggleDM={() => setShowDM(v => !v)}
-          onOpenDM={(conv) => { setActiveDMConv(conv); setShowDM(true); setShowCalendar(false) }}
-          onNewDM={() => setShowNewDM(true)}
-          activeDMConvId={activeDMConv?.id}
-        />
+        {showSidebar && (
+          <Sidebar
+            showCalendar={showCalendar}
+            onToggleCalendar={() => { setShowCalendar(v => !v); setShowDM(false) }}
+            onCloseCalendar={() => setShowCalendar(false)}
+            showDM={showDM}
+            onToggleDM={() => setShowDM(v => !v)}
+            onOpenDM={(conv) => { setActiveDMConv(conv); setShowDM(true); setShowCalendar(false) }}
+            onNewDM={() => setShowNewDM(true)}
+            activeDMConvId={activeDMConv?.id}
+          />
+        )}
 
         {showCalendar ? (
           <CalendarView onClose={() => setShowCalendar(false)} />
