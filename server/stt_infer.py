@@ -178,8 +178,9 @@ def postprocess_diarization(segments: List[Segment]) -> List[Segment]:
     if not segments:
         return segments
 
-    # 1) Remove too-short noise segments
-    filtered = [s for s in segments if (s.end_sec - s.start_sec) >= 0.25]
+    # 1) Remove too-short noise segments (강화)
+    min_seg_sec = float(os.getenv("STT_MIN_SEGMENT_SEC", "0.9"))
+    filtered = [s for s in segments if (s.end_sec - s.start_sec) >= min_seg_sec]
     if not filtered:
         filtered = segments
 
@@ -230,6 +231,38 @@ class WhisperSegmentTranscriber:
         except Exception as e:
             raise RuntimeError(f"whisper transcribe failed: {e}")
         return str((result or {}).get("text") or "").strip()
+
+
+def is_low_energy(piece: np.ndarray) -> bool:
+    if piece is None or len(piece) == 0:
+        return True
+    rms = float(np.sqrt(np.mean(np.square(piece.astype(np.float32)))))
+    threshold = float(os.getenv("STT_MIN_RMS", "0.008"))
+    return rms < threshold
+
+
+def normalize_for_dedupe(text: str) -> str:
+    t = str(text or "").strip().lower()
+    if not t:
+        return ""
+    return " ".join(t.split())
+
+
+def is_unwanted_transcript_text(text: str) -> bool:
+    t = str(text or "").strip()
+    if not t:
+        return True
+    bad_contains = [
+        "오디오 파일이 제공되지",
+        "오디오 파일을 업로드",
+        "전사해 드리겠습니다",
+        "군더더기 설명 없이 전사문만 출력",
+        "다음 오디오를 한국어로 정확히 전사",
+        "죄송합니다",
+        "i cannot",
+        "please upload",
+    ]
+    return any(k in t for k in bad_contains)
 
 
 class GemmaSummarizer:
@@ -322,7 +355,7 @@ def main():
     if diarized is None:
         diarized = chunk_segments(duration, chunk_sec=25.0, overlap_sec=2.5)
 
-    whisper_model = str(payload.get("whisperModel") or os.getenv("WHISPER_MODEL") or "small")
+    whisper_model = str(payload.get("whisperModel") or os.getenv("WHISPER_MODEL") or "medium")
     try:
         transcriber = WhisperSegmentTranscriber(whisper_model)
     except Exception as e:
@@ -345,12 +378,23 @@ def main():
         return
 
     total_segments = len(diarized)
+    prev_norm_text = ""
     for i, seg in enumerate(diarized):
         s = max(0, int(seg.start_sec * sr))
         e = min(len(y), int(seg.end_sec * sr))
         if e <= s:
             continue
         piece = y[s:e]
+        if is_low_energy(piece):
+            emit_event({
+                "event": "progress",
+                "progress": int(((i + 1) / max(1, total_segments)) * 100),
+                "stage": "transcribing_skip_low_energy",
+                "current": i + 1,
+                "total": total_segments,
+                "speaker_label": seg.speaker_label,
+            })
+            continue
         with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp:
             tmp_path = tmp.name
         try:
@@ -368,6 +412,30 @@ def main():
                 os.unlink(tmp_path)
             except Exception:
                 pass
+
+        if is_unwanted_transcript_text(text):
+            emit_event({
+                "event": "progress",
+                "progress": int(((i + 1) / max(1, total_segments)) * 100),
+                "stage": "transcribing_skip_unwanted_text",
+                "current": i + 1,
+                "total": total_segments,
+                "speaker_label": seg.speaker_label,
+            })
+            continue
+
+        norm = normalize_for_dedupe(text)
+        if norm and norm == prev_norm_text:
+            emit_event({
+                "event": "progress",
+                "progress": int(((i + 1) / max(1, total_segments)) * 100),
+                "stage": "transcribing_skip_duplicate",
+                "current": i + 1,
+                "total": total_segments,
+                "speaker_label": seg.speaker_label,
+            })
+            continue
+        prev_norm_text = norm
 
         segments_out.append({
             "segment_index": i,

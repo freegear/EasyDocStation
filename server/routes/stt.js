@@ -472,6 +472,15 @@ function sanitizeTranscriptText(input = '') {
     'Summarize transcript into meeting minutes',
     '회의록 형식으로 요약해줘',
     'Transcribe this audio accurately. Output transcript only.',
+    '오디오 파일을 업로드',
+    '오디오 파일이 제공되지',
+    '죄송합니다',
+    '전사해 드리겠습니다',
+    'I cannot transcribe',
+    'Please upload',
+    '[음악 소리]',
+    '[음원 재생]',
+    '챗봇',
   ]
 
   const filtered = lines
