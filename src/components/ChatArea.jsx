@@ -1755,7 +1755,7 @@ function ContentRenderer({ text = '', sttPostId = '', sttChannelId = '' }) {
         body: JSON.stringify({
           postId: sttPostId,
           attachmentId: prep.file_uuid,
-          options: { diarization: true, diarizationRequired: true, language: 'ko' },
+          options: { diarization: true, diarizationRequired: false, language: 'ko' },
         }),
       })
       setSttStatus(job?.deduplicated ? '기존 STT 작업 재사용중...' : 'STT 처리 대기중...')
