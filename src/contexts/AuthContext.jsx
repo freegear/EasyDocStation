@@ -222,7 +222,10 @@ export function AuthProvider({ children }) {
     const redirectTo = `${window.location.origin}/auth/callback`
     const { error } = await supabase.auth.signInWithOAuth({
       provider,
-      options: { redirectTo },
+      options: {
+        redirectTo,
+        scopes: 'profile_nickname profile_image',
+      },
     })
     if (error) throw error
   }
