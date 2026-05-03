@@ -5,6 +5,8 @@ const fs = require('fs')
 const path = require('path')
 const { client, isConnected } = require('../cassandra')
 const db = require('../db')
+const config = require('../../config.json')
+const { getDatabasePath } = require('../databasePaths')
 const requireAuth = require('../middleware/auth')
 const { trainPostImmediate, retrainPostImmediate, trainCommentImmediate, retrainCommentImmediate } = require('../rag')
 const {
@@ -14,6 +16,135 @@ const {
   getTrainingStatus,
 } = require('../trainingStatus')
 const { ACCESS_DENIED_MESSAGE, canAccessChannel, getAccessibleChannelIds } = require('../lib/channelAccess')
+const STORAGE_BASE = getDatabasePath(config, 'ObjectFile Path')
+const STORAGE_BASE_ABS = path.resolve(STORAGE_BASE)
+
+function toAttachmentIdArray(raw) {
+  if (!Array.isArray(raw)) return []
+  return raw
+    .map((item) => (typeof item === 'object' ? item?.id : item))
+    .map((v) => String(v || '').trim())
+    .filter(Boolean)
+}
+
+function extractPostAttachmentIds(postRow = {}) {
+  const keys = [
+    'attachments_1', 'attachments_2', 'attachments_3', 'attachments_4', 'attachments_5',
+    'attachments_6', 'attachments_7', 'attachments_8', 'attachments_9', 'attachments_10',
+  ]
+  return keys
+    .map((k) => String(postRow?.[k] || '').trim())
+    .filter(Boolean)
+}
+
+function resolveStoragePathSafe(storagePath = '') {
+  const safeRel = String(storagePath || '').trim()
+  if (!safeRel) return null
+  const abs = path.resolve(STORAGE_BASE_ABS, safeRel)
+  if (abs !== STORAGE_BASE_ABS && !abs.startsWith(`${STORAGE_BASE_ABS}${path.sep}`)) return null
+  return abs
+}
+
+async function isAttachmentReferencedElsewhere(attachmentId, { excludedPostId = '', excludedCommentId = '' } = {}) {
+  const id = String(attachmentId || '').trim()
+  if (!id) return false
+
+  // PostgreSQL: posts reference check
+  const postRef = await db.query(
+    `SELECT id
+     FROM posts
+     WHERE id <> $2
+       AND $1 IN (
+         attachments_1, attachments_2, attachments_3, attachments_4, attachments_5,
+         attachments_6, attachments_7, attachments_8, attachments_9, attachments_10
+       )
+     LIMIT 1`,
+    [id, String(excludedPostId || '')],
+  )
+  if (postRef.rowCount > 0) return true
+
+  // PostgreSQL: comments reference check
+  const commentRef = await db.query(
+    `SELECT id
+     FROM comments c
+     WHERE c.id <> $2
+       AND EXISTS (
+         SELECT 1
+         FROM jsonb_array_elements_text(COALESCE(c.attachments, '[]'::jsonb)) AS e(v)
+         WHERE e.v = $1
+       )
+     LIMIT 1`,
+    [id, String(excludedCommentId || '')],
+  )
+  if (commentRef.rowCount > 0) return true
+
+  // Cassandra: comments list<text> contains check
+  if (isConnected()) {
+    try {
+      const cassCommentRef = await client.execute(
+        'SELECT id FROM comments WHERE attachments CONTAINS ? ALLOW FILTERING',
+        [id], { prepare: true },
+      )
+      const hit = (cassCommentRef.rows || []).some((r) => String(r.id || '') !== String(excludedCommentId || ''))
+      if (hit) return true
+    } catch (_) {}
+
+    // Cassandra: posts attachments_N check
+    const cols = [
+      'attachments_1', 'attachments_2', 'attachments_3', 'attachments_4', 'attachments_5',
+      'attachments_6', 'attachments_7', 'attachments_8', 'attachments_9', 'attachments_10',
+    ]
+    for (const col of cols) {
+      try {
+        const cassPostRef = await client.execute(
+          `SELECT id FROM posts WHERE ${col} = ? ALLOW FILTERING`,
+          [id], { prepare: true },
+        )
+        const hit = (cassPostRef.rows || []).some((r) => String(r.id || '') !== String(excludedPostId || ''))
+        if (hit) return true
+      } catch (_) {}
+    }
+  }
+
+  return false
+}
+
+async function deleteAttachmentPhysicalAndRecords(attachmentId, { excludedPostId = '', excludedCommentId = '' } = {}) {
+  const id = String(attachmentId || '').trim()
+  if (!id) return { deleted: false, reason: 'EMPTY_ID' }
+
+  const inUse = await isAttachmentReferencedElsewhere(id, { excludedPostId, excludedCommentId })
+  if (inUse) return { deleted: false, reason: 'STILL_REFERENCED' }
+
+  const pgMeta = await db.query(
+    'SELECT id, storage_path, thumbnail_path FROM attachments WHERE id = $1 LIMIT 1',
+    [id],
+  )
+  const meta = pgMeta.rows?.[0] || null
+
+  if (meta) {
+    const filePath = resolveStoragePathSafe(meta.storage_path)
+    const thumbPath = resolveStoragePathSafe(meta.thumbnail_path)
+    if (filePath && fs.existsSync(filePath)) {
+      try { fs.unlinkSync(filePath) } catch (_) {}
+    }
+    if (thumbPath && fs.existsSync(thumbPath)) {
+      try { fs.unlinkSync(thumbPath) } catch (_) {}
+    }
+    if (filePath) {
+      const fileDir = path.dirname(filePath)
+      try {
+        if (fileDir.startsWith(`${STORAGE_BASE_ABS}${path.sep}`)) fs.rmdirSync(fileDir)
+      } catch (_) {}
+    }
+  }
+
+  await db.query('DELETE FROM attachments WHERE id = $1', [id])
+  if (isConnected()) {
+    try { await client.execute('DELETE FROM attachments WHERE id = ?', [id], { prepare: true }) } catch (_) {}
+  }
+  return { deleted: true, reason: 'OK' }
+}
 
 async function ensurePostPinTable() {
   await db.query(`
@@ -711,6 +842,20 @@ router.delete('/:id', requireAuth, async (req, res, next) => {
       return res.status(403).json({ error: '권한이 없습니다.' })
     }
 
+    // 삭제 대상 게시글/댓글의 첨부 ID를 먼저 수집한다.
+    const postRowRes = await client.execute(
+      'SELECT * FROM posts WHERE channel_id = ? AND created_at = ?',
+      [row.channel_id, row.created_at], { prepare: true },
+    )
+    const postAttachmentIds = extractPostAttachmentIds(postRowRes.rows?.[0] || {})
+
+    const cRows = await client.execute(
+      'SELECT id, created_at, attachments FROM comments WHERE post_id = ?',
+      [id], { prepare: true },
+    )
+    const commentAttachmentIds = (cRows.rows || []).flatMap((c) => toAttachmentIdArray(c.attachments || []))
+    const targetAttachmentIds = [...new Set([...postAttachmentIds, ...commentAttachmentIds])]
+
     await client.execute(
       'DELETE FROM posts WHERE channel_id = ? AND created_at = ?',
       [row.channel_id, row.created_at], { prepare: true }
@@ -721,10 +866,6 @@ router.delete('/:id', requireAuth, async (req, res, next) => {
     )
 
     // 해당 게시글의 댓글도 Cassandra에서 삭제
-    const cRows = await client.execute(
-      'SELECT id, created_at FROM comments WHERE post_id = ?',
-      [id], { prepare: true }
-    )
     await Promise.all(cRows.rows.map(c =>
       Promise.all([
         client.execute(
@@ -737,6 +878,15 @@ router.delete('/:id', requireAuth, async (req, res, next) => {
         ),
       ])
     ))
+
+    // PostgreSQL mirror 정리
+    await db.query('DELETE FROM comments WHERE post_id = $1', [id])
+    await db.query('DELETE FROM posts WHERE id = $1', [id])
+
+    // 첨부파일/레코드 정리 (다른 글/댓글 참조 시 삭제하지 않음)
+    for (const attId of targetAttachmentIds) {
+      await deleteAttachmentPhysicalAndRecords(attId, { excludedPostId: id })
+    }
 
     res.json({ success: true })
   } catch (err) {
@@ -990,6 +1140,12 @@ router.delete('/:postId/comments/:commentId', requireAuth, async (req, res, next
     if (!isSiteAdmin && String(row.author_id) !== String(req.user.id)) {
       return res.status(403).json({ error: '권한이 없습니다.' })
     }
+    const commentRowRes = await client.execute(
+      'SELECT attachments FROM comments WHERE post_id = ? AND created_at = ?',
+      [row.post_id, row.created_at], { prepare: true },
+    )
+    const targetAttachmentIds = toAttachmentIdArray(commentRowRes.rows?.[0]?.attachments || [])
+
     await client.execute(
       'DELETE FROM comments WHERE post_id = ? AND created_at = ?',
       [row.post_id, row.created_at], { prepare: true }
@@ -998,6 +1154,12 @@ router.delete('/:postId/comments/:commentId', requireAuth, async (req, res, next
       'DELETE FROM comments_by_id WHERE id = ?',
       [commentId], { prepare: true }
     )
+    await db.query('DELETE FROM comments WHERE id = $1', [commentId])
+
+    for (const attId of targetAttachmentIds) {
+      await deleteAttachmentPhysicalAndRecords(attId, { excludedPostId: postId, excludedCommentId: commentId })
+    }
+
     res.json({ success: true })
   } catch (err) {
     next(err)
