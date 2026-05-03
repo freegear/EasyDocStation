@@ -100,7 +100,7 @@ function writeSupabaseEnvFromPayload(payload = {}, { backup = false } = {}) {
     envText = fs.readFileSync(envPath, 'utf8')
     if (backup) {
       const backupPath = path.resolve(envDir, `.env_${formatBackupTimestamp(new Date())}`)
-      fs.writeFileSync(backupPath, envText, 'utf8')
+      fs.renameSync(envPath, backupPath)
     }
   }
 
@@ -152,6 +152,40 @@ function readSupabaseEnvSnapshot() {
     auth_cookie_secure: String(map.AUTH_COOKIE_SECURE ?? 'false'),
     vite_supabase_url: map.VITE_SUPABASE_URL || '',
     vite_supabase_anon_key: map.VITE_SUPABASE_ANON_KEY || '',
+    hf_token: map.HF_TOKEN || '',
+  }
+}
+
+function upsertEnvLine(source, key, value) {
+  const escaped = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const regex = new RegExp(`^${escaped}=.*$`, 'm')
+  const line = `${key}=${value}`
+  if (regex.test(source)) return source.replace(regex, line)
+  return source + (source.endsWith('\n') || source.length === 0 ? '' : '\n') + line + '\n'
+}
+
+function writeSttEnvFromPayload(payload = {}, { backup = false } = {}) {
+  const envPath = path.resolve(__dirname, '../.env')
+  const envDir = path.dirname(envPath)
+  if (!fs.existsSync(envDir)) fs.mkdirSync(envDir, { recursive: true })
+
+  let envText = ''
+  if (fs.existsSync(envPath)) {
+    envText = fs.readFileSync(envPath, 'utf8')
+    if (backup) {
+      const backupPath = path.resolve(envDir, `.env_${formatBackupTimestamp(new Date())}`)
+      fs.renameSync(envPath, backupPath)
+    }
+  }
+
+  const hfToken = String(payload.HF_TOKEN || '').trim()
+  const updated = upsertEnvLine(envText, 'HF_TOKEN', hfToken)
+  fs.writeFileSync(envPath, updated, 'utf8')
+
+  return {
+    synced: true,
+    path: envPath,
+    hasToken: Boolean(hfToken),
   }
 }
 
@@ -556,6 +590,21 @@ router.put('/config', requireSiteAdmin, async (req, res) => {
   } catch (err) {
     console.error('Save Config Error:', err)
     res.status(500).json({ error: '설정을 저장하는 중 오류가 발생했습니다.' })
+  }
+})
+
+// PUT /api/admin/stt/settings — update STT-related env settings
+router.put('/stt/settings', requireSiteAdmin, async (req, res) => {
+  try {
+    const envSync = writeSttEnvFromPayload(req.body || {}, { backup: true })
+    res.json({
+      success: true,
+      envSync,
+      restartRequired: true,
+    })
+  } catch (err) {
+    console.error('Save STT Settings Error:', err)
+    res.status(500).json({ error: 'STT 설정을 저장하는 중 오류가 발생했습니다.' })
   }
 })
 

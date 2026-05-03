@@ -790,6 +790,7 @@ export default function SiteAdminPage({ onClose }) {
   const [sttNewName, setSttNewName] = useState('')
   const [sttNewUserId, setSttNewUserId] = useState('')
   const [sttMessage, setSttMessage] = useState('')
+  const [sttHfToken, setSttHfToken] = useState('')
 
   async function loadTeams() {
     try {
@@ -988,6 +989,7 @@ export default function SiteAdminPage({ onClose }) {
       setAuthCookieSecure(String(data.auth_cookie_secure || 'false'))
       setViteSupabaseUrl(String(data.vite_supabase_url || ''))
       setViteSupabaseAnonKey(String(data.vite_supabase_anon_key || ''))
+      setSttHfToken(String(data.hf_token || ''))
       if (data.sns) {
         setSnsForm({
           kakao: {
@@ -1010,6 +1012,24 @@ export default function SiteAdminPage({ onClose }) {
       console.error('Failed to load DB stats:', err)
     } finally {
       setDbLoading(false)
+    }
+  }
+
+  async function handleSaveSttSettings() {
+    setSttSaving(true)
+    setSttMessage('')
+    try {
+      await apiFetch('/admin/stt/settings', {
+        method: 'PUT',
+        body: JSON.stringify({
+          HF_TOKEN: String(sttHfToken || '').trim(),
+        }),
+      })
+      setSttMessage('저장되었습니다. server/.env에 HF_TOKEN이 반영되었습니다. 서버 재시작이 필요합니다.')
+    } catch (err) {
+      setSttMessage(`저장 실패: ${err.message}`)
+    } finally {
+      setSttSaving(false)
     }
   }
 
@@ -1129,7 +1149,7 @@ export default function SiteAdminPage({ onClose }) {
 
   useEffect(() => { loadUsers(); loadTeams() }, [])
   useEffect(() => {
-    if (activeTab === 'db' || activeTab === 'display' || activeTab === 'rag' || activeTab === 'agenticai' || activeTab === 'company' || activeTab === 'site' || activeTab === 'supabase' || activeTab === 'sns') loadDbStats()
+    if (activeTab === 'db' || activeTab === 'display' || activeTab === 'rag' || activeTab === 'agenticai' || activeTab === 'company' || activeTab === 'site' || activeTab === 'supabase' || activeTab === 'sns' || activeTab === 'stt') loadDbStats()
     if (activeTab === 'sns') loadTelegramWebhookInfo()
     if (activeTab === 'rag-learning') loadRagDatasets()
     if (activeTab === 'stt' && !sttChannelId && sttChannels.length > 0) {
@@ -1752,110 +1772,27 @@ export default function SiteAdminPage({ onClose }) {
               <h2 className="text-gray-900 font-bold text-lg">STT 설정</h2>
             </div>
 
-            <div className="bg-gray-100 border border-gray-200 rounded-2xl p-5 space-y-4">
+            <div className="bg-gray-100 border border-gray-200 rounded-2xl p-6 space-y-4">
               <div>
-                <label className="block text-gray-500 text-xs font-medium mb-1.5">채널</label>
-                <select
-                  value={sttChannelId}
-                  onChange={(e) => setSttChannelId(e.target.value)}
+                <label className="block text-gray-500 text-xs font-medium mb-1.5">HF_TOKEN</label>
+                <input
+                  type="text"
+                  value={sttHfToken}
+                  onChange={(e) => setSttHfToken(e.target.value)}
+                  placeholder="hf_..."
                   className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-gray-900 text-sm focus:outline-none focus:border-indigo-300"
-                >
-                  {sttChannels.map(ch => (
-                    <option key={ch.id} value={ch.id}>{ch.teamName} / {ch.name}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                <input
-                  value={sttNewLabel}
-                  onChange={(e) => setSttNewLabel(e.target.value)}
-                  placeholder="SPEAKER_00"
-                  className="bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm"
-                />
-                <select
-                  value={sttNewUserId}
-                  onChange={(e) => {
-                    const next = e.target.value
-                    setSttNewUserId(next)
-                    const selected = users.find(u => String(u.id) === String(next))
-                    if (selected) {
-                      setSttNewName(selected.display_name || selected.name || '')
-                    }
-                  }}
-                  className="bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm"
-                >
-                  <option value="">사용자 선택(선택)</option>
-                  {users
-                    .filter(u => u.is_active)
-                    .map(u => (
-                      <option key={u.id} value={u.id}>
-                        {(u.display_name || u.name)} ({u.username})
-                      </option>
-                    ))}
-                </select>
-                <input
-                  value={sttNewName}
-                  onChange={(e) => setSttNewName(e.target.value)}
-                  placeholder="홍길동"
-                  className="bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm"
                 />
               </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div>
                 <button
-                  onClick={handleSaveSttMapping}
-                  disabled={sttSaving || !sttChannelId}
+                  onClick={handleSaveSttSettings}
+                  disabled={sttSaving}
                   className="px-4 py-2.5 rounded-xl bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-500 disabled:opacity-50"
                 >
-                  {sttSaving ? '저장중...' : '매핑 저장'}
-                </button>
-                <button
-                  onClick={handlePresetSttLabels}
-                  disabled={sttSaving || !sttChannelId}
-                  className="px-4 py-2.5 rounded-xl border border-gray-300 bg-gray-50 text-gray-700 text-sm font-semibold hover:bg-gray-100 disabled:opacity-50"
-                >
-                  기본 라벨 선등록
+                  {sttSaving ? '저장중...' : '저장'}
                 </button>
               </div>
-
               {sttMessage && <p className="text-xs text-gray-500">{sttMessage}</p>}
-            </div>
-
-            <div className="bg-gray-100 border border-gray-200 rounded-2xl overflow-hidden">
-              {sttLoading ? (
-                <div className="p-6 text-sm text-gray-500">불러오는 중...</div>
-              ) : sttMappings.length === 0 ? (
-                <div className="p-6 text-sm text-gray-500">등록된 화자 매핑이 없습니다.</div>
-              ) : (
-                <table className="w-full text-sm">
-                  <thead className="bg-gray-200 text-gray-700">
-                    <tr>
-                      <th className="text-left px-4 py-2">라벨</th>
-                      <th className="text-left px-4 py-2">매핑명</th>
-                      <th className="text-left px-4 py-2">계정명</th>
-                      <th className="text-left px-4 py-2">동작</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {sttMappings.map((row) => (
-                      <tr key={`${row.channel_id}-${row.speaker_label}`} className="border-t border-gray-200">
-                        <td className="px-4 py-2 font-mono">{row.speaker_label}</td>
-                        <td className="px-4 py-2">{row.display_name}</td>
-                        <td className="px-4 py-2">{row.user_name || '-'}</td>
-                        <td className="px-4 py-2">
-                          <button
-                            onClick={() => handleDeleteSttMapping(row.speaker_label)}
-                            className="px-2 py-1 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 text-xs font-semibold"
-                          >
-                            삭제
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
             </div>
           </div>
         ) : activeTab === 'db' ? (
