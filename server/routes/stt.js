@@ -229,6 +229,7 @@ function renderSttBlock({ jobId, status, progress = 0, transcript = '', summary 
   const safeTranscript = sanitizeTranscriptText(transcript || '')
   const safeSummary = sanitizeTranscriptText(summary || '')
   const sections = parseMeetingSummarySections(safeSummary, safeTranscript)
+  const transcriptForDisplay = formatTranscriptForMarkdown(safeTranscript)
   return `${head}
 
 ## STT 상태
@@ -250,7 +251,7 @@ ${sections.actions || '(내용 없음)'}
 ${sections.recap || '(요약 없음)'}
 
 ## 전사문
-${safeTranscript || '(전사문 없음)'}
+${transcriptForDisplay || '(전사문 없음)'}
 
 ${tail}`
 }
@@ -262,16 +263,20 @@ function upsertSttBlock(content = '', blockText = '') {
   const sourceWithoutBlock = blockPattern.test(source)
     ? source.replace(blockPattern, '').replace(/\n{3,}/g, '\n\n').trimEnd()
     : source
+  const cleanedOutside = cleanupOutsideEmptyMeetingSections(sourceWithoutBlock)
+    .replace(/\[새회의록작성\]/g, '')
+    .replace(/\n{3,}/g, '\n\n')
+    .trimEnd()
 
   // Prefer placing STT block right below the first markdown title line.
-  const firstHeadingMatch = sourceWithoutBlock.match(/^# .*(?:\r?\n|$)/m)
+  const firstHeadingMatch = cleanedOutside.match(/^# .*(?:\r?\n|$)/m)
   if (firstHeadingMatch) {
     const heading = firstHeadingMatch[0]
-    const idx = sourceWithoutBlock.indexOf(heading)
+    const idx = cleanedOutside.indexOf(heading)
     const insertPos = idx + heading.length
-    return `${sourceWithoutBlock.slice(0, insertPos)}\n${blockText}\n${sourceWithoutBlock.slice(insertPos).replace(/^\n*/, '')}`.trimEnd() + '\n'
+    return `${cleanedOutside.slice(0, insertPos)}\n${blockText}\n${cleanedOutside.slice(insertPos).replace(/^\n*/, '')}`.trimEnd() + '\n'
   }
-  return `${sourceWithoutBlock.trimEnd()}\n\n${blockText}\n`
+  return `${cleanedOutside.trimEnd()}\n\n${blockText}\n`
 }
 
 async function getPostContentForPatch(postId, locator) {
@@ -530,6 +535,24 @@ function sanitizeTranscriptText(input = '') {
     .replace(/[ \t]{2,}/g, ' ')
     .replace(/\n{3,}/g, '\n\n')
     .trim()
+}
+
+function formatTranscriptForMarkdown(input = '') {
+  const lines = String(input || '')
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+
+  // Markdown paragraph collapse를 피하기 위해 발화마다 빈 줄을 넣어 1발화 1줄로 확실히 렌더링.
+  return lines.join('\n\n').trim()
+}
+
+function cleanupOutsideEmptyMeetingSections(content = '') {
+  let out = String(content || '')
+  const emptySectionPattern =
+    /(?:^|\n)##\s*(?:회의\s*목적|안건|결정사항|액션\s*아이템)\s*\n+\(내용 없음\)\s*(?=\n|$)/g
+  out = out.replace(emptySectionPattern, '\n')
+  return out.replace(/\n{3,}/g, '\n\n').trim()
 }
 
 function parseMeetingSummarySections(summaryText = '', transcriptText = '') {
