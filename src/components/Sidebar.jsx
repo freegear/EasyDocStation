@@ -296,6 +296,17 @@ export default function Sidebar({
                   </button>
                 )
               })}
+              <button
+                type="button"
+                className="flex items-center gap-2.5 w-full px-2 py-1.5 rounded-md text-gray-500 hover:bg-gray-100 hover:text-gray-700 text-sm text-left transition-all"
+                title="AI회의록 (준비중)"
+                aria-disabled="true"
+              >
+                <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6M7 4h7l5 5v11a2 2 0 01-2 2H7a2 2 0 01-2-2V6a2 2 0 012-2z" />
+                </svg>
+                <span className="font-medium">AI회의록</span>
+              </button>
             </div>
           )}
         </div>
@@ -395,21 +406,6 @@ export default function Sidebar({
               d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
           </svg>
           <span className="font-medium">{t.sidebar.calendar || '캘린더'}</span>
-        </button>
-      </div>
-
-      {/* AI Meeting Notes button (placeholder) */}
-      <div className="px-3 pb-1">
-        <button
-          type="button"
-          className="flex items-center gap-2.5 w-full px-2 py-2 rounded-lg text-sm text-left transition-all text-gray-500 hover:bg-gray-200 hover:text-gray-900"
-          title="AI회의록 (준비중)"
-          aria-disabled="true"
-        >
-          <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6M7 4h7l5 5v11a2 2 0 01-2 2H7a2 2 0 01-2-2V6a2 2 0 012-2z" />
-          </svg>
-          <span className="font-medium">AI회의록</span>
         </button>
       </div>
 
