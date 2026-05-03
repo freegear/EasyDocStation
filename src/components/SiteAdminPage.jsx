@@ -1567,7 +1567,7 @@ export default function SiteAdminPage({ onClose }) {
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h6m-6 4h8M5 5h14a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2z" />
             </svg>
-            STT 화자매핑
+            STT 설정
           </button>
           <button
             onClick={() => setActiveTab('reset')}
@@ -1749,7 +1749,7 @@ export default function SiteAdminPage({ onClose }) {
         ) : activeTab === 'stt' ? (
           <div className="max-w-4xl mx-auto py-4 space-y-4">
             <div className="flex items-center justify-between">
-              <h2 className="text-gray-900 font-bold text-lg">STT 화자 매핑</h2>
+              <h2 className="text-gray-900 font-bold text-lg">STT 설정</h2>
             </div>
 
             <div className="bg-gray-100 border border-gray-200 rounded-2xl p-5 space-y-4">
