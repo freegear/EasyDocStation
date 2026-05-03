@@ -162,7 +162,7 @@ cleanup_port() {
     sleep 1
   fi
 
-  alive="$(resolve_port_pids "$port")"
+  alive="$(resolve_port_pids "$port")" 
   [[ -z "${alive:-}" ]]
 }
 
