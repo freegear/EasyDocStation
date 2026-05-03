@@ -1600,12 +1600,76 @@ function applyMentionColor(children) {
 }
 
 function ContentRenderer({ text = '' }) {
-  const normalized = normalizeMarkdownCodeFence(text || '')
+  const isAiMeetingNote = String(text || '').includes('<!--ai-meeting-note-->')
+  const [isRecording, setIsRecording] = useState(false)
+  const mediaRecorderRef = useRef(null)
+  const mediaStreamRef = useRef(null)
+
+  const normalized = normalizeMarkdownCodeFence(
+    String(text || '')
+      .replace('<!--ai-meeting-note-->', '')
+      .replace('[새회의록작성]', '')
+  )
   const links = extractHttpUrls(text || '')
+
+  useEffect(() => {
+    return () => {
+      try {
+        mediaRecorderRef.current?.stop?.()
+      } catch (_) {}
+      const tracks = mediaStreamRef.current?.getTracks?.() || []
+      tracks.forEach(track => {
+        try { track.stop() } catch (_) {}
+      })
+      mediaRecorderRef.current = null
+      mediaStreamRef.current = null
+    }
+  }, [])
+
+  async function handleStartMeetingRecording() {
+    if (isRecording) return
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      const recorder = new MediaRecorder(stream)
+      mediaStreamRef.current = stream
+      mediaRecorderRef.current = recorder
+      recorder.onstop = () => {
+        setIsRecording(false)
+        const tracks = mediaStreamRef.current?.getTracks?.() || []
+        tracks.forEach(track => {
+          try { track.stop() } catch (_) {}
+        })
+        mediaStreamRef.current = null
+        mediaRecorderRef.current = null
+      }
+      recorder.start()
+      setIsRecording(true)
+    } catch (err) {
+      alert('마이크 권한이 필요합니다.')
+    }
+  }
+
   return (
     <div
       className="text-gray-700 text-sm leading-relaxed break-words select-text allow-copy cursor-text"
     >
+      {isAiMeetingNote && (
+        <div className="mb-3 flex items-center gap-2">
+          <button
+            type="button"
+            onClick={handleStartMeetingRecording}
+            disabled={isRecording}
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${
+              isRecording
+                ? 'bg-red-50 text-red-600 border-red-200 cursor-not-allowed'
+                : 'bg-indigo-600 text-white border-indigo-600 hover:bg-indigo-700'
+            }`}
+          >
+            새회의록작성
+          </button>
+          {isRecording && <span className="text-xs text-red-500">녹음 중...</span>}
+        </div>
+      )}
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         components={{
