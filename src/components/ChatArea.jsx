@@ -1811,7 +1811,7 @@ function ContentRenderer({ text = '', sttPostId = '', sttChannelId = '' }) {
             type="button"
             onClick={() => sttFileInputRef.current?.click()}
             disabled={sttUploading}
-            className="px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors bg-gray-100 text-gray-700 border-gray-300 hover:bg-gray-200"
+            className="px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors bg-emerald-600 text-white border-emerald-600 hover:bg-emerald-700 disabled:opacity-60"
             title="녹음파일 업로드"
           >
             녹음파일 업로드

@@ -53,9 +53,16 @@ def run_diarization(audio_path: str, hf_token: Optional[str]) -> Optional[List[S
     if not hf_token:
         return None
     try:
+        import torch
         from pyannote.audio import Pipeline
 
-        pipeline = Pipeline.from_pretrained("pyannote/speaker-diarization-3.1", use_auth_token=hf_token)
+        try:
+            pipeline = Pipeline.from_pretrained("pyannote/speaker-diarization-3.1", token=hf_token)
+        except TypeError:
+            pipeline = Pipeline.from_pretrained("pyannote/speaker-diarization-3.1", use_auth_token=hf_token)
+
+        device = torch.device("cuda" if torch.cuda.is_available() else ("mps" if torch.backends.mps.is_available() else "cpu"))
+        pipeline.to(device)
         diarization = pipeline(audio_path)
         out: List[Segment] = []
         for turn, _, speaker in diarization.itertracks(yield_label=True):
@@ -63,9 +70,43 @@ def run_diarization(audio_path: str, hf_token: Optional[str]) -> Optional[List[S
         if not out:
             return None
         out.sort(key=lambda s: s.start_sec)
-        return out
+        return postprocess_diarization(out)
     except Exception:
         return None
+
+
+def postprocess_diarization(segments: List[Segment]) -> List[Segment]:
+    if not segments:
+        return segments
+
+    # 1) Remove too-short noise segments
+    filtered = [s for s in segments if (s.end_sec - s.start_sec) >= 0.25]
+    if not filtered:
+        filtered = segments
+
+    # 2) Merge adjacent same-speaker segments with tiny gaps
+    merged: List[Segment] = []
+    max_gap = 0.40
+    for seg in filtered:
+        if not merged:
+            merged.append(seg)
+            continue
+        prev = merged[-1]
+        if prev.speaker_label == seg.speaker_label and (seg.start_sec - prev.end_sec) <= max_gap:
+            prev.end_sec = max(prev.end_sec, seg.end_sec)
+        else:
+            merged.append(seg)
+
+    # 3) Normalize speaker labels to SPEAKER_00, SPEAKER_01, ...
+    speaker_map: Dict[str, str] = {}
+    next_idx = 0
+    normalized: List[Segment] = []
+    for seg in merged:
+        if seg.speaker_label not in speaker_map:
+            speaker_map[seg.speaker_label] = f"SPEAKER_{next_idx:02d}"
+            next_idx += 1
+        normalized.append(Segment(seg.start_sec, seg.end_sec, speaker_map[seg.speaker_label]))
+    return normalized
 
 
 class GemmaTranscriber:
