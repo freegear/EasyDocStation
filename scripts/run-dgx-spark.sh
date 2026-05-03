@@ -102,6 +102,20 @@ has_dgx_processes() {
   return 1
 }
 
+force_kill_residual_dgx_processes() {
+  local pids=""
+  pids+=$'\n'"$(pgrep -f "$ROOT_DIR/node_modules/.bin/concurrently" 2>/dev/null || true)"
+  pids+=$'\n'"$(pgrep -f "scripts/backend-loop-dgx.sh" 2>/dev/null || true)"
+  pids+=$'\n'"$(pgrep -f "while true; do npm run start --prefix server" 2>/dev/null || true)"
+  pids+=$'\n'"$(pgrep -f "npm run start --prefix server" 2>/dev/null || true)"
+  pids+=$'\n'"$(pgrep -f "node .*server/index\\.js" 2>/dev/null || true)"
+
+  echo "$pids" | tr ' ' '\n' | awk 'NF' | sort -u | while IFS= read -r pid; do
+    [[ -z "${pid:-}" ]] && continue
+    kill_tree "$pid"
+  done
+}
+
 wait_port_free() {
   local port="$1"
   local retries="${2:-20}"
@@ -131,6 +145,7 @@ stop_all_tasks() {
   # 여러 겹 중복 실행까지 수렴할 때까지 반복 정리
   for _ in 1 2 3 4 5 6 7 8; do
     kill_known_processes
+    force_kill_residual_dgx_processes
     kill_by_port 5173
     kill_by_port 3001
     kill_by_port 5001
