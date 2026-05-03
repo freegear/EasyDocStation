@@ -1693,6 +1693,22 @@ function ContentRenderer({ text = '', sttPostId = '', sttChannelId = '' }) {
     }
   }
 
+  function inferSttStateFromText(rawText) {
+    const src = String(rawText || '')
+    if (!src.includes('## STT 상태')) return null
+    if (src.includes('## STT 상태\n실패')) {
+      return { type: 'failed', status: 'STT 실패' }
+    }
+    if (src.includes('## STT 상태\n완료')) {
+      return { type: 'done', status: 'STT 완료' }
+    }
+    const m = src.match(/## STT 상태\s*[\r\n]+처리중\s*\((\d+)%\)/)
+    if (m) {
+      return { type: 'processing', status: `STT 처리중 (${Number(m[1] || 0)}%)` }
+    }
+    return null
+  }
+
   useEffect(() => {
     const postKey = String(sttPostId || '')
     if (!postKey) return
@@ -1717,10 +1733,16 @@ function ContentRenderer({ text = '', sttPostId = '', sttChannelId = '' }) {
       }
       return
     }
+    const inferred = inferSttStateFromText(text)
+    if (inferred) {
+      setSttStatus(inferred.status)
+      setSttStatusType(inferred.type)
+      return
+    }
     sttJobIdRef.current = ''
     setSttStatus('')
     setSttStatusType('idle')
-  }, [sttPostId])
+  }, [sttPostId, text])
 
   function startSttPolling(jobId) {
     stopSttPolling()
@@ -1826,27 +1848,31 @@ function ContentRenderer({ text = '', sttPostId = '', sttChannelId = '' }) {
     >
       {isAiMeetingNote && (
         <div className="mb-3 flex items-center gap-2">
-          <button
-            type="button"
-            onClick={handleStartMeetingRecording}
-            disabled={isRecording}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${
-              isRecording
-                ? 'bg-red-50 text-red-600 border-red-200 cursor-not-allowed'
-                : 'bg-indigo-600 text-white border-indigo-600 hover:bg-indigo-700'
-            }`}
-          >
-            새회의록작성
-          </button>
-          <button
-            type="button"
-            onClick={() => sttFileInputRef.current?.click()}
-            disabled={sttUploading}
-            className="px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors bg-emerald-100 text-emerald-700 border-emerald-300 hover:bg-emerald-200 disabled:opacity-60"
-            title="녹음파일 업로드"
-          >
-            녹음파일 업로드
-          </button>
+          {(sttStatusType === 'idle' || sttStatusType === 'failed') && (
+            <>
+              <button
+                type="button"
+                onClick={handleStartMeetingRecording}
+                disabled={isRecording}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${
+                  isRecording
+                    ? 'bg-red-50 text-red-600 border-red-200 cursor-not-allowed'
+                    : 'bg-indigo-600 text-white border-indigo-600 hover:bg-indigo-700'
+                }`}
+              >
+                새회의록작성
+              </button>
+              <button
+                type="button"
+                onClick={() => sttFileInputRef.current?.click()}
+                disabled={sttUploading}
+                className="px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors bg-emerald-100 text-emerald-700 border-emerald-300 hover:bg-emerald-200 disabled:opacity-60"
+                title="녹음파일 업로드"
+              >
+                녹음파일 업로드
+              </button>
+            </>
+          )}
           <input
             ref={sttFileInputRef}
             type="file"
