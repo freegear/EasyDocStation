@@ -73,7 +73,7 @@ def run_external_diarization(audio_path: str) -> Optional[List[Segment]]:
         return None
 
     emit_event({"event": "progress", "progress": 2, "stage": "diarization_external_start"})
-    cmd = [sys.executable, script_path, "--input", audio_path]
+    cmd = [sys.executable, script_path, "--input", audio_path, "--debug"]
     try:
         proc = subprocess.run(
             cmd,
