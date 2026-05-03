@@ -2621,7 +2621,7 @@ function PostList({ posts, onSelect, onSubmit, selectedPostId, onOpenDocumentLis
               row.type === 'divider' ? (
                 <div key={row.key} className="flex items-center gap-3 my-2">
                   <div className="flex-1 h-px bg-gray-200" />
-                  <span className="text-[11px] text-gray-400 font-medium whitespace-nowrap">
+                  <span className="text-[13px] text-black font-medium whitespace-nowrap">
                     {`──────── ${row.label} ────────`}
                   </span>
                   <div className="flex-1 h-px bg-gray-200" />
