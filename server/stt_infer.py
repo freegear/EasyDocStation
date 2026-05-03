@@ -355,7 +355,7 @@ def main():
     if diarized is None:
         diarized = chunk_segments(duration, chunk_sec=25.0, overlap_sec=2.5)
 
-    whisper_model = str(payload.get("whisperModel") or os.getenv("WHISPER_MODEL") or "medium")
+    whisper_model = str(payload.get("whisperModel") or os.getenv("WHISPER_MODEL") or "large-v3")
     try:
         transcriber = WhisperSegmentTranscriber(whisper_model)
     except Exception as e:

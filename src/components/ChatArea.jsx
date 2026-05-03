@@ -1691,6 +1691,13 @@ function ContentRenderer({ text = '', sttPostId = '', sttChannelId = '' }) {
     }
   }
 
+  useEffect(() => {
+    stopSttPolling()
+    sttJobIdRef.current = ''
+    setSttStatus('')
+    setSttStatusType('idle')
+  }, [sttPostId])
+
   function startSttPolling(jobId) {
     stopSttPolling()
     sttJobIdRef.current = jobId

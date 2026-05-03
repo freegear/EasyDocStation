@@ -866,6 +866,7 @@ function PostDetailPane({ post, channelId, onClose, pendingOpenCommentId = null,
                 />
               ) : (
                 <ContentRenderer
+                  key={freshPost.id}
                   text={freshPost.content}
                   sttPostId={freshPost.id}
                   sttChannelId={channelId}
