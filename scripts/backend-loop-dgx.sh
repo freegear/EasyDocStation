@@ -166,23 +166,25 @@ cleanup_port() {
   [[ -z "${alive:-}" ]]
 }
 
+# 포트 정리는 루프 진입 전 1회만 수행한다.
+# 반복 루프마다 정리하면 중복 실행 인스턴스가 서로의 정상 서버를 죽이는 현상이 생긴다.
+ensure_cassandra_ready_or_exit
+if ! cleanup_port 3001; then
+  cleanup_failures=$((cleanup_failures + 1))
+  log_be "포트 3001 점유 프로세스를 정리하지 못했습니다. (${cleanup_failures}/${MAX_CLEANUP_RETRIES})"
+  print_port_holders 3001
+  if [[ "$cleanup_failures" -ge "$MAX_CLEANUP_RETRIES" ]]; then
+    log_be "정리 실패가 반복되어 backend-loop를 중단합니다. run 스크립트에서 수동 정리 후 재실행하세요."
+    exit 1
+  fi
+  log_be "5초 후 재시도..."
+  sleep 5
+fi
+cleanup_failures=0
+
 while true; do
   ensure_cassandra_ready_or_exit
 
-  if ! cleanup_port 3001; then
-    cleanup_failures=$((cleanup_failures + 1))
-    log_be "포트 3001 점유 프로세스를 정리하지 못했습니다. (${cleanup_failures}/${MAX_CLEANUP_RETRIES})"
-    print_port_holders 3001
-    if [[ "$cleanup_failures" -ge "$MAX_CLEANUP_RETRIES" ]]; then
-      log_be "정리 실패가 반복되어 backend-loop를 중단합니다. run 스크립트에서 수동 정리 후 재실행하세요."
-      exit 1
-    fi
-    log_be "5초 후 재시도..."
-    sleep 5
-    continue
-  fi
-
-  cleanup_failures=0
   npm run start --prefix server 2>&1 | while IFS= read -r line; do
     echo "[$(date '+%Y%m%d-%H:%M:%S')][BE] $line"
   done
