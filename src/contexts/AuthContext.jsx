@@ -24,6 +24,10 @@ export function AuthProvider({ children }) {
   const isAutoLoggingOutRef = useRef(false)
   const supabaseSyncInFlightRef = useRef(false)
 
+  function isAuthSessionInvalidError(err) {
+    return err?.status === 401 || err?.status === 403 || err?.code === 'SESSION_INVALIDATED'
+  }
+
   function clearIdleTimer() {
     if (idleTimerRef.current) {
       window.clearTimeout(idleTimerRef.current)
@@ -107,8 +111,10 @@ export function AuthProvider({ children }) {
       const user = await apiFetch('/auth/me')
       setCurrentUser(user)
       return true
-    } catch (_) {
-      clearLocalSession()
+    } catch (err) {
+      if (isAuthSessionInvalidError(err)) {
+        clearLocalSession()
+      }
       return false
     }
   }
@@ -175,8 +181,10 @@ export function AuthProvider({ children }) {
       if (!currentUserRef.current) return
       apiFetch('/auth/me')
         .then(user => setCurrentUser(user))
-        .catch(() => {
-          clearLocalSession()
+        .catch((err) => {
+          if (isAuthSessionInvalidError(err)) {
+            clearLocalSession()
+          }
         })
     }
     window.addEventListener('focus', handleFocus)
@@ -304,11 +312,9 @@ export function AuthProvider({ children }) {
       apiFetch('/auth/me')
         .then(user => setCurrentUser(user))
         .catch((err) => {
-          clearLocalSession()
-          if (err?.code === 'SESSION_INVALIDATED') {
+          if (isAuthSessionInvalidError(err)) {
+            clearLocalSession()
             redirectToLoginPage(true)
-          } else {
-            redirectToLoginPage(false)
           }
         })
     }, 30000)
