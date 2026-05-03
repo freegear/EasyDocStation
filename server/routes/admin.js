@@ -64,6 +64,97 @@ function syncSupabaseEnvFromConfig(config) {
   }
 }
 
+function parseEnvTextToMap(envText = '') {
+  const map = {}
+  String(envText)
+    .split(/\r?\n/)
+    .forEach((line) => {
+      const trimmed = String(line || '').trim()
+      if (!trimmed || trimmed.startsWith('#')) return
+      const idx = trimmed.indexOf('=')
+      if (idx <= 0) return
+      const key = trimmed.slice(0, idx).trim()
+      const value = trimmed.slice(idx + 1)
+      map[key] = value
+    })
+  return map
+}
+
+function formatBackupTimestamp(d = new Date()) {
+  const yy = String(d.getFullYear()).slice(-2)
+  const mm = String(d.getMonth() + 1).padStart(2, '0')
+  const dd = String(d.getDate()).padStart(2, '0')
+  const hh = String(d.getHours()).padStart(2, '0')
+  const mi = String(d.getMinutes()).padStart(2, '0')
+  const ss = String(d.getSeconds()).padStart(2, '0')
+  return `${yy}${mm}${dd}_${hh}${mi}${ss}`
+}
+
+function writeSupabaseEnvFromPayload(payload = {}, { backup = false } = {}) {
+  const envPath = path.resolve(__dirname, '../.env')
+  const envDir = path.dirname(envPath)
+  if (!fs.existsSync(envDir)) fs.mkdirSync(envDir, { recursive: true })
+
+  let envText = ''
+  if (fs.existsSync(envPath)) {
+    envText = fs.readFileSync(envPath, 'utf8')
+    if (backup) {
+      const backupPath = path.resolve(envDir, `.env_${formatBackupTimestamp(new Date())}`)
+      fs.writeFileSync(backupPath, envText, 'utf8')
+    }
+  }
+
+  const upsertLine = (source, key, value) => {
+    const escaped = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    const regex = new RegExp(`^${escaped}=.*$`, 'm')
+    const line = `${key}=${value}`
+    if (regex.test(source)) return source.replace(regex, line)
+    return source + (source.endsWith('\n') || source.length === 0 ? '' : '\n') + line + '\n'
+  }
+
+  const normalized = {
+    SUPABASE_URL: String(payload.SUPABASE_URL || '').trim(),
+    SUPABASE_JWT_AUDIENCE: String(payload.SUPABASE_JWT_AUDIENCE || 'authenticated').trim() || 'authenticated',
+    JWT_SECRET: String(payload.JWT_SECRET || '').trim(),
+    CLIENT_ORIGIN: String(payload.CLIENT_ORIGIN || 'http://218.237.25.214:5173').trim(),
+    AUTH_COOKIE_SECURE: String(payload.AUTH_COOKIE_SECURE || 'false').trim().toLowerCase() === 'true' ? 'true' : 'false',
+    VITE_SUPABASE_URL: String(payload.VITE_SUPABASE_URL || '').trim(),
+    VITE_SUPABASE_ANON_KEY: String(payload.VITE_SUPABASE_ANON_KEY || '').trim(),
+  }
+
+  let updated = envText
+  updated = upsertLine(updated, 'SUPABASE_URL', normalized.SUPABASE_URL)
+  updated = upsertLine(updated, 'SUPABASE_JWT_AUDIENCE', normalized.SUPABASE_JWT_AUDIENCE)
+  updated = upsertLine(updated, 'JWT_SECRET', normalized.JWT_SECRET)
+  updated = upsertLine(updated, 'CLIENT_ORIGIN', normalized.CLIENT_ORIGIN)
+  updated = upsertLine(updated, 'AUTH_COOKIE_SECURE', normalized.AUTH_COOKIE_SECURE)
+  updated = upsertLine(updated, 'VITE_SUPABASE_URL', normalized.VITE_SUPABASE_URL)
+  updated = upsertLine(updated, 'VITE_SUPABASE_ANON_KEY', normalized.VITE_SUPABASE_ANON_KEY)
+  fs.writeFileSync(envPath, updated, 'utf8')
+
+  return {
+    synced: true,
+    path: envPath,
+    backupCreated: backup && fs.existsSync(envPath),
+  }
+}
+
+function readSupabaseEnvSnapshot() {
+  const envPath = path.resolve(__dirname, '../.env')
+  let envText = ''
+  if (fs.existsSync(envPath)) envText = fs.readFileSync(envPath, 'utf8')
+  const map = parseEnvTextToMap(envText)
+  return {
+    supabase_url: map.SUPABASE_URL || '',
+    supabase_jwt_audience: map.SUPABASE_JWT_AUDIENCE || 'authenticated',
+    jwt_secret: map.JWT_SECRET || '',
+    client_origin: map.CLIENT_ORIGIN || 'http://218.237.25.214:5173',
+    auth_cookie_secure: String(map.AUTH_COOKIE_SECURE ?? 'false'),
+    vite_supabase_url: map.VITE_SUPABASE_URL || '',
+    vite_supabase_anon_key: map.VITE_SUPABASE_ANON_KEY || '',
+  }
+}
+
 // Apply auth/authorization BEFORE declaring admin routes
 router.use(requireAuth)
 router.use(requireSiteAdmin)
@@ -359,13 +450,7 @@ router.get('/stats', async (req, res) => {
       site_url: config.site_url || '',
       site_backup_key: config['SiteBackUp Key'] || '',
       enable_data_backup: Boolean(config.enable_data_backup),
-      supabase_url: config.SUPABASE_URL || '',
-      supabase_jwt_audience: config.SUPABASE_JWT_AUDIENCE || 'authenticated',
-      jwt_secret: config.JWT_SECRET || '',
-      client_origin: config.CLIENT_ORIGIN || 'http://218.237.25.214:5173',
-      auth_cookie_secure: String(config.AUTH_COOKIE_SECURE ?? 'false'),
-      vite_supabase_url: config.VITE_SUPABASE_URL || '',
-      vite_supabase_anon_key: config.VITE_SUPABASE_ANON_KEY || '',
+      ...readSupabaseEnvSnapshot(),
       sns: normalizeSnsConfig(config.sns || {})
     })
   } catch (err) {
@@ -412,13 +497,7 @@ router.get('/stats', async (req, res) => {
         site_url: config.site_url || '',
         site_backup_key: config['SiteBackUp Key'] || '',
         enable_data_backup: Boolean(config.enable_data_backup),
-        supabase_url: config.SUPABASE_URL || '',
-        supabase_jwt_audience: config.SUPABASE_JWT_AUDIENCE || 'authenticated',
-        jwt_secret: config.JWT_SECRET || '',
-        client_origin: config.CLIENT_ORIGIN || 'http://218.237.25.214:5173',
-        auth_cookie_secure: String(config.AUTH_COOKIE_SECURE ?? 'false'),
-        vite_supabase_url: config.VITE_SUPABASE_URL || '',
-        vite_supabase_anon_key: config.VITE_SUPABASE_ANON_KEY || '',
+        ...readSupabaseEnvSnapshot(),
         sns: normalizeSnsConfig(config.sns || {})
       })
     } catch (innerErr) {
@@ -433,10 +512,24 @@ router.put('/config', requireSiteAdmin, async (req, res) => {
     const configPath = path.resolve(__dirname, '../../config.json')
     const currentConfig = JSON.parse(fs.readFileSync(configPath, 'utf8'))
     
-    // Merge new config
+    const supabaseKeys = new Set([
+      'SUPABASE_URL',
+      'SUPABASE_JWT_AUDIENCE',
+      'JWT_SECRET',
+      'CLIENT_ORIGIN',
+      'AUTH_COOKIE_SECURE',
+      'VITE_SUPABASE_URL',
+      'VITE_SUPABASE_ANON_KEY',
+    ])
+    const touchedSupabaseSettings = Object.keys(req.body || {}).some((k) => supabaseKeys.has(k))
+
+    // Merge new config (SUPABASE_* keys are excluded from config.json and handled by .env)
+    const nonSupabaseBody = Object.fromEntries(
+      Object.entries(req.body || {}).filter(([k]) => !supabaseKeys.has(k)),
+    )
     const newConfig = {
       ...currentConfig,
-      ...req.body
+      ...nonSupabaseBody
     }
     if (Object.prototype.hasOwnProperty.call(newConfig, 'agenticai')) {
       newConfig.agenticai = normalizeAgenticAiConfig(newConfig.agenticai || {})
@@ -449,19 +542,15 @@ router.put('/config', requireSiteAdmin, async (req, res) => {
 
     fs.writeFileSync(configPath, JSON.stringify(newConfig, null, 2), 'utf8')
 
-    const touchedSupabaseSettings =
-      Object.prototype.hasOwnProperty.call(req.body, 'SUPABASE_URL') ||
-      Object.prototype.hasOwnProperty.call(req.body, 'SUPABASE_JWT_AUDIENCE') ||
-      Object.prototype.hasOwnProperty.call(req.body, 'JWT_SECRET') ||
-      Object.prototype.hasOwnProperty.call(req.body, 'CLIENT_ORIGIN') ||
-      Object.prototype.hasOwnProperty.call(req.body, 'AUTH_COOKIE_SECURE') ||
-      Object.prototype.hasOwnProperty.call(req.body, 'VITE_SUPABASE_URL') ||
-      Object.prototype.hasOwnProperty.call(req.body, 'VITE_SUPABASE_ANON_KEY')
+    let envSync = null
+    if (touchedSupabaseSettings) {
+      envSync = writeSupabaseEnvFromPayload(req.body || {}, { backup: true })
+    }
 
     res.json({
       success: true,
       config: newConfig,
-      envSync: null,
+      envSync,
       restartRequired: touchedSupabaseSettings,
     })
   } catch (err) {
@@ -528,10 +617,6 @@ print(f"벡터 크기 ${dim}으로 재설정 완료: {table.count_rows()}건")
 router.post('/restart', async (req, res) => {
   try {
     const appRoot = path.resolve(__dirname, '../../')
-    const configPath = path.resolve(appRoot, 'config.json')
-    const currentConfig = JSON.parse(fs.readFileSync(configPath, 'utf8'))
-    // Apply pending Supabase-related settings to server/.env only when user explicitly requests restart.
-    syncSupabaseEnvFromConfig(currentConfig)
     const ubuntuScript = path.resolve(appRoot, 'scripts/restart-ubuntu.sh')
     const dgxScript = path.resolve(appRoot, 'scripts/restart-dgx-spark.sh')
     const restartScript = fs.existsSync(ubuntuScript)
