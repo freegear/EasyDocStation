@@ -1628,6 +1628,13 @@ function ContentRenderer({ text = '' }) {
 
   async function handleStartMeetingRecording() {
     if (isRecording) return
+    if (!navigator?.mediaDevices?.getUserMedia) {
+      const secureHint = window.isSecureContext
+        ? '현재 브라우저/환경에서 마이크 API를 지원하지 않습니다.'
+        : '보안 컨텍스트(HTTPS 또는 localhost)가 아니어서 마이크를 사용할 수 없습니다.'
+      alert(`마이크를 사용할 수 없습니다.\n${secureHint}`)
+      return
+    }
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
       const recorder = new MediaRecorder(stream)
@@ -1645,7 +1652,24 @@ function ContentRenderer({ text = '' }) {
       recorder.start()
       setIsRecording(true)
     } catch (err) {
-      alert('마이크 권한이 필요합니다.')
+      const name = String(err?.name || '')
+      if (name === 'NotAllowedError' || name === 'SecurityError') {
+        alert('마이크 권한이 차단되었습니다.\n브라우저 주소창의 권한 설정에서 마이크를 허용해주세요.')
+        return
+      }
+      if (name === 'NotFoundError' || name === 'DevicesNotFoundError') {
+        alert('사용 가능한 마이크 장치를 찾을 수 없습니다.\n마이크 연결 상태를 확인해주세요.')
+        return
+      }
+      if (name === 'NotReadableError' || name === 'TrackStartError') {
+        alert('마이크 장치를 다른 앱이 사용 중이거나 접근할 수 없습니다.')
+        return
+      }
+      if (name === 'OverconstrainedError' || name === 'ConstraintNotSatisfiedError') {
+        alert('요청한 오디오 장치 조건을 만족하는 마이크를 찾지 못했습니다.')
+        return
+      }
+      alert(`녹음을 시작하지 못했습니다.\n(${name || 'UnknownError'})`)
     }
   }
 
