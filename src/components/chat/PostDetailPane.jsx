@@ -9,6 +9,53 @@ import { findDuplicateFileNames } from '../../lib/fileNameValidation'
 import useMentionAutocomplete from '../../hooks/useMentionAutocomplete'
 import MentionDropdown from '../MentionDropdown'
 
+function toKstDateKey(iso) {
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return 'unknown-date'
+  return new Intl.DateTimeFormat('sv-SE', {
+    timeZone: 'Asia/Seoul',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(d)
+}
+
+function formatKstDividerLabel(iso) {
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return '날짜 미상'
+  const parts = new Intl.DateTimeFormat('ko-KR', {
+    timeZone: 'Asia/Seoul',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(d)
+  const pick = (type) => parts.find((p) => p.type === type)?.value || '00'
+  return `${pick('year')}년 ${pick('month')}월 ${pick('day')}일`
+}
+
+function buildDateSeparatedRows(items = [], getCreatedAt, getId) {
+  const rows = []
+  let prevDateKey = ''
+  for (const item of items) {
+    const createdAt = getCreatedAt(item)
+    const dateKey = toKstDateKey(createdAt)
+    if (dateKey !== prevDateKey) {
+      rows.push({
+        type: 'divider',
+        key: `divider-${dateKey}`,
+        label: formatKstDividerLabel(createdAt),
+      })
+      prevDateKey = dateKey
+    }
+    rows.push({
+      type: 'item',
+      key: `item-${getId(item)}`,
+      item,
+    })
+  }
+  return rows
+}
+
 function PostDetailPane({ post, channelId, onClose, pendingOpenCommentId = null, onConsumePendingOpen = null, helpers = {} }) {
   const t = useT()
   const { addComment, incrementViews, deletePost, updatePost, togglePostPin, deleteComment, updateComment, posts, selectedChannel, selectedTeam, openInAgenticAI } = useChat()
@@ -153,6 +200,11 @@ function PostDetailPane({ post, channelId, onClose, pendingOpenCommentId = null,
   }, [])
 
   const freshPost = posts[channelId]?.find(p => p.id === post.id) || post
+  const commentRows = buildDateSeparatedRows(
+    freshPost.comments || [],
+    (c) => c.createdAt,
+    (c) => c.id,
+  )
   const isSiteAdmin = currentUser?.role === 'site_admin'
   const isPinManagerRole = ['site_admin', 'team_admin', 'channel_admin'].includes(String(currentUser?.role || ''))
   const canEditPost = String(freshPost.author?.id ?? '') === String(currentUser?.id ?? '')
@@ -884,20 +936,31 @@ function PostDetailPane({ post, channelId, onClose, pendingOpenCommentId = null,
             <p className="text-gray-400 text-sm">{t.chat.noComments}</p>
           ) : (
             <div className="flex flex-col gap-4">
-              {(freshPost.comments || []).map(c => (
-                <div
-                  key={c.id}
-                  ref={(el) => {
-                    if (!el) {
-                      commentItemRefs.current.delete(String(c.id))
-                      return
-                    }
-                    commentItemRefs.current.set(String(c.id), el)
-                  }}
-                  className={`flex items-start gap-3 group rounded-xl transition-colors ${
-                    String(highlightCommentId || '') === String(c.id) ? 'bg-indigo-50/70 ring-1 ring-indigo-200' : ''
-                  }`}
-                >
+              {commentRows.map((row) => (
+                row.type === 'divider' ? (
+                  <div key={row.key} className="flex items-center gap-3 my-1">
+                    <div className="flex-1 h-px bg-gray-200" />
+                    <span className="text-[11px] text-gray-400 font-medium whitespace-nowrap">
+                      {`──────── ${row.label} ────────`}
+                    </span>
+                    <div className="flex-1 h-px bg-gray-200" />
+                  </div>
+                ) : (() => {
+                  const c = row.item
+                  return (
+                    <div
+                      key={row.key}
+                      ref={(el) => {
+                        if (!el) {
+                          commentItemRefs.current.delete(String(c.id))
+                          return
+                        }
+                        commentItemRefs.current.set(String(c.id), el)
+                      }}
+                      className={`flex items-start gap-3 group rounded-xl transition-colors ${
+                        String(highlightCommentId || '') === String(c.id) ? 'bg-indigo-50/70 ring-1 ring-indigo-200' : ''
+                      }`}
+                    >
                   <Avatar letters={c.author?.avatar || '?'} imageUrl={c.author?.image_url} size="sm" />
                   <div className="flex-1 bg-gray-100 rounded-xl px-4 py-3 border border-gray-200" style={{ WebkitAppRegion: 'no-drag' }}>
                     <div className="flex items-baseline gap-2 mb-1.5">
@@ -1007,7 +1070,9 @@ function PostDetailPane({ post, channelId, onClose, pendingOpenCommentId = null,
                       </>
                     )}
                   </div>
-                </div>
+                    </div>
+                  )
+                })()
               ))}
               <div ref={commentsEndRef} />
             </div>

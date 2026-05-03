@@ -38,6 +38,53 @@ function formatFull(iso) {
   })
 }
 
+function toKstDateKey(iso) {
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return 'unknown-date'
+  return new Intl.DateTimeFormat('sv-SE', {
+    timeZone: 'Asia/Seoul',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(d)
+}
+
+function formatKstDividerLabel(iso) {
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return '날짜 미상'
+  const parts = new Intl.DateTimeFormat('ko-KR', {
+    timeZone: 'Asia/Seoul',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(d)
+  const pick = (type) => parts.find((p) => p.type === type)?.value || '00'
+  return `${pick('year')}년 ${pick('month')}월 ${pick('day')}일`
+}
+
+function buildDateSeparatedRows(items = [], getCreatedAt, getId) {
+  const rows = []
+  let prevDateKey = ''
+  for (const item of items) {
+    const createdAt = getCreatedAt(item)
+    const dateKey = toKstDateKey(createdAt)
+    if (dateKey !== prevDateKey) {
+      rows.push({
+        type: 'divider',
+        key: `divider-${dateKey}`,
+        label: formatKstDividerLabel(createdAt),
+      })
+      prevDateKey = dateKey
+    }
+    rows.push({
+      type: 'item',
+      key: `item-${getId(item)}`,
+      item,
+    })
+  }
+  return rows
+}
+
 function formatSize(bytes) {
   if (bytes < 1024) return bytes + ' B'
   if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB'
@@ -2472,6 +2519,11 @@ function PostList({ posts, onSelect, onSubmit, selectedPostId, onOpenDocumentLis
       return tb - ta
     })
   const normalPosts = posts.filter(p => !p.pinned)
+  const normalRows = buildDateSeparatedRows(
+    normalPosts,
+    (p) => p.createdAt,
+    (p) => p.id,
+  )
   const bottomRef = useRef(null)
   const [showManageModal, setShowManageModal] = useState(false)
   const { currentUser } = useAuth()
@@ -2554,7 +2606,24 @@ function PostList({ posts, onSelect, onSubmit, selectedPostId, onOpenDocumentLis
               </div>
             )}
             {pinnedPosts.length > 0 && normalPosts.length > 0 && <div className="border-t border-gray-100 my-1" />}
-            {normalPosts.map(p => <PostCard key={p.id} post={p} onSelect={onSelect} isSelected={p.id === selectedPostId} />)}
+            {normalRows.map((row) => (
+              row.type === 'divider' ? (
+                <div key={row.key} className="flex items-center gap-3 my-2">
+                  <div className="flex-1 h-px bg-gray-200" />
+                  <span className="text-[11px] text-gray-400 font-medium whitespace-nowrap">
+                    {`──────── ${row.label} ────────`}
+                  </span>
+                  <div className="flex-1 h-px bg-gray-200" />
+                </div>
+              ) : (
+                <PostCard
+                  key={row.key}
+                  post={row.item}
+                  onSelect={onSelect}
+                  isSelected={row.item.id === selectedPostId}
+                />
+              )
+            ))}
             <div ref={bottomRef} />
           </div>
         )}

@@ -18,6 +18,7 @@ const {
 const { ACCESS_DENIED_MESSAGE, canAccessChannel, getAccessibleChannelIds } = require('../lib/channelAccess')
 const STORAGE_BASE = getDatabasePath(config, 'ObjectFile Path')
 const STORAGE_BASE_ABS = path.resolve(STORAGE_BASE)
+let attachmentRefSchemaEnsured = false
 
 function toAttachmentIdArray(raw) {
   if (!Array.isArray(raw)) return []
@@ -43,6 +44,84 @@ function resolveStoragePathSafe(storagePath = '') {
   const abs = path.resolve(STORAGE_BASE_ABS, safeRel)
   if (abs !== STORAGE_BASE_ABS && !abs.startsWith(`${STORAGE_BASE_ABS}${path.sep}`)) return null
   return abs
+}
+
+async function ensureAttachmentRefTable() {
+  if (attachmentRefSchemaEnsured) return
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS attachment_refs (
+      attachment_id TEXT NOT NULL,
+      owner_type TEXT NOT NULL,
+      owner_id TEXT NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      PRIMARY KEY (attachment_id, owner_type, owner_id)
+    )
+  `)
+  await db.query('CREATE INDEX IF NOT EXISTS idx_attachment_refs_owner ON attachment_refs(owner_type, owner_id)')
+  await db.query('ALTER TABLE attachments ADD COLUMN IF NOT EXISTS ref_count INTEGER NOT NULL DEFAULT 0')
+  await db.query("ALTER TABLE attachments ADD COLUMN IF NOT EXISTS delete_status TEXT NOT NULL DEFAULT 'active'")
+  await db.query('ALTER TABLE attachments ADD COLUMN IF NOT EXISTS delete_requested_at TIMESTAMPTZ NULL')
+  attachmentRefSchemaEnsured = true
+}
+
+function uniqAttachmentIds(ids = []) {
+  return [...new Set((ids || []).map((v) => String(v || '').trim()).filter(Boolean))]
+}
+
+async function recalcAttachmentRefCount(attachmentIds = []) {
+  const ids = uniqAttachmentIds(attachmentIds)
+  if (ids.length === 0) return
+  await ensureAttachmentRefTable()
+  for (const attachmentId of ids) {
+    const countRes = await db.query('SELECT COUNT(*)::int AS cnt FROM attachment_refs WHERE attachment_id = $1', [attachmentId])
+    const cnt = Number(countRes.rows?.[0]?.cnt || 0)
+    await db.query(
+      `UPDATE attachments
+       SET ref_count = $2,
+           delete_status = CASE WHEN $2 > 0 THEN 'active' ELSE delete_status END
+       WHERE id = $1`,
+      [attachmentId, cnt],
+    )
+  }
+}
+
+async function syncAttachmentRefs({ ownerType, ownerId, nextAttachmentIds = [], actorUserId = '' }) {
+  await ensureAttachmentRefTable()
+  const safeOwnerType = String(ownerType || '').trim()
+  const safeOwnerId = String(ownerId || '').trim()
+  if (!safeOwnerType || !safeOwnerId) return
+
+  const nextIds = uniqAttachmentIds(nextAttachmentIds)
+  const existingRes = await db.query(
+    'SELECT attachment_id FROM attachment_refs WHERE owner_type = $1 AND owner_id = $2',
+    [safeOwnerType, safeOwnerId],
+  )
+  const prevIds = uniqAttachmentIds(existingRes.rows.map((r) => r.attachment_id))
+  const prevSet = new Set(prevIds)
+  const nextSet = new Set(nextIds)
+  const toAdd = nextIds.filter((id) => !prevSet.has(id))
+  const toRemove = prevIds.filter((id) => !nextSet.has(id))
+
+  for (const attachmentId of toAdd) {
+    await db.query(
+      `INSERT INTO attachment_refs (attachment_id, owner_type, owner_id)
+       VALUES ($1, $2, $3)
+       ON CONFLICT (attachment_id, owner_type, owner_id) DO NOTHING`,
+      [attachmentId, safeOwnerType, safeOwnerId],
+    )
+  }
+  for (const attachmentId of toRemove) {
+    await db.query(
+      'DELETE FROM attachment_refs WHERE attachment_id = $1 AND owner_type = $2 AND owner_id = $3',
+      [attachmentId, safeOwnerType, safeOwnerId],
+    )
+  }
+
+  await recalcAttachmentRefCount([...toAdd, ...toRemove])
+  console.log(
+    `[ATTACH-REF] sync ownerType=${safeOwnerType} ownerId=${safeOwnerId} actorUserId=${actorUserId || ''} ` +
+    `prev=${prevIds.length} next=${nextIds.length} add=${toAdd.length} remove=${toRemove.length}`,
+  )
 }
 
 async function isAttachmentReferencedElsewhere(attachmentId, { excludedPostId = '', excludedCommentId = '' } = {}) {
@@ -112,9 +191,30 @@ async function isAttachmentReferencedElsewhere(attachmentId, { excludedPostId = 
 async function deleteAttachmentPhysicalAndRecords(attachmentId, { excludedPostId = '', excludedCommentId = '' } = {}) {
   const id = String(attachmentId || '').trim()
   if (!id) return { deleted: false, reason: 'EMPTY_ID' }
+  await ensureAttachmentRefTable()
 
+  const refRes = await db.query('SELECT COUNT(*)::int AS cnt FROM attachment_refs WHERE attachment_id = $1', [id])
+  const refCount = Number(refRes.rows?.[0]?.cnt || 0)
+  if (refCount > 0) {
+    await db.query(
+      "UPDATE attachments SET ref_count = $2, delete_status = 'active' WHERE id = $1",
+      [id, refCount],
+    ).catch(() => {})
+    return { deleted: false, reason: 'STILL_REFERENCED' }
+  }
+
+  await db.query(
+    "UPDATE attachments SET delete_status = 'deleting', delete_requested_at = NOW() WHERE id = $1",
+    [id],
+  ).catch(() => {})
   const inUse = await isAttachmentReferencedElsewhere(id, { excludedPostId, excludedCommentId })
-  if (inUse) return { deleted: false, reason: 'STILL_REFERENCED' }
+  if (inUse) {
+    await db.query(
+      "UPDATE attachments SET delete_status = 'active' WHERE id = $1",
+      [id],
+    ).catch(() => {})
+    return { deleted: false, reason: 'STILL_REFERENCED' }
+  }
 
   const pgMeta = await db.query(
     'SELECT id, storage_path, thumbnail_path FROM attachments WHERE id = $1 LIMIT 1',
@@ -158,6 +258,7 @@ async function deleteAttachmentPhysicalAndRecords(attachmentId, { excludedPostId
     }
   }
 
+  await db.query('DELETE FROM attachment_refs WHERE attachment_id = $1', [id]).catch(() => {})
   await db.query('DELETE FROM attachments WHERE id = $1', [id])
   if (isConnected()) {
     try { await client.execute('DELETE FROM attachments WHERE id = ?', [id], { prepare: true }) } catch (_) {}
@@ -820,6 +921,12 @@ router.post('/', requireAuth, async (req, res, next) => {
     }
 
     await linkAttachments(postId, ids)
+    await syncAttachmentRefs({
+      ownerType: 'post',
+      ownerId: postId,
+      nextAttachmentIds: ids,
+      actorUserId: req.user?.id,
+    })
 
     // 업로드 즉시 LanceDB 임베딩 (비동기, 응답에 영향 없음)
     markTrainingStarted('post', postId)
@@ -908,6 +1015,20 @@ router.delete('/:id', requireAuth, async (req, res, next) => {
     await db.query('DELETE FROM stt_jobs WHERE post_id = $1', [id]).catch(() => {})
 
     // 첨부파일/레코드 정리 (다른 글/댓글 참조 시 삭제하지 않음)
+    await syncAttachmentRefs({
+      ownerType: 'post',
+      ownerId: id,
+      nextAttachmentIds: [],
+      actorUserId: req.user?.id,
+    })
+    for (const c of cRows.rows || []) {
+      await syncAttachmentRefs({
+        ownerType: 'comment',
+        ownerId: String(c.id || ''),
+        nextAttachmentIds: [],
+        actorUserId: req.user?.id,
+      })
+    }
     for (const attId of targetAttachmentIds) {
       await deleteAttachmentPhysicalAndRecords(attId, { excludedPostId: id })
     }
@@ -922,25 +1043,59 @@ router.delete('/:id', requireAuth, async (req, res, next) => {
 router.put('/:id', requireAuth, async (req, res, next) => {
   try {
     const { id } = req.params
-    const { content, security_level } = req.body
+    const { content, security_level, attachments = [] } = req.body
     if (!isConnected()) return res.status(503).json({ error: 'Cassandra 연결이 필요합니다.' })
     const row = await findPostLocator(id)
     if (!row) return res.status(404).json({ error: '게시글을 찾을 수 없습니다.' })
     if (String(row.author_id) !== String(req.user.id)) return res.status(403).json({ error: '권한이 없습니다.' })
+    const attachmentIds = uniqAttachmentIds(
+      (Array.isArray(attachments) ? attachments : [])
+        .map((item) => (typeof item === 'object' ? item.id : item)),
+    )
+    if (attachmentIds.length > 10) {
+      return res.status(400).json({ error: '첨부파일은 최대 10개까지만 가능합니다.' })
+    }
+    const attCols = Array(10).fill(null)
+    attachmentIds.forEach((v, i) => { attCols[i] = v })
+
     // security_level은 요청자의 레벨 이하만 허용
     const userLevel = req.user.security_level ?? 0
     const safeLevel = (security_level != null) ? Math.min(Math.max(parseInt(security_level) || 0, 0), userLevel) : undefined
     if (safeLevel !== undefined) {
       await client.execute(
-        'UPDATE posts SET content = ?, security_level = ? WHERE channel_id = ? AND created_at = ?',
-        [content, safeLevel, row.channel_id, row.created_at], { prepare: true }
+        `UPDATE posts
+         SET content = ?, security_level = ?,
+             attachments_1 = ?, attachments_2 = ?, attachments_3 = ?, attachments_4 = ?, attachments_5 = ?,
+             attachments_6 = ?, attachments_7 = ?, attachments_8 = ?, attachments_9 = ?, attachments_10 = ?
+         WHERE channel_id = ? AND created_at = ?`,
+        [content, safeLevel, ...attCols, row.channel_id, row.created_at], { prepare: true }
       )
     } else {
       await client.execute(
-        'UPDATE posts SET content = ? WHERE channel_id = ? AND created_at = ?',
-        [content, row.channel_id, row.created_at], { prepare: true }
+        `UPDATE posts
+         SET content = ?,
+             attachments_1 = ?, attachments_2 = ?, attachments_3 = ?, attachments_4 = ?, attachments_5 = ?,
+             attachments_6 = ?, attachments_7 = ?, attachments_8 = ?, attachments_9 = ?, attachments_10 = ?
+         WHERE channel_id = ? AND created_at = ?`,
+        [content, ...attCols, row.channel_id, row.created_at], { prepare: true }
       )
     }
+    await db.query(
+      `UPDATE posts
+       SET content = $1,
+           security_level = COALESCE($2, security_level),
+           attachments_1 = $3, attachments_2 = $4, attachments_3 = $5, attachments_4 = $6, attachments_5 = $7,
+           attachments_6 = $8, attachments_7 = $9, attachments_8 = $10, attachments_9 = $11, attachments_10 = $12
+       WHERE id = $13`,
+      [content, safeLevel ?? null, ...attCols, id],
+    ).catch(() => {})
+    await linkAttachments(id, attachmentIds)
+    await syncAttachmentRefs({
+      ownerType: 'post',
+      ownerId: id,
+      nextAttachmentIds: attachmentIds,
+      actorUserId: req.user?.id,
+    })
 
     // 수정 즉시: 기존 벡터 삭제 후 재학습 (비동기, 응답 비차단)
     markTrainingStarted('post', id)
@@ -1063,6 +1218,13 @@ router.post('/:id/comments', requireAuth, async (req, res, next) => {
       [postId, commentId, req.user.id, safeContent, safeAttachmentIds, safeCommentLevel, createdAt],
       { prepare: true }
     )
+    await linkAttachments(postId, safeAttachmentIds)
+    await syncAttachmentRefs({
+      ownerType: 'comment',
+      ownerId: commentId,
+      nextAttachmentIds: safeAttachmentIds,
+      actorUserId: req.user?.id,
+    })
 
     // 새 댓글을 comments_by_id 룩업 테이블에도 기록
     await client.execute(
@@ -1131,6 +1293,13 @@ router.put('/:postId/comments/:commentId', requireAuth, async (req, res, next) =
         [content, attachmentIds, row.post_id, row.created_at], { prepare: true }
       )
     }
+    await syncAttachmentRefs({
+      ownerType: 'comment',
+      ownerId: commentId,
+      nextAttachmentIds: attachmentIds,
+      actorUserId: req.user?.id,
+    })
+    await linkAttachments(postId, attachmentIds)
 
     // 수정 즉시: 기존 벡터 삭제 후 재학습 (비동기, 응답 비차단)
     markTrainingStarted('comment', commentId)
@@ -1179,6 +1348,12 @@ router.delete('/:postId/comments/:commentId', requireAuth, async (req, res, next
       [commentId], { prepare: true }
     )
     await db.query('DELETE FROM comments WHERE id = $1', [commentId])
+    await syncAttachmentRefs({
+      ownerType: 'comment',
+      ownerId: commentId,
+      nextAttachmentIds: [],
+      actorUserId: req.user?.id,
+    })
 
     for (const attId of targetAttachmentIds) {
       await deleteAttachmentPhysicalAndRecords(attId, { excludedPostId: postId, excludedCommentId: commentId })
