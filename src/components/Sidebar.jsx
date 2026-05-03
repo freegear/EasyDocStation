@@ -398,6 +398,21 @@ export default function Sidebar({
         </button>
       </div>
 
+      {/* AI Meeting Notes button (placeholder) */}
+      <div className="px-3 pb-1">
+        <button
+          type="button"
+          className="flex items-center gap-2.5 w-full px-2 py-2 rounded-lg text-sm text-left transition-all text-gray-500 hover:bg-gray-200 hover:text-gray-900"
+          title="AI회의록 (준비중)"
+          aria-disabled="true"
+        >
+          <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6M7 4h7l5 5v11a2 2 0 01-2 2H7a2 2 0 01-2-2V6a2 2 0 012-2z" />
+          </svg>
+          <span className="font-medium">AI회의록</span>
+        </button>
+      </div>
+
       {/* Version */}
       <div className="px-4 py-2 border-t border-gray-100">
         <p className="text-blue-800 font-extrabold text-xs text-center tracking-widest">
