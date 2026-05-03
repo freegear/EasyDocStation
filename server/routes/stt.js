@@ -230,28 +230,13 @@ function renderSttBlock({ jobId, status, progress = 0, transcript = '', summary 
   const safeSummary = sanitizeTranscriptText(summary || '')
   const sections = parseMeetingSummarySections(safeSummary, safeTranscript)
   const transcriptForDisplay = formatTranscriptForMarkdown(safeTranscript)
+  const meetingBody = buildMeetingSectionsMarkdown(sections, transcriptForDisplay)
   return `${head}
 
 ## STT 상태
 완료
 
-## 회의 목적
-${sections.purpose || '(내용 없음)'}
-
-## 안건
-${sections.agenda || '(내용 없음)'}
-
-## 결정사항
-${sections.decisions || '(내용 없음)'}
-
-## 액션 아이템
-${sections.actions || '(내용 없음)'}
-
-## 회의록 요약
-${sections.recap || '(요약 없음)'}
-
-## 전사문
-${transcriptForDisplay || '(전사문 없음)'}
+${meetingBody}
 
 ${tail}`
 }
@@ -274,9 +259,13 @@ function upsertSttBlock(content = '', blockText = '') {
     const heading = firstHeadingMatch[0]
     const idx = cleanedOutside.indexOf(heading)
     const insertPos = idx + heading.length
-    return `${cleanedOutside.slice(0, insertPos)}\n${blockText}\n${cleanedOutside.slice(insertPos).replace(/^\n*/, '')}`.trimEnd() + '\n'
+    return `${cleanedOutside.slice(0, insertPos)}\n${blockText}\n${cleanedOutside.slice(insertPos).replace(/^\n*/, '')}`
+      .replace(/\n{3,}/g, '\n\n')
+      .trimEnd() + '\n'
   }
   return `${cleanedOutside.trimEnd()}\n\n${blockText}\n`
+    .replace(/\n{3,}/g, '\n\n')
+    .trimEnd() + '\n'
 }
 
 async function getPostContentForPatch(postId, locator) {
@@ -555,6 +544,30 @@ function cleanupOutsideEmptyMeetingSections(content = '') {
   return out.replace(/\n{3,}/g, '\n\n').trim()
 }
 
+function buildMeetingSectionsMarkdown(sections = {}, transcriptForDisplay = '') {
+  const lines = []
+  const pushSection = (title, value) => {
+    const text = String(value || '').trim()
+    if (!text) return
+    lines.push(`## ${title}`)
+    lines.push(text)
+    lines.push('')
+  }
+
+  pushSection('회의 목적', sections.purpose)
+  pushSection('안건', sections.agenda)
+  pushSection('결정사항', sections.decisions)
+  pushSection('액션 아이템', sections.actions)
+
+  lines.push('## 회의록 요약')
+  lines.push(String(sections.recap || '').trim() || '(요약 없음)')
+  lines.push('')
+  lines.push('## 전사문')
+  lines.push(String(transcriptForDisplay || '').trim() || '(전사문 없음)')
+
+  return lines.join('\n').replace(/\n{3,}/g, '\n\n').trim()
+}
+
 function parseMeetingSummarySections(summaryText = '', transcriptText = '') {
   const summary = String(summaryText || '')
   const transcript = String(transcriptText || '')
@@ -571,11 +584,11 @@ function parseMeetingSummarySections(summaryText = '', transcriptText = '') {
     .trim()
 
   const sectionMatchers = [
-    { key: 'purpose', re: /^(?:#{1,6}\s*)?(?:[-*]\s*)?(?:회의\s*목적|목적)\s*:?\s*$/i },
-    { key: 'agenda', re: /^(?:#{1,6}\s*)?(?:[-*]\s*)?(?:📌\s*)?(?:안건|논의\s*사항|discussion\s*points?)\s*:?\s*$/i },
-    { key: 'decisions', re: /^(?:#{1,6}\s*)?(?:[-*]\s*)?(?:✅\s*)?(?:결정\s*사항|결정사항|decisions?)\s*:?\s*$/i },
-    { key: 'actions', re: /^(?:#{1,6}\s*)?(?:[-*]\s*)?(?:📝\s*)?(?:액션\s*아이템|action\s*items?|후속\s*조치)\s*:?\s*$/i },
-    { key: 'recap', re: /^(?:#{1,6}\s*)?(?:[-*]\s*)?(?:회의록\s*요약|회의\s*요약|요약|summary)\s*:?\s*$/i },
+    { key: 'purpose', re: /^(?:#{1,6}\s*)?(?:[-*]\s*)?(?:회의\s*목적|회의\s*주제|목적|objective|purpose)\s*(?:\([^)]*\))?\s*:?\s*$/i },
+    { key: 'agenda', re: /^(?:#{1,6}\s*)?(?:[-*]\s*)?(?:📌|📊)?\s*(?:안건|논의\s*사항|topics?\s*discussed|discussion\s*points?)\s*(?:\([^)]*\))?\s*:?\s*$/i },
+    { key: 'decisions', re: /^(?:#{1,6}\s*)?(?:[-*]\s*)?(?:✅)?\s*(?:결정\s*사항|결정사항|decisions?\s*made|decisions?)\s*(?:\([^)]*\))?\s*:?\s*$/i },
+    { key: 'actions', re: /^(?:#{1,6}\s*)?(?:[-*]\s*)?(?:📝|🚀)?\s*(?:액션\s*아이템|action\s*items?|후속\s*조치|to-?do)\s*(?:\([^)]*\))?\s*:?\s*$/i },
+    { key: 'recap', re: /^(?:#{1,6}\s*)?(?:[-*]\s*)?(?:회의록\s*요약|회의\s*요약|요약|summary)\s*(?:\([^)]*\))?\s*:?\s*$/i },
   ]
   const keyByLine = (line) => {
     const trimmed = String(line || '').trim()
@@ -586,7 +599,7 @@ function parseMeetingSummarySections(summaryText = '', transcriptText = '') {
   const buckets = { purpose: [], agenda: [], decisions: [], actions: [], recap: [] }
   let current = 'recap'
   for (const rawLine of cleaned.split('\n')) {
-    const line = String(rawLine || '').trim()
+    const line = String(rawLine || '').trim().replace(/^\*\*|\*\*$/g, '')
     if (!line) {
       if (buckets[current].length && buckets[current][buckets[current].length - 1] !== '') {
         buckets[current].push('')
