@@ -182,8 +182,6 @@ fi
 python3 -m venv --clear "$ROOT_DIR/.venv"
 source "$ROOT_DIR/.venv/bin/activate"
 python -m pip install -U pip wheel packaging "setuptools<82"
-# 오디오 패키지는 미사용이므로 충돌 방지 차원에서 제거
-python -m pip uninstall -y torchaudio >/dev/null 2>&1 || true
 # 기본 설치에서는 torchvision 제거(hi_res 의존성은 DGX 스크립트에서 설치)
 if [[ "$INSTALL_HIRES_DEPS" != "1" ]]; then
   python -m pip uninstall -y torchvision timm >/dev/null 2>&1 || true

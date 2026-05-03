@@ -68,8 +68,11 @@ else
   fi
 fi
 
-# torch 설치 후 불필요한 오디오 패키지 제거
-python -m pip uninstall -y torchaudio >/dev/null 2>&1 || true
+echo "[2-0/3] TorchAudio 설치 (pyannote 의존성)"
+if ! python -m pip install torchaudio --index-url "$TORCH_INDEX_URL" --extra-index-url https://pypi.org/simple; then
+  echo "[WARN] CUDA 인덱스 torchaudio 설치 실패. PyPI로 재시도합니다."
+  python -m pip install torchaudio --index-url https://pypi.org/simple
+fi
 
 echo "[2-1/3] Unstructured hi_res 의존성 설치 (torchvision, timm)"
 if ! python -m pip install torchvision timm --index-url "$TORCH_INDEX_URL" --extra-index-url https://pypi.org/simple; then
