@@ -125,14 +125,33 @@ async function deleteAttachmentPhysicalAndRecords(attachmentId, { excludedPostId
   if (meta) {
     const filePath = resolveStoragePathSafe(meta.storage_path)
     const thumbPath = resolveStoragePathSafe(meta.thumbnail_path)
+    const baseName = filePath ? path.basename(filePath, path.extname(filePath)) : ''
+    const fileDir = filePath ? path.dirname(filePath) : null
+
     if (filePath && fs.existsSync(filePath)) {
       try { fs.unlinkSync(filePath) } catch (_) {}
     }
     if (thumbPath && fs.existsSync(thumbPath)) {
       try { fs.unlinkSync(thumbPath) } catch (_) {}
     }
-    if (filePath) {
-      const fileDir = path.dirname(filePath)
+
+    // STT/diarization 부산물 정리 (같은 첨부 폴더 내부만 삭제)
+    if (fileDir && baseName) {
+      const artifactCandidates = [
+        `${baseName}.rttm`,
+        `${baseName}.txt`,
+        `${baseName}.diarization.log`,
+        `${baseName}.diarization.bridge.log`,
+      ]
+      for (const name of artifactCandidates) {
+        const artifactPath = resolveStoragePathSafe(path.join(path.relative(STORAGE_BASE_ABS, fileDir), name))
+        if (artifactPath && fs.existsSync(artifactPath)) {
+          try { fs.unlinkSync(artifactPath) } catch (_) {}
+        }
+      }
+    }
+
+    if (fileDir) {
       try {
         if (fileDir.startsWith(`${STORAGE_BASE_ABS}${path.sep}`)) fs.rmdirSync(fileDir)
       } catch (_) {}
@@ -882,6 +901,11 @@ router.delete('/:id', requireAuth, async (req, res, next) => {
     // PostgreSQL mirror 정리
     await db.query('DELETE FROM comments WHERE post_id = $1', [id])
     await db.query('DELETE FROM posts WHERE id = $1', [id])
+
+    // STT 결과물 정리 (post 기준)
+    await db.query('DELETE FROM stt_segments WHERE job_id IN (SELECT id FROM stt_jobs WHERE post_id = $1)', [id]).catch(() => {})
+    await db.query('DELETE FROM stt_summaries WHERE job_id IN (SELECT id FROM stt_jobs WHERE post_id = $1)', [id]).catch(() => {})
+    await db.query('DELETE FROM stt_jobs WHERE post_id = $1', [id]).catch(() => {})
 
     // 첨부파일/레코드 정리 (다른 글/댓글 참조 시 삭제하지 않음)
     for (const attId of targetAttachmentIds) {
