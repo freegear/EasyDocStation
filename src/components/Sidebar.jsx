@@ -60,6 +60,36 @@ export default function Sidebar({
   const [dmConversations, setDmConversations] = useState([])
   const [dmCollapsedList, setDmCollapsedList] = useState(false)
 
+  function formatMeetingPostTimestamp(d = new Date()) {
+    const yyyy = String(d.getFullYear())
+    const mm = String(d.getMonth() + 1).padStart(2, '0')
+    const dd = String(d.getDate()).padStart(2, '0')
+    const hh = String(d.getHours()).padStart(2, '0')
+    const mi = String(d.getMinutes()).padStart(2, '0')
+    const ss = String(d.getSeconds()).padStart(2, '0')
+    return `${yyyy}${mm}${dd} ${hh}:${mi}:${ss}`
+  }
+
+  async function createAiMeetingNotePost() {
+    if (!selectedChannel) {
+      alert('채널을 먼저 선택해주세요.')
+      return
+    }
+    const stamp = formatMeetingPostTimestamp(new Date())
+    const content = [
+      '<!--ai-meeting-note-->',
+      `# ${stamp}`,
+      '',
+      '[새회의록작성]',
+      '',
+      '회의록 내용을 여기에 작성하세요.',
+    ].join('\n')
+    try {
+      await addPost(selectedChannel.id, { content, security_level: 1 })
+      closeMobileIfNeeded()
+    } catch (_) {}
+  }
+
   function refreshDmConversations() {
     apiFetch('/dm/conversations')
       .then(data => setDmConversations(Array.isArray(data) ? data : []))
@@ -298,9 +328,9 @@ export default function Sidebar({
               })}
               <button
                 type="button"
+                onDoubleClick={createAiMeetingNotePost}
                 className="flex items-center gap-2.5 w-full px-2 py-1.5 rounded-md text-gray-500 hover:bg-gray-100 hover:text-gray-700 text-sm text-left transition-all"
-                title="AI회의록 (준비중)"
-                aria-disabled="true"
+                title="더블클릭하여 AI회의록 게시글 생성"
               >
                 <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6M7 4h7l5 5v11a2 2 0 01-2 2H7a2 2 0 01-2-2V6a2 2 0 012-2z" />
