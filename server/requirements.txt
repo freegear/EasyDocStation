@@ -4,6 +4,8 @@ accelerate
 librosa
 soundfile
 pyannote.audio
+openai-whisper
+tqdm
 sentence-transformers
 lancedb
 pdfplumber
