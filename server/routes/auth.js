@@ -215,6 +215,8 @@ router.get('/me', requireAuth, async (req, res) => {
     // Legacy JWT session validation only
     if (req.authProvider !== 'supabase' && columnSupport.hasActiveSessionId) {
       if (!user.active_session_id || req.user.session_id !== user.active_session_id) {
+        // 무효 세션 쿠키를 즉시 제거해 프론트 /auth/me 재시도 루프를 차단
+        res.clearCookie('eds_auth', getAuthCookieClearOptions())
         return res.status(401).json({ error: '세션이 만료되었습니다. 다시 로그인해 주세요.', code: 'SESSION_INVALIDATED' })
       }
     }
