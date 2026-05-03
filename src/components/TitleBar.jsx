@@ -220,7 +220,7 @@ export default function TitleBar({
       {/* 왼쪽 끝: 새로운 로고(SVG) + 타이틀 */}
       <div className="flex items-center gap-2.5 flex-shrink-0 cursor-pointer" onClick={() => window.location.href = '/'}>
         <img src="/img/logo.png" alt="Logo" className="w-8 h-8 object-contain" />
-        <span className="text-gray-900 font-bold text-lg tracking-tight hidden md:inline">EasyStation</span>
+        <span className="text-gray-900 font-bold text-base md:text-lg tracking-tight inline">EasyStation</span>
       </div>
 
       {/* 오른쪽 끝: 검색 + 언어 + 사용자 */}
