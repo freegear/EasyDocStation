@@ -1604,6 +1604,7 @@ function ContentRenderer({ text = '', sttPostId = '', sttChannelId = '' }) {
   const [isRecording, setIsRecording] = useState(false)
   const [sttUploading, setSttUploading] = useState(false)
   const [sttStatus, setSttStatus] = useState('')
+  const [sttStatusType, setSttStatusType] = useState('idle') // idle | processing | done | failed
   const mediaRecorderRef = useRef(null)
   const mediaStreamRef = useRef(null)
   const sttFileInputRef = useRef(null)
@@ -1612,6 +1613,7 @@ function ContentRenderer({ text = '', sttPostId = '', sttChannelId = '' }) {
 
   const normalized = normalizeMarkdownCodeFence(
     String(text || '')
+      .replace(/<!--[\s\S]*?-->/g, '')
       .replace('<!--ai-meeting-note-->', '')
       .replace('[새회의록작성]', '')
   )
@@ -1697,16 +1699,19 @@ function ContentRenderer({ text = '', sttPostId = '', sttChannelId = '' }) {
         const data = await apiFetch(`/ai/stt/jobs/${jobId}`)
         if (data.status === 'queued' || data.status === 'processing') {
           setSttStatus(`STT 처리중 (${Number(data.progress || 0)}%)`)
+          setSttStatusType('processing')
           return
         }
         if (data.status === 'done') {
           setSttStatus('STT 완료')
+          setSttStatusType('done')
           stopSttPolling()
           return
         }
         if (data.status === 'failed') {
           const message = mapSttErrorToMessage(data?.error?.code, data?.error?.message)
           setSttStatus(`STT 실패: ${message}`)
+          setSttStatusType('failed')
           stopSttPolling()
         }
       } catch (_) {}
@@ -1739,6 +1744,7 @@ function ContentRenderer({ text = '', sttPostId = '', sttChannelId = '' }) {
     try {
       setSttUploading(true)
       setSttStatus('파일 업로드 준비중...')
+      setSttStatusType('processing')
       const prep = await apiFetch('/files/get-upload-url', {
         method: 'POST',
         body: JSON.stringify({
@@ -1759,9 +1765,11 @@ function ContentRenderer({ text = '', sttPostId = '', sttChannelId = '' }) {
         }),
       })
       setSttStatus(job?.deduplicated ? '기존 STT 작업 재사용중...' : 'STT 처리 대기중...')
+      setSttStatusType('processing')
       startSttPolling(job.jobId)
     } catch (err) {
       setSttStatus(`오류: ${err.message}`)
+      setSttStatusType('failed')
     } finally {
       setSttUploading(false)
     }
@@ -1773,9 +1781,11 @@ function ContentRenderer({ text = '', sttPostId = '', sttChannelId = '' }) {
     try {
       await apiFetch(`/ai/stt/jobs/${jobId}/retry`, { method: 'POST' })
       setSttStatus('STT 재시도 대기중...')
+      setSttStatusType('processing')
       startSttPolling(jobId)
     } catch (err) {
       setSttStatus(`재시도 실패: ${err.message}`)
+      setSttStatusType('failed')
     }
   }
 
@@ -1818,7 +1828,21 @@ function ContentRenderer({ text = '', sttPostId = '', sttChannelId = '' }) {
             }}
           />
           {isRecording && <span className="text-xs text-red-500">녹음 중...</span>}
-          {!isRecording && sttStatus && <span className="text-xs text-gray-500">{sttStatus}</span>}
+          {!isRecording && sttStatus && (
+            <span
+              className={`text-xs font-semibold ${
+                sttStatusType === 'processing'
+                  ? 'text-amber-600'
+                  : sttStatusType === 'done'
+                    ? 'text-emerald-600'
+                    : sttStatusType === 'failed'
+                      ? 'text-red-600'
+                      : 'text-gray-500'
+              }`}
+            >
+              {sttStatus}
+            </span>
+          )}
           {!isRecording && sttStatus.startsWith('STT 실패:') && (
             <button
               type="button"
