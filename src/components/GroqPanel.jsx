@@ -323,6 +323,23 @@ export default function GroqPanel({ width }) {
   }, [messages.length])
 
   useEffect(() => {
+    const onFillInput = (evt) => {
+      const text = String(evt?.detail?.text || '')
+      if (!text) return
+      setInput(text)
+      setTimeout(() => {
+        try {
+          textareaRef.current?.focus()
+          const len = text.length
+          textareaRef.current?.setSelectionRange?.(len, len)
+        } catch (_) {}
+      }, 0)
+    }
+    window.addEventListener('agentic-fill-input', onFillInput)
+    return () => window.removeEventListener('agentic-fill-input', onFillInput)
+  }, [])
+
+  useEffect(() => {
     async function fetchConfig() {
       try {
         const [aiData, ragRetrievalData] = await Promise.all([

@@ -477,6 +477,9 @@ function PostDetailPane({ post, channelId, onClose, pendingOpenCommentId = null,
 
   function handleSendPostToAgenticAI() {
     openInAgenticAI(buildAgenticPostTarget())
+    window.dispatchEvent(new CustomEvent('agentic-fill-input', {
+      detail: { text: String(freshPost.content || '') },
+    }))
     window.dispatchEvent(new Event('open-agentic-panel'))
   }
 
