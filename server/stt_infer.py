@@ -3,6 +3,7 @@ import json
 import os
 import sys
 import tempfile
+import subprocess
 from dataclasses import dataclass
 from typing import Dict, List, Optional
 
@@ -49,7 +50,77 @@ def chunk_segments(duration_sec: float, chunk_sec: float = 25.0, overlap_sec: fl
     return segs
 
 
+def _load_rttm_segments(rttm_path: str) -> List[Segment]:
+    out: List[Segment] = []
+    if not os.path.exists(rttm_path):
+        return out
+    with open(rttm_path, "r", encoding="utf-8") as rttm:
+        for line in rttm:
+            parts = line.strip().split()
+            if len(parts) < 8 or parts[0] != "SPEAKER":
+                continue
+            start = float(parts[3])
+            duration = float(parts[4])
+            speaker = parts[7]
+            out.append(Segment(start_sec=start, end_sec=start + duration, speaker_label=speaker))
+    out.sort(key=lambda s: s.start_sec)
+    return out
+
+
+def run_external_diarization(audio_path: str) -> Optional[List[Segment]]:
+    script_path = os.getenv("DIARIZATION_SCRIPT_PATH", "/Users/kevinim/Desktop/AudioRecord/Diarization.py")
+    if not script_path or not os.path.exists(script_path):
+        return None
+
+    emit_event({"event": "progress", "progress": 2, "stage": "diarization_external_start"})
+    cmd = [sys.executable, script_path, "--input", audio_path]
+    try:
+        proc = subprocess.run(
+            cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            timeout=60 * 30,
+            check=False,
+        )
+        if proc.returncode != 0:
+            emit_event({
+                "event": "log",
+                "stage": "diarization_external_failed",
+                "code": proc.returncode,
+                "stderr": (proc.stderr or "")[:500],
+            })
+            return None
+
+        stem = os.path.splitext(os.path.basename(audio_path))[0]
+        base_dir = os.path.dirname(audio_path) or "."
+        rttm_path = os.path.join(base_dir, f"{stem}.rttm")
+        diar = _load_rttm_segments(rttm_path)
+        if not diar:
+            return None
+        emit_event({
+            "event": "progress",
+            "progress": 4,
+            "stage": "diarization_external_done",
+            "segment_count": len(diar),
+        })
+        return postprocess_diarization(diar)
+    except Exception as e:
+        emit_event({
+            "event": "log",
+            "stage": "diarization_external_exception",
+            "error": str(e)[:500],
+        })
+        return None
+
+
 def run_diarization(audio_path: str, hf_token: Optional[str]) -> Optional[List[Segment]]:
+    external_first = os.getenv("USE_EXTERNAL_DIARIZATION", "1").strip().lower() not in ("0", "false", "no")
+    if external_first:
+        external = run_external_diarization(audio_path)
+        if external:
+            return external
+
     if not hf_token:
         return None
     try:
