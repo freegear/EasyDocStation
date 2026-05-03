@@ -102,6 +102,18 @@ def _save_diarization_rttm(diarization_output, output_path, uri):
     )
 
 
+def _resolve_annotation_like(diarization_output):
+    if diarization_output is None:
+        return None
+    if hasattr(diarization_output, "itertracks"):
+        return diarization_output
+    if hasattr(diarization_output, "speaker_diarization"):
+        nested = diarization_output.speaker_diarization
+        if hasattr(nested, "itertracks"):
+            return nested
+    return None
+
+
 def _format_seconds(seconds):
     total = int(seconds)
     hours = total // 3600
@@ -244,18 +256,22 @@ def main():
             progress_bar.update(1)
             diar_turns = 0
             diar_speakers = set()
-            for turn, _, speaker in diarization.itertracks(yield_label=True):
-                diar_turns += 1
-                diar_speakers.add(str(speaker))
-                if args.debug and diar_turns <= 30:
-                    LOGGER.debug(
-                        "diar turn #%d | speaker=%s start=%.3f end=%.3f dur=%.3f",
-                        diar_turns,
-                        speaker,
-                        float(turn.start),
-                        float(turn.end),
-                        float(turn.end - turn.start),
-                    )
+            ann = _resolve_annotation_like(diarization)
+            if ann is None:
+                LOGGER.warning("단계 4 로그 집계 스킵 | itertracks를 제공하지 않는 diarization 타입=%s", type(diarization).__name__)
+            else:
+                for turn, _, speaker in ann.itertracks(yield_label=True):
+                    diar_turns += 1
+                    diar_speakers.add(str(speaker))
+                    if args.debug and diar_turns <= 30:
+                        LOGGER.debug(
+                            "diar turn #%d | speaker=%s start=%.3f end=%.3f dur=%.3f",
+                            diar_turns,
+                            speaker,
+                            float(turn.start),
+                            float(turn.end),
+                            float(turn.end - turn.start),
+                        )
             LOGGER.info("단계 4 완료 | diarization turns=%d speakers=%d labels=%s", diar_turns, len(diar_speakers), sorted(diar_speakers))
 
             # 5. diarization 결과 저장
