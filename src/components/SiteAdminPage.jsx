@@ -22,6 +22,16 @@ function formatDate(iso) {
   })
 }
 
+function generateStrongRandomToken(length = 64) {
+  const bytes = new Uint8Array(Math.ceil((length * 3) / 4))
+  window.crypto.getRandomValues(bytes)
+  const base64 = btoa(String.fromCharCode(...bytes))
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/g, '')
+  return base64.slice(0, length)
+}
+
 function RoleBadge({ role, label }) {
   const cls = ROLE_BADGE[role] ?? ROLE_BADGE.user
   return (
@@ -3190,13 +3200,22 @@ export default function SiteAdminPage({ onClose }) {
                   </div>
                   <div>
                     <label className="block text-gray-700 text-xs font-semibold mb-1">JWT_SECRET</label>
-                    <input
-                      type="text"
-                      value={jwtSecret}
-                      onChange={e => setJwtSecret(e.target.value)}
-                      placeholder="강한 랜덤값"
-                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-gray-900 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-300 transition-all"
-                    />
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        value={jwtSecret}
+                        onChange={e => setJwtSecret(e.target.value)}
+                        placeholder="강한 랜덤값"
+                        className="flex-1 min-w-0 bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-gray-900 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-300 transition-all"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setJwtSecret(generateStrongRandomToken(64))}
+                        className="px-3 py-2.5 rounded-xl border border-indigo-200 bg-indigo-50 text-indigo-700 text-xs font-semibold hover:bg-indigo-100 transition-colors whitespace-nowrap"
+                      >
+                        랜덤값 생성
+                      </button>
+                    </div>
                   </div>
                   <div>
                     <label className="block text-gray-700 text-xs font-semibold mb-1">CLIENT_ORIGIN</label>
