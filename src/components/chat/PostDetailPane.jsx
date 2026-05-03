@@ -442,7 +442,6 @@ function PostDetailPane({ post, channelId, onClose, pendingOpenCommentId = null,
   }
 
   function buildAgenticPostTarget() {
-    const postLink = `${window.location.origin}/?channelId=${encodeURIComponent(channelId)}&postId=${encodeURIComponent(post.id)}`
     const titleLine = (freshPost.content || '')
       .split('\n')
       .map(v => v.trim())
@@ -453,7 +452,8 @@ function PostDetailPane({ post, channelId, onClose, pendingOpenCommentId = null,
       postId: post.id,
       commentId: '',
       label: titleLine.slice(0, 120),
-      link: postLink,
+      link: '',
+      content: String(freshPost.content || ''),
       channelName: selectedChannel?.name || channelId,
     }
   }
