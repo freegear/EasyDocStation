@@ -65,7 +65,6 @@ kill_by_port() {
 
 kill_known_processes() {
   # 관련 태스크(프론트/백엔드/루프/런처)를 전부 정리
-  pkill -f "scripts/run-dgx-spark.sh" >/dev/null 2>&1 || true
   pkill -f "scripts/restart-dgx-spark.sh" >/dev/null 2>&1 || true
   pkill -f "scripts/rerun-dgx-spark.sh" >/dev/null 2>&1 || true
   pkill -f "scripts/dev-dgx-spark.sh" >/dev/null 2>&1 || true
