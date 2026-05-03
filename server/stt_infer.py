@@ -208,7 +208,31 @@ def postprocess_diarization(segments: List[Segment]) -> List[Segment]:
     return normalized
 
 
-class GemmaTranscriber:
+class WhisperSegmentTranscriber:
+    def __init__(self, model_name: str = "small"):
+        try:
+            import whisper
+        except Exception as e:
+            raise RuntimeError(f"whisper import failed: {e}")
+        try:
+            self.model = whisper.load_model(model_name)
+        except Exception as e:
+            raise RuntimeError(f"whisper model load failed: {e}")
+
+    def transcribe_segment(self, wav_path: str, language: str = "ko") -> str:
+        try:
+            result = self.model.transcribe(
+                wav_path,
+                language=language,
+                fp16=False,
+                verbose=False,
+            )
+        except Exception as e:
+            raise RuntimeError(f"whisper transcribe failed: {e}")
+        return str((result or {}).get("text") or "").strip()
+
+
+class GemmaSummarizer:
     def __init__(self, model_id: str):
         try:
             import torch
@@ -226,34 +250,6 @@ class GemmaTranscriber:
             )
         except Exception as e:
             raise RuntimeError(f"model load failed: {e}")
-
-    def transcribe_segment(self, wav_path: str, language: str = "ko") -> str:
-        prompt = {
-            "ko": "다음 오디오를 한국어로 정확히 전사해줘. 군더더기 설명 없이 전사문만 출력해줘.",
-            "en": "Transcribe this audio accurately. Output transcript only.",
-            "ja": "この音声を正確に文字起こししてください。説明なしで本文のみ出力してください。",
-            "zh": "请准确转写这段音频，仅输出转写文本。",
-        }.get(language, "Transcribe this audio accurately. Output transcript only.")
-
-        messages = [{
-            "role": "user",
-            "content": [
-                {"type": "audio", "audio": wav_path},
-                {"type": "text", "text": prompt},
-            ],
-        }]
-
-        inputs = self.processor.apply_chat_template(
-            messages,
-            tokenize=True,
-            add_generation_prompt=True,
-            return_dict=True,
-            return_tensors="pt",
-        ).to(self.model.device)
-
-        outputs = self.model.generate(**inputs, max_new_tokens=512)
-        decoded = self.processor.decode(outputs[0], skip_special_tokens=True)
-        return decoded.strip()
 
     def summarize(self, transcript: str, language: str = "ko") -> str:
         prompt = {
@@ -326,12 +322,20 @@ def main():
     if diarized is None:
         diarized = chunk_segments(duration, chunk_sec=25.0, overlap_sec=2.5)
 
+    whisper_model = str(payload.get("whisperModel") or os.getenv("WHISPER_MODEL") or "small")
     try:
-        transcriber = GemmaTranscriber(model_id)
+        transcriber = WhisperSegmentTranscriber(whisper_model)
     except Exception as e:
         emit_event({"ok": False, "error_code": "MODEL_LOAD_FAILED", "error_message": str(e)})
         return
-    emit_event({"event": "progress", "progress": 5, "stage": "model_loaded"})
+    emit_event({"event": "progress", "progress": 5, "stage": "whisper_loaded", "whisperModel": whisper_model})
+
+    try:
+        summarizer = GemmaSummarizer(model_id)
+    except Exception as e:
+        emit_event({"ok": False, "error_code": "MODEL_LOAD_FAILED", "error_message": str(e)})
+        return
+    emit_event({"event": "progress", "progress": 8, "stage": "gemma_loaded", "modelId": model_id})
 
     segments_out: List[Dict] = []
     try:
@@ -388,7 +392,7 @@ def main():
     ).strip()
 
     try:
-        summary = transcriber.summarize(full_transcript, language=language)
+        summary = summarizer.summarize(full_transcript, language=language)
     except Exception as e:
         emit_event({"ok": False, "error_code": "SUMMARY_FAILED", "error_message": str(e)})
         return
