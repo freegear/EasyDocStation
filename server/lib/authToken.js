@@ -22,9 +22,15 @@ function getAuthTokenFromRequest(req) {
 
 function getAuthCookieOptions() {
   const isProd = process.env.NODE_ENV === 'production'
+  const secureOverride = String(process.env.AUTH_COOKIE_SECURE || '').trim().toLowerCase()
+  const secure = secureOverride === 'true'
+    ? true
+    : secureOverride === 'false'
+      ? false
+      : isProd
   return {
     httpOnly: true,
-    secure: isProd,
+    secure,
     sameSite: 'lax',
     path: '/',
     maxAge: 7 * 24 * 60 * 60 * 1000,
