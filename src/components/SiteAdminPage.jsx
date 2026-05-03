@@ -743,6 +743,8 @@ export default function SiteAdminPage({ onClose }) {
   const [supabaseUrl, setSupabaseUrl] = useState('')
   const [supabaseJwtAudience, setSupabaseJwtAudience] = useState('authenticated')
   const [jwtSecret, setJwtSecret] = useState('')
+  const [clientOrigin, setClientOrigin] = useState('http://218.237.25.214:5173')
+  const [authCookieSecure, setAuthCookieSecure] = useState('false')
   const [viteSupabaseUrl, setViteSupabaseUrl] = useState('')
   const [viteSupabaseAnonKey, setViteSupabaseAnonKey] = useState('')
   const [snsForm, setSnsForm] = useState({
@@ -865,6 +867,8 @@ export default function SiteAdminPage({ onClose }) {
       setSupabaseUrl(String(data.supabase_url || ''))
       setSupabaseJwtAudience(String(data.supabase_jwt_audience || 'authenticated'))
       setJwtSecret(String(data.jwt_secret || ''))
+      setClientOrigin(String(data.client_origin || 'http://218.237.25.214:5173'))
+      setAuthCookieSecure(String(data.auth_cookie_secure || 'false'))
       setViteSupabaseUrl(String(data.vite_supabase_url || ''))
       setViteSupabaseAnonKey(String(data.vite_supabase_anon_key || ''))
       if (data.sns) {
@@ -1143,6 +1147,8 @@ export default function SiteAdminPage({ onClose }) {
         configData.SUPABASE_URL = supabaseUrl.trim()
         configData.SUPABASE_JWT_AUDIENCE = supabaseJwtAudience.trim() || 'authenticated'
         configData.JWT_SECRET = jwtSecret.trim()
+        configData.CLIENT_ORIGIN = clientOrigin.trim() || 'http://218.237.25.214:5173'
+        configData.AUTH_COOKIE_SECURE = authCookieSecure.trim() || 'false'
         configData.VITE_SUPABASE_URL = viteSupabaseUrl.trim()
         configData.VITE_SUPABASE_ANON_KEY = viteSupabaseAnonKey.trim()
       } else if (activeTab === 'sns') {
@@ -2934,6 +2940,26 @@ export default function SiteAdminPage({ onClose }) {
                       value={jwtSecret}
                       onChange={e => setJwtSecret(e.target.value)}
                       placeholder="강한 랜덤값"
+                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-gray-900 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-300 transition-all"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-gray-700 text-xs font-semibold mb-1">CLIENT_ORIGIN</label>
+                    <input
+                      type="text"
+                      value={clientOrigin}
+                      onChange={e => setClientOrigin(e.target.value)}
+                      placeholder="http://218.237.25.214:5173"
+                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-gray-900 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-300 transition-all"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-gray-700 text-xs font-semibold mb-1">AUTH_COOKIE_SECURE</label>
+                    <input
+                      type="text"
+                      value={authCookieSecure}
+                      onChange={e => setAuthCookieSecure(e.target.value)}
+                      placeholder="false"
                       className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-gray-900 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-300 transition-all"
                     />
                   </div>
