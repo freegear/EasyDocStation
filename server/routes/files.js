@@ -422,9 +422,9 @@ router.post('/get-upload-url', requireAuth, async (req, res, next) => {
 
     // Fallback/Legacy: Register in PostgreSQL as well (for stability or transition)
     await db.query(`
-      INSERT INTO attachments (id, filename, content_type, size, status, storage_path, uploader_id)
-      VALUES ($1, $2, $3, $4, $5, $6, $7)
-    `, [file_uuid, filename, contentType, 0, 'PENDING', key, req.user.id])
+      INSERT INTO attachments (id, filename, content_type, size, status, storage_path, uploader_id, channel_id)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+    `, [file_uuid, filename, contentType, 0, 'PENDING', key, req.user.id, channelId || null])
 
     // Generate Mask Presigned URL with Token
     const token = jwt.sign({

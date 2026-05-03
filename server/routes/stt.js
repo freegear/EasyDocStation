@@ -171,6 +171,23 @@ async function findAttachmentRow(attachmentId) {
   return r.rows[0] || null
 }
 
+async function patchAttachmentMeta(attachmentId, { postId = null, channelId = null } = {}) {
+  const sets = []
+  const vals = []
+  let i = 1
+  if (postId != null) {
+    sets.push(`post_id = $${i++}`)
+    vals.push(String(postId))
+  }
+  if (channelId != null) {
+    sets.push(`channel_id = $${i++}`)
+    vals.push(String(channelId))
+  }
+  if (sets.length === 0) return
+  vals.push(String(attachmentId))
+  await db.query(`UPDATE attachments SET ${sets.join(', ')} WHERE id = $${i}`, vals)
+}
+
 function renderSttBlock({ jobId, status, progress = 0, transcript = '', summary = '', error = '' }) {
   const head = `<!--stt-result:start job_id=${jobId}-->`
   const tail = '<!--stt-result:end-->'
@@ -566,8 +583,30 @@ router.post('/jobs', requireAuth, async (req, res, next) => {
     if (String(attachment.status || '').toUpperCase() !== 'COMPLETED') {
       return res.status(409).json({ error: '첨부파일 업로드가 완료되지 않았습니다.' })
     }
-    if (String(attachment.channel_id || '') !== String(post.channel_id || '')) {
-      return res.status(400).json({ error: '게시글과 첨부파일 채널이 일치하지 않습니다.' })
+    const postChannelId = String(post.channel_id || '')
+    const attachmentChannelId = String(attachment.channel_id || '')
+    const attachmentPostId = String(attachment.post_id || '')
+    const targetPostId = String(postId || '')
+
+    // Legacy/temporary rows can miss post_id/channel_id.
+    // Auto-heal when it's safe to infer from the requested post.
+    if (!attachmentPostId) {
+      await patchAttachmentMeta(attachment.id, { postId: targetPostId })
+      attachment.post_id = targetPostId
+    }
+    if (!attachmentChannelId) {
+      await patchAttachmentMeta(attachment.id, { channelId: postChannelId })
+      attachment.channel_id = postChannelId
+    }
+
+    if (String(attachment.channel_id || '') !== postChannelId) {
+      // If attachment is already tied to this exact post, channel can be healed.
+      if (String(attachment.post_id || '') === targetPostId) {
+        await patchAttachmentMeta(attachment.id, { channelId: postChannelId })
+        attachment.channel_id = postChannelId
+      } else {
+        return res.status(400).json({ error: '게시글과 첨부파일 채널이 일치하지 않습니다.' })
+      }
     }
 
     const optionsHash = hashOptions(options)
