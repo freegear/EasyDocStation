@@ -449,7 +449,6 @@ router.put('/config', requireSiteAdmin, async (req, res) => {
 
     fs.writeFileSync(configPath, JSON.stringify(newConfig, null, 2), 'utf8')
 
-    let envSync = null
     const touchedSupabaseSettings =
       Object.prototype.hasOwnProperty.call(req.body, 'SUPABASE_URL') ||
       Object.prototype.hasOwnProperty.call(req.body, 'SUPABASE_JWT_AUDIENCE') ||
@@ -458,15 +457,12 @@ router.put('/config', requireSiteAdmin, async (req, res) => {
       Object.prototype.hasOwnProperty.call(req.body, 'AUTH_COOKIE_SECURE') ||
       Object.prototype.hasOwnProperty.call(req.body, 'VITE_SUPABASE_URL') ||
       Object.prototype.hasOwnProperty.call(req.body, 'VITE_SUPABASE_ANON_KEY')
-    if (touchedSupabaseSettings) {
-      envSync = syncSupabaseEnvFromConfig(newConfig)
-    }
 
     res.json({
       success: true,
       config: newConfig,
-      envSync,
-      restartRequired: Boolean(envSync),
+      envSync: null,
+      restartRequired: touchedSupabaseSettings,
     })
   } catch (err) {
     console.error('Save Config Error:', err)
@@ -532,6 +528,10 @@ print(f"벡터 크기 ${dim}으로 재설정 완료: {table.count_rows()}건")
 router.post('/restart', async (req, res) => {
   try {
     const appRoot = path.resolve(__dirname, '../../')
+    const configPath = path.resolve(appRoot, 'config.json')
+    const currentConfig = JSON.parse(fs.readFileSync(configPath, 'utf8'))
+    // Apply pending Supabase-related settings to server/.env only when user explicitly requests restart.
+    syncSupabaseEnvFromConfig(currentConfig)
     const ubuntuScript = path.resolve(appRoot, 'scripts/restart-ubuntu.sh')
     const dgxScript = path.resolve(appRoot, 'scripts/restart-dgx-spark.sh')
     const restartScript = fs.existsSync(ubuntuScript)
