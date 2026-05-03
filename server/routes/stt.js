@@ -228,18 +228,19 @@ function renderSttBlock({ jobId, status, progress = 0, transcript = '', summary 
 function upsertSttBlock(content = '', blockText = '') {
   const source = String(content || '')
   const blockPattern = /<!--stt-result:start job_id=.*?-->[\s\S]*?<!--stt-result:end-->/m
-  if (blockPattern.test(source)) {
-    return source.replace(blockPattern, blockText)
-  }
+  const sourceWithoutBlock = blockPattern.test(source)
+    ? source.replace(blockPattern, '').replace(/\n{3,}/g, '\n\n').trimEnd()
+    : source
+
   // Prefer placing STT block right below the first markdown title line.
-  const firstHeadingMatch = source.match(/^# .*(?:\r?\n|$)/m)
+  const firstHeadingMatch = sourceWithoutBlock.match(/^# .*(?:\r?\n|$)/m)
   if (firstHeadingMatch) {
     const heading = firstHeadingMatch[0]
-    const idx = source.indexOf(heading)
+    const idx = sourceWithoutBlock.indexOf(heading)
     const insertPos = idx + heading.length
-    return `${source.slice(0, insertPos)}\n${blockText}\n${source.slice(insertPos).replace(/^\n*/, '')}`.trimEnd() + '\n'
+    return `${sourceWithoutBlock.slice(0, insertPos)}\n${blockText}\n${sourceWithoutBlock.slice(insertPos).replace(/^\n*/, '')}`.trimEnd() + '\n'
   }
-  return `${source.trimEnd()}\n\n${blockText}\n`
+  return `${sourceWithoutBlock.trimEnd()}\n\n${blockText}\n`
 }
 
 async function getPostContentForPatch(postId, locator) {
