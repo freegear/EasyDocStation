@@ -4895,7 +4895,7 @@ Supabase Auth 기준으로 기존 JWT 로그인에서 병행 전환까지 코드
 
 - `Kakao Login Client Secret` 발급/활성화 (Supabase의 `Client Secret`으로 사용)
 
-   0a94e4e0abbe19dd565b0b9055f751e9
+wmEI6rx7geTzPeBq9tHFESMHxxwqJn0L
 
 - `Kakao Login` 사용 ON
 - Redirect URI에 아래 등록:
