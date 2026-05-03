@@ -23,6 +23,20 @@ async function getUsersColumnSupport() {
   }
 }
 
+async function verifyPassword(inputPassword, storedHash) {
+  const password = String(inputPassword || '')
+  const hash = String(storedHash || '')
+  if (!hash) return false
+
+  // bcrypt hash prefix: $2a$, $2b$, $2y$
+  if (/^\$2[aby]\$/.test(hash)) {
+    return bcrypt.compare(password, hash)
+  }
+
+  // Legacy/plain fallback for old data migration compatibility
+  return password === hash
+}
+
 function toPublicUser(u) {
   return {
     id: u.id,
@@ -107,7 +121,7 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ error: '계정이 잠겼습니다. 관리자에게 문의하세요.', code: 'ACCOUNT_LOCKED' })
     }
 
-    const valid = await bcrypt.compare(password, user.password_hash)
+    const valid = await verifyPassword(password, user.password_hash)
     if (!valid) {
       if (columnSupport.hasFailedLoginAttempts) {
         const newAttempts = (user.failed_login_attempts || 0) + 1
