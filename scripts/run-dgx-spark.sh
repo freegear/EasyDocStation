@@ -69,7 +69,6 @@ kill_known_processes() {
   pkill -f "while true; do npm run start --prefix server" >/dev/null 2>&1 || true
   pkill -f "node .*server/index\\.js" >/dev/null 2>&1 || true
   pkill -f "sh -c node index.js" >/dev/null 2>&1 || true
-  pkill -f "node index.js" >/dev/null 2>&1 || true
   pkill -f "nodemon[[:space:]].*index\\.js" >/dev/null 2>&1 || true
   pkill -f "concurrently.*Ollama,FE,BE" >/dev/null 2>&1 || true
   pkill -f "$ROOT_DIR/node_modules/.bin/concurrently" >/dev/null 2>&1 || true
@@ -82,7 +81,7 @@ has_dgx_processes() {
   pgrep -af "scripts/backend-loop-dgx.sh" >/dev/null 2>&1 && return 0
   pgrep -af "while true; do npm run start --prefix server" >/dev/null 2>&1 && return 0
   pgrep -af "npm run start --prefix server" >/dev/null 2>&1 && return 0
-  pgrep -af "node index.js" >/dev/null 2>&1 && return 0
+  pgrep -af "node .*server/index\\.js" >/dev/null 2>&1 && return 0
   return 1
 }
 
@@ -158,7 +157,7 @@ if [[ "${1:-}" == "--stop" ]]; then
     pgrep -af "$ROOT_DIR/node_modules/.bin/concurrently" || true
     pgrep -af "scripts/backend-loop-dgx.sh" || true
     pgrep -af "npm run start --prefix server" || true
-    pgrep -af "node index.js" || true
+    pgrep -af "node .*server/index\\.js" || true
   fi
   log "중지 완료"
   exit 0
