@@ -336,6 +336,7 @@ export default function Sidebar({
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6M7 4h7l5 5v11a2 2 0 01-2 2H7a2 2 0 01-2-2V6a2 2 0 012-2z" />
                 </svg>
                 <span className="font-medium">AI회의록</span>
+                <span className="ml-auto text-[9px] text-gray-300 whitespace-nowrap">더블클릭</span>
               </button>
             </div>
           )}
