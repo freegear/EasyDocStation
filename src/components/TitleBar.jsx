@@ -186,10 +186,12 @@ export default function TitleBar({
   onToggleSidebar,
   showAgenticPanel = true,
   onToggleAgenticPanel,
+  isMobileLayout = false,
 }) {
   const { currentUser, language, setLanguage, logout } = useAuth()
   const t = useT()
   const [menuOpen, setMenuOpen] = useState(false)
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(false)
   const menuRef = useRef(null)
 
   useOutsideMouseDown({
@@ -214,18 +216,28 @@ export default function TitleBar({
   }
 
   return (
-    <header className="flex items-center justify-between px-5 h-14 bg-gray-100 border-b border-gray-200 flex-shrink-0 z-10">
+    <header className="relative flex items-center justify-between px-3 md:px-5 h-12 md:h-14 bg-gray-100 border-b border-gray-200 flex-shrink-0 z-10">
       {/* 왼쪽 끝: 새로운 로고(SVG) + 타이틀 */}
       <div className="flex items-center gap-2.5 flex-shrink-0 cursor-pointer" onClick={() => window.location.href = '/'}>
         <img src="/img/logo.png" alt="Logo" className="w-8 h-8 object-contain" />
-        <span className="text-gray-900 font-bold text-lg tracking-tight hidden sm:inline">EasyStation</span>
+        <span className="text-gray-900 font-bold text-lg tracking-tight hidden md:inline">EasyStation</span>
       </div>
 
       {/* 오른쪽 끝: 검색 + 언어 + 사용자 */}
       <div className="flex items-center gap-3">
-
-        {/* Search bar */}
-        <SearchBar onSelectResult={onSelectSearchResult} />
+        {!isMobileLayout && <SearchBar onSelectResult={onSelectSearchResult} />}
+        {isMobileLayout && (
+          <button
+            type="button"
+            onClick={() => setMobileSearchOpen(v => !v)}
+            className="inline-flex items-center justify-center w-8 h-8 rounded-lg border border-gray-300 bg-white text-gray-600 hover:bg-gray-50"
+            aria-label="Search"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+          </button>
+        )}
 
         {/* Sidebar toggle (left of AI Panel) */}
         <button
@@ -243,7 +255,7 @@ export default function TitleBar({
             <rect x="2.5" y="3" width="15" height="14" rx="2" />
             <line x1="8.5" y1="3" x2="8.5" y2="17" />
           </svg>
-          <span className="hidden lg:inline">{t.titlebar.sidebarPanelLabel}</span>
+          <span className="hidden xl:inline">{t.titlebar.sidebarPanelLabel}</span>
         </button>
 
         {/* AgenticAI panel split toggle (between search and language) */}
@@ -261,7 +273,7 @@ export default function TitleBar({
             <rect x="2.5" y="3" width="15" height="14" rx="2" />
             <line x1="11" y1="3" x2="11" y2="17" />
           </svg>
-          <span className="hidden lg:inline">{t.titlebar.agenticPanelLabel}</span>
+          <span className="hidden xl:inline">{t.titlebar.agenticPanelLabel}</span>
         </button>
 
         {/* User avatar + popup trigger */}
@@ -378,6 +390,11 @@ export default function TitleBar({
           ))}
         </div>
       </div>
+      {isMobileLayout && mobileSearchOpen && (
+        <div className="absolute left-0 right-0 top-full px-3 py-2 bg-gray-100 border-b border-gray-200 z-20 md:hidden">
+          <SearchBar onSelectResult={onSelectSearchResult} />
+        </div>
+      )}
     </header>
   )
 }

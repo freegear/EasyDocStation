@@ -32,6 +32,10 @@ function MainLayout() {
   const [groqWidth, setGroqWidth] = useState(320)
   const [resizingGroq, setResizingGroq] = useState(false)
   const [showAgenticPanel, setShowAgenticPanel] = useState(true)
+  const [isMobileLayout, setIsMobileLayout] = useState(() => {
+    if (typeof window === 'undefined') return false
+    return window.matchMedia('(max-width: 768px)').matches
+  })
   const [showSidebar, setShowSidebar] = useState(() => {
     if (typeof window === 'undefined') return true
     const saved = window.localStorage.getItem(SIDEBAR_STORAGE_KEY)
@@ -40,6 +44,7 @@ function MainLayout() {
     return !window.matchMedia('(max-width: 768px)').matches
   })
   const mainRef = useRef(null)
+  const sidebarPanelId = 'main-sidebar-panel'
 
   const startGroqResize = useCallback((e) => {
     e.preventDefault()
@@ -135,6 +140,19 @@ function MainLayout() {
     window.localStorage.setItem(SIDEBAR_STORAGE_KEY, String(showSidebar))
   }, [showSidebar])
 
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined
+    const mq = window.matchMedia('(max-width: 768px)')
+    const handleChange = (e) => setIsMobileLayout(e.matches)
+    setIsMobileLayout(mq.matches)
+    if (typeof mq.addEventListener === 'function') {
+      mq.addEventListener('change', handleChange)
+      return () => mq.removeEventListener('change', handleChange)
+    }
+    mq.addListener(handleChange)
+    return () => mq.removeListener(handleChange)
+  }, [])
+
   return (
     <div className="flex flex-col h-screen bg-gray-50 overflow-hidden">
       <TitleBar
@@ -145,9 +163,10 @@ function MainLayout() {
         onToggleSidebar={() => setShowSidebar(v => !v)}
         showAgenticPanel={showAgenticPanel}
         onToggleAgenticPanel={() => setShowAgenticPanel(v => !v)}
+        isMobileLayout={isMobileLayout}
       />
       <div ref={mainRef} className="flex flex-1 min-h-0">
-        {showSidebar && (
+        {!isMobileLayout && showSidebar && (
           <Sidebar
             showCalendar={showCalendar}
             onToggleCalendar={() => { setShowCalendar(v => !v); setShowDM(false) }}
@@ -157,6 +176,7 @@ function MainLayout() {
             onOpenDM={(conv) => { setActiveDMConv(conv); setShowDM(true); setShowCalendar(false) }}
             onNewDM={() => setShowNewDM(true)}
             activeDMConvId={activeDMConv?.id}
+            isMobile={false}
           />
         )}
 
@@ -175,7 +195,7 @@ function MainLayout() {
         )}
 
         {/* Resize handle & GroqPanel: 캘린더/DM 모드에서는 CSS로 숨김 (언마운트 X → state 유지) */}
-        <div style={{ display: (showCalendar || showDM || !showAgenticPanel) ? 'none' : 'contents' }}>
+        <div style={{ display: (showCalendar || showDM || !showAgenticPanel || isMobileLayout) ? 'none' : 'contents' }}>
           <div
             onMouseDown={startGroqResize}
             className="group relative w-1 flex-shrink-0 cursor-col-resize z-10"
@@ -185,6 +205,37 @@ function MainLayout() {
           <GroqPanel width={groqWidth} />
         </div>
       </div>
+
+      {isMobileLayout && showSidebar && (
+        <div className="fixed inset-0 z-40 md:hidden" role="dialog" aria-modal="true" aria-labelledby={sidebarPanelId}>
+          <button
+            type="button"
+            aria-label="Close sidebar"
+            className="absolute inset-0 bg-black/40"
+            onClick={() => setShowSidebar(false)}
+          />
+          <div className="absolute left-0 top-0 h-full w-72 max-w-[85vw] shadow-2xl">
+            <Sidebar
+              showCalendar={showCalendar}
+              onToggleCalendar={() => { setShowCalendar(v => !v); setShowDM(false); setShowSidebar(false) }}
+              onCloseCalendar={() => setShowCalendar(false)}
+              showDM={showDM}
+              onToggleDM={() => { setShowDM(v => !v); setShowSidebar(false) }}
+              onOpenDM={(conv) => {
+                setActiveDMConv(conv)
+                setShowDM(true)
+                setShowCalendar(false)
+                setShowSidebar(false)
+              }}
+              onNewDM={() => { setShowNewDM(true); setShowSidebar(false) }}
+              activeDMConvId={activeDMConv?.id}
+              isMobile
+              onCloseMobile={() => setShowSidebar(false)}
+              panelId={sidebarPanelId}
+            />
+          </div>
+        </div>
+      )}
 
       {showProfile && (
         <UserProfileModal
