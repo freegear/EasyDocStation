@@ -23,6 +23,7 @@ export function AuthProvider({ children }) {
   const idleTimerRef = useRef(null)
   const isAutoLoggingOutRef = useRef(false)
   const supabaseSyncInFlightRef = useRef(false)
+  const sessionInvalidatedHandledRef = useRef(false)
 
   function isAuthSessionInvalidError(err) {
     return err?.status === 401 || err?.status === 403 || err?.code === 'SESSION_INVALIDATED'
@@ -122,10 +123,12 @@ export function AuthProvider({ children }) {
   // 세션 강제 만료 핸들러 (다른 기기 로그인 감지)
   useEffect(() => {
     setSessionInvalidatedHandler(() => {
+      if (sessionInvalidatedHandledRef.current) return
+      sessionInvalidatedHandledRef.current = true
       clearToken()
       setCurrentUser(null)
       currentUserRef.current = null
-      redirectToLoginPage(true)
+      redirectToLoginPage(false)
     })
   }, [])
 
