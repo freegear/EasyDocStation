@@ -155,6 +155,7 @@ def main():
 
     language = payload.get("language", "ko")
     diarization_on = bool(payload.get("diarization", True))
+    diarization_required = bool(payload.get("diarizationRequired", False))
     model_id = payload.get("modelId", "google/gemma-4-E4B-it")
     hf_token = payload.get("hfToken")
 
@@ -170,6 +171,14 @@ def main():
         return
 
     diarized = run_diarization(audio_path, hf_token) if diarization_on else None
+    if diarization_on and diarization_required and diarized is None:
+        print(json.dumps({
+            "ok": False,
+            "error_code": "DIARIZATION_FAILED",
+            "error_message": "diarization required but failed",
+        }))
+        return
+
     if diarized is None:
         diarized = chunk_segments(duration, chunk_sec=25.0, overlap_sec=2.5)
 
@@ -235,6 +244,13 @@ def main():
         "segments": segments_out,
         "full_transcript": full_transcript,
         "summary": summary,
+        "diarization": {
+            "required": diarization_required,
+            "enabled": diarization_on,
+            "used": bool(diarization_on and diarized is not None),
+            "speaker_count": len(set([s.speaker_label for s in diarized])) if diarized else 0,
+            "segment_count": len(diarized) if diarized else 0,
+        },
     }, ensure_ascii=False))
 
 
