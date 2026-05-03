@@ -1694,9 +1694,9 @@ function ContentRenderer({ text = '' }) {
           <button
             type="button"
             className="px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors bg-gray-100 text-gray-700 border-gray-300 hover:bg-gray-200"
-            title="녹읍파일 업로드 (준비중)"
+            title="녹음파일 업로드 (준비중)"
           >
-            녹읍파일 업로드
+            녹음파일 업로드
           </button>
           {isRecording && <span className="text-xs text-red-500">녹음 중...</span>}
         </div>
