@@ -31,6 +31,22 @@ try {
 const STORAGE_BASE = getDatabasePath(config, 'ObjectFile Path')
 const STT_SCRIPT = path.resolve(__dirname, '../stt_infer.py')
 
+function sttLog(message, meta = {}) {
+  const base = Object.entries(meta)
+    .filter(([, v]) => v !== undefined && v !== null && v !== '')
+    .map(([k, v]) => `${k}=${String(v)}`)
+    .join(' ')
+  console.log(`[STT] ${message}${base ? ` | ${base}` : ''}`)
+}
+
+function sttError(message, meta = {}) {
+  const base = Object.entries(meta)
+    .filter(([, v]) => v !== undefined && v !== null && v !== '')
+    .map(([k, v]) => `${k}=${String(v)}`)
+    .join(' ')
+  console.error(`[STT] ${message}${base ? ` | ${base}` : ''}`)
+}
+
 function stableStringify(input) {
   if (!input || typeof input !== 'object') return JSON.stringify(input ?? {})
   if (Array.isArray(input)) return `[${input.map(stableStringify).join(',')}]`
@@ -186,6 +202,7 @@ async function patchAttachmentMeta(attachmentId, { postId = null, channelId = nu
   if (sets.length === 0) return
   vals.push(String(attachmentId))
   await db.query(`UPDATE attachments SET ${sets.join(', ')} WHERE id = $${i}`, vals)
+  sttLog('attachment meta patched', { attachmentId, postId, channelId })
 }
 
 function renderSttBlock({ jobId, status, progress = 0, transcript = '', summary = '', error = '' }) {
@@ -305,23 +322,44 @@ function runPythonStt(audioPath, options = {}) {
     }
     const payloadPath = path.join(os.tmpdir(), `stt-payload-${Date.now()}-${Math.random().toString(16).slice(2)}.json`)
     fs.writeFileSync(payloadPath, JSON.stringify(payload), 'utf8')
+    sttLog('python worker start', {
+      script: STT_SCRIPT,
+      payloadPath,
+      audioPath,
+      language: payload.language,
+      diarization: payload.diarization,
+      modelId: payload.modelId,
+      hfTokenSet: Boolean(payload.hfToken),
+    })
 
     const py = getPythonExecutable()
+    sttLog('python executable selected', { python: py })
     execFile(py, [STT_SCRIPT, payloadPath], { timeout: 1000 * 60 * 20, maxBuffer: 1024 * 1024 * 32 }, (err, stdout, stderr) => {
       try { fs.unlinkSync(payloadPath) } catch (_) {}
       if (err) {
         const detail = String(stderr || err.message || '').slice(0, 1000)
+        sttError('python worker failed', { code: 'TRANSCRIPTION_FAILED', detail })
         reject({ code: 'TRANSCRIPTION_FAILED', message: detail || 'python worker failed' })
         return
       }
       try {
         const parsed = JSON.parse(String(stdout || '{}'))
         if (!parsed.ok) {
+          sttError('python worker returned failure', {
+            code: parsed.error_code || 'TRANSCRIPTION_FAILED',
+            message: parsed.error_message || 'stt failed',
+          })
           reject({ code: parsed.error_code || 'TRANSCRIPTION_FAILED', message: parsed.error_message || 'stt failed' })
           return
         }
+        sttLog('python worker completed', {
+          segments: Array.isArray(parsed.segments) ? parsed.segments.length : 0,
+          transcriptLength: String(parsed.full_transcript || '').length,
+          summaryLength: String(parsed.summary || '').length,
+        })
         resolve(parsed)
       } catch (e) {
+        sttError('python worker output parse failed', { error: e.message })
         reject({ code: 'TRANSCRIPTION_FAILED', message: `invalid stt output: ${e.message}` })
       }
     })
@@ -370,12 +408,31 @@ async function queueWorkerTick() {
     )
     if (next.rowCount === 0) return
     const job = next.rows[0]
+    sttLog('job dequeued', {
+      jobId: job.id,
+      postId: job.post_id,
+      attachmentId: job.attachment_id,
+      channelId: job.channel_id,
+      retryCount: job.retry_count,
+    })
+    sttLog('state transition', { jobId: job.id, from: 'queued', to: 'processing', progress: 5 })
 
     await updateJob(job.id, { status: 'processing', progress: 5, error_code: null, error_message: null })
     await applyScopedPatch(job, { status: 'processing', progress: 5 })
 
     const attachment = await findAttachmentRow(job.attachment_id)
+    sttLog('attachment lookup', {
+      jobId: job.id,
+      attachmentId: job.attachment_id,
+      found: Boolean(attachment),
+      attachmentStatus: attachment?.status,
+      attachmentPostId: attachment?.post_id,
+      attachmentChannelId: attachment?.channel_id,
+      filename: attachment?.filename,
+      size: attachment?.size,
+    })
     if (!attachment || String(attachment.status || '').toUpperCase() !== 'COMPLETED') {
+      sttError('state transition', { jobId: job.id, from: 'processing', to: 'failed', code: 'ATTACHMENT_NOT_READY' })
       await updateJob(job.id, {
         status: 'failed',
         progress: 0,
@@ -388,7 +445,9 @@ async function queueWorkerTick() {
     }
 
     const fullPath = path.join(STORAGE_BASE, attachment.storage_path)
+    sttLog('audio path resolved', { jobId: job.id, storageBase: STORAGE_BASE, storagePath: attachment.storage_path, fullPath })
     if (!fs.existsSync(fullPath)) {
+      sttError('state transition', { jobId: job.id, from: 'processing', to: 'failed', code: 'AUDIO_FILE_NOT_FOUND', fullPath })
       await updateJob(job.id, {
         status: 'failed',
         progress: 0,
@@ -401,15 +460,18 @@ async function queueWorkerTick() {
     }
 
     await updateJob(job.id, { progress: 35 })
+    sttLog('state update', { jobId: job.id, status: 'processing', progress: 35, stage: 'stt-model-start' })
     await applyScopedPatch(job, { status: 'processing', progress: 35 })
 
     const parsedOptions = typeof job.options_json === 'object' && job.options_json ? job.options_json : {}
+    sttLog('job options', { jobId: job.id, options: JSON.stringify(parsedOptions) })
     let sttResult
     try {
       sttResult = await runPythonStt(fullPath, parsedOptions)
     } catch (e) {
       const code = e?.code || 'TRANSCRIPTION_FAILED'
       const message = mapErrorMessage(code, e?.message)
+      sttError('state transition', { jobId: job.id, from: 'processing', to: 'failed', code, message })
       await updateJob(job.id, {
         status: 'failed',
         progress: 0,
@@ -422,11 +484,18 @@ async function queueWorkerTick() {
     }
 
     await updateJob(job.id, { progress: 75 })
+    sttLog('state update', { jobId: job.id, status: 'processing', progress: 75, stage: 'mapping-merge-summary' })
     await applyScopedPatch(job, { status: 'processing', progress: 75 })
 
     const mappedSegments = await applySpeakerMapping(job.channel_id, sttResult.segments || [])
+    sttLog('speaker mapping applied', {
+      jobId: job.id,
+      originalSegments: Array.isArray(sttResult.segments) ? sttResult.segments.length : 0,
+      mappedSegments: Array.isArray(mappedSegments) ? mappedSegments.length : 0,
+    })
 
     await db.query('DELETE FROM stt_segments WHERE job_id = $1', [job.id])
+    sttLog('old segments deleted', { jobId: job.id })
     for (const seg of mappedSegments) {
       await db.query(
         `INSERT INTO stt_segments (job_id, segment_index, start_sec, end_sec, speaker_label, speaker_name, text, confidence)
@@ -443,9 +512,15 @@ async function queueWorkerTick() {
         ],
       )
     }
+    sttLog('segments inserted', { jobId: job.id, count: mappedSegments.length })
 
     const fullTranscript = mergeMappedTranscript(mappedSegments) || String(sttResult.full_transcript || '')
     const summary = String(sttResult.summary || '')
+    sttLog('transcript/summary prepared', {
+      jobId: job.id,
+      transcriptLength: fullTranscript.length,
+      summaryLength: summary.length,
+    })
 
     await db.query(
       `INSERT INTO stt_summaries (job_id, full_transcript, meeting_summary, action_items, updated_at)
@@ -458,6 +533,7 @@ async function queueWorkerTick() {
          updated_at = NOW()`,
       [job.id, fullTranscript, summary, '[]'],
     )
+    sttLog('summary row upserted', { jobId: job.id })
 
     const patchApplied = await applyScopedPatch(job, {
       status: 'done',
@@ -467,6 +543,7 @@ async function queueWorkerTick() {
     })
 
     if (!patchApplied) {
+      sttError('state transition', { jobId: job.id, from: 'processing', to: 'failed', code: 'POST_UPDATE_FAILED' })
       await updateJob(job.id, {
         status: 'failed',
         progress: 0,
@@ -483,8 +560,9 @@ async function queueWorkerTick() {
       patch_committed: true,
       completed_at: new Date(),
     })
+    sttLog('state transition', { jobId: job.id, from: 'processing', to: 'done', progress: 100, patchCommitted: true })
   } catch (err) {
-    console.error('[stt worker] error:', err)
+    sttError('worker unexpected error', { error: err?.message || err })
   } finally {
     workerTicking = false
     setTimeout(() => {
@@ -497,6 +575,7 @@ router.post('/speaker-mappings', requireAuth, async (req, res, next) => {
   try {
     await ensureTables()
     const { channelId, speakerLabel, userId = null, displayName = '', confidence = 0.9 } = req.body || {}
+    sttLog('speaker mapping upsert requested', { actorUserId: req.user?.id, channelId, speakerLabel, userId, displayName, confidence })
     if (!channelId || !speakerLabel || !displayName) {
       return res.status(400).json({ error: 'channelId, speakerLabel, displayName은 필수입니다.' })
     }
@@ -516,7 +595,9 @@ router.post('/speaker-mappings', requireAuth, async (req, res, next) => {
     )
 
     res.json({ success: true })
+    sttLog('speaker mapping upsert completed', { actorUserId: req.user?.id, channelId, speakerLabel })
   } catch (err) {
+    sttError('speaker mapping upsert failed', { error: err?.message || err })
     next(err)
   }
 })
@@ -525,6 +606,7 @@ router.get('/speaker-mappings', requireAuth, async (req, res, next) => {
   try {
     await ensureTables()
     const channelId = String(req.query.channelId || '')
+    sttLog('speaker mapping list requested', { actorUserId: req.user?.id, channelId })
     if (!channelId) return res.status(400).json({ error: 'channelId가 필요합니다.' })
     const allowed = await canAccessChannel(db, req.user, channelId)
     if (!allowed) return res.status(403).json({ error: ACCESS_DENIED_MESSAGE })
@@ -538,7 +620,9 @@ router.get('/speaker-mappings', requireAuth, async (req, res, next) => {
       [channelId],
     )
     res.json(rows.rows || [])
+    sttLog('speaker mapping list completed', { actorUserId: req.user?.id, channelId, count: rows.rows?.length || 0 })
   } catch (err) {
+    sttError('speaker mapping list failed', { error: err?.message || err })
     next(err)
   }
 })
@@ -547,6 +631,7 @@ router.delete('/speaker-mappings', requireAuth, async (req, res, next) => {
   try {
     await ensureTables()
     const { channelId, speakerLabel } = req.body || {}
+    sttLog('speaker mapping delete requested', { actorUserId: req.user?.id, channelId, speakerLabel })
     if (!channelId || !speakerLabel) {
       return res.status(400).json({ error: 'channelId, speakerLabel은 필수입니다.' })
     }
@@ -558,7 +643,9 @@ router.delete('/speaker-mappings', requireAuth, async (req, res, next) => {
       [String(channelId), String(speakerLabel)],
     )
     res.json({ success: true })
+    sttLog('speaker mapping delete completed', { actorUserId: req.user?.id, channelId, speakerLabel })
   } catch (err) {
+    sttError('speaker mapping delete failed', { error: err?.message || err })
     next(err)
   }
 })
@@ -568,15 +655,23 @@ router.post('/jobs', requireAuth, async (req, res, next) => {
     await ensureTables()
 
     const { postId, attachmentId, options = {} } = req.body || {}
+    sttLog('job create requested', {
+      actorUserId: req.user?.id,
+      postId,
+      attachmentId,
+      options: JSON.stringify(options || {}),
+    })
     if (!postId || !attachmentId) {
       return res.status(400).json({ error: 'postId, attachmentId는 필수입니다.' })
     }
 
     const post = await findPostLocator(String(postId))
     if (!post) return res.status(404).json({ error: '게시글을 찾을 수 없습니다.' })
+    sttLog('post locator resolved', { postId, channelId: post.channel_id, authorId: post.author_id })
 
     const allowed = await canAccessChannel(db, req.user, String(post.channel_id))
     if (!allowed) return res.status(403).json({ error: ACCESS_DENIED_MESSAGE })
+    sttLog('channel access granted', { actorUserId: req.user?.id, channelId: post.channel_id })
 
     const attachment = await findAttachmentRow(String(attachmentId))
     if (!attachment) return res.status(404).json({ error: '첨부파일을 찾을 수 없습니다.' })
@@ -625,6 +720,7 @@ router.post('/jobs', requireAuth, async (req, res, next) => {
     if (exists.rowCount > 0) {
       const existing = exists.rows[0]
       if (['queued', 'processing', 'done'].includes(String(existing.status))) {
+        sttLog('job create deduplicated', { existingJobId: existing.id, status: existing.status, idempotencyKey })
         return res.json({ jobId: existing.id, status: existing.status, deduplicated: true })
       }
     }
@@ -653,9 +749,11 @@ router.post('/jobs', requireAuth, async (req, res, next) => {
     )
 
     const job = inserted.rows[0]
+    sttLog('job created', { jobId: job.id, status: job.status, idempotencyKey })
     queueWorkerTick().catch(() => {})
     return res.status(201).json({ jobId: job.id, status: job.status })
   } catch (err) {
+    sttError('job create failed', { error: err?.message || err })
     next(err)
   }
 })
@@ -664,6 +762,7 @@ router.get('/jobs/:id', requireAuth, async (req, res, next) => {
   try {
     await ensureTables()
     const { id } = req.params
+    sttLog('job status requested', { actorUserId: req.user?.id, jobId: id })
     const r = await db.query('SELECT * FROM stt_jobs WHERE id = $1 LIMIT 1', [id])
     if (r.rowCount === 0) return res.status(404).json({ error: '작업을 찾을 수 없습니다.' })
     const job = r.rows[0]
@@ -684,6 +783,7 @@ router.get('/jobs/:id', requireAuth, async (req, res, next) => {
       completedAt: job.completed_at,
     })
   } catch (err) {
+    sttError('job status failed', { error: err?.message || err })
     next(err)
   }
 })
@@ -692,6 +792,7 @@ router.post('/jobs/:id/retry', requireAuth, async (req, res, next) => {
   try {
     await ensureTables()
     const { id } = req.params
+    sttLog('job retry requested', { actorUserId: req.user?.id, jobId: id })
     const r = await db.query('SELECT * FROM stt_jobs WHERE id = $1 LIMIT 1', [id])
     if (r.rowCount === 0) return res.status(404).json({ error: '작업을 찾을 수 없습니다.' })
     const job = r.rows[0]
@@ -715,10 +816,12 @@ router.post('/jobs/:id/retry', requireAuth, async (req, res, next) => {
       completed_at: null,
       patch_committed: false,
     })
+    sttLog('job retry queued', { jobId: id, retryCount: Number(job.retry_count || 0) + 1 })
 
     queueWorkerTick().catch(() => {})
     return res.json({ id, status: 'queued' })
   } catch (err) {
+    sttError('job retry failed', { error: err?.message || err })
     next(err)
   }
 })
