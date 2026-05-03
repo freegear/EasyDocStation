@@ -33,7 +33,13 @@ function installBackendLogPrefix() {
   }
 }
 
-installBackendLogPrefix()
+// NOTE:
+// DGX run scripts already prepend timestamps ([BE] ...).
+// To avoid duplicated timestamps in logs, internal backend timestamp prefixing
+// is disabled by default and can be enabled only when explicitly requested.
+if (String(process.env.BE_INTERNAL_TIMESTAMP || '0') === '1') {
+  installBackendLogPrefix()
+}
 
 const authRouter = require('./routes/auth')
 const usersRouter = require('./routes/users')
