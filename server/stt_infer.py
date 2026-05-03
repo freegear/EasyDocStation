@@ -68,7 +68,10 @@ def _load_rttm_segments(rttm_path: str) -> List[Segment]:
 
 
 def run_external_diarization(audio_path: str) -> Optional[List[Segment]]:
-    script_path = os.getenv("DIARIZATION_SCRIPT_PATH", "/Users/kevinim/Desktop/AudioRecord/Diarization.py")
+    default_script_path = os.path.abspath(
+        os.path.join(os.path.dirname(__file__), "..", "src", "python", "Diarization.py")
+    )
+    script_path = os.getenv("DIARIZATION_SCRIPT_PATH", default_script_path)
     if not script_path or not os.path.exists(script_path):
         return None
 
