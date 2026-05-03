@@ -47,13 +47,13 @@ function syncSupabaseEnvFromConfig(config) {
   }
 
   let updated = envText
-  updated = upsertLine(updated, 'SUPABASE_URL', serverSupabaseUrl)
-  updated = upsertLine(updated, 'SUPABASE_JWT_AUDIENCE', serverSupabaseAudience)
-  updated = upsertLine(updated, 'JWT_SECRET', jwtSecret)
-  updated = upsertLine(updated, 'CLIENT_ORIGIN', clientOrigin)
+  if (serverSupabaseUrl) updated = upsertLine(updated, 'SUPABASE_URL', serverSupabaseUrl)
+  if (serverSupabaseAudience) updated = upsertLine(updated, 'SUPABASE_JWT_AUDIENCE', serverSupabaseAudience)
+  if (jwtSecret) updated = upsertLine(updated, 'JWT_SECRET', jwtSecret)
+  if (clientOrigin) updated = upsertLine(updated, 'CLIENT_ORIGIN', clientOrigin)
   updated = upsertLine(updated, 'AUTH_COOKIE_SECURE', authCookieSecure)
-  updated = upsertLine(updated, 'VITE_SUPABASE_URL', supabaseUrl)
-  updated = upsertLine(updated, 'VITE_SUPABASE_ANON_KEY', supabaseAnonKey)
+  if (supabaseUrl) updated = upsertLine(updated, 'VITE_SUPABASE_URL', supabaseUrl)
+  if (supabaseAnonKey) updated = upsertLine(updated, 'VITE_SUPABASE_ANON_KEY', supabaseAnonKey)
   fs.writeFileSync(envPath, updated, 'utf8')
 
   return {
