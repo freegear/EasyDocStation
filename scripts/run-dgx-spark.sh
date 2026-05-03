@@ -9,6 +9,9 @@ mkdir -p "$LOG_DIR"
 LOG_DATE="$(date +%Y%m%d)"
 LOG_FILE="$LOG_DIR/run-dgx-spark-${LOG_DATE}.log"
 PID_FILE="$LOG_DIR/dgx-spark.pid"
+BE_LOOP_PID_FILE="$LOG_DIR/dgx-be-loop.pid"
+BE_LOOP_LOCK_FILE="$LOG_DIR/dgx-be-loop.lock"
+BE_LOOP_LOCK_DIR="$LOG_DIR/dgx-be-loop.lockdir"
 
 log() {
   echo "[$(date '+%Y%m%d-%H:%M:%S')][DGX-SPARK] $*"
@@ -61,19 +64,26 @@ kill_by_port() {
 }
 
 kill_known_processes() {
-  # 경로/실행 방식이 달라도 매칭되도록 폭넓게 정리
+  # 관련 태스크(프론트/백엔드/루프/런처)를 전부 정리
+  pkill -f "scripts/run-dgx-spark.sh" >/dev/null 2>&1 || true
+  pkill -f "scripts/restart-dgx-spark.sh" >/dev/null 2>&1 || true
+  pkill -f "scripts/rerun-dgx-spark.sh" >/dev/null 2>&1 || true
   pkill -f "scripts/dev-dgx-spark.sh" >/dev/null 2>&1 || true
   pkill -f "scripts/backend-loop-dgx.sh" >/dev/null 2>&1 || true
   pkill -f "npm run dev:dgx-spark" >/dev/null 2>&1 || true
   pkill -f "npm run start --prefix server" >/dev/null 2>&1 || true
   pkill -f "while true; do npm run start --prefix server" >/dev/null 2>&1 || true
+  pkill -f "easydocstation-server@1.0.0 start" >/dev/null 2>&1 || true
   pkill -f "node .*server/index\\.js" >/dev/null 2>&1 || true
   pkill -f "sh -c node index.js" >/dev/null 2>&1 || true
+  pkill -f "node index.js" >/dev/null 2>&1 || true
   pkill -f "nodemon[[:space:]].*index\\.js" >/dev/null 2>&1 || true
   pkill -f "concurrently.*Ollama,FE,BE" >/dev/null 2>&1 || true
   pkill -f "$ROOT_DIR/node_modules/.bin/concurrently" >/dev/null 2>&1 || true
+  pkill -f "$ROOT_DIR/node_modules/.bin/vite" >/dev/null 2>&1 || true
   pkill -f "node_modules/.bin/vite" >/dev/null 2>&1 || true
   pkill -f "node_modules/concurrently" >/dev/null 2>&1 || true
+  pkill -f "scripts/ollama-serve-safe.mjs" >/dev/null 2>&1 || true
 }
 
 has_dgx_processes() {
@@ -99,6 +109,32 @@ wait_port_free() {
   return 1
 }
 
+stop_all_tasks() {
+  if [[ -f "$PID_FILE" ]]; then
+    pid="$(cat "$PID_FILE" 2>/dev/null || true)"
+    if [[ -n "${pid:-}" ]] && kill -0 "$pid" 2>/dev/null; then
+      kill_tree "$pid"
+    fi
+    rm -f "$PID_FILE"
+  fi
+
+  rm -f "$BE_LOOP_PID_FILE" "$BE_LOOP_LOCK_FILE"
+  rmdir "$BE_LOOP_LOCK_DIR" >/dev/null 2>&1 || true
+
+  # 여러 겹 중복 실행까지 수렴할 때까지 반복 정리
+  for _ in 1 2 3 4 5 6 7 8; do
+    kill_known_processes
+    kill_by_port 5173
+    kill_by_port 3001
+    kill_by_port 5001
+    sleep 0.5
+    has_dgx_processes || true
+    if wait_port_free 3001 2 0.2 && wait_port_free 5173 2 0.2; then
+      break
+    fi
+  done
+}
+
 if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
   cat <<'EOF'
 Usage:
@@ -111,6 +147,7 @@ Description:
 Options:
   --status   실행 상태 확인
   --stop     실행 중인 프로세스 중지
+  --restart  전체 태스크 정리 후 재실행
 EOF
   exit 0
 fi
@@ -129,24 +166,7 @@ if [[ "${1:-}" == "--status" ]]; then
 fi
 
 if [[ "${1:-}" == "--stop" ]]; then
-  if [[ -f "$PID_FILE" ]]; then
-    pid="$(cat "$PID_FILE" 2>/dev/null || true)"
-    if [[ -n "${pid:-}" ]] && kill -0 "$pid" 2>/dev/null; then
-      kill_tree "$pid"
-    fi
-    rm -f "$PID_FILE"
-  fi
-  rm -f "$LOG_DIR/dgx-be-loop.pid"
-
-  # 여러 겹으로 떠 있는 과거 프로세스(중첩 concurrently/while-loop)를 라운드로 정리
-  for _ in 1 2 3 4 5; do
-    kill_known_processes
-    kill_by_port 5173
-    kill_by_port 3001
-    kill_by_port 11434
-    sleep 0.5
-    has_dgx_processes || break
-  done
+  stop_all_tasks
 
   if ! wait_port_free 3001 30 0.5; then
     log "경고: 포트 3001 점유가 남아 있습니다."
@@ -161,6 +181,10 @@ if [[ "${1:-}" == "--stop" ]]; then
   fi
   log "중지 완료"
   exit 0
+fi
+
+if [[ "${1:-}" == "--restart" ]]; then
+  stop_all_tasks
 fi
 
 if [[ ! -f "$ROOT_DIR/server/.env" ]]; then
@@ -199,12 +223,8 @@ if [[ -f "$PID_FILE" ]]; then
   rm -f "$PID_FILE"
 fi
 
-# 과거 세션에서 띄운 dev 프로세스가 남아 있으면 먼저 정리
-kill_known_processes
-rm -f "$LOG_DIR/dgx-be-loop.pid"
-
-kill_by_port 5173
-kill_by_port 3001
+# start는 항상 전체 태스크를 먼저 정리해서 깨끗한 단일 세션으로 시작한다.
+stop_all_tasks
 
 if ! wait_port_free 3001 20 0.5; then
   log "포트 3001 정리가 완료되지 않았습니다. 시작을 중단합니다."
