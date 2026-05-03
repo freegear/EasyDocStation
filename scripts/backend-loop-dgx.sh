@@ -7,6 +7,7 @@ cd "$ROOT_DIR"
 LOG_DIR="${EASYDOC_LOG_DIR:-$ROOT_DIR/logs}"
 mkdir -p "$LOG_DIR"
 LOOP_PID_FILE="$LOG_DIR/dgx-be-loop.pid"
+LOOP_LOCK_FILE="$LOG_DIR/dgx-be-loop.lock"
 MAX_CLEANUP_RETRIES="${MAX_CLEANUP_RETRIES:-8}"
 cleanup_failures=0
 
@@ -20,6 +21,13 @@ if [[ -f "$LOOP_PID_FILE" ]]; then
     log_be "backend-loop가 이미 실행 중입니다. (PID: $old_pid)"
     exit 0
   fi
+fi
+
+# PID 파일만으로는 경쟁 상태를 막지 못하므로 flock으로 단일 인스턴스를 강제한다.
+exec 9>"$LOOP_LOCK_FILE"
+if ! flock -n 9; then
+  log_be "backend-loop lock이 이미 점유되어 있습니다. 다른 인스턴스가 실행 중입니다."
+  exit 0
 fi
 
 echo "$$" > "$LOOP_PID_FILE"
