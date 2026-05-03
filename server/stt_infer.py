@@ -3,7 +3,8 @@ import json
 import os
 import sys
 import tempfile
-import subprocess
+import importlib.util
+import contextlib
 from dataclasses import dataclass
 from typing import Dict, List, Optional
 
@@ -67,7 +68,7 @@ def _load_rttm_segments(rttm_path: str) -> List[Segment]:
     return out
 
 
-def run_external_diarization(audio_path: str) -> Optional[List[Segment]]:
+def run_external_diarization(audio_path: str, hf_token: Optional[str]) -> Optional[List[Segment]]:
     default_script_path = os.path.abspath(
         os.path.join(os.path.dirname(__file__), "..", "src", "python", "Diarization.py")
     )
@@ -76,28 +77,52 @@ def run_external_diarization(audio_path: str) -> Optional[List[Segment]]:
         return None
 
     emit_event({"event": "progress", "progress": 2, "stage": "diarization_external_start"})
-    cmd = [sys.executable, script_path, "--input", audio_path, "--debug"]
     try:
-        proc = subprocess.run(
-            cmd,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True,
-            timeout=60 * 30,
-            check=False,
-        )
-        if proc.returncode != 0:
+        spec = importlib.util.spec_from_file_location("external_diarization_module", script_path)
+        if spec is None or spec.loader is None:
+            emit_event({"event": "log", "stage": "diarization_external_failed", "error": "module spec load failed"})
+            return None
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+
+        diar_fn = getattr(module, "generate_diarization_rttm", None)
+        if not callable(diar_fn):
             emit_event({
                 "event": "log",
                 "stage": "diarization_external_failed",
-                "code": proc.returncode,
-                "stderr": (proc.stderr or "")[:500],
+                "error": "generate_diarization_rttm not found",
+            })
+            return None
+
+        hf_token_safe = str(hf_token or "").strip()
+        if not hf_token_safe:
+            emit_event({
+                "event": "log",
+                "stage": "diarization_external_failed",
+                "error": "HF_TOKEN missing",
             })
             return None
 
         stem = os.path.splitext(os.path.basename(audio_path))[0]
         base_dir = os.path.dirname(audio_path) or "."
         rttm_path = os.path.join(base_dir, f"{stem}.rttm")
+        dump_log_path = os.path.join(base_dir, f"{stem}.diarization.bridge.log")
+        with open(dump_log_path, "a", encoding="utf-8") as dump_fp:
+            dump_fp.write(f"\n===== diarization call start: {audio_path} =====\n")
+            with contextlib.redirect_stdout(dump_fp), contextlib.redirect_stderr(dump_fp):
+                diar_fn(
+                    audio_path=audio_path,
+                    hf_token=hf_token_safe,
+                    output_rttm_path=rttm_path,
+                    uri=stem,
+                    debug=True,
+                )
+            dump_fp.write("===== diarization call end =====\n")
+        emit_event({
+            "event": "log",
+            "stage": "diarization_external_log_dumped",
+            "log_path": dump_log_path,
+        })
         diar = _load_rttm_segments(rttm_path)
         if not diar:
             return None
@@ -120,7 +145,7 @@ def run_external_diarization(audio_path: str) -> Optional[List[Segment]]:
 def run_diarization(audio_path: str, hf_token: Optional[str]) -> Optional[List[Segment]]:
     external_first = os.getenv("USE_EXTERNAL_DIARIZATION", "1").strip().lower() not in ("0", "false", "no")
     if external_first:
-        external = run_external_diarization(audio_path)
+        external = run_external_diarization(audio_path, hf_token)
         if external:
             return external
 

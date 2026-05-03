@@ -114,6 +114,52 @@ def _resolve_annotation_like(diarization_output):
     return None
 
 
+def generate_diarization_rttm(
+    audio_path: str,
+    hf_token: str,
+    output_rttm_path: str = "",
+    uri: str = "",
+    debug: bool = False,
+):
+    if not os.path.isfile(audio_path):
+        raise FileNotFoundError(f"입력 파일을 찾을 수 없습니다: {audio_path}")
+    if not hf_token or not str(hf_token).strip():
+        raise RuntimeError("HF_TOKEN 환경변수가 필요합니다.")
+
+    input_dir = os.path.dirname(audio_path) or "."
+    input_stem = os.path.splitext(os.path.basename(audio_path))[0]
+    out_path = output_rttm_path or os.path.join(input_dir, f"{input_stem}.rttm")
+    out_uri = uri or input_stem
+
+    device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
+    if debug:
+      LOGGER.debug("화자분리 시작 | audio=%s device=%s out=%s", audio_path, device, out_path)
+
+    pipeline = Pipeline.from_pretrained(
+        "pyannote/speaker-diarization-3.1",
+        token=hf_token,
+    )
+    pipeline.to(device)
+    diarization = pipeline(audio_path)
+    _save_diarization_rttm(diarization, out_path, out_uri)
+
+    if debug:
+      ann = _resolve_annotation_like(diarization)
+      if ann is not None:
+        cnt = 0
+        speakers = set()
+        for turn, _, speaker in ann.itertracks(yield_label=True):
+          cnt += 1
+          speakers.add(str(speaker))
+          if cnt <= 20:
+            LOGGER.debug("turn #%d | %s %.3f-%.3f", cnt, speaker, float(turn.start), float(turn.end))
+        LOGGER.debug("화자분리 완료 | turns=%d speakers=%d", cnt, len(speakers))
+      else:
+        LOGGER.debug("화자분리 완료 | itertracks 미지원 타입=%s", type(diarization).__name__)
+
+    return out_path
+
+
 def _format_seconds(seconds):
     total = int(seconds)
     hours = total // 3600
