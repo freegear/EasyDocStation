@@ -2984,7 +2984,7 @@ function PostCard({ post, onSelect, pinned, isSelected }) {
       : (plain[0] || '')
   const bodyPreview = isTemplate
     ? ''
-    : (isMd ? plain.join(' ') : plain.join('\n'))
+    : plain.slice(1).join(' ')
   const attachCount = post.attachments?.length || 0
   const commentCount = post.comments?.length || 0
   const trainingStatus = post.training_status || null
@@ -3098,7 +3098,7 @@ function PostCard({ post, onSelect, pinned, isSelected }) {
           {/* Body preview (second line onward) */}
           {bodyPreview && (
             <p
-              className="text-gray-400 text-xs leading-relaxed whitespace-pre-wrap break-words select-text allow-copy cursor-text"
+              className="text-gray-400 text-xs leading-relaxed line-clamp-5 select-text allow-copy cursor-text"
             >
               {renderMentionTokens(bodyPreview, `body-${post.id}`)}
             </p>
