@@ -448,7 +448,14 @@ export default function GroqPanel({ width }) {
       : fullText
 
     const scopedContentWithContext = agenticTarget
-      ? `${contentWithContext}\n\n[대상 링크]\n${agenticTarget.link || ''}\n[대상 범위]\n${agenticTarget.type === 'comment' ? '댓글 단일 범위' : '게시글 범위'}`
+      ? (() => {
+          const scopeText = agenticTarget.type === 'comment' ? '댓글 단일 범위' : '게시글 범위'
+          const targetBody = String(agenticTarget.content || '').trim()
+          if (targetBody) {
+            return `${contentWithContext}\n\n[대상 본문]\n${targetBody}\n\n[대상 범위]\n${scopeText}`
+          }
+          return `${contentWithContext}\n\n[대상 링크]\n${agenticTarget.link || ''}\n[대상 범위]\n${scopeText}`
+        })()
       : contentWithContext
 
     const userApiMessage = { role: 'user', content: scopedContentWithContext }
@@ -909,9 +916,13 @@ export default function GroqPanel({ width }) {
               <div className="min-w-0">
                 <p className="text-[10px] font-semibold text-sky-700">{t.ai.targetLinkLabel || '대상 링크'}</p>
                 <p className="text-[11px] text-gray-700 truncate">{agenticTarget.label || (agenticTarget.type === 'comment' ? '댓글' : '게시글')}</p>
-                <a href={agenticTarget.link} target="_blank" rel="noreferrer" className="text-[10px] text-sky-600 underline truncate block">
-                  {agenticTarget.link}
-                </a>
+                {agenticTarget.link ? (
+                  <a href={agenticTarget.link} target="_blank" rel="noreferrer" className="text-[10px] text-sky-600 underline truncate block">
+                    {agenticTarget.link}
+                  </a>
+                ) : (
+                  <p className="text-[10px] text-sky-600 truncate">{t.ai.targetBodyLabel || '게시글 본문이 대상에 포함됩니다.'}</p>
+                )}
               </div>
               <button
                 onClick={clearAgenticTarget}
