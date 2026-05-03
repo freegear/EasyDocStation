@@ -208,6 +208,15 @@ async function patchAttachmentMeta(attachmentId, { postId = null, channelId = nu
 function renderSttBlock({ jobId, status, progress = 0, transcript = '', summary = '', error = '' }) {
   const head = `<!--stt-result:start job_id=${jobId}-->`
   const tail = '<!--stt-result:end-->'
+  const nowKst = new Intl.DateTimeFormat('sv-SE', {
+    timeZone: 'Asia/Seoul',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).format(new Date()).replace(' ', ' ')
   if (status === 'processing' || status === 'queued') {
     return `${head}\n\n## STT 상태\n처리중 (${Math.max(0, Math.min(100, Number(progress) || 0))}%)\n\n${tail}`
   }
@@ -222,11 +231,12 @@ function renderSttBlock({ jobId, status, progress = 0, transcript = '', summary 
       .map((line) => line || ' ')
       .join('  \n')
   )
-  return `${head}\n\n## STT 상태\n완료\n\n## 회의록 요약\n**참석자:** (구체적인 참석자명 언급 없음 - Speaker_00으로 표기됨)\n\n### 📌 안건\n\n### ✅ 결정사항\n\n### 📝 액션 아이템\n\n### 전사문\n${forceBreaks(safeTranscript || '(전사문 없음)')}\n\n### 회의 요약\n${forceBreaks(safeSummary || '(요약 없음)')}\n\n${tail}`
+  return `${head}\n\n## STT 상태\n완료\n\n## 회의록 요약\n날짜: ${nowKst} (KST)\n참석자: SPEAKER_01, SPEAKER_00\n\n### 📌 안건\n\n### ✅ 결정사항\n\n### 📝 액션 아이템\n\n### 회의 요약\n${forceBreaks(safeSummary || '(요약 없음)')}\n\n### 전사문\n${forceBreaks(safeTranscript || '(전사문 없음)')}\n\n${tail}`
 }
 
 function upsertSttBlock(content = '', blockText = '') {
   const source = String(content || '')
+    .replace(/회의록 내용을 여기에 작성하세요\./g, '')
   const blockPattern = /<!--stt-result:start job_id=.*?-->[\s\S]*?<!--stt-result:end-->/m
   const sourceWithoutBlock = blockPattern.test(source)
     ? source.replace(blockPattern, '').replace(/\n{3,}/g, '\n\n').trimEnd()
