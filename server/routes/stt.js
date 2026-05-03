@@ -3,7 +3,7 @@ const crypto = require('crypto')
 const fs = require('fs')
 const path = require('path')
 const os = require('os')
-const { execFile } = require('child_process')
+const { spawn } = require('child_process')
 const db = require('../db')
 const requireAuth = require('../middleware/auth')
 const { client, isConnected } = require('../cassandra')
@@ -216,7 +216,13 @@ function renderSttBlock({ jobId, status, progress = 0, transcript = '', summary 
   }
   const safeTranscript = sanitizeTranscriptText(transcript || '')
   const safeSummary = sanitizeTranscriptText(summary || '')
-  return `${head}\n\n## STT 상태\n완료\n\n### 전사문\n\`\`\`text\n${safeTranscript || '(전사문 없음)'}\n\`\`\`\n\n### 회의 요약\n\`\`\`text\n${safeSummary || '(요약 없음)'}\n\`\`\`\n\n${tail}`
+  const forceBreaks = (text) => (
+    String(text || '')
+      .split('\n')
+      .map((line) => line || ' ')
+      .join('  \n')
+  )
+  return `${head}\n\n## STT 상태\n완료\n\n## 회의록 요약\n**참석자:** (구체적인 참석자명 언급 없음 - Speaker_00으로 표기됨)\n\n### 📌 안건\n\n### ✅ 결정사항\n\n### 📝 액션 아이템\n\n### 전사문\n${forceBreaks(safeTranscript || '(전사문 없음)')}\n\n### 회의 요약\n${forceBreaks(safeSummary || '(요약 없음)')}\n\n${tail}`
 }
 
 function upsertSttBlock(content = '', blockText = '') {
@@ -224,6 +230,14 @@ function upsertSttBlock(content = '', blockText = '') {
   const blockPattern = /<!--stt-result:start job_id=.*?-->[\s\S]*?<!--stt-result:end-->/m
   if (blockPattern.test(source)) {
     return source.replace(blockPattern, blockText)
+  }
+  // Prefer placing STT block right below the first markdown title line.
+  const firstHeadingMatch = source.match(/^# .*(?:\r?\n|$)/m)
+  if (firstHeadingMatch) {
+    const heading = firstHeadingMatch[0]
+    const idx = source.indexOf(heading)
+    const insertPos = idx + heading.length
+    return `${source.slice(0, insertPos)}\n${blockText}\n${source.slice(insertPos).replace(/^\n*/, '')}`.trimEnd() + '\n'
   }
   return `${source.trimEnd()}\n\n${blockText}\n`
 }
@@ -313,7 +327,7 @@ async function updateJob(id, patch = {}) {
   await db.query(`UPDATE stt_jobs SET ${sets.join(', ')} WHERE id = $${idx}`, values)
 }
 
-function runPythonStt(audioPath, options = {}) {
+function runPythonStt(audioPath, options = {}, onProgress = null) {
   return new Promise((resolve, reject) => {
     const payload = {
       audioPath,
@@ -338,37 +352,81 @@ function runPythonStt(audioPath, options = {}) {
 
     const py = getPythonExecutable()
     sttLog('python executable selected', { python: py })
-    execFile(py, [STT_SCRIPT, payloadPath], { timeout: 1000 * 60 * 20, maxBuffer: 1024 * 1024 * 32 }, (err, stdout, stderr) => {
+    const child = spawn(py, [STT_SCRIPT, payloadPath], {
+      stdio: ['ignore', 'pipe', 'pipe'],
+    })
+
+    let stdoutBuf = ''
+    let stderrBuf = ''
+    let finalPayload = null
+
+    const consumeLine = (lineRaw) => {
+      const line = String(lineRaw || '').trim()
+      if (!line) return
+      let obj = null
+      try {
+        obj = JSON.parse(line)
+      } catch {
+        return
+      }
+      if (obj?.event === 'progress') {
+        if (typeof onProgress === 'function') onProgress(obj)
+        return
+      }
+      if (Object.prototype.hasOwnProperty.call(obj || {}, 'ok')) {
+        finalPayload = obj
+      }
+    }
+
+    child.stdout.on('data', (chunk) => {
+      stdoutBuf += chunk.toString()
+      const lines = stdoutBuf.split(/\r?\n/)
+      stdoutBuf = lines.pop() || ''
+      for (const line of lines) consumeLine(line)
+    })
+    child.stderr.on('data', (chunk) => {
+      stderrBuf += chunk.toString()
+    })
+
+    child.on('error', (err) => {
       try { fs.unlinkSync(payloadPath) } catch (_) {}
-      if (err) {
-        const detail = String(stderr || err.message || '').slice(0, 1000)
+      sttError('python worker spawn failed', { error: err.message })
+      reject({ code: 'TRANSCRIPTION_FAILED', message: err.message || 'python worker spawn failed' })
+    })
+
+    child.on('close', (code, signal) => {
+      try { fs.unlinkSync(payloadPath) } catch (_) {}
+      if (stdoutBuf.trim()) consumeLine(stdoutBuf.trim())
+
+      if (Number(code) !== 0) {
+        const detail = String(stderrBuf || `python exit code ${code}, signal ${signal || 'none'}`).slice(0, 1000)
         sttError('python worker failed', { code: 'TRANSCRIPTION_FAILED', detail })
         reject({ code: 'TRANSCRIPTION_FAILED', message: detail || 'python worker failed' })
         return
       }
-      try {
-        const parsed = JSON.parse(String(stdout || '{}'))
-        if (!parsed.ok) {
-          sttError('python worker returned failure', {
-            code: parsed.error_code || 'TRANSCRIPTION_FAILED',
-            message: parsed.error_message || 'stt failed',
-          })
-          reject({ code: parsed.error_code || 'TRANSCRIPTION_FAILED', message: parsed.error_message || 'stt failed' })
-          return
-        }
-        sttLog('python worker completed', {
-          segments: Array.isArray(parsed.segments) ? parsed.segments.length : 0,
-          transcriptLength: String(parsed.full_transcript || '').length,
-          summaryLength: String(parsed.summary || '').length,
-          diarizationUsed: parsed?.diarization?.used,
-          diarizationSpeakerCount: parsed?.diarization?.speaker_count,
-          diarizationSegmentCount: parsed?.diarization?.segment_count,
-        })
-        resolve(parsed)
-      } catch (e) {
-        sttError('python worker output parse failed', { error: e.message })
-        reject({ code: 'TRANSCRIPTION_FAILED', message: `invalid stt output: ${e.message}` })
+
+      if (!finalPayload) {
+        sttError('python worker output parse failed', { error: 'missing final payload' })
+        reject({ code: 'TRANSCRIPTION_FAILED', message: 'invalid stt output: missing final payload' })
+        return
       }
+      if (!finalPayload.ok) {
+        sttError('python worker returned failure', {
+          code: finalPayload.error_code || 'TRANSCRIPTION_FAILED',
+          message: finalPayload.error_message || 'stt failed',
+        })
+        reject({ code: finalPayload.error_code || 'TRANSCRIPTION_FAILED', message: finalPayload.error_message || 'stt failed' })
+        return
+      }
+      sttLog('python worker completed', {
+        segments: Array.isArray(finalPayload.segments) ? finalPayload.segments.length : 0,
+        transcriptLength: String(finalPayload.full_transcript || '').length,
+        summaryLength: String(finalPayload.summary || '').length,
+        diarizationUsed: finalPayload?.diarization?.used,
+        diarizationSpeakerCount: finalPayload?.diarization?.speaker_count,
+        diarizationSegmentCount: finalPayload?.diarization?.segment_count,
+      })
+      resolve(finalPayload)
     })
   })
 }
@@ -505,8 +563,25 @@ async function queueWorkerTick() {
     const parsedOptions = typeof job.options_json === 'object' && job.options_json ? job.options_json : {}
     sttLog('job options', { jobId: job.id, options: JSON.stringify(parsedOptions) })
     let sttResult
+    let lastFineProgress = 35
     try {
-      sttResult = await runPythonStt(fullPath, parsedOptions)
+      sttResult = await runPythonStt(fullPath, parsedOptions, async (evt) => {
+        const pyProgress = Number(evt?.progress)
+        if (!Number.isFinite(pyProgress)) return
+        const mappedProgress = Math.max(36, Math.min(74, 35 + Math.floor(pyProgress * 0.39)))
+        if (mappedProgress <= lastFineProgress) return
+        lastFineProgress = mappedProgress
+        sttLog('fine progress update', {
+          jobId: job.id,
+          progress: mappedProgress,
+          pyProgress,
+          stage: evt?.stage || 'transcribing',
+          current: evt?.current,
+          total: evt?.total,
+        })
+        await updateJob(job.id, { progress: mappedProgress })
+        await applyScopedPatch(job, { status: 'processing', progress: mappedProgress })
+      })
     } catch (e) {
       const code = e?.code || 'TRANSCRIPTION_FAILED'
       const message = mapErrorMessage(code, e?.message)

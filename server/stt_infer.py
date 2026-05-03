@@ -15,6 +15,10 @@ except Exception as e:
     sys.exit(0)
 
 
+def emit_event(payload: Dict):
+    print(json.dumps(payload, ensure_ascii=False), flush=True)
+
+
 @dataclass
 class Segment:
     start_sec: float
@@ -141,7 +145,7 @@ class GemmaTranscriber:
 
 def main():
     if len(sys.argv) < 2:
-        print(json.dumps({"ok": False, "error_code": "BAD_REQUEST", "error_message": "payload path required"}))
+        emit_event({"ok": False, "error_code": "BAD_REQUEST", "error_message": "payload path required"})
         return
 
     payload_path = sys.argv[1]
@@ -150,7 +154,7 @@ def main():
 
     audio_path = payload.get("audioPath")
     if not audio_path or not os.path.exists(audio_path):
-        print(json.dumps({"ok": False, "error_code": "AUDIO_FILE_NOT_FOUND", "error_message": "audio file not found"}))
+        emit_event({"ok": False, "error_code": "AUDIO_FILE_NOT_FOUND", "error_message": "audio file not found"})
         return
 
     language = payload.get("language", "ko")
@@ -162,21 +166,21 @@ def main():
     try:
         y, sr = load_audio(audio_path, sr=16000)
     except Exception as e:
-        print(json.dumps({"ok": False, "error_code": "AUDIO_DECODE_FAILED", "error_message": str(e)}))
+        emit_event({"ok": False, "error_code": "AUDIO_DECODE_FAILED", "error_message": str(e)})
         return
 
     duration = float(len(y) / sr)
     if duration <= 0:
-        print(json.dumps({"ok": False, "error_code": "AUDIO_DECODE_FAILED", "error_message": "invalid duration"}))
+        emit_event({"ok": False, "error_code": "AUDIO_DECODE_FAILED", "error_message": "invalid duration"})
         return
 
     diarized = run_diarization(audio_path, hf_token) if diarization_on else None
     if diarization_on and diarization_required and diarized is None:
-        print(json.dumps({
+        emit_event({
             "ok": False,
             "error_code": "DIARIZATION_FAILED",
             "error_message": "diarization required but failed",
-        }))
+        })
         return
 
     if diarized is None:
@@ -185,16 +189,18 @@ def main():
     try:
         transcriber = GemmaTranscriber(model_id)
     except Exception as e:
-        print(json.dumps({"ok": False, "error_code": "MODEL_LOAD_FAILED", "error_message": str(e)}))
+        emit_event({"ok": False, "error_code": "MODEL_LOAD_FAILED", "error_message": str(e)})
         return
+    emit_event({"event": "progress", "progress": 5, "stage": "model_loaded"})
 
     segments_out: List[Dict] = []
     try:
         import soundfile as sf
     except Exception as e:
-        print(json.dumps({"ok": False, "error_code": "AUDIO_DECODE_FAILED", "error_message": f"soundfile import failed: {e}"}))
+        emit_event({"ok": False, "error_code": "AUDIO_DECODE_FAILED", "error_message": f"soundfile import failed: {e}"})
         return
 
+    total_segments = len(diarized)
     for i, seg in enumerate(diarized):
         s = max(0, int(seg.start_sec * sr))
         e = min(len(y), int(seg.end_sec * sr))
@@ -207,7 +213,7 @@ def main():
             sf.write(tmp_path, piece, sr)
             text = transcriber.transcribe_segment(tmp_path, language=language)
         except Exception as ex:
-            print(json.dumps({"ok": False, "error_code": "TRANSCRIPTION_FAILED", "error_message": str(ex)}))
+            emit_event({"ok": False, "error_code": "TRANSCRIPTION_FAILED", "error_message": str(ex)})
             try:
                 os.unlink(tmp_path)
             except Exception:
@@ -227,6 +233,14 @@ def main():
             "text": text,
             "confidence": 0.7,
         })
+        emit_event({
+            "event": "progress",
+            "progress": int(((i + 1) / max(1, total_segments)) * 100),
+            "stage": "transcribing",
+            "current": i + 1,
+            "total": total_segments,
+            "speaker_label": seg.speaker_label,
+        })
 
     full_transcript = "\n".join(
         f"[{s['speaker_label']}] {s['text']}" if s.get("speaker_label") else s["text"]
@@ -236,10 +250,10 @@ def main():
     try:
         summary = transcriber.summarize(full_transcript, language=language)
     except Exception as e:
-        print(json.dumps({"ok": False, "error_code": "SUMMARY_FAILED", "error_message": str(e)}))
+        emit_event({"ok": False, "error_code": "SUMMARY_FAILED", "error_message": str(e)})
         return
 
-    print(json.dumps({
+    emit_event({
         "ok": True,
         "segments": segments_out,
         "full_transcript": full_transcript,
@@ -251,7 +265,7 @@ def main():
             "speaker_count": len(set([s.speaker_label for s in diarized])) if diarized else 0,
             "segment_count": len(diarized) if diarized else 0,
         },
-    }, ensure_ascii=False))
+    })
 
 
 if __name__ == "__main__":
