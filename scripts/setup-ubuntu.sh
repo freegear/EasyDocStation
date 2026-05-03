@@ -28,6 +28,7 @@ sudo apt-get update -y
 sudo DEBIAN_FRONTEND=noninteractive apt-get install -y \
   curl ca-certificates gnupg lsb-release software-properties-common \
   python3-full python3-venv python3-pip build-essential pkg-config libpq-dev \
+  libsndfile1 \
   postgresql postgresql-contrib \
   cups cups-client printer-driver-cups-pdf \
   poppler-utils ffmpeg libreoffice libreoffice-impress \
@@ -236,6 +237,8 @@ npm run seed --prefix "$ROOT_DIR/server" >/dev/null || true
 
 echo
 echo "완료되었습니다."
+echo "STT/Gemma 4 E4B + diarization(pyannote) 사용 시 server/.env 또는 실행 환경에 HF_TOKEN 설정을 권장합니다."
+echo "  예) export HF_TOKEN=hf_xxx"
 echo "다음 명령으로 실행하세요:"
 echo "  cd ${ROOT_DIR}"
 echo "  npm run dev:ubuntu"

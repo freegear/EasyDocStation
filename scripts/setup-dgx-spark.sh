@@ -152,5 +152,7 @@ else
 fi
 echo
 echo "DGX Spark 설치가 완료되었습니다."
+echo "STT/Gemma 4 E4B + diarization(pyannote) 사용 시 HF_TOKEN 환경변수 설정을 권장합니다."
+echo "  예) export HF_TOKEN=hf_xxx"
 echo "실행 명령:"
 echo "  npm run dev:dgx-spark"
