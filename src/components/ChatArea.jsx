@@ -1599,6 +1599,8 @@ function applyMentionColor(children) {
   return processNode(children, 0)
 }
 
+const STT_UI_STATE_CACHE = new Map()
+
 function ContentRenderer({ text = '', sttPostId = '', sttChannelId = '' }) {
   const isAiMeetingNote = String(text || '').includes('<!--ai-meeting-note-->')
   const [isRecording, setIsRecording] = useState(false)
@@ -1692,7 +1694,29 @@ function ContentRenderer({ text = '', sttPostId = '', sttChannelId = '' }) {
   }
 
   useEffect(() => {
+    const postKey = String(sttPostId || '')
+    if (!postKey) return
+    STT_UI_STATE_CACHE.set(postKey, {
+      status: sttStatus,
+      statusType: sttStatusType,
+      jobId: sttJobIdRef.current || '',
+      updatedAt: Date.now(),
+    })
+  }, [sttPostId, sttStatus, sttStatusType])
+
+  useEffect(() => {
     stopSttPolling()
+    const postKey = String(sttPostId || '')
+    const cached = postKey ? STT_UI_STATE_CACHE.get(postKey) : null
+    if (cached) {
+      sttJobIdRef.current = String(cached.jobId || '')
+      setSttStatus(String(cached.status || ''))
+      setSttStatusType(String(cached.statusType || 'idle'))
+      if (cached.statusType === 'processing' && cached.jobId) {
+        startSttPolling(String(cached.jobId))
+      }
+      return
+    }
     sttJobIdRef.current = ''
     setSttStatus('')
     setSttStatusType('idle')

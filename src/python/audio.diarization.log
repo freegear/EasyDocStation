@@ -1,0 +1,24 @@
+2026-05-04 03:21:07 [INFO] 로그 초기화 완료 | file=./audio.diarization.log debug=False
+2026-05-04 03:21:07 [ERROR] HF_TOKEN 환경변수가 비어 있습니다.
+2026-05-04 03:28:20 [INFO] 로그 초기화 완료 | file=./audio.diarization.log debug=False
+2026-05-04 03:28:20 [INFO] 실행 정보
+2026-05-04 03:28:20 [INFO]  - python=/opt/miniconda3/envs/InterStellar/bin/python
+2026-05-04 03:28:20 [INFO]  - python_version=3.11.8 | packaged by conda-forge | (main, Feb 16 2024, 20:49:36) [Clang 16.0.6 ]
+2026-05-04 03:28:20 [INFO]  - platform=macOS-15.5-arm64-arm-64bit
+2026-05-04 03:28:20 [INFO]  - cwd=/Users/kevinim/Desktop/EasyDocStation/src/python
+2026-05-04 03:28:20 [INFO]  - audio_path=audio.wav
+2026-05-04 03:28:20 [INFO]  - whisper_model=small
+2026-05-04 03:28:20 [INFO]  - whisper_language=ko
+2026-05-04 03:28:20 [INFO]  - torch_version=2.11.0
+2026-05-04 03:28:20 [INFO]  - mps_available=True
+2026-05-04 03:28:20 [INFO]  - cuda_available=False
+2026-05-04 03:28:20 [INFO] 출력 경로 | rttm=./audio.rttm transcript=./audio.txt
+2026-05-04 03:28:20 [INFO] 단계 1 완료 | device=mps
+2026-05-04 03:28:22 [INFO] 단계 2 완료 | pyannote pipeline loaded
+2026-05-04 03:28:22 [INFO] 단계 3 완료 | pipeline moved to mps
+2026-05-04 03:29:27 [INFO] 단계 4 완료 | diarization turns=257 speakers=2 labels=['SPEAKER_00', 'SPEAKER_01']
+2026-05-04 03:29:27 [INFO] 단계 5 완료 | rttm saved path=./audio.rttm size=15617
+2026-05-04 03:29:28 [INFO] 단계 6 완료 | whisper model loaded name=small
+2026-05-04 03:30:21 [INFO] 단계 7 완료 | stt segments=192 text_len=3683
+2026-05-04 03:30:21 [INFO] 단계 8 완료 | transcript saved path=./audio.txt size=19975
+2026-05-04 03:30:21 [INFO] 전체 처리 완료

@@ -232,6 +232,18 @@ class WhisperSegmentTranscriber:
             raise RuntimeError(f"whisper transcribe failed: {e}")
         return str((result or {}).get("text") or "").strip()
 
+    def transcribe_full(self, audio_path: str, language: str = "ko") -> Dict:
+        try:
+            result = self.model.transcribe(
+                audio_path,
+                language=language,
+                fp16=False,
+                verbose=False,
+            )
+        except Exception as e:
+            raise RuntimeError(f"whisper full transcribe failed: {e}")
+        return result or {}
+
 
 def is_low_energy(piece: np.ndarray) -> bool:
     if piece is None or len(piece) == 0:
@@ -263,6 +275,21 @@ def is_unwanted_transcript_text(text: str) -> bool:
         "please upload",
     ]
     return any(k in t for k in bad_contains)
+
+
+def resolve_speaker_label(diarized: Optional[List[Segment]], start_sec: float, end_sec: float) -> str:
+    if not diarized:
+        return "SPEAKER_00"
+    best_label = "SPEAKER_00"
+    best_overlap = 0.0
+    for d in diarized:
+        overlap_start = max(float(start_sec), float(d.start_sec))
+        overlap_end = min(float(end_sec), float(d.end_sec))
+        overlap = max(0.0, overlap_end - overlap_start)
+        if overlap > best_overlap:
+            best_overlap = overlap
+            best_label = str(d.speaker_label or "SPEAKER_00")
+    return best_label
 
 
 class GemmaSummarizer:
@@ -377,81 +404,48 @@ def main():
         emit_event({"ok": False, "error_code": "AUDIO_DECODE_FAILED", "error_message": f"soundfile import failed: {e}"})
         return
 
-    total_segments = len(diarized)
-    prev_norm_text = ""
-    for i, seg in enumerate(diarized):
-        s = max(0, int(seg.start_sec * sr))
-        e = min(len(y), int(seg.end_sec * sr))
-        if e <= s:
-            continue
-        piece = y[s:e]
-        if is_low_energy(piece):
-            emit_event({
-                "event": "progress",
-                "progress": int(((i + 1) / max(1, total_segments)) * 100),
-                "stage": "transcribing_skip_low_energy",
-                "current": i + 1,
-                "total": total_segments,
-                "speaker_label": seg.speaker_label,
-            })
-            continue
-        with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp:
-            tmp_path = tmp.name
-        try:
-            sf.write(tmp_path, piece, sr)
-            text = transcriber.transcribe_segment(tmp_path, language=language)
-        except Exception as ex:
-            emit_event({"ok": False, "error_code": "TRANSCRIPTION_FAILED", "error_message": str(ex)})
-            try:
-                os.unlink(tmp_path)
-            except Exception:
-                pass
-            return
-        finally:
-            try:
-                os.unlink(tmp_path)
-            except Exception:
-                pass
+    emit_event({"event": "progress", "progress": 12, "stage": "transcribing_full_start"})
+    try:
+        full_stt = transcriber.transcribe_full(audio_path, language=language)
+    except Exception as ex:
+        emit_event({"ok": False, "error_code": "TRANSCRIPTION_FAILED", "error_message": str(ex)})
+        return
+    emit_event({"event": "progress", "progress": 70, "stage": "transcribing_full_done"})
 
+    whisper_segments = full_stt.get("segments") or []
+    prev_norm_text = ""
+    total_segments = max(1, len(whisper_segments))
+    for i, seg in enumerate(whisper_segments):
+        start_sec = float(seg.get("start", 0.0))
+        end_sec = float(seg.get("end", 0.0))
+        text = str(seg.get("text") or "").strip()
+
+        if not text:
+            continue
         if is_unwanted_transcript_text(text):
-            emit_event({
-                "event": "progress",
-                "progress": int(((i + 1) / max(1, total_segments)) * 100),
-                "stage": "transcribing_skip_unwanted_text",
-                "current": i + 1,
-                "total": total_segments,
-                "speaker_label": seg.speaker_label,
-            })
             continue
 
         norm = normalize_for_dedupe(text)
         if norm and norm == prev_norm_text:
-            emit_event({
-                "event": "progress",
-                "progress": int(((i + 1) / max(1, total_segments)) * 100),
-                "stage": "transcribing_skip_duplicate",
-                "current": i + 1,
-                "total": total_segments,
-                "speaker_label": seg.speaker_label,
-            })
             continue
         prev_norm_text = norm
 
+        speaker_label = resolve_speaker_label(diarized, start_sec, end_sec)
         segments_out.append({
             "segment_index": i,
-            "start_sec": round(seg.start_sec, 3),
-            "end_sec": round(seg.end_sec, 3),
-            "speaker_label": seg.speaker_label,
+            "start_sec": round(start_sec, 3),
+            "end_sec": round(end_sec, 3),
+            "speaker_label": speaker_label,
             "text": text,
             "confidence": 0.7,
         })
         emit_event({
             "event": "progress",
-            "progress": int(((i + 1) / max(1, total_segments)) * 100),
-            "stage": "transcribing",
+            "progress": 70 + int(((i + 1) / total_segments) * 20),
+            "stage": "speaker_mapping",
             "current": i + 1,
             "total": total_segments,
-            "speaker_label": seg.speaker_label,
+            "speaker_label": speaker_label,
         })
 
     full_transcript = "\n".join(
