@@ -1599,11 +1599,16 @@ function applyMentionColor(children) {
   return processNode(children, 0)
 }
 
-function ContentRenderer({ text = '' }) {
+function ContentRenderer({ text = '', sttPostId = '', sttChannelId = '' }) {
   const isAiMeetingNote = String(text || '').includes('<!--ai-meeting-note-->')
   const [isRecording, setIsRecording] = useState(false)
+  const [sttUploading, setSttUploading] = useState(false)
+  const [sttStatus, setSttStatus] = useState('')
   const mediaRecorderRef = useRef(null)
   const mediaStreamRef = useRef(null)
+  const sttFileInputRef = useRef(null)
+  const sttPollTimerRef = useRef(null)
+  const sttJobIdRef = useRef('')
 
   const normalized = normalizeMarkdownCodeFence(
     String(text || '')
@@ -1614,6 +1619,10 @@ function ContentRenderer({ text = '' }) {
 
   useEffect(() => {
     return () => {
+      if (sttPollTimerRef.current) {
+        clearInterval(sttPollTimerRef.current)
+        sttPollTimerRef.current = null
+      }
       try {
         mediaRecorderRef.current?.stop?.()
       } catch (_) {}
@@ -1673,6 +1682,103 @@ function ContentRenderer({ text = '' }) {
     }
   }
 
+  function stopSttPolling() {
+    if (sttPollTimerRef.current) {
+      clearInterval(sttPollTimerRef.current)
+      sttPollTimerRef.current = null
+    }
+  }
+
+  function startSttPolling(jobId) {
+    stopSttPolling()
+    sttJobIdRef.current = jobId
+    sttPollTimerRef.current = setInterval(async () => {
+      try {
+        const data = await apiFetch(`/ai/stt/jobs/${jobId}`)
+        if (data.status === 'queued' || data.status === 'processing') {
+          setSttStatus(`STT 처리중 (${Number(data.progress || 0)}%)`)
+          return
+        }
+        if (data.status === 'done') {
+          setSttStatus('STT 완료')
+          stopSttPolling()
+          return
+        }
+        if (data.status === 'failed') {
+          const message = mapSttErrorToMessage(data?.error?.code, data?.error?.message)
+          setSttStatus(`STT 실패: ${message}`)
+          stopSttPolling()
+        }
+      } catch (_) {}
+    }, 2500)
+  }
+
+  function mapSttErrorToMessage(code, fallback) {
+    const table = {
+      AUDIO_UNSUPPORTED_FORMAT: '지원하지 않는 음성 파일 형식입니다.',
+      AUDIO_TOO_LONG: '음성 길이가 너무 깁니다. 파일을 분할해 주세요.',
+      AUDIO_FILE_NOT_FOUND: '업로드된 음성 파일을 찾지 못했습니다.',
+      AUDIO_DECODE_FAILED: '음성 디코딩에 실패했습니다.',
+      MODEL_LOAD_FAILED: 'STT 모델 로딩에 실패했습니다.',
+      DIARIZATION_FAILED: '화자 구분 처리에 실패했습니다.',
+      TRANSCRIPTION_FAILED: '음성 전사 처리에 실패했습니다.',
+      SUMMARY_FAILED: '회의 요약 생성에 실패했습니다.',
+      POST_UPDATE_FAILED: '게시글 반영 중 충돌이 발생했습니다.',
+      ATTACHMENT_NOT_READY: '첨부 업로드 완료 전에는 처리할 수 없습니다.',
+    }
+    return table[code] || fallback || 'STT 처리 중 오류가 발생했습니다.'
+  }
+
+  async function handleUploadRecordingFile(file) {
+    if (!file) return
+    if (!sttPostId || !sttChannelId) {
+      alert('회의록 게시글에서만 업로드할 수 있습니다.')
+      return
+    }
+
+    try {
+      setSttUploading(true)
+      setSttStatus('파일 업로드 준비중...')
+      const prep = await apiFetch('/files/get-upload-url', {
+        method: 'POST',
+        body: JSON.stringify({
+          filename: file.name,
+          contentType: file.type || 'application/octet-stream',
+          channelId: sttChannelId,
+        }),
+      })
+      setSttStatus('파일 업로드중...')
+      await uploadFileWithProgress(prep.uploadUrl, file, () => {})
+      setSttStatus('STT 작업 생성중...')
+      const job = await apiFetch('/ai/stt/jobs', {
+        method: 'POST',
+        body: JSON.stringify({
+          postId: sttPostId,
+          attachmentId: prep.file_uuid,
+          options: { diarization: true, language: 'ko' },
+        }),
+      })
+      setSttStatus(job?.deduplicated ? '기존 STT 작업 재사용중...' : 'STT 처리 대기중...')
+      startSttPolling(job.jobId)
+    } catch (err) {
+      setSttStatus(`오류: ${err.message}`)
+    } finally {
+      setSttUploading(false)
+    }
+  }
+
+  async function handleRetryStt() {
+    const jobId = sttJobIdRef.current
+    if (!jobId) return
+    try {
+      await apiFetch(`/ai/stt/jobs/${jobId}/retry`, { method: 'POST' })
+      setSttStatus('STT 재시도 대기중...')
+      startSttPolling(jobId)
+    } catch (err) {
+      setSttStatus(`재시도 실패: ${err.message}`)
+    }
+  }
+
   return (
     <div
       className="text-gray-700 text-sm leading-relaxed break-words select-text allow-copy cursor-text"
@@ -1693,12 +1799,35 @@ function ContentRenderer({ text = '' }) {
           </button>
           <button
             type="button"
+            onClick={() => sttFileInputRef.current?.click()}
+            disabled={sttUploading}
             className="px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors bg-gray-100 text-gray-700 border-gray-300 hover:bg-gray-200"
-            title="녹음파일 업로드 (준비중)"
+            title="녹음파일 업로드"
           >
             녹음파일 업로드
           </button>
+          <input
+            ref={sttFileInputRef}
+            type="file"
+            accept="audio/*,.wav,.mp3,.m4a,.aac,.ogg,.webm"
+            className="hidden"
+            onChange={(e) => {
+              const f = e.target.files?.[0]
+              e.target.value = ''
+              if (f) handleUploadRecordingFile(f)
+            }}
+          />
           {isRecording && <span className="text-xs text-red-500">녹음 중...</span>}
+          {!isRecording && sttStatus && <span className="text-xs text-gray-500">{sttStatus}</span>}
+          {!isRecording && sttStatus.startsWith('STT 실패:') && (
+            <button
+              type="button"
+              onClick={handleRetryStt}
+              className="px-2 py-1 rounded-md text-[11px] font-semibold border border-amber-300 bg-amber-50 text-amber-700 hover:bg-amber-100"
+            >
+              재시도
+            </button>
+          )}
         </div>
       )}
       <ReactMarkdown

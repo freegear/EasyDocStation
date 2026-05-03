@@ -772,6 +772,14 @@ export default function SiteAdminPage({ onClose }) {
   const [resetConfirmation, setResetConfirmation] = useState('')
   const [executingReset, setExecutingReset] = useState(false)
   const [teams, setTeams] = useState([])
+  const [sttChannelId, setSttChannelId] = useState('')
+  const [sttMappings, setSttMappings] = useState([])
+  const [sttLoading, setSttLoading] = useState(false)
+  const [sttSaving, setSttSaving] = useState(false)
+  const [sttNewLabel, setSttNewLabel] = useState('SPEAKER_00')
+  const [sttNewName, setSttNewName] = useState('')
+  const [sttNewUserId, setSttNewUserId] = useState('')
+  const [sttMessage, setSttMessage] = useState('')
 
   async function loadTeams() {
     try {
@@ -791,6 +799,103 @@ export default function SiteAdminPage({ onClose }) {
       setError(err.message)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const sttChannels = teams.flatMap(team =>
+    (team.channels || []).map(ch => ({
+      id: ch.id,
+      name: ch.name,
+      teamName: team.name,
+    })),
+  )
+
+  async function loadSttMappings(channelId) {
+    if (!channelId) {
+      setSttMappings([])
+      return
+    }
+    setSttLoading(true)
+    try {
+      const data = await apiFetch(`/ai/stt/speaker-mappings?channelId=${encodeURIComponent(channelId)}`)
+      setSttMappings(Array.isArray(data) ? data : [])
+    } catch (err) {
+      setSttMessage(`조회 실패: ${err.message}`)
+    } finally {
+      setSttLoading(false)
+    }
+  }
+
+  async function handleSaveSttMapping() {
+    const label = String(sttNewLabel || '').trim()
+    const name = String(sttNewName || '').trim()
+    if (!sttChannelId || !label || !name) {
+      setSttMessage('채널, 라벨, 사용자명을 입력해주세요.')
+      return
+    }
+    setSttSaving(true)
+    setSttMessage('')
+    try {
+      await apiFetch('/ai/stt/speaker-mappings', {
+        method: 'POST',
+        body: JSON.stringify({
+          channelId: sttChannelId,
+          speakerLabel: label,
+          userId: sttNewUserId ? Number(sttNewUserId) : null,
+          displayName: name,
+          confidence: 0.9,
+        }),
+      })
+      await loadSttMappings(sttChannelId)
+      setSttNewName('')
+      setSttMessage('저장되었습니다.')
+    } catch (err) {
+      setSttMessage(`저장 실패: ${err.message}`)
+    } finally {
+      setSttSaving(false)
+    }
+  }
+
+  async function handlePresetSttLabels() {
+    if (!sttChannelId) {
+      setSttMessage('채널을 먼저 선택해주세요.')
+      return
+    }
+    setSttSaving(true)
+    setSttMessage('')
+    try {
+      const presets = ['SPEAKER_00', 'SPEAKER_01']
+      for (const label of presets) {
+        await apiFetch('/ai/stt/speaker-mappings', {
+          method: 'POST',
+          body: JSON.stringify({
+            channelId: sttChannelId,
+            speakerLabel: label,
+            userId: null,
+            displayName: label,
+            confidence: 0.5,
+          }),
+        })
+      }
+      await loadSttMappings(sttChannelId)
+      setSttMessage('기본 라벨(SPEAKER_00, SPEAKER_01)을 등록했습니다.')
+    } catch (err) {
+      setSttMessage(`기본 라벨 등록 실패: ${err.message}`)
+    } finally {
+      setSttSaving(false)
+    }
+  }
+
+  async function handleDeleteSttMapping(speakerLabel) {
+    if (!sttChannelId || !speakerLabel) return
+    try {
+      await apiFetch('/ai/stt/speaker-mappings', {
+        method: 'DELETE',
+        body: JSON.stringify({ channelId: sttChannelId, speakerLabel }),
+      })
+      await loadSttMappings(sttChannelId)
+    } catch (err) {
+      setSttMessage(`삭제 실패: ${err.message}`)
     }
   }
 
@@ -1017,7 +1122,15 @@ export default function SiteAdminPage({ onClose }) {
     if (activeTab === 'db' || activeTab === 'display' || activeTab === 'rag' || activeTab === 'agenticai' || activeTab === 'company' || activeTab === 'site' || activeTab === 'supabase' || activeTab === 'sns') loadDbStats()
     if (activeTab === 'sns') loadTelegramWebhookInfo()
     if (activeTab === 'rag-learning') loadRagDatasets()
+    if (activeTab === 'stt' && !sttChannelId && sttChannels.length > 0) {
+      setSttChannelId(sttChannels[0].id)
+    }
   }, [activeTab])
+
+  useEffect(() => {
+    if (activeTab !== 'stt') return
+    loadSttMappings(sttChannelId)
+  }, [activeTab, sttChannelId])
   useEffect(() => {
     function handleEscClose(e) {
       if (e.key !== 'Escape') return
@@ -1438,6 +1551,15 @@ export default function SiteAdminPage({ onClose }) {
             {t.admin.navSns}
           </button>
           <button
+            onClick={() => setActiveTab('stt')}
+            className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${activeTab === 'stt' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-200'}`}
+          >
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h6m-6 4h8M5 5h14a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2z" />
+            </svg>
+            STT 화자매핑
+          </button>
+          <button
             onClick={() => setActiveTab('reset')}
             className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${activeTab === 'reset' ? 'bg-red-600 text-white shadow-lg shadow-red-500/20' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-200'}`}
           >
@@ -1614,6 +1736,118 @@ export default function SiteAdminPage({ onClose }) {
               {t.admin.userCount(filtered.length, users.length)}
             </p>
           </>
+        ) : activeTab === 'stt' ? (
+          <div className="max-w-4xl mx-auto py-4 space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-gray-900 font-bold text-lg">STT 화자 매핑</h2>
+            </div>
+
+            <div className="bg-gray-100 border border-gray-200 rounded-2xl p-5 space-y-4">
+              <div>
+                <label className="block text-gray-500 text-xs font-medium mb-1.5">채널</label>
+                <select
+                  value={sttChannelId}
+                  onChange={(e) => setSttChannelId(e.target.value)}
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-gray-900 text-sm focus:outline-none focus:border-indigo-300"
+                >
+                  {sttChannels.map(ch => (
+                    <option key={ch.id} value={ch.id}>{ch.teamName} / {ch.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <input
+                  value={sttNewLabel}
+                  onChange={(e) => setSttNewLabel(e.target.value)}
+                  placeholder="SPEAKER_00"
+                  className="bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm"
+                />
+                <select
+                  value={sttNewUserId}
+                  onChange={(e) => {
+                    const next = e.target.value
+                    setSttNewUserId(next)
+                    const selected = users.find(u => String(u.id) === String(next))
+                    if (selected) {
+                      setSttNewName(selected.display_name || selected.name || '')
+                    }
+                  }}
+                  className="bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm"
+                >
+                  <option value="">사용자 선택(선택)</option>
+                  {users
+                    .filter(u => u.is_active)
+                    .map(u => (
+                      <option key={u.id} value={u.id}>
+                        {(u.display_name || u.name)} ({u.username})
+                      </option>
+                    ))}
+                </select>
+                <input
+                  value={sttNewName}
+                  onChange={(e) => setSttNewName(e.target.value)}
+                  placeholder="홍길동"
+                  className="bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <button
+                  onClick={handleSaveSttMapping}
+                  disabled={sttSaving || !sttChannelId}
+                  className="px-4 py-2.5 rounded-xl bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-500 disabled:opacity-50"
+                >
+                  {sttSaving ? '저장중...' : '매핑 저장'}
+                </button>
+                <button
+                  onClick={handlePresetSttLabels}
+                  disabled={sttSaving || !sttChannelId}
+                  className="px-4 py-2.5 rounded-xl border border-gray-300 bg-gray-50 text-gray-700 text-sm font-semibold hover:bg-gray-100 disabled:opacity-50"
+                >
+                  기본 라벨 선등록
+                </button>
+              </div>
+
+              {sttMessage && <p className="text-xs text-gray-500">{sttMessage}</p>}
+            </div>
+
+            <div className="bg-gray-100 border border-gray-200 rounded-2xl overflow-hidden">
+              {sttLoading ? (
+                <div className="p-6 text-sm text-gray-500">불러오는 중...</div>
+              ) : sttMappings.length === 0 ? (
+                <div className="p-6 text-sm text-gray-500">등록된 화자 매핑이 없습니다.</div>
+              ) : (
+                <table className="w-full text-sm">
+                  <thead className="bg-gray-200 text-gray-700">
+                    <tr>
+                      <th className="text-left px-4 py-2">라벨</th>
+                      <th className="text-left px-4 py-2">매핑명</th>
+                      <th className="text-left px-4 py-2">계정명</th>
+                      <th className="text-left px-4 py-2">동작</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {sttMappings.map((row) => (
+                      <tr key={`${row.channel_id}-${row.speaker_label}`} className="border-t border-gray-200">
+                        <td className="px-4 py-2 font-mono">{row.speaker_label}</td>
+                        <td className="px-4 py-2">{row.display_name}</td>
+                        <td className="px-4 py-2">{row.user_name || '-'}</td>
+                        <td className="px-4 py-2">
+                          <button
+                            onClick={() => handleDeleteSttMapping(row.speaker_label)}
+                            className="px-2 py-1 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 text-xs font-semibold"
+                          >
+                            삭제
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          </div>
         ) : activeTab === 'db' ? (
           <div className="max-w-4xl mx-auto py-4">
             <div className="flex items-center justify-between mb-6">

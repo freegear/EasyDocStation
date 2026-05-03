@@ -865,7 +865,11 @@ function PostDetailPane({ post, channelId, onClose, pendingOpenCommentId = null,
                   }}
                 />
               ) : (
-                <ContentRenderer text={freshPost.content} />
+                <ContentRenderer
+                  text={freshPost.content}
+                  sttPostId={freshPost.id}
+                  sttChannelId={channelId}
+                />
               )}
             </div>
             <AttachmentList attachments={freshPost.attachments} />
