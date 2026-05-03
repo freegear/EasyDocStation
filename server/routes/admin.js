@@ -25,6 +25,11 @@ function requireSiteAdmin(req, res, next) {
 
 function syncSupabaseEnvFromConfig(config) {
   const envPath = path.resolve(__dirname, '../.env')
+  const serverSupabaseUrl = String(config.SUPABASE_URL || '').trim()
+  const serverSupabaseAudience = String(config.SUPABASE_JWT_AUDIENCE || 'authenticated').trim()
+  const jwtSecret = String(config.JWT_SECRET || '').trim()
+  const clientOrigin = String(config.CLIENT_ORIGIN || 'http://218.237.25.214:5173').trim()
+  const authCookieSecure = String(config.AUTH_COOKIE_SECURE || 'false').trim().toLowerCase() === 'true' ? 'true' : 'false'
   const supabaseUrl = String(config.VITE_SUPABASE_URL || '').trim()
   const supabaseAnonKey = String(config.VITE_SUPABASE_ANON_KEY || '').trim()
 
@@ -42,6 +47,11 @@ function syncSupabaseEnvFromConfig(config) {
   }
 
   let updated = envText
+  updated = upsertLine(updated, 'SUPABASE_URL', serverSupabaseUrl)
+  updated = upsertLine(updated, 'SUPABASE_JWT_AUDIENCE', serverSupabaseAudience)
+  updated = upsertLine(updated, 'JWT_SECRET', jwtSecret)
+  updated = upsertLine(updated, 'CLIENT_ORIGIN', clientOrigin)
+  updated = upsertLine(updated, 'AUTH_COOKIE_SECURE', authCookieSecure)
   updated = upsertLine(updated, 'VITE_SUPABASE_URL', supabaseUrl)
   updated = upsertLine(updated, 'VITE_SUPABASE_ANON_KEY', supabaseAnonKey)
   fs.writeFileSync(envPath, updated, 'utf8')
@@ -352,6 +362,8 @@ router.get('/stats', async (req, res) => {
       supabase_url: config.SUPABASE_URL || '',
       supabase_jwt_audience: config.SUPABASE_JWT_AUDIENCE || 'authenticated',
       jwt_secret: config.JWT_SECRET || '',
+      client_origin: config.CLIENT_ORIGIN || 'http://218.237.25.214:5173',
+      auth_cookie_secure: String(config.AUTH_COOKIE_SECURE ?? 'false'),
       vite_supabase_url: config.VITE_SUPABASE_URL || '',
       vite_supabase_anon_key: config.VITE_SUPABASE_ANON_KEY || '',
       sns: normalizeSnsConfig(config.sns || {})
@@ -403,6 +415,8 @@ router.get('/stats', async (req, res) => {
         supabase_url: config.SUPABASE_URL || '',
         supabase_jwt_audience: config.SUPABASE_JWT_AUDIENCE || 'authenticated',
         jwt_secret: config.JWT_SECRET || '',
+        client_origin: config.CLIENT_ORIGIN || 'http://218.237.25.214:5173',
+        auth_cookie_secure: String(config.AUTH_COOKIE_SECURE ?? 'false'),
         vite_supabase_url: config.VITE_SUPABASE_URL || '',
         vite_supabase_anon_key: config.VITE_SUPABASE_ANON_KEY || '',
         sns: normalizeSnsConfig(config.sns || {})
@@ -437,6 +451,11 @@ router.put('/config', requireSiteAdmin, async (req, res) => {
 
     let envSync = null
     const touchedSupabaseSettings =
+      Object.prototype.hasOwnProperty.call(req.body, 'SUPABASE_URL') ||
+      Object.prototype.hasOwnProperty.call(req.body, 'SUPABASE_JWT_AUDIENCE') ||
+      Object.prototype.hasOwnProperty.call(req.body, 'JWT_SECRET') ||
+      Object.prototype.hasOwnProperty.call(req.body, 'CLIENT_ORIGIN') ||
+      Object.prototype.hasOwnProperty.call(req.body, 'AUTH_COOKIE_SECURE') ||
       Object.prototype.hasOwnProperty.call(req.body, 'VITE_SUPABASE_URL') ||
       Object.prototype.hasOwnProperty.call(req.body, 'VITE_SUPABASE_ANON_KEY')
     if (touchedSupabaseSettings) {

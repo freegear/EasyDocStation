@@ -36,7 +36,8 @@ module.exports = async function requireAuth(req, res, next) {
       }
       req.authProvider = 'supabase'
       return next()
-    } catch (_) {
+    } catch (err) {
+      console.error('[auth] Supabase token verification failed:', err?.message || err)
       return res.status(401).json({ error: '유효하지 않은 Supabase 토큰입니다.' })
     }
   }
