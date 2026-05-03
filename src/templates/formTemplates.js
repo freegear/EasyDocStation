@@ -1,7 +1,7 @@
 export const FORM_TEMPLATES = [
   {
     id: 'quotation',
-    label: '견적서',
+    label: '견적서 (예시)',
     icon: '📋',
     content: `<!DOCTYPE html>
 <html lang="ko">
@@ -340,7 +340,7 @@ body { font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif; margin: 
   },
   {
     id: 'trip-report',
-    label: '출장보고서',
+    label: '출장 보고서 (예시)',
     icon: '✈️',
     content: `<!DOCTYPE html>
 <html lang="ko">
@@ -643,7 +643,7 @@ body { font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif; margin: 
   },
   {
     id: 'expense-report',
-    label: '지출결의서',
+    label: '지출 결의서 (예시)',
     icon: '💰',
     content: `<!DOCTYPE html>
 <html lang="ko">
