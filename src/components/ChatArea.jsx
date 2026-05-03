@@ -157,6 +157,17 @@ function sanitizePostPreviewText(text = '') {
     .trim()
 }
 
+function sanitizePostPreviewTextKeepLines(text = '') {
+  return String(text || '')
+    .replace(/<!--[\s\S]*?-->/g, '\n')
+    .replace(/<[^>\n]*>/g, ' ')
+    .replace(/\r\n/g, '\n')
+    .replace(/\r/g, '\n')
+    .replace(/[ \t]+/g, ' ')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim()
+}
+
 function extractHttpUrls(text = '') {
   const urls = new Set()
 
@@ -2946,7 +2957,7 @@ function PostCard({ post, onSelect, pinned, isSelected }) {
     : null
   // MD 페이지는 마커를 제거한 뒤 파싱
   const rawForParsing = isMd ? getMdPageContent(post.content) : (post.content || '')
-  const sanitizedRawForParsing = sanitizePostPreviewText(rawForParsing)
+  const sanitizedRawForParsing = sanitizePostPreviewTextKeepLines(rawForParsing)
   const plain = isTemplate ? [] : sanitizedRawForParsing
     .replace(/#{1,3} /g, '').replace(/\*\*/g, '').replace(/`/g, '')
     .split('\n').filter(l => l.trim() && !l.startsWith('|') && !l.startsWith('-'))
@@ -2984,7 +2995,7 @@ function PostCard({ post, onSelect, pinned, isSelected }) {
       : (plain[0] || '')
   const bodyPreview = isTemplate
     ? ''
-    : plain.slice(1).join(' ')
+    : plain.slice(1).join('\n')
   const attachCount = post.attachments?.length || 0
   const commentCount = post.comments?.length || 0
   const trainingStatus = post.training_status || null
@@ -3098,7 +3109,7 @@ function PostCard({ post, onSelect, pinned, isSelected }) {
           {/* Body preview (second line onward) */}
           {bodyPreview && (
             <p
-              className="text-gray-400 text-xs leading-relaxed line-clamp-5 select-text allow-copy cursor-text"
+              className="text-gray-400 text-xs leading-relaxed line-clamp-5 whitespace-pre-wrap break-words select-text allow-copy cursor-text"
             >
               {renderMentionTokens(bodyPreview, `body-${post.id}`)}
             </p>
