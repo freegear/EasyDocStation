@@ -214,7 +214,9 @@ function renderSttBlock({ jobId, status, progress = 0, transcript = '', summary 
   if (status === 'failed') {
     return `${head}\n\n## STT 상태\n실패\n\n사유: ${error || '알 수 없는 오류'}\n\n${tail}`
   }
-  return `${head}\n\n## STT 상태\n완료\n\n### 전사문\n${transcript || '(전사문 없음)'}\n\n### 회의 요약\n${summary || '(요약 없음)'}\n\n${tail}`
+  const safeTranscript = sanitizeTranscriptText(transcript || '')
+  const safeSummary = String(summary || '').trim()
+  return `${head}\n\n## STT 상태\n완료\n\n### 전사문\n\`\`\`text\n${safeTranscript || '(전사문 없음)'}\n\`\`\`\n\n### 회의 요약\n\`\`\`text\n${safeSummary || '(요약 없음)'}\n\`\`\`\n\n${tail}`
 }
 
 function upsertSttBlock(content = '', blockText = '') {
@@ -317,6 +319,7 @@ function runPythonStt(audioPath, options = {}) {
       audioPath,
       language: options.language || 'ko',
       diarization: options.diarization !== false,
+      diarizationRequired: options.diarizationRequired === true,
       modelId: MODEL_ID,
       hfToken: HF_TOKEN,
     }
@@ -328,6 +331,7 @@ function runPythonStt(audioPath, options = {}) {
       audioPath,
       language: payload.language,
       diarization: payload.diarization,
+      diarizationRequired: payload.diarizationRequired,
       modelId: payload.modelId,
       hfTokenSet: Boolean(payload.hfToken),
     })
@@ -356,6 +360,9 @@ function runPythonStt(audioPath, options = {}) {
           segments: Array.isArray(parsed.segments) ? parsed.segments.length : 0,
           transcriptLength: String(parsed.full_transcript || '').length,
           summaryLength: String(parsed.summary || '').length,
+          diarizationUsed: parsed?.diarization?.used,
+          diarizationSpeakerCount: parsed?.diarization?.speaker_count,
+          diarizationSegmentCount: parsed?.diarization?.segment_count,
         })
         resolve(parsed)
       } catch (e) {
@@ -388,9 +395,37 @@ function mergeMappedTranscript(segments = []) {
   return segments
     .map((seg) => {
       const label = seg.speaker_name || seg.speaker_label || 'SPEAKER'
-      return `[${label}] ${seg.text || ''}`.trim()
+      return `[${label}] ${sanitizeTranscriptText(seg.text || '')}`.trim()
     })
     .join('\n')
+    .trim()
+}
+
+function sanitizeTranscriptText(input = '') {
+  const source = String(input || '')
+  const lines = source.split(/\r?\n/)
+  const dropExact = new Set(['user', 'model'])
+  const dropContains = [
+    '다음 오디오를 한국어로 정확히 전사해줘',
+    '군더더기 설명 없이 전사문만 출력해줘',
+    'Transcribe this audio accurately. Output transcript only.',
+  ]
+
+  const filtered = lines
+    .map((line) => line.trim())
+    .filter((line) => {
+      if (!line) return false
+      if (dropExact.has(line.toLowerCase())) return false
+      return !dropContains.some((needle) => line.includes(needle))
+    })
+    .join('\n')
+
+  return filtered
+    .replace(/\buser\b/gi, '')
+    .replace(/\bmodel\b/gi, '')
+    .replace(/다음 오디오를 한국어로 정확히 전사해줘\.?\s*군더더기 설명 없이 전사문만 출력해줘\.?/g, '')
+    .replace(/[ \t]{2,}/g, ' ')
+    .replace(/\n{3,}/g, '\n\n')
     .trim()
 }
 
@@ -492,6 +527,9 @@ async function queueWorkerTick() {
       jobId: job.id,
       originalSegments: Array.isArray(sttResult.segments) ? sttResult.segments.length : 0,
       mappedSegments: Array.isArray(mappedSegments) ? mappedSegments.length : 0,
+      diarizationUsed: sttResult?.diarization?.used,
+      diarizationSpeakerCount: sttResult?.diarization?.speaker_count,
+      diarizationSegmentCount: sttResult?.diarization?.segment_count,
     })
 
     await db.query('DELETE FROM stt_segments WHERE job_id = $1', [job.id])
