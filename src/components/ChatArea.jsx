@@ -1601,17 +1601,26 @@ function applyMentionColor(children) {
 
 const STT_UI_STATE_CACHE = new Map()
 
+function canShowMeetingActionButtons(statusType = 'idle') {
+  const s = String(statusType || 'idle')
+  return s === 'idle' || s === 'failed' || s === 'canceled'
+}
+
 function ContentRenderer({ text = '', sttPostId = '', sttChannelId = '' }) {
   const isAiMeetingNote = String(text || '').includes('<!--ai-meeting-note-->')
   const [isRecording, setIsRecording] = useState(false)
   const [sttUploading, setSttUploading] = useState(false)
   const [sttStatus, setSttStatus] = useState('')
   const [sttStatusType, setSttStatusType] = useState('idle') // idle | processing | done | failed
+  const [sttErrorReason, setSttErrorReason] = useState('')
+  const [isBlinkOn, setIsBlinkOn] = useState(true)
   const mediaRecorderRef = useRef(null)
   const mediaStreamRef = useRef(null)
   const sttFileInputRef = useRef(null)
   const sttPollTimerRef = useRef(null)
   const sttJobIdRef = useRef('')
+  const activeSttPostIdRef = useRef('')
+  const sttPollScopeRef = useRef({ postId: '', jobId: '' })
 
   const normalized = normalizeMarkdownCodeFence(
     String(text || '')
@@ -1638,6 +1647,17 @@ function ContentRenderer({ text = '', sttPostId = '', sttChannelId = '' }) {
       mediaStreamRef.current = null
     }
   }, [])
+
+  useEffect(() => {
+    if (sttStatusType !== 'processing') {
+      setIsBlinkOn(true)
+      return undefined
+    }
+    const timer = setInterval(() => {
+      setIsBlinkOn((v) => !v)
+    }, 2000)
+    return () => clearInterval(timer)
+  }, [sttStatusType])
 
   async function handleStartMeetingRecording() {
     if (isRecording) return
@@ -1691,80 +1711,138 @@ function ContentRenderer({ text = '', sttPostId = '', sttChannelId = '' }) {
       clearInterval(sttPollTimerRef.current)
       sttPollTimerRef.current = null
     }
+    sttPollScopeRef.current = { postId: '', jobId: '' }
+  }
+
+  function updateSttUiState(postId, patch = {}, applyLocal = true) {
+    const key = String(postId || '')
+    if (!key) return
+
+    const prev = STT_UI_STATE_CACHE.get(key) || {}
+    const prevType = String(prev.statusType || '')
+    const incomingType = String(patch.statusType || prevType || 'idle')
+    const isTerminal = prevType === 'done' || prevType === 'failed'
+    const incomingIsProcessing = incomingType === 'processing' || incomingType === 'queued'
+    const incomingJobId = String(patch.jobId || prev.jobId || '')
+    const prevJobId = String(prev.jobId || '')
+    const sameJob = !incomingJobId || !prevJobId || incomingJobId === prevJobId
+
+    if (isTerminal && incomingIsProcessing && sameJob) {
+      return
+    }
+
+    const next = {
+      status: typeof patch.status === 'string' ? patch.status : String(prev.status || ''),
+      statusType: incomingType,
+      errorReason: typeof patch.errorReason === 'string' ? patch.errorReason : String(prev.errorReason || ''),
+      jobId: incomingJobId,
+      updatedAt: Date.now(),
+    }
+    STT_UI_STATE_CACHE.set(key, next)
+
+    if (applyLocal && activeSttPostIdRef.current === key) {
+      setSttStatus(next.status)
+      setSttStatusType(next.statusType || 'idle')
+      setSttErrorReason(next.errorReason || '')
+      sttJobIdRef.current = String(next.jobId || '')
+    }
   }
 
   function inferSttStateFromText(rawText) {
     const src = String(rawText || '')
     if (!src.includes('## STT 상태')) return null
     if (src.includes('## STT 상태\n실패')) {
-      return { type: 'failed', status: 'STT 실패' }
+      return { type: 'failed', status: '회의록 작성 실패' }
     }
     if (src.includes('## STT 상태\n완료')) {
-      return { type: 'done', status: 'STT 완료' }
+      return { type: 'done', status: '회의록 작성 완료' }
     }
     const m = src.match(/## STT 상태\s*[\r\n]+처리중\s*\((\d+)%\)/)
     if (m) {
-      return { type: 'processing', status: `STT 처리중 (${Number(m[1] || 0)}%)` }
+      return { type: 'processing', status: `진행중 (${Number(m[1] || 0)}%)` }
     }
     return null
   }
 
   useEffect(() => {
-    const postKey = String(sttPostId || '')
-    if (!postKey) return
-    STT_UI_STATE_CACHE.set(postKey, {
-      status: sttStatus,
-      statusType: sttStatusType,
-      jobId: sttJobIdRef.current || '',
-      updatedAt: Date.now(),
-    })
-  }, [sttPostId, sttStatus, sttStatusType])
-
-  useEffect(() => {
     stopSttPolling()
     const postKey = String(sttPostId || '')
+    activeSttPostIdRef.current = postKey
     const cached = postKey ? STT_UI_STATE_CACHE.get(postKey) : null
     if (cached) {
       sttJobIdRef.current = String(cached.jobId || '')
       setSttStatus(String(cached.status || ''))
       setSttStatusType(String(cached.statusType || 'idle'))
+      setSttErrorReason(String(cached.errorReason || ''))
       if (cached.statusType === 'processing' && cached.jobId) {
-        startSttPolling(String(cached.jobId))
+        startSttPolling(postKey, String(cached.jobId))
       }
       return
     }
     const inferred = inferSttStateFromText(text)
     if (inferred) {
-      setSttStatus(inferred.status)
-      setSttStatusType(inferred.type)
+      updateSttUiState(postKey, {
+        status: inferred.status,
+        statusType: inferred.type,
+        errorReason: inferred.type === 'failed' ? sttErrorReason : '',
+        jobId: '',
+      })
       return
     }
     sttJobIdRef.current = ''
     setSttStatus('')
     setSttStatusType('idle')
+    setSttErrorReason('')
   }, [sttPostId, text])
 
-  function startSttPolling(jobId) {
+  function startSttPolling(postId, jobId) {
+    const postKey = String(postId || '')
+    if (!postKey || !jobId) return
     stopSttPolling()
     sttJobIdRef.current = jobId
+    sttPollScopeRef.current = { postId: postKey, jobId: String(jobId) }
     sttPollTimerRef.current = setInterval(async () => {
+      const scope = sttPollScopeRef.current
+      if (scope.postId !== postKey || scope.jobId !== String(jobId)) return
       try {
         const data = await apiFetch(`/ai/stt/jobs/${jobId}`)
         if (data.status === 'queued' || data.status === 'processing') {
-          setSttStatus(`STT 처리중 (${Number(data.progress || 0)}%)`)
-          setSttStatusType('processing')
+          updateSttUiState(postKey, {
+            status: `진행중 (${Number(data.progress || 0)}%)`,
+            statusType: 'processing',
+            errorReason: '',
+            jobId: String(jobId),
+          }, activeSttPostIdRef.current === postKey)
           return
         }
         if (data.status === 'done') {
-          setSttStatus('STT 완료')
-          setSttStatusType('done')
+          updateSttUiState(postKey, {
+            status: '회의록 작성 완료',
+            statusType: 'done',
+            errorReason: '',
+            jobId: String(jobId),
+          }, activeSttPostIdRef.current === postKey)
           stopSttPolling()
           return
         }
         if (data.status === 'failed') {
           const message = mapSttErrorToMessage(data?.error?.code, data?.error?.message)
-          setSttStatus(`STT 실패: ${message}`)
-          setSttStatusType('failed')
+          updateSttUiState(postKey, {
+            status: '회의록 작성 실패',
+            statusType: 'failed',
+            errorReason: message,
+            jobId: String(jobId),
+          }, activeSttPostIdRef.current === postKey)
+          stopSttPolling()
+          return
+        }
+        if (data.status === 'canceled') {
+          updateSttUiState(postKey, {
+            status: '회의록 작성 실패',
+            statusType: 'canceled',
+            errorReason: '작업이 취소되었습니다.',
+            jobId: String(jobId),
+          }, activeSttPostIdRef.current === postKey)
           stopSttPolling()
         }
       } catch (_) {}
@@ -1796,8 +1874,11 @@ function ContentRenderer({ text = '', sttPostId = '', sttChannelId = '' }) {
 
     try {
       setSttUploading(true)
-      setSttStatus('파일 업로드 준비중...')
-      setSttStatusType('processing')
+      updateSttUiState(sttPostId, {
+        status: '파일 업로드 준비중...',
+        statusType: 'processing',
+        errorReason: '',
+      })
       const prep = await apiFetch('/files/get-upload-url', {
         method: 'POST',
         body: JSON.stringify({
@@ -1806,9 +1887,9 @@ function ContentRenderer({ text = '', sttPostId = '', sttChannelId = '' }) {
           channelId: sttChannelId,
         }),
       })
-      setSttStatus('파일 업로드중...')
+      updateSttUiState(sttPostId, { status: '파일 업로드중...', statusType: 'processing' })
       await uploadFileWithProgress(prep.uploadUrl, file, () => {})
-      setSttStatus('STT 작업 생성중...')
+      updateSttUiState(sttPostId, { status: 'STT 작업 생성중...', statusType: 'processing' })
       const job = await apiFetch('/ai/stt/jobs', {
         method: 'POST',
         body: JSON.stringify({
@@ -1817,12 +1898,19 @@ function ContentRenderer({ text = '', sttPostId = '', sttChannelId = '' }) {
           options: { diarization: true, diarizationRequired: false, language: 'ko' },
         }),
       })
-      setSttStatus(job?.deduplicated ? '기존 STT 작업 재사용중...' : 'STT 처리 대기중...')
-      setSttStatusType('processing')
-      startSttPolling(job.jobId)
+      updateSttUiState(sttPostId, {
+        status: job?.deduplicated ? '기존 STT 작업 재사용중...' : 'STT 처리 대기중...',
+        statusType: 'processing',
+        errorReason: '',
+        jobId: String(job.jobId || ''),
+      })
+      startSttPolling(sttPostId, job.jobId)
     } catch (err) {
-      setSttStatus(`오류: ${err.message}`)
-      setSttStatusType('failed')
+      updateSttUiState(sttPostId, {
+        status: `오류: ${err.message}`,
+        statusType: 'failed',
+        errorReason: String(err?.message || '알 수 없는 오류'),
+      })
     } finally {
       setSttUploading(false)
     }
@@ -1833,12 +1921,20 @@ function ContentRenderer({ text = '', sttPostId = '', sttChannelId = '' }) {
     if (!jobId) return
     try {
       await apiFetch(`/ai/stt/jobs/${jobId}/retry`, { method: 'POST' })
-      setSttStatus('STT 재시도 대기중...')
-      setSttStatusType('processing')
-      startSttPolling(jobId)
+      updateSttUiState(sttPostId, {
+        status: 'STT 재시도 대기중...',
+        statusType: 'processing',
+        errorReason: '',
+        jobId: String(jobId),
+      })
+      startSttPolling(sttPostId, jobId)
     } catch (err) {
-      setSttStatus(`재시도 실패: ${err.message}`)
-      setSttStatusType('failed')
+      updateSttUiState(sttPostId, {
+        status: `재시도 실패: ${err.message}`,
+        statusType: 'failed',
+        errorReason: String(err?.message || '알 수 없는 오류'),
+        jobId: String(jobId),
+      })
     }
   }
 
@@ -1848,7 +1944,7 @@ function ContentRenderer({ text = '', sttPostId = '', sttChannelId = '' }) {
     >
       {isAiMeetingNote && (
         <div className="mb-3 flex items-center gap-2">
-          {(sttStatusType === 'idle' || sttStatusType === 'failed') && (
+          {canShowMeetingActionButtons(sttStatusType) && (
             <>
               <button
                 type="button"
@@ -1889,7 +1985,7 @@ function ContentRenderer({ text = '', sttPostId = '', sttChannelId = '' }) {
             <span
               className={`text-xs font-semibold ${
                 sttStatusType === 'processing'
-                  ? 'text-amber-600'
+                  ? (isBlinkOn ? 'text-amber-600' : 'text-amber-300')
                   : sttStatusType === 'done'
                     ? 'text-emerald-600'
                     : sttStatusType === 'failed'
@@ -1900,7 +1996,10 @@ function ContentRenderer({ text = '', sttPostId = '', sttChannelId = '' }) {
               {sttStatus}
             </span>
           )}
-          {!isRecording && sttStatus.startsWith('STT 실패:') && (
+          {!isRecording && sttStatusType === 'failed' && (
+            <span className="text-xs text-red-500">사유: {sttErrorReason || '알 수 없는 오류'}</span>
+          )}
+          {!isRecording && sttStatusType === 'failed' && (
             <button
               type="button"
               onClick={handleRetryStt}

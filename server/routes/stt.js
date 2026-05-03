@@ -20,6 +20,7 @@ const MAX_AUTORETRY = 2
 
 let tablesReadyPromise = null
 let workerTicking = false
+let sttActorUserId = ''
 
 const configPath = path.join(__dirname, '../../config.json')
 let config = {}
@@ -32,7 +33,8 @@ const STORAGE_BASE = getDatabasePath(config, 'ObjectFile Path')
 const STT_SCRIPT = path.resolve(__dirname, '../stt_infer.py')
 
 function sttLog(message, meta = {}) {
-  const base = Object.entries(meta)
+  const mergedMeta = { ...(sttActorUserId ? { actorUserId: sttActorUserId } : {}), ...meta }
+  const base = Object.entries(mergedMeta)
     .filter(([, v]) => v !== undefined && v !== null && v !== '')
     .map(([k, v]) => `${k}=${String(v)}`)
     .join(' ')
@@ -40,7 +42,8 @@ function sttLog(message, meta = {}) {
 }
 
 function sttError(message, meta = {}) {
-  const base = Object.entries(meta)
+  const mergedMeta = { ...(sttActorUserId ? { actorUserId: sttActorUserId } : {}), ...meta }
+  const base = Object.entries(mergedMeta)
     .filter(([, v]) => v !== undefined && v !== null && v !== '')
     .map(([k, v]) => `${k}=${String(v)}`)
     .join(' ')
@@ -225,13 +228,31 @@ function renderSttBlock({ jobId, status, progress = 0, transcript = '', summary 
   }
   const safeTranscript = sanitizeTranscriptText(transcript || '')
   const safeSummary = sanitizeTranscriptText(summary || '')
-  const forceBreaks = (text) => (
-    String(text || '')
-      .split('\n')
-      .map((line) => line || ' ')
-      .join('  \n')
-  )
-  return `${head}\n\n## STT 상태\n완료\n\n## 회의록 요약\n날짜: ${nowKst} (KST)\n참석자: SPEAKER_01, SPEAKER_00\n\n### 📌 안건\n\n### ✅ 결정사항\n\n### 📝 액션 아이템\n\n### 회의 요약\n${forceBreaks(safeSummary || '(요약 없음)')}\n\n### 전사문\n${forceBreaks(safeTranscript || '(전사문 없음)')}\n\n${tail}`
+  const sections = parseMeetingSummarySections(safeSummary, safeTranscript)
+  return `${head}
+
+## STT 상태
+완료
+
+## 회의 목적
+${sections.purpose || '(내용 없음)'}
+
+## 안건
+${sections.agenda || '(내용 없음)'}
+
+## 결정사항
+${sections.decisions || '(내용 없음)'}
+
+## 액션 아이템
+${sections.actions || '(내용 없음)'}
+
+## 회의록 요약
+${sections.recap || '(요약 없음)'}
+
+## 전사문
+${safeTranscript || '(전사문 없음)'}
+
+${tail}`
 }
 
 function upsertSttBlock(content = '', blockText = '') {
@@ -511,6 +532,94 @@ function sanitizeTranscriptText(input = '') {
     .trim()
 }
 
+function parseMeetingSummarySections(summaryText = '', transcriptText = '') {
+  const summary = String(summaryText || '')
+  const transcript = String(transcriptText || '')
+
+  const cleaned = summary
+    .replace(/```[\s\S]*?```/g, ' ')
+    .replace(/\r/g, '')
+    .replace(/##\s*회의록\s*요약/g, '')
+    .replace(/\*\*회의\s*목적\*\*/g, '회의 목적')
+    .replace(/\*\*안건\*\*/g, '안건')
+    .replace(/\*\*결정사항\*\*/g, '결정사항')
+    .replace(/\*\*액션\s*아이템\*\*/g, '액션 아이템')
+    .replace(/[ \t]+\n/g, '\n')
+    .trim()
+
+  const sectionMatchers = [
+    { key: 'purpose', re: /^(?:#{1,6}\s*)?(?:[-*]\s*)?(?:회의\s*목적|목적)\s*:?\s*$/i },
+    { key: 'agenda', re: /^(?:#{1,6}\s*)?(?:[-*]\s*)?(?:📌\s*)?(?:안건|논의\s*사항|discussion\s*points?)\s*:?\s*$/i },
+    { key: 'decisions', re: /^(?:#{1,6}\s*)?(?:[-*]\s*)?(?:✅\s*)?(?:결정\s*사항|결정사항|decisions?)\s*:?\s*$/i },
+    { key: 'actions', re: /^(?:#{1,6}\s*)?(?:[-*]\s*)?(?:📝\s*)?(?:액션\s*아이템|action\s*items?|후속\s*조치)\s*:?\s*$/i },
+    { key: 'recap', re: /^(?:#{1,6}\s*)?(?:[-*]\s*)?(?:회의록\s*요약|회의\s*요약|요약|summary)\s*:?\s*$/i },
+  ]
+  const keyByLine = (line) => {
+    const trimmed = String(line || '').trim()
+    const found = sectionMatchers.find((m) => m.re.test(trimmed))
+    return found ? found.key : null
+  }
+
+  const buckets = { purpose: [], agenda: [], decisions: [], actions: [], recap: [] }
+  let current = 'recap'
+  for (const rawLine of cleaned.split('\n')) {
+    const line = String(rawLine || '').trim()
+    if (!line) {
+      if (buckets[current].length && buckets[current][buckets[current].length - 1] !== '') {
+        buckets[current].push('')
+      }
+      continue
+    }
+    const nextKey = keyByLine(line)
+    if (nextKey) {
+      current = nextKey
+      continue
+    }
+    if (/^##\s*전사문$/i.test(line)) break
+    buckets[current].push(line)
+  }
+
+  const normalizeBlock = (lines = []) => String(lines.join('\n'))
+    .replace(/\n{3,}/g, '\n\n')
+    .trim()
+
+  const removeTranscriptLeak = (text = '') => {
+    let out = String(text || '')
+    if (!out) return out
+    if (transcript) {
+      const tLines = transcript.split('\n').map((v) => v.trim()).filter(Boolean)
+      const sample = tLines.slice(0, 12)
+      for (const line of sample) {
+        if (line.length < 20) continue
+        out = out.split(line).join('')
+      }
+    }
+    return out
+      .replace(/\[SPEAKER_[0-9]+\].*/g, '')
+      .replace(/\n{3,}/g, '\n\n')
+      .trim()
+  }
+
+  const result = {
+    purpose: normalizeBlock(buckets.purpose),
+    agenda: normalizeBlock(buckets.agenda),
+    decisions: normalizeBlock(buckets.decisions),
+    actions: normalizeBlock(buckets.actions),
+    recap: normalizeBlock(buckets.recap),
+  }
+
+  result.purpose = removeTranscriptLeak(result.purpose)
+  result.agenda = removeTranscriptLeak(result.agenda)
+  result.decisions = removeTranscriptLeak(result.decisions)
+  result.actions = removeTranscriptLeak(result.actions)
+  result.recap = removeTranscriptLeak(result.recap)
+
+  if (!result.purpose && !result.agenda && !result.decisions && !result.actions && !result.recap && cleaned) {
+    result.recap = cleaned
+  }
+  return result
+}
+
 async function queueWorkerTick() {
   if (workerTicking) return
   workerTicking = true
@@ -525,6 +634,7 @@ async function queueWorkerTick() {
     )
     if (next.rowCount === 0) return
     const job = next.rows[0]
+    sttActorUserId = String(job.created_by || '')
     sttLog('job dequeued', {
       jobId: job.id,
       postId: job.post_id,
@@ -701,6 +811,7 @@ async function queueWorkerTick() {
   } catch (err) {
     sttError('worker unexpected error', { error: err?.message || err })
   } finally {
+    sttActorUserId = ''
     workerTicking = false
     setTimeout(() => {
       queueWorkerTick().catch(() => {})
@@ -710,6 +821,7 @@ async function queueWorkerTick() {
 
 router.post('/speaker-mappings', requireAuth, async (req, res, next) => {
   try {
+    sttActorUserId = String(req.user?.id || '')
     await ensureTables()
     const { channelId, speakerLabel, userId = null, displayName = '', confidence = 0.9 } = req.body || {}
     sttLog('speaker mapping upsert requested', { actorUserId: req.user?.id, channelId, speakerLabel, userId, displayName, confidence })
@@ -736,11 +848,14 @@ router.post('/speaker-mappings', requireAuth, async (req, res, next) => {
   } catch (err) {
     sttError('speaker mapping upsert failed', { error: err?.message || err })
     next(err)
+  } finally {
+    sttActorUserId = ''
   }
 })
 
 router.get('/speaker-mappings', requireAuth, async (req, res, next) => {
   try {
+    sttActorUserId = String(req.user?.id || '')
     await ensureTables()
     const channelId = String(req.query.channelId || '')
     sttLog('speaker mapping list requested', { actorUserId: req.user?.id, channelId })
@@ -761,11 +876,14 @@ router.get('/speaker-mappings', requireAuth, async (req, res, next) => {
   } catch (err) {
     sttError('speaker mapping list failed', { error: err?.message || err })
     next(err)
+  } finally {
+    sttActorUserId = ''
   }
 })
 
 router.delete('/speaker-mappings', requireAuth, async (req, res, next) => {
   try {
+    sttActorUserId = String(req.user?.id || '')
     await ensureTables()
     const { channelId, speakerLabel } = req.body || {}
     sttLog('speaker mapping delete requested', { actorUserId: req.user?.id, channelId, speakerLabel })
@@ -784,11 +902,14 @@ router.delete('/speaker-mappings', requireAuth, async (req, res, next) => {
   } catch (err) {
     sttError('speaker mapping delete failed', { error: err?.message || err })
     next(err)
+  } finally {
+    sttActorUserId = ''
   }
 })
 
 router.post('/jobs', requireAuth, async (req, res, next) => {
   try {
+    sttActorUserId = String(req.user?.id || '')
     await ensureTables()
 
     const { postId, attachmentId, options = {} } = req.body || {}
@@ -892,11 +1013,14 @@ router.post('/jobs', requireAuth, async (req, res, next) => {
   } catch (err) {
     sttError('job create failed', { error: err?.message || err })
     next(err)
+  } finally {
+    sttActorUserId = ''
   }
 })
 
 router.get('/jobs/:id', requireAuth, async (req, res, next) => {
   try {
+    sttActorUserId = String(req.user?.id || '')
     await ensureTables()
     const { id } = req.params
     sttLog('job status requested', { actorUserId: req.user?.id, jobId: id })
@@ -922,11 +1046,14 @@ router.get('/jobs/:id', requireAuth, async (req, res, next) => {
   } catch (err) {
     sttError('job status failed', { error: err?.message || err })
     next(err)
+  } finally {
+    sttActorUserId = ''
   }
 })
 
 router.post('/jobs/:id/retry', requireAuth, async (req, res, next) => {
   try {
+    sttActorUserId = String(req.user?.id || '')
     await ensureTables()
     const { id } = req.params
     sttLog('job retry requested', { actorUserId: req.user?.id, jobId: id })
@@ -960,6 +1087,8 @@ router.post('/jobs/:id/retry', requireAuth, async (req, res, next) => {
   } catch (err) {
     sttError('job retry failed', { error: err?.message || err })
     next(err)
+  } finally {
+    sttActorUserId = ''
   }
 })
 
