@@ -131,7 +131,12 @@ def generate_diarization_rttm(
     out_path = output_rttm_path or os.path.join(input_dir, f"{input_stem}.rttm")
     out_uri = uri or input_stem
 
-    device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
+    if torch.cuda.is_available():
+        device = torch.device("cuda")
+    elif torch.backends.mps.is_available():
+        device = torch.device("mps")
+    else:
+        device = torch.device("cpu")
     if debug:
       LOGGER.debug("화자분리 시작 | audio=%s device=%s out=%s", audio_path, device, out_path)
 
@@ -283,7 +288,12 @@ def main():
         with tqdm(total=len(STEPS), unit="step", dynamic_ncols=True) as progress_bar:
             # 1. GPU(MPS) 사용 가능 여부 확인
             progress_bar.set_description(f"1/{len(STEPS)} {STEPS[0]}")
-            device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
+            if torch.cuda.is_available():
+                device = torch.device("cuda")
+            elif torch.backends.mps.is_available():
+                device = torch.device("mps")
+            else:
+                device = torch.device("cpu")
             progress_bar.update(1)
             progress_bar.write(f"사용 중인 장치: {device}")
             LOGGER.info("단계 1 완료 | device=%s", device)

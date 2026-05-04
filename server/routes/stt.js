@@ -569,6 +569,42 @@ async function autoMatchSpeakersByEmbedding(channelId, segments, newEmbeddings) 
   }
 }
 
+async function notifySttToTelegram(job, { status, title = '', errorMessage = '' }) {
+  try {
+    const cfg = JSON.parse(fs.readFileSync(configPath, 'utf8'))
+    const telegramCfg = cfg?.sns?.telegram || {}
+    if (!telegramCfg.enabled) return
+    const botToken = String(telegramCfg.httpApiToken || '').trim()
+    if (!botToken) return
+
+    const userRow = await db.query(
+      `SELECT telegram_id, use_sns_channel FROM users WHERE id = $1`,
+      [String(job.created_by || '')],
+    )
+    const u = userRow.rows?.[0]
+    if (!u) return
+    if (String(u.use_sns_channel || '').trim() !== 'telegram') return
+    const chatId = String(u.telegram_id || '').trim()
+    if (!/^-?[0-9]+$/.test(chatId)) return
+
+    const chRow = await db.query(`SELECT name FROM channels WHERE id = $1`, [job.channel_id])
+    const channelName = chRow.rows?.[0]?.name || job.channel_id
+
+    const text = status === 'done'
+      ? `✅ AI 회의록 처리 완료\n채널: ${channelName}${title ? `\n제목: ${title}` : ''}`
+      : `❌ AI 회의록 처리 실패\n채널: ${channelName}${errorMessage ? `\n사유: ${errorMessage}` : ''}`
+
+    await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: chatId, text }),
+    })
+    sttLog('telegram notification sent', { jobId: job.id, status, chatId: chatId.slice(0, 3) + '***' })
+  } catch (e) {
+    sttLog('telegram notification error', { jobId: job.id, error: String(e?.message || e).slice(0, 100) })
+  }
+}
+
 function mergeMappedTranscript(segments = []) {
   return segments
     .map((seg) => {
@@ -862,6 +898,7 @@ async function queueWorkerTick() {
         completed_at: new Date(),
       })
       await applyScopedPatch(job, { status: 'failed', error: message })
+      notifySttToTelegram(job, { status: 'failed', errorMessage: message }).catch(() => {})
       return
     }
 
@@ -962,6 +999,7 @@ async function queueWorkerTick() {
         ).catch(() => {})
         sttLog('auto title set', { jobId: job.id, title: autoTitle })
       }
+      notifySttToTelegram(job, { status: 'done', title: autoTitle }).catch(() => {})
 
       // 2) 오디오 첨부 → attachment_refs 등록 (삭제 보호 연동)
       if (job.attachment_id && job.post_id) {
