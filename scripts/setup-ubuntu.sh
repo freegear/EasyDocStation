@@ -27,7 +27,7 @@ echo "[1/8] Ubuntu 패키지 설치"
 sudo apt-get update -y
 sudo DEBIAN_FRONTEND=noninteractive apt-get install -y \
   curl ca-certificates gnupg lsb-release software-properties-common \
-  python3-full python3-venv python3-pip build-essential pkg-config libpq-dev \
+  python3-full python3-venv python3-pip python3-dev build-essential pkg-config libpq-dev \
   libsndfile1 \
   postgresql postgresql-contrib \
   cups cups-client printer-driver-cups-pdf \
