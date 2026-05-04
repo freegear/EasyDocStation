@@ -12,6 +12,7 @@ import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import ChannelManageModal from './ChannelManageModal'
 import ConfirmDialog from './ConfirmDialog'
+import SpeakerRegistrationModal from './SpeakerRegistrationModal'
 import PostDetailPane from './chat/PostDetailPane'
 import MDPageViewer from './chat/MDPageViewer'
 import { useT } from '../i18n/useT'
@@ -1672,6 +1673,11 @@ function ContentRenderer({ text = '', sttPostId = '', sttChannelId = '' }) {
   const [sttStatusType, setSttStatusType] = useState('idle') // idle | processing | done | failed
   const [sttErrorReason, setSttErrorReason] = useState('')
   const [isBlinkOn, setIsBlinkOn] = useState(true)
+  const [showSpeakerModal, setShowSpeakerModal] = useState(false)
+  const [showCorrectionModal, setShowCorrectionModal] = useState(false)
+  const [correctionSegments, setCorrectionSegments] = useState([])
+  const [correctionLoading, setCorrectionLoading] = useState(false)
+  const [featureFlags, setFeatureFlags] = useState({ USE_SPEAKER_REGISTRATION: true, USE_SPEAKER_CORRECTION: true })
   const mediaRecorderRef = useRef(null)
   const mediaStreamRef = useRef(null)
   const sttFileInputRef = useRef(null)
@@ -1687,6 +1693,12 @@ function ContentRenderer({ text = '', sttPostId = '', sttChannelId = '' }) {
       .replace('[새회의록작성]', '')
   )
   const links = extractHttpUrls(text || '')
+
+  useEffect(() => {
+    apiFetch('/ai/stt/feature-flags').then((f) => {
+      if (f && typeof f === 'object') setFeatureFlags(f)
+    }).catch(() => {})
+  }, [])
 
   useEffect(() => {
     return () => {
@@ -1996,6 +2008,33 @@ function ContentRenderer({ text = '', sttPostId = '', sttChannelId = '' }) {
     }
   }
 
+  async function handleOpenCorrection() {
+    const jobId = sttJobIdRef.current
+    if (!jobId) return
+    setCorrectionLoading(true)
+    setShowCorrectionModal(true)
+    try {
+      const segs = await apiFetch(`/ai/stt/jobs/${jobId}/segments`)
+      setCorrectionSegments(Array.isArray(segs) ? segs : [])
+    } catch (_) {
+      setCorrectionSegments([])
+    } finally {
+      setCorrectionLoading(false)
+    }
+  }
+
+  async function handleCorrectionSave(segId, speakerName) {
+    try {
+      await apiFetch(`/ai/stt/segments/${segId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ speakerName }),
+      })
+      setCorrectionSegments((prev) =>
+        prev.map((s) => (s.id === segId ? { ...s, speaker_name: speakerName } : s)),
+      )
+    } catch (_) {}
+  }
+
   return (
     <div
       className="text-gray-700 text-sm leading-relaxed break-words select-text allow-copy cursor-text"
@@ -2066,7 +2105,46 @@ function ContentRenderer({ text = '', sttPostId = '', sttChannelId = '' }) {
               재시도
             </button>
           )}
+          {/* Stage 2: 화자 등록 관리 버튼 */}
+          {featureFlags.USE_SPEAKER_REGISTRATION && sttChannelId && (
+            <button
+              type="button"
+              onClick={() => setShowSpeakerModal(true)}
+              className="px-2 py-1 rounded-md text-[11px] font-semibold border border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100"
+            >
+              화자 관리
+            </button>
+          )}
+          {/* Stage 3: 화자 수동 보정 버튼 (완료 시에만 표시) */}
+          {featureFlags.USE_SPEAKER_CORRECTION && sttStatusType === 'done' && (
+            <button
+              type="button"
+              onClick={handleOpenCorrection}
+              className="px-2 py-1 rounded-md text-[11px] font-semibold border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
+            >
+              화자 보정
+            </button>
+          )}
         </div>
+      )}
+
+      {/* 화자 등록 관리 모달 */}
+      {showSpeakerModal && (
+        <SpeakerRegistrationModal
+          channelId={sttChannelId}
+          jobId={sttJobIdRef.current || null}
+          onClose={() => setShowSpeakerModal(false)}
+        />
+      )}
+
+      {/* 화자 보정 모달 */}
+      {showCorrectionModal && (
+        <SpeakerCorrectionModal
+          segments={correctionSegments}
+          loading={correctionLoading}
+          onSave={handleCorrectionSave}
+          onClose={() => setShowCorrectionModal(false)}
+        />
       )}
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
@@ -2106,6 +2184,75 @@ function ContentRenderer({ text = '', sttPostId = '', sttChannelId = '' }) {
         {normalized}
       </ReactMarkdown>
       <LinkPreviewCards links={links} />
+    </div>
+  )
+}
+
+function SpeakerCorrectionModal({ segments, loading, onSave, onClose }) {
+  const [editId, setEditId] = useState(null)
+  const [editValue, setEditValue] = useState('')
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl mx-4 flex flex-col max-h-[80vh]">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+          <div>
+            <h2 className="text-gray-900 font-bold text-base">화자 보정</h2>
+            <p className="text-gray-400 text-xs mt-0.5">각 세그먼트의 화자 이름을 수정할 수 있습니다</p>
+          </div>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl leading-none">×</button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto px-6 py-4 space-y-1.5">
+          {loading && <p className="text-center text-gray-400 text-sm py-8">불러오는 중...</p>}
+          {!loading && segments.length === 0 && (
+            <p className="text-center text-gray-400 text-sm py-8">세그먼트 데이터가 없습니다.</p>
+          )}
+          {segments.map((seg) => (
+            <div key={seg.id} className="flex items-start gap-2 p-2.5 rounded-xl border border-gray-100 bg-gray-50 text-sm">
+              <span className="text-[10px] text-gray-400 font-mono w-16 flex-shrink-0 pt-0.5">
+                {String(Math.floor(seg.start_sec / 60)).padStart(2, '0')}:{String(Math.round(seg.start_sec % 60)).padStart(2, '0')}
+              </span>
+              {editId === seg.id ? (
+                <div className="flex items-center gap-1.5 flex-shrink-0">
+                  <input
+                    className="border border-gray-200 rounded-lg px-2 py-0.5 text-xs w-28 focus:outline-none focus:border-sky-400"
+                    value={editValue}
+                    onChange={(e) => setEditValue(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') { onSave(seg.id, editValue); setEditId(null) }
+                      if (e.key === 'Escape') setEditId(null)
+                    }}
+                    autoFocus
+                  />
+                  <button
+                    onClick={() => { onSave(seg.id, editValue); setEditId(null) }}
+                    className="text-[10px] px-2 py-0.5 rounded bg-sky-600 text-white hover:bg-sky-700"
+                  >확인</button>
+                  <button onClick={() => setEditId(null)} className="text-[10px] text-gray-400 hover:text-gray-600">취소</button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => { setEditId(seg.id); setEditValue(seg.speaker_name || seg.speaker_label || '') }}
+                  className="text-[11px] font-semibold text-indigo-600 bg-indigo-50 border border-indigo-100 px-2 py-0.5 rounded-md flex-shrink-0 hover:bg-indigo-100"
+                >
+                  {seg.speaker_name || seg.speaker_label || 'SPEAKER'}
+                </button>
+              )}
+              <span className="text-gray-700 text-xs leading-relaxed flex-1">{seg.text}</span>
+            </div>
+          ))}
+        </div>
+
+        <div className="px-6 py-4 border-t border-gray-100 flex justify-end">
+          <button
+            onClick={onClose}
+            className="px-4 py-1.5 rounded-xl text-xs font-semibold border border-gray-200 text-gray-600 hover:bg-gray-100"
+          >
+            닫기
+          </button>
+        </div>
+      </div>
     </div>
   )
 }

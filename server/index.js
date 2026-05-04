@@ -121,6 +121,8 @@ app.use('/api/trip', tripRouter)
 app.use('/api/dm', dmRouter)
 app.use('/api/sns', snsRouter)
 
+app.get('/api/health', (_req, res) => res.json({ ok: true }))
+
 // 공용 설정 API (관리자 설정값 조회용)
 app.get('/api/config/version', (req, res) => {
   try {

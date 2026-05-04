@@ -153,6 +153,10 @@ function readSupabaseEnvSnapshot() {
     vite_supabase_url: map.VITE_SUPABASE_URL || '',
     vite_supabase_anon_key: map.VITE_SUPABASE_ANON_KEY || '',
     hf_token: map.HF_TOKEN || '',
+    use_speaker_registration: map.USE_SPEAKER_REGISTRATION ?? '1',
+    use_voice_embedding: map.USE_VOICE_EMBEDDING ?? '0',
+    use_speaker_correction: map.USE_SPEAKER_CORRECTION ?? '1',
+    use_custom_model: map.USE_CUSTOM_MODEL ?? '0',
   }
 }
 
@@ -179,7 +183,15 @@ function writeSttEnvFromPayload(payload = {}, { backup = false } = {}) {
   }
 
   const hfToken = String(payload.HF_TOKEN || '').trim()
-  const updated = upsertEnvLine(envText, 'HF_TOKEN', hfToken)
+  let updated = upsertEnvLine(envText, 'HF_TOKEN', hfToken)
+
+  const FLAG_KEYS = ['USE_SPEAKER_REGISTRATION', 'USE_VOICE_EMBEDDING', 'USE_SPEAKER_CORRECTION', 'USE_CUSTOM_MODEL']
+  for (const key of FLAG_KEYS) {
+    if (key in payload) {
+      updated = upsertEnvLine(updated, key, String(payload[key]))
+    }
+  }
+
   fs.writeFileSync(envPath, updated, 'utf8')
 
   return {

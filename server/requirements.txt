@@ -16,3 +16,4 @@ pyarrow
 docx2txt
 unstructured[pdf]
 pytesseract
+resemblyzer

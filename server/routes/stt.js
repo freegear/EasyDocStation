@@ -10,6 +10,7 @@ const { client, isConnected } = require('../cassandra')
 const { canAccessChannel, ACCESS_DENIED_MESSAGE } = require('../lib/channelAccess')
 const { getDatabasePath } = require('../databasePaths')
 const { getPythonExecutable } = require('../pythonRuntime')
+const flags = require('../sttFeatureFlags')
 
 const router = express.Router()
 
@@ -151,6 +152,9 @@ async function ensureTables() {
           UNIQUE (channel_id, speaker_label)
         )
       `)
+      // Schema migrations: add new columns if not yet present
+      await db.query(`ALTER TABLE stt_speaker_mappings ADD COLUMN IF NOT EXISTS voice_embedding_json TEXT`)
+      await db.query(`ALTER TABLE stt_summaries ADD COLUMN IF NOT EXISTS speaker_embeddings_json TEXT`)
     })()
   }
   return tablesReadyPromise
@@ -488,6 +492,57 @@ async function applySpeakerMapping(channelId, segments = []) {
   })
 }
 
+function cosineSimilarity(a, b) {
+  if (!Array.isArray(a) || !Array.isArray(b) || a.length !== b.length) return 0
+  let dot = 0, normA = 0, normB = 0
+  for (let i = 0; i < a.length; i++) {
+    dot += a[i] * b[i]
+    normA += a[i] * a[i]
+    normB += b[i] * b[i]
+  }
+  const denom = Math.sqrt(normA) * Math.sqrt(normB)
+  return denom > 0 ? dot / denom : 0
+}
+
+async function autoMatchSpeakersByEmbedding(channelId, segments, newEmbeddings) {
+  if (!flags.USE_VOICE_EMBEDDING) return segments
+  if (!newEmbeddings || !Object.keys(newEmbeddings).length) return segments
+  try {
+    const rows = await db.query(
+      `SELECT speaker_label, display_name, voice_embedding_json
+       FROM stt_speaker_mappings
+       WHERE channel_id = $1 AND voice_embedding_json IS NOT NULL AND display_name IS NOT NULL`,
+      [channelId],
+    )
+    if (!rows.rows.length) return segments
+
+    const stored = rows.rows
+      .map((r) => {
+        try { return { label: r.speaker_label, name: r.display_name, emb: JSON.parse(r.voice_embedding_json) } }
+        catch (_) { return null }
+      })
+      .filter(Boolean)
+
+    const THRESHOLD = 0.82
+    const matches = {}
+    for (const [newLabel, newEmb] of Object.entries(newEmbeddings)) {
+      let bestSim = 0, bestName = null
+      for (const s of stored) {
+        const sim = cosineSimilarity(newEmb, s.emb)
+        if (sim > bestSim) { bestSim = sim; bestName = s.name }
+      }
+      if (bestSim >= THRESHOLD && bestName) matches[newLabel] = bestName
+    }
+
+    return segments.map((seg) => ({
+      ...seg,
+      speaker_name: seg.speaker_name || matches[seg.speaker_label] || null,
+    }))
+  } catch (_) {
+    return segments
+  }
+}
+
 function mergeMappedTranscript(segments = []) {
   return segments
     .map((seg) => {
@@ -780,7 +835,9 @@ async function queueWorkerTick() {
     sttLog('state update', { jobId: job.id, status: 'processing', progress: 75, stage: 'mapping-merge-summary' })
     await applyScopedPatch(job, { status: 'processing', progress: 75 })
 
-    const mappedSegments = await applySpeakerMapping(job.channel_id, sttResult.segments || [])
+    const speakerEmbeddings = sttResult.speaker_embeddings || {}
+    let mappedSegments = await applySpeakerMapping(job.channel_id, sttResult.segments || [])
+    mappedSegments = await autoMatchSpeakersByEmbedding(job.channel_id, mappedSegments, speakerEmbeddings)
     sttLog('speaker mapping applied', {
       jobId: job.id,
       originalSegments: Array.isArray(sttResult.segments) ? sttResult.segments.length : 0,
@@ -818,16 +875,18 @@ async function queueWorkerTick() {
       summaryLength: summary.length,
     })
 
+    const embeddingsJson = Object.keys(speakerEmbeddings).length ? JSON.stringify(speakerEmbeddings) : null
     await db.query(
-      `INSERT INTO stt_summaries (job_id, full_transcript, meeting_summary, action_items, updated_at)
-       VALUES ($1, $2, $3, $4, NOW())
+      `INSERT INTO stt_summaries (job_id, full_transcript, meeting_summary, action_items, speaker_embeddings_json, updated_at)
+       VALUES ($1, $2, $3, $4, $5, NOW())
        ON CONFLICT (job_id)
        DO UPDATE SET
          full_transcript = EXCLUDED.full_transcript,
          meeting_summary = EXCLUDED.meeting_summary,
          action_items = EXCLUDED.action_items,
+         speaker_embeddings_json = EXCLUDED.speaker_embeddings_json,
          updated_at = NOW()`,
-      [job.id, fullTranscript, summary, '[]'],
+      [job.id, fullTranscript, summary, '[]', embeddingsJson],
     )
     sttLog('summary row upserted', { jobId: job.id })
 
@@ -933,8 +992,8 @@ router.post('/speaker-mappings', requireAuth, async (req, res, next) => {
   try {
     sttActorUserId = String(req.user?.id || '')
     await ensureTables()
-    const { channelId, speakerLabel, userId = null, displayName = '', confidence = 0.9 } = req.body || {}
-    sttLog('speaker mapping upsert requested', { actorUserId: req.user?.id, channelId, speakerLabel, userId, displayName, confidence })
+    const { channelId, speakerLabel, userId = null, displayName = '', confidence = 0.9, jobId = null } = req.body || {}
+    sttLog('speaker mapping upsert requested', { actorUserId: req.user?.id, channelId, speakerLabel, userId, displayName, confidence, jobId })
     if (!channelId || !speakerLabel || !displayName) {
       return res.status(400).json({ error: 'channelId, speakerLabel, displayName은 필수입니다.' })
     }
@@ -942,18 +1001,36 @@ router.post('/speaker-mappings', requireAuth, async (req, res, next) => {
     const allowed = await canAccessChannel(db, req.user, String(channelId))
     if (!allowed) return res.status(403).json({ error: ACCESS_DENIED_MESSAGE })
 
+    // Voice embedding: jobId가 있으면 해당 job의 embedding을 함께 저장
+    let voiceEmbeddingJson = null
+    if (flags.USE_VOICE_EMBEDDING && jobId) {
+      try {
+        const sumRow = await db.query(
+          `SELECT speaker_embeddings_json FROM stt_summaries WHERE job_id = $1`,
+          [String(jobId)],
+        )
+        if (sumRow.rows[0]?.speaker_embeddings_json) {
+          const allEmbs = JSON.parse(sumRow.rows[0].speaker_embeddings_json)
+          if (allEmbs[speakerLabel]) {
+            voiceEmbeddingJson = JSON.stringify(allEmbs[speakerLabel])
+          }
+        }
+      } catch (_) {}
+    }
+
     await db.query(
-      `INSERT INTO stt_speaker_mappings (channel_id, speaker_label, user_id, display_name, confidence, created_by, updated_at)
-       VALUES ($1, $2, $3, $4, $5, $6, NOW())
+      `INSERT INTO stt_speaker_mappings (channel_id, speaker_label, user_id, display_name, confidence, voice_embedding_json, created_by, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
        ON CONFLICT (channel_id, speaker_label)
        DO UPDATE SET user_id = EXCLUDED.user_id,
                      display_name = EXCLUDED.display_name,
                      confidence = EXCLUDED.confidence,
+                     voice_embedding_json = COALESCE(EXCLUDED.voice_embedding_json, stt_speaker_mappings.voice_embedding_json),
                      updated_at = NOW()`,
-      [String(channelId), String(speakerLabel), userId || null, String(displayName), Number(confidence || 0), req.user.id],
+      [String(channelId), String(speakerLabel), userId || null, String(displayName), Number(confidence || 0), voiceEmbeddingJson, req.user.id],
     )
 
-    res.json({ success: true })
+    res.json({ success: true, voiceEmbeddingStored: Boolean(voiceEmbeddingJson) })
     sttLog('speaker mapping upsert completed', { actorUserId: req.user?.id, channelId, speakerLabel })
   } catch (err) {
     sttError('speaker mapping upsert failed', { error: err?.message || err })
@@ -1014,6 +1091,62 @@ router.delete('/speaker-mappings', requireAuth, async (req, res, next) => {
     next(err)
   } finally {
     sttActorUserId = ''
+  }
+})
+
+router.get('/feature-flags', requireAuth, (_req, res) => {
+  res.json(flags)
+})
+
+router.get('/jobs/:id/segments', requireAuth, async (req, res, next) => {
+  try {
+    await ensureTables()
+    const jobId = String(req.params.id || '')
+    if (!jobId) return res.status(400).json({ error: 'jobId가 필요합니다.' })
+
+    const jobRow = await db.query(`SELECT channel_id FROM stt_jobs WHERE id = $1`, [jobId])
+    if (!jobRow.rows[0]) return res.status(404).json({ error: '작업을 찾을 수 없습니다.' })
+
+    const allowed = await canAccessChannel(db, req.user, jobRow.rows[0].channel_id)
+    if (!allowed) return res.status(403).json({ error: ACCESS_DENIED_MESSAGE })
+
+    const rows = await db.query(
+      `SELECT id, segment_index, start_sec, end_sec, speaker_label, speaker_name, text, confidence
+       FROM stt_segments WHERE job_id = $1 ORDER BY segment_index ASC`,
+      [jobId],
+    )
+    res.json(rows.rows || [])
+  } catch (err) {
+    next(err)
+  }
+})
+
+router.patch('/segments/:id', requireAuth, async (req, res, next) => {
+  try {
+    if (!flags.USE_SPEAKER_CORRECTION) return res.status(403).json({ error: '화자 보정 기능이 비활성화되어 있습니다.' })
+    await ensureTables()
+    const segId = String(req.params.id || '')
+    const { speakerName } = req.body || {}
+    if (!segId) return res.status(400).json({ error: 'segmentId가 필요합니다.' })
+
+    const segRow = await db.query(
+      `SELECT s.id, s.job_id, j.channel_id
+       FROM stt_segments s JOIN stt_jobs j ON j.id = s.job_id
+       WHERE s.id = $1`,
+      [segId],
+    )
+    if (!segRow.rows[0]) return res.status(404).json({ error: '세그먼트를 찾을 수 없습니다.' })
+
+    const allowed = await canAccessChannel(db, req.user, segRow.rows[0].channel_id)
+    if (!allowed) return res.status(403).json({ error: ACCESS_DENIED_MESSAGE })
+
+    await db.query(
+      `UPDATE stt_segments SET speaker_name = $1 WHERE id = $2`,
+      [speakerName || null, segId],
+    )
+    res.json({ success: true })
+  } catch (err) {
+    next(err)
   }
 })
 

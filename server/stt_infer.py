@@ -209,6 +209,48 @@ def postprocess_diarization(segments: List[Segment]) -> List[Segment]:
     return normalized
 
 
+def compute_voice_embeddings(audio_path: str, segments: List[Segment]) -> Dict[str, List[float]]:
+    """USE_VOICE_EMBEDDING=1 일 때 resemblyzer로 화자별 평균 임베딩 계산."""
+    if os.getenv("USE_VOICE_EMBEDDING", "0").strip().lower() not in ("1", "true", "yes"):
+        return {}
+    try:
+        from resemblyzer import VoiceEncoder, preprocess_wav
+    except ImportError:
+        emit_event({"event": "log", "stage": "voice_embedding_skip", "reason": "resemblyzer not installed"})
+        return {}
+    try:
+        wav = preprocess_wav(audio_path)
+        encoder = VoiceEncoder()
+        sr = 16000
+
+        speaker_wavs: Dict[str, list] = {}
+        for seg in segments:
+            if (seg.end_sec - seg.start_sec) < 1.0:
+                continue
+            start_s = int(seg.start_sec * sr)
+            end_s = min(int(seg.end_sec * sr), len(wav))
+            if end_s <= start_s:
+                continue
+            speaker_wavs.setdefault(seg.speaker_label, []).append(wav[start_s:end_s])
+
+        embeddings: Dict[str, List[float]] = {}
+        for label, wav_slices in speaker_wavs.items():
+            embeds = []
+            for ws in wav_slices:
+                try:
+                    embeds.append(encoder.embed_utterance(ws))
+                except Exception:
+                    pass
+            if embeds:
+                mean_emb = np.mean(embeds, axis=0)
+                embeddings[label] = mean_emb.tolist()
+
+        return embeddings
+    except Exception as e:
+        emit_event({"event": "log", "stage": "voice_embedding_error", "error": str(e)[:300]})
+        return {}
+
+
 class WhisperSegmentTranscriber:
     def __init__(self, model_name: str = "small"):
         try:
@@ -379,8 +421,16 @@ def main():
         })
         return
 
+    diarized_for_embedding = diarized  # None이면 embedding 생략
     if diarized is None:
         diarized = chunk_segments(duration, chunk_sec=25.0, overlap_sec=2.5)
+
+    # Voice embedding: 실제 diarization 결과가 있을 때만 계산
+    speaker_embeddings: Dict = {}
+    if diarized_for_embedding:
+        speaker_embeddings = compute_voice_embeddings(audio_path, diarized_for_embedding)
+        if speaker_embeddings:
+            emit_event({"event": "log", "stage": "voice_embedding_done", "speaker_count": len(speaker_embeddings)})
 
     whisper_model = str(payload.get("whisperModel") or os.getenv("WHISPER_MODEL") or "large-v3")
     try:
@@ -464,6 +514,7 @@ def main():
         "segments": segments_out,
         "full_transcript": full_transcript,
         "summary": summary,
+        "speaker_embeddings": speaker_embeddings,
         "diarization": {
             "required": diarization_required,
             "enabled": diarization_on,

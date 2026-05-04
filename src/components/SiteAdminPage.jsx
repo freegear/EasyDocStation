@@ -791,6 +791,13 @@ export default function SiteAdminPage({ onClose }) {
   const [sttNewUserId, setSttNewUserId] = useState('')
   const [sttMessage, setSttMessage] = useState('')
   const [sttHfToken, setSttHfToken] = useState('')
+  const [sttUseSpeakerRegistration, setSttUseSpeakerRegistration] = useState(true)
+  const [sttUseVoiceEmbedding, setSttUseVoiceEmbedding] = useState(false)
+  const [sttUseSpeakerCorrection, setSttUseSpeakerCorrection] = useState(true)
+  const [sttUseCustomModel, setSttUseCustomModel] = useState(false)
+  const [sttRestartCountdown, setSttRestartCountdown] = useState(-1)
+  const sttRestartTimerRef = useRef(null)
+  const sttPollTimerRef = useRef(null)
 
   async function loadTeams() {
     try {
@@ -990,6 +997,10 @@ export default function SiteAdminPage({ onClose }) {
       setViteSupabaseUrl(String(data.vite_supabase_url || ''))
       setViteSupabaseAnonKey(String(data.vite_supabase_anon_key || ''))
       setSttHfToken(String(data.hf_token || ''))
+      setSttUseSpeakerRegistration(String(data.use_speaker_registration ?? '1') !== '0')
+      setSttUseVoiceEmbedding(String(data.use_voice_embedding ?? '0') === '1')
+      setSttUseSpeakerCorrection(String(data.use_speaker_correction ?? '1') !== '0')
+      setSttUseCustomModel(String(data.use_custom_model ?? '0') === '1')
       if (data.sns) {
         setSnsForm({
           kakao: {
@@ -1015,6 +1026,56 @@ export default function SiteAdminPage({ onClose }) {
     }
   }
 
+  function startSttRestartPoll() {
+    let attempts = 0
+    const MAX_ATTEMPTS = 40 // 40 × 3s = 2분
+    sttPollTimerRef.current = setInterval(async () => {
+      attempts += 1
+      try {
+        await apiFetch('/health')
+        clearInterval(sttPollTimerRef.current)
+        sttPollTimerRef.current = null
+        window.location.reload()
+      } catch (_) {
+        if (attempts >= MAX_ATTEMPTS) {
+          clearInterval(sttPollTimerRef.current)
+          sttPollTimerRef.current = null
+          setSttMessage('서버가 응답하지 않습니다. 수동으로 새로고침 해주세요.')
+          setSttRestartCountdown(-1)
+        }
+      }
+    }, 3000)
+  }
+
+  function startSttCountdown(onComplete) {
+    setSttRestartCountdown(5)
+    let remaining = 5
+    sttRestartTimerRef.current = setInterval(() => {
+      remaining -= 1
+      setSttRestartCountdown(remaining)
+      if (remaining <= 0) {
+        clearInterval(sttRestartTimerRef.current)
+        sttRestartTimerRef.current = null
+        onComplete()
+      }
+    }, 1000)
+  }
+
+  function cancelSttCountdown() {
+    clearInterval(sttRestartTimerRef.current)
+    sttRestartTimerRef.current = null
+    setSttRestartCountdown(-1)
+    setSttMessage('재시작이 취소되었습니다. 변경사항은 저장되었으나 서버 재시작 전까지 반영되지 않습니다.')
+  }
+
+  async function doSttRestart() {
+    setSttRestartCountdown(0)
+    try {
+      await apiFetch('/admin/restart', { method: 'POST' })
+    } catch (_) {}
+    startSttRestartPoll()
+  }
+
   async function handleSaveSttSettings() {
     setSttSaving(true)
     setSttMessage('')
@@ -1023,9 +1084,13 @@ export default function SiteAdminPage({ onClose }) {
         method: 'PUT',
         body: JSON.stringify({
           HF_TOKEN: String(sttHfToken || '').trim(),
+          USE_SPEAKER_REGISTRATION: sttUseSpeakerRegistration ? '1' : '0',
+          USE_VOICE_EMBEDDING: sttUseVoiceEmbedding ? '1' : '0',
+          USE_SPEAKER_CORRECTION: sttUseSpeakerCorrection ? '1' : '0',
+          USE_CUSTOM_MODEL: sttUseCustomModel ? '1' : '0',
         }),
       })
-      setSttMessage('저장되었습니다. server/.env에 HF_TOKEN이 반영되었습니다. 서버 재시작이 필요합니다.')
+      startSttCountdown(doSttRestart)
     } catch (err) {
       setSttMessage(`저장 실패: ${err.message}`)
     } finally {
@@ -1772,8 +1837,11 @@ export default function SiteAdminPage({ onClose }) {
               <h2 className="text-gray-900 font-bold text-lg">STT 설정</h2>
             </div>
 
-            <div className="bg-gray-100 border border-gray-200 rounded-2xl p-6 space-y-4">
+            {/* HF Token */}
+            <div className="bg-gray-100 border border-gray-200 rounded-2xl p-6 space-y-3">
               <div>
+                <h3 className="text-gray-800 font-semibold text-sm mb-1">Hugging Face 토큰</h3>
+                <p className="text-gray-400 text-xs mb-3">화자 분리(pyannote) 모델 사용에 필요합니다.</p>
                 <label className="block text-gray-500 text-xs font-medium mb-1.5">HF_TOKEN</label>
                 <input
                   type="text"
@@ -1783,15 +1851,49 @@ export default function SiteAdminPage({ onClose }) {
                   className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-gray-900 text-sm focus:outline-none focus:border-indigo-300"
                 />
               </div>
+            </div>
+
+            {/* Feature Flag Toggles */}
+            <div className="bg-gray-100 border border-gray-200 rounded-2xl p-6 space-y-4">
               <div>
-                <button
-                  onClick={handleSaveSttSettings}
-                  disabled={sttSaving}
-                  className="px-4 py-2.5 rounded-xl bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-500 disabled:opacity-50"
-                >
-                  {sttSaving ? '저장중...' : '저장'}
-                </button>
+                <h3 className="text-gray-800 font-semibold text-sm mb-1">STT 화자 인식 개선 기능</h3>
+                <p className="text-gray-400 text-xs">변경 후 저장하면 서버가 자동으로 재시작됩니다.</p>
               </div>
+
+              {[
+                { key: 'USE_SPEAKER_REGISTRATION', label: '참여자 사전 등록 UI', desc: '화자 레이블에 이름을 미리 등록하는 UI 활성화', value: sttUseSpeakerRegistration, set: setSttUseSpeakerRegistration },
+                { key: 'USE_VOICE_EMBEDDING', label: 'Voice Embedding 화자 매칭', desc: 'resemblyzer로 음성 임베딩을 추출해 화자를 자동 인식 (처리 시간 20-30% 증가)', value: sttUseVoiceEmbedding, set: setSttUseVoiceEmbedding },
+                { key: 'USE_SPEAKER_CORRECTION', label: '수동 보정 UI', desc: 'STT 완료 후 화자 이름을 세그먼트 단위로 수정하는 UI 활성화', value: sttUseSpeakerCorrection, set: setSttUseSpeakerCorrection },
+                { key: 'USE_CUSTOM_MODEL', label: '커스텀 Diarization 모델', desc: 'MODEL_PATH 환경변수로 지정한 커스텀 모델 사용 (기본: pyannote/speaker-diarization-3.1)', value: sttUseCustomModel, set: setSttUseCustomModel },
+              ].map(({ key, label, desc, value, set }) => (
+                <div key={key} className="flex items-center justify-between gap-4 py-3 border-b border-gray-200 last:border-0">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-gray-800 text-sm font-medium">{label}</span>
+                      <span className="text-[10px] font-mono text-gray-400 bg-gray-200 px-1.5 py-0.5 rounded">{key}</span>
+                    </div>
+                    <p className="text-gray-400 text-xs mt-0.5">{desc}</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => set((v) => !v)}
+                    className={`relative flex-shrink-0 w-11 h-6 rounded-full transition-colors ${value ? 'bg-indigo-600' : 'bg-gray-300'}`}
+                  >
+                    <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${value ? 'translate-x-5' : 'translate-x-0'}`} />
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            {/* Save Button */}
+            <div className="flex items-center gap-4">
+              <button
+                onClick={handleSaveSttSettings}
+                disabled={sttSaving}
+                className="px-6 py-2.5 rounded-xl bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-500 disabled:opacity-50"
+              >
+                {sttSaving ? '저장중...' : '저장'}
+              </button>
               {sttMessage && <p className="text-xs text-gray-500">{sttMessage}</p>}
             </div>
           </div>
@@ -3490,6 +3592,32 @@ export default function SiteAdminPage({ onClose }) {
           onCancel={() => setShowRagResetConfirm(false)}
         />
       )}
+      {sttRestartCountdown >= 0 && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm mx-4 p-8 flex flex-col items-center gap-4">
+            <div className="w-14 h-14 rounded-full bg-amber-50 border-2 border-amber-300 flex items-center justify-center text-2xl font-bold text-amber-600">
+              {sttRestartCountdown > 0 ? sttRestartCountdown : '⟳'}
+            </div>
+            <div className="text-center">
+              <h3 className="text-gray-900 font-bold text-base mb-1">시스템을 재시작합니다</h3>
+              {sttRestartCountdown > 0 ? (
+                <p className="text-gray-500 text-sm">{sttRestartCountdown}초 후 자동으로 재시작됩니다.</p>
+              ) : (
+                <p className="text-gray-500 text-sm">재시작 중... 잠시 기다려 주세요.</p>
+              )}
+            </div>
+            {sttRestartCountdown > 0 && (
+              <button
+                onClick={cancelSttCountdown}
+                className="px-5 py-2 rounded-xl border border-gray-200 text-gray-600 text-sm font-semibold hover:bg-gray-100"
+              >
+                취소
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
       {saveConfigDialogMessage && (
         <ConfirmDialog
           title={t.admin.saveSettings || '설정 저장'}

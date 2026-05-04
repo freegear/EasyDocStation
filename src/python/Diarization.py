@@ -135,10 +135,17 @@ def generate_diarization_rttm(
     if debug:
       LOGGER.debug("화자분리 시작 | audio=%s device=%s out=%s", audio_path, device, out_path)
 
-    pipeline = Pipeline.from_pretrained(
-        "pyannote/speaker-diarization-3.1",
-        token=hf_token,
-    )
+    use_custom = os.getenv("USE_CUSTOM_MODEL", "0").strip().lower() in ("1", "true", "yes")
+    model_path = os.getenv("MODEL_PATH", "").strip()
+    if use_custom and model_path and os.path.exists(model_path):
+        if debug:
+            LOGGER.info("커스텀 모델 사용 | path=%s", model_path)
+        pipeline = Pipeline.from_pretrained(model_path)
+    else:
+        pipeline = Pipeline.from_pretrained(
+            "pyannote/speaker-diarization-3.1",
+            token=hf_token,
+        )
     pipeline.to(device)
     diarization = pipeline(audio_path)
     _save_diarization_rttm(diarization, out_path, out_uri)
