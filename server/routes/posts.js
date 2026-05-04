@@ -225,7 +225,6 @@ async function deleteAttachmentPhysicalAndRecords(attachmentId, { excludedPostId
   if (meta) {
     const filePath = resolveStoragePathSafe(meta.storage_path)
     const thumbPath = resolveStoragePathSafe(meta.thumbnail_path)
-    const baseName = filePath ? path.basename(filePath, path.extname(filePath)) : ''
     const fileDir = filePath ? path.dirname(filePath) : null
 
     if (filePath && fs.existsSync(filePath)) {
@@ -235,25 +234,11 @@ async function deleteAttachmentPhysicalAndRecords(attachmentId, { excludedPostId
       try { fs.unlinkSync(thumbPath) } catch (_) {}
     }
 
-    // STT/diarization 부산물 정리 (같은 첨부 폴더 내부만 삭제)
-    if (fileDir && baseName) {
-      const artifactCandidates = [
-        `${baseName}.rttm`,
-        `${baseName}.txt`,
-        `${baseName}.diarization.log`,
-        `${baseName}.diarization.bridge.log`,
-      ]
-      for (const name of artifactCandidates) {
-        const artifactPath = resolveStoragePathSafe(path.join(path.relative(STORAGE_BASE_ABS, fileDir), name))
-        if (artifactPath && fs.existsSync(artifactPath)) {
-          try { fs.unlinkSync(artifactPath) } catch (_) {}
-        }
-      }
-    }
-
     if (fileDir) {
       try {
-        if (fileDir.startsWith(`${STORAGE_BASE_ABS}${path.sep}`)) fs.rmdirSync(fileDir)
+        if (fileDir.startsWith(`${STORAGE_BASE_ABS}${path.sep}`)) {
+          fs.rmSync(fileDir, { recursive: true, force: true })
+        }
       } catch (_) {}
     }
   }
