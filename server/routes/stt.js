@@ -16,7 +16,7 @@ const router = express.Router()
 
 const MODEL_VERSION = process.env.STT_MODEL_VERSION || 'gemma-4-e4b'
 const MODEL_ID = process.env.STT_MODEL_ID || 'google/gemma-4-E4B-it'
-const HF_TOKEN = process.env.HF_TOKEN || process.env.HUGGINGFACE_TOKEN || ''
+function getHfToken() { return process.env.HF_TOKEN || process.env.HUGGINGFACE_TOKEN || '' }
 const MAX_AUTORETRY = 2
 
 let tablesReadyPromise = null
@@ -383,7 +383,7 @@ function runPythonStt(audioPath, options = {}, onProgress = null) {
       diarization: options.diarization !== false,
       diarizationRequired: options.diarizationRequired === true,
       modelId: MODEL_ID,
-      hfToken: HF_TOKEN,
+      hfToken: getHfToken(),
     }
     const payloadPath = path.join(os.tmpdir(), `stt-payload-${Date.now()}-${Math.random().toString(16).slice(2)}.json`)
     fs.writeFileSync(payloadPath, JSON.stringify(payload), 'utf8')
