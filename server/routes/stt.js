@@ -590,14 +590,29 @@ async function notifySttToTelegram(job, { status, title = '', errorMessage = '' 
     const chRow = await db.query(`SELECT name FROM channels WHERE id = $1`, [job.channel_id])
     const channelName = chRow.rows?.[0]?.name || job.channel_id
 
+    const clientOrigin = (process.env.CLIENT_ORIGIN || '').replace(/\/$/, '')
+    const postLink = (clientOrigin && job.post_id && job.channel_id)
+      ? `${clientOrigin}/?channelId=${encodeURIComponent(job.channel_id)}&postId=${encodeURIComponent(job.post_id)}`
+      : ''
+
     const text = status === 'done'
-      ? `✅ AI 회의록 처리 완료\n채널: ${channelName}${title ? `\n제목: ${title}` : ''}`
-      : `❌ AI 회의록 처리 실패\n채널: ${channelName}${errorMessage ? `\n사유: ${errorMessage}` : ''}`
+      ? [
+          `✅ AI 회의록 처리 완료`,
+          `채널: ${channelName}`,
+          title ? `제목: ${title}` : '',
+          postLink ? `\n🔗 ${postLink}` : '',
+        ].filter(Boolean).join('\n')
+      : [
+          `❌ AI 회의록 처리 실패`,
+          `채널: ${channelName}`,
+          errorMessage ? `사유: ${errorMessage}` : '',
+          postLink ? `\n🔗 ${postLink}` : '',
+        ].filter(Boolean).join('\n')
 
     await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ chat_id: chatId, text }),
+      body: JSON.stringify({ chat_id: chatId, text, disable_web_page_preview: false }),
     })
     sttLog('telegram notification sent', { jobId: job.id, status, chatId: chatId.slice(0, 3) + '***' })
   } catch (e) {
@@ -1117,21 +1132,42 @@ router.get('/speaker-mappings', requireAuth, async (req, res, next) => {
     sttActorUserId = String(req.user?.id || '')
     await ensureTables()
     const channelId = String(req.query.channelId || '')
-    sttLog('speaker mapping list requested', { actorUserId: req.user?.id, channelId })
+    const jobId = String(req.query.jobId || '')
+    sttLog('speaker mapping list requested', { actorUserId: req.user?.id, channelId, jobId: jobId || undefined })
     if (!channelId) return res.status(400).json({ error: 'channelId가 필요합니다.' })
     const allowed = await canAccessChannel(db, req.user, channelId)
     if (!allowed) return res.status(403).json({ error: ACCESS_DENIED_MESSAGE })
 
-    const rows = await db.query(
-      `SELECT m.channel_id, m.speaker_label, m.user_id, m.display_name, m.confidence, m.updated_at, u.name AS user_name
-       FROM stt_speaker_mappings m
-       LEFT JOIN users u ON u.id = m.user_id
-       WHERE m.channel_id = $1
-       ORDER BY m.speaker_label ASC`,
-      [channelId],
-    )
+    let rows
+    if (jobId) {
+      // 해당 job의 세그먼트에 실제 등장한 화자만 반환 (채널 매핑은 pre-fill 용도)
+      rows = await db.query(
+        `SELECT
+           s.speaker_label,
+           m.display_name,
+           m.user_id,
+           m.confidence,
+           m.updated_at,
+           m.voice_embedding_json,
+           u.name AS user_name
+         FROM (SELECT DISTINCT speaker_label FROM stt_segments WHERE job_id = $1) s
+         LEFT JOIN stt_speaker_mappings m ON m.channel_id = $2 AND m.speaker_label = s.speaker_label
+         LEFT JOIN users u ON u.id = m.user_id
+         ORDER BY s.speaker_label ASC`,
+        [jobId, channelId],
+      )
+    } else {
+      rows = await db.query(
+        `SELECT m.channel_id, m.speaker_label, m.user_id, m.display_name, m.confidence, m.updated_at, m.voice_embedding_json, u.name AS user_name
+         FROM stt_speaker_mappings m
+         LEFT JOIN users u ON u.id = m.user_id
+         WHERE m.channel_id = $1
+         ORDER BY m.speaker_label ASC`,
+        [channelId],
+      )
+    }
     res.json(rows.rows || [])
-    sttLog('speaker mapping list completed', { actorUserId: req.user?.id, channelId, count: rows.rows?.length || 0 })
+    sttLog('speaker mapping list completed', { actorUserId: req.user?.id, channelId, jobId: jobId || undefined, count: rows.rows?.length || 0 })
   } catch (err) {
     sttError('speaker mapping list failed', { error: err?.message || err })
     next(err)
