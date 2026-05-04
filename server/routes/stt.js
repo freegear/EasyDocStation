@@ -510,8 +510,18 @@ function cosineSimilarity(a, b) {
 }
 
 async function autoMatchSpeakersByEmbedding(channelId, segments, newEmbeddings) {
-  if (!flags.USE_VOICE_EMBEDDING) return segments
-  if (!newEmbeddings || !Object.keys(newEmbeddings).length) return segments
+  if (!flags.USE_VOICE_EMBEDDING) {
+    sttLog('voice embedding skip | USE_VOICE_EMBEDDING=off (resemblyzer 화자 자동 인식 비활성)')
+    return segments
+  }
+  if (!newEmbeddings || !Object.keys(newEmbeddings).length) {
+    sttLog('voice embedding skip | no embeddings from infer (resemblyzer 미설치 또는 추출 실패)')
+    return segments
+  }
+  sttLog('voice embedding match start | resemblyzer 화자 자동 인식 시작', {
+    channelId,
+    newSpeakers: Object.keys(newEmbeddings),
+  })
   try {
     const rows = await db.query(
       `SELECT speaker_label, display_name, voice_embedding_json
@@ -519,7 +529,10 @@ async function autoMatchSpeakersByEmbedding(channelId, segments, newEmbeddings) 
        WHERE channel_id = $1 AND voice_embedding_json IS NOT NULL AND display_name IS NOT NULL`,
       [channelId],
     )
-    if (!rows.rows.length) return segments
+    if (!rows.rows.length) {
+      sttLog('voice embedding match skip | 채널에 저장된 음성 임베딩 없음', { channelId })
+      return segments
+    }
 
     const stored = rows.rows
       .map((r) => {
@@ -530,20 +543,28 @@ async function autoMatchSpeakersByEmbedding(channelId, segments, newEmbeddings) 
 
     const THRESHOLD = 0.82
     const matches = {}
+    const scores = {}
     for (const [newLabel, newEmb] of Object.entries(newEmbeddings)) {
       let bestSim = 0, bestName = null
       for (const s of stored) {
         const sim = cosineSimilarity(newEmb, s.emb)
         if (sim > bestSim) { bestSim = sim; bestName = s.name }
       }
+      scores[newLabel] = { bestSim: Math.round(bestSim * 1000) / 1000, bestName }
       if (bestSim >= THRESHOLD && bestName) matches[newLabel] = bestName
     }
+    sttLog('voice embedding match result | resemblyzer 화자 매칭 완료', {
+      threshold: THRESHOLD,
+      scores,
+      matched: matches,
+    })
 
     return segments.map((seg) => ({
       ...seg,
       speaker_name: seg.speaker_name || matches[seg.speaker_label] || null,
     }))
-  } catch (_) {
+  } catch (e) {
+    sttLog('voice embedding match error', { error: String(e?.message || e).slice(0, 200) })
     return segments
   }
 }
@@ -751,6 +772,13 @@ async function queueWorkerTick() {
       attachmentId: job.attachment_id,
       channelId: job.channel_id,
       retryCount: job.retry_count,
+    })
+    sttLog('feature flags', {
+      USE_SPEAKER_REGISTRATION: flags.USE_SPEAKER_REGISTRATION,
+      USE_VOICE_EMBEDDING: flags.USE_VOICE_EMBEDDING,
+      USE_SPEAKER_CORRECTION: flags.USE_SPEAKER_CORRECTION,
+      USE_CUSTOM_MODEL: flags.USE_CUSTOM_MODEL,
+      note: flags.USE_VOICE_EMBEDDING ? 'resemblyzer 화자 자동 인식 활성' : 'resemblyzer 화자 자동 인식 비활성',
     })
     sttLog('state transition', { jobId: job.id, from: 'queued', to: 'processing', progress: 5 })
 

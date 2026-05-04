@@ -212,11 +212,13 @@ def postprocess_diarization(segments: List[Segment]) -> List[Segment]:
 def compute_voice_embeddings(audio_path: str, segments: List[Segment]) -> Dict[str, List[float]]:
     """USE_VOICE_EMBEDDING=1 일 때 resemblyzer로 화자별 평균 임베딩 계산."""
     if os.getenv("USE_VOICE_EMBEDDING", "0").strip().lower() not in ("1", "true", "yes"):
+        emit_event({"event": "log", "stage": "voice_embedding_skip", "reason": "USE_VOICE_EMBEDDING=off"})
         return {}
     try:
         from resemblyzer import VoiceEncoder, preprocess_wav
+        emit_event({"event": "log", "stage": "voice_embedding_start", "engine": "resemblyzer"})
     except ImportError:
-        emit_event({"event": "log", "stage": "voice_embedding_skip", "reason": "resemblyzer not installed"})
+        emit_event({"event": "log", "stage": "voice_embedding_skip", "reason": "resemblyzer not installed — pip install resemblyzer"})
         return {}
     try:
         wav = preprocess_wav(audio_path)
