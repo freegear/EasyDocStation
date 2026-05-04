@@ -208,6 +208,19 @@ async function patchAttachmentMeta(attachmentId, { postId = null, channelId = nu
   sttLog('attachment meta patched', { attachmentId, postId, channelId })
 }
 
+function extractTitleFromSummary(summary) {
+  const text = String(summary || '').trim()
+  if (!text) return ''
+  for (const line of text.split('\n')) {
+    const clean = line.replace(/^#{1,6}\s+/, '').replace(/^[-*]\s+/, '').trim()
+    if (!clean) continue
+    const sentence = clean.split(/[.!?]/)[0].trim()
+    if (sentence.length < 5) continue
+    return sentence.length > 50 ? sentence.slice(0, 50) + '…' : sentence
+  }
+  return ''
+}
+
 function renderSttBlock({ jobId, status, progress = 0, transcript = '', summary = '', error = '' }) {
   const head = `<!--stt-result:start job_id=${jobId}-->`
   const tail = '<!--stt-result:end-->'
@@ -320,7 +333,7 @@ async function writePostContentWithOptimisticLock(postId, locator, beforeUpdated
 
 async function applyScopedPatch(job, payload) {
   const locator = await findPostLocator(job.post_id)
-  if (!locator) throw new Error('POST_NOT_FOUND')
+  if (!locator) return false // 게시글이 이미 삭제된 경우 — 업데이트 생략
 
   for (let attempt = 0; attempt < 3; attempt += 1) {
     const current = await getPostContentForPatch(job.post_id, locator)
@@ -844,6 +857,67 @@ async function queueWorkerTick() {
       completed_at: new Date(),
     })
     sttLog('state transition', { jobId: job.id, from: 'processing', to: 'done', progress: 100, patchCommitted: true })
+
+    // ── 완료 후처리: 제목 자동 생성 + 오디오 첨부 등록 ──────────
+    try {
+      // 1) 요약 첫 문장으로 게시글 제목 자동 설정 (기존 제목이 없을 때만)
+      const autoTitle = extractTitleFromSummary(summary)
+      if (autoTitle && job.post_id) {
+        await db.query(
+          "UPDATE posts SET title = $1 WHERE id = $2 AND (title IS NULL OR title = '')",
+          [autoTitle, job.post_id],
+        ).catch(() => {})
+        sttLog('auto title set', { jobId: job.id, title: autoTitle })
+      }
+
+      // 2) 오디오 첨부 → attachment_refs 등록 (삭제 보호 연동)
+      if (job.attachment_id && job.post_id) {
+        await db.query(
+          `INSERT INTO attachment_refs (attachment_id, owner_type, owner_id)
+           VALUES ($1, 'post', $2)
+           ON CONFLICT (attachment_id, owner_type, owner_id) DO NOTHING`,
+          [job.attachment_id, job.post_id],
+        ).catch(() => {})
+        await db.query(
+          `UPDATE attachments
+           SET ref_count = (SELECT COUNT(*)::int FROM attachment_refs WHERE attachment_id = $1)
+           WHERE id = $1`,
+          [job.attachment_id],
+        ).catch(() => {})
+        sttLog('attachment ref registered', { jobId: job.id, attachmentId: job.attachment_id, postId: job.post_id })
+
+        // 3) Cassandra: attachments_1~10 빈 슬롯에 오디오 첨부 ID 등록
+        if (isConnected()) {
+          const locator = await findPostLocator(job.post_id)
+          if (locator) {
+            const slotCols = [
+              'attachments_1','attachments_2','attachments_3','attachments_4','attachments_5',
+              'attachments_6','attachments_7','attachments_8','attachments_9','attachments_10',
+            ]
+            const cassPost = await client.execute(
+              `SELECT ${slotCols.join(', ')} FROM posts WHERE channel_id = ? AND created_at = ?`,
+              [locator.channel_id, locator.created_at], { prepare: true },
+            ).catch(() => null)
+            if (cassPost) {
+              const cassRow = cassPost.rows?.[0] || {}
+              const existing = slotCols.map(c => String(cassRow[c] || '')).filter(Boolean)
+              if (!existing.includes(String(job.attachment_id))) {
+                const emptySlot = slotCols.find(c => !cassRow[c])
+                if (emptySlot) {
+                  await client.execute(
+                    `UPDATE posts SET ${emptySlot} = ? WHERE channel_id = ? AND created_at = ?`,
+                    [String(job.attachment_id), locator.channel_id, locator.created_at], { prepare: true },
+                  ).catch(() => {})
+                  sttLog('cassandra attachment slot set', { jobId: job.id, slot: emptySlot, attachmentId: job.attachment_id })
+                }
+              }
+            }
+          }
+        }
+      }
+    } catch (postErr) {
+      sttError('post-completion handler error', { jobId: job.id, error: postErr?.message || postErr })
+    }
   } catch (err) {
     sttError('worker unexpected error', { error: err?.message || err })
   } finally {
