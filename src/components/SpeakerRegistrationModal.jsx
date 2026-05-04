@@ -19,7 +19,9 @@ export default function SpeakerRegistrationModal({ channelId, jobId = null, onCl
     setLoading(true)
     setError('')
     try {
-      const data = await apiFetch(`/ai/stt/speaker-mappings?channelId=${encodeURIComponent(channelId)}`)
+      const qs = new URLSearchParams({ channelId })
+      if (jobId) qs.set('jobId', jobId)
+      const data = await apiFetch(`/ai/stt/speaker-mappings?${qs.toString()}`)
       setMappings(Array.isArray(data) ? data : [])
     } catch (e) {
       setError('화자 목록을 불러오지 못했습니다.')
