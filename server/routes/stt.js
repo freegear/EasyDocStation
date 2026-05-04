@@ -215,12 +215,17 @@ async function patchAttachmentMeta(attachmentId, { postId = null, channelId = nu
 function extractTitleFromSummary(summary) {
   const text = String(summary || '').trim()
   if (!text) return ''
+  const titleMatch = text.match(/^(?:제목|title|タイトル|标题)\s*:\s*(.+)$/im)
+  if (titleMatch) {
+    const t = titleMatch[1].trim()
+    return t.length > 70 ? t.slice(0, 70) + '…' : t
+  }
   for (const line of text.split('\n')) {
     const clean = line.replace(/^#{1,6}\s+/, '').replace(/^[-*]\s+/, '').trim()
     if (!clean) continue
     const sentence = clean.split(/[.!?]/)[0].trim()
     if (sentence.length < 5) continue
-    return sentence.length > 50 ? sentence.slice(0, 50) + '…' : sentence
+    return sentence.length > 70 ? sentence.slice(0, 70) + '…' : sentence
   }
   return ''
 }
@@ -641,6 +646,7 @@ function parseMeetingSummarySections(summaryText = '', transcriptText = '') {
   const transcript = String(transcriptText || '')
 
   const cleaned = summary
+    .replace(/^(?:제목|title|タイトル|标题)\s*:.*/im, '')
     .replace(/```[\s\S]*?```/g, ' ')
     .replace(/\r/g, '')
     .replace(/##\s*회의록\s*요약/g, '')
