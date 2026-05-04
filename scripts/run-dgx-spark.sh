@@ -14,8 +14,7 @@ fi
 
 LOG_DIR="${EASYDOC_LOG_DIR:-$ROOT_DIR/logs}"
 mkdir -p "$LOG_DIR"
-LOG_DATE="$(date +%Y%m%d)"
-LOG_FILE="$LOG_DIR/run-dgx-spark-${LOG_DATE}.log"
+LOG_FILE="$LOG_DIR/run-dgx-spark.log"
 PID_FILE="$LOG_DIR/dgx-spark.pid"
 BE_LOOP_PID_FILE="$LOG_DIR/dgx-be-loop.pid"
 BE_LOOP_LOCK_FILE="$LOG_DIR/dgx-be-loop.lock"

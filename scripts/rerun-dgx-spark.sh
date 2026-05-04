@@ -6,8 +6,7 @@ cd "$ROOT_DIR"
 
 LOG_DIR="${EASYDOC_LOG_DIR:-$ROOT_DIR/logs}"
 mkdir -p "$LOG_DIR"
-LOG_DATE="$(date +%Y%m%d)"
-LOG_FILE="$LOG_DIR/rerun-dgx-spark-${LOG_DATE}.log"
+LOG_FILE="$LOG_DIR/rerun-dgx-spark.log"
 
 log() {
   echo "[$(date '+%Y%m%d-%H:%M:%S')][DGX-SPARK] $*"
