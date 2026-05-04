@@ -80,6 +80,9 @@ if ! python -m pip install torchvision timm --index-url "$TORCH_INDEX_URL" --ext
   python -m pip install torchvision timm --index-url https://pypi.org/simple
 fi
 
+echo "[2-2/3] Python 패키지 설치 (server/requirements.txt)"
+python -m pip install -r "$ROOT_DIR/server/requirements.txt" --extra-index-url https://pypi.org/simple
+
 echo "[3/3] CUDA 동작 검증"
 python - <<'PY'
 import torch
