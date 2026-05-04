@@ -1006,7 +1006,27 @@ router.delete('/:id', requireAuth, async (req, res, next) => {
       [id], { prepare: true },
     )
     const commentAttachmentIds = (cRows.rows || []).flatMap((c) => toAttachmentIdArray(c.attachments || []))
-    const targetAttachmentIds = [...new Set([...postAttachmentIds, ...commentAttachmentIds])]
+
+    // Cassandra에 없고 PostgreSQL에만 남아 있는 첨부도 수집한다.
+    const pgPostAttRes = await db.query(
+      "SELECT id FROM attachments WHERE post_id = $1 AND delete_status != 'deleted'",
+      [id],
+    ).catch(() => ({ rows: [] }))
+    const pgPostAttachmentIds = (pgPostAttRes.rows || []).map((r) => String(r.id))
+
+    const commentIds = (cRows.rows || []).map((c) => String(c.id)).filter(Boolean)
+    const pgCommentAttachmentIds = []
+    if (commentIds.length > 0) {
+      const pgCommentAttRes = await db.query(
+        "SELECT id FROM attachments WHERE comment_id = ANY($1) AND delete_status != 'deleted'",
+        [commentIds],
+      ).catch(() => ({ rows: [] }))
+      pgCommentAttachmentIds.push(...(pgCommentAttRes.rows || []).map((r) => String(r.id)))
+    }
+
+    const targetAttachmentIds = [
+      ...new Set([...postAttachmentIds, ...commentAttachmentIds, ...pgPostAttachmentIds, ...pgCommentAttachmentIds]),
+    ]
 
     await client.execute(
       'DELETE FROM posts WHERE channel_id = ? AND created_at = ?',
