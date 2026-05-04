@@ -36,7 +36,7 @@ Description.MD
     - [3.2.2](#322)
 - [4 Database](#4-database)
   - [4.1  PostgreSQL Database](#41-postgresql-database)
-  - [4.2 Object File 폴더](#42-object-file-폴더)
+  - [4.2 Object File 폴더](#42-object-file-폴더) 
   - [4.3 config.json 파일 git push origin main --force-with-lease](#43-configjson-파일-git-push-origin-main-force-with-lease)
   - [4.4 Cassandra](#44-cassandra)
 - [5. 채널](#5-채널)
