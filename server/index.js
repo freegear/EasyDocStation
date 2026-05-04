@@ -222,6 +222,14 @@ app.use((err, req, res, next) => {
 
 const server = app.listen(PORT, () => {
   console.log(`✅ EasyDocStation server running on http://localhost:${PORT}`)
+
+  const hfToken = process.env.HF_TOKEN || process.env.HUGGINGFACE_TOKEN || ''
+  if (!hfToken) {
+    console.warn(`⚠️  [CONFIG] HF_TOKEN 미설정 — pyannote 다이어리제이션 비활성화됩니다. server/.env 에 HF_TOKEN을 추가하세요.`)
+  } else {
+    const masked = hfToken.slice(0, 4) + '****' + hfToken.slice(-4)
+    console.log(`✅ [CONFIG] HF_TOKEN 확인됨 (${masked}, 길이 ${hfToken.length})`)
+  }
 })
 
 server.on('error', (err) => {
