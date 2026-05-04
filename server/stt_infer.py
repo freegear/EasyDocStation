@@ -107,17 +107,36 @@ def run_external_diarization(audio_path: str, hf_token: Optional[str]) -> Option
         base_dir = os.path.dirname(audio_path) or "."
         rttm_path = os.path.join(base_dir, f"{stem}.rttm")
         dump_log_path = os.path.join(base_dir, f"{stem}.diarization.bridge.log")
-        with open(dump_log_path, "a", encoding="utf-8") as dump_fp:
-            dump_fp.write(f"\n===== diarization call start: {audio_path} =====\n")
-            with contextlib.redirect_stdout(dump_fp), contextlib.redirect_stderr(dump_fp):
-                diar_fn(
-                    audio_path=audio_path,
-                    hf_token=hf_token_safe,
-                    output_rttm_path=rttm_path,
-                    uri=stem,
-                    debug=True,
-                )
-            dump_fp.write("===== diarization call end =====\n")
+
+        # torchcodec 가 비 ASCII 파일명을 처리하지 못하는 문제를 우회하기 위해
+        # 임시 ASCII 파일명으로 심볼릭 링크를 생성해 pyannote 에 전달한다.
+        import uuid as _uuid
+        tmp_ext = os.path.splitext(audio_path)[1] or ".audio"
+        tmp_audio_path = os.path.join(base_dir, f"_diar_tmp_{_uuid.uuid4().hex}{tmp_ext}")
+        try:
+            os.symlink(os.path.abspath(audio_path), tmp_audio_path)
+            diar_audio_path = tmp_audio_path
+        except Exception:
+            diar_audio_path = audio_path
+
+        try:
+            with open(dump_log_path, "a", encoding="utf-8") as dump_fp:
+                dump_fp.write(f"\n===== diarization call start: {audio_path} =====\n")
+                with contextlib.redirect_stdout(dump_fp), contextlib.redirect_stderr(dump_fp):
+                    diar_fn(
+                        audio_path=diar_audio_path,
+                        hf_token=hf_token_safe,
+                        output_rttm_path=rttm_path,
+                        uri=stem,
+                        debug=True,
+                    )
+                dump_fp.write("===== diarization call end =====\n")
+        finally:
+            if diar_audio_path != audio_path and os.path.lexists(diar_audio_path):
+                try:
+                    os.unlink(diar_audio_path)
+                except Exception:
+                    pass
         emit_event({
             "event": "log",
             "stage": "diarization_external_log_dumped",
