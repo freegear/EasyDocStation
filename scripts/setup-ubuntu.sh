@@ -223,13 +223,18 @@ cfg.Cassandra.keyspace = cfg.Cassandra.keyspace || 'easydocstation'
 fs.writeFileSync(configPath, JSON.stringify(cfg, null, 2))
 NODE
 
-JWT_SECRET_VALUE="$(openssl rand -hex 24)"
-cat > "$ROOT_DIR/server/.env" <<EOF
+if [[ -f "$ROOT_DIR/server/.env" ]]; then
+  echo "[INFO] server/.env 이미 존재 — 덮어쓰지 않고 유지합니다."
+else
+  JWT_SECRET_VALUE="$(openssl rand -hex 24)"
+  cat > "$ROOT_DIR/server/.env" <<EOF
 DATABASE_URL=postgresql://${DB_USER}:${DB_PASS}@localhost:5432/${DB_NAME}
 JWT_SECRET=${JWT_SECRET_VALUE}
 PORT=3001
 CLIENT_ORIGIN=${CLIENT_ORIGIN}
 EOF
+  echo "[INFO] server/.env 생성 완료"
+fi
 
 echo "[8-1/8] 기본 사용자 시드 적용"
 npm run seed --prefix "$ROOT_DIR/server" >/dev/null || true
