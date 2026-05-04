@@ -32,7 +32,8 @@ sudo DEBIAN_FRONTEND=noninteractive apt-get install -y \
   postgresql postgresql-contrib \
   cups cups-client printer-driver-cups-pdf \
   poppler-utils ffmpeg libreoffice libreoffice-impress \
-  tesseract-ocr tesseract-ocr-eng tesseract-ocr-kor
+  tesseract-ocr tesseract-ocr-eng tesseract-ocr-kor \
+  logrotate
 
 if ! command -v node >/dev/null 2>&1; then
   echo "[INFO] Node.js 설치"

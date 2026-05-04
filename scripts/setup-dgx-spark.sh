@@ -103,6 +103,25 @@ PY
 deactivate
 
 echo
+echo "[logrotate] EasyDocStation 로그 자동 순환 설정"
+mkdir -p "$ROOT_DIR/logs"
+sudo tee /etc/logrotate.d/easydocstation >/dev/null <<LOGROTATE
+$ROOT_DIR/logs/run-dgx-spark.log
+$ROOT_DIR/logs/rerun-dgx-spark.log {
+    daily
+    rotate 30
+    compress
+    delaycompress
+    missingok
+    notifempty
+    copytruncate
+    dateext
+    dateformat -%Y%m%d
+}
+LOGROTATE
+echo "  - /etc/logrotate.d/easydocstation 생성 완료"
+
+echo
 echo "[검증] DGX-SPARK 런타임 의존성"
 for cmd in libreoffice pdftoppm ffmpeg tesseract; do
   if command -v "$cmd" >/dev/null 2>&1; then
