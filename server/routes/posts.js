@@ -46,6 +46,17 @@ function resolveStoragePathSafe(storagePath = '') {
   return abs
 }
 
+function resolveAttachmentScopedDir(storagePath = '') {
+  const rel = String(storagePath || '').trim()
+  if (!rel) return null
+  const normalized = rel.replace(/\\/g, '/').split('/').filter(Boolean)
+  if (normalized.length < 3) return null
+  const [channelPart, fileUuidPart] = normalized
+  if (!channelPart || !fileUuidPart) return null
+  const scopedRel = path.join(channelPart, fileUuidPart)
+  return resolveStoragePathSafe(scopedRel)
+}
+
 async function ensureAttachmentRefTable() {
   if (attachmentRefSchemaEnsured) return
   await db.query(`
@@ -226,18 +237,48 @@ async function deleteAttachmentPhysicalAndRecords(attachmentId, { excludedPostId
     const filePath = resolveStoragePathSafe(meta.storage_path)
     const thumbPath = resolveStoragePathSafe(meta.thumbnail_path)
     const fileDir = filePath ? path.dirname(filePath) : null
+    const scopedAttachmentDir = resolveAttachmentScopedDir(meta.storage_path)
+    const baseName = filePath ? path.basename(filePath, path.extname(filePath)) : ''
+
+    const artifactNames = [
+      `${baseName}.rttm`,
+      `${baseName}.txt`,
+      `${baseName}.diarization.log`,
+      `${baseName}.diarization.bridge.log`,
+      `${baseName}.json`,
+      `${baseName}.srt`,
+      `${baseName}.vtt`,
+    ]
+
+    const safeDelete = (targetPath) => {
+      if (!targetPath) return
+      const safePath = resolveStoragePathSafe(path.relative(STORAGE_BASE_ABS, targetPath))
+      if (!safePath) return
+      if (fs.existsSync(safePath)) {
+        try { fs.unlinkSync(safePath) } catch (_) {}
+      }
+    }
 
     if (filePath && fs.existsSync(filePath)) {
-      try { fs.unlinkSync(filePath) } catch (_) {}
+      safeDelete(filePath)
     }
     if (thumbPath && fs.existsSync(thumbPath)) {
-      try { fs.unlinkSync(thumbPath) } catch (_) {}
+      safeDelete(thumbPath)
     }
 
-    if (fileDir) {
+    if (scopedAttachmentDir && scopedAttachmentDir.startsWith(`${STORAGE_BASE_ABS}${path.sep}`)) {
       try {
-        if (fileDir.startsWith(`${STORAGE_BASE_ABS}${path.sep}`)) {
-          fs.rmSync(fileDir, { recursive: true, force: true })
+        fs.rmSync(scopedAttachmentDir, { recursive: true, force: true })
+      } catch (_) {}
+    } else if (fileDir && fileDir.startsWith(`${STORAGE_BASE_ABS}${path.sep}`)) {
+      for (const name of artifactNames) {
+        safeDelete(path.join(fileDir, name))
+      }
+
+      try {
+        const remaining = fs.readdirSync(fileDir).filter((name) => name !== '.' && name !== '..')
+        if (remaining.length === 0) {
+          fs.rmdirSync(fileDir)
         }
       } catch (_) {}
     }

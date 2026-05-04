@@ -32,7 +32,7 @@ Description.MD
 - [3 타이틀바](#3-타이틀바)
   - [3.1 언어 설정](#31-언어-설정)
   - [3.2 찾기](#32-찾기)
-    - [3.2.1](#321)
+    - [3.2.1](#321) 
     - [3.2.2](#322)
 - [4 Database](#4-database)
   - [4.1  PostgreSQL Database](#41-postgresql-database)

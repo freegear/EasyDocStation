@@ -235,6 +235,12 @@ function setAttachmentHeaders(res, filename, contentType, contentLength) {
   res.setHeader('X-Content-Type-Options', 'nosniff')
 }
 
+function sanitizeStoredFilename(name = '') {
+  const base = path.basename(String(name || '').trim())
+  const collapsed = base.replace(/[\/\\]/g, '_').replace(/\s+/g, ' ').trim()
+  return collapsed || `file-${Date.now()}`
+}
+
 function appendThumbLog(logFile, message) {
   try {
     fs.appendFileSync(logFile, `[${new Date().toISOString()}] ${message}\n`)
@@ -408,23 +414,25 @@ router.post('/get-upload-url', requireAuth, async (req, res, next) => {
   try {
     const { filename, contentType, channelId } = req.body
     const file_uuid = crypto.randomUUID()
+    const safeFilename = sanitizeStoredFilename(filename)
+    const safeChannelId = String(channelId || 'unknown').trim() || 'unknown'
 
     // DS.002: ChannelID로 만든 폴더 밑에 File마다 폴더를 둔다.
-    const key = path.join(channelId || 'unknown', file_uuid, filename)
+    const key = path.join(safeChannelId, file_uuid, safeFilename)
 
     // Register in Cassandra (if connected)
     if (isConnected()) {
       await client.execute(`
         INSERT INTO attachments (id, filename, content_type, size, status, storage_path, uploader_id, created_at)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-      `, [file_uuid, filename, contentType, 0, 'PENDING', key, req.user.id, new Date()], { prepare: true })
+      `, [file_uuid, safeFilename, contentType, 0, 'PENDING', key, req.user.id, new Date()], { prepare: true })
     }
 
     // Fallback/Legacy: Register in PostgreSQL as well (for stability or transition)
     await db.query(`
       INSERT INTO attachments (id, filename, content_type, size, status, storage_path, uploader_id, channel_id)
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-    `, [file_uuid, filename, contentType, 0, 'PENDING', key, req.user.id, channelId || null])
+    `, [file_uuid, safeFilename, contentType, 0, 'PENDING', key, req.user.id, safeChannelId || null])
 
     // Generate Mask Presigned URL with Token
     const token = jwt.sign({
