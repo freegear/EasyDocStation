@@ -355,11 +355,11 @@ class GemmaSummarizer:
 
     def summarize(self, transcript: str, language: str = "ko") -> str:
         prompt = {
-            "ko": "다음 전사문을 회의록 형식으로 요약해줘. 안건, 결정사항, 액션아이템을 구분해줘.\n\n",
-            "en": "Summarize transcript into meeting minutes with agenda, decisions, action items.\n\n",
-            "ja": "以下を議事録形式で要約し、議題・決定事項・アクションアイテムを分けてください。\n\n",
-            "zh": "请将以下转写整理为会议纪要，并区分议题、决定事项、行动项。\n\n",
-        }.get(language, "Summarize transcript into meeting minutes.\n\n")
+            "ko": "다음 전사문을 회의록 형식으로 요약해줘. 첫 번째 줄에 반드시 '제목: [70자 이내 핵심 요약]' 형식으로 회의 제목을 작성하고, 그 다음 줄부터 안건, 결정사항, 액션아이템을 구분해줘.\n\n",
+            "en": "Summarize transcript into meeting minutes. First line must be 'Title: [key summary in 70 chars or less]', then list agenda, decisions, action items.\n\n",
+            "ja": "以下を議事録形式で要約してください。最初の行に必ず「タイトル: [70字以内の要約]」を記載し、その後に議題・決定事項・アクションアイテムを分けてください。\n\n",
+            "zh": "请将以下转写整理为会议纪要。第一行必须写「标题: [70字以内核心摘要]」，之后区分议题、决定事项、行动项。\n\n",
+        }.get(language, "Summarize transcript into meeting minutes. First line must be 'Title: [key summary in 70 chars or less]', then list agenda, decisions, action items.\n\n")
 
         messages = [{
             "role": "user",

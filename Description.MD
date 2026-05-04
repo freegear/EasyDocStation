@@ -7208,6 +7208,40 @@ src/python/Diarization.py 변경
 USE_CUSTOM_MODEL=1 + MODEL_PATH=/path/to/model 환경변수로 커스텀 모델 사용
 
 
+# 33.6.5.4 STT 설정 페이지 항목 추가
+
+사이트 관리 페이지의
+STT 설정 페이지에서 
+
+아래 내용을 추가한다.
+
+STT 화자 인식 개선 기능 토글
+
+USE_SPEAKER_REGISTRATION=1    # 참여자 사전 등록 UI 활성화
+USE_VOICE_EMBEDDING=1        # Voice embedding 기반 화자 매칭
+USE_SPEAKER_CORRECTION=1     # 수동 보정 UI 활성화  
+USE_CUSTOM_MODEL=0           # 커스텀 모델 사용 (초기: 기본 모델)
+
+이 값은 저장 버튼을 누르면, 
+
+server/.env 에 추가한다.
+
+저장되면, 사용자에게 DialogBox PopUp 메시지로 
+
+"시스템을 재시작합니다"
+
+메시지를 내고 5초 후에 재시작한다.
+
+정리
+구분	현재 값
+posts.title (DB)	NULL (STT 완료 후 자동 설정)
+포스트 카드 표시	20260505 06:05:03 (content 첫 줄에서 파싱)
+# 20260505 06:05:03	content 본문 안의 마크다운 H1 — 날짜+시간 자동 생성
+앞서 논의한 "70자 요약 제목" 기능을 구현하면, STT 완료 후 posts.title에 Gemma가 요약한 제목이 들어갑니다. 하지만 포스트 카드는 posts.title이 아니라 content 첫 줄을 파싱하므로, 포스트 카드까지 반영하려면 PostCard가 post.title을 우선 사용하도록 수정도 필요합니다.
+
+구현할까요?
+
+
 
 
 

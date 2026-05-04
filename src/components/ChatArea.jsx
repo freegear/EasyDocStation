@@ -3139,7 +3139,9 @@ function PostCard({ post, onSelect, pinned, isSelected }) {
         : '📄 양식 템플릿')
     : isMd
       ? `📝 ${getMdPageTitle(post.content, t.mdPage.title).slice(0, 100)}`
-      : (plain[0] || '')
+      : (String(post.content || '').includes('<!--ai-meeting-note-->') && post.title)
+        ? `📋 ${post.title}`
+        : (plain[0] || '')
   const bodyPreview = isTemplate
     ? ''
     : plain.slice(1).join('\n')

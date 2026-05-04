@@ -823,6 +823,7 @@ router.get('/', requireAuth, async (req, res, next) => {
         id: row.id,
         channel_id: row.channel_id,
         content: row.content,
+        title: row.title || '',
         attachments,
         author: {
           id: row.author_id,
