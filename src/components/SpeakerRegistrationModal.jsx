@@ -3,7 +3,7 @@ import { apiFetch } from '../lib/api'
 
 const SPEAKER_LABELS = ['SPEAKER_00', 'SPEAKER_01', 'SPEAKER_02', 'SPEAKER_03', 'SPEAKER_04', 'SPEAKER_05']
 
-export default function SpeakerRegistrationModal({ channelId, jobId = null, onClose }) {
+export default function SpeakerRegistrationModal({ channelId, onClose }) {
   const [mappings, setMappings] = useState([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -19,9 +19,7 @@ export default function SpeakerRegistrationModal({ channelId, jobId = null, onCl
     setLoading(true)
     setError('')
     try {
-      const qs = new URLSearchParams({ channelId })
-      if (jobId) qs.set('jobId', jobId)
-      const data = await apiFetch(`/ai/stt/speaker-mappings?${qs.toString()}`)
+      const data = await apiFetch(`/ai/stt/speaker-mappings?channelId=${encodeURIComponent(channelId)}`)
       setMappings(Array.isArray(data) ? data : [])
     } catch (e) {
       setError('화자 목록을 불러오지 못했습니다.')
@@ -39,7 +37,7 @@ export default function SpeakerRegistrationModal({ channelId, jobId = null, onCl
     try {
       await apiFetch('/ai/stt/speaker-mappings', {
         method: 'POST',
-        body: JSON.stringify({ channelId, speakerLabel, displayName: displayName.trim(), jobId }),
+        body: JSON.stringify({ channelId, speakerLabel, displayName: displayName.trim() }),
       })
       setEditLabel('')
       setEditName('')
@@ -61,7 +59,7 @@ export default function SpeakerRegistrationModal({ channelId, jobId = null, onCl
     try {
       await apiFetch('/ai/stt/speaker-mappings', {
         method: 'DELETE',
-        body: JSON.stringify({ channelId, speakerLabel, jobId: jobId || undefined }),
+        body: JSON.stringify({ channelId, speakerLabel }),
       })
       await fetchMappings()
     } catch (e) {
@@ -220,9 +218,7 @@ export default function SpeakerRegistrationModal({ channelId, jobId = null, onCl
           >
             + 화자 추가
           </button>
-          {jobId && (
-            <p className="text-[11px] text-gray-400">이 STT 작업의 음성 임베딩이 함께 저장됩니다</p>
-          )}
+
           <button
             onClick={onClose}
             className="px-4 py-1.5 rounded-xl text-xs font-semibold border border-gray-200 text-gray-600 hover:bg-gray-100"

@@ -1091,8 +1091,8 @@ router.post('/speaker-mappings', requireAuth, async (req, res, next) => {
   try {
     sttActorUserId = String(req.user?.id || '')
     await ensureTables()
-    const { channelId, speakerLabel, userId = null, displayName = '', confidence = 0.9, jobId = null } = req.body || {}
-    sttLog('speaker mapping upsert requested', { actorUserId: req.user?.id, channelId, speakerLabel, userId, displayName, confidence, jobId })
+    const { channelId, speakerLabel, userId = null, displayName = '', confidence = 0.9 } = req.body || {}
+    sttLog('speaker mapping upsert requested', { actorUserId: req.user?.id, channelId, speakerLabel, userId, displayName, confidence })
     if (!channelId || !speakerLabel || !displayName) {
       return res.status(400).json({ error: 'channelId, speakerLabel, displayName은 필수입니다.' })
     }
@@ -1100,30 +1100,17 @@ router.post('/speaker-mappings', requireAuth, async (req, res, next) => {
     const allowed = await canAccessChannel(db, req.user, String(channelId))
     if (!allowed) return res.status(403).json({ error: ACCESS_DENIED_MESSAGE })
 
-    if (jobId) {
-      // per-job 격리: stt_job_speakers에 저장
-      await db.query(
-        `INSERT INTO stt_job_speakers (job_id, speaker_label, display_name, created_by, updated_at)
-         VALUES ($1, $2, $3, $4, NOW())
-         ON CONFLICT (job_id, speaker_label)
-         DO UPDATE SET display_name = EXCLUDED.display_name, updated_at = NOW()`,
-        [String(jobId), String(speakerLabel), String(displayName), req.user.id],
-      )
-      res.json({ success: true })
-    } else {
-      // 채널 단위 매핑 (voice embedding 등 기존 용도)
-      await db.query(
-        `INSERT INTO stt_speaker_mappings (channel_id, speaker_label, user_id, display_name, confidence, created_by, updated_at)
-         VALUES ($1, $2, $3, $4, $5, $6, NOW())
-         ON CONFLICT (channel_id, speaker_label)
-         DO UPDATE SET user_id = EXCLUDED.user_id,
-                       display_name = EXCLUDED.display_name,
-                       confidence = EXCLUDED.confidence,
-                       updated_at = NOW()`,
-        [String(channelId), String(speakerLabel), userId || null, String(displayName), Number(confidence || 0), req.user.id],
-      )
-      res.json({ success: true })
-    }
+    await db.query(
+      `INSERT INTO stt_speaker_mappings (channel_id, speaker_label, user_id, display_name, confidence, created_by, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6, NOW())
+       ON CONFLICT (channel_id, speaker_label)
+       DO UPDATE SET user_id = EXCLUDED.user_id,
+                     display_name = EXCLUDED.display_name,
+                     confidence = EXCLUDED.confidence,
+                     updated_at = NOW()`,
+      [String(channelId), String(speakerLabel), userId || null, String(displayName), Number(confidence || 0), req.user.id],
+    )
+    res.json({ success: true })
     sttLog('speaker mapping upsert completed', { actorUserId: req.user?.id, channelId, speakerLabel })
   } catch (err) {
     sttError('speaker mapping upsert failed', { error: err?.message || err })
@@ -1138,37 +1125,21 @@ router.get('/speaker-mappings', requireAuth, async (req, res, next) => {
     sttActorUserId = String(req.user?.id || '')
     await ensureTables()
     const channelId = String(req.query.channelId || '')
-    const jobId = String(req.query.jobId || '')
-    sttLog('speaker mapping list requested', { actorUserId: req.user?.id, channelId, jobId: jobId || undefined })
+    sttLog('speaker mapping list requested', { actorUserId: req.user?.id, channelId })
     if (!channelId) return res.status(400).json({ error: 'channelId가 필요합니다.' })
     const allowed = await canAccessChannel(db, req.user, channelId)
     if (!allowed) return res.status(403).json({ error: ACCESS_DENIED_MESSAGE })
 
-    let rows
-    if (jobId) {
-      // per-job: stt_segments에 등장한 화자 + stt_job_speakers에 저장된 이름
-      rows = await db.query(
-        `SELECT
-           s.speaker_label,
-           j.display_name,
-           j.updated_at
-         FROM (SELECT DISTINCT speaker_label FROM stt_segments WHERE job_id = $1) s
-         LEFT JOIN stt_job_speakers j ON j.job_id = $1 AND j.speaker_label = s.speaker_label
-         ORDER BY s.speaker_label ASC`,
-        [jobId],
-      )
-    } else {
-      rows = await db.query(
-        `SELECT m.channel_id, m.speaker_label, m.user_id, m.display_name, m.confidence, m.updated_at, m.voice_embedding_json, u.name AS user_name
-         FROM stt_speaker_mappings m
-         LEFT JOIN users u ON u.id = m.user_id
-         WHERE m.channel_id = $1
-         ORDER BY m.speaker_label ASC`,
-        [channelId],
-      )
-    }
+    const rows = await db.query(
+      `SELECT m.channel_id, m.speaker_label, m.user_id, m.display_name, m.confidence, m.updated_at, m.voice_embedding_json, u.name AS user_name
+       FROM stt_speaker_mappings m
+       LEFT JOIN users u ON u.id = m.user_id
+       WHERE m.channel_id = $1
+       ORDER BY m.speaker_label ASC`,
+      [channelId],
+    )
     res.json(rows.rows || [])
-    sttLog('speaker mapping list completed', { actorUserId: req.user?.id, channelId, jobId: jobId || undefined, count: rows.rows?.length || 0 })
+    sttLog('speaker mapping list completed', { actorUserId: req.user?.id, channelId, count: rows.rows?.length || 0 })
   } catch (err) {
     sttError('speaker mapping list failed', { error: err?.message || err })
     next(err)
@@ -1181,26 +1152,19 @@ router.delete('/speaker-mappings', requireAuth, async (req, res, next) => {
   try {
     sttActorUserId = String(req.user?.id || '')
     await ensureTables()
-    const { channelId, speakerLabel, jobId = null } = req.body || {}
-    sttLog('speaker mapping delete requested', { actorUserId: req.user?.id, channelId, speakerLabel, jobId: jobId || undefined })
+    const { channelId, speakerLabel } = req.body || {}
+    sttLog('speaker mapping delete requested', { actorUserId: req.user?.id, channelId, speakerLabel })
     if (!channelId || !speakerLabel) {
       return res.status(400).json({ error: 'channelId, speakerLabel은 필수입니다.' })
     }
     const allowed = await canAccessChannel(db, req.user, String(channelId))
     if (!allowed) return res.status(403).json({ error: ACCESS_DENIED_MESSAGE })
-    if (jobId) {
-      await db.query(
-        `DELETE FROM stt_job_speakers WHERE job_id = $1 AND speaker_label = $2`,
-        [String(jobId), String(speakerLabel)],
-      )
-    } else {
-      await db.query(
-        `DELETE FROM stt_speaker_mappings WHERE channel_id = $1 AND speaker_label = $2`,
-        [String(channelId), String(speakerLabel)],
-      )
-    }
+    await db.query(
+      `DELETE FROM stt_speaker_mappings WHERE channel_id = $1 AND speaker_label = $2`,
+      [String(channelId), String(speakerLabel)],
+    )
     res.json({ success: true })
-    sttLog('speaker mapping delete completed', { actorUserId: req.user?.id, channelId, speakerLabel, jobId: jobId || undefined })
+    sttLog('speaker mapping delete completed', { actorUserId: req.user?.id, channelId, speakerLabel })
   } catch (err) {
     sttError('speaker mapping delete failed', { error: err?.message || err })
     next(err)
@@ -1366,33 +1330,12 @@ router.post('/jobs', requireAuth, async (req, res, next) => {
 
     const job = inserted.rows[0]
     sttLog('job created', { jobId: job.id, status: job.status, idempotencyKey })
+    await db.query(`DELETE FROM stt_speaker_mappings WHERE channel_id = $1`, [String(post.channel_id)])
+    sttLog('speaker mappings cleared', { jobId: job.id, channelId: post.channel_id })
     queueWorkerTick().catch(() => {})
     return res.status(201).json({ jobId: job.id, status: job.status })
   } catch (err) {
     sttError('job create failed', { error: err?.message || err })
-    next(err)
-  } finally {
-    sttActorUserId = ''
-  }
-})
-
-router.get('/jobs/by-post', requireAuth, async (req, res, next) => {
-  try {
-    sttActorUserId = String(req.user?.id || '')
-    await ensureTables()
-    const postId = String(req.query.postId || '')
-    if (!postId) return res.status(400).json({ error: 'postId가 필요합니다.' })
-    const r = await db.query(
-      `SELECT * FROM stt_jobs WHERE post_id = $1 ORDER BY created_at DESC LIMIT 1`,
-      [postId],
-    )
-    if (r.rowCount === 0) return res.status(404).json({ error: '작업을 찾을 수 없습니다.' })
-    const job = r.rows[0]
-    const allowed = await canAccessChannel(db, req.user, String(job.channel_id || ''))
-    if (!allowed) return res.status(403).json({ error: ACCESS_DENIED_MESSAGE })
-    return res.json({ id: job.id, postId: job.post_id, status: job.status })
-  } catch (err) {
-    sttError('job by-post failed', { error: err?.message || err })
     next(err)
   } finally {
     sttActorUserId = ''
