@@ -61,7 +61,7 @@ export default function SpeakerRegistrationModal({ channelId, jobId = null, onCl
     try {
       await apiFetch('/ai/stt/speaker-mappings', {
         method: 'DELETE',
-        body: JSON.stringify({ channelId, speakerLabel }),
+        body: JSON.stringify({ channelId, speakerLabel, jobId: jobId || undefined }),
       })
       await fetchMappings()
     } catch (e) {
