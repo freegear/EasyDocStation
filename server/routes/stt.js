@@ -590,29 +590,31 @@ async function notifySttToTelegram(job, { status, title = '', errorMessage = '' 
     const chRow = await db.query(`SELECT name FROM channels WHERE id = $1`, [job.channel_id])
     const channelName = chRow.rows?.[0]?.name || job.channel_id
 
-    const clientOrigin = (process.env.CLIENT_ORIGIN || '').replace(/\/$/, '')
-    const postLink = (clientOrigin && job.post_id && job.channel_id)
-      ? `${clientOrigin}/?channelId=${encodeURIComponent(job.channel_id)}&postId=${encodeURIComponent(job.post_id)}`
+    const siteUrl = String(cfg?.site_url || process.env.CLIENT_ORIGIN || '').replace(/\/$/, '')
+    const postLink = (siteUrl && job.post_id && job.channel_id)
+      ? `${siteUrl}/?channelId=${encodeURIComponent(job.channel_id)}&postId=${encodeURIComponent(job.post_id)}`
       : ''
+
+    const esc = (s) => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 
     const text = status === 'done'
       ? [
           `✅ AI 회의록 처리 완료`,
-          `채널: ${channelName}`,
-          title ? `제목: ${title}` : '',
-          postLink ? `\n🔗 ${postLink}` : '',
+          `채널: ${esc(channelName)}`,
+          title ? `제목: ${esc(title)}` : '',
+          postLink ? `\n🔗 <a href="${postLink}">회의록 보기</a>` : '',
         ].filter(Boolean).join('\n')
       : [
           `❌ AI 회의록 처리 실패`,
-          `채널: ${channelName}`,
-          errorMessage ? `사유: ${errorMessage}` : '',
-          postLink ? `\n🔗 ${postLink}` : '',
+          `채널: ${esc(channelName)}`,
+          errorMessage ? `사유: ${esc(errorMessage)}` : '',
+          postLink ? `\n🔗 <a href="${postLink}">회의록 보기</a>` : '',
         ].filter(Boolean).join('\n')
 
     await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ chat_id: chatId, text, disable_web_page_preview: false }),
+      body: JSON.stringify({ chat_id: chatId, text, parse_mode: 'HTML', disable_web_page_preview: false }),
     })
     sttLog('telegram notification sent', { jobId: job.id, status, chatId: chatId.slice(0, 3) + '***' })
   } catch (e) {
