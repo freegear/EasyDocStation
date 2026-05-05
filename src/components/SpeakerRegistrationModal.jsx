@@ -166,8 +166,7 @@ export default function SpeakerRegistrationModal({ channelId, jobId = null, onCl
               )}
             </div>
             )
-          })
-          ))}
+          })}
 
           {/* New mapping form */}
           {addingNew && (
