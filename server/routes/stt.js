@@ -1376,6 +1376,29 @@ router.post('/jobs', requireAuth, async (req, res, next) => {
   }
 })
 
+router.get('/jobs/by-post', requireAuth, async (req, res, next) => {
+  try {
+    sttActorUserId = String(req.user?.id || '')
+    await ensureTables()
+    const postId = String(req.query.postId || '')
+    if (!postId) return res.status(400).json({ error: 'postId가 필요합니다.' })
+    const r = await db.query(
+      `SELECT * FROM stt_jobs WHERE post_id = $1 ORDER BY created_at DESC LIMIT 1`,
+      [postId],
+    )
+    if (r.rowCount === 0) return res.status(404).json({ error: '작업을 찾을 수 없습니다.' })
+    const job = r.rows[0]
+    const allowed = await canAccessChannel(db, req.user, String(job.channel_id || ''))
+    if (!allowed) return res.status(403).json({ error: ACCESS_DENIED_MESSAGE })
+    return res.json({ id: job.id, postId: job.post_id, status: job.status })
+  } catch (err) {
+    sttError('job by-post failed', { error: err?.message || err })
+    next(err)
+  } finally {
+    sttActorUserId = ''
+  }
+})
+
 router.get('/jobs/:id', requireAuth, async (req, res, next) => {
   try {
     sttActorUserId = String(req.user?.id || '')
