@@ -101,8 +101,10 @@ export default function SpeakerRegistrationModal({ channelId, jobId = null, onCl
           )}
 
           {/* Existing mappings */}
-          {mappings.map((m) => (
-            <div key={m.speaker_label} className="flex items-center gap-2 p-3 rounded-xl border border-gray-100 bg-gray-50">
+          {mappings.map((m) => {
+            const isUnnamed = !m.display_name
+            return (
+            <div key={m.speaker_label} className={`flex items-center gap-2 p-3 rounded-xl border ${isUnnamed ? 'border-amber-200 bg-amber-50' : 'border-gray-100 bg-gray-50'}`}>
               <span className="text-xs font-mono text-indigo-600 bg-indigo-50 border border-indigo-100 px-2 py-0.5 rounded-md w-28 text-center flex-shrink-0">
                 {m.speaker_label}
               </span>
@@ -136,7 +138,11 @@ export default function SpeakerRegistrationModal({ channelId, jobId = null, onCl
                 </>
               ) : (
                 <>
-                  <span className="flex-1 text-sm text-gray-800 font-medium">{m.display_name || '—'}</span>
+                  {isUnnamed ? (
+                    <span className="flex-1 text-xs text-amber-500 font-medium">미등록 — 이름을 지정하세요</span>
+                  ) : (
+                    <span className="flex-1 text-sm text-gray-800 font-medium">{m.display_name}</span>
+                  )}
                   {m.voice_embedding_json && (
                     <span className="text-[10px] text-emerald-600 border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 rounded-full">
                       임베딩 저장됨
@@ -144,19 +150,23 @@ export default function SpeakerRegistrationModal({ channelId, jobId = null, onCl
                   )}
                   <button
                     onClick={() => { setEditLabel(m.speaker_label); setEditName(m.display_name || '') }}
-                    className="text-xs text-sky-600 hover:underline"
+                    className={`text-xs hover:underline ${isUnnamed ? 'text-amber-600 font-semibold' : 'text-sky-600'}`}
                   >
-                    수정
+                    {isUnnamed ? '이름 등록' : '수정'}
                   </button>
-                  <button
-                    onClick={() => handleDelete(m.speaker_label)}
-                    className="text-xs text-red-400 hover:text-red-600 hover:underline"
-                  >
-                    삭제
-                  </button>
+                  {!isUnnamed && (
+                    <button
+                      onClick={() => handleDelete(m.speaker_label)}
+                      className="text-xs text-red-400 hover:text-red-600 hover:underline"
+                    >
+                      삭제
+                    </button>
+                  )}
                 </>
               )}
             </div>
+            )
+          })
           ))}
 
           {/* New mapping form */}
