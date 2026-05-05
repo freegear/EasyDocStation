@@ -1847,16 +1847,6 @@ function ContentRenderer({ text = '', sttPostId = '', sttChannelId = '' }) {
       if (cached.statusType === 'processing' && cached.jobId) {
         startSttPolling(postKey, String(cached.jobId))
       }
-      if (cached.statusType === 'done' && !cached.jobId && postKey) {
-        apiFetch(`/ai/stt/jobs/by-post?postId=${encodeURIComponent(postKey)}`)
-          .then((data) => {
-            if (data?.id && activeSttPostIdRef.current === postKey) {
-              sttJobIdRef.current = String(data.id)
-              updateSttUiState(postKey, { ...cached, jobId: String(data.id) })
-            }
-          })
-          .catch(() => {})
-      }
       return
     }
     const inferred = inferSttStateFromText(text)
@@ -1867,21 +1857,6 @@ function ContentRenderer({ text = '', sttPostId = '', sttChannelId = '' }) {
         errorReason: inferred.type === 'failed' ? sttErrorReason : '',
         jobId: '',
       })
-      if (inferred.type === 'done' && postKey) {
-        apiFetch(`/ai/stt/jobs/by-post?postId=${encodeURIComponent(postKey)}`)
-          .then((data) => {
-            if (data?.id && activeSttPostIdRef.current === postKey) {
-              sttJobIdRef.current = String(data.id)
-              updateSttUiState(postKey, {
-                status: inferred.status,
-                statusType: inferred.type,
-                errorReason: '',
-                jobId: String(data.id),
-              })
-            }
-          })
-          .catch(() => {})
-      }
       return
     }
     sttJobIdRef.current = ''
@@ -2157,7 +2132,6 @@ function ContentRenderer({ text = '', sttPostId = '', sttChannelId = '' }) {
       {showSpeakerModal && (
         <SpeakerRegistrationModal
           channelId={sttChannelId}
-          jobId={sttJobIdRef.current || null}
           onClose={() => setShowSpeakerModal(false)}
         />
       )}
