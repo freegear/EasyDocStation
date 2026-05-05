@@ -155,6 +155,16 @@ async function ensureTables() {
       // Schema migrations: add new columns if not yet present
       await db.query(`ALTER TABLE stt_speaker_mappings ADD COLUMN IF NOT EXISTS voice_embedding_json TEXT`)
       await db.query(`ALTER TABLE stt_summaries ADD COLUMN IF NOT EXISTS speaker_embeddings_json TEXT`)
+      await db.query(`
+        CREATE TABLE IF NOT EXISTS stt_job_speakers (
+          job_id TEXT NOT NULL,
+          speaker_label TEXT NOT NULL,
+          display_name TEXT NOT NULL,
+          created_by INTEGER,
+          updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+          PRIMARY KEY (job_id, speaker_label)
+        )
+      `)
     })()
   }
   return tablesReadyPromise
@@ -1090,36 +1100,30 @@ router.post('/speaker-mappings', requireAuth, async (req, res, next) => {
     const allowed = await canAccessChannel(db, req.user, String(channelId))
     if (!allowed) return res.status(403).json({ error: ACCESS_DENIED_MESSAGE })
 
-    // Voice embedding: jobId가 있으면 해당 job의 embedding을 함께 저장
-    let voiceEmbeddingJson = null
-    if (flags.USE_VOICE_EMBEDDING && jobId) {
-      try {
-        const sumRow = await db.query(
-          `SELECT speaker_embeddings_json FROM stt_summaries WHERE job_id = $1`,
-          [String(jobId)],
-        )
-        if (sumRow.rows[0]?.speaker_embeddings_json) {
-          const allEmbs = JSON.parse(sumRow.rows[0].speaker_embeddings_json)
-          if (allEmbs[speakerLabel]) {
-            voiceEmbeddingJson = JSON.stringify(allEmbs[speakerLabel])
-          }
-        }
-      } catch (_) {}
+    if (jobId) {
+      // per-job 격리: stt_job_speakers에 저장
+      await db.query(
+        `INSERT INTO stt_job_speakers (job_id, speaker_label, display_name, created_by, updated_at)
+         VALUES ($1, $2, $3, $4, NOW())
+         ON CONFLICT (job_id, speaker_label)
+         DO UPDATE SET display_name = EXCLUDED.display_name, updated_at = NOW()`,
+        [String(jobId), String(speakerLabel), String(displayName), req.user.id],
+      )
+      res.json({ success: true })
+    } else {
+      // 채널 단위 매핑 (voice embedding 등 기존 용도)
+      await db.query(
+        `INSERT INTO stt_speaker_mappings (channel_id, speaker_label, user_id, display_name, confidence, created_by, updated_at)
+         VALUES ($1, $2, $3, $4, $5, $6, NOW())
+         ON CONFLICT (channel_id, speaker_label)
+         DO UPDATE SET user_id = EXCLUDED.user_id,
+                       display_name = EXCLUDED.display_name,
+                       confidence = EXCLUDED.confidence,
+                       updated_at = NOW()`,
+        [String(channelId), String(speakerLabel), userId || null, String(displayName), Number(confidence || 0), req.user.id],
+      )
+      res.json({ success: true })
     }
-
-    await db.query(
-      `INSERT INTO stt_speaker_mappings (channel_id, speaker_label, user_id, display_name, confidence, voice_embedding_json, created_by, updated_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
-       ON CONFLICT (channel_id, speaker_label)
-       DO UPDATE SET user_id = EXCLUDED.user_id,
-                     display_name = EXCLUDED.display_name,
-                     confidence = EXCLUDED.confidence,
-                     voice_embedding_json = COALESCE(EXCLUDED.voice_embedding_json, stt_speaker_mappings.voice_embedding_json),
-                     updated_at = NOW()`,
-      [String(channelId), String(speakerLabel), userId || null, String(displayName), Number(confidence || 0), voiceEmbeddingJson, req.user.id],
-    )
-
-    res.json({ success: true, voiceEmbeddingStored: Boolean(voiceEmbeddingJson) })
     sttLog('speaker mapping upsert completed', { actorUserId: req.user?.id, channelId, speakerLabel })
   } catch (err) {
     sttError('speaker mapping upsert failed', { error: err?.message || err })
@@ -1142,21 +1146,16 @@ router.get('/speaker-mappings', requireAuth, async (req, res, next) => {
 
     let rows
     if (jobId) {
-      // 해당 job의 세그먼트에 실제 등장한 화자만 반환 (채널 매핑은 pre-fill 용도)
+      // per-job: stt_segments에 등장한 화자 + stt_job_speakers에 저장된 이름
       rows = await db.query(
         `SELECT
            s.speaker_label,
-           m.display_name,
-           m.user_id,
-           m.confidence,
-           m.updated_at,
-           m.voice_embedding_json,
-           u.name AS user_name
+           j.display_name,
+           j.updated_at
          FROM (SELECT DISTINCT speaker_label FROM stt_segments WHERE job_id = $1) s
-         LEFT JOIN stt_speaker_mappings m ON m.channel_id = $2 AND m.speaker_label = s.speaker_label
-         LEFT JOIN users u ON u.id = m.user_id
+         LEFT JOIN stt_job_speakers j ON j.job_id = $1 AND j.speaker_label = s.speaker_label
          ORDER BY s.speaker_label ASC`,
-        [jobId, channelId],
+        [jobId],
       )
     } else {
       rows = await db.query(
@@ -1182,20 +1181,26 @@ router.delete('/speaker-mappings', requireAuth, async (req, res, next) => {
   try {
     sttActorUserId = String(req.user?.id || '')
     await ensureTables()
-    const { channelId, speakerLabel } = req.body || {}
-    sttLog('speaker mapping delete requested', { actorUserId: req.user?.id, channelId, speakerLabel })
+    const { channelId, speakerLabel, jobId = null } = req.body || {}
+    sttLog('speaker mapping delete requested', { actorUserId: req.user?.id, channelId, speakerLabel, jobId: jobId || undefined })
     if (!channelId || !speakerLabel) {
       return res.status(400).json({ error: 'channelId, speakerLabel은 필수입니다.' })
     }
     const allowed = await canAccessChannel(db, req.user, String(channelId))
     if (!allowed) return res.status(403).json({ error: ACCESS_DENIED_MESSAGE })
-    await db.query(
-      `DELETE FROM stt_speaker_mappings
-       WHERE channel_id = $1 AND speaker_label = $2`,
-      [String(channelId), String(speakerLabel)],
-    )
+    if (jobId) {
+      await db.query(
+        `DELETE FROM stt_job_speakers WHERE job_id = $1 AND speaker_label = $2`,
+        [String(jobId), String(speakerLabel)],
+      )
+    } else {
+      await db.query(
+        `DELETE FROM stt_speaker_mappings WHERE channel_id = $1 AND speaker_label = $2`,
+        [String(channelId), String(speakerLabel)],
+      )
+    }
     res.json({ success: true })
-    sttLog('speaker mapping delete completed', { actorUserId: req.user?.id, channelId, speakerLabel })
+    sttLog('speaker mapping delete completed', { actorUserId: req.user?.id, channelId, speakerLabel, jobId: jobId || undefined })
   } catch (err) {
     sttError('speaker mapping delete failed', { error: err?.message || err })
     next(err)
