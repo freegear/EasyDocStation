@@ -6,6 +6,7 @@ import { apiFetch, getToken } from '../lib/api'
 import { useChat } from '../contexts/ChatContext'
 import { useAuth } from '../contexts/AuthContext'
 import { useT } from '../i18n/useT'
+import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels'
 
 const LANGUAGE_LABEL = {
   ko: '한국어',
@@ -720,8 +721,14 @@ export default function GroqPanel({ width }) {
         </select>
       </div>
 
+      <PanelGroup
+        direction="vertical"
+        autoSaveId="agentic-ai-compose"
+        className="flex-1 min-h-0"
+      >
+        <Panel defaultSize={76} minSize={25} className="overflow-hidden">
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-3 py-3 flex flex-col gap-3">
+      <div className="h-full overflow-y-auto px-3 py-3 flex flex-col gap-3">
         {messages.map((msg, idx) => (
           <div key={msg.id} className={`flex flex-col gap-1 ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
             <div className={`flex items-center gap-1.5 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
@@ -924,11 +931,14 @@ export default function GroqPanel({ width }) {
         )}
         <div ref={bottomRef} />
       </div>
+        </Panel>
 
+        <PanelResizeHandle className="h-1.5 bg-gray-200 hover:bg-green-400 active:bg-green-500 transition-colors flex-shrink-0" />
+        <Panel defaultSize={24} minSize={12} className="overflow-hidden">
       {/* Input area */}
-      <div className="px-3 py-3 border-t border-gray-200 flex-shrink-0">
+      <div className="h-full min-h-0 flex flex-col px-3 py-3 border-t border-gray-200">
         {agenticTarget && (
-          <div className="mb-2 px-2.5 py-2 border border-sky-100 rounded-lg bg-sky-50/60">
+          <div className="mb-2 px-2.5 py-2 border border-sky-100 rounded-lg bg-sky-50/60 flex-shrink-0">
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0">
                 <p className="text-[10px] font-semibold text-sky-700">{t.ai.targetLinkLabel || '대상 링크'}</p>
@@ -956,7 +966,7 @@ export default function GroqPanel({ width }) {
 
         {/* Attached File Preview */}
         {attachedFile && (
-          <div className="mb-2 flex items-center justify-between bg-gray-100 rounded-lg px-2 py-1.5 border border-gray-200">
+          <div className="mb-2 flex items-center justify-between bg-gray-100 rounded-lg px-2 py-1.5 border border-gray-200 flex-shrink-0">
             <div className="flex items-center gap-2 overflow-hidden">
               <svg className="w-3.5 h-3.5 text-blue-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.414a4 4 0 00-5.656-5.656l-6.415 6.414a6 6 0 008.486 8.486L20.5 13" />
@@ -972,7 +982,7 @@ export default function GroqPanel({ width }) {
         )}
 
         <div
-          className={`flex items-end gap-2 rounded-xl border px-2 py-2 transition-colors relative overflow-hidden ${
+          className={`flex-1 min-h-0 flex items-stretch gap-2 rounded-xl border px-2 py-2 transition-colors relative overflow-hidden ${
             dragOver
               ? 'border-green-500/60 bg-green-50 shadow-sm shadow-green-200'
               : 'bg-gray-200 border-gray-200 focus-within:border-green-500/40'
@@ -1014,13 +1024,8 @@ export default function GroqPanel({ width }) {
             onDragOver={handleDragOver}
             onDrop={handleTextareaDrop}
             placeholder={t.ai.inputPlaceholder}
-            rows={1}
             disabled={loading}
-            className="flex-1 bg-transparent text-gray-900 placeholder-white/30 text-xs resize-none focus:outline-none leading-relaxed min-h-[24px] max-h-24 overflow-y-auto disabled:opacity-50"
-            onInput={e => {
-              e.target.style.height = 'auto'
-              e.target.style.height = e.target.scrollHeight + 'px'
-            }}
+            className="flex-1 h-full min-h-0 bg-transparent text-gray-900 placeholder-white/30 text-xs resize-none focus:outline-none leading-relaxed overflow-y-auto disabled:opacity-50"
           />
           <button
             onClick={sendMessage}
@@ -1036,8 +1041,10 @@ export default function GroqPanel({ width }) {
             )}
           </button>
         </div>
-        <p className="text-gray-300 text-xs mt-1 px-0.5">{t.ai.inputHint}</p>
+        <p className="text-gray-300 text-xs mt-1 px-0.5 flex-shrink-0">{t.ai.inputHint}</p>
       </div>
+        </Panel>
+      </PanelGroup>
 
       {noticeDialog && (
         <div className="fixed inset-0 z-[95] bg-black/40 flex items-center justify-center px-4">

@@ -8,6 +8,7 @@ import { useSelectionClickGuard } from '../../hooks/useSelectionClickGuard'
 import { findDuplicateFileNames } from '../../lib/fileNameValidation'
 import useMentionAutocomplete from '../../hooks/useMentionAutocomplete'
 import MentionDropdown from '../MentionDropdown'
+import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels'
 
 function toKstDateKey(iso) {
   const d = new Date(iso)
@@ -770,7 +771,13 @@ function PostDetailPane({ post, channelId, onClose, pendingOpenCommentId = null,
         />
       )}
 
-      <div className="flex-1 overflow-y-auto overflow-x-hidden px-6 py-6">
+      <PanelGroup
+        direction="vertical"
+        autoSaveId={`post-detail-compose:${currentUser?.id ?? 'anon'}:${post.id ?? 'none'}`}
+        className="flex-1 min-h-0"
+      >
+        <Panel defaultSize={72} minSize={25} className="overflow-hidden">
+      <div className={`h-full px-6 py-6 ${isEditingPost ? 'flex flex-col overflow-hidden' : 'overflow-y-auto overflow-x-hidden'}`}>
         {/* Meta */}
         <div className="mb-6">
           {freshPost.pinned && <div className="flex items-center gap-1.5 text-amber-600 text-xs font-medium mb-3"><PinIcon /><span>{t.chat.pinnedPost}</span></div>}
@@ -797,7 +804,7 @@ function PostDetailPane({ post, channelId, onClose, pendingOpenCommentId = null,
 
         {/* Body & Attachments */}
         {isEditingPost ? (
-          <div className="bg-gray-100 rounded-2xl border border-indigo-300 p-4 mb-6 flex flex-col gap-4">
+          <div className="bg-gray-100 rounded-2xl border border-indigo-300 p-4 mb-6 flex flex-col gap-4 flex-1 min-h-0">
             <textarea
               value={postContent}
               onChange={e => setPostContent(e.target.value)}
@@ -807,7 +814,7 @@ function PostDetailPane({ post, channelId, onClose, pendingOpenCommentId = null,
                 e.stopPropagation()
                 cancelPostEdit()
               }}
-              className="w-full h-[min(58vh,520px)] bg-transparent text-gray-800 placeholder-gray-400 text-sm leading-relaxed resize-none focus:outline-none overflow-y-auto"
+              className="w-full flex-1 min-h-0 h-full bg-transparent text-gray-800 placeholder-gray-400 text-sm leading-relaxed resize-none focus:outline-none overflow-y-auto"
             />
             {postFiles.length > 0 && (
               <div className="flex flex-wrap gap-2">
@@ -933,6 +940,7 @@ function PostDetailPane({ post, channelId, onClose, pendingOpenCommentId = null,
         )}
 
         {/* Comments list — 스크롤 영역 안 */}
+        {!isEditingPost && (
         <div className="border-t border-gray-200 pt-6 mt-6 pb-4">
           <h3 className="text-gray-900 font-semibold text-sm mb-4">{t.chat.commentCount((freshPost.comments || []).length)}</h3>
           {(freshPost.comments || []).length === 0 ? (
@@ -1028,7 +1036,7 @@ function PostDetailPane({ post, channelId, onClose, pendingOpenCommentId = null,
                             e.stopPropagation()
                             cancelCommentEdit()
                           }}
-                          className="w-full h-[min(32vh,300px)] bg-gray-100 border border-gray-200 rounded-lg p-2 text-gray-700 text-sm focus:outline-none focus:border-indigo-300 resize-none overflow-y-auto"
+                          className="w-full min-h-32 bg-gray-100 border border-gray-200 rounded-lg p-2 text-gray-700 text-sm focus:outline-none focus:border-indigo-300 resize-none overflow-y-auto"
                         />
                         {commentEditFiles.length > 0 && (
                           <div className="flex flex-wrap gap-1.5 mt-2">
@@ -1081,27 +1089,35 @@ function PostDetailPane({ post, channelId, onClose, pendingOpenCommentId = null,
             </div>
           )}
         </div>
+        )}
       </div>
+        </Panel>
 
-      {/* 댓글 입력 — 스크롤 영역 밖, 항상 하단 고정 */}
-      <div className="flex-shrink-0 border-t border-gray-200 px-6 py-3 bg-white">
+        <PanelResizeHandle className="h-1.5 bg-gray-200 hover:bg-indigo-400 active:bg-indigo-500 transition-colors flex-shrink-0" />
+        <Panel defaultSize={28} minSize={12} className="overflow-hidden">
+      {/* 댓글 입력 */}
+      <div className="h-full min-h-0 flex flex-col border-t border-gray-200 px-6 py-3 bg-white">
         <input ref={fileInputRef} type="file" multiple className="hidden" onChange={e => { if(e.target.files?.length) addFiles(e.target.files); e.target.value = '' }} />
         {!selectedChannel?.is_archived ? (
           <form
             onSubmit={handleComment}
-            className="flex items-start gap-3"
+            className="flex items-stretch gap-3 flex-1 min-h-0"
             onDragEnter={handleDragEnter}
             onDragLeave={handleDragLeave}
             onDragOver={handleDragOver}
             onDrop={handleDrop}
           >
-            {currentUser && <Avatar letters={currentUser.avatar} imageUrl={currentUser.image_url} size="sm" />}
+            {currentUser && (
+              <div className="flex-shrink-0 self-start">
+                <Avatar letters={currentUser.avatar} imageUrl={currentUser.image_url} size="sm" />
+              </div>
+            )}
             <div
               onDragEnter={handleDragEnter}
               onDragLeave={handleDragLeave}
               onDragOver={handleDragOver}
               onDrop={handleDrop}
-              className={`flex-1 rounded-xl border transition-all duration-150 relative overflow-hidden ${
+              className={`flex-1 min-h-0 flex flex-col rounded-xl border transition-all duration-150 relative overflow-hidden ${
                 dragOver
                   ? 'border-indigo-400/70 bg-indigo-50 shadow-lg shadow-indigo-200'
                   : 'bg-gray-100 border-gray-200 focus-within:border-indigo-300'
@@ -1115,7 +1131,7 @@ function PostDetailPane({ post, channelId, onClose, pendingOpenCommentId = null,
                   <p className="text-indigo-600 text-sm font-semibold">{t.chat.dropFile}</p>
                 </div>
               )}
-              <div className="relative">
+              <div className="relative flex-1 min-h-0">
                 <textarea
                   ref={commentTextareaRef}
                   value={comment}
@@ -1126,8 +1142,7 @@ function PostDetailPane({ post, channelId, onClose, pendingOpenCommentId = null,
                   onClick={e => mention.handleChange(e.currentTarget.value, e.currentTarget.selectionStart, e.currentTarget)}
                   onKeyUp={e => mention.handleChange(e.currentTarget.value, e.currentTarget.selectionStart, e.currentTarget)}
                   placeholder={t.chat.commentPlaceholder}
-                  rows={2}
-                  className="w-full bg-transparent text-gray-700 placeholder-gray-400 text-sm px-4 pt-3 pb-2 resize-none focus:outline-none leading-relaxed"
+                  className="w-full h-full bg-transparent text-gray-700 placeholder-gray-400 text-sm px-4 pt-3 pb-2 resize-none focus:outline-none leading-relaxed overflow-y-auto"
                   onDragOver={handleTextareaDragOver}
                   onDrop={handleTextareaDrop}
                   onKeyDown={e => {
@@ -1175,13 +1190,13 @@ function PostDetailPane({ post, channelId, onClose, pendingOpenCommentId = null,
                 )}
               </div>
               {files.length > 0 && (
-                <div className="px-4 pb-2">
+                <div className="px-4 pb-2 flex-shrink-0">
                   <div className="flex flex-wrap gap-2">
                     {files.map(f => <FileChip key={f.id} file={f} onRemove={removeFile} />)}
                   </div>
                 </div>
               )}
-              <div className="flex items-center px-3 pb-2">
+              <div className="flex items-center px-3 pb-2 flex-shrink-0">
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
@@ -1208,7 +1223,7 @@ function PostDetailPane({ post, channelId, onClose, pendingOpenCommentId = null,
                 </button>
               </div>
               {uploading && uploadProgress && (
-                <div className="px-4 pb-3">
+                <div className="px-4 pb-3 flex-shrink-0">
                   <div className="flex items-center justify-between text-[11px] text-gray-500 mb-1">
                     <span>{t.chat.sending} {uploadProgress.percent}%</span>
                     <span>{uploadProgress.fileIndex}/{uploadProgress.fileCount} · {formatSize(uploadProgress.uploadedBytes)} / {formatSize(uploadProgress.totalBytes)}</span>
@@ -1224,7 +1239,7 @@ function PostDetailPane({ post, channelId, onClose, pendingOpenCommentId = null,
             </div>
           </form>
         ) : (
-          <div className="flex items-center justify-center py-2 gap-2 text-gray-400 text-xs italic">
+          <div className="flex-1 min-h-0 flex items-center justify-center py-2 gap-2 text-gray-400 text-xs italic">
             <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
             </svg>
@@ -1232,6 +1247,8 @@ function PostDetailPane({ post, channelId, onClose, pendingOpenCommentId = null,
           </div>
         )}
       </div>
+        </Panel>
+      </PanelGroup>
 
     </div>
   )

@@ -17,6 +17,7 @@ import PostDetailPane from './chat/PostDetailPane'
 import MDPageViewer from './chat/MDPageViewer'
 import { useT } from '../i18n/useT'
 import { isTemplateContent, isMdPage, getMdPageContent, getMdPageTitle, FORM_TEMPLATES } from '../templates/formTemplates'
+import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels'
 
 
 // ─── Helpers ──────────────────────────────────────────────────
@@ -2429,9 +2430,6 @@ function ComposeBar({ onSubmit, isArchived, teamId }) {
       setContent('')
       setFiles([])
       setFocused(false)
-      if (contentRef.current) {
-        contentRef.current.style.height = 'auto'
-      }
     } catch (err) {
       alert(t.chat.sendError(err.message))
     } finally {
@@ -2471,7 +2469,6 @@ function ComposeBar({ onSubmit, isArchived, teamId }) {
     setContent('')
     setFiles([])
     setFocused(false)
-    if (contentRef.current) contentRef.current.style.height = 'auto'
   }
 
   const hasContent = content.trim().length > 0 || files.length > 0
@@ -2479,7 +2476,7 @@ function ComposeBar({ onSubmit, isArchived, teamId }) {
 
   if (isArchived) {
     return (
-      <div className="flex-shrink-0 px-4 py-8 border-t border-gray-200 flex flex-col items-center justify-center bg-white/2">
+      <div className="h-full min-h-0 px-4 py-8 border-t border-gray-200 flex flex-col items-center justify-center bg-white/2">
         <div className="w-12 h-12 rounded-full bg-amber-50 flex items-center justify-center text-amber-500 mb-3">
           <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
@@ -2493,7 +2490,7 @@ function ComposeBar({ onSubmit, isArchived, teamId }) {
 
   return (
     <>
-      <div className="flex-shrink-0 px-4 py-3 border-t border-gray-200">
+      <div className="h-full min-h-0 flex flex-col px-4 py-3 border-t border-gray-200">
         <input ref={fileInputRef} type="file" multiple className="hidden" onChange={handleFileSelect} />
 
       <div
@@ -2501,7 +2498,7 @@ function ComposeBar({ onSubmit, isArchived, teamId }) {
         onDragLeave={handleDragLeave}
         onDragOver={handleDragOver}
         onDrop={handleDrop}
-        className={`flex flex-col rounded-2xl border transition-all duration-150 relative overflow-hidden ${
+        className={`flex-1 min-h-0 flex flex-col rounded-2xl border transition-all duration-150 relative overflow-hidden ${
           dragOver
             ? 'border-indigo-400/70 bg-indigo-50 shadow-lg shadow-indigo-200'
             : showActions
@@ -2520,9 +2517,13 @@ function ComposeBar({ onSubmit, isArchived, teamId }) {
         )}
 
         {/* Content textarea row */}
-        <div className="flex items-start gap-3 px-4 pt-3 pb-2">
-          {currentUser && <Avatar letters={currentUser.avatar} size="sm" />}
-          <div ref={composeWrapRef} className="flex-1 relative">
+        <div className="flex items-stretch gap-3 px-4 pt-3 pb-2 flex-1 min-h-0">
+          {currentUser && (
+            <div className="flex-shrink-0 self-start">
+              <Avatar letters={currentUser.avatar} size="sm" />
+            </div>
+          )}
+          <div ref={composeWrapRef} className="flex-1 relative min-h-0">
             <textarea
               ref={contentRef}
               value={content}
@@ -2537,12 +2538,7 @@ function ComposeBar({ onSubmit, isArchived, teamId }) {
               onDragOver={handleTextareaDragOver}
               onDrop={handleTextareaDrop}
               placeholder={t.chat.messagePlaceholder}
-              rows={1}
-              className="w-full bg-transparent text-gray-800 placeholder-gray-400 text-sm leading-relaxed resize-none focus:outline-none pt-0.5"
-              onInput={e => {
-                e.target.style.height = 'auto'
-                e.target.style.height = Math.min(e.target.scrollHeight, 160) + 'px'
-              }}
+              className="w-full h-full bg-transparent text-gray-800 placeholder-gray-400 text-sm leading-relaxed resize-none focus:outline-none pt-0.5 overflow-y-auto"
             />
             {mention.open && (
               <MentionDropdown
@@ -2566,7 +2562,7 @@ function ComposeBar({ onSubmit, isArchived, teamId }) {
 
         {/* Attached files preview */}
         {files.length > 0 && (
-          <div className="px-4 pb-2 pl-[52px]">
+          <div className="px-4 pb-2 pl-[52px] flex-shrink-0">
             <div className="flex flex-wrap gap-2">
               {files.map(f => <FileChip key={f.id} file={f} onRemove={removeFile} />)}
             </div>
@@ -2575,7 +2571,7 @@ function ComposeBar({ onSubmit, isArchived, teamId }) {
 
         {/* Action row — shown when focused or has content */}
         {showActions && (
-          <div className="px-3 pb-3 pl-[52px]">
+          <div className="px-3 pb-3 pl-[52px] flex-shrink-0">
             {sending && uploadProgress && (
               <div className="mb-2">
                 <div className="flex items-center justify-between text-[11px] text-gray-500 mb-1">
@@ -2643,7 +2639,7 @@ function ComposeBar({ onSubmit, isArchived, teamId }) {
         )}
       </div>
 
-        <p className="text-gray-300 text-xs mt-1.5 px-1">
+        <p className="text-gray-300 text-xs mt-1.5 px-1 flex-shrink-0">
           {t.chat.messageHint}
         </p>
       </div>
@@ -2742,51 +2738,61 @@ function PostList({ posts, onSelect, onSubmit, selectedPostId, onOpenDocumentLis
         />
       )}
 
-      {/* Feed */}
-      <div className="flex-1 overflow-y-auto px-6 py-4">
-        {posts.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-center py-16">
-            <div className="w-16 h-16 rounded-2xl bg-indigo-50 border border-indigo-200 flex items-center justify-center text-3xl mb-4">📄</div>
-            <h3 className="text-gray-900 font-semibold mb-1">{t.chat.noPostsTitle}</h3>
-            <p className="text-gray-400 text-sm">{t.chat.noPostsDesc}</p>
-          </div>
-        ) : (
-          <div className="flex flex-col gap-3">
-            {pinnedPosts.length > 0 && (
-              <div className="sticky top-0 z-20 -mx-2 px-2 py-2 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80 border-b border-amber-100 rounded-xl">
-                <div className="flex items-center gap-2 text-amber-600/70 text-xs font-medium uppercase tracking-widest mb-2">
-                  <PinIcon /><span>{t.chat.pinnedPost}</span>
-                </div>
-                <div className="flex flex-col gap-2 max-h-[38vh] overflow-y-auto pr-1">
-                  {pinnedPosts.map(p => <PostCard key={p.id} post={p} onSelect={onSelect} pinned isSelected={p.id === selectedPostId} />)}
-                </div>
+      <PanelGroup
+        direction="vertical"
+        autoSaveId={`post-list-compose:${currentUser?.id ?? 'anon'}:${selectedChannel?.id ?? 'none'}`}
+        className="flex-1 min-h-0"
+      >
+        <Panel defaultSize={72} minSize={25} className="overflow-hidden">
+          {/* Feed */}
+          <div className="h-full overflow-y-auto px-6 py-4">
+            {posts.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-full text-center py-16">
+                <div className="w-16 h-16 rounded-2xl bg-indigo-50 border border-indigo-200 flex items-center justify-center text-3xl mb-4">📄</div>
+                <h3 className="text-gray-900 font-semibold mb-1">{t.chat.noPostsTitle}</h3>
+                <p className="text-gray-400 text-sm">{t.chat.noPostsDesc}</p>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-3">
+                {pinnedPosts.length > 0 && (
+                  <div className="sticky top-0 z-20 -mx-2 px-2 py-2 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80 border-b border-amber-100 rounded-xl">
+                    <div className="flex items-center gap-2 text-amber-600/70 text-xs font-medium uppercase tracking-widest mb-2">
+                      <PinIcon /><span>{t.chat.pinnedPost}</span>
+                    </div>
+                    <div className="flex flex-col gap-2 max-h-[38vh] overflow-y-auto pr-1">
+                      {pinnedPosts.map(p => <PostCard key={p.id} post={p} onSelect={onSelect} pinned isSelected={p.id === selectedPostId} />)}
+                    </div>
+                  </div>
+                )}
+                {pinnedPosts.length > 0 && normalPosts.length > 0 && <div className="border-t border-gray-100 my-1" />}
+                {normalRows.map((row) => (
+                  row.type === 'divider' ? (
+                    <div key={row.key} className="flex items-center gap-3 my-2">
+                      <div className="flex-1 h-px bg-gray-200" />
+                      <span className="text-[13px] text-black font-medium whitespace-nowrap">
+                        {`──────── ${row.label} ────────`}
+                      </span>
+                      <div className="flex-1 h-px bg-gray-200" />
+                    </div>
+                  ) : (
+                    <PostCard
+                      key={row.key}
+                      post={row.item}
+                      onSelect={onSelect}
+                      isSelected={row.item.id === selectedPostId}
+                    />
+                  )
+                ))}
+                <div ref={bottomRef} />
               </div>
             )}
-            {pinnedPosts.length > 0 && normalPosts.length > 0 && <div className="border-t border-gray-100 my-1" />}
-            {normalRows.map((row) => (
-              row.type === 'divider' ? (
-                <div key={row.key} className="flex items-center gap-3 my-2">
-                  <div className="flex-1 h-px bg-gray-200" />
-                  <span className="text-[13px] text-black font-medium whitespace-nowrap">
-                    {`──────── ${row.label} ────────`}
-                  </span>
-                  <div className="flex-1 h-px bg-gray-200" />
-                </div>
-              ) : (
-                <PostCard
-                  key={row.key}
-                  post={row.item}
-                  onSelect={onSelect}
-                  isSelected={row.item.id === selectedPostId}
-                />
-              )
-            ))}
-            <div ref={bottomRef} />
           </div>
-        )}
-      </div>
-
-      <ComposeBar onSubmit={onSubmit} isArchived={selectedChannel?.is_archived} teamId={selectedTeam?.id} />
+        </Panel>
+        <PanelResizeHandle className="h-1.5 bg-gray-200 hover:bg-indigo-400 active:bg-indigo-500 transition-colors flex-shrink-0" />
+        <Panel defaultSize={28} minSize={12} className="overflow-hidden">
+          <ComposeBar onSubmit={onSubmit} isArchived={selectedChannel?.is_archived} teamId={selectedTeam?.id} />
+        </Panel>
+      </PanelGroup>
     </div>
   )
 }
