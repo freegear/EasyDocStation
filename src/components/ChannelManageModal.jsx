@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useChat } from '../contexts/ChatContext'
 import { apiFetch } from '../lib/api'
 import { useAuth } from '../contexts/AuthContext'
@@ -28,7 +28,7 @@ export default function ChannelManageModal({ mode = 'manage', channel = null, on
   const { currentUser } = useAuth()
   const { selectedTeam, selectedChannel } = useChat()
   const t = useT()
-  const targetChannel = channel || selectedChannel
+  const targetChannel = mode === 'manage' ? (channel || selectedChannel) : null
   const isEdit = mode === 'manage' && !!targetChannel
 
   const [name, setName] = useState(targetChannel?.name || '')
@@ -49,12 +49,19 @@ export default function ChannelManageModal({ mode = 'manage', channel = null, on
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [showArchiveConfirm, setShowArchiveConfirm] = useState(false)
   const [deleteConfirmName, setDeleteConfirmName] = useState('')
+  const openedAtRef = useRef(Date.now())
 
   const isSiteAdmin = currentUser?.role === 'site_admin'
   const isTeamAdmin = isSiteAdmin || selectedTeam?.admin_ids?.includes(currentUser?.id)
   
   // 권한 설정: 팀 관리자면 모든 관리 가능, 아니면 채널 관리자만 가능
   const canManage = isTeamAdmin || admins.some(a => a.id === currentUser?.id)
+
+  function handleBackdropClick() {
+    const justOpenedMs = Date.now() - openedAtRef.current
+    if (justOpenedMs < 250) return
+    onClose()
+  }
 
   useEffect(() => {
     const handleEsc = (e) => {
@@ -77,9 +84,24 @@ export default function ChannelManageModal({ mode = 'manage', channel = null, on
 
   useEffect(() => {
     if (isEdit) {
+      setName(targetChannel?.name || '')
+      setType(targetChannel?.type || 'public')
+      setIsArchived(targetChannel?.is_archived || false)
+      setDescription(targetChannel?.description || '')
       loadChannelData()
+    } else {
+      setName('')
+      setType('public')
+      setIsArchived(false)
+      setDescription('')
+      setAdmins([])
+      setMembers([])
+      setSearchQuery('')
+      setSearchTarget(null)
+      setSearchResults([])
+      setError('')
     }
-  }, [targetChannel?.id])
+  }, [isEdit, targetChannel?.id])
 
   async function loadChannelData() {
     setLoading(true)
@@ -224,7 +246,7 @@ export default function ChannelManageModal({ mode = 'manage', channel = null, on
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center px-4">
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={handleBackdropClick} />
       <div className="relative w-full max-w-xl bg-gray-50 rounded-3xl border border-gray-200 shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
         
         {/* Header */}

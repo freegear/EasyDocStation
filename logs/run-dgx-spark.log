@@ -174,3 +174,17 @@
 [BE] [20260507-00:07:01][BE] [RAG] 댓글 학습 실패 — 1개 댓글 (0.1s): rag_train.py 종료 코드: 1 (signal=none, 0.1s)
 [BE] [20260507-00:07:01][BE] [RAG] 댓글 임베딩 오류: rag_train.py 종료 코드: 1 (signal=none, 0.1s)
 [BE] [20260507-00:07:01][BE] [link-preview-image] 내부망 주소는 미리보기를 지원하지 않습니다.
+[BE] [20260507-00:09:01][BE] [ATTACH-REF] sync ownerType=post ownerId=91fd98f9-4662-4482-810f-a1abde22173a actorUserId=1 prev=0 next=0 add=0 remove=0
+[BE] [20260507-00:09:05][BE] [ATTACH-REF] sync ownerType=post ownerId=d45dbd8c-70b2-429a-be80-1c2f1b070f24 actorUserId=1 prev=0 next=0 add=0 remove=0
+[BE] [20260507-00:11:29][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[BE] [20260507-00:12:04][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[BE] [20260507-00:12:13][BE] [link-preview-image] 내부망 주소는 미리보기를 지원하지 않습니다.
+[FE] AM 12:14:02 [vite] hmr update /src/components/ChannelManageModal.jsx, /src/index.css
+[FE] AM 12:19:24 [vite] hmr update /src/components/ChannelManageModal.jsx, /src/index.css
+[BE] [20260507-00:21:09][BE] [ATTACH-REF] sync ownerType=post ownerId=d1f6a39a-8608-4159-98cd-cb204ac0c68b actorUserId=1 prev=0 next=1 add=1 remove=0
+[BE] [20260507-00:21:09][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
+[BE] [20260507-00:21:09][BE] Traceback (most recent call last):
+[BE] [20260507-00:21:09][BE]   File "/home/freegear/EasyDocStation/server/rag_train.py", line 110, in <module>
+[BE] [20260507-00:21:09][BE]     import pdfplumber
+[BE] [20260507-00:21:09][BE] ModuleNotFoundError: No module named 'pdfplumber'
+[BE] [20260507-00:21:09][BE] [RAG] 게시글 임베딩 오류: rag_train.py 종료 코드: 1 (signal=none, 0.1s)
