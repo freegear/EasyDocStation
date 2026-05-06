@@ -213,11 +213,11 @@ export function ChatProvider({ children }) {
     }
   }
 
-  async function updatePost(channelId, postId, { content, attachments, security_level }) {
+  async function updatePost(channelId, postId, { content, ragContent, attachments, security_level, waitForTraining = false }) {
     try {
       await apiFetch(`/posts/${postId}`, {
         method: 'PUT',
-        body: JSON.stringify({ content, security_level }),
+        body: JSON.stringify({ content, ragContent, security_level, attachments, waitForTraining }),
       })
       setPosts(prev => ({
         ...prev,

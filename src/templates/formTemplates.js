@@ -1,3 +1,5 @@
+import minutesTemplate from '../../template/minutes_template.html?raw'
+
 export const FORM_TEMPLATES = [
   {
     id: 'quotation',
@@ -1238,6 +1240,12 @@ h1 { text-align: center; font-size: 28px; letter-spacing: 12px; margin-bottom: 2
 </script>
 </body>
 </html>`,
+  },
+  {
+    id: 'meeting-minutes',
+    label: '회의록 (예시)',
+    icon: '📋',
+    content: minutesTemplate,
   },
   {
     id: 'md-page',

@@ -1090,7 +1090,7 @@ router.delete('/:id', requireAuth, async (req, res, next) => {
 router.put('/:id', requireAuth, async (req, res, next) => {
   try {
     const { id } = req.params
-    const { content, security_level, attachments = [] } = req.body
+    const { content, ragContent, security_level, attachments = [], waitForTraining = false } = req.body
     if (!isConnected()) return res.status(503).json({ error: 'Cassandra 연결이 필요합니다.' })
     const row = await findPostLocator(id)
     if (!row) return res.status(404).json({ error: '게시글을 찾을 수 없습니다.' })
@@ -1144,13 +1144,23 @@ router.put('/:id', requireAuth, async (req, res, next) => {
       actorUserId: req.user?.id,
     })
 
-    // 수정 즉시: 기존 벡터 삭제 후 재학습 (비동기, 응답 비차단)
+    // 수정 즉시: 기존 벡터 삭제 후 재학습
     markTrainingStarted('post', id)
-    ;(async () => {
-      const success = await retrainPostImmediate({ id, channel_id: row.channel_id, content })
+    const trainingContent = String(ragContent || '').trim() || content
+    const trainUpdatedPost = async () => {
+      const success = await retrainPostImmediate({ id, channel_id: row.channel_id, content: trainingContent })
       if (success) markTrainingCompleted('post', id)
       else clearTrainingStatus('post', id)
-    })()
+      return success
+    }
+
+    if (waitForTraining) {
+      const success = await trainUpdatedPost()
+      if (!success) return res.status(500).json({ error: 'RAG 학습에 실패했습니다.' })
+      return res.json({ success: true, training_status: 'completed' })
+    }
+
+    trainUpdatedPost()
 
     res.json({ success: true })
   } catch (err) {

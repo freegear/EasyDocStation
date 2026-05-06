@@ -853,27 +853,38 @@ function PostDetailPane({ post, channelId, onClose, pendingOpenCommentId = null,
                 <TemplateRenderer
                   html={freshPost.content}
                   postId={post.id}
-                  onSave={(data) => apiFetch('/expense/save', {
-                    method: 'POST',
-                    body: JSON.stringify({
-                      postId: post.id,
-                      channelId,
-                      securityLevel: freshPost.security_level ?? 1,
-                      docNo: data.docNo || '',
-                      formData: {
-                        docNo:          data.docNo || '',
-                        docDate:        data.docDate || '',
-                        author:         data.author || '',
-                        department:     data.department || '',
-                        payDate:        data.payDate || '',
-                        reviewOpinion:  data.reviewOpinion || '',
-                        rows:           data.rows || [],
-                        vat:            data.vat || '',
-                        grandTotal:     data.grandTotal || '',
-                      },
-                      attachments: data.attachments || [],
-                    }),
-                  })}
+                  onSave={(data) => {
+                    if (data?.kind === 'meeting-minutes') {
+                      return updatePost(channelId, post.id, {
+                        content: data.html,
+                        ragContent: data.ragContent || '',
+                        attachments: freshPost.attachments || [],
+                        security_level: freshPost.security_level ?? 0,
+                        waitForTraining: true,
+                      })
+                    }
+                    return apiFetch('/expense/save', {
+                      method: 'POST',
+                      body: JSON.stringify({
+                        postId: post.id,
+                        channelId,
+                        securityLevel: freshPost.security_level ?? 1,
+                        docNo: data.docNo || '',
+                        formData: {
+                          docNo:          data.docNo || '',
+                          docDate:        data.docDate || '',
+                          author:         data.author || '',
+                          department:     data.department || '',
+                          payDate:        data.payDate || '',
+                          reviewOpinion:  data.reviewOpinion || '',
+                          rows:           data.rows || [],
+                          vat:            data.vat || '',
+                          grandTotal:     data.grandTotal || '',
+                        },
+                        attachments: data.attachments || [],
+                      }),
+                    })
+                  }}
                   onContentChange={(field, value) => {
                     let updatedContent = freshPost.content
                     if (field === 'quoteNo') {

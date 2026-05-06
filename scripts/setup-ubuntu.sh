@@ -196,6 +196,25 @@ print(f"[INFO] installed torch={torch.__version__}")
 if ver < Version("2.6"):
     raise SystemExit("[ERROR] torch>=2.6 이 필요합니다. scripts/setup-dgx-spark.sh 를 실행해 CUDA torch를 재설치하세요.")
 PY
+python - <<'PY'
+required = [
+    "pdfplumber",
+    "lancedb",
+    "sentence_transformers",
+    "langchain_community",
+    "langchain_text_splitters",
+    "pytesseract",
+]
+missing = []
+for name in required:
+    try:
+        __import__(name)
+        print(f"[INFO] RAG module OK: {name}")
+    except Exception as exc:
+        missing.append(f"{name}: {exc}")
+if missing:
+    raise SystemExit("[ERROR] RAG Python 모듈 설치 검증 실패\n" + "\n".join(missing))
+PY
 deactivate
 
 echo "[8/8] 프로젝트 설정 파일 자동 구성"

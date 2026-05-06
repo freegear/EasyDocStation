@@ -103,6 +103,25 @@ if torch.cuda.is_available():
 else:
     print("[WARN] CUDA가 비활성화 상태입니다. 드라이버/CUDA 런타임을 확인하세요.")
 PY
+python - <<'PY'
+required = [
+    "pdfplumber",
+    "lancedb",
+    "sentence_transformers",
+    "langchain_community",
+    "langchain_text_splitters",
+    "pytesseract",
+]
+missing = []
+for name in required:
+    try:
+        __import__(name)
+        print(f"[INFO] RAG module OK: {name}")
+    except Exception as exc:
+        missing.append(f"{name}: {exc}")
+if missing:
+    raise SystemExit("[ERROR] RAG Python 모듈 설치 검증 실패\n" + "\n".join(missing))
+PY
 deactivate
 
 echo

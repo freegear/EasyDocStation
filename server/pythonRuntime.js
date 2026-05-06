@@ -18,6 +18,12 @@ function getPythonExecutable() {
     if (fs.existsSync(py)) return py
   }
 
+  const repoVenv = path.resolve(__dirname, '../.venv')
+  const repoPy3 = path.join(repoVenv, 'bin', 'python3')
+  if (fs.existsSync(repoPy3)) return repoPy3
+  const repoPy = path.join(repoVenv, 'bin', 'python')
+  if (fs.existsSync(repoPy)) return repoPy
+
   return 'python3'
 }
 

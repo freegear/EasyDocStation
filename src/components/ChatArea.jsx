@@ -1357,7 +1357,7 @@ function TemplateRenderer({ html, postId, onContentChange, onSave }) {
     .replace(/\{\{USER_EMAIL\}\}/g, userEmail)
     .replace(/\{\{SEAL_URL\}\}/g, sealUrl)
     .replace(/\{\{LOGO_URL\}\}/g, logoUrl)
-    .replace('</head>', `<script>var POST_ID='${safePostId}';var EXPENSE_DOC_NO='${safeDocNo}';var TRIP_DOC_NO='${safeTripDocNo}';var SAVED_ATTACHMENTS=${attachJson};var SAVED_FORM_DATA=${formJson};</script></head>`)
+    .replace('</head>', `<script data-template-runtime="true">var POST_ID='${safePostId}';var EXPENSE_DOC_NO='${safeDocNo}';var TRIP_DOC_NO='${safeTripDocNo}';var SAVED_ATTACHMENTS=${attachJson};var SAVED_FORM_DATA=${formJson};</script></head>`)
 
   useEffect(() => {
     function handleMessage(e) {
@@ -1374,6 +1374,19 @@ function TemplateRenderer({ html, postId, onContentChange, onSave }) {
           .catch((err) => {
             iframeRef.current?.contentWindow?.postMessage(
               { type: 'expenseSaveResult', success: false, error: err.message }, '*'
+            )
+          })
+      }
+      if (e.data?.type === 'meetingMinutesConfirm' && e.data.html && onSave) {
+        onSave({ kind: 'meeting-minutes', html: e.data.html, ragContent: e.data.ragContent || '' })
+          .then(() => {
+            iframeRef.current?.contentWindow?.postMessage(
+              { type: 'meetingMinutesConfirmResult', success: true, status: 'completed' }, '*'
+            )
+          })
+          .catch((err) => {
+            iframeRef.current?.contentWindow?.postMessage(
+              { type: 'meetingMinutesConfirmResult', success: false, error: err.message }, '*'
             )
           })
       }
