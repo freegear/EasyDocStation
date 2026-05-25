@@ -1082,7 +1082,7 @@ function findTaskItemPosFromTarget(view, targetEl) {
 }
 
 export default function MDPageViewer({ post, channelId, onClose }) {
-  const { updatePost, deletePost, addComment, deleteComment, posts } = useChat()
+  const { updatePost, deletePost, addComment, deleteComment, posts, selectedChannel, togglePostPin } = useChat()
   const { currentUser, maxAttachmentFileSize } = useAuth()
   const t = useT()
   const authToken = getToken() || ''
@@ -1103,6 +1103,7 @@ export default function MDPageViewer({ post, channelId, onClose }) {
   const [isChanged, setIsChanged] = useState(false)
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [pinning, setPinning] = useState(false)
   const [showSaveDialog, setShowSaveDialog] = useState(false)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [isUploadingImage, setIsUploadingImage] = useState(false)
@@ -1141,10 +1142,12 @@ export default function MDPageViewer({ post, channelId, onClose }) {
   useEffect(() => { savedImageMetaRef.current = savedImageMeta }, [savedImageMeta])
   useEffect(() => { modeRef.current = mode }, [mode])
 
-  const canEdit = String(post.author?.id ?? '') === String(currentUser?.id ?? '')
-  useEffect(() => { canEditRef.current = canEdit }, [canEdit])
   const freshPost = posts[channelId]?.find((p) => p.id === post.id) || post
   const comments = Array.isArray(freshPost.comments) ? freshPost.comments : []
+  const canEdit = String(freshPost.author?.id ?? '') === String(currentUser?.id ?? '')
+  const isPinManagerRole = ['site_admin', 'team_admin', 'channel_admin'].includes(String(currentUser?.role || ''))
+  const canPinPost = (isPinManagerRole || canEdit) && !selectedChannel?.is_archived
+  useEffect(() => { canEditRef.current = canEdit }, [canEdit])
 
   useEffect(() => {
     let cancelled = false
@@ -2027,6 +2030,18 @@ export default function MDPageViewer({ post, channelId, onClose }) {
     })
   }
 
+  async function handleTogglePin() {
+    if (!canPinPost || pinning) return
+    setPinning(true)
+    try {
+      await togglePostPin(channelId, post.id, !Boolean(freshPost.pinned))
+    } catch (err) {
+      alert(`핀 상태 변경에 실패했습니다: ${err.message || err}`)
+    } finally {
+      setPinning(false)
+    }
+  }
+
   async function handleEditorDrop(e) {
     const allFiles = Array.from(e.dataTransfer?.files || [])
     if (allFiles.length === 0) return
@@ -2071,6 +2086,32 @@ export default function MDPageViewer({ post, channelId, onClose }) {
 
         <div className="w-px h-5 bg-gray-200 flex-shrink-0" />
         <span className="text-sm text-gray-700 font-medium flex-1 truncate min-w-0">{pageTitle}</span>
+
+        {canPinPost && (
+          <button
+            onClick={handleTogglePin}
+            disabled={pinning}
+            title={freshPost.pinned ? (t.chat?.unpinPost || '핀해제') : (t.chat?.pinPost || '핀고정')}
+            aria-label={freshPost.pinned ? (t.chat?.unpinPost || '핀해제') : (t.chat?.pinPost || '핀고정')}
+            className={`flex items-center gap-1 px-2 py-1 rounded-lg text-xs transition-colors flex-shrink-0 disabled:opacity-60 ${
+              freshPost.pinned
+                ? 'text-amber-600 hover:text-amber-700 hover:bg-amber-50'
+                : 'text-gray-500 hover:text-gray-800 hover:bg-gray-100'
+            }`}
+          >
+            <svg
+              className="w-3.5 h-3.5"
+              fill={freshPost.pinned ? 'currentColor' : 'none'}
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={freshPost.pinned ? 0 : 2}
+              aria-hidden="true"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="M16 4a1 1 0 00-1-1H9a1 1 0 00-1 1v6l-2 4h12l-2-4V4zm-4 14a2 2 0 002-2h-4a2 2 0 002 2z" />
+            </svg>
+            <span>{freshPost.pinned ? (t.chat?.unpinPost || '핀해제') : (t.chat?.pinPost || '핀고정')}</span>
+          </button>
+        )}
 
         {/* View toggle */}
         <div className="flex rounded-lg border border-gray-200 overflow-hidden text-xs flex-shrink-0">
@@ -2308,7 +2349,7 @@ export default function MDPageViewer({ post, channelId, onClose }) {
                   disabled={commentSubmitting}
                 />
                 {commentFiles.length > 0 && (
-                  <div className="mt-2 flex flex-wrap gap-2">
+                  <div className="mt-2 max-h-32 overflow-y-auto overscroll-contain pr-1 flex flex-wrap gap-2">
                     {commentFiles.map((f) => (
                       <div key={f.id} className="flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-2.5 py-1 text-xs text-gray-700">
                         <span className="max-w-[180px] truncate">{f.name}</span>
@@ -2508,6 +2549,7 @@ function TipTapToolbar({ editor, t, onInsertImage, onInsertToc, isUploadingImage
       {sep('s2')}
       {btn(editor.isActive('bulletList'),  () => editor.chain().focus().toggleBulletList().run(),  mdT.toolbarBulletList || '• List',  mdT.toolbarBulletListTitle || 'Bulleted list')}
       {btn(editor.isActive('orderedList'), () => editor.chain().focus().toggleOrderedList().run(), mdT.toolbarOrderedList || '1. List', mdT.toolbarOrderedListTitle || 'Numbered list')}
+      {btn(editor.isActive('taskList'), () => editor.chain().focus().toggleTaskList().run(), mdT.toolbarTaskList || '[ ] List', mdT.toolbarTaskListTitle || 'Checklist')}
       {sep('s3')}
       {btn(false, onInsertToc, mdT.toolbarInsertToc || 'Insert TOC', mdT.toolbarInsertTocTitle || 'Insert table of contents')}
       {btn(editor.isActive('blockquote'),  () => editor.chain().focus().toggleBlockquote().run(),   mdT.toolbarQuote || '" Quote',   mdT.toolbarQuoteTitle || 'Quote')}

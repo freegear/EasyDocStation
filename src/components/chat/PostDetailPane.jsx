@@ -1201,8 +1201,8 @@ function PostDetailPane({ post, channelId, onClose, pendingOpenCommentId = null,
                 )}
               </div>
               {files.length > 0 && (
-                <div className="px-4 pb-2 flex-shrink-0">
-                  <div className="flex flex-wrap gap-2">
+                <div className="px-4 pb-2 flex-shrink-0 min-h-0">
+                  <div className="max-h-32 overflow-y-auto overscroll-contain pr-1 flex flex-wrap gap-2">
                     {files.map(f => <FileChip key={f.id} file={f} onRemove={removeFile} />)}
                   </div>
                 </div>
