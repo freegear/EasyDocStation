@@ -279,12 +279,12 @@ function AddParticipantPopup({ currentParticipants, onAdd, onCancel }) {
   const [search, setSearch] = useState('')
 
   useEffect(() => {
-    apiFetch('/users').then(setUsers).catch(() => {})
+    apiFetch('/dm/candidates').then(setUsers).catch(() => {})
   }, [])
 
   const filtered = users.filter(u =>
     !currentParticipants.includes(u.id) &&
-    ((u.display_name || u.username || '').toLowerCase().includes(search.toLowerCase()))
+    (`${u.display_name || ''} ${u.name || ''} ${u.username || ''} ${u.email || ''}`.toLowerCase().includes(search.toLowerCase()))
   )
 
   return (
@@ -363,7 +363,7 @@ function NameInputPopup({ selected, users, onConfirm, onBack }) {
 }
 
 // ── NewConversationModal ───────────────────────────────────────
-function NewConversationModal({ onCreated, onCancel }) {
+function NewConversationModal({ teamId, onCreated, onCancel }) {
   const [users, setUsers] = useState([])
   const [search, setSearch] = useState('')
   const [selected, setSelected] = useState([])
@@ -372,11 +372,12 @@ function NewConversationModal({ onCreated, onCancel }) {
   const [creating, setCreating] = useState(false)
 
   useEffect(() => {
-    apiFetch('/users').then(setUsers).catch(() => {})
-  }, [])
+    const query = teamId ? `?teamId=${encodeURIComponent(teamId)}` : ''
+    apiFetch(`/dm/candidates${query}`).then(setUsers).catch(() => {})
+  }, [teamId])
 
   const filtered = users.filter(u =>
-    (u.display_name || u.username || '').toLowerCase().includes(search.toLowerCase())
+    (`${u.display_name || ''} ${u.name || ''} ${u.username || ''} ${u.email || ''}`.toLowerCase().includes(search.toLowerCase()))
   )
 
   async function createConversation(nameOverride) {

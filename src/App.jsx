@@ -26,7 +26,7 @@ function MainLayout() {
   const [activeDMConv, setActiveDMConv] = useState(null)
   const [showNewDM, setShowNewDM] = useState(false)
   const [showAccessDeniedDialog, setShowAccessDeniedDialog] = useState(false)
-  const { isSearchMode, teams, navigateToPost } = useChat()
+  const { isSearchMode, teams, selectedTeam, navigateToPost } = useChat()
   const deepLinkHandledRef = useRef(false)
 
   const [groqWidth, setGroqWidth] = useState(320)
@@ -269,6 +269,7 @@ function MainLayout() {
       )}
       {showNewDM && (
         <NewConversationModal
+          teamId={selectedTeam?.id}
           onCreated={(conv) => { setShowNewDM(false); setActiveDMConv(conv); setShowDM(true); setShowCalendar(false) }}
           onCancel={() => setShowNewDM(false)}
         />

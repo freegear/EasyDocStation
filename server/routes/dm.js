@@ -6,6 +6,7 @@ const { execFile } = require('child_process')
 const db = require('../db')
 const requireAuth = require('../middleware/auth')
 const { getDatabasePath } = require('../databasePaths')
+const { getAccessibleChannelIds } = require('../lib/channelAccess')
 
 const router = express.Router()
 router.use(requireAuth)
@@ -255,6 +256,81 @@ router.get('/conversations', async (req, res) => {
   } catch (err) {
     console.error(err)
     res.status(500).json({ error: '서버 오류' })
+  }
+})
+
+// 현재 사용자가 접근 가능한 팀/채널 범위의 DM 후보 반환
+// GET /api/dm/candidates?teamId=...
+router.get('/candidates', async (req, res) => {
+  const userId = req.user.id
+  const teamId = String(req.query.teamId || '').trim()
+
+  try {
+    const accessibleChannelIds = await getAccessibleChannelIds(db, req.user)
+    if (accessibleChannelIds.length === 0) return res.json([])
+
+    const { rows } = await db.query(
+      `
+      WITH scoped_channels AS (
+        SELECT c.id, c.team_id
+        FROM channels c
+        WHERE c.id = ANY($1::varchar[])
+          AND ($2::varchar = '' OR c.team_id = $2::varchar)
+      ),
+      scoped_teams AS (
+        SELECT DISTINCT team_id FROM scoped_channels
+      ),
+      candidate_ids AS (
+        SELECT cm.user_id FROM channel_members cm
+        JOIN scoped_channels sc ON sc.id = cm.channel_id
+        UNION
+        SELECT ca.user_id FROM channel_admins ca
+        JOIN scoped_channels sc ON sc.id = ca.channel_id
+        UNION
+        SELECT tm.user_id FROM team_members tm
+        JOIN scoped_teams st ON st.team_id = tm.team_id
+        UNION
+        SELECT ta.user_id FROM team_admins ta
+        JOIN scoped_teams st ON st.team_id = ta.team_id
+      )
+      SELECT
+        u.id,
+        u.username,
+        u.name,
+        u.display_name,
+        u.email,
+        u.role,
+        u.is_active,
+        u.image_url
+      FROM users u
+      JOIN candidate_ids ci ON ci.user_id = u.id
+      WHERE u.is_active = true
+        AND u.id <> $3
+      ORDER BY
+        CASE u.role
+          WHEN 'site_admin' THEN 1
+          WHEN 'team_admin' THEN 2
+          WHEN 'channel_admin' THEN 3
+          ELSE 4
+        END,
+        COALESCE(u.display_name, u.name, u.username) ASC
+      `,
+      [accessibleChannelIds, teamId, userId]
+    )
+
+    res.json(rows.map(u => ({
+      id: u.id,
+      username: u.username,
+      name: u.name,
+      display_name: u.display_name ?? null,
+      email: u.email,
+      role: u.role,
+      is_active: u.is_active,
+      image_url: u.image_url,
+    })))
+  } catch (err) {
+    console.error('[DM candidates]', err)
+    res.status(500).json({ error: 'DM 후보 목록을 조회하지 못했습니다.' })
   }
 })
 

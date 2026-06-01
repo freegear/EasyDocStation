@@ -20,6 +20,34 @@ cfg   = payload.get("config", {})
 query = payload.get("query", "")
 limit = int(payload.get("limit", 3))
 
+def normalize_id_list(values):
+    if not isinstance(values, list):
+        return []
+    out = []
+    seen = set()
+    for value in values:
+        text = str(value or "").strip()
+        if not text or text in seen:
+            continue
+        seen.add(text)
+        out.append(text)
+    return out
+
+def sql_quote(value):
+    return "'" + str(value).replace("'", "''") + "'"
+
+def apply_channel_acl(search, allowed_channel_ids):
+    allowed = normalize_id_list(allowed_channel_ids)
+    if not allowed:
+        return None
+    clause = "metadata.channel_id IN (" + ", ".join(sql_quote(v) for v in allowed) + ")"
+    try:
+        return search.where(clause, prefilter=True)
+    except TypeError:
+        return search.where(clause)
+
+allowed_channel_ids = normalize_id_list(payload.get("allowed_channel_ids", []))
+
 def default_lancedb_path():
     env_lancedb = os.getenv("EASYDOC_LANCEDB_PATH", "").strip()
     if env_lancedb:
@@ -40,7 +68,7 @@ def default_lancedb_path():
 LANCEDB_PATH = cfg.get("lancedb_path") or default_lancedb_path()
 VECTOR_SIZE  = int(cfg.get("vector_size", 1024))
 
-if not query.strip():
+if not query.strip() or not allowed_channel_ids:
     print(json.dumps([]))
     sys.exit(0)
 
@@ -79,7 +107,11 @@ if len(table) <= 1:          # init 레코드만 있으면 skip
     sys.exit(0)
 
 query_vec = embed_model.encode(query, show_progress_bar=False).tolist()
-results   = table.search(query_vec).limit(limit).to_list()
+search = apply_channel_acl(table.search(query_vec), allowed_channel_ids)
+if search is None:
+    print(json.dumps([]))
+    sys.exit(0)
+results = search.limit(limit).to_list()
 
 output = []
 for r in results:

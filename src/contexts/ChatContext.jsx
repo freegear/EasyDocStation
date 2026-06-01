@@ -441,7 +441,10 @@ export function ChatProvider({ children }) {
     setSearchTerm(query)
     setIsSearchMode(true)
     try {
-      const data = await apiFetch(`/posts/search?q=${encodeURIComponent(query)}`)
+      const params = new URLSearchParams({ q: query })
+      if (selectedChannel?.id) params.set('current_channel_id', selectedChannel.id)
+      if (selectedTeam?.id) params.set('current_team_id', selectedTeam.id)
+      const data = await apiFetch(`/posts/search?${params.toString()}`)
       setSearchResults(data)
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new CustomEvent('open-agentic-panel'))

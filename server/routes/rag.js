@@ -9,6 +9,7 @@ const db = require('../db')
 const requireAuth = require('../middleware/auth')
 const { getDatabasePath } = require('../databasePaths')
 const { getPythonExecutable } = require('../pythonRuntime')
+const { getAccessibleChannelIds } = require('../lib/channelAccess')
 
 const CONFIG_PATH = path.resolve(__dirname, '../../config.json')
 const RAG_SERVER_PORT = 5001
@@ -721,10 +722,143 @@ function applyMetadataFilter(results = [], filter = {}) {
   })
 }
 
+function normalizeIdSet(values = []) {
+  return new Set(
+    (Array.isArray(values) ? values : [])
+      .map(v => String(v || '').trim())
+      .filter(Boolean),
+  )
+}
+
+function normalizePriorityContext(raw = {}, allowedChannelIds = []) {
+  const allowedSet = normalizeIdSet(allowedChannelIds)
+  const currentChannelId = String(raw.current_channel_id || raw.currentChannelId || '').trim()
+  const currentTeamId = String(raw.current_team_id || raw.currentTeamId || '').trim()
+  return {
+    currentChannelId: currentChannelId && allowedSet.has(currentChannelId) ? currentChannelId : '',
+    currentTeamId,
+  }
+}
+
+function applyChannelAccessFilter(results = [], allowedChannelIds = []) {
+  const allowedSet = normalizeIdSet(allowedChannelIds)
+  if (allowedSet.size === 0) return []
+  return (Array.isArray(results) ? results : []).filter(item => {
+    const channelId = String(item?.metadata?.channel_id || '').trim()
+    return channelId && allowedSet.has(channelId)
+  })
+}
+
+async function resolvePriorityContext(context = {}) {
+  if (context.currentTeamId || !context.currentChannelId) return context
+  try {
+    const res = await db.query('SELECT team_id FROM channels WHERE id = $1 LIMIT 1', [context.currentChannelId])
+    return { ...context, currentTeamId: res.rows?.[0]?.team_id || '' }
+  } catch (e) {
+    console.warn('[RAG] 우선순위 컨텍스트 조회 실패:', e.message)
+    return context
+  }
+}
+
+async function attachPrioritySignals(results = []) {
+  if (!Array.isArray(results) || results.length === 0) return results
+
+  const channelIds = new Set()
+  const postIds = new Set()
+  const commentIds = new Set()
+  for (const item of results) {
+    const meta = item?.metadata || {}
+    if (meta.channel_id) channelIds.add(String(meta.channel_id))
+    if (meta.post_id) postIds.add(String(meta.post_id))
+    if (meta.comment_id) commentIds.add(String(meta.comment_id))
+  }
+
+  const postMap = new Map()
+  const commentMap = new Map()
+  const channelTeamMap = new Map()
+
+  try {
+    if (postIds.size > 0) {
+      const ids = [...postIds]
+      const res = await db.query(
+        `SELECT id, channel_id, created_at, updated_at FROM posts WHERE id IN ${buildPgInClause(ids)}`,
+        ids,
+      )
+      for (const row of res.rows || []) {
+        postMap.set(String(row.id), {
+          channelId: row.channel_id || '',
+          createdAt: row.created_at || null,
+          updatedAt: row.updated_at || null,
+        })
+        if (row.channel_id) channelIds.add(String(row.channel_id))
+      }
+    }
+
+    if (commentIds.size > 0) {
+      const ids = [...commentIds]
+      const res = await db.query(
+        `SELECT id, post_id, channel_id, created_at, updated_at FROM comments WHERE id IN ${buildPgInClause(ids)}`,
+        ids,
+      )
+      for (const row of res.rows || []) {
+        commentMap.set(String(row.id), {
+          postId: row.post_id || '',
+          channelId: row.channel_id || '',
+          createdAt: row.created_at || null,
+          updatedAt: row.updated_at || null,
+        })
+        if (row.channel_id) channelIds.add(String(row.channel_id))
+      }
+    }
+
+    if (channelIds.size > 0) {
+      const ids = [...channelIds]
+      const res = await db.query(
+        `SELECT id, team_id FROM channels WHERE id IN ${buildPgInClause(ids)}`,
+        ids,
+      )
+      for (const row of res.rows || []) {
+        channelTeamMap.set(String(row.id), String(row.team_id || ''))
+      }
+    }
+  } catch (e) {
+    console.warn('[RAG] 우선순위 메타데이터 조회 실패:', e.message)
+  }
+
+  const nowMs = Date.now()
+  return results.map(item => {
+    const meta = item?.metadata || {}
+    const commentInfo = meta.comment_id ? commentMap.get(String(meta.comment_id)) : null
+    const postInfo = meta.post_id ? postMap.get(String(meta.post_id)) : null
+    const channelId = String(meta.channel_id || commentInfo?.channelId || postInfo?.channelId || '').trim()
+    const createdAt = commentInfo?.createdAt || postInfo?.createdAt || null
+    const createdMs = createdAt ? new Date(createdAt).getTime() : 0
+    const ageDays = Number.isFinite(createdMs) && createdMs > 0 ? Math.max(0, (nowMs - createdMs) / 86400000) : null
+    return {
+      ...item,
+      _priority: {
+        channelId,
+        teamId: channelTeamMap.get(channelId) || '',
+        createdAt,
+        ageDays,
+      },
+    }
+  })
+}
+
+function priorityBoost(doc = {}, context = {}) {
+  const info = doc._priority || {}
+  let boost = 0
+  if (context.currentChannelId && info.channelId === context.currentChannelId) boost += 25
+  if (context.currentTeamId && info.teamId === context.currentTeamId) boost += 12
+  if (Number.isFinite(info.ageDays)) boost += Math.max(0, Math.exp(-info.ageDays / 30) * 18)
+  return boost
+}
+
 function selectByMmr(results = [], k = 5, lambda = 0.7) {
   if (!Array.isArray(results) || results.length <= 1) return results.slice(0, k)
   const clampedLambda = Math.max(0, Math.min(1, lambda))
-  const prepared = results.map(item => ({ item, tokenSet: tokenSetFromText(item?.text || ''), relevance: 1 / (1 + Math.max(0, asNum(item?.score))) }))
+  const prepared = results.map(item => ({ item, tokenSet: tokenSetFromText(item?.text || ''), relevance: asNum(item?._rank_score) || (1 / (1 + Math.max(0, asNum(item?.score)))) }))
   const selected = []
   const remaining = [...prepared]
 
@@ -904,7 +1038,15 @@ function expandTemporalNeighborsBySourceScan(item, seen) {
   const allJsonFiles = listTrainingTextJsonFiles()
   if (allJsonFiles.length === 0) return out
 
-  const matchedFiles = allJsonFiles.filter(p => normalizeNameForPathMatch(path.basename(path.dirname(p))).includes(sourceToken))
+  const requiredPathTokens = [meta.post_id, meta.comment_id, meta.attachment_id]
+    .map(v => safeTrainingPathPart(v, ''))
+    .filter(Boolean)
+  const matchedFiles = allJsonFiles.filter(p => {
+    const normalizedSource = normalizeNameForPathMatch(path.basename(path.dirname(p)))
+    if (!normalizedSource.includes(sourceToken)) return false
+    if (requiredPathTokens.length === 0) return false
+    return requiredPathTokens.every(token => p.includes(`${path.sep}${token}${path.sep}`))
+  })
   for (const jsonPath of matchedFiles) {
     try {
       const records = JSON.parse(fs.readFileSync(jsonPath, 'utf8'))
@@ -1253,6 +1395,11 @@ router.post('/search', requireAuth, async (req, res) => {
   try {
     const { query, limit = 3, preferred_sources: preferredSources = [], retrieval: retrievalRaw = {} } = req.body
     if (!query?.trim()) return res.json({ context: '', references: [] })
+    const allowedChannelIds = await getAccessibleChannelIds(db, req.user)
+    if (allowedChannelIds.length === 0) {
+      return res.json({ context: '', references: [] })
+    }
+    const priorityContext = await resolvePriorityContext(normalizePriorityContext(req.body, allowedChannelIds))
     const amountQuery = isAmountQuery(query)
     const commandQuery = isCommandQuery(query)
     const temporalQuery = isTemporalQuery(query)
@@ -1287,6 +1434,7 @@ router.post('/search', requireAuth, async (req, res) => {
       },
       query,
       limit: firstPassLimit,
+      allowed_channel_ids: allowedChannelIds,
     }
 
     let results = await callPythonSearch(payload)
@@ -1353,42 +1501,25 @@ router.post('/search', requireAuth, async (req, res) => {
 
     // init 레코드 제외
     let validResults = mergeUniqueResults(results.filter(r => r.text !== '__init__'))
+    validResults = applyChannelAccessFilter(validResults, allowedChannelIds)
     validResults = applyMetadataFilter(validResults, retrievalOptions.filter)
+    validResults = applyChannelAccessFilter(validResults, allowedChannelIds)
     validResults = applySimilarityScoreThreshold(validResults, retrievalOptions.searchType === 'similarity_score_threshold' ? retrievalOptions.scoreThreshold : 0)
     if (validResults.length === 0) {
       return res.json({ context: '', references: [] })
     }
+    validResults = await attachPrioritySignals(validResults)
 
     let rankedResults = validResults
-    if (amountQuery || commandQuery || temporalQuery || enumerationQuery || sourceHints.length > 0) {
-      rankedResults = [...validResults].sort((a, b) => {
-        const baseA = -asNum(a?.score)
-        const baseB = -asNum(b?.score)
-        let scoreA = baseA
-        let scoreB = baseB
-        if (amountQuery) {
-          scoreA += amountDocBonus(a)
-          scoreB += amountDocBonus(b)
-        }
-        if (commandQuery) {
-          scoreA += commandDocBonus(a)
-          scoreB += commandDocBonus(b)
-        }
-        if (temporalQuery) {
-          scoreA += temporalDocBonus(a)
-          scoreB += temporalDocBonus(b)
-        }
-        if (enumerationQuery) {
-          scoreA += enumerationDocBonus(a)
-          scoreB += enumerationDocBonus(b)
-        }
-        if (sourceHints.length > 0) {
-          scoreA += sourceHintBoost(a, sourceHints)
-          scoreB += sourceHintBoost(b, sourceHints)
-        }
-        return scoreB - scoreA
-      })
-    }
+    rankedResults = [...validResults].map(item => {
+      let rankScore = -asNum(item?.score) + priorityBoost(item, priorityContext)
+      if (amountQuery) rankScore += amountDocBonus(item)
+      if (commandQuery) rankScore += commandDocBonus(item)
+      if (temporalQuery) rankScore += temporalDocBonus(item)
+      if (enumerationQuery) rankScore += enumerationDocBonus(item)
+      if (sourceHints.length > 0) rankScore += sourceHintBoost(item, sourceHints)
+      return { ...item, _rank_score: rankScore }
+    }).sort((a, b) => asNum(b?._rank_score) - asNum(a?._rank_score))
     let finalResults = retrievalOptions.searchType === 'mmr'
       ? selectByMmr(rankedResults.slice(0, retrievalOptions.fetchK), effectiveRequestedLimit, retrievalOptions.mmrLambda)
       : rankedResults.slice(0, effectiveRequestedLimit)
@@ -1400,6 +1531,9 @@ router.post('/search', requireAuth, async (req, res) => {
         const temporalA = temporalDocBonus(a)
         const temporalB = temporalDocBonus(b)
         if (temporalA !== temporalB) return temporalB - temporalA
+        const priorityA = priorityBoost(a, priorityContext)
+        const priorityB = priorityBoost(b, priorityContext)
+        if (priorityA !== priorityB) return priorityB - priorityA
         const baseA = -asNum(a?.score)
         const baseB = -asNum(b?.score)
         return baseB - baseA
@@ -1408,6 +1542,11 @@ router.post('/search', requireAuth, async (req, res) => {
 
     // 벡터 검색 결과에서 누락된 같은 페이지 내용을 text.json으로 보강 (재학습 없이 즉시 효과)
     finalResults = mergeUniqueResults(expandPageContextFromTrainingData(finalResults))
+    finalResults = applyChannelAccessFilter(finalResults, allowedChannelIds)
+    finalResults = await attachPrioritySignals(finalResults)
+    if (finalResults.length === 0) {
+      return res.json({ context: '', references: [] })
+    }
 
     let context = finalResults.map((r) => {
       const meta = r.metadata || {}

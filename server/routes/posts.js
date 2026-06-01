@@ -1018,6 +1018,10 @@ router.get('/search', requireAuth, async (req, res, next) => {
       if (accessibleChannelIds.length === 0) return res.json([])
       const limit = Math.max(1, Math.min(100, Number(req.query.limit) || 50))
       const userLevel = userSearchSecurityLevel(req.user)
+      const currentChannelId = accessibleChannelIds.includes(String(req.query.current_channel_id || '').trim())
+        ? String(req.query.current_channel_id || '').trim()
+        : ''
+      const currentTeamId = String(req.query.current_team_id || '').trim()
       const searchRes = await db.query(
         `WITH matched AS (
            SELECT
@@ -1070,7 +1074,12 @@ router.get('/search', requireAuth, async (req, res, next) => {
            u.username AS author_username,
            u.image_url AS author_image_url,
            p.content AS post_content,
-           ((s.match_score * 0.5) + (s.recency_score * 0.5)) AS score,
+           (
+             (s.match_score * 0.45)
+             + (s.recency_score * 0.35)
+             + (CASE WHEN $5::text <> '' AND s.channel_id = $5 THEN 0.14 ELSE 0 END)
+             + (CASE WHEN $6::text <> '' AND c.team_id = $6 THEN 0.06 ELSE 0 END)
+           ) AS score,
            s.match_score,
            s.recency_score
          FROM scored s
@@ -1080,7 +1089,7 @@ router.get('/search', requireAuth, async (req, res, next) => {
          LEFT JOIN posts p ON p.id = s.post_id
          ORDER BY score DESC, s.created_at DESC
          LIMIT $4`,
-        [accessibleChannelIds, String(q), userLevel, limit],
+        [accessibleChannelIds, String(q), userLevel, limit, currentChannelId, currentTeamId],
       )
       return res.json(searchRes.rows.map(row => ({
         type: row.type,
@@ -1112,6 +1121,8 @@ router.get('/search', requireAuth, async (req, res, next) => {
     if (!isConnected()) return res.status(503).json({ error: 'Cassandra 연결이 필요합니다.' })
 
     const lower = q.toLowerCase()
+    const currentChannelId = String(req.query.current_channel_id || '').trim()
+    const currentTeamId = String(req.query.current_team_id || '').trim()
     const [allPostsResult, allCommentsResult] = await Promise.all([
       client.execute('SELECT * FROM posts ALLOW FILTERING', [], { prepare: true }),
       client.execute('SELECT * FROM comments ALLOW FILTERING', [], { prepare: true }),
@@ -1139,7 +1150,7 @@ router.get('/search', requireAuth, async (req, res, next) => {
     const authorIds = new Set([...matchedPosts.map(p => p.author_id), ...matchedComments.map(c => c.author_id)])
     const [channelsRes, usersRes] = await Promise.all([
       db.query(
-        `SELECT c.id, c.name, t.name AS team_name
+        `SELECT c.id, c.name, c.team_id, t.name AS team_name
          FROM channels c JOIN teams t ON c.team_id = t.id
          WHERE c.id = ANY($1)`,
         [[...channelIds]]
@@ -1182,7 +1193,16 @@ router.get('/search', requireAuth, async (req, res, next) => {
         author: makeAuthor(row.author_id),
       }
     })
-    res.json([...postResults, ...commentResults].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)))
+    const nowMs = Date.now()
+    const priorityScore = (item) => {
+      const createdMs = new Date(item.createdAt || 0).getTime()
+      const ageDays = Number.isFinite(createdMs) && createdMs > 0 ? Math.max(0, (nowMs - createdMs) / 86400000) : 365
+      const recentBonus = Math.exp(-ageDays / 30)
+      const channelBonus = currentChannelId && item.channelId === currentChannelId ? 0.4 : 0
+      const teamBonus = currentTeamId && (channelMap.get(item.channelId)?.team_id || '') === currentTeamId ? 0.2 : 0
+      return recentBonus + channelBonus + teamBonus
+    }
+    res.json([...postResults, ...commentResults].sort((a, b) => priorityScore(b) - priorityScore(a)))
   } catch (err) {
     next(err)
   }

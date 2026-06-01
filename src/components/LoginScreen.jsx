@@ -265,28 +265,6 @@ export default function LoginScreen() {
             </button>
           </form>
 
-          {/* Demo accounts */}
-          <div className="mt-6 pt-6 border-t border-gray-200">
-            <p className="text-gray-400 text-xs text-center mb-3">{t.login.demoAccounts}</p>
-            <div className="flex flex-col gap-2">
-              {[
-                { id: 'kevin', name: 'Kevin Im (Admin)' },
-                { id: 'alice', name: 'Alice Kim (Member)' },
-                { id: 'bob', name: 'Bob Lee (Member)' },
-              ].map(u => (
-                <button
-                  key={u.id}
-                  type="button"
-                  onClick={() => { setIdentifier(u.id); setPassword('password123') }}
-                  className="flex items-center justify-between px-3 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 border border-gray-100 text-gray-500 hover:text-gray-700 text-xs transition-all"
-                >
-                  <span>{u.name}</span>
-                  <span className="text-gray-300">{u.id}</span>
-                </button>
-              ))}
-            </div>
-            <p className="text-gray-300 text-xs text-center mt-3">{t.login.demoPassword}</p>
-          </div>
         </div>
       </div>
     </div>

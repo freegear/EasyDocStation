@@ -143,6 +143,7 @@ export default function GroqPanel({ width }) {
   const {
     navigateToPost,
     selectedChannel,
+    selectedTeam,
     addPost,
     addComment,
     agenticTarget,
@@ -514,7 +515,10 @@ export default function GroqPanel({ width }) {
       try {
         const keywordGroups = []
         for (const searchQuery of buildKeywordSearchQueries(text)) {
-          const result = await apiFetch(`/posts/search?q=${encodeURIComponent(searchQuery)}&limit=5`)
+          const searchParams = new URLSearchParams({ q: searchQuery, limit: '5' })
+          if (selectedChannel?.id) searchParams.set('current_channel_id', selectedChannel.id)
+          if (selectedTeam?.id) searchParams.set('current_team_id', selectedTeam.id)
+          const result = await apiFetch(`/posts/search?${searchParams.toString()}`)
           keywordGroups.push(result)
         }
         const safeKeywordResults = mergeKeywordResults(...keywordGroups).slice(0, 5)
@@ -548,6 +552,8 @@ export default function GroqPanel({ width }) {
             limit: dynamicLimit,
             preferred_sources: preferredSources,
             retrieval: retrievalPayload,
+            current_channel_id: selectedChannel?.id || '',
+            current_team_id: selectedTeam?.id || '',
           }),
         })
         ragContext = ragResult.context || ''

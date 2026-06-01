@@ -1,0 +1,972 @@
+[DGX] GPU 상태
+NVIDIA GB10, 0 %, [N/A], [N/A]
+[DGX] npm 의존성 점검
+[DGX] 프론트 의존성 정합 시작
+  1) @vitejs/plugin-react 호환 버전 설치 (^4.7.0)
+
+up to date, audited 585 packages in 2s
+
+185 packages are looking for funding
+  run `npm fund` for details
+
+5 moderate severity vulnerabilities
+
+To address issues that do not require attention, run:
+  npm audit fix
+
+To address all issues (including breaking changes), run:
+  npm audit fix --force
+
+Run `npm audit` for details.
+  - react-to-print: OK
+  - react-colorful: OK
+[DGX] GPU 상태
+NVIDIA GB10, 0 %, [N/A], [N/A]
+[DGX] npm 의존성 점검
+[DGX] 프론트 의존성 정합 시작
+  1) @vitejs/plugin-react 호환 버전 설치 (^4.7.0)
+
+up to date, audited 585 packages in 848ms
+
+185 packages are looking for funding
+  run `npm fund` for details
+
+5 moderate severity vulnerabilities
+
+To address issues that do not require attention, run:
+  npm audit fix
+
+To address all issues (including breaking changes), run:
+  npm audit fix --force
+
+Run `npm audit` for details.
+  - react-to-print: OK
+  - react-colorful: OK
+  - mermaid: OK
+  - echarts: OK
+  - @tiptap/extension-color: OK
+  - @tiptap/extension-text-style: OK
+
+> easydocstation@1.0.0 dev:frontend
+> vite
+
+[20260601-05:55:47][BE] 
+[20260601-05:55:47][BE] > easydocstation-server@1.0.0 start
+
+  VITE v5.4.21  ready in 88 ms
+
+  ➜  Local:   http://localhost:5173/
+  ➜  Network: http://10.0.0.194:5173/
+[20260601-05:55:47][BE] > node index.js
+[20260601-05:55:47][BE] 
+[20260601-05:55:47][BE] [RAG] 초기화 — 학습 방식: immediate
+[20260601-05:55:47][BE] [RAG] 초기화 — PDF 파싱 모드: FAST
+[20260601-05:55:47][BE] ✅ EasyDocStation server running on http://localhost:3001
+[20260601-05:55:47][BE] ✅ [CONFIG] HF_TOKEN 확인됨 (hf_u****butv, 길이 37)
+[20260601-05:55:47][BE] ✅ Cassandra connected
+[20260601-05:55:47][BE] ✅ Cassandra schema initialized
+[20260601-05:55:47][BE] ✅ Database migration complete.
+[20260601-05:55:50][BE] [RAG Server] [RAG Server] 임베딩 모델 로드 중 (device=cuda)...
+
+> easydocstation@1.0.0 dev:frontend
+> vite
+
+[20260601-05:56:35][BE] 
+[20260601-05:56:35][BE] > easydocstation-server@1.0.0 start
+[20260601-05:56:35][BE] > node index.js
+[20260601-05:56:35][BE] 
+
+  VITE v5.4.21  ready in 95 ms
+
+  ➜  Local:   http://localhost:5173/
+  ➜  Network: http://10.0.0.194:5173/
+[20260601-05:56:35][BE] [RAG] 초기화 — 학습 방식: immediate
+[20260601-05:56:35][BE] [RAG] 초기화 — PDF 파싱 모드: FAST
+[20260601-05:56:35][BE] ✅ EasyDocStation server running on http://localhost:3001
+[20260601-05:56:35][BE] ✅ [CONFIG] HF_TOKEN 확인됨 (hf_u****butv, 길이 37)
+[20260601-05:56:35][BE] ✅ Cassandra connected
+[20260601-05:56:35][BE] ✅ Cassandra schema initialized
+[20260601-05:56:36][BE] ✅ Database migration complete.
+[20260601-05:56:38][BE] [RAG Server] [RAG Server] 임베딩 모델 로드 중 (device=cuda)...
+[20260601-05:56:53][BE] [RAG Server] [RAG Server] 임베딩 모델 로드 완료
+[20260601-05:56:53][BE] [RAG Server] 포트 5001 에서 시작됨
+Terminated
+[20260601-05:59:14][BE] process exited with code 143. restarting in 2s...
+Terminated
+[20260601-05:59:15][BE] 
+[20260601-05:59:15][BE] > easydocstation-server@1.0.0 start
+[20260601-05:59:15][BE] > node index.js
+[20260601-05:59:15][BE] 
+[20260601-05:59:15][BE] [RAG] 초기화 — 학습 방식: immediate
+[20260601-05:59:15][BE] [RAG] 초기화 — PDF 파싱 모드: FAST
+[20260601-05:59:15][BE] ✅ EasyDocStation server running on http://localhost:3001
+[20260601-05:59:15][BE] ✅ [CONFIG] HF_TOKEN 확인됨 (hf_u****butv, 길이 37)
+[20260601-05:59:15][BE] ✅ Cassandra connected
+[20260601-05:59:15][BE] ✅ Cassandra schema initialized
+[20260601-05:59:15][BE] ✅ Database migration complete.
+[20260601-05:59:15][BE] Terminated
+[DGX] GPU 상태
+NVIDIA GB10, 92 %, [N/A], [N/A]
+[DGX] npm 의존성 점검
+[DGX] 프론트 의존성 정합 시작
+  1) @vitejs/plugin-react 호환 버전 설치 (^4.7.0)
+
+> easydocstation@1.0.0 ollama:serve
+> node scripts/ollama-serve-safe.mjs
+
+
+> easydocstation@1.0.0 dev:frontend
+> vite
+
+[Ollama] already running on 127.0.0.1:11434, skipping duplicate serve.
+[20260601-06:00:43][BE] 
+[20260601-06:00:43][BE] > easydocstation-server@1.0.0 start
+[20260601-06:00:43][BE] > node index.js
+[20260601-06:00:43][BE] 
+
+  VITE v5.4.21  ready in 130 ms
+
+  ➜  Local:   http://localhost:5173/
+  ➜  Network: http://10.0.0.194:5173/
+[20260601-06:00:44][BE] [RAG] 초기화 — 학습 방식: immediate
+[20260601-06:00:44][BE] [RAG] 초기화 — PDF 파싱 모드: FAST
+[20260601-06:00:44][BE] ✅ EasyDocStation server running on http://localhost:3001
+[20260601-06:00:44][BE] ✅ [CONFIG] HF_TOKEN 확인됨 (hf_u****butv, 길이 37)
+[20260601-06:00:44][BE] ✅ Cassandra connected
+[20260601-06:00:44][BE] ✅ Cassandra schema initialized
+[20260601-06:00:44][BE] ✅ Database migration complete.
+[20260601-06:00:49][BE] [RAG Server] [RAG Server] 임베딩 모델 로드 중 (device=cuda)...
+[20260601-06:01:09][BE] [RAG Server] [RAG Server] 임베딩 모델 로드 완료
+[20260601-06:01:09][BE] [RAG Server] [RAG Server] 포트 5001 에서 시작됨
+[20260601-06:07:53][BE] [ATTACH-REF] sync ownerType=post ownerId=56c4e877-a165-42cf-88db-e4cfd90be1be actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260601-06:07:53][BE] [RAG] 학습 제외 (게시글): 56c4e877-a165-42cf-88db-e4cfd90be1be — 첨부파일 없음, 4자
+[20260601-06:07:53][BE] [RAG] 학습 제외 후 학습할 게시글이 없습니다.
+[20260601-06:08:11][BE] [ATTACH-REF] sync ownerType=post ownerId=db4bece4-add5-4047-bd85-51ba26ebb36d actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260601-06:08:11][BE] [RAG] 학습 제외 (게시글): db4bece4-add5-4047-bd85-51ba26ebb36d — 첨부파일 없음, 6자
+[20260601-06:08:11][BE] [RAG] 학습 제외 후 학습할 게시글이 없습니다.
+[20260601-06:08:26][BE] [ATTACH-REF] sync ownerType=post ownerId=b301cec6-0512-4728-b7d4-2a3275c76d4d actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260601-06:08:26][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
+[20260601-06:08:26][BE] /home/freegear/EasyDocStation/server/rag_train.py:111: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260601-06:08:26][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260601-06:08:31][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table' already exists
+[20260601-06:08:31][BE] [RAG] post=b301cec6-0512-4728-b7d4-2a3275c76d4d text → 3청크
+[20260601-06:08:31][BE] [RAG] 학습 진행률: 50% (게시글 본문)
+[20260601-06:08:31][BE] [RAG] 저장 완료 — 3청크 / 1개 게시글 / 0개 댓글
+[20260601-06:08:31][BE] [RAG] 학습 진행률: 100% (저장)
+[20260601-06:08:34][BE] [RAG] 학습 완료
+[20260601-06:17:24][BE] [ATTACH-REF] sync ownerType=post ownerId=e43a59b5-ac32-4df5-bcc0-ee74979d3eb6 actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260601-06:17:24][BE] [RAG] 학습 제외 (게시글): e43a59b5-ac32-4df5-bcc0-ee74979d3eb6 — 첨부파일 없음, 4자
+[20260601-06:17:24][BE] [RAG] 학습 제외 후 학습할 게시글이 없습니다.
+[20260601-06:17:26][BE] [ATTACH-REF] sync ownerType=post ownerId=cedcb32a-b824-4323-927d-c8904c3a53aa actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260601-06:17:26][BE] [RAG] 학습 제외 (게시글): cedcb32a-b824-4323-927d-c8904c3a53aa — 첨부파일 없음, 3자
+[20260601-06:17:26][BE] [RAG] 학습 제외 후 학습할 게시글이 없습니다.
+[20260601-06:18:43][BE] [link-preview-image] meta image failed, fallback screenshot: fetch failed
+[20260601-06:18:44][BE] [link-preview-image] local render failed, try remote fallback: page.goto: net::ERR_CONNECTION_REFUSED at http://114.207.245.216/
+[20260601-06:18:44][BE] Call log:
+[20260601-06:18:44][BE] [2m  - navigating to "http://114.207.245.216/", waiting until "domcontentloaded"[22m
+[20260601-06:18:44][BE] 
+[20260601-06:18:44][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260601-06:18:44][BE] [link-preview-image] remote fallback failed, placeholder: fallback preview fetch failed (404)
+[20260601-06:18:45][BE] [link-preview-image] meta image failed, fallback screenshot: meta image fetch failed (404)
+[20260601-06:18:45][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260601-06:24:47][BE] Terminated
+[20260601-06:24:47][BE] process exited with code 143. restarting in 2s...
+[20260601-06:24:49][BE] 
+[20260601-06:24:49][BE] > easydocstation-server@1.0.0 start
+[20260601-06:24:49][BE] > node index.js
+[20260601-06:24:49][BE] 
+[20260601-06:24:49][BE] [RAG] 초기화 — 학습 방식: immediate
+[20260601-06:24:49][BE] [RAG] 초기화 — PDF 파싱 모드: FAST
+[20260601-06:24:49][BE] ✅ EasyDocStation server running on http://localhost:3001
+[20260601-06:24:49][BE] ✅ [CONFIG] HF_TOKEN 확인됨 (hf_u****butv, 길이 37)
+[20260601-06:24:49][BE] ✅ Cassandra connected
+[20260601-06:24:49][BE] ✅ Cassandra schema initialized
+[20260601-06:24:49][BE] ✅ Database migration complete.
+6:52:18 AM [vite] hmr update /src/contexts/ChatContext.jsx, /src/index.css
+6:52:19 AM [vite] hmr invalidate /src/contexts/ChatContext.jsx Could not Fast Refresh ("useChat" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+6:52:19 AM [vite] hmr update /src/App.jsx, /src/index.css, /src/components/Sidebar.jsx, /src/components/TitleBar.jsx, /src/components/UserProfileModal.jsx, /src/components/SearchResultsArea.jsx, /src/components/ChatArea.jsx, /src/components/GroqPanel.jsx, /src/components/ChannelManageModal.jsx, /src/components/chat/PostDetailPane.jsx, /src/components/chat/MDPageViewer.jsx
+7:00:15 AM [vite] hmr update /src/contexts/ChatContext.jsx, /src/index.css
+7:00:15 AM [vite] hmr invalidate /src/contexts/ChatContext.jsx Could not Fast Refresh ("useChat" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+7:00:15 AM [vite] hmr update /src/App.jsx, /src/index.css, /src/components/Sidebar.jsx, /src/components/TitleBar.jsx, /src/components/UserProfileModal.jsx, /src/components/SearchResultsArea.jsx, /src/components/ChatArea.jsx, /src/components/GroqPanel.jsx, /src/components/ChannelManageModal.jsx, /src/components/chat/PostDetailPane.jsx, /src/components/chat/MDPageViewer.jsx
+7:00:20 AM [vite] hmr update /src/contexts/ChatContext.jsx, /src/index.css
+7:00:20 AM [vite] hmr invalidate /src/contexts/ChatContext.jsx Could not Fast Refresh ("useChat" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+7:00:20 AM [vite] hmr update /src/App.jsx, /src/index.css, /src/components/Sidebar.jsx, /src/components/TitleBar.jsx, /src/components/UserProfileModal.jsx, /src/components/SearchResultsArea.jsx, /src/components/ChatArea.jsx, /src/components/GroqPanel.jsx, /src/components/ChannelManageModal.jsx, /src/components/chat/PostDetailPane.jsx, /src/components/chat/MDPageViewer.jsx
+7:00:47 AM [vite] hmr update /src/components/ChatArea.jsx, /src/index.css
+7:00:54 AM [vite] hmr update /src/components/ChatArea.jsx, /src/index.css
+[20260601-07:01:38][BE] Terminated
+[20260601-07:01:38][BE] process exited with code 143. restarting in 2s...
+[20260601-07:01:40][BE] 
+[20260601-07:01:40][BE] > easydocstation-server@1.0.0 start
+[20260601-07:01:40][BE] > node index.js
+[20260601-07:01:40][BE] 
+[20260601-07:01:40][BE] [RAG] 초기화 — 학습 방식: immediate
+[20260601-07:01:40][BE] [RAG] 초기화 — PDF 파싱 모드: FAST
+[20260601-07:01:40][BE] ✅ EasyDocStation server running on http://localhost:3001
+[20260601-07:01:40][BE] ✅ [CONFIG] HF_TOKEN 확인됨 (hf_u****butv, 길이 37)
+[20260601-07:01:40][BE] ✅ Cassandra connected
+[20260601-07:01:40][BE] ✅ Cassandra schema initialized
+[20260601-07:01:40][BE] ✅ Database migration complete.
+7:02:18 AM [vite] hmr update /src/components/ChatArea.jsx, /src/index.css
+[20260601-07:06:17][BE] [ATTACH-REF] sync ownerType=post ownerId=6c6b6ca8-6b63-4c4c-917a-5f8da568cf0f actorUserId=2 prev=0 next=0 add=0 remove=0
+[20260601-07:06:17][BE] [RAG] 학습 제외 (게시글): 6c6b6ca8-6b63-4c4c-917a-5f8da568cf0f — 첨부파일 없음, 7자
+[20260601-07:06:17][BE] [RAG] 학습 제외 후 학습할 게시글이 없습니다.
+[20260601-07:06:21][BE] [ATTACH-REF] sync ownerType=post ownerId=920989f6-f2bc-432a-ad18-094efafa41cc actorUserId=2 prev=0 next=0 add=0 remove=0
+[20260601-07:06:21][BE] [RAG] 학습 제외 (게시글): 920989f6-f2bc-432a-ad18-094efafa41cc — 첨부파일 없음, 7자
+[20260601-07:06:21][BE] [RAG] 학습 제외 후 학습할 게시글이 없습니다.
+7:08:30 AM [vite] hmr update /src/contexts/ChatContext.jsx, /src/index.css
+7:08:30 AM [vite] hmr invalidate /src/contexts/ChatContext.jsx Could not Fast Refresh ("useChat" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+7:08:30 AM [vite] hmr update /src/App.jsx, /src/index.css, /src/components/Sidebar.jsx, /src/components/TitleBar.jsx, /src/components/UserProfileModal.jsx, /src/components/SearchResultsArea.jsx, /src/components/ChatArea.jsx, /src/components/GroqPanel.jsx, /src/components/ChannelManageModal.jsx, /src/components/chat/PostDetailPane.jsx, /src/components/chat/MDPageViewer.jsx
+7:08:43 AM [vite] hmr update /src/components/Sidebar.jsx, /src/index.css
+[20260601-07:09:50][BE] [ATTACH-REF] sync ownerType=post ownerId=0075e0b4-3a2c-4e9e-b970-b5183b9c2723 actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260601-07:09:50][BE] [RAG] 학습 제외 (게시글): 0075e0b4-3a2c-4e9e-b970-b5183b9c2723 — 첨부파일 없음, 6자
+[20260601-07:09:50][BE] [RAG] 학습 제외 후 학습할 게시글이 없습니다.
+[20260601-07:09:53][BE] [ATTACH-REF] sync ownerType=post ownerId=a0b85d2f-2585-4fd7-abd0-581a3223ec1e actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260601-07:09:53][BE] [RAG] 학습 제외 (게시글): a0b85d2f-2585-4fd7-abd0-581a3223ec1e — 첨부파일 없음, 6자
+[20260601-07:09:53][BE] [RAG] 학습 제외 후 학습할 게시글이 없습니다.
+[20260601-07:16:12][BE] [ATTACH-REF] sync ownerType=post ownerId=5ff27408-c605-45b2-a3a5-110cf7b5f695 actorUserId=1 prev=0 next=1 add=1 remove=0
+[20260601-07:16:12][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
+[20260601-07:16:13][BE] /home/freegear/EasyDocStation/server/rag_train.py:111: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260601-07:16:13][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260601-07:16:18][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table' already exists
+[20260601-07:16:18][BE] [RAG] post=5ff27408-c605-45b2-a3a5-110cf7b5f695 text → 1청크
+[20260601-07:16:18][BE] [RAG] 학습 진행률: 30% (게시글 본문)
+[20260601-07:16:18][BE] [RAG] Word 학습 시작: 업무협력 및 해외판매 계약서_1.1.docx
+[20260601-07:16:18][BE] [RAG] Word 학습 완료: 업무협력 및 해외판매 계약서_1.1.docx (5청크)
+[20260601-07:16:18][BE] [RAG] 학습 진행률: 60% (게시글 Word)
+[20260601-07:16:18][BE] [RAG] 저장 완료 — 6청크 / 1개 게시글 / 0개 댓글
+[20260601-07:16:18][BE] [RAG] 학습 진행률: 100% (저장)
+[20260601-07:16:20][BE] [RAG] 학습 완료
+[20260601-07:16:22][BE] [ATTACH-REF] sync ownerType=post ownerId=fabf571f-1722-48ab-ae57-9f2977355d86 actorUserId=1 prev=0 next=1 add=1 remove=0
+[20260601-07:16:22][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
+[20260601-07:16:22][BE] /home/freegear/EasyDocStation/server/rag_train.py:111: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260601-07:16:22][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260601-07:16:27][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table' already exists
+[20260601-07:16:27][BE] [RAG] post=fabf571f-1722-48ab-ae57-9f2977355d86 text → 1청크
+[20260601-07:16:27][BE] [RAG] 학습 진행률: 30% (게시글 본문)
+[20260601-07:16:27][BE] [RAG] Word 학습 시작: 업무협력 및 해외판매 계약서_1.2.docx
+[20260601-07:16:27][BE] [RAG] Word 학습 완료: 업무협력 및 해외판매 계약서_1.2.docx (6청크)
+[20260601-07:16:27][BE] [RAG] 학습 진행률: 60% (게시글 Word)
+[20260601-07:16:27][BE] [RAG] 저장 완료 — 7청크 / 1개 게시글 / 0개 댓글
+[20260601-07:16:27][BE] [RAG] 학습 진행률: 100% (저장)
+[20260601-07:16:30][BE] [RAG] 학습 완료
+[20260601-07:16:33][BE] [ATTACH-REF] sync ownerType=post ownerId=9f8bc680-219a-4812-bb69-9c2b1ef5cffa actorUserId=1 prev=0 next=1 add=1 remove=0
+[20260601-07:16:33][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
+[20260601-07:16:33][BE] /home/freegear/EasyDocStation/server/rag_train.py:111: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260601-07:16:33][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260601-07:16:38][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table' already exists
+[20260601-07:16:38][BE] [RAG] post=9f8bc680-219a-4812-bb69-9c2b1ef5cffa text → 1청크
+[20260601-07:16:38][BE] [RAG] 학습 진행률: 30% (게시글 본문)
+[20260601-07:16:38][BE] [RAG] Word 학습 시작: 업무협력 및 해외판매 계약서_1.3.docx
+[20260601-07:16:38][BE] [RAG] Word 학습 완료: 업무협력 및 해외판매 계약서_1.3.docx (5청크)
+[20260601-07:16:38][BE] [RAG] 학습 진행률: 60% (게시글 Word)
+[20260601-07:16:38][BE] [RAG] 저장 완료 — 6청크 / 1개 게시글 / 0개 댓글
+[20260601-07:16:38][BE] [RAG] 학습 진행률: 100% (저장)
+[20260601-07:16:41][BE] [RAG] 학습 완료
+[20260601-07:17:26][BE] [ATTACH-REF] sync ownerType=post ownerId=aa152d6c-cb37-4d99-b600-e9528ed6913c actorUserId=1 prev=0 next=1 add=1 remove=0
+[20260601-07:17:26][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
+[20260601-07:17:26][BE] /home/freegear/EasyDocStation/server/rag_train.py:111: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260601-07:17:26][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260601-07:17:31][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table' already exists
+[20260601-07:17:31][BE] [RAG] post=aa152d6c-cb37-4d99-b600-e9528ed6913c text → 1청크
+[20260601-07:17:31][BE] [RAG] 학습 진행률: 30% (게시글 본문)
+[20260601-07:17:31][BE] [RAG] Word 학습 시작: 위임장_동우화인켐_1.2.docx
+[20260601-07:17:31][BE] [RAG] Word 학습 완료: 위임장_동우화인켐_1.2.docx (2청크)
+[20260601-07:17:31][BE] [RAG] 학습 진행률: 60% (게시글 Word)
+[20260601-07:17:31][BE] [RAG] 저장 완료 — 3청크 / 1개 게시글 / 0개 댓글
+[20260601-07:17:31][BE] [RAG] 학습 진행률: 100% (저장)
+[20260601-07:17:34][BE] [RAG] 학습 완료
+[20260601-07:33:40][BE] [link-preview-image] meta image failed, fallback screenshot: fetch failed
+[20260601-07:33:41][BE] [link-preview-image] local render failed, try remote fallback: page.goto: net::ERR_CONNECTION_REFUSED at http://114.207.245.216/
+[20260601-07:33:41][BE] Call log:
+[20260601-07:33:41][BE] [2m  - navigating to "http://114.207.245.216/", waiting until "domcontentloaded"[22m
+[20260601-07:33:41][BE] 
+[20260601-07:33:41][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260601-07:33:42][BE] [link-preview-image] remote fallback failed, placeholder: fallback preview fetch failed (404)
+[20260601-07:33:43][BE] [link-preview-image] meta image failed, fallback screenshot: meta image fetch failed (404)
+[20260601-07:33:43][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260601-07:33:44][BE] [link-preview-image] meta image failed, fallback screenshot: fetch failed
+[20260601-07:39:40][BE] [ATTACH-REF] sync ownerType=post ownerId=774d5d99-1d84-4876-8cd4-ad34d20f8a21 actorUserId=1 prev=0 next=1 add=1 remove=0
+[20260601-07:39:40][BE] [RAG] 학습 제외 (게시글): 774d5d99-1d84-4876-8cd4-ad34d20f8a21 — 첨부파일 없음, 12자
+[20260601-07:39:40][BE] [RAG] 학습 제외 후 학습할 게시글이 없습니다.
+[20260601-07:39:45][BE] [ATTACH-REF] sync ownerType=post ownerId=518c3816-8694-4904-af8a-02b1f5728ef6 actorUserId=1 prev=0 next=1 add=1 remove=0
+[20260601-07:39:45][BE] [RAG] 학습 제외 (게시글): 518c3816-8694-4904-af8a-02b1f5728ef6 — 첨부파일 없음, 12자
+[20260601-07:39:45][BE] [RAG] 학습 제외 후 학습할 게시글이 없습니다.
+[20260601-07:39:49][BE] [ATTACH-REF] sync ownerType=post ownerId=25c58b71-0e0b-4d2c-b83e-48fb75adeffa actorUserId=1 prev=0 next=1 add=1 remove=0
+[20260601-07:39:49][BE] [RAG] 학습 제외 (게시글): 25c58b71-0e0b-4d2c-b83e-48fb75adeffa — 첨부파일 없음, 12자
+[20260601-07:39:49][BE] [RAG] 학습 제외 후 학습할 게시글이 없습니다.
+[20260601-07:40:06][BE] [ATTACH-REF] sync ownerType=post ownerId=fbdd950f-b80d-4ed3-942e-8ee14255e9de actorUserId=1 prev=0 next=1 add=1 remove=0
+[20260601-07:40:06][BE] [RAG] 학습 제외 (게시글): fbdd950f-b80d-4ed3-942e-8ee14255e9de — 첨부파일 없음, 55자
+[20260601-07:40:06][BE] [RAG] 학습 제외 후 학습할 게시글이 없습니다.
+[20260601-07:40:12][BE] [ATTACH-REF] sync ownerType=post ownerId=95590704-fc8d-48cb-adb7-9f63d430a068 actorUserId=1 prev=0 next=1 add=1 remove=0
+[20260601-07:40:12][BE] [RAG] 학습 제외 (게시글): 95590704-fc8d-48cb-adb7-9f63d430a068 — 첨부파일 없음, 56자
+[20260601-07:40:12][BE] [RAG] 학습 제외 후 학습할 게시글이 없습니다.
+[20260601-07:40:18][BE] [ATTACH-REF] sync ownerType=post ownerId=fad0da59-a8e1-406b-aad0-6982ea2c74d9 actorUserId=1 prev=0 next=1 add=1 remove=0
+[20260601-07:40:18][BE] [RAG] 학습 제외 (게시글): fad0da59-a8e1-406b-aad0-6982ea2c74d9 — 첨부파일 없음, 56자
+[20260601-07:40:18][BE] [RAG] 학습 제외 후 학습할 게시글이 없습니다.
+[20260601-07:40:24][BE] [ATTACH-REF] sync ownerType=post ownerId=ef68a4fb-8853-41d6-a20a-eb8d75dc58c7 actorUserId=1 prev=0 next=1 add=1 remove=0
+[20260601-07:40:24][BE] [RAG] 학습 제외 (게시글): ef68a4fb-8853-41d6-a20a-eb8d75dc58c7 — 첨부파일 없음, 56자
+[20260601-07:40:24][BE] [RAG] 학습 제외 후 학습할 게시글이 없습니다.
+[20260601-07:40:31][BE] [ATTACH-REF] sync ownerType=post ownerId=ba97fb4f-80f8-4874-9cdd-c46389973d8d actorUserId=1 prev=0 next=1 add=1 remove=0
+[20260601-07:40:31][BE] [RAG] 학습 제외 (게시글): ba97fb4f-80f8-4874-9cdd-c46389973d8d — 첨부파일 없음, 56자
+[20260601-07:40:31][BE] [RAG] 학습 제외 후 학습할 게시글이 없습니다.
+[20260601-09:16:21][BE] [ATTACH-REF] sync ownerType=post ownerId=4e81a4b6-ed1f-4a43-90ad-6321eb0aef8c actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260601-09:16:21][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
+[20260601-09:16:21][BE] /home/freegear/EasyDocStation/server/rag_train.py:111: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260601-09:16:21][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260601-09:16:24][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table' already exists
+[20260601-09:16:24][BE] [RAG] post=4e81a4b6-ed1f-4a43-90ad-6321eb0aef8c text → 4청크
+[20260601-09:16:24][BE] [RAG] 학습 진행률: 50% (게시글 본문)
+[20260601-09:16:24][BE] [RAG] 저장 완료 — 4청크 / 1개 게시글 / 0개 댓글
+[20260601-09:16:24][BE] [RAG] 학습 진행률: 100% (저장)
+[20260601-09:16:25][BE] [RAG] 학습 완료
+[20260601-12:46:59][BE] [ATTACH-REF] sync ownerType=comment ownerId=c-4b196c32-af76-4cd0-b07a-012a5b29e1ab actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260601-12:46:59][BE] [RAG] 댓글 학습 시작 — 1개 댓글 (제외: 0개)
+[20260601-12:47:00][BE] /home/freegear/EasyDocStation/server/rag_train.py:112: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260601-12:47:00][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260601-12:47:03][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table' already exists
+[20260601-12:47:03][BE] [RAG] comment=c-4b196c32-af76-4cd0-b07a-012a5b29e1ab post=4e81a4b6-ed1f-4a43-90ad-6321eb0aef8c text → 2청크
+[20260601-12:47:03][BE] [RAG] 학습 진행률: 50% (댓글 본문)
+[20260601-12:47:03][BE] [RAG] 저장 완료 — 2청크 / 0개 게시글 / 1개 댓글
+[20260601-12:47:03][BE] [RAG] 학습 진행률: 100% (저장)
+[20260601-12:47:03][BE] [RAG] 댓글 학습 완료 — 1개 댓글 (3.9s)
+Terminated
+[20260601-12:48:07][BE] process exited with code 143. restarting in 2s...
+Terminated
+[20260601-12:48:07][BE] 
+[20260601-12:48:07][BE] > easydocstation-server@1.0.0 start
+[20260601-12:48:07][BE] > node index.js
+[20260601-12:48:07][BE] 
+[20260601-12:48:07][BE] [RAG] 초기화 — 학습 방식: immediate
+[20260601-12:48:07][BE] [RAG] 초기화 — PDF 파싱 모드: FAST
+[20260601-12:48:07][BE] ✅ EasyDocStation server running on http://localhost:3001
+[20260601-12:48:07][BE] ✅ [CONFIG] HF_TOKEN 확인됨 (hf_u****butv, 길이 37)
+[20260601-12:48:07][BE] ✅ Cassandra connected
+[20260601-12:48:07][BE] ✅ Cassandra schema initialized
+[20260601-12:48:07][BE] ✅ Database migration complete.
+[20260601-12:48:07][BE] Terminated
+
+> easydocstation@1.0.0 dev:frontend
+> vite
+
+
+> easydocstation@1.0.0 ollama:serve
+> node scripts/ollama-serve-safe.mjs
+
+[Ollama] already running on 127.0.0.1:11434, skipping duplicate serve.
+[20260601-12:48:09][BE] 
+[20260601-12:48:09][BE] > easydocstation-server@1.0.0 start
+[20260601-12:48:09][BE] > node index.js
+[20260601-12:48:09][BE] 
+
+  VITE v5.4.21  ready in 98 ms
+
+  ➜  Local:   http://localhost:5173/
+  ➜  Network: http://10.0.0.194:5173/
+[20260601-12:48:10][BE] [RAG] 초기화 — 학습 방식: immediate
+[20260601-12:48:10][BE] [RAG] 초기화 — PDF 파싱 모드: FAST
+[20260601-12:48:10][BE] ✅ EasyDocStation server running on http://localhost:3001
+[20260601-12:48:10][BE] ✅ [CONFIG] HF_TOKEN 확인됨 (hf_u****butv, 길이 37)
+[20260601-12:48:10][BE] ✅ Cassandra connected
+[20260601-12:48:10][BE] ✅ Cassandra schema initialized
+[20260601-12:48:10][BE] ✅ Database migration complete.
+[20260601-12:48:13][BE] [RAG Server] [RAG Server] 임베딩 모델 로드 중 (device=cuda)...
+[20260601-12:48:29][BE] [RAG Server] [RAG Server] 임베딩 모델 로드 완료
+[20260601-12:48:29][BE] [RAG Server] 포트 5001 에서 시작됨
+[20260601-18:50:23][BE] [ATTACH-REF] sync ownerType=post ownerId=814fe20e-2c2f-41cd-ac4d-a07d88953f3b actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260601-18:50:23][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
+[20260601-18:50:23][BE] /home/freegear/EasyDocStation/server/rag_train.py:112: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260601-18:50:23][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260601-18:50:26][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table' already exists
+[20260601-18:50:26][BE] [RAG] post=814fe20e-2c2f-41cd-ac4d-a07d88953f3b text → 3청크
+[20260601-18:50:26][BE] [RAG] 학습 진행률: 50% (게시글 본문)
+[20260601-18:50:26][BE] [RAG] 저장 완료 — 3청크 / 1개 게시글 / 0개 댓글
+[20260601-18:50:26][BE] [RAG] 학습 진행률: 100% (저장)
+[20260601-18:50:27][BE] [RAG] 학습 완료
+[20260601-19:43:09][BE] POST /users error: error: duplicate key value violates unique constraint "users_email_key"
+[20260601-19:43:09][BE]     at /home/freegear/EasyDocStation/server/node_modules/pg-pool/index.js:45:11
+[20260601-19:43:09][BE]     at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+[20260601-19:43:09][BE]     at async /home/freegear/EasyDocStation/server/routes/users.js:145:22 {
+[20260601-19:43:09][BE]   length: 215,
+[20260601-19:43:09][BE]   severity: 'ERROR',
+[20260601-19:43:09][BE]   code: '23505',
+[20260601-19:43:09][BE]   detail: 'Key (email)=(freegear.next@gmail.com) already exists.',
+[20260601-19:43:09][BE]   hint: undefined,
+[20260601-19:43:09][BE]   position: undefined,
+[20260601-19:43:09][BE]   internalPosition: undefined,
+[20260601-19:43:09][BE]   internalQuery: undefined,
+[20260601-19:43:09][BE]   where: undefined,
+[20260601-19:43:09][BE]   schema: 'public',
+[20260601-19:43:09][BE]   table: 'users',
+[20260601-19:43:09][BE]   column: undefined,
+[20260601-19:43:09][BE]   dataType: undefined,
+[20260601-19:43:09][BE]   constraint: 'users_email_key',
+[20260601-19:43:09][BE]   file: 'nbtinsert.c',
+[20260601-19:43:09][BE]   line: '666',
+[20260601-19:43:09][BE]   routine: '_bt_check_unique'
+[20260601-19:43:09][BE] }
+[20260601-19:43:13][BE] POST /users error: error: duplicate key value violates unique constraint "users_email_key"
+[20260601-19:43:13][BE]     at /home/freegear/EasyDocStation/server/node_modules/pg-pool/index.js:45:11
+[20260601-19:43:13][BE]     at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+[20260601-19:43:13][BE]     at async /home/freegear/EasyDocStation/server/routes/users.js:145:22 {
+[20260601-19:43:13][BE]   length: 215,
+[20260601-19:43:13][BE]   severity: 'ERROR',
+[20260601-19:43:13][BE]   code: '23505',
+[20260601-19:43:13][BE]   detail: 'Key (email)=(freegear.next@gmail.com) already exists.',
+[20260601-19:43:13][BE]   hint: undefined,
+[20260601-19:43:13][BE]   position: undefined,
+[20260601-19:43:13][BE]   internalPosition: undefined,
+[20260601-19:43:13][BE]   internalQuery: undefined,
+[20260601-19:43:13][BE]   where: undefined,
+[20260601-19:43:13][BE]   schema: 'public',
+[20260601-19:43:13][BE]   table: 'users',
+[20260601-19:43:13][BE]   column: undefined,
+[20260601-19:43:13][BE]   dataType: undefined,
+[20260601-19:43:13][BE]   constraint: 'users_email_key',
+[20260601-19:43:13][BE]   file: 'nbtinsert.c',
+[20260601-19:43:13][BE]   line: '666',
+[20260601-19:43:13][BE]   routine: '_bt_check_unique'
+[20260601-19:43:13][BE] }
+[20260601-19:44:27][BE] POST /users error: error: duplicate key value violates unique constraint "users_email_key"
+[20260601-19:44:27][BE]     at /home/freegear/EasyDocStation/server/node_modules/pg-pool/index.js:45:11
+[20260601-19:44:27][BE]     at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+[20260601-19:44:27][BE]     at async /home/freegear/EasyDocStation/server/routes/users.js:145:22 {
+[20260601-19:44:27][BE]   length: 215,
+[20260601-19:44:27][BE]   severity: 'ERROR',
+[20260601-19:44:27][BE]   code: '23505',
+[20260601-19:44:27][BE]   detail: 'Key (email)=(freegear.next@gmail.com) already exists.',
+[20260601-19:44:27][BE]   hint: undefined,
+[20260601-19:44:27][BE]   position: undefined,
+[20260601-19:44:27][BE]   internalPosition: undefined,
+[20260601-19:44:27][BE]   internalQuery: undefined,
+[20260601-19:44:27][BE]   where: undefined,
+[20260601-19:44:27][BE]   schema: 'public',
+[20260601-19:44:27][BE]   table: 'users',
+[20260601-19:44:27][BE]   column: undefined,
+[20260601-19:44:27][BE]   dataType: undefined,
+[20260601-19:44:27][BE]   constraint: 'users_email_key',
+[20260601-19:44:27][BE]   file: 'nbtinsert.c',
+[20260601-19:44:27][BE]   line: '666',
+[20260601-19:44:27][BE]   routine: '_bt_check_unique'
+[20260601-19:44:27][BE] }
+[20260601-19:52:52][BE] [ATTACH-REF] sync ownerType=post ownerId=da1de7f0-e9aa-439e-9a4e-5c85c578923e actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260601-19:52:52][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
+[20260601-19:52:52][BE] /home/freegear/EasyDocStation/server/rag_train.py:112: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260601-19:52:52][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260601-19:52:55][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table' already exists
+[20260601-19:52:55][BE] [RAG] post=da1de7f0-e9aa-439e-9a4e-5c85c578923e text → 1청크
+[20260601-19:52:55][BE] [RAG] 학습 진행률: 50% (게시글 본문)
+[20260601-19:52:55][BE] [RAG] 저장 완료 — 1청크 / 1개 게시글 / 0개 댓글
+[20260601-19:52:55][BE] [RAG] 학습 진행률: 100% (저장)
+[20260601-19:52:56][BE] [RAG] 학습 완료
+[20260601-19:54:16][BE] [ATTACH-REF] sync ownerType=comment ownerId=c-911ad955-abfa-4f6c-b6e5-a652867c1fe9 actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260601-19:54:16][BE] [RAG] 댓글 학습 시작 — 1개 댓글 (제외: 0개)
+[20260601-19:54:16][BE] /home/freegear/EasyDocStation/server/rag_train.py:112: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260601-19:54:16][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260601-19:54:19][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table' already exists
+[20260601-19:54:19][BE] [RAG] comment=c-911ad955-abfa-4f6c-b6e5-a652867c1fe9 post=da1de7f0-e9aa-439e-9a4e-5c85c578923e text → 6청크
+[20260601-19:54:19][BE] [RAG] 학습 진행률: 50% (댓글 본문)
+[20260601-19:54:19][BE] [RAG] 저장 완료 — 6청크 / 0개 게시글 / 1개 댓글
+[20260601-19:54:19][BE] [RAG] 학습 진행률: 100% (저장)
+[20260601-19:54:20][BE] [RAG] 댓글 학습 완료 — 1개 댓글 (3.9s)
+[20260601-19:58:02][BE] [ATTACH-REF] sync ownerType=comment ownerId=c-5ff62eee-ffa8-4ff6-aa52-17b38a7febe0 actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260601-19:58:02][BE] [RAG] 댓글 학습 시작 — 1개 댓글 (제외: 0개)
+[20260601-19:58:02][BE] /home/freegear/EasyDocStation/server/rag_train.py:112: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260601-19:58:02][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260601-19:58:05][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table' already exists
+[20260601-19:58:05][BE] [RAG] comment=c-5ff62eee-ffa8-4ff6-aa52-17b38a7febe0 post=da1de7f0-e9aa-439e-9a4e-5c85c578923e text → 2청크
+[20260601-19:58:05][BE] [RAG] 학습 진행률: 50% (댓글 본문)
+[20260601-19:58:05][BE] [RAG] 저장 완료 — 2청크 / 0개 게시글 / 1개 댓글
+[20260601-19:58:05][BE] [RAG] 학습 진행률: 100% (저장)
+[20260601-19:58:06][BE] [RAG] 댓글 학습 완료 — 1개 댓글 (3.8s)
+Terminated
+[20260601-19:59:08][BE] process exited with code 143. restarting in 2s...
+Terminated
+[20260601-19:59:08][BE] 
+[20260601-19:59:08][BE] > easydocstation-server@1.0.0 start
+[20260601-19:59:08][BE] > node index.js
+[20260601-19:59:08][BE] 
+[20260601-19:59:08][BE] [RAG] 초기화 — 학습 방식: immediate
+[20260601-19:59:08][BE] [RAG] 초기화 — PDF 파싱 모드: FAST
+[20260601-19:59:08][BE] ✅ EasyDocStation server running on http://localhost:3001
+[20260601-19:59:08][BE] ✅ [CONFIG] HF_TOKEN 확인됨 (hf_u****butv, 길이 37)
+[20260601-19:59:08][BE] ✅ Cassandra connected
+[20260601-19:59:08][BE] ✅ Cassandra schema initialized
+[20260601-19:59:08][BE] ✅ Database migration complete.
+[20260601-19:59:08][BE] Terminated
+
+> easydocstation@1.0.0 ollama:serve
+> node scripts/ollama-serve-safe.mjs
+
+
+> easydocstation@1.0.0 dev:frontend
+> vite
+
+[Ollama] already running on 127.0.0.1:11434, skipping duplicate serve.
+[20260601-19:59:11][BE] 
+[20260601-19:59:11][BE] > easydocstation-server@1.0.0 start
+[20260601-19:59:11][BE] > node index.js
+[20260601-19:59:11][BE] 
+
+  VITE v5.4.21  ready in 91 ms
+
+  ➜  Local:   http://localhost:5173/
+  ➜  Network: http://10.0.0.194:5173/
+[20260601-19:59:11][BE] [RAG] 초기화 — 학습 방식: immediate
+[20260601-19:59:11][BE] [RAG] 초기화 — PDF 파싱 모드: FAST
+[20260601-19:59:11][BE] ✅ EasyDocStation server running on http://localhost:3001
+[20260601-19:59:11][BE] ✅ [CONFIG] HF_TOKEN 확인됨 (hf_u****butv, 길이 37)
+[20260601-19:59:11][BE] ✅ Cassandra connected
+[20260601-19:59:11][BE] ✅ Cassandra schema initialized
+[20260601-19:59:11][BE] ✅ Database migration complete.
+[20260601-19:59:14][BE] [RAG Server] [RAG Server] 임베딩 모델 로드 중 (device=cuda)...
+[20260601-19:59:29][BE] [RAG Server] [RAG Server] 임베딩 모델 로드 완료
+[20260601-19:59:29][BE] [RAG Server] [RAG Server] 포트 5001 에서 시작됨
+8:01:59 PM [vite] hmr update /src/components/LoginScreen.jsx, /src/index.css
+[20260601-20:04:04][BE] [ATTACH-REF] sync ownerType=post ownerId=2c7d8e54-5bdc-4108-9915-b4c961db9797 actorUserId=194 prev=0 next=10 add=10 remove=0
+[20260601-20:04:04][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
+[20260601-20:04:04][BE] /home/freegear/EasyDocStation/server/rag_train.py:112: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260601-20:04:04][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260601-20:04:07][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table' already exists
+[20260601-20:04:07][BE] [RAG] post=2c7d8e54-5bdc-4108-9915-b4c961db9797 text → 1청크
+[20260601-20:04:07][BE] [RAG] 이미지 학습 시작: KakaoTalk_Photo_2026-06-01-20-03-38 003.jpeg
+[20260601-20:04:16][BE] [ATTACH-REF] sync ownerType=post ownerId=8ec00c80-3ad6-4b3c-a989-20e578e49e2c actorUserId=194 prev=0 next=2 add=2 remove=0
+[20260601-20:04:16][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
+[20260601-20:04:16][BE] /home/freegear/EasyDocStation/server/rag_train.py:112: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260601-20:04:16][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260601-20:04:21][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table' already exists
+[20260601-20:04:21][BE] [RAG] post=8ec00c80-3ad6-4b3c-a989-20e578e49e2c text → 1청크
+[20260601-20:04:21][BE] [RAG] 학습 진행률: 20% (게시글 본문)
+[20260601-20:04:21][BE] [RAG] 이미지 학습 시작: KakaoTalk_Photo_2026-06-01-20-03-38 001.jpeg
+[20260601-20:04:44][BE] [RAG] Gemma 이미지 설명 완료 (page=1, 36.3s): 2191자
+[20260601-20:04:44][BE] [RAG] 이미지 학습 완료: KakaoTalk_Photo_2026-06-01-20-03-38 003.jpeg (4청크)
+[20260601-20:04:44][BE] [RAG] 학습 진행률: 10% (게시글 이미지)
+[20260601-20:04:44][BE] [RAG] 이미지 학습 시작: KakaoTalk_Photo_2026-06-01-20-03-39 012.jpeg
+[20260601-20:04:57][BE] [SearchIndex] 이미지 첨부 인덱싱 완료: 9618b19f-007a-40ae-bea7-8de900a081f2 KakaoTalk_Photo_2026-06-01-20-03-38 003.jpeg
+[20260601-20:05:10][BE] [SearchIndex] 이미지 첨부 인덱싱 완료: 124cca3c-8631-49ac-b17f-821f067fe245 KakaoTalk_Photo_2026-06-01-20-03-38 001.jpeg
+[20260601-20:05:44][BE] [RAG] Gemma 이미지 설명 완료 (page=1, 82.3s): 1952자
+[20260601-20:05:44][BE] [RAG] 이미지 학습 완료: KakaoTalk_Photo_2026-06-01-20-03-38 001.jpeg (4청크)
+[20260601-20:05:44][BE] [RAG] 학습 진행률: 50% (게시글 이미지)
+[20260601-20:05:44][BE] [RAG] 이미지 학습 시작: KakaoTalk_Photo_2026-06-01-20-03-38 002.jpeg
+[20260601-20:06:16][BE] [RAG] Gemma 이미지 설명 완료 (page=1, 92.1s): 1965자
+[20260601-20:06:16][BE] [RAG] 이미지 학습 완료: KakaoTalk_Photo_2026-06-01-20-03-39 012.jpeg (3청크)
+[20260601-20:06:16][BE] [RAG] 학습 진행률: 20% (게시글 이미지)
+[20260601-20:06:16][BE] [RAG] 이미지 학습 시작: KakaoTalk_Photo_2026-06-01-20-03-38 005.jpeg
+[20260601-20:06:29][BE] [SearchIndex] 이미지 Vision 분석 실패, OCR만 사용: This operation was aborted
+[20260601-20:06:29][BE] [SearchIndex] 이미지 첨부 인덱싱 완료: 4d13fbd1-8ebb-4025-bfcf-865793de01a2 KakaoTalk_Photo_2026-06-01-20-03-38 004.jpeg
+[20260601-20:06:41][BE] [SearchIndex] 이미지 Vision 분석 실패, OCR만 사용: This operation was aborted
+[20260601-20:06:41][BE] [SearchIndex] 이미지 첨부 인덱싱 완료: 617db1df-6963-4185-8b38-01bdd973a6f9 KakaoTalk_Photo_2026-06-01-20-03-38 002.jpeg
+[20260601-20:07:14][BE] [RAG] Gemma 이미지 설명 완료 (page=1, 90.3s): 1880자
+[20260601-20:07:14][BE] [RAG] 이미지 학습 완료: KakaoTalk_Photo_2026-06-01-20-03-38 002.jpeg (3청크)
+[20260601-20:07:14][BE] [RAG] 학습 진행률: 70% (게시글 이미지)
+[20260601-20:07:14][BE] [RAG] 저장 완료 — 8청크 / 1개 게시글 / 0개 댓글
+[20260601-20:07:14][BE] [RAG] 학습 진행률: 100% (저장)
+[20260601-20:07:15][BE] [ATTACH-REF] sync ownerType=post ownerId=f7d64a5c-8303-4014-b878-79a86378fed0 actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260601-20:07:15][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
+[20260601-20:07:15][BE] /home/freegear/EasyDocStation/server/rag_train.py:112: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260601-20:07:15][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260601-20:07:16][BE] [RAG] 학습 완료
+[20260601-20:07:20][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table' already exists
+[20260601-20:07:20][BE] [RAG] post=f7d64a5c-8303-4014-b878-79a86378fed0 text → 1청크
+[20260601-20:07:20][BE] [RAG] 학습 진행률: 50% (게시글 본문)
+[20260601-20:07:20][BE] [RAG] 저장 완료 — 1청크 / 1개 게시글 / 0개 댓글
+[20260601-20:07:20][BE] [RAG] 학습 진행률: 100% (저장)
+[20260601-20:07:23][BE] [RAG] 학습 완료
+[20260601-20:07:42][BE] [RAG] Gemma 이미지 설명 완료 (page=1, 85.7s): 1601자
+[20260601-20:07:42][BE] [RAG] 이미지 학습 완료: KakaoTalk_Photo_2026-06-01-20-03-38 005.jpeg (3청크)
+[20260601-20:07:42][BE] [RAG] 학습 진행률: 30% (게시글 이미지)
+[20260601-20:07:42][BE] [RAG] 이미지 학습 시작: KakaoTalk_Photo_2026-06-01-20-03-38 006.jpeg
+[20260601-20:07:55][BE] [SearchIndex] 이미지 첨부 인덱싱 완료: 9631ff27-bff0-4a30-8fee-6077b9c8b844 KakaoTalk_Photo_2026-06-01-20-03-38 005.jpeg
+[20260601-20:08:01][BE] [ATTACH-REF] sync ownerType=post ownerId=fc9cfec0-335d-4a09-a3ba-a6824264026a actorUserId=1 prev=0 next=2 add=2 remove=0
+[20260601-20:08:01][BE] [RAG] 학습 제외 (게시글): fc9cfec0-335d-4a09-a3ba-a6824264026a — 첨부파일 없음, 35자
+[20260601-20:08:01][BE] [RAG] 학습 제외 후 학습할 게시글이 없습니다.
+[20260601-20:08:26][BE] [RAG] Gemma 이미지 설명 완료 (page=1, 43.9s): 1949자
+[20260601-20:08:26][BE] [RAG] 이미지 학습 완료: KakaoTalk_Photo_2026-06-01-20-03-38 006.jpeg (4청크)
+[20260601-20:08:26][BE] [RAG] 학습 진행률: 40% (게시글 이미지)
+[20260601-20:08:26][BE] [RAG] 이미지 학습 시작: KakaoTalk_Photo_2026-06-01-20-03-38 011.jpeg
+[20260601-20:08:42][BE] [SearchIndex] 이미지 첨부 인덱싱 완료: df10517c-8f77-47af-b6ea-a17aced197ea KakaoTalk_Photo_2026-06-01-20-03-38 006.jpeg
+[20260601-20:09:16][BE] [RAG] Gemma 이미지 설명 완료 (page=1, 49.3s): 2252자
+[20260601-20:09:16][BE] [RAG] 이미지 학습 완료: KakaoTalk_Photo_2026-06-01-20-03-38 011.jpeg (4청크)
+[20260601-20:09:16][BE] [RAG] 학습 진행률: 50% (게시글 이미지)
+[20260601-20:09:16][BE] [RAG] 이미지 학습 시작: KakaoTalk_Photo_2026-06-01-20-03-38 004.jpeg
+[20260601-20:09:34][BE] [SearchIndex] 이미지 첨부 인덱싱 완료: ada17f72-ee03-45a3-a4ed-25a000c010d0 KakaoTalk_Photo_2026-06-01-20-03-38 007.jpeg
+[20260601-20:10:03][BE] [RAG] Gemma 이미지 설명 완료 (page=1, 47.2s): 1673자
+[20260601-20:10:03][BE] [RAG] 이미지 학습 완료: KakaoTalk_Photo_2026-06-01-20-03-38 004.jpeg (4청크)
+[20260601-20:10:03][BE] [RAG] 이미지 학습 시작: KakaoTalk_Photo_2026-06-01-20-03-38 007.jpeg
+[20260601-20:10:18][BE] [SearchIndex] 이미지 첨부 인덱싱 완료: 8a71775f-e3d3-4100-9128-b46e7989e6c6 KakaoTalk_Photo_2026-06-01-20-03-38 008.jpeg
+[20260601-20:10:34][BE] [ATTACH-REF] sync ownerType=post ownerId=4ac9ee2d-7c3d-471c-85e0-aa677e244b96 actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260601-20:10:34][BE] [RAG] 학습 제외 (게시글): 4ac9ee2d-7c3d-471c-85e0-aa677e244b96 — 첨부파일 없음, 68자
+[20260601-20:10:34][BE] [RAG] 학습 제외 후 학습할 게시글이 없습니다.
+[20260601-20:10:49][BE] [RAG] Gemma 이미지 설명 완료 (page=1, 45.9s): 2174자
+[20260601-20:10:49][BE] [RAG] 이미지 학습 완료: KakaoTalk_Photo_2026-06-01-20-03-38 007.jpeg (4청크)
+[20260601-20:10:49][BE] [RAG] 학습 진행률: 60% (게시글 이미지)
+[20260601-20:10:49][BE] [RAG] 이미지 학습 시작: KakaoTalk_Photo_2026-06-01-20-03-38 008.jpeg
+[20260601-20:11:04][BE] [SearchIndex] 이미지 첨부 인덱싱 완료: cc69f169-c4fd-4a77-ac4e-23fe0fee95f5 KakaoTalk_Photo_2026-06-01-20-03-38 009.jpeg
+[20260601-20:11:11][BE] [ATTACH-REF] sync ownerType=comment ownerId=c-4d1df8b3-e78e-45b6-9173-6d842170eafd actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260601-20:11:11][BE] [RAG] 댓글 학습 시작 — 1개 댓글 (제외: 0개)
+[20260601-20:11:11][BE] /home/freegear/EasyDocStation/server/rag_train.py:112: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260601-20:11:11][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260601-20:11:16][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table' already exists
+[20260601-20:11:16][BE] [RAG] comment=c-4d1df8b3-e78e-45b6-9173-6d842170eafd post=4ac9ee2d-7c3d-471c-85e0-aa677e244b96 text → 5청크
+[20260601-20:11:16][BE] [RAG] 학습 진행률: 50% (댓글 본문)
+[20260601-20:11:16][BE] [RAG] 저장 완료 — 5청크 / 0개 게시글 / 1개 댓글
+[20260601-20:11:16][BE] [RAG] 학습 진행률: 100% (저장)
+[20260601-20:11:18][BE] [RAG] 댓글 학습 완료 — 1개 댓글 (7.6s)
+[20260601-20:11:35][BE] [RAG] Gemma 이미지 설명 완료 (page=1, 46.0s): 2273자
+[20260601-20:11:35][BE] [RAG] 이미지 학습 완료: KakaoTalk_Photo_2026-06-01-20-03-38 008.jpeg (4청크)
+[20260601-20:11:35][BE] [RAG] 학습 진행률: 70% (게시글 이미지)
+[20260601-20:11:35][BE] [RAG] 이미지 학습 시작: KakaoTalk_Photo_2026-06-01-20-03-38 009.jpeg
+[20260601-20:11:54][BE] [SearchIndex] 이미지 첨부 인덱싱 완료: 7c338cf5-f141-4982-aa9a-67954bdde687 KakaoTalk_Photo_2026-06-01-20-03-38 010.jpeg
+[20260601-20:12:27][BE] [RAG] Gemma 이미지 설명 완료 (page=1, 51.6s): 1927자
+[20260601-20:12:27][BE] [RAG] 이미지 학습 완료: KakaoTalk_Photo_2026-06-01-20-03-38 009.jpeg (4청크)
+[20260601-20:12:27][BE] [RAG] 학습 진행률: 80% (게시글 이미지)
+[20260601-20:12:27][BE] [RAG] 이미지 학습 시작: KakaoTalk_Photo_2026-06-01-20-03-38 010.jpeg
+[20260601-20:12:43][BE] [SearchIndex] 이미지 첨부 인덱싱 완료: 5eb783fd-1218-4872-9e9e-e0b2e2fd6db8 KakaoTalk_Photo_2026-06-01-20-03-38 011.jpeg
+[20260601-20:13:16][BE] [RAG] Gemma 이미지 설명 완료 (page=1, 48.9s): 1946자
+[20260601-20:13:16][BE] [RAG] 이미지 학습 완료: KakaoTalk_Photo_2026-06-01-20-03-38 010.jpeg (3청크)
+[20260601-20:13:16][BE] [RAG] 학습 진행률: 90% (게시글 이미지)
+[20260601-20:13:16][BE] [RAG] 저장 완료 — 38청크 / 1개 게시글 / 0개 댓글
+[20260601-20:13:16][BE] [RAG] 학습 진행률: 100% (저장)
+[20260601-20:13:18][BE] [RAG] 학습 완료
+[20260601-20:13:31][BE] [SearchIndex] 이미지 첨부 인덱싱 완료: cbe64bed-8049-4c9f-a0d2-43f80c1aa741 KakaoTalk_Photo_2026-06-01-20-03-39 012.jpeg
+8:20:26 PM [vite] hmr update /src/App.jsx, /src/index.css
+8:20:33 PM [vite] hmr update /src/components/DirectMessageView.jsx, /src/index.css
+8:20:44 PM [vite] hmr update /src/components/DirectMessageView.jsx, /src/index.css
+Terminated
+[20260601-20:21:10][BE] process exited with code 143. restarting in 2s...
+Terminated
+[20260601-20:21:11][BE] 
+[20260601-20:21:11][BE] > easydocstation-server@1.0.0 start
+[20260601-20:21:11][BE] > node index.js
+[20260601-20:21:11][BE] 
+[20260601-20:21:11][BE] [RAG] 초기화 — 학습 방식: immediate
+[20260601-20:21:11][BE] [RAG] 초기화 — PDF 파싱 모드: FAST
+[20260601-20:21:11][BE] ✅ EasyDocStation server running on http://localhost:3001
+[20260601-20:21:11][BE] ✅ [CONFIG] HF_TOKEN 확인됨 (hf_u****butv, 길이 37)
+[20260601-20:21:11][BE] ✅ Cassandra connected
+[20260601-20:21:11][BE] ✅ Cassandra schema initialized
+[20260601-20:21:11][BE] ✅ Database migration complete.
+[20260601-20:21:11][BE] Terminated
+
+> easydocstation@1.0.0 dev:frontend
+> vite
+
+
+> easydocstation@1.0.0 ollama:serve
+> node scripts/ollama-serve-safe.mjs
+
+[Ollama] already running on 127.0.0.1:11434, skipping duplicate serve.
+[20260601-20:21:13][BE] 
+[20260601-20:21:13][BE] > easydocstation-server@1.0.0 start
+[20260601-20:21:13][BE] > node index.js
+[20260601-20:21:13][BE] 
+
+  VITE v5.4.21  ready in 94 ms
+
+  ➜  Local:   http://localhost:5173/
+  ➜  Network: http://10.0.0.194:5173/
+[20260601-20:21:13][BE] [RAG] 초기화 — 학습 방식: immediate
+[20260601-20:21:13][BE] [RAG] 초기화 — PDF 파싱 모드: FAST
+[20260601-20:21:13][BE] ✅ EasyDocStation server running on http://localhost:3001
+[20260601-20:21:13][BE] ✅ [CONFIG] HF_TOKEN 확인됨 (hf_u****butv, 길이 37)
+[20260601-20:21:13][BE] ✅ Cassandra connected
+[20260601-20:21:13][BE] ✅ Cassandra schema initialized
+[20260601-20:21:13][BE] ✅ Database migration complete.
+[20260601-20:21:17][BE] [RAG Server] [RAG Server] 임베딩 모델 로드 중 (device=cuda)...
+[20260601-20:21:31][BE] [RAG Server] [RAG Server] 임베딩 모델 로드 완료
+[20260601-20:21:31][BE] [RAG Server] [RAG Server] 포트 5001 에서 시작됨
+[20260601-20:22:14][BE] [DM candidates] error: for SELECT DISTINCT, ORDER BY expressions must appear in select list
+[20260601-20:22:14][BE]     at /home/freegear/EasyDocStation/server/node_modules/pg-pool/index.js:45:11
+[20260601-20:22:14][BE]     at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+[20260601-20:22:14][BE]     at async /home/freegear/EasyDocStation/server/routes/dm.js:272:22 {
+[20260601-20:22:14][BE]   length: 149,
+[20260601-20:22:14][BE]   severity: 'ERROR',
+[20260601-20:22:14][BE]   code: '42P10',
+[20260601-20:22:14][BE]   detail: undefined,
+[20260601-20:22:14][BE]   hint: undefined,
+[20260601-20:22:14][BE]   position: '1092',
+[20260601-20:22:14][BE]   internalPosition: undefined,
+[20260601-20:22:14][BE]   internalQuery: undefined,
+[20260601-20:22:14][BE]   where: undefined,
+[20260601-20:22:14][BE]   schema: undefined,
+[20260601-20:22:14][BE]   table: undefined,
+[20260601-20:22:14][BE]   column: undefined,
+[20260601-20:22:14][BE]   dataType: undefined,
+[20260601-20:22:14][BE]   constraint: undefined,
+[20260601-20:22:14][BE]   file: 'parse_clause.c',
+[20260601-20:22:14][BE]   line: '3008',
+[20260601-20:22:14][BE]   routine: 'transformDistinctClause'
+[20260601-20:22:14][BE] }
+[20260601-20:22:14][BE] [DM candidates] error: for SELECT DISTINCT, ORDER BY expressions must appear in select list
+[20260601-20:22:14][BE]     at /home/freegear/EasyDocStation/server/node_modules/pg-pool/index.js:45:11
+[20260601-20:22:14][BE]     at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+[20260601-20:22:14][BE]     at async /home/freegear/EasyDocStation/server/routes/dm.js:272:22 {
+[20260601-20:22:14][BE]   length: 149,
+[20260601-20:22:14][BE]   severity: 'ERROR',
+[20260601-20:22:14][BE]   code: '42P10',
+[20260601-20:22:14][BE]   detail: undefined,
+[20260601-20:22:14][BE]   hint: undefined,
+[20260601-20:22:14][BE]   position: '1092',
+[20260601-20:22:14][BE]   internalPosition: undefined,
+[20260601-20:22:14][BE]   internalQuery: undefined,
+[20260601-20:22:14][BE]   where: undefined,
+[20260601-20:22:14][BE]   schema: undefined,
+[20260601-20:22:14][BE]   table: undefined,
+[20260601-20:22:14][BE]   column: undefined,
+[20260601-20:22:14][BE]   dataType: undefined,
+[20260601-20:22:14][BE]   constraint: undefined,
+[20260601-20:22:14][BE]   file: 'parse_clause.c',
+[20260601-20:22:14][BE]   line: '3008',
+[20260601-20:22:14][BE]   routine: 'transformDistinctClause'
+[20260601-20:22:14][BE] }
+[20260601-20:22:23][BE] [DM candidates] error: for SELECT DISTINCT, ORDER BY expressions must appear in select list
+[20260601-20:22:23][BE]     at /home/freegear/EasyDocStation/server/node_modules/pg-pool/index.js:45:11
+[20260601-20:22:23][BE]     at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+[20260601-20:22:23][BE]     at async /home/freegear/EasyDocStation/server/routes/dm.js:272:22 {
+[20260601-20:22:23][BE]   length: 149,
+[20260601-20:22:23][BE]   severity: 'ERROR',
+[20260601-20:22:23][BE]   code: '42P10',
+[20260601-20:22:23][BE]   detail: undefined,
+[20260601-20:22:23][BE]   hint: undefined,
+[20260601-20:22:23][BE]   position: '1092',
+[20260601-20:22:23][BE]   internalPosition: undefined,
+[20260601-20:22:23][BE]   internalQuery: undefined,
+[20260601-20:22:23][BE]   where: undefined,
+[20260601-20:22:23][BE]   schema: undefined,
+[20260601-20:22:23][BE]   table: undefined,
+[20260601-20:22:23][BE]   column: undefined,
+[20260601-20:22:23][BE]   dataType: undefined,
+[20260601-20:22:23][BE]   constraint: undefined,
+[20260601-20:22:23][BE]   file: 'parse_clause.c',
+[20260601-20:22:23][BE]   line: '3008',
+[20260601-20:22:23][BE]   routine: 'transformDistinctClause'
+[20260601-20:22:23][BE] }
+[20260601-20:22:23][BE] [DM candidates] error: for SELECT DISTINCT, ORDER BY expressions must appear in select list
+[20260601-20:22:23][BE]     at /home/freegear/EasyDocStation/server/node_modules/pg-pool/index.js:45:11
+[20260601-20:22:23][BE]     at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+[20260601-20:22:23][BE]     at async /home/freegear/EasyDocStation/server/routes/dm.js:272:22 {
+[20260601-20:22:23][BE]   length: 149,
+[20260601-20:22:23][BE]   severity: 'ERROR',
+[20260601-20:22:23][BE]   code: '42P10',
+[20260601-20:22:23][BE]   detail: undefined,
+[20260601-20:22:23][BE]   hint: undefined,
+[20260601-20:22:23][BE]   position: '1092',
+[20260601-20:22:23][BE]   internalPosition: undefined,
+[20260601-20:22:23][BE]   internalQuery: undefined,
+[20260601-20:22:23][BE]   where: undefined,
+[20260601-20:22:23][BE]   schema: undefined,
+[20260601-20:22:23][BE]   table: undefined,
+[20260601-20:22:23][BE]   column: undefined,
+[20260601-20:22:23][BE]   dataType: undefined,
+[20260601-20:22:23][BE]   constraint: undefined,
+[20260601-20:22:23][BE]   file: 'parse_clause.c',
+[20260601-20:22:23][BE]   line: '3008',
+[20260601-20:22:23][BE]   routine: 'transformDistinctClause'
+[20260601-20:22:23][BE] }
+[20260601-20:22:52][BE] [DM candidates] error: for SELECT DISTINCT, ORDER BY expressions must appear in select list
+[20260601-20:22:52][BE]     at /home/freegear/EasyDocStation/server/node_modules/pg-pool/index.js:45:11
+[20260601-20:22:52][BE]     at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+[20260601-20:22:52][BE]     at async /home/freegear/EasyDocStation/server/routes/dm.js:272:22 {
+[20260601-20:22:52][BE]   length: 149,
+[20260601-20:22:52][BE]   severity: 'ERROR',
+[20260601-20:22:52][BE]   code: '42P10',
+[20260601-20:22:52][BE]   detail: undefined,
+[20260601-20:22:52][BE]   hint: undefined,
+[20260601-20:22:52][BE]   position: '1092',
+[20260601-20:22:52][BE]   internalPosition: undefined,
+[20260601-20:22:52][BE]   internalQuery: undefined,
+[20260601-20:22:52][BE]   where: undefined,
+[20260601-20:22:52][BE]   schema: undefined,
+[20260601-20:22:52][BE]   table: undefined,
+[20260601-20:22:52][BE]   column: undefined,
+[20260601-20:22:52][BE]   dataType: undefined,
+[20260601-20:22:52][BE]   constraint: undefined,
+[20260601-20:22:52][BE]   file: 'parse_clause.c',
+[20260601-20:22:52][BE]   line: '3008',
+[20260601-20:22:52][BE]   routine: 'transformDistinctClause'
+[20260601-20:22:52][BE] }
+[20260601-20:22:52][BE] [DM candidates] error: for SELECT DISTINCT, ORDER BY expressions must appear in select list
+[20260601-20:22:52][BE]     at /home/freegear/EasyDocStation/server/node_modules/pg-pool/index.js:45:11
+[20260601-20:22:52][BE]     at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+[20260601-20:22:52][BE]     at async /home/freegear/EasyDocStation/server/routes/dm.js:272:22 {
+[20260601-20:22:52][BE]   length: 149,
+[20260601-20:22:52][BE]   severity: 'ERROR',
+[20260601-20:22:52][BE]   code: '42P10',
+[20260601-20:22:52][BE]   detail: undefined,
+[20260601-20:22:52][BE]   hint: undefined,
+[20260601-20:22:52][BE]   position: '1092',
+[20260601-20:22:52][BE]   internalPosition: undefined,
+[20260601-20:22:52][BE]   internalQuery: undefined,
+[20260601-20:22:52][BE]   where: undefined,
+[20260601-20:22:52][BE]   schema: undefined,
+[20260601-20:22:52][BE]   table: undefined,
+[20260601-20:22:52][BE]   column: undefined,
+[20260601-20:22:52][BE]   dataType: undefined,
+[20260601-20:22:52][BE]   constraint: undefined,
+[20260601-20:22:52][BE]   file: 'parse_clause.c',
+[20260601-20:22:52][BE]   line: '3008',
+[20260601-20:22:52][BE]   routine: 'transformDistinctClause'
+[20260601-20:22:52][BE] }
+[20260601-20:24:09][BE] [DM candidates] error: for SELECT DISTINCT, ORDER BY expressions must appear in select list
+[20260601-20:24:09][BE]     at /home/freegear/EasyDocStation/server/node_modules/pg-pool/index.js:45:11
+[20260601-20:24:09][BE]     at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+[20260601-20:24:09][BE]     at async /home/freegear/EasyDocStation/server/routes/dm.js:272:22 {
+[20260601-20:24:09][BE]   length: 149,
+[20260601-20:24:09][BE]   severity: 'ERROR',
+[20260601-20:24:09][BE]   code: '42P10',
+[20260601-20:24:09][BE]   detail: undefined,
+[20260601-20:24:09][BE]   hint: undefined,
+[20260601-20:24:09][BE]   position: '1092',
+[20260601-20:24:09][BE]   internalPosition: undefined,
+[20260601-20:24:09][BE]   internalQuery: undefined,
+[20260601-20:24:09][BE]   where: undefined,
+[20260601-20:24:09][BE]   schema: undefined,
+[20260601-20:24:09][BE]   table: undefined,
+[20260601-20:24:09][BE]   column: undefined,
+[20260601-20:24:09][BE]   dataType: undefined,
+[20260601-20:24:09][BE]   constraint: undefined,
+[20260601-20:24:09][BE]   file: 'parse_clause.c',
+[20260601-20:24:09][BE]   line: '3008',
+[20260601-20:24:09][BE]   routine: 'transformDistinctClause'
+[20260601-20:24:09][BE] }
+[20260601-20:24:09][BE] [DM candidates] error: for SELECT DISTINCT, ORDER BY expressions must appear in select list
+[20260601-20:24:09][BE]     at /home/freegear/EasyDocStation/server/node_modules/pg-pool/index.js:45:11
+[20260601-20:24:09][BE]     at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+[20260601-20:24:09][BE]     at async /home/freegear/EasyDocStation/server/routes/dm.js:272:22 {
+[20260601-20:24:10][BE]   length: 149,
+[20260601-20:24:10][BE]   severity: 'ERROR',
+[20260601-20:24:10][BE]   code: '42P10',
+[20260601-20:24:10][BE]   detail: undefined,
+[20260601-20:24:10][BE]   hint: undefined,
+[20260601-20:24:10][BE]   position: '1092',
+[20260601-20:24:10][BE]   internalPosition: undefined,
+[20260601-20:24:10][BE]   internalQuery: undefined,
+[20260601-20:24:10][BE]   where: undefined,
+[20260601-20:24:10][BE]   schema: undefined,
+[20260601-20:24:10][BE]   table: undefined,
+[20260601-20:24:10][BE]   column: undefined,
+[20260601-20:24:10][BE]   dataType: undefined,
+[20260601-20:24:10][BE]   constraint: undefined,
+[20260601-20:24:10][BE]   file: 'parse_clause.c',
+[20260601-20:24:10][BE]   line: '3008',
+[20260601-20:24:10][BE]   routine: 'transformDistinctClause'
+[20260601-20:24:10][BE] }
+[20260601-20:24:23][BE] [DM candidates] error: for SELECT DISTINCT, ORDER BY expressions must appear in select list
+[20260601-20:24:23][BE]     at /home/freegear/EasyDocStation/server/node_modules/pg-pool/index.js:45:11
+[20260601-20:24:23][BE]     at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+[20260601-20:24:23][BE]     at async /home/freegear/EasyDocStation/server/routes/dm.js:272:22 {
+[20260601-20:24:23][BE]   length: 149,
+[20260601-20:24:23][BE]   severity: 'ERROR',
+[20260601-20:24:23][BE]   code: '42P10',
+[20260601-20:24:23][BE]   detail: undefined,
+[20260601-20:24:23][BE]   hint: undefined,
+[20260601-20:24:23][BE]   position: '1092',
+[20260601-20:24:23][BE]   internalPosition: undefined,
+[20260601-20:24:23][BE]   internalQuery: undefined,
+[20260601-20:24:23][BE]   where: undefined,
+[20260601-20:24:23][BE]   schema: undefined,
+[20260601-20:24:23][BE]   table: undefined,
+[20260601-20:24:23][BE]   column: undefined,
+[20260601-20:24:23][BE]   dataType: undefined,
+[20260601-20:24:23][BE]   constraint: undefined,
+[20260601-20:24:23][BE]   file: 'parse_clause.c',
+[20260601-20:24:23][BE]   line: '3008',
+[20260601-20:24:23][BE]   routine: 'transformDistinctClause'
+[20260601-20:24:23][BE] }
+[20260601-20:24:23][BE] [DM candidates] error: for SELECT DISTINCT, ORDER BY expressions must appear in select list
+[20260601-20:24:23][BE]     at /home/freegear/EasyDocStation/server/node_modules/pg-pool/index.js:45:11
+[20260601-20:24:23][BE]     at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+[20260601-20:24:23][BE]     at async /home/freegear/EasyDocStation/server/routes/dm.js:272:22 {
+[20260601-20:24:23][BE]   length: 149,
+[20260601-20:24:23][BE]   severity: 'ERROR',
+[20260601-20:24:23][BE]   code: '42P10',
+[20260601-20:24:23][BE]   detail: undefined,
+[20260601-20:24:23][BE]   hint: undefined,
+[20260601-20:24:23][BE]   position: '1092',
+[20260601-20:24:23][BE]   internalPosition: undefined,
+[20260601-20:24:23][BE]   internalQuery: undefined,
+[20260601-20:24:23][BE]   where: undefined,
+[20260601-20:24:23][BE]   schema: undefined,
+[20260601-20:24:23][BE]   table: undefined,
+[20260601-20:24:23][BE]   column: undefined,
+[20260601-20:24:23][BE]   dataType: undefined,
+[20260601-20:24:23][BE]   constraint: undefined,
+[20260601-20:24:23][BE]   file: 'parse_clause.c',
+[20260601-20:24:23][BE]   line: '3008',
+[20260601-20:24:23][BE]   routine: 'transformDistinctClause'
+[20260601-20:24:23][BE] }
+Terminated
+[20260601-20:25:51][BE] process exited with code 143. restarting in 2s...
+Terminated
+[20260601-20:25:51][BE] 
+[20260601-20:25:51][BE] > easydocstation-server@1.0.0 start
+[20260601-20:25:51][BE] > node index.js
+[20260601-20:25:51][BE] 
+[20260601-20:25:51][BE] [RAG] 초기화 — 학습 방식: immediate
+[20260601-20:25:51][BE] [RAG] 초기화 — PDF 파싱 모드: FAST
+[20260601-20:25:51][BE] ✅ EasyDocStation server running on http://localhost:3001
+[20260601-20:25:51][BE] ✅ [CONFIG] HF_TOKEN 확인됨 (hf_u****butv, 길이 37)
+[20260601-20:25:51][BE] ✅ Cassandra connected
+[20260601-20:25:51][BE] ✅ Cassandra schema initialized
+[20260601-20:25:51][BE] ✅ Database migration complete.
+[20260601-20:25:51][BE] Terminated
+
+> easydocstation@1.0.0 ollama:serve
+> node scripts/ollama-serve-safe.mjs
+
+[Ollama] already running on 127.0.0.1:11434, skipping duplicate serve.
+
+> easydocstation@1.0.0 dev:frontend
+> vite
+
+[20260601-20:25:54][BE] 
+[20260601-20:25:54][BE] > easydocstation-server@1.0.0 start
+[20260601-20:25:54][BE] > node index.js
+[20260601-20:25:54][BE] 
+
+  VITE v5.4.21  ready in 88 ms
+
+  ➜  Local:   http://localhost:5173/
+  ➜  Network: http://10.0.0.194:5173/
+[20260601-20:25:54][BE] [RAG] 초기화 — 학습 방식: immediate
+[20260601-20:25:54][BE] [RAG] 초기화 — PDF 파싱 모드: FAST
+[20260601-20:25:54][BE] ✅ EasyDocStation server running on http://localhost:3001
+[20260601-20:25:54][BE] ✅ [CONFIG] HF_TOKEN 확인됨 (hf_u****butv, 길이 37)
+[20260601-20:25:54][BE] ✅ Cassandra connected
+[20260601-20:25:54][BE] ✅ Cassandra schema initialized
+[20260601-20:25:54][BE] ✅ Database migration complete.
+[20260601-20:25:57][BE] [RAG Server] [RAG Server] 임베딩 모델 로드 중 (device=cuda)...
+[20260601-20:26:11][BE] [RAG Server] [RAG Server] 임베딩 모델 로드 완료
+[20260601-20:26:11][BE] [RAG Server] 포트 5001 에서 시작됨
+[20260601-20:50:22][BE] [link-preview-image] meta image failed, fallback screenshot: fetch failed
+[20260601-20:50:22][BE] [link-preview-image] local render failed, try remote fallback: page.goto: net::ERR_CONNECTION_REFUSED at http://114.207.245.216/
+[20260601-20:50:22][BE] Call log:
+[20260601-20:50:22][BE] [2m  - navigating to "http://114.207.245.216/", waiting until "domcontentloaded"[22m
+[20260601-20:50:22][BE] 
+[20260601-20:50:22][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260601-20:50:23][BE] [link-preview-image] remote fallback failed, placeholder: fallback preview fetch failed (404)
+[20260601-20:50:23][BE] [link-preview-image] meta image failed, fallback screenshot: meta image fetch failed (404)
+[20260601-20:50:24][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260601-20:50:25][BE] [ATTACH-REF] sync ownerType=post ownerId=69cd8fc2-7cbf-46fb-84d0-c97cc6f36736 actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260601-20:50:25][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
+[20260601-20:50:25][BE] /home/freegear/EasyDocStation/server/rag_train.py:112: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260601-20:50:25][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260601-20:50:28][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table' already exists
+[20260601-20:50:28][BE] [RAG] post=69cd8fc2-7cbf-46fb-84d0-c97cc6f36736 text → 1청크
+[20260601-20:50:28][BE] [RAG] 학습 진행률: 50% (게시글 본문)
+[20260601-20:50:28][BE] [RAG] 저장 완료 — 1청크 / 1개 게시글 / 0개 댓글
+[20260601-20:50:28][BE] [RAG] 학습 진행률: 100% (저장)
+[20260601-20:50:29][BE] [RAG] 학습 완료
+[20260601-21:04:10][BE] [ATTACH-REF] sync ownerType=post ownerId=63e01189-20ed-4a19-b90a-afb04aada698 actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260601-21:04:10][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
+[20260601-21:04:10][BE] /home/freegear/EasyDocStation/server/rag_train.py:112: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260601-21:04:10][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260601-21:04:13][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table' already exists
+[20260601-21:04:13][BE] [RAG] post=63e01189-20ed-4a19-b90a-afb04aada698 text → 1청크
+[20260601-21:04:13][BE] [RAG] 학습 진행률: 50% (게시글 본문)
+[20260601-21:04:13][BE] [RAG] 저장 완료 — 1청크 / 1개 게시글 / 0개 댓글
+[20260601-21:04:13][BE] [RAG] 학습 진행률: 100% (저장)
+[20260601-21:04:13][BE] [RAG] 학습 완료
+9:11:36 PM [vite] hmr update /src/contexts/ChatContext.jsx, /src/index.css
+9:11:36 PM [vite] hmr invalidate /src/contexts/ChatContext.jsx Could not Fast Refresh ("useChat" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+9:11:36 PM [vite] hmr update /src/App.jsx, /src/index.css, /src/components/Sidebar.jsx, /src/components/TitleBar.jsx, /src/components/GroqPanel.jsx, /src/components/UserProfileModal.jsx, /src/components/SearchResultsArea.jsx, /src/components/ChatArea.jsx, /src/components/ChannelManageModal.jsx, /src/components/chat/PostDetailPane.jsx, /src/components/chat/MDPageViewer.jsx
+9:11:43 PM [vite] hmr update /src/components/GroqPanel.jsx, /src/index.css

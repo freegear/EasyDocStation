@@ -46,6 +46,35 @@ def get_db(lancedb_path):
     return _db_cache[lancedb_path]
 
 
+def normalize_id_list(values):
+    if not isinstance(values, list):
+        return []
+    out = []
+    seen = set()
+    for value in values:
+        text = str(value or "").strip()
+        if not text or text in seen:
+            continue
+        seen.add(text)
+        out.append(text)
+    return out
+
+
+def sql_quote(value):
+    return "'" + str(value).replace("'", "''") + "'"
+
+
+def apply_channel_acl(search, allowed_channel_ids):
+    allowed = normalize_id_list(allowed_channel_ids)
+    if not allowed:
+        return None
+    clause = "metadata.channel_id IN (" + ", ".join(sql_quote(v) for v in allowed) + ")"
+    try:
+        return search.where(clause, prefilter=True)
+    except TypeError:
+        return search.where(clause)
+
+
 class RagHandler(BaseHTTPRequestHandler):
     def log_message(self, fmt, *args):
         pass  # 액세스 로그 억제
@@ -94,9 +123,10 @@ class RagHandler(BaseHTTPRequestHandler):
         cfg          = payload.get("config", {})
         query        = payload.get("query", "")
         limit        = int(payload.get("limit", 5))
+        allowed_channel_ids = normalize_id_list(payload.get("allowed_channel_ids", []))
         lancedb_path = cfg.get("lancedb_path", "")
 
-        if not query.strip() or not lancedb_path:
+        if not query.strip() or not lancedb_path or not allowed_channel_ids:
             self._respond(200, [])
             return
 
@@ -117,7 +147,11 @@ class RagHandler(BaseHTTPRequestHandler):
                 return
 
             query_vec = embed_model.encode(query, show_progress_bar=False).tolist()
-            results   = table.search(query_vec).limit(limit).to_list()
+            search = apply_channel_acl(table.search(query_vec), allowed_channel_ids)
+            if search is None:
+                self._respond(200, [])
+                return
+            results = search.limit(limit).to_list()
 
             output = []
             for r in results:
