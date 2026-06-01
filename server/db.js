@@ -77,6 +77,58 @@ async function runMigrationStep(client, label, sql) {
   return true
 }
 
+async function ensureSearchSchema(client) {
+  await runMigrationStep(client, 'create search_documents', `
+    CREATE TABLE IF NOT EXISTS search_documents (
+      id             TEXT PRIMARY KEY,
+      source_type    TEXT NOT NULL CHECK (source_type IN ('post', 'comment')),
+      source_id      TEXT NOT NULL,
+      post_id        TEXT NOT NULL,
+      comment_id     TEXT,
+      attachment_id  TEXT,
+      channel_id     TEXT NOT NULL,
+      author_id      INTEGER,
+      file_name      TEXT,
+      content        TEXT NOT NULL DEFAULT '',
+      security_level INTEGER NOT NULL DEFAULT 0,
+      created_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at     TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+  `)
+  await runMigrationStep(client, 'search_documents image columns', `
+    ALTER TABLE search_documents ADD COLUMN IF NOT EXISTS comment_id TEXT;
+    ALTER TABLE search_documents ADD COLUMN IF NOT EXISTS attachment_id TEXT;
+    ALTER TABLE search_documents ADD COLUMN IF NOT EXISTS file_name TEXT;
+    ALTER TABLE search_documents DROP CONSTRAINT IF EXISTS search_documents_source_type_check;
+    ALTER TABLE search_documents
+      ADD CONSTRAINT search_documents_source_type_check
+      CHECK (source_type IN ('post', 'comment', 'image_attachment'));
+  `)
+
+  try {
+    await client.query('CREATE EXTENSION IF NOT EXISTS pg_trgm')
+  } catch (e) {
+    console.warn('⚠️ pg_trgm extension 생성 권한이 없어 trigram 검색 인덱스를 건너뜁니다:', e.message)
+  }
+
+  await runMigrationStep(client, 'search_documents source unique index', `
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_search_documents_source
+    ON search_documents(source_type, source_id);
+  `)
+  await runMigrationStep(client, 'search_documents channel created index', `
+    CREATE INDEX IF NOT EXISTS idx_search_documents_channel_created
+    ON search_documents(channel_id, created_at DESC);
+  `)
+  try {
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_search_documents_content_trgm
+      ON search_documents USING gin (content gin_trgm_ops)
+    `)
+  } catch (e) {
+    console.warn('⚠️ search_documents trigram 인덱스 생성을 건너뜁니다:', e.message)
+  }
+}
+
 // Auto-migration on startup
 async function initDb() {
   try {
@@ -107,6 +159,9 @@ async function initDb() {
           END IF;
           IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='attachments' AND column_name='uploader_id') THEN
             ALTER TABLE attachments ADD COLUMN uploader_id INTEGER REFERENCES users(id) ON DELETE SET NULL;
+          END IF;
+          IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='attachments' AND column_name='comment_id') THEN
+            ALTER TABLE attachments ADD COLUMN comment_id VARCHAR(50);
           END IF;
           IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='department_id') THEN
             ALTER TABLE users ADD COLUMN department_id VARCHAR(100) REFERENCES teams(id) ON DELETE SET NULL;
@@ -252,6 +307,7 @@ async function initDb() {
         );
         CREATE INDEX IF NOT EXISTS idx_comments_post ON comments(post_id);
       `)
+      await ensureSearchSchema(client)
       // dm_conversations 테이블 생성 (21. Direct Message)
       await runMigrationStep(client, 'create dm_conversations', `
         CREATE TABLE IF NOT EXISTS dm_conversations (

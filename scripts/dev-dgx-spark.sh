@@ -92,11 +92,23 @@ fi
 
 if [[ "${EASYDOC_DAEMON_MODE:-0}" == "1" ]]; then
   echo "[DGX] daemon 모드 실행 (로그아웃 후 지속)"
-  BE_LOOP_CMD="bash \"$ROOT_DIR/scripts/backend-loop-dgx.sh\""
-  "$ROOT_DIR/node_modules/.bin/concurrently" --kill-others-on-fail -p "[{name}]" -n "Ollama,FE,BE" -c "cyan,magenta,green" \
-    "npm run ollama:serve" \
-    "npm run dev:frontend" \
-    "$BE_LOOP_CMD"
+  # Ollama가 이미 실행 중이면 ollama:serve는 정상 종료한다. 이를 concurrently의
+  # 구성원으로 넣으면 FE/BE까지 같이 내려갈 수 있으므로 사전 확인 작업으로만 실행한다.
+  npm run ollama:serve || true
+
+  npm run dev:frontend &
+  FE_PID=$!
+
+  bash "$ROOT_DIR/scripts/backend-loop-dgx.sh" &
+  BE_PID=$!
+
+  cleanup_daemon_children() {
+    kill "$FE_PID" "$BE_PID" >/dev/null 2>&1 || true
+  }
+  trap cleanup_daemon_children EXIT INT TERM
+
+  wait -n "$FE_PID" "$BE_PID"
+  exit $?
 else
   npm run dev
 fi

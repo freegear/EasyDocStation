@@ -186,7 +186,7 @@ export default function Sidebar({
           </button>
           {!teamsCollapsed && <div className="flex flex-col gap-1">
             {teams.map(team => {
-              const teamUnread = team.channels.reduce((s, c) => s + c.unread, 0)
+              const teamUnread = team.channels.reduce((s, c) => s + (Number(c.unread) || 0), 0)
               const isActive = team.id === selectedTeam.id
               return (
                 <button
@@ -204,7 +204,7 @@ export default function Sidebar({
                 >
                   <span className="text-base">{team.icon}</span>
                   <span className="flex-1 font-medium truncate">{team.name}</span>
-                  {teamUnread > 0 && !isActive && (
+                  {teamUnread > 0 && (
                     <span className="bg-red-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center font-bold">
                       {teamUnread}
                     </span>

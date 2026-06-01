@@ -22,7 +22,7 @@
     "setup:local-ollama": "bash scripts/setup-local-ollama.sh"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.105.3",
+    "@supabase/supabase-js": "^2.106.2",
     "@tiptap/extension-color": "3.22.5",
     "@tiptap/extension-dropcursor": "3.22.5",
     "@tiptap/extension-image": "3.22.5",

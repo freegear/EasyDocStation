@@ -57,7 +57,15 @@ function buildDateSeparatedRows(items = [], getCreatedAt, getId) {
   return rows
 }
 
-function PostDetailPane({ post, channelId, onClose, pendingOpenCommentId = null, onConsumePendingOpen = null, helpers = {} }) {
+function PostDetailPane({
+  post,
+  channelId,
+  onClose,
+  pendingOpenCommentId = null,
+  pendingOpenAttachmentId = null,
+  onConsumePendingOpen = null,
+  helpers = {},
+}) {
   const t = useT()
   const { addComment, incrementViews, deletePost, updatePost, togglePostPin, deleteComment, updateComment, posts, selectedChannel, selectedTeam, openInAgenticAI } = useChat()
   const { currentUser, maxAttachmentFileSize } = useAuth()
@@ -77,7 +85,6 @@ function PostDetailPane({ post, channelId, onClose, pendingOpenCommentId = null,
     uploadFileWithProgress,
   } = helpers
   const [comment, setComment] = useState('')
-  const [viewed, setViewed] = useState(false)
   const [showSendToDMModal, setShowSendToDMModal] = useState(false)
   const [dmConversations, setDmConversations] = useState([])
   const [loadingDMConversations, setLoadingDMConversations] = useState(false)
@@ -102,11 +109,13 @@ function PostDetailPane({ post, channelId, onClose, pendingOpenCommentId = null,
   const [dmNoticeDialog, setDmNoticeDialog] = useState(null)
   const [duplicateFileDialog, setDuplicateFileDialog] = useState(null)
   const [copiedKey, setCopiedKey] = useState('')
+  const [selectedTarget, setSelectedTarget] = useState({ type: 'post', postId: post.id, id: post.id })
 
   const [files, setFiles] = useState([])
   const [dragOver, setDragOver] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(null)
+  const viewedPostRef = useRef('')
   const commentSubmittingRef = useRef(false)
   const commentsEndRef = useRef(null)
   const commentItemRefs = useRef(new Map())
@@ -197,8 +206,11 @@ function PostDetailPane({ post, channelId, onClose, pendingOpenCommentId = null,
   }
 
   useEffect(() => {
-    if (!viewed) { incrementViews(channelId, post.id); setViewed(true) }
-  }, [])
+    const key = `${channelId}:${post.id}`
+    if (viewedPostRef.current === key) return
+    viewedPostRef.current = key
+    incrementViews(channelId, post.id)
+  }, [channelId, incrementViews, post.id])
 
   const freshPost = posts[channelId]?.find(p => p.id === post.id) || post
   const commentRows = buildDateSeparatedRows(
@@ -206,11 +218,28 @@ function PostDetailPane({ post, channelId, onClose, pendingOpenCommentId = null,
     (c) => c.createdAt,
     (c) => c.id,
   )
+  const normalizedSelectedTarget = String(selectedTarget.postId || '') === String(post.id)
+    ? selectedTarget
+    : { type: 'post', postId: post.id, id: post.id }
+  const selectedComment = normalizedSelectedTarget.type === 'comment'
+    ? (freshPost.comments || []).find(c => String(c.id) === String(normalizedSelectedTarget.id))
+    : null
+  const activeTargetType = selectedComment ? 'comment' : 'post'
   const isSiteAdmin = currentUser?.role === 'site_admin'
   const isPinManagerRole = ['site_admin', 'team_admin', 'channel_admin'].includes(String(currentUser?.role || ''))
   const canEditPost = String(freshPost.author?.id ?? '') === String(currentUser?.id ?? '')
   const canDeletePost = isSiteAdmin || canEditPost
   const canPinPost = isPinManagerRole || canEditPost
+  const canEditComment = selectedComment && String(selectedComment.author?.id ?? '') === String(currentUser?.id ?? '')
+  const canDeleteComment = selectedComment && (isSiteAdmin || canEditComment)
+  const canEditSelected = activeTargetType === 'post' ? canEditPost : Boolean(canEditComment)
+  const canDeleteSelected = activeTargetType === 'post' ? canDeletePost : Boolean(canDeleteComment)
+  const canPinSelected = activeTargetType === 'post' && canPinPost
+  const selectedContent = activeTargetType === 'post'
+    ? (isTemplateContent(freshPost.content) ? toPlainTextFromHtml(freshPost.content) : freshPost.content)
+    : selectedComment?.text
+  const selectedCopyKey = activeTargetType === 'post' ? `post:${post.id}` : `comment:${selectedComment?.id}`
+  const selectedLinkKey = activeTargetType === 'post' ? `post-link:${post.id}` : `comment-link:${selectedComment?.id}`
   const maxSelectableLevel = isSiteAdmin ? 4 : (currentUser?.security_level ?? 0)
   const postTrainingStatus = freshPost.training_status || null
   const postBodySelectionGuard = useSelectionClickGuard({
@@ -234,13 +263,23 @@ function PostDetailPane({ post, channelId, onClose, pendingOpenCommentId = null,
       if (el && typeof el.scrollIntoView === 'function') {
         el.scrollIntoView({ behavior: 'smooth', block: 'center' })
       }
+      setSelectedTarget({ type: 'comment', postId: post.id, id: String(pendingOpenCommentId) })
       setHighlightCommentId(String(pendingOpenCommentId))
-      onConsumePendingOpen?.()
+      if (!pendingOpenAttachmentId) onConsumePendingOpen?.()
       setTimeout(() => setHighlightCommentId(null), 2200)
     }, 120)
 
     return () => clearTimeout(timer)
-  }, [pendingOpenCommentId, freshPost.comments, onConsumePendingOpen])
+  }, [pendingOpenCommentId, pendingOpenAttachmentId, freshPost.comments, onConsumePendingOpen, post.id])
+
+  function selectPostTarget(e) {
+    if (postBodySelectionGuard.shouldBlockClick(e)) return
+    setSelectedTarget({ type: 'post', postId: post.id, id: post.id })
+  }
+
+  function selectCommentTarget(commentObj) {
+    setSelectedTarget({ type: 'comment', postId: post.id, id: String(commentObj.id) })
+  }
 
   function guardSelectionMouseDownCapture(e, guard) {
     guard.handleMouseDown(e)
@@ -393,6 +432,8 @@ function PostDetailPane({ post, channelId, onClose, pendingOpenCommentId = null,
 
   // Handlers for Post Edit
   function startPostEdit() {
+    setEditingCommentId(null)
+    setSelectedTarget({ type: 'post', postId: post.id, id: post.id })
     setPostContent(freshPost.content)
     setPostFiles(freshPost.attachments || [])
     setPostSecurityLevel(freshPost.security_level ?? currentUser?.security_level ?? 0)
@@ -418,7 +459,7 @@ function PostDetailPane({ post, channelId, onClose, pendingOpenCommentId = null,
 
   async function handleTogglePin() {
     try {
-      await togglePostPin(channelId, post.id, !Boolean(freshPost.pinned))
+      await togglePostPin(channelId, post.id, !freshPost.pinned)
     } catch (err) {
       alert(`핀 상태 변경에 실패했습니다: ${err.message || err}`)
     }
@@ -426,6 +467,33 @@ function PostDetailPane({ post, channelId, onClose, pendingOpenCommentId = null,
 
   function handleDelete() {
     setShowPostDeleteConfirm(true)
+  }
+
+  function handleSelectedEdit() {
+    if (activeTargetType === 'comment' && selectedComment) {
+      startCommentEdit(selectedComment)
+      return
+    }
+    startPostEdit()
+  }
+
+  function handleSelectedDelete() {
+    if (activeTargetType === 'comment' && selectedComment) {
+      handleCommentDelete(selectedComment.id)
+      return
+    }
+    handleDelete()
+  }
+
+  async function handleSelectedCopyLink() {
+    await copyPermalink({
+      postId: post.id,
+      commentId: activeTargetType === 'comment' ? selectedComment?.id : '',
+    }, selectedLinkKey)
+  }
+
+  async function handleSelectedCopyContent() {
+    await copyTextContent(selectedContent, selectedCopyKey)
   }
 
   async function openSendToDMModal() {
@@ -489,31 +557,53 @@ function PostDetailPane({ post, channelId, onClose, pendingOpenCommentId = null,
     window.dispatchEvent(new Event('open-agentic-panel'))
   }
 
-  async function handleSendPostLinkToDM(conv) {
+  function handleSendSelectedToAgenticAI() {
+    if (activeTargetType === 'comment' && selectedComment) {
+      handleSendCommentToAgenticAI(selectedComment)
+      return
+    }
+    handleSendPostToAgenticAI()
+  }
+
+  async function handleSendSelectedLinkToDM(conv) {
     if (!conv?.id || sendingToDMId) return
     setSendingToDMId(conv.id)
     try {
-      const defaultTitleLine = (freshPost.content || '')
-        .split('\n')
-        .map(v => v.trim())
-        .find(Boolean) || `${freshPost.author?.name || ''} 게시글`
-      const quoteDocNo = isQuotationTemplate(freshPost.content)
-        ? extractQuotationDocNo(freshPost.content)
-        : ''
-      const expenseDocNo = isExpenseTemplate(freshPost.content)
-        ? extractExpenseDocNo(freshPost.content)
-        : ''
-      const tripDocNo = isTripTemplate(freshPost.content)
-        ? extractTripDocNo(freshPost.content)
-        : ''
-      const titleLine = quoteDocNo || expenseDocNo || tripDocNo || defaultTitleLine
-      const postLink = `${window.location.origin}/?channelId=${encodeURIComponent(channelId)}&postId=${encodeURIComponent(post.id)}`
-      const message = [
-        '[게시글 링크]',
-        `제목: ${titleLine.slice(0, 120)}`,
-        `채널: ${selectedChannel?.name || channelId}`,
-        postLink,
-      ].join('\n')
+      let message
+      if (activeTargetType === 'comment' && selectedComment) {
+        const titleLine = (selectedComment.text || '')
+          .replace(/\s+/g, ' ')
+          .trim() || `${selectedComment.author?.name || ''} 댓글`
+        const commentLink = `${window.location.origin}/?channelId=${encodeURIComponent(channelId)}&postId=${encodeURIComponent(post.id)}&commentId=${encodeURIComponent(selectedComment.id)}`
+        message = [
+          '[댓글 링크]',
+          `내용: ${titleLine.slice(0, 120)}`,
+          `채널: ${selectedChannel?.name || channelId}`,
+          commentLink,
+        ].join('\n')
+      } else {
+        const defaultTitleLine = (freshPost.content || '')
+          .split('\n')
+          .map(v => v.trim())
+          .find(Boolean) || `${freshPost.author?.name || ''} 게시글`
+        const quoteDocNo = isQuotationTemplate(freshPost.content)
+          ? extractQuotationDocNo(freshPost.content)
+          : ''
+        const expenseDocNo = isExpenseTemplate(freshPost.content)
+          ? extractExpenseDocNo(freshPost.content)
+          : ''
+        const tripDocNo = isTripTemplate(freshPost.content)
+          ? extractTripDocNo(freshPost.content)
+          : ''
+        const titleLine = quoteDocNo || expenseDocNo || tripDocNo || defaultTitleLine
+        const postLink = `${window.location.origin}/?channelId=${encodeURIComponent(channelId)}&postId=${encodeURIComponent(post.id)}`
+        message = [
+          '[게시글 링크]',
+          `제목: ${titleLine.slice(0, 120)}`,
+          `채널: ${selectedChannel?.name || channelId}`,
+          postLink,
+        ].join('\n')
+      }
 
       await apiFetch(`/dm/conversations/${conv.id}/messages`, {
         method: 'POST',
@@ -530,6 +620,8 @@ function PostDetailPane({ post, channelId, onClose, pendingOpenCommentId = null,
 
   // Handlers for Comment Edit/Delete
   function startCommentEdit(c) {
+    setIsEditingPost(false)
+    setSelectedTarget({ type: 'comment', postId: post.id, id: String(c.id) })
     setEditingCommentId(c.id)
     setCommentEditContent(c.text)
     setCommentEditFiles(c.attachments || [])
@@ -561,9 +653,9 @@ function PostDetailPane({ post, channelId, onClose, pendingOpenCommentId = null,
     <div className="flex-1 flex flex-col min-h-0" style={{ WebkitAppRegion: 'no-drag' }}>
       <div className="flex items-center gap-3 px-6 py-3 border-b border-gray-200 flex-shrink-0">
         <div className="flex-1" />
-        {(canPinPost || canEditPost || canDeletePost) && !isEditingPost && !selectedChannel?.is_archived && (
+        {!isEditingPost && !selectedChannel?.is_archived && (
           <div className="flex items-center gap-2">
-            {canPinPost && (
+            {canPinSelected && (
               <button
                 onClick={handleTogglePin}
                 title={freshPost.pinned ? (t.chat.unpinPost || '핀해제') : (t.chat.pinPost || '핀고정')}
@@ -577,12 +669,12 @@ function PostDetailPane({ post, channelId, onClose, pendingOpenCommentId = null,
               </button>
             )}
             <button
-              onClick={() => copyPermalink({ postId: post.id }, `post-link:${post.id}`)}
-              title={copiedKey === `post-link:${post.id}` ? (t.ai.copied || 'Copied!') : (t.chat.copyLink || '링크복사')}
-              aria-label={copiedKey === `post-link:${post.id}` ? (t.ai.copied || 'Copied!') : (t.chat.copyLink || '링크복사')}
+              onClick={handleSelectedCopyLink}
+              title={copiedKey === selectedLinkKey ? (t.ai.copied || 'Copied!') : (t.chat.copyLink || '링크복사')}
+              aria-label={copiedKey === selectedLinkKey ? (t.ai.copied || 'Copied!') : (t.chat.copyLink || '링크복사')}
               className="flex items-center gap-1 text-gray-500 hover:text-gray-800 text-xs transition-colors"
             >
-              {copiedKey === `post-link:${post.id}` ? (
+              {copiedKey === selectedLinkKey ? (
                 <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
@@ -593,14 +685,14 @@ function PostDetailPane({ post, channelId, onClose, pendingOpenCommentId = null,
               )}
               <span>{t.chat.copyLink || '링크복사'}</span>
             </button>
-            {canEditPost && (
-              <button onClick={startPostEdit} className="flex items-center gap-1 text-gray-400 hover:text-gray-900 text-xs transition-colors">
+            {canEditSelected && (
+              <button onClick={handleSelectedEdit} className="flex items-center gap-1 text-gray-400 hover:text-gray-900 text-xs transition-colors">
                 <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
                 {t.chat.edit}
               </button>
             )}
-            {canDeletePost && (
-              <button onClick={handleDelete} className="flex items-center gap-1 text-red-500 hover:text-red-400 text-xs transition-colors">
+            {canDeleteSelected && (
+              <button onClick={handleSelectedDelete} className="flex items-center gap-1 text-red-500 hover:text-red-400 text-xs transition-colors">
                 <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                 {t.chat.delete}
               </button>
@@ -610,17 +702,12 @@ function PostDetailPane({ post, channelId, onClose, pendingOpenCommentId = null,
         {!isEditingPost && !selectedChannel?.is_archived && (
           <div className="flex items-center gap-2">
             <button
-              onClick={() => copyTextContent(
-                isTemplateContent(freshPost.content)
-                  ? toPlainTextFromHtml(freshPost.content)
-                  : freshPost.content,
-                `post:${post.id}`
-              )}
-              title={copiedKey === `post:${post.id}` ? (t.ai.copied || 'Copied!') : (t.ai.copy || 'Copy')}
-              aria-label={copiedKey === `post:${post.id}` ? (t.ai.copied || 'Copied!') : (t.ai.copy || 'Copy')}
+              onClick={handleSelectedCopyContent}
+              title={copiedKey === selectedCopyKey ? (t.ai.copied || 'Copied!') : (t.ai.copy || 'Copy')}
+              aria-label={copiedKey === selectedCopyKey ? (t.ai.copied || 'Copied!') : (t.ai.copy || 'Copy')}
               className="flex items-center gap-1 text-gray-500 hover:text-gray-800 text-xs transition-colors"
             >
-              {copiedKey === `post:${post.id}` ? (
+              {copiedKey === selectedCopyKey ? (
                 <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
@@ -631,7 +718,7 @@ function PostDetailPane({ post, channelId, onClose, pendingOpenCommentId = null,
               )}
               <span>{t.ai.copy || 'Copy'}</span>
             </button>
-            <button onClick={handleSendPostToAgenticAI} className="flex items-center gap-1 text-sky-600 hover:text-sky-700 text-xs transition-colors">
+            <button onClick={handleSendSelectedToAgenticAI} className="flex items-center gap-1 text-sky-600 hover:text-sky-700 text-xs transition-colors">
               <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
               </svg>
@@ -670,7 +757,7 @@ function PostDetailPane({ post, channelId, onClose, pendingOpenCommentId = null,
                 dmConversations.map(conv => (
                   <button
                     key={conv.id}
-                    onClick={() => handleSendPostLinkToDM(conv)}
+                    onClick={() => handleSendSelectedLinkToDM(conv)}
                     disabled={sendingToDMId === conv.id}
                     className="w-full text-left px-3 py-2 rounded-lg hover:bg-indigo-50 disabled:opacity-50"
                   >
@@ -848,6 +935,7 @@ function PostDetailPane({ post, channelId, onClose, pendingOpenCommentId = null,
               onMouseDownCapture={(e) => guardSelectionMouseDownCapture(e, postBodySelectionGuard)}
               onMouseUpCapture={(e) => guardSelectionMouseUpCapture(e, postBodySelectionGuard)}
               onClickCapture={(e) => guardSelectionClickCapture(e, postBodySelectionGuard)}
+              onClick={selectPostTarget}
             >
               {isTemplateContent(freshPost.content) ? (
                 <TemplateRenderer
@@ -946,7 +1034,11 @@ function PostDetailPane({ post, channelId, onClose, pendingOpenCommentId = null,
                 />
               )}
             </div>
-            <AttachmentList attachments={freshPost.attachments} />
+            <AttachmentList
+              attachments={freshPost.attachments}
+              pendingOpenAttachmentId={pendingOpenAttachmentId}
+              onConsumePendingOpen={onConsumePendingOpen}
+            />
           </>
         )}
 
@@ -957,15 +1049,15 @@ function PostDetailPane({ post, channelId, onClose, pendingOpenCommentId = null,
           {(freshPost.comments || []).length === 0 ? (
             <p className="text-gray-400 text-sm">{t.chat.noComments}</p>
           ) : (
-            <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-4 min-w-0">
               {commentRows.map((row) => (
                 row.type === 'divider' ? (
-                  <div key={row.key} className="flex items-center gap-3 my-1">
-                    <div className="flex-1 h-px bg-gray-200" />
+                  <div key={row.key} className="flex items-center gap-3 my-1 min-w-0">
+                    <div className="flex-1 min-w-4 h-px bg-gray-200" />
                     <span className="text-[13px] text-black font-medium whitespace-nowrap">
-                      {`──────── ${row.label} ────────`}
+                      {row.label}
                     </span>
-                    <div className="flex-1 h-px bg-gray-200" />
+                    <div className="flex-1 min-w-4 h-px bg-gray-200" />
                   </div>
                 ) : (() => {
                   const c = row.item
@@ -979,56 +1071,23 @@ function PostDetailPane({ post, channelId, onClose, pendingOpenCommentId = null,
                         }
                         commentItemRefs.current.set(String(c.id), el)
                       }}
-                      className={`flex items-start gap-3 group rounded-xl transition-colors ${
-                        String(highlightCommentId || '') === String(c.id) ? 'bg-indigo-50/70 ring-1 ring-indigo-200' : ''
+                      onClick={() => selectCommentTarget(c)}
+                      className={`flex items-start gap-3 group rounded-xl transition-colors min-w-0 ${
+                        String(highlightCommentId || '') === String(c.id)
+                          ? 'bg-indigo-50/70 ring-1 ring-indigo-200'
+                          : String(selectedComment?.id || '') === String(c.id)
+                            ? 'bg-indigo-50/40 ring-1 ring-indigo-200/70'
+                            : ''
                       }`}
                     >
                   <Avatar letters={c.author?.avatar || '?'} imageUrl={c.author?.image_url} size="sm" />
-                  <div className="flex-1 bg-gray-100 rounded-xl px-4 py-3 border border-gray-200" style={{ WebkitAppRegion: 'no-drag' }}>
-                    <div className="flex items-baseline gap-2 mb-1.5">
-                      <span className="text-gray-700 text-xs font-semibold">{c.author?.name}</span>
+                  <div className="flex-1 min-w-0 max-w-full bg-gray-100 rounded-xl px-4 py-3 border border-gray-200" style={{ WebkitAppRegion: 'no-drag' }}>
+                    <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1 mb-1.5 min-w-0">
+                      <span className="text-gray-700 text-xs font-semibold truncate max-w-full">{c.author?.name}</span>
                       {c.author?.username && (
-                        <span className="text-indigo-600/50 text-[10px]">@{c.author.username}</span>
+                        <span className="text-indigo-600/50 text-[10px] truncate max-w-full">@{c.author.username}</span>
                       )}
-                      <span className="text-gray-400 text-xs">{formatDate(c.createdAt, t)}</span>
-                      {editingCommentId !== c.id && !selectedChannel?.is_archived && (
-                        <div className="ml-auto flex items-center gap-2 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-opacity">
-                          <button
-                            onClick={() => copyTextContent(c.text, `comment:${c.id}`)}
-                            title={copiedKey === `comment:${c.id}` ? (t.ai.copied || 'Copied!') : (t.ai.copy || 'Copy')}
-                            aria-label={copiedKey === `comment:${c.id}` ? (t.ai.copied || 'Copied!') : (t.ai.copy || 'Copy')}
-                            className="flex items-center gap-1 text-gray-500 hover:text-gray-800 text-[10px] font-medium uppercase tracking-tight transition-colors"
-                          >
-                            {copiedKey === `comment:${c.id}` ? (
-                              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                              </svg>
-                            ) : (
-                              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V5a2 2 0 012-2h6a2 2 0 012 2v6m-2 10H8a2 2 0 01-2-2V9a2 2 0 012-2h8a2 2 0 012 2v8a2 2 0 01-2 2z" />
-                              </svg>
-                            )}
-                            <span>{t.ai.copy || 'Copy'}</span>
-                          </button>
-                          <button onClick={() => handleSendCommentToAgenticAI(c)} className="text-sky-600 hover:text-sky-700 text-[10px] font-medium uppercase tracking-tight">{t.chat.sendToAgenticAI || 'AgenticAI'}</button>
-                          {String(c.author?.id ?? '') === String(currentUser?.id ?? '') && (
-                            <button
-                              onClick={() => copyPermalink({ postId: post.id, commentId: c.id }, `comment-link:${c.id}`)}
-                              title={copiedKey === `comment-link:${c.id}` ? (t.ai.copied || 'Copied!') : (t.chat.copyLink || '링크복사')}
-                              aria-label={copiedKey === `comment-link:${c.id}` ? (t.ai.copied || 'Copied!') : (t.chat.copyLink || '링크복사')}
-                              className="text-gray-500 hover:text-gray-800 text-[10px] font-medium uppercase tracking-tight"
-                            >
-                              {t.chat.copyLink || '링크복사'}
-                            </button>
-                          )}
-                          {String(c.author?.id ?? '') === String(currentUser?.id ?? '') && (
-                            <button onClick={() => startCommentEdit(c)} className="text-gray-400 hover:text-gray-900 text-[10px] font-medium uppercase tracking-tight">{t.chat.edit}</button>
-                          )}
-                          {(isSiteAdmin || String(c.author?.id ?? '') === String(currentUser?.id ?? '')) && (
-                            <button onClick={() => handleCommentDelete(c.id)} className="text-red-400 hover:text-red-400 text-[10px] font-medium uppercase tracking-tight">{t.chat.delete}</button>
-                          )}
-                        </div>
-                      )}
+                      <span className="text-gray-400 text-xs whitespace-nowrap">{formatDate(c.createdAt, t)}</span>
                     </div>
                     {c.training_status && (
                       <div className="mb-2">
@@ -1076,7 +1135,7 @@ function PostDetailPane({ post, channelId, onClose, pendingOpenCommentId = null,
                     ) : (
                       <>
                         <div
-                          className="text-gray-600 select-text allow-copy cursor-text"
+                          className="text-gray-600 select-text allow-copy cursor-text min-w-0 max-w-full overflow-hidden"
                           style={{ WebkitAppRegion: 'no-drag', userSelect: 'text', WebkitUserSelect: 'text' }}
                           onMouseDownCapture={(e) => guardSelectionMouseDownCapture(e, commentBodySelectionGuard)}
                           onMouseUpCapture={(e) => guardSelectionMouseUpCapture(e, commentBodySelectionGuard)}
@@ -1086,7 +1145,12 @@ function PostDetailPane({ post, channelId, onClose, pendingOpenCommentId = null,
                         </div>
                         {c.attachments && c.attachments.length > 0 && (
                           <div className="mt-3">
-                            <AttachmentList attachments={c.attachments} compact />
+                            <AttachmentList
+                              attachments={c.attachments}
+                              compact
+                              pendingOpenAttachmentId={pendingOpenAttachmentId}
+                              onConsumePendingOpen={onConsumePendingOpen}
+                            />
                           </div>
                         )}
                       </>

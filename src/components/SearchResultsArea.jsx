@@ -28,7 +28,9 @@ export default function SearchResultsArea({ onSelectResult }) {
     if (team && channel) {
       selectTeam(team)
       await selectChannel(channel)
-      const postId = item.type === 'comment' ? item.postId : item.id
+      const postId = item.type === 'comment' || item.type === 'image_attachment'
+        ? item.postId
+        : item.id
       onSelectResult?.({ id: postId })
       closeSearch()
     }
@@ -39,6 +41,38 @@ export default function SearchResultsArea({ onSelectResult }) {
       month: 'short', day: 'numeric',
       hour: '2-digit', minute: '2-digit',
     })
+  }
+
+  function makePreview(text = '') {
+    const normalized = String(text || '').replace(/\s+/g, ' ').trim()
+    if (!normalized) return '(내용 없음)'
+    return normalized.length > 160 ? `${normalized.slice(0, 160)}...` : normalized
+  }
+
+  function makeResultLink(item) {
+    const postId = item.type === 'comment' || item.type === 'image_attachment' ? item.postId : (item.postId || item.id)
+    if (!item.channelId || !postId) return ''
+    const params = new URLSearchParams()
+    params.set('channelId', item.channelId)
+    params.set('postId', postId)
+    if (item.type === 'comment' && item.id) params.set('commentId', item.id)
+    if (item.type === 'image_attachment' && item.commentId) params.set('commentId', item.commentId)
+    if (item.type === 'image_attachment' && item.attachmentId) params.set('attachmentId', item.attachmentId)
+    const base = typeof window !== 'undefined'
+      ? `${window.location.origin}${window.location.pathname}`
+      : ''
+    return `${base}?${params.toString()}`
+  }
+
+  function openResultLink(item, e) {
+    e.stopPropagation()
+    handleItemClick(item, e)
+  }
+
+  function resultTypeLabel(type) {
+    if (type === 'post') return t.search.post
+    if (type === 'image_attachment') return '이미지'
+    return t.search.comment
   }
 
   return (
@@ -85,7 +119,9 @@ export default function SearchResultsArea({ onSelectResult }) {
               </button>
             </div>
           ) : (
-            searchResults.map((item, idx) => (
+            searchResults.map((item, idx) => {
+              const resultLink = makeResultLink(item)
+              return (
               <div
                 key={`${item.id}-${idx}`}
                 onMouseDown={handleMouseDown}
@@ -99,13 +135,15 @@ export default function SearchResultsArea({ onSelectResult }) {
                     <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
                       item.type === 'post'
                         ? 'bg-indigo-100 text-indigo-600'
-                        : 'bg-purple-100 text-purple-700'
+                        : item.type === 'image_attachment'
+                          ? 'bg-emerald-100 text-emerald-700'
+                          : 'bg-purple-100 text-purple-700'
                     }`}>
-                      {item.type === 'post' ? t.search.post : t.search.comment}
+                      {idx + 1}. {resultTypeLabel(item.type)}
                     </span>
                     <span className="text-gray-400 text-xs">{item.teamName} › {item.channelName}</span>
                   </div>
-                  <span className="text-gray-300 text-xs">{formatDate(item.createdAt)}</span>
+                  <span className="text-gray-900 text-xs">{formatDate(item.createdAt)}</span>
                 </div>
 
                 <div className="flex gap-4">
@@ -119,16 +157,20 @@ export default function SearchResultsArea({ onSelectResult }) {
                   <div className="min-w-0">
                     <p className="text-gray-700 font-bold text-sm mb-1">{item.author?.name}</p>
 
-                    {item.type === 'comment' && item.postContent && (
-                      <div className="mb-2 p-3 bg-gray-100 rounded-xl border border-gray-100">
-                        <p className="text-gray-400 text-[11px] uppercase font-bold mb-1">{t.search.originalPost}</p>
-                        <p className="text-gray-400 text-xs line-clamp-1 italic">{item.postContent}</p>
-                      </div>
-                    )}
-
-                    <div className="text-gray-800 text-sm leading-relaxed whitespace-pre-wrap break-words select-text allow-copy cursor-text">
-                      {item.content}
+                    <div className="text-gray-800 text-sm leading-relaxed break-words select-text allow-copy cursor-text">
+                      {makePreview(item.content)}
                     </div>
+
+                    {resultLink && (
+                      <button
+                        type="button"
+                        onClick={(e) => openResultLink(item, e)}
+                        className="mt-3 block max-w-full text-left text-[11px] text-indigo-600 hover:text-indigo-700 underline decoration-indigo-300 underline-offset-2 break-all"
+                        title={resultLink}
+                      >
+                        {resultLink}
+                      </button>
+                    )}
                   </div>
                 </div>
 
@@ -141,7 +183,8 @@ export default function SearchResultsArea({ onSelectResult }) {
                   </span>
                 </div>
               </div>
-            ))
+              )
+            })
           )}
         </div>
       </div>

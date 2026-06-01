@@ -1,9 +1,11 @@
 import { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react'
 import { apiFetch } from '../lib/api'
+import { useAuth } from './AuthContext'
 
 const ChatContext = createContext(null)
 
 export function ChatProvider({ children }) {
+  const { currentUser, loading: authLoading } = useAuth()
   const [teams, setTeams] = useState([])
   const [selectedTeam, setSelectedTeam] = useState({ id: null, channels: [], directMessages: [], admin_ids: [] })
   const [selectedChannel, setSelectedChannel] = useState(null)
@@ -15,12 +17,20 @@ export function ChatProvider({ children }) {
   }, [selectedChannel])
 
   useEffect(() => {
-    refreshTeams()
-  }, [])
+    if (authLoading) return
+    if (currentUser?.id) {
+      refreshTeams()
+      return
+    }
+    setTeams([])
+    setSelectedTeam({ id: null, channels: [], directMessages: [], admin_ids: [] })
+    setPosts({})
+    clearSelectedChannel()
+  }, [authLoading, currentUser?.id])
 
   // 현재 채널 게시글 목록 주기 갱신 (학습 상태 변화 반영)
   useEffect(() => {
-    if (!selectedChannel?.id) return undefined
+    if (!currentUser?.id || !selectedChannel?.id) return undefined
     let cancelled = false
     const channelId = selectedChannel.id
 
@@ -28,7 +38,7 @@ export function ChatProvider({ children }) {
       try {
         const data = await apiFetch(`/posts?channelId=${channelId}`)
         if (cancelled) return
-        setPosts(prev => ({ ...prev, [channelId]: data }))
+        mergeChannelPosts(channelId, data, { preserveUnread: true })
       } catch (err) {
         if (err?.status === 403) {
           window.dispatchEvent(new CustomEvent('channel-access-denied'))
@@ -42,22 +52,22 @@ export function ChatProvider({ children }) {
       cancelled = true
       clearInterval(interval)
     }
-  }, [selectedChannel?.id])
+  }, [currentUser?.id, selectedChannel?.id])
 
   // 30초마다 안읽은 글 수 갱신 (다른 사용자가 올린 새 게시글 반영)
   useEffect(() => {
+    if (!currentUser?.id) return undefined
     const interval = setInterval(refreshUnread, 30000)
     return () => clearInterval(interval)
-  }, [])
+  }, [currentUser?.id])
 
   // 채널별 unread count를 teams/selectedTeam state에 반영
   function applyUnreadCounts(teamsData, counts) {
-    const currentChannelId = selectedChannelRef.current?.id
     return teamsData.map(t => ({
       ...t,
       channels: t.channels.map(c => ({
         ...c,
-        unread: c.id === currentChannelId ? 0 : (counts[c.id] ?? c.unread ?? 0),
+        unread: counts[c.id] ?? c.unread ?? 0,
       })),
     }))
   }
@@ -70,10 +80,35 @@ export function ChatProvider({ children }) {
         ...prev,
         channels: prev.channels.map(c => ({
           ...c,
-          unread: c.id === selectedChannelRef.current?.id ? 0 : (counts[c.id] ?? c.unread ?? 0),
+          unread: counts[c.id] ?? c.unread ?? 0,
         })),
       }))
     } catch (_) {}
+  }
+
+  function clearSelectedChannel() {
+    selectedChannelRef.current = null
+    setSelectedChannel(null)
+  }
+
+  function mergeChannelPosts(channelId, nextPosts = [], { preserveUnread = false } = {}) {
+    setPosts(prev => {
+      const previousById = new Map((prev[channelId] || []).map(post => [String(post.id), post]))
+      const mergedPosts = preserveUnread
+        ? nextPosts.map(post => {
+            const previous = previousById.get(String(post.id))
+            if (!previous?.isUnread || post.isUnread) return post
+            return {
+              ...post,
+              isUnread: true,
+              unreadPost: previous.unreadPost || false,
+              unreadCommentCount: previous.unreadCommentCount || 0,
+              unreadActivityAt: previous.unreadActivityAt || post.unreadActivityAt || post.createdAt,
+            }
+          })
+        : nextPosts
+      return { ...prev, [channelId]: mergedPosts }
+    })
   }
 
   async function refreshTeams() {
@@ -89,7 +124,7 @@ export function ChatProvider({ children }) {
             ...t,
             channels: (t.channels || []).map(c => ({
               ...c,
-              unread: c.id === selectedChannelRef.current?.id ? 0 : (unreadCounts[c.id] ?? 0),
+              unread: unreadCounts[c.id] ?? 0,
             })),
             directMessages: members.map(m => ({
               id: `dm-${m.id}`,
@@ -109,18 +144,34 @@ export function ChatProvider({ children }) {
           if (updated) {
             setSelectedTeam(updated)
             // 채널도 다시 동기화
-            const updatedCh = updated.channels.find(c => c.id === selectedChannel?.id) || updated.channels[0]
-            if (updatedCh) selectChannel(updatedCh)
+            const updatedCh = updated.channels.find(c => c.id === selectedChannelRef.current?.id) || updated.channels[0]
+            if (updatedCh) {
+              selectChannel(updatedCh, { markRead: false })
+            } else {
+              clearSelectedChannel()
+            }
           } else {
             // 기존 선택 팀이 사라진 경우 첫 번째 팀으로 폴백
             setSelectedTeam(enriched[0])
-            if (enriched[0].channels?.length > 0) selectChannel(enriched[0].channels[0])
+            if (enriched[0].channels?.length > 0) {
+              selectChannel(enriched[0].channels[0], { markRead: false })
+            } else {
+              clearSelectedChannel()
+            }
           }
         } else {
           // 최초 로드 — 첫 번째 팀/채널 자동 선택
           setSelectedTeam(enriched[0])
-          if (enriched[0].channels?.length > 0) selectChannel(enriched[0].channels[0])
+          if (enriched[0].channels?.length > 0) {
+            selectChannel(enriched[0].channels[0], { markRead: false })
+          } else {
+            clearSelectedChannel()
+          }
         }
+      } else {
+        setTeams([])
+        setSelectedTeam({ id: null, channels: [], directMessages: [], admin_ids: [] })
+        clearSelectedChannel()
       }
     } catch (err) {
       console.error('Failed to fetch teams:', err)
@@ -131,28 +182,32 @@ export function ChatProvider({ children }) {
     setSelectedTeam(team)
     if (team.channels && team.channels.length > 0) {
       selectChannel(team.channels[0])
+    } else {
+      clearSelectedChannel()
     }
     closeSearch()
   }
 
-  async function selectChannel(channel) {
+  async function selectChannel(channel, options = {}) {
+    const { markRead = true } = options
     setSelectedChannel(channel)
     closeSearch()
 
-    // 읽음 처리: last_read_at 갱신 + 클라이언트 unread 즉시 0으로 초기화
-    apiFetch(`/channels/${channel.id}/read`, { method: 'POST' }).catch(() => {})
-    setTeams(prev => prev.map(t => ({
-      ...t,
-      channels: t.channels.map(c => c.id === channel.id ? { ...c, unread: 0 } : c),
-    })))
-    setSelectedTeam(prev => ({
-      ...prev,
-      channels: prev.channels.map(c => c.id === channel.id ? { ...c, unread: 0 } : c),
-    }))
-
     try {
       const data = await apiFetch(`/posts?channelId=${channel.id}`)
-      setPosts(prev => ({ ...prev, [channel.id]: data }))
+      mergeChannelPosts(channel.id, data)
+      if (markRead) {
+        // 목록 표시용 unread 스냅샷을 받은 뒤 채널 배지는 읽음 처리한다.
+        apiFetch(`/channels/${channel.id}/read`, { method: 'POST' }).catch(() => {})
+        setTeams(prev => prev.map(t => ({
+          ...t,
+          channels: t.channels.map(c => c.id === channel.id ? { ...c, unread: 0 } : c),
+        })))
+        setSelectedTeam(prev => ({
+          ...prev,
+          channels: prev.channels.map(c => c.id === channel.id ? { ...c, unread: 0 } : c),
+        }))
+      }
     } catch (err) {
       if (err?.status === 403) {
         window.dispatchEvent(new CustomEvent('channel-access-denied'))
@@ -160,6 +215,24 @@ export function ChatProvider({ children }) {
       console.error('Failed to fetch posts:', err)
       setPosts(prev => ({ ...prev, [channel.id]: [] }))
     }
+  }
+
+  function markPostRead(channelId, postId) {
+    if (!channelId || !postId) return
+    setPosts(prev => ({
+      ...prev,
+      [channelId]: (prev[channelId] || []).map(post => (
+        String(post.id) === String(postId)
+          ? {
+              ...post,
+              isUnread: false,
+              unreadPost: false,
+              unreadCommentCount: 0,
+              unreadActivityAt: null,
+            }
+          : post
+      )),
+    }))
   }
 
   async function addPost(channelId, { content, attachmentIds = [], security_level }, options = {}) {
@@ -370,6 +443,12 @@ export function ChatProvider({ children }) {
     try {
       const data = await apiFetch(`/posts/search?q=${encodeURIComponent(query)}`)
       setSearchResults(data)
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('open-agentic-panel'))
+        window.dispatchEvent(new CustomEvent('agentic-search-results', {
+          detail: { query, results: Array.isArray(data) ? data : [] },
+        }))
+      }
     } catch (err) {
       console.error('Search failed:', err)
       setSearchResults([])
@@ -380,8 +459,16 @@ export function ChatProvider({ children }) {
 
   function closeSearch() {
     setIsSearchMode(false)
-    setSearchTerm('')
-    setSearchResults([])
+  }
+
+  function showSearchResults() {
+    if (!searchTerm && searchResults.length === 0) return
+    setIsSearchMode(true)
+  }
+
+  function toggleSearchResults() {
+    if (!searchTerm && searchResults.length === 0) return
+    setIsSearchMode(prev => !prev)
   }
 
   return (
@@ -393,6 +480,7 @@ export function ChatProvider({ children }) {
       posts,
       selectTeam,
       selectChannel,
+      markPostRead,
       addPost,
       addComment,
       incrementViews,
@@ -410,6 +498,8 @@ export function ChatProvider({ children }) {
       isSearching,
       performSearch,
       closeSearch,
+      showSearchResults,
+      toggleSearchResults,
       pendingOpenPostId,
       pendingOpenCommentId,
       pendingOpenAttachmentId,

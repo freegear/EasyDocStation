@@ -858,7 +858,7 @@ function FilePreviewModal({ file, fileUrl, onClose }) {
 
 // ─── Attachment list in post detail ──────────────────────────
 
-function AttachmentList({ attachments, compact = false }) {
+function AttachmentList({ attachments, compact = false, pendingOpenAttachmentId = null, onConsumePendingOpen = null }) {
   const t = useT()
   const [imagePreviewSize, setImagePreviewSize] = useState(config.imagePreview || { width: 512, height: 512 })
   const [moviePreviewSize, setMoviePreviewSize] = useState(config.moviePreview || { width: 480, height: 270 })
@@ -881,8 +881,6 @@ function AttachmentList({ attachments, compact = false }) {
       })
       .catch(() => {})
   }, [])
-
-  if (!attachments || attachments.length === 0) return null
 
   function fileUrl(f) {
     if (!f.url) return null
@@ -916,6 +914,19 @@ function AttachmentList({ attachments, compact = false }) {
     e.preventDefault()
     setPreviewFile(f)
   }
+
+  useEffect(() => {
+    if (!pendingOpenAttachmentId || !attachments || attachments.length === 0) return
+    const target = attachments.find(f => String(f.id) === String(pendingOpenAttachmentId))
+    if (!target) return
+    const category = getFileCategory(target.type || '', target.name || '')
+    if (category === 'image') setLightboxFile(target)
+    else if (category === 'video') setVideoFile(target)
+    else setPreviewFile(target)
+    onConsumePendingOpen?.()
+  }, [pendingOpenAttachmentId, attachments, onConsumePendingOpen])
+
+  if (!attachments || attachments.length === 0) return null
 
   // 네이티브 앱으로 열기 (별도 버튼)
   async function openNative(e, f) {
@@ -2529,58 +2540,60 @@ function ComposeBar({ onSubmit, isArchived, teamId }) {
           </div>
         )}
 
-        {/* Content textarea row */}
-        <div className="flex items-stretch gap-3 px-4 pt-3 pb-2 flex-1 min-h-0">
-          {currentUser && (
-            <div className="flex-shrink-0 self-start">
-              <Avatar letters={currentUser.avatar} size="sm" />
+        <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
+          {/* Content textarea row */}
+          <div className="flex items-stretch gap-3 px-4 pt-3 pb-2 flex-1 min-h-0">
+            {currentUser && (
+              <div className="flex-shrink-0 self-start">
+                <Avatar letters={currentUser.avatar} size="sm" />
+              </div>
+            )}
+            <div ref={composeWrapRef} className="flex-1 relative min-h-0 h-full">
+              <textarea
+                ref={contentRef}
+                value={content}
+                onChange={e => {
+                  setContent(e.target.value)
+                  mention.handleChange(e.target.value, e.target.selectionStart, e.target)
+                }}
+                onFocus={() => setFocused(true)}
+                onClick={e => mention.handleChange(e.currentTarget.value, e.currentTarget.selectionStart, e.currentTarget)}
+                onKeyUp={e => mention.handleChange(e.currentTarget.value, e.currentTarget.selectionStart, e.currentTarget)}
+                onKeyDown={handleKeyDown}
+                onDragOver={handleTextareaDragOver}
+                onDrop={handleTextareaDrop}
+                placeholder={t.chat.messagePlaceholder}
+                className="w-full h-full min-h-0 bg-transparent text-gray-800 placeholder-gray-400 text-sm leading-relaxed resize-none focus:outline-none pt-0.5 overflow-y-auto"
+              />
+              {mention.open && (
+                <MentionDropdown
+                  users={mention.users}
+                  selectedIdx={mention.selectedIdx}
+                  position={mention.cursorCoords}
+                  onSelect={user => mention.selectUser(user, content, contentRef.current?.selectionStart ?? content.length, (newText, newCursor) => {
+                    setContent(newText)
+                    requestAnimationFrame(() => {
+                      if (contentRef.current) {
+                        contentRef.current.selectionStart = newCursor
+                        contentRef.current.selectionEnd = newCursor
+                        contentRef.current.focus()
+                      }
+                    })
+                  })}
+                />
+              )}
+            </div>
+          </div>
+
+          {/* Attached files preview */}
+          {files.length > 0 && (
+            <div className="px-4 pb-2 pl-[52px] flex-shrink-0 min-h-0">
+              <div className="max-h-32 overflow-y-auto overscroll-contain pr-1 flex flex-wrap gap-2">
+                {files.map(f => <FileChip key={f.id} file={f} onRemove={removeFile} />)}
+              </div>
             </div>
           )}
-          <div ref={composeWrapRef} className="flex-1 relative min-h-0">
-            <textarea
-              ref={contentRef}
-              value={content}
-              onChange={e => {
-                setContent(e.target.value)
-                mention.handleChange(e.target.value, e.target.selectionStart, e.target)
-              }}
-              onFocus={() => setFocused(true)}
-              onClick={e => mention.handleChange(e.currentTarget.value, e.currentTarget.selectionStart, e.currentTarget)}
-              onKeyUp={e => mention.handleChange(e.currentTarget.value, e.currentTarget.selectionStart, e.currentTarget)}
-              onKeyDown={handleKeyDown}
-              onDragOver={handleTextareaDragOver}
-              onDrop={handleTextareaDrop}
-              placeholder={t.chat.messagePlaceholder}
-              className="w-full h-full bg-transparent text-gray-800 placeholder-gray-400 text-sm leading-relaxed resize-none focus:outline-none pt-0.5 overflow-y-auto"
-            />
-            {mention.open && (
-              <MentionDropdown
-                users={mention.users}
-                selectedIdx={mention.selectedIdx}
-                position={mention.cursorCoords}
-                onSelect={user => mention.selectUser(user, content, contentRef.current?.selectionStart ?? content.length, (newText, newCursor) => {
-                  setContent(newText)
-                  requestAnimationFrame(() => {
-                    if (contentRef.current) {
-                      contentRef.current.selectionStart = newCursor
-                      contentRef.current.selectionEnd = newCursor
-                      contentRef.current.focus()
-                    }
-                  })
-                })}
-              />
-            )}
-          </div>
         </div>
-
-        {/* Attached files preview */}
-        {files.length > 0 && (
-          <div className="px-4 pb-2 pl-[52px] flex-shrink-0">
-            <div className="flex flex-wrap gap-2">
-              {files.map(f => <FileChip key={f.id} file={f} onRemove={removeFile} />)}
-            </div>
-          </div>
-        )}
 
         {/* Action row — shown when focused or has content */}
         {showActions && (
@@ -2676,28 +2689,67 @@ function ComposeBar({ onSubmit, isArchived, teamId }) {
 
 function PostList({ posts, onSelect, onSubmit, selectedPostId, onOpenDocumentList }) {
   const t = useT()
-  const { selectedChannel, selectedTeam, refreshTeams } = useChat()
+  const { selectedChannel, selectedTeam, refreshTeams, markPostRead } = useChat()
   const pinnedPosts = posts
-    .filter(p => p.pinned)
+    .filter(p => p.pinned && !p.isUnread)
     .sort((a, b) => {
       const ta = new Date(a.pinned_at || a.createdAt || 0).getTime()
       const tb = new Date(b.pinned_at || b.createdAt || 0).getTime()
       return tb - ta
     })
-  const normalPosts = posts.filter(p => !p.pinned)
-  const normalRows = buildDateSeparatedRows(
-    normalPosts,
-    (p) => p.createdAt,
-    (p) => p.id,
+  const unreadPosts = posts.filter(p => p.isUnread)
+  const readPosts = posts.filter(p => !p.pinned && !p.isUnread)
+  const unreadRows = buildDateSeparatedRows(
+    unreadPosts,
+    (p) => p.unreadActivityAt || p.createdAt,
+    (p) => `unread-${p.id}`,
   )
+  const readRows = buildDateSeparatedRows(
+    readPosts,
+    (p) => p.createdAt,
+    (p) => `read-${p.id}`,
+  )
+  const topRef = useRef(null)
   const bottomRef = useRef(null)
   const [showManageModal, setShowManageModal] = useState(false)
   const { currentUser } = useAuth()
   const isAdmin = ['Admin', 'site_admin', 'channel_admin', 'team_admin'].includes(currentUser?.role)
 
   useEffect(() => {
+    if (unreadPosts.length > 0) {
+      topRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      return
+    }
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [posts.length])
+  }, [posts.length, selectedChannel?.id, unreadPosts.length])
+
+  function handleSelectPost(post) {
+    if (selectedPostId && String(selectedPostId) !== String(post.id)) {
+      markPostRead(selectedChannel.id, selectedPostId)
+    }
+    onSelect(post)
+  }
+
+  function renderPostRows(rows) {
+    return rows.map((row) => (
+      row.type === 'divider' ? (
+        <div key={row.key} className="flex items-center gap-3 my-2">
+          <div className="flex-1 h-px bg-gray-200" />
+          <span className="text-[13px] text-black font-medium whitespace-nowrap">
+            {`──────── ${row.label} ────────`}
+          </span>
+          <div className="flex-1 h-px bg-gray-200" />
+        </div>
+      ) : (
+        <PostCard
+          key={row.key}
+          post={row.item}
+          onSelect={handleSelectPost}
+          isSelected={row.item.id === selectedPostId}
+        />
+      )
+    ))
+  }
 
   return (
     <div className="flex-1 flex flex-col min-h-0">
@@ -2766,36 +2818,36 @@ function PostList({ posts, onSelect, onSubmit, selectedPostId, onOpenDocumentLis
                 <p className="text-gray-400 text-sm">{t.chat.noPostsDesc}</p>
               </div>
             ) : (
-              <div className="flex flex-col gap-3">
+              <div ref={topRef} className="flex flex-col gap-3">
+                {unreadRows.length > 0 && (
+                  <div className="flex items-center gap-2 text-xs font-semibold text-red-500 uppercase tracking-widest">
+                    <span className="w-2 h-2 rounded-full bg-red-500" />
+                    <span>읽지 않은 글</span>
+                  </div>
+                )}
+                {renderPostRows(unreadRows)}
+                {unreadRows.length > 0 && (pinnedPosts.length > 0 || readRows.length > 0) && (
+                  <div className="border-t border-gray-100 my-1" />
+                )}
                 {pinnedPosts.length > 0 && (
                   <div className="sticky top-0 z-20 -mx-2 px-2 py-2 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80 border-b border-amber-100 rounded-xl">
                     <div className="flex items-center gap-2 text-amber-600/70 text-xs font-medium uppercase tracking-widest mb-2">
                       <PinIcon /><span>{t.chat.pinnedPost}</span>
                     </div>
                     <div className="flex flex-col gap-2 max-h-[38vh] overflow-y-auto pr-1">
-                      {pinnedPosts.map(p => <PostCard key={p.id} post={p} onSelect={onSelect} pinned isSelected={p.id === selectedPostId} />)}
+                      {pinnedPosts.map(p => <PostCard key={p.id} post={p} onSelect={handleSelectPost} pinned isSelected={p.id === selectedPostId} />)}
                     </div>
                   </div>
                 )}
-                {pinnedPosts.length > 0 && normalPosts.length > 0 && <div className="border-t border-gray-100 my-1" />}
-                {normalRows.map((row) => (
-                  row.type === 'divider' ? (
-                    <div key={row.key} className="flex items-center gap-3 my-2">
-                      <div className="flex-1 h-px bg-gray-200" />
-                      <span className="text-[13px] text-black font-medium whitespace-nowrap">
-                        {`──────── ${row.label} ────────`}
-                      </span>
-                      <div className="flex-1 h-px bg-gray-200" />
-                    </div>
-                  ) : (
-                    <PostCard
-                      key={row.key}
-                      post={row.item}
-                      onSelect={onSelect}
-                      isSelected={row.item.id === selectedPostId}
-                    />
-                  )
-                ))}
+                {pinnedPosts.length > 0 && readRows.length > 0 && (
+                  <div className="border-t border-gray-100 my-1" />
+                )}
+                {readRows.length > 0 && unreadRows.length > 0 && (
+                  <div className="flex items-center gap-2 text-xs font-semibold text-gray-400 uppercase tracking-widest">
+                    <span>읽은 글</span>
+                  </div>
+                )}
+                {renderPostRows(readRows)}
                 <div ref={bottomRef} />
               </div>
             )}
@@ -3233,6 +3285,12 @@ function PostCard({ post, onSelect, pinned, isSelected }) {
         <div className="flex-1 min-w-0">
           {/* Lead line */}
           <div className="flex items-center gap-2 mb-0.5">
+            {post.isUnread && !pinned && (
+              <span
+                className="w-2 h-2 rounded-full bg-red-500 flex-shrink-0"
+                title={post.unreadCommentCount > 0 ? `읽지 않은 댓글 ${post.unreadCommentCount}개` : '읽지 않은 글'}
+              />
+            )}
             {pinned && <PinIcon />}
             {leadLine && (
               <p className="text-gray-800 font-semibold text-sm leading-tight group-hover:text-indigo-600 transition-colors overflow-hidden text-ellipsis whitespace-nowrap select-text allow-copy cursor-text">
@@ -3311,6 +3369,7 @@ export default function ChatArea({ autoOpenPostId }) {
     addPost,
     pendingOpenPostId,
     pendingOpenCommentId,
+    pendingOpenAttachmentId,
     clearPendingPost,
     setSelectedPostContext,
     clearSelectedPostContext,
@@ -3337,11 +3396,11 @@ export default function ChatArea({ autoOpenPostId }) {
     const target = channelPosts.find(p => String(p.id) === String(pendingOpenPostId))
     if (target) {
       setSelectedPost(target)
-      if (!pendingOpenCommentId) {
+      if (!pendingOpenCommentId && !pendingOpenAttachmentId) {
         clearPendingPost()
       }
     }
-  }, [pendingOpenPostId, pendingOpenCommentId, selectedChannel?.id, posts, clearPendingPost])
+  }, [pendingOpenPostId, pendingOpenCommentId, pendingOpenAttachmentId, selectedChannel?.id, posts, clearPendingPost])
 
   const startResizing = useCallback(() => {
     setResizing(true)
@@ -3355,7 +3414,10 @@ export default function ChatArea({ autoOpenPostId }) {
     if (!resizing || !containerRef.current) return
     const containerRect = containerRef.current.getBoundingClientRect()
     const newWidth = ((e.clientX - containerRect.left) / containerRect.width) * 100
-    if (newWidth > 20 && newWidth < 80) setLeftWidth(newWidth)
+    const detailMinWidth = Math.min(520, containerRect.width * 0.72)
+    const maxLeftWidth = Math.min(80, ((containerRect.width - detailMinWidth) / containerRect.width) * 100)
+    const clampedWidth = Math.min(Math.max(newWidth, 20), maxLeftWidth)
+    if (clampedWidth >= 20) setLeftWidth(clampedWidth)
   }, [resizing])
 
   useEffect(() => {
@@ -3459,7 +3521,10 @@ export default function ChatArea({ autoOpenPostId }) {
       {/* Left panel — post list (narrows when detail is open) */}
       <div
         className={`flex flex-col min-h-0 bg-gray-50 ${selectedPost ? 'border-r border-gray-200' : 'flex-1'} ${resizing ? '' : 'transition-[width] duration-200'}`}
-        style={{ width: selectedPost ? `${leftWidth}%` : '100%' }}
+        style={{
+          width: selectedPost ? `${leftWidth}%` : '100%',
+          maxWidth: selectedPost ? 'calc(100% - min(520px, 72%))' : undefined,
+        }}
       >
         <PostList
           posts={channelPosts}
@@ -3485,12 +3550,13 @@ export default function ChatArea({ autoOpenPostId }) {
 
       {/* Right panel — post detail */}
       {selectedPost && (
-        <div className="flex-1 flex flex-col min-h-0 min-w-0 overflow-hidden">
+        <div className="flex-1 flex flex-col min-h-0 min-w-0 overflow-hidden" style={{ minWidth: 'min(520px, 72%)' }}>
         <PostDetailPane
           post={selectedPost}
           channelId={selectedChannel.id}
           onClose={() => setSelectedPost(null)}
           pendingOpenCommentId={pendingOpenCommentId}
+          pendingOpenAttachmentId={pendingOpenAttachmentId}
           onConsumePendingOpen={clearPendingPost}
           helpers={postDetailHelpers}
         />

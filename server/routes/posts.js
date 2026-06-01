@@ -3,6 +3,8 @@ const router = express.Router()
 const { randomUUID } = require('crypto')
 const fs = require('fs')
 const path = require('path')
+const os = require('os')
+const { execFile } = require('child_process')
 const { client, isConnected } = require('../cassandra')
 const db = require('../db')
 const config = require('../../config.json')
@@ -19,6 +21,19 @@ const { ACCESS_DENIED_MESSAGE, canAccessChannel, getAccessibleChannelIds } = req
 const STORAGE_BASE = getDatabasePath(config, 'ObjectFile Path')
 const STORAGE_BASE_ABS = path.resolve(STORAGE_BASE)
 let attachmentRefSchemaEnsured = false
+let searchIndexSchemaEnsured = false
+const IMAGE_SEARCH_CONTENT_TYPES = new Set([
+  'image/jpeg',
+  'image/jpg',
+  'image/png',
+  'image/webp',
+  'image/gif',
+  'image/bmp',
+  'image/tiff',
+  'image/heic',
+  'image/heif',
+])
+const IMAGE_SEARCH_FILE_EXT_RE = /\.(jpe?g|png|webp|gif|bmp|tiff?|heic|heif)$/i
 
 function toAttachmentIdArray(raw) {
   if (!Array.isArray(raw)) return []
@@ -72,11 +87,353 @@ async function ensureAttachmentRefTable() {
   await db.query('ALTER TABLE attachments ADD COLUMN IF NOT EXISTS ref_count INTEGER NOT NULL DEFAULT 0')
   await db.query("ALTER TABLE attachments ADD COLUMN IF NOT EXISTS delete_status TEXT NOT NULL DEFAULT 'active'")
   await db.query('ALTER TABLE attachments ADD COLUMN IF NOT EXISTS delete_requested_at TIMESTAMPTZ NULL')
+  await db.query('ALTER TABLE attachments ADD COLUMN IF NOT EXISTS comment_id VARCHAR(50)')
   attachmentRefSchemaEnsured = true
 }
 
 function uniqAttachmentIds(ids = []) {
   return [...new Set((ids || []).map((v) => String(v || '').trim()).filter(Boolean))]
+}
+
+function isImageSearchAttachment(row = {}) {
+  const contentType = String(row.content_type || '').toLowerCase()
+  const filename = String(row.filename || '')
+  return IMAGE_SEARCH_CONTENT_TYPES.has(contentType) || IMAGE_SEARCH_FILE_EXT_RE.test(filename)
+}
+
+function normalizeSearchContent(content = '') {
+  return String(content || '')
+    .replace(/<!--\s*md-doc-meta:[\s\S]*?-->/gi, ' ')
+    .replace(/<!--\s*md-image-meta:[\s\S]*?-->/gi, ' ')
+    .replace(/<!--\s*md-page\s*-->/gi, ' ')
+    .replace(/[ \t]+\n/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim()
+}
+
+async function ensureSearchIndexSchema() {
+  if (searchIndexSchemaEnsured) return
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS search_documents (
+      id             TEXT PRIMARY KEY,
+      source_type    TEXT NOT NULL CHECK (source_type IN ('post', 'comment', 'image_attachment')),
+      source_id      TEXT NOT NULL,
+      post_id        TEXT NOT NULL,
+      comment_id     TEXT,
+      attachment_id  TEXT,
+      channel_id     TEXT NOT NULL,
+      author_id      INTEGER,
+      file_name      TEXT,
+      content        TEXT NOT NULL DEFAULT '',
+      security_level INTEGER NOT NULL DEFAULT 0,
+      created_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at     TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `)
+  await db.query(`
+    ALTER TABLE search_documents ADD COLUMN IF NOT EXISTS comment_id TEXT;
+    ALTER TABLE search_documents ADD COLUMN IF NOT EXISTS attachment_id TEXT;
+    ALTER TABLE search_documents ADD COLUMN IF NOT EXISTS file_name TEXT;
+    ALTER TABLE search_documents DROP CONSTRAINT IF EXISTS search_documents_source_type_check;
+    ALTER TABLE search_documents
+      ADD CONSTRAINT search_documents_source_type_check
+      CHECK (source_type IN ('post', 'comment', 'image_attachment'))
+  `)
+  await db.query('CREATE UNIQUE INDEX IF NOT EXISTS idx_search_documents_source ON search_documents(source_type, source_id)')
+  await db.query('CREATE INDEX IF NOT EXISTS idx_search_documents_channel_created ON search_documents(channel_id, created_at DESC)')
+  try {
+    await db.query('CREATE EXTENSION IF NOT EXISTS pg_trgm')
+    await db.query('CREATE INDEX IF NOT EXISTS idx_search_documents_content_trgm ON search_documents USING gin (content gin_trgm_ops)')
+  } catch (e) {
+    console.warn('[SearchIndex] pg_trgm 인덱스 준비 실패:', e.message)
+  }
+  searchIndexSchemaEnsured = true
+}
+
+async function upsertSearchDocument({
+  sourceType,
+  sourceId,
+  postId,
+  commentId = '',
+  attachmentId = '',
+  channelId,
+  authorId,
+  fileName = '',
+  content,
+  securityLevel = 0,
+  createdAt = new Date(),
+}) {
+  const safeSourceType = String(sourceType || '').trim()
+  const safeSourceId = String(sourceId || '').trim()
+  const safePostId = String(postId || '').trim()
+  const safeChannelId = String(channelId || '').trim()
+  const safeContent = normalizeSearchContent(content)
+  if (!safeSourceType || !safeSourceId || !safePostId || !safeChannelId) return
+  await ensureSearchIndexSchema()
+  await db.query(
+    `INSERT INTO search_documents (
+       id, source_type, source_id, post_id, comment_id, attachment_id, channel_id, author_id,
+       file_name, content, security_level, created_at, updated_at
+     )
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW())
+     ON CONFLICT (id)
+     DO UPDATE SET
+       post_id = EXCLUDED.post_id,
+       comment_id = EXCLUDED.comment_id,
+       attachment_id = EXCLUDED.attachment_id,
+       channel_id = EXCLUDED.channel_id,
+       author_id = EXCLUDED.author_id,
+       file_name = EXCLUDED.file_name,
+       content = EXCLUDED.content,
+       security_level = EXCLUDED.security_level,
+       created_at = EXCLUDED.created_at,
+       updated_at = NOW()`,
+    [
+      `${safeSourceType}:${safeSourceId}`,
+      safeSourceType,
+      safeSourceId,
+      safePostId,
+      String(commentId || ''),
+      String(attachmentId || ''),
+      safeChannelId,
+      authorId || null,
+      String(fileName || ''),
+      safeContent,
+      Number.parseInt(securityLevel, 10) || 0,
+      createdAt,
+    ],
+  )
+}
+
+async function deleteSearchDocument(sourceType, sourceId) {
+  const safeSourceType = String(sourceType || '').trim()
+  const safeSourceId = String(sourceId || '').trim()
+  if (!safeSourceType || !safeSourceId) return
+  await ensureSearchIndexSchema()
+  await db.query('DELETE FROM search_documents WHERE id = $1', [`${safeSourceType}:${safeSourceId}`])
+}
+
+function userSearchSecurityLevel(user = {}) {
+  if (user?.role === 'site_admin') return 4
+  const parsed = Number.parseInt(user?.security_level, 10)
+  return Number.isFinite(parsed) ? parsed : 0
+}
+
+function getOllamaChatUrl() {
+  const host = String(process.env.OLLAMA_HOST || '127.0.0.1').trim() || '127.0.0.1'
+  const port = String(process.env.OLLAMA_PORT || '11434').trim() || '11434'
+  return `http://${host}:${port}/api/chat`
+}
+
+function execFileAsync(command, args, options = {}) {
+  return new Promise((resolve, reject) => {
+    execFile(command, args, options, (err, stdout, stderr) => {
+      if (err) {
+        err.stdout = stdout
+        err.stderr = stderr
+        reject(err)
+        return
+      }
+      resolve({ stdout, stderr })
+    })
+  })
+}
+
+async function prepareImageForSearch(imagePath, { maxSize = 1600, quality = 86 } = {}) {
+  if (!imagePath || !fs.existsSync(imagePath)) return ''
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'eds-image-index-'))
+  const tmpPath = path.join(tmpDir, 'image.jpg')
+  try {
+    await execFileAsync(
+      'python3',
+      ['-c', `
+from PIL import Image, ImageOps
+import sys
+src, dst, max_size, quality = sys.argv[1], sys.argv[2], int(sys.argv[3]), int(sys.argv[4])
+im = Image.open(src)
+im = ImageOps.exif_transpose(im)
+im.thumbnail((max_size, max_size))
+if im.mode not in ("RGB", "L"):
+    im = im.convert("RGB")
+im.save(dst, "JPEG", quality=quality, optimize=True)
+`, imagePath, tmpPath, String(maxSize), String(quality)],
+      { timeout: 30000, maxBuffer: 1024 * 1024 },
+    )
+    return {
+      path: fs.existsSync(tmpPath) ? tmpPath : imagePath,
+      cleanup: () => fs.rmSync(tmpDir, { recursive: true, force: true }),
+    }
+  } catch (e) {
+    console.warn(`[SearchIndex] 이미지 전처리 실패, 원본 사용: ${e.message}`)
+    try { fs.rmSync(tmpDir, { recursive: true, force: true }) } catch (_) {}
+    return { path: imagePath, cleanup: () => {} }
+  }
+}
+
+async function ocrImageForSearch(imagePath) {
+  if (!imagePath || !fs.existsSync(imagePath)) return ''
+  const prepared = await prepareImageForSearch(imagePath, { maxSize: 2200, quality: 88 })
+  try {
+    const { stdout } = await execFileAsync(
+      'tesseract',
+      [prepared.path, 'stdout', '-l', 'eng+kor', '--psm', '6'],
+      { timeout: 30000, maxBuffer: 4 * 1024 * 1024 },
+    )
+    return String(stdout || '').replace(/\s+\n/g, '\n').trim()
+  } catch (e) {
+    console.warn(`[SearchIndex] 이미지 OCR 실패: ${e.message}`)
+    return ''
+  } finally {
+    prepared.cleanup()
+  }
+}
+
+function fetchWithTimeout(url, options = {}, timeoutMs = 45000) {
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), timeoutMs)
+  return fetch(url, { ...options, signal: controller.signal })
+    .finally(() => clearTimeout(timer))
+}
+
+async function describeImageForSearch(imagePath, fileName = '') {
+  if (!imagePath || !fs.existsSync(imagePath)) return ''
+  const ocrText = await ocrImageForSearch(imagePath)
+  const useVision = String(process.env.EASYDOC_IMAGE_VISION_ENRICH || '1').trim() === '1'
+  if (!useVision) {
+    return [
+      '[OCR_TEXT]',
+      ocrText || '',
+      '[KEYWORDS]',
+      `${fileName || ''} ${ocrText || ''}`.trim(),
+    ].filter(Boolean).join('\n')
+  }
+
+  const prepared = await prepareImageForSearch(imagePath, { maxSize: 1400, quality: 82 })
+  const imgB64 = fs.readFileSync(prepared.path).toString('base64')
+  const model = String(process.env.EASYDOC_OCR_MODEL || config?.rag?.ocr_model || 'gemma4:e4b').trim()
+  const payload = {
+    model,
+    stream: false,
+    messages: [
+      {
+        role: 'system',
+        content:
+          'You are an OCR, image understanding, and search indexing engine. ' +
+          'Extract every visible text exactly, especially product names, model numbers, abbreviations, labels, signs, and diagram terms. ' +
+          'Also describe the visual scene in Korean so the image can be found even when it has no text. ' +
+          'Mention people, objects, equipment, location type, actions, colors, safety context, and notable details. ' +
+          'Do not omit English identifiers.',
+      },
+      {
+        role: 'user',
+        content:
+          `Analyze this image for search indexing. File name: ${fileName || 'image'}.\n` +
+          'Return sections: [EXACT_VISIBLE_TEXT], [VISUAL_DESCRIPTION_KO], [SEARCH_KEYWORDS].',
+        images: [imgB64],
+      },
+    ],
+    options: { temperature: 0 },
+  }
+  try {
+    const res = await fetchWithTimeout(getOllamaChatUrl(), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    }, 90000)
+    if (!res.ok) throw new Error(`Ollama image analysis failed: HTTP ${res.status}`)
+    const data = await res.json().catch(() => ({}))
+    const visionText = String(data?.message?.content || '').trim()
+    return [
+      '[OCR_TEXT]',
+      ocrText || '',
+      '[VISION_DESCRIPTION]',
+      visionText || '',
+    ].filter(Boolean).join('\n')
+  } catch (e) {
+    console.warn(`[SearchIndex] 이미지 Vision 분석 실패, OCR만 사용: ${e.message}`)
+    return [
+      '[OCR_TEXT]',
+      ocrText || '',
+      '[KEYWORDS]',
+      `${fileName || ''} ${ocrText || ''}`.trim(),
+    ].filter(Boolean).join('\n')
+  } finally {
+    prepared.cleanup()
+  }
+}
+
+async function indexImageAttachmentForSearch({
+  attachmentId,
+  postId,
+  commentId = '',
+  channelId = '',
+  authorId = null,
+  securityLevel = 0,
+  createdAt = new Date(),
+  skipExistingVision = false,
+}) {
+  const id = String(attachmentId || '').trim()
+  if (!id) return { indexed: false, reason: 'EMPTY_ATTACHMENT_ID' }
+  const result = await db.query(
+    'SELECT id, filename, content_type, storage_path FROM attachments WHERE id = $1 LIMIT 1',
+    [id],
+  )
+  const attachment = result.rows?.[0]
+  if (!attachment || !isImageSearchAttachment(attachment)) return { indexed: false, reason: 'NOT_IMAGE' }
+
+  const imagePath = resolveStoragePathSafe(attachment.storage_path)
+  if (!imagePath || !fs.existsSync(imagePath)) return { indexed: false, reason: 'FILE_NOT_FOUND' }
+
+  const existingDoc = await db.query(
+    'SELECT content FROM search_documents WHERE id = $1 LIMIT 1',
+    [`image_attachment:${id}`],
+  ).catch(() => ({ rows: [] }))
+  const existingContent = String(existingDoc.rows?.[0]?.content || '').trim()
+  const existingBody = existingContent.replace(/^이미지 첨부 검색 분석:[^\n]*(\n\n)?/, '').trim()
+  const hasVisionDescription = /\[(VISION_DESCRIPTION|VISUAL_DESCRIPTION_KO)\]/.test(existingBody)
+  if (skipExistingVision && existingBody && hasVisionDescription) {
+    return { indexed: false, reason: 'VISION_EXISTS', attachmentId: id, fileName: attachment.filename || '' }
+  }
+  const caption = existingBody && hasVisionDescription
+    ? existingBody
+    : await describeImageForSearch(imagePath, attachment.filename)
+  const content = [
+    `이미지 첨부 검색 분석: ${attachment.filename || id}`,
+    caption,
+  ].filter(Boolean).join('\n\n')
+  if (!caption.trim()) return { indexed: false, reason: 'EMPTY_CAPTION' }
+
+  await upsertSearchDocument({
+    sourceType: 'image_attachment',
+    sourceId: id,
+    postId,
+    commentId,
+    attachmentId: id,
+    channelId,
+    authorId,
+    fileName: attachment.filename || '',
+    content,
+    securityLevel,
+    createdAt,
+  })
+  return { indexed: true, attachmentId: id, fileName: attachment.filename || '' }
+}
+
+function indexImageAttachmentsForSearchAsync(items = []) {
+  const jobs = (Array.isArray(items) ? items : []).filter(Boolean)
+  if (jobs.length === 0) return
+  ;(async () => {
+    for (const item of jobs) {
+      try {
+        const result = await indexImageAttachmentForSearch(item)
+        if (result.indexed) {
+          console.log(`[SearchIndex] 이미지 첨부 인덱싱 완료: ${result.attachmentId} ${result.fileName}`)
+        }
+      } catch (e) {
+        console.warn(`[SearchIndex] 이미지 첨부 인덱싱 실패: ${item?.attachmentId || ''} ${e.message}`)
+      }
+    }
+  })()
 }
 
 async function recalcAttachmentRefCount(attachmentIds = []) {
@@ -565,6 +922,35 @@ async function fetchComments(postId) {
   }))
 }
 
+function isAfterLastRead(createdAt, lastReadAt) {
+  if (!createdAt) return false
+  if (!lastReadAt) return true
+  return new Date(createdAt).getTime() > new Date(lastReadAt).getTime()
+}
+
+function buildUnreadMeta({ postCreatedAt, postAuthorId, comments = [], userId, lastReadAt }) {
+  const isOwnPost = String(postAuthorId) === String(userId)
+  const unreadPost = !isOwnPost && isAfterLastRead(postCreatedAt, lastReadAt)
+  const unreadComments = comments.filter(comment => (
+    String(comment?.author?.id) !== String(userId)
+    && isAfterLastRead(comment?.createdAt, lastReadAt)
+  ))
+  const unreadTimes = [
+    unreadPost ? postCreatedAt : null,
+    ...unreadComments.map(comment => comment.createdAt),
+  ].filter(Boolean)
+  const unreadActivityAt = unreadTimes.length > 0
+    ? new Date(Math.max(...unreadTimes.map(value => new Date(value).getTime()))).toISOString()
+    : null
+
+  return {
+    isUnread: unreadPost || unreadComments.length > 0,
+    unreadPost,
+    unreadCommentCount: unreadComments.length,
+    unreadActivityAt,
+  }
+}
+
 async function findPostLocator(postId) {
   const byId = await client.execute(
     'SELECT channel_id, created_at, author_id FROM posts_by_id WHERE id = ?',
@@ -625,11 +1011,107 @@ router.get('/search', requireAuth, async (req, res, next) => {
   try {
     const { q } = req.query
     if (!q) return res.status(400).json({ error: 'Search query is required' })
+
+    try {
+      await ensureSearchIndexSchema()
+      const accessibleChannelIds = await getAccessibleChannelIds(db, req.user)
+      if (accessibleChannelIds.length === 0) return res.json([])
+      const limit = Math.max(1, Math.min(100, Number(req.query.limit) || 50))
+      const userLevel = userSearchSecurityLevel(req.user)
+      const searchRes = await db.query(
+        `WITH matched AS (
+           SELECT
+             d.*,
+             POSITION(LOWER($2) IN LOWER(d.content)) AS match_pos,
+             MIN(EXTRACT(EPOCH FROM d.created_at)) OVER () AS min_epoch,
+             MAX(EXTRACT(EPOCH FROM d.created_at)) OVER () AS max_epoch
+           FROM search_documents d
+           WHERE d.channel_id = ANY($1)
+             AND d.security_level <= $3
+             AND d.content ILIKE '%' || $2 || '%'
+         ),
+         scored AS (
+           SELECT
+             m.*,
+             CASE
+               WHEN LOWER(m.content) = LOWER($2) THEN 1.0
+               ELSE LEAST(
+                 1.0,
+                 GREATEST(
+                   0.0,
+                   (
+                     (1.0 - ((GREATEST(m.match_pos, 1) - 1)::float / GREATEST(char_length(m.content), 1))) * 0.7
+                   ) + (
+                     LEAST(1.0, char_length($2)::float / GREATEST(char_length(m.content), char_length($2), 1)) * 0.3
+                   )
+                 )
+               )
+             END AS match_score,
+             CASE
+               WHEN m.max_epoch = m.min_epoch THEN 1.0
+               ELSE (EXTRACT(EPOCH FROM m.created_at) - m.min_epoch) / NULLIF(m.max_epoch - m.min_epoch, 0)
+             END AS recency_score
+           FROM matched m
+         )
+         SELECT
+           s.source_type AS type,
+           s.source_id AS id,
+           s.post_id,
+           s.comment_id,
+           s.attachment_id,
+           s.channel_id,
+           s.author_id,
+           s.file_name,
+           s.content,
+           s.created_at,
+           c.name AS channel_name,
+           t.name AS team_name,
+           u.name AS author_name,
+           u.username AS author_username,
+           u.image_url AS author_image_url,
+           p.content AS post_content,
+           ((s.match_score * 0.5) + (s.recency_score * 0.5)) AS score,
+           s.match_score,
+           s.recency_score
+         FROM scored s
+         JOIN channels c ON c.id = s.channel_id
+         JOIN teams t ON t.id = c.team_id
+         LEFT JOIN users u ON u.id = s.author_id
+         LEFT JOIN posts p ON p.id = s.post_id
+         ORDER BY score DESC, s.created_at DESC
+         LIMIT $4`,
+        [accessibleChannelIds, String(q), userLevel, limit],
+      )
+      return res.json(searchRes.rows.map(row => ({
+        type: row.type,
+        id: row.id,
+        postId: row.post_id,
+        commentId: row.comment_id || '',
+        attachmentId: row.attachment_id || '',
+        fileName: row.file_name || '',
+        content: row.content,
+        createdAt: row.created_at,
+        teamName: row.team_name || '',
+        channelName: row.channel_name || '',
+        channelId: row.channel_id,
+        postContent: row.type === 'comment' || row.type === 'image_attachment' ? (row.post_content || '') : '',
+        score: Number(row.score || 0),
+        matchScore: Number(row.match_score || 0),
+        recencyScore: Number(row.recency_score || 0),
+        author: {
+          id: row.author_id,
+          name: row.author_name || '알 수 없음',
+          username: row.author_username || 'unknown',
+          image_url: row.author_image_url || null,
+        },
+      })))
+    } catch (pgErr) {
+      console.warn('[SearchIndex] PostgreSQL 검색 실패, Cassandra 검색으로 fallback:', pgErr.message)
+    }
+
     if (!isConnected()) return res.status(503).json({ error: 'Cassandra 연결이 필요합니다.' })
 
     const lower = q.toLowerCase()
-
-    // ── 1. Cassandra에서 전체 posts / comments 스캔 후 JS 필터링 ──
     const [allPostsResult, allCommentsResult] = await Promise.all([
       client.execute('SELECT * FROM posts ALLOW FILTERING', [], { prepare: true }),
       client.execute('SELECT * FROM comments ALLOW FILTERING', [], { prepare: true }),
@@ -637,13 +1119,9 @@ router.get('/search', requireAuth, async (req, res, next) => {
 
     const matchedPostsRaw = allPostsResult.rows.filter(r => r.id != null && r.content && r.content.toLowerCase().includes(lower))
     const matchedCommentsRaw = allCommentsResult.rows.filter(r => r.id != null && r.content && r.content.toLowerCase().includes(lower))
-
     if (matchedPostsRaw.length === 0 && matchedCommentsRaw.length === 0) return res.json([])
 
-    // ── 2. 댓글의 channel_id는 게시글에서 조회 ──────────────────
     const postMap = new Map(allPostsResult.rows.filter(p => p.id != null).map(p => [p.id.toString(), p]))
-
-    // ── 3. 필요한 channel_id / author_id 일괄 수집 ──────────────
     const channelIds = new Set([
       ...matchedPostsRaw.map(p => p.channel_id),
       ...matchedCommentsRaw.map(c => {
@@ -658,12 +1136,7 @@ router.get('/search', requireAuth, async (req, res, next) => {
       return post && accessibleChannelIds.has(post.channel_id)
     })
     if (matchedPosts.length === 0 && matchedComments.length === 0) return res.json([])
-    const authorIds = new Set([
-      ...matchedPosts.map(p => p.author_id),
-      ...matchedComments.map(c => c.author_id),
-    ])
-
-    // ── 4. PostgreSQL에서 메타데이터 일괄 조회 ───────────────────
+    const authorIds = new Set([...matchedPosts.map(p => p.author_id), ...matchedComments.map(c => c.author_id)])
     const [channelsRes, usersRes] = await Promise.all([
       db.query(
         `SELECT c.id, c.name, t.name AS team_name
@@ -671,25 +1144,20 @@ router.get('/search', requireAuth, async (req, res, next) => {
          WHERE c.id = ANY($1)`,
         [[...channelIds]]
       ),
-      db.query(
-        'SELECT id, name, username, image_url FROM users WHERE id = ANY($1)',
-        [[...authorIds]]
-      ),
+      db.query('SELECT id, name, username, image_url FROM users WHERE id = ANY($1)', [[...authorIds]]),
     ])
     const channelMap = new Map(channelsRes.rows.map(c => [c.id, c]))
-    const userMap    = new Map(usersRes.rows.map(u => [u.id, u]))
-
+    const userMap = new Map(usersRes.rows.map(u => [u.id, u]))
     const makeAuthor = (authorId) => {
       const u = userMap.get(authorId) || { id: null, name: '알 수 없음', username: 'unknown', image_url: null }
       return { id: u.id, name: u.name, username: u.username, image_url: u.image_url }
     }
-
-    // ── 5. 결과 조립 ─────────────────────────────────────────────
     const postResults = matchedPosts.map(row => {
       const ch = channelMap.get(row.channel_id) || {}
       return {
         type: 'post',
         id: row.id.toString(),
+        postId: row.id.toString(),
         content: row.content,
         createdAt: row.authored_at,
         teamName: ch.team_name || '',
@@ -698,10 +1166,9 @@ router.get('/search', requireAuth, async (req, res, next) => {
         author: makeAuthor(row.author_id),
       }
     })
-
     const commentResults = matchedComments.map(row => {
       const post = postMap.get(row.post_id.toString())
-      const ch   = post ? (channelMap.get(post.channel_id) || {}) : {}
+      const ch = post ? (channelMap.get(post.channel_id) || {}) : {}
       return {
         type: 'comment',
         id: row.id,
@@ -715,11 +1182,244 @@ router.get('/search', requireAuth, async (req, res, next) => {
         author: makeAuthor(row.author_id),
       }
     })
+    res.json([...postResults, ...commentResults].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)))
+  } catch (err) {
+    next(err)
+  }
+})
 
-    const results = [...postResults, ...commentResults]
-      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+// ─── POST /api/posts/search-index/rebuild ─────────────────────
+router.post('/search-index/rebuild', requireAuth, async (req, res, next) => {
+  try {
+    if (req.user?.role !== 'site_admin') return res.status(403).json({ error: ACCESS_DENIED_MESSAGE })
+    await ensureSearchIndexSchema()
+    await db.query("DELETE FROM search_documents WHERE source_type IN ('post', 'comment')")
 
-    res.json(results)
+    let indexedPosts = 0
+    let indexedComments = 0
+
+    if (isConnected()) {
+      const [postsRes, commentsRes] = await Promise.all([
+        client.execute('SELECT id, channel_id, author_id, content, security_level, created_at FROM posts ALLOW FILTERING', [], { prepare: true }),
+        client.execute('SELECT id, post_id, author_id, content, security_level, created_at FROM comments ALLOW FILTERING', [], { prepare: true }),
+      ])
+      const postMap = new Map((postsRes.rows || []).filter(p => p.id).map(p => [String(p.id), p]))
+      for (const row of postsRes.rows || []) {
+        if (!row.id || !row.channel_id) continue
+        await upsertSearchDocument({
+          sourceType: 'post',
+          sourceId: String(row.id),
+          postId: String(row.id),
+          channelId: String(row.channel_id),
+          authorId: row.author_id,
+          content: row.content || '',
+          securityLevel: row.security_level ?? 0,
+          createdAt: row.created_at || new Date(),
+        })
+        indexedPosts += 1
+      }
+      for (const row of commentsRes.rows || []) {
+        const post = postMap.get(String(row.post_id || ''))
+        if (!row.id || !post?.channel_id) continue
+        await upsertSearchDocument({
+          sourceType: 'comment',
+          sourceId: String(row.id),
+          postId: String(row.post_id),
+          channelId: String(post.channel_id),
+          authorId: row.author_id,
+          content: row.content || '',
+          securityLevel: row.security_level ?? 0,
+          createdAt: row.created_at || new Date(),
+        })
+        indexedComments += 1
+      }
+    } else {
+      const [postsRes, commentsRes] = await Promise.all([
+        db.query('SELECT id, channel_id, author_id, content, security_level, created_at FROM posts'),
+        db.query('SELECT id, post_id, channel_id, author_id, content, security_level, created_at FROM comments'),
+      ])
+      for (const row of postsRes.rows || []) {
+        await upsertSearchDocument({
+          sourceType: 'post',
+          sourceId: row.id,
+          postId: row.id,
+          channelId: row.channel_id,
+          authorId: row.author_id,
+          content: row.content || '',
+          securityLevel: row.security_level ?? 0,
+          createdAt: row.created_at || new Date(),
+        })
+        indexedPosts += 1
+      }
+      for (const row of commentsRes.rows || []) {
+        await upsertSearchDocument({
+          sourceType: 'comment',
+          sourceId: row.id,
+          postId: row.post_id,
+          channelId: row.channel_id,
+          authorId: row.author_id,
+          content: row.content || '',
+          securityLevel: row.security_level ?? 0,
+          createdAt: row.created_at || new Date(),
+        })
+        indexedComments += 1
+      }
+    }
+
+    res.json({ success: true, indexedPosts, indexedComments })
+  } catch (err) {
+    next(err)
+  }
+})
+
+// ─── POST /api/posts/search-index/rebuild-images ──────────────
+router.post('/search-index/rebuild-images', requireAuth, async (req, res, next) => {
+  try {
+    if (req.user?.role !== 'site_admin') return res.status(403).json({ error: ACCESS_DENIED_MESSAGE })
+    await ensureSearchIndexSchema()
+    await ensureAttachmentRefTable().catch(() => {})
+    const requestedAttachmentId = String(req.body?.attachmentId || req.query?.attachmentId || '').trim()
+    const requestedPostId = String(req.body?.postId || req.query?.postId || '').trim()
+    const requestedCommentId = String(req.body?.commentId || req.query?.commentId || '').trim()
+    const requestedLimit = Number.parseInt(req.body?.limit || req.query?.limit || '0', 10)
+    const limit = Number.isFinite(requestedLimit) && requestedLimit > 0 ? requestedLimit : 0
+    const force = String(req.body?.force || req.query?.force || '').trim() === '1'
+
+    const ownerByAttachmentId = new Map()
+    if (isConnected()) {
+      const [postsRes, commentsRes] = await Promise.all([
+        client.execute('SELECT id, channel_id, author_id, security_level, created_at, attachments_1, attachments_2, attachments_3, attachments_4, attachments_5, attachments_6, attachments_7, attachments_8, attachments_9, attachments_10 FROM posts ALLOW FILTERING', [], { prepare: true }),
+        client.execute('SELECT id, post_id, author_id, security_level, created_at, attachments FROM comments ALLOW FILTERING', [], { prepare: true }),
+      ])
+      const postMap = new Map((postsRes.rows || []).filter(p => p.id).map(p => [String(p.id), p]))
+      for (const post of postsRes.rows || []) {
+        const postId = String(post.id || '')
+        if (!postId) continue
+        for (const attachmentId of extractPostAttachmentIds(post)) {
+          ownerByAttachmentId.set(attachmentId, {
+            attachmentId,
+            postId,
+            commentId: '',
+            channelId: String(post.channel_id || ''),
+            authorId: post.author_id,
+            securityLevel: post.security_level ?? 0,
+            createdAt: post.created_at || new Date(),
+          })
+        }
+      }
+      for (const comment of commentsRes.rows || []) {
+        const post = postMap.get(String(comment.post_id || ''))
+        if (!post?.channel_id) continue
+        for (const attachmentId of toAttachmentIdArray(comment.attachments || [])) {
+          ownerByAttachmentId.set(attachmentId, {
+            attachmentId,
+            postId: String(comment.post_id || ''),
+            commentId: String(comment.id || ''),
+            channelId: String(post.channel_id || ''),
+            authorId: comment.author_id,
+            securityLevel: comment.security_level ?? 0,
+            createdAt: comment.created_at || new Date(),
+          })
+        }
+      }
+    }
+
+    const [pgPostsRes, pgCommentsRes] = await Promise.all([
+      db.query(
+        `SELECT id, channel_id, author_id, security_level, created_at,
+                attachments_1, attachments_2, attachments_3, attachments_4, attachments_5,
+                attachments_6, attachments_7, attachments_8, attachments_9, attachments_10
+         FROM posts`,
+      ).catch(() => ({ rows: [] })),
+      db.query(
+        `SELECT id, post_id, channel_id, author_id, security_level, created_at, attachments
+         FROM comments`,
+      ).catch(() => ({ rows: [] })),
+    ])
+    for (const post of pgPostsRes.rows || []) {
+      const postId = String(post.id || '')
+      if (!postId) continue
+      for (const attachmentId of extractPostAttachmentIds(post)) {
+        if (ownerByAttachmentId.has(attachmentId)) continue
+        ownerByAttachmentId.set(attachmentId, {
+          attachmentId,
+          postId,
+          commentId: '',
+          channelId: String(post.channel_id || ''),
+          authorId: post.author_id,
+          securityLevel: post.security_level ?? 0,
+          createdAt: post.created_at || new Date(),
+        })
+      }
+    }
+    for (const comment of pgCommentsRes.rows || []) {
+      const attachmentIds = Array.isArray(comment.attachments)
+        ? comment.attachments
+        : (() => {
+            try { return JSON.parse(comment.attachments || '[]') } catch (_) { return [] }
+          })()
+      for (const attachmentId of toAttachmentIdArray(attachmentIds || [])) {
+        ownerByAttachmentId.set(attachmentId, {
+          attachmentId,
+          postId: String(comment.post_id || ''),
+          commentId: String(comment.id || ''),
+          channelId: String(comment.channel_id || ''),
+          authorId: comment.author_id,
+          securityLevel: comment.security_level ?? 0,
+          createdAt: comment.created_at || new Date(),
+        })
+      }
+    }
+
+    const imageRes = await db.query(
+      `SELECT id, post_id, comment_id, channel_id, uploader_id, filename, content_type, created_at
+       FROM attachments
+       WHERE status = 'COMPLETED'
+         AND (
+           LOWER(COALESCE(content_type, '')) LIKE 'image/%'
+           OR filename ~* '\\.(jpe?g|png|webp|gif|bmp|tiff?|heic|heif)$'
+         )
+       ORDER BY created_at ASC`,
+    )
+
+    let indexed = 0
+    let alreadyIndexed = 0
+    const skipped = []
+    for (const attachment of imageRes.rows || []) {
+      if (requestedAttachmentId && String(attachment.id) !== requestedAttachmentId) continue
+      const owner = ownerByAttachmentId.get(String(attachment.id)) || {
+        attachmentId: attachment.id,
+        postId: attachment.post_id || '',
+        commentId: attachment.comment_id || '',
+        channelId: attachment.channel_id || '',
+        authorId: attachment.uploader_id,
+        securityLevel: 0,
+        createdAt: attachment.created_at || new Date(),
+      }
+      if (requestedPostId && String(owner.postId || '') !== requestedPostId) continue
+      if (requestedCommentId && String(owner.commentId || '') !== requestedCommentId) continue
+      if (limit && indexed >= limit) break
+      if (!owner.postId || !owner.channelId) {
+        skipped.push({ attachmentId: attachment.id, reason: 'OWNER_NOT_FOUND' })
+        continue
+      }
+      if (owner.commentId) {
+        await db.query('UPDATE attachments SET comment_id = $1 WHERE id = $2', [owner.commentId, attachment.id]).catch(() => {})
+      }
+      try {
+        const result = await indexImageAttachmentForSearch({
+          ...owner,
+          skipExistingVision: !force,
+        })
+        if (result.indexed) indexed += 1
+        else if (result.reason === 'VISION_EXISTS') alreadyIndexed += 1
+        else skipped.push({ attachmentId: attachment.id, reason: result.reason || 'SKIPPED' })
+      } catch (e) {
+        skipped.push({ attachmentId: attachment.id, reason: e.message })
+      }
+    }
+
+    res.json({ success: true, indexedImages: indexed, alreadyIndexed, totalImages: imageRes.rowCount, skipped })
   } catch (err) {
     next(err)
   }
@@ -732,6 +1432,11 @@ router.get('/', requireAuth, async (req, res, next) => {
     if (!channelId) return res.status(400).json({ error: 'channelId is required' })
     const allowed = await canAccessChannel(db, req.user, channelId)
     if (!allowed) return res.status(403).json({ error: ACCESS_DENIED_MESSAGE })
+    const lastReadRes = await db.query(
+      'SELECT last_read_at FROM channel_last_read WHERE user_id = $1 AND channel_id = $2',
+      [req.user.id, channelId],
+    )
+    const lastReadAt = lastReadRes.rows[0]?.last_read_at || null
 
     // ── Cassandra path ────────────────────────────────────────
     if (isConnected()) {
@@ -758,6 +1463,13 @@ router.get('/', requireAuth, async (req, res, next) => {
         const attachments = await enrichAttachments(attachmentIds)
         const comments = await fetchComments(row.id.toString())
         const pinInfo = pinnedMap.get(String(row.id)) || null
+        const unreadMeta = buildUnreadMeta({
+          postCreatedAt: row.created_at,
+          postAuthorId: row.author_id,
+          comments,
+          userId: req.user.id,
+          lastReadAt,
+        })
         return {
           id: row.id.toString(),
           channel_id: row.channel_id,
@@ -779,6 +1491,7 @@ router.get('/', requireAuth, async (req, res, next) => {
           pinned_at: pinInfo?.pinned_at || null,
           pinned_by: pinInfo?.pinned_by || null,
           views: 0,
+          ...unreadMeta,
         }
       }))
 
@@ -819,6 +1532,13 @@ router.get('/', requireAuth, async (req, res, next) => {
       const avatarLetters = row.author_name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
       const comments = await fetchComments(row.id)
       const pinInfo = pinnedMap.get(String(row.id)) || null
+      const unreadMeta = buildUnreadMeta({
+        postCreatedAt: row.created_at,
+        postAuthorId: row.author_id,
+        comments,
+        userId: req.user.id,
+        lastReadAt,
+      })
       return {
         id: row.id,
         channel_id: row.channel_id,
@@ -841,6 +1561,7 @@ router.get('/', requireAuth, async (req, res, next) => {
         pinned_at: pinInfo?.pinned_at || null,
         pinned_by: pinInfo?.pinned_by || null,
         views: row.views || 0,
+        ...unreadMeta,
       }
     }))
 
@@ -939,6 +1660,53 @@ router.post('/', requireAuth, async (req, res, next) => {
         await db.query('UPDATE posts SET next_post_id = $1 WHERE id = $2', [postId, prevPostId])
       }
     }
+
+    await db.query(
+      `INSERT INTO posts (
+         id, channel_id, author_id, content, created_at, updated_at,
+         is_edited, prev_post_id, next_post_id, child_post_id, parent_id,
+         attachments_1, attachments_2, attachments_3, attachments_4, attachments_5,
+         attachments_6, attachments_7, attachments_8, attachments_9, attachments_10,
+         security_level
+       )
+       VALUES ($1, $2, $3, $4, $5, $6, false, $7, NULL, NULL, NULL, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
+       ON CONFLICT (id)
+       DO UPDATE SET
+         channel_id = EXCLUDED.channel_id,
+         author_id = EXCLUDED.author_id,
+         content = EXCLUDED.content,
+         updated_at = EXCLUDED.updated_at,
+         security_level = EXCLUDED.security_level,
+         attachments_1 = EXCLUDED.attachments_1,
+         attachments_2 = EXCLUDED.attachments_2,
+         attachments_3 = EXCLUDED.attachments_3,
+         attachments_4 = EXCLUDED.attachments_4,
+         attachments_5 = EXCLUDED.attachments_5,
+         attachments_6 = EXCLUDED.attachments_6,
+         attachments_7 = EXCLUDED.attachments_7,
+         attachments_8 = EXCLUDED.attachments_8,
+         attachments_9 = EXCLUDED.attachments_9,
+         attachments_10 = EXCLUDED.attachments_10`,
+      [postId, channelId, req.user.id, content, authoredAt, authoredAt, prevPostId, ...attCols, safePostLevel],
+    ).catch(e => console.warn('[PostgresMirror] post upsert 실패:', e.message))
+    await upsertSearchDocument({
+      sourceType: 'post',
+      sourceId: postId,
+      postId,
+      channelId,
+      authorId: req.user.id,
+      content,
+      securityLevel: safePostLevel,
+      createdAt: authoredAt,
+    }).catch(e => console.warn('[SearchIndex] post upsert 실패:', e.message))
+    indexImageAttachmentsForSearchAsync(ids.map(attachmentId => ({
+      attachmentId,
+      postId,
+      channelId,
+      authorId: req.user.id,
+      securityLevel: safePostLevel,
+      createdAt: authoredAt,
+    })))
 
     // ── 2. 채널의 Root/Tail ID 업데이트 (PostgreSQL — 메타데이터 핵심 관리) ────────────
     if (!channelData?.root_post_id) {
@@ -1055,6 +1823,7 @@ router.delete('/:id', requireAuth, async (req, res, next) => {
     // PostgreSQL mirror 정리
     await db.query('DELETE FROM comments WHERE post_id = $1', [id])
     await db.query('DELETE FROM posts WHERE id = $1', [id])
+    await db.query('DELETE FROM search_documents WHERE post_id = $1', [id]).catch(() => {})
 
     // STT 결과물 정리 (post 기준)
     await db.query('DELETE FROM stt_segments WHERE job_id IN (SELECT id FROM stt_jobs WHERE post_id = $1)', [id]).catch(() => {})
@@ -1136,6 +1905,16 @@ router.put('/:id', requireAuth, async (req, res, next) => {
        WHERE id = $13`,
       [content, safeLevel ?? null, ...attCols, id],
     ).catch(() => {})
+    await upsertSearchDocument({
+      sourceType: 'post',
+      sourceId: id,
+      postId: id,
+      channelId: row.channel_id,
+      authorId: row.author_id,
+      content,
+      securityLevel: safeLevel ?? 0,
+      createdAt: row.created_at,
+    }).catch(e => console.warn('[SearchIndex] post update 실패:', e.message))
     await linkAttachments(id, attachmentIds)
     await syncAttachmentRefs({
       ownerType: 'post',
@@ -1275,6 +2054,48 @@ router.post('/:id/comments', requireAuth, async (req, res, next) => {
       [postId, commentId, req.user.id, safeContent, safeAttachmentIds, safeCommentLevel, createdAt],
       { prepare: true }
     )
+    await db.query(
+      `INSERT INTO comments (
+         id, post_id, channel_id, author_id, content, attachments, security_level, created_at, updated_at
+       )
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $8)
+       ON CONFLICT (id)
+       DO UPDATE SET
+         post_id = EXCLUDED.post_id,
+         channel_id = EXCLUDED.channel_id,
+         author_id = EXCLUDED.author_id,
+         content = EXCLUDED.content,
+         attachments = EXCLUDED.attachments,
+         security_level = EXCLUDED.security_level,
+         updated_at = NOW()`,
+      [commentId, postId, resolvedChannelId, req.user.id, safeContent, JSON.stringify(safeAttachmentIds), safeCommentLevel, createdAt],
+    ).catch(e => console.warn('[PostgresMirror] comment upsert 실패:', e.message))
+    await upsertSearchDocument({
+      sourceType: 'comment',
+      sourceId: commentId,
+      postId,
+      channelId: resolvedChannelId,
+      authorId: req.user.id,
+      content: safeContent,
+      securityLevel: safeCommentLevel,
+      createdAt,
+    }).catch(e => console.warn('[SearchIndex] comment upsert 실패:', e.message))
+    if (safeAttachmentIds.length > 0) {
+      await ensureAttachmentRefTable().catch(() => {})
+      await db.query(
+        'UPDATE attachments SET comment_id = $1 WHERE id = ANY($2)',
+        [commentId, safeAttachmentIds],
+      ).catch(e => console.warn('[PostgresMirror] attachment comment_id update 실패:', e.message))
+    }
+    indexImageAttachmentsForSearchAsync(safeAttachmentIds.map(attachmentId => ({
+      attachmentId,
+      postId,
+      commentId,
+      channelId: resolvedChannelId,
+      authorId: req.user.id,
+      securityLevel: safeCommentLevel,
+      createdAt,
+    })))
     await linkAttachments(postId, safeAttachmentIds)
     await syncAttachmentRefs({
       ownerType: 'comment',
@@ -1350,6 +2171,42 @@ router.put('/:postId/comments/:commentId', requireAuth, async (req, res, next) =
         [content, attachmentIds, row.post_id, row.created_at], { prepare: true }
       )
     }
+    const resolvedChannelId = await resolveChannelIdForPost(postId)
+    await db.query(
+      `UPDATE comments
+       SET content = $1,
+           attachments = $2,
+           security_level = COALESCE($3, security_level),
+           updated_at = NOW()
+       WHERE id = $4`,
+      [content, JSON.stringify(attachmentIds), safeLevel ?? null, commentId],
+    ).catch(e => console.warn('[PostgresMirror] comment update 실패:', e.message))
+    await upsertSearchDocument({
+      sourceType: 'comment',
+      sourceId: commentId,
+      postId,
+      channelId: resolvedChannelId,
+      authorId: row.author_id,
+      content,
+      securityLevel: safeLevel ?? 0,
+      createdAt: row.created_at,
+    }).catch(e => console.warn('[SearchIndex] comment update 실패:', e.message))
+    if (attachmentIds.length > 0) {
+      await ensureAttachmentRefTable().catch(() => {})
+      await db.query(
+        'UPDATE attachments SET comment_id = $1 WHERE id = ANY($2)',
+        [commentId, attachmentIds],
+      ).catch(e => console.warn('[PostgresMirror] attachment comment_id update 실패:', e.message))
+    }
+    indexImageAttachmentsForSearchAsync(attachmentIds.map(attachmentId => ({
+      attachmentId,
+      postId,
+      commentId,
+      channelId: resolvedChannelId,
+      authorId: row.author_id,
+      securityLevel: safeLevel ?? 0,
+      createdAt: row.created_at,
+    })))
     await syncAttachmentRefs({
       ownerType: 'comment',
       ownerId: commentId,
@@ -1405,6 +2262,8 @@ router.delete('/:postId/comments/:commentId', requireAuth, async (req, res, next
       [commentId], { prepare: true }
     )
     await db.query('DELETE FROM comments WHERE id = $1', [commentId])
+    await deleteSearchDocument('comment', commentId).catch(() => {})
+    await db.query('DELETE FROM search_documents WHERE comment_id = $1', [commentId]).catch(() => {})
     await syncAttachmentRefs({
       ownerType: 'comment',
       ownerId: commentId,

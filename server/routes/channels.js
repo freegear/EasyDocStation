@@ -32,19 +32,35 @@ router.get('/unread', requireAuth, async (req, res, next) => {
       // Cassandra: channel_id 파티션 키 + created_at 클러스터링 키로 효율적 조회
       await Promise.all(channelIds.map(async channelId => {
         const lastRead = lastReadMap[channelId]
-        let result
+        let postRows
         if (!lastRead) {
-          result = await client.execute(
-            'SELECT COUNT(*) FROM posts WHERE channel_id = ?',
+          const result = await client.execute(
+            'SELECT author_id FROM posts WHERE channel_id = ?',
             [channelId], { prepare: true }
           )
+          postRows = result.rows || []
         } else {
-          result = await client.execute(
-            'SELECT COUNT(*) FROM posts WHERE channel_id = ? AND created_at > ?',
+          const result = await client.execute(
+            'SELECT author_id FROM posts WHERE channel_id = ? AND created_at > ?',
             [channelId, lastRead], { prepare: true }
           )
+          postRows = result.rows || []
         }
-        unreadCounts[channelId] = result.rows[0] ? Number(result.rows[0].count) : 0
+
+        const postCount = postRows.reduce((sum, row) => (
+          String(row.author_id) === String(userId) ? sum : sum + 1
+        ), 0)
+
+        const commentParams = lastRead
+          ? [channelId, lastRead, userId]
+          : [channelId, userId]
+        const commentSql = lastRead
+          ? 'SELECT COUNT(*)::int AS count FROM comments WHERE channel_id = $1 AND created_at > $2 AND author_id <> $3'
+          : 'SELECT COUNT(*)::int AS count FROM comments WHERE channel_id = $1 AND author_id <> $2'
+        const commentResult = await db.query(commentSql, commentParams)
+        const commentCount = parseInt(commentResult.rows[0]?.count || 0, 10)
+
+        unreadCounts[channelId] = postCount + commentCount
       }))
     } else {
       // PostgreSQL fallback
@@ -52,11 +68,22 @@ router.get('/unread', requireAuth, async (req, res, next) => {
         const lastRead = lastReadMap[channelId]
         let result
         if (!lastRead) {
-          result = await db.query('SELECT COUNT(*) FROM posts WHERE channel_id = $1', [channelId])
+          result = await db.query(
+            `SELECT
+               (SELECT COUNT(*)::int FROM posts WHERE channel_id = $1 AND author_id <> $2)
+               +
+               (SELECT COUNT(*)::int FROM comments WHERE channel_id = $1 AND author_id <> $2)
+               AS count`,
+            [channelId, userId]
+          )
         } else {
           result = await db.query(
-            'SELECT COUNT(*) FROM posts WHERE channel_id = $1 AND created_at > $2',
-            [channelId, lastRead]
+            `SELECT
+               (SELECT COUNT(*)::int FROM posts WHERE channel_id = $1 AND created_at > $2 AND author_id <> $3)
+               +
+               (SELECT COUNT(*)::int FROM comments WHERE channel_id = $1 AND created_at > $2 AND author_id <> $3)
+               AS count`,
+            [channelId, lastRead, userId]
           )
         }
         unreadCounts[channelId] = parseInt(result.rows[0].count, 10)

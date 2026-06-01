@@ -16,6 +16,9 @@ LOG_DIR="${EASYDOC_LOG_DIR:-$ROOT_DIR/logs}"
 mkdir -p "$LOG_DIR"
 LOG_FILE="$LOG_DIR/run-dgx-spark.log"
 PID_FILE="$LOG_DIR/dgx-spark.pid"
+FE_PID_FILE="$LOG_DIR/easydoc-fe.pid"
+BE_PID_FILE="$LOG_DIR/easydoc-be.pid"
+OLLAMA_PID_FILE="$LOG_DIR/easydoc-ollama.pid"
 BE_LOOP_PID_FILE="$LOG_DIR/dgx-be-loop.pid"
 BE_LOOP_LOCK_FILE="$LOG_DIR/dgx-be-loop.lock"
 BE_LOOP_LOCK_DIR="$LOG_DIR/dgx-be-loop.lockdir"
@@ -139,6 +142,7 @@ stop_all_tasks() {
   fi
 
   rm -f "$BE_LOOP_PID_FILE" "$BE_LOOP_LOCK_FILE"
+  rm -f "$FE_PID_FILE" "$BE_PID_FILE" "$OLLAMA_PID_FILE"
   rmdir "$BE_LOOP_LOCK_DIR" >/dev/null 2>&1 || true
 
   # 여러 겹 중복 실행까지 수렴할 때까지 반복 정리
@@ -274,14 +278,31 @@ fi
 log "백그라운드 실행 시작"
 log "로그: $LOG_FILE"
 
-nohup env EASYDOC_DAEMON_MODE=1 bash "$ROOT_DIR/scripts/dev-dgx-spark.sh" >>"$LOG_FILE" 2>&1 < /dev/null &
-new_pid=$!
-disown "$new_pid" >/dev/null 2>&1 || true
-echo "$new_pid" > "$PID_FILE"
+setsid env ROOT_DIR="$ROOT_DIR" LOG_FILE="$LOG_FILE" bash -c \
+  'cd "$ROOT_DIR" && npm run ollama:serve >> "$LOG_FILE" 2>&1 < /dev/null' \
+  >/dev/null 2>&1 &
+ollama_pid=$!
+disown "$ollama_pid" >/dev/null 2>&1 || true
+echo "$ollama_pid" > "$OLLAMA_PID_FILE"
+
+setsid env ROOT_DIR="$ROOT_DIR" LOG_FILE="$LOG_FILE" bash -c \
+  'cd "$ROOT_DIR" && npm run dev:frontend >> "$LOG_FILE" 2>&1 < /dev/null' \
+  >/dev/null 2>&1 &
+fe_pid=$!
+disown "$fe_pid" >/dev/null 2>&1 || true
+echo "$fe_pid" > "$FE_PID_FILE"
+
+setsid env ROOT_DIR="$ROOT_DIR" LOG_FILE="$LOG_FILE" bash -c \
+  'cd "$ROOT_DIR" && bash scripts/backend-loop-dgx.sh >> "$LOG_FILE" 2>&1 < /dev/null' \
+  >/dev/null 2>&1 &
+be_pid=$!
+disown "$be_pid" >/dev/null 2>&1 || true
+echo "$be_pid" > "$BE_PID_FILE"
+echo "$fe_pid" > "$PID_FILE"
 
 sleep 1
-if kill -0 "$new_pid" 2>/dev/null; then
-  log "실행 성공 (PID: $new_pid)"
+if kill -0 "$fe_pid" 2>/dev/null && kill -0 "$be_pid" 2>/dev/null; then
+  log "실행 성공 (FE PID: $fe_pid, BE PID: $be_pid)"
   log "종료 명령: bash scripts/run-dgx-spark.sh --stop"
   exit 0
 fi

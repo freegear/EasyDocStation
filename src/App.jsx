@@ -153,8 +153,27 @@ function MainLayout() {
     return () => mq.removeListener(handleChange)
   }, [])
 
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.visualViewport) return undefined
+    const root = document.documentElement
+    const updateViewportOffset = () => {
+      const topOffset = Math.max(0, Math.round(window.visualViewport.offsetTop || 0))
+      root.style.setProperty('--app-viewport-top', `${topOffset}px`)
+    }
+    updateViewportOffset()
+    window.visualViewport.addEventListener('resize', updateViewportOffset)
+    window.visualViewport.addEventListener('scroll', updateViewportOffset)
+    window.addEventListener('orientationchange', updateViewportOffset)
+    return () => {
+      window.visualViewport.removeEventListener('resize', updateViewportOffset)
+      window.visualViewport.removeEventListener('scroll', updateViewportOffset)
+      window.removeEventListener('orientationchange', updateViewportOffset)
+      root.style.removeProperty('--app-viewport-top')
+    }
+  }, [])
+
   return (
-    <div className="flex flex-col h-screen bg-gray-50 overflow-hidden">
+    <div className="app-shell flex flex-col bg-gray-50 overflow-hidden">
       <TitleBar
         onOpenProfile={() => setShowProfile(true)}
         onOpenSiteAdmin={() => setShowSiteAdmin(true)}

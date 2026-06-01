@@ -297,6 +297,88 @@ export default function GroqPanel({ width }) {
   const abortControllerRef = useRef(null)
   const [stopping, setStopping] = useState(false)
 
+  function buildSearchResultMessage(query, results = []) {
+    const safeResults = Array.isArray(results) ? results : []
+    if (safeResults.length === 0) {
+      return `**검색 결과**\n\n"${query}"에 대한 게시글/댓글 검색 결과가 없습니다.`
+    }
+    const lines = [
+      `**검색 결과**`,
+      '',
+      `"${query}" 검색 결과 ${safeResults.length}건입니다.`,
+      '',
+      ...safeResults.slice(0, 10).map((item, idx) => {
+        const typeLabel = item.type === 'image_attachment' ? '이미지' : item.type === 'comment' ? '댓글' : '게시글'
+        const place = [item.teamName, item.channelName].filter(Boolean).join(' / ')
+        const author = item.author?.name ? ` · ${item.author.name}` : ''
+        const text = String(item.content || '').replace(/\s+/g, ' ').trim()
+        const preview = text.length > 140 ? `${text.slice(0, 140)}...` : text
+        return `${idx + 1}. **${typeLabel}**${place ? ` · ${place}` : ''}${author}\n   ${preview || '(내용 없음)'}`
+      }),
+    ]
+    if (safeResults.length > 10) lines.push('', `외 ${safeResults.length - 10}건은 검색 결과 페이지에서 확인할 수 있습니다.`)
+    return lines.join('\n')
+  }
+
+  function buildSearchReferences(results = []) {
+    return (Array.isArray(results) ? results : []).slice(0, 10).map((item, idx) => ({
+      type: item.type === 'image_attachment' ? 'image' : item.type === 'comment' ? 'comment' : 'post',
+      label: `${idx + 1}. ${item.type === 'image_attachment' ? '이미지' : item.type === 'comment' ? '댓글' : '게시글'} 검색 결과`,
+      team: item.teamName || '',
+      channel: item.channelName || '',
+      channel_id: item.channelId || '',
+      post_id: item.type === 'comment' ? (item.postId || '') : (item.postId || item.id || ''),
+      comment_id: item.type === 'comment' ? (item.id || '') : (item.commentId || ''),
+      attachment_id: item.attachmentId || '',
+      page_number: 0,
+    }))
+  }
+
+  function buildKeywordSearchContext(results = []) {
+    const safeResults = (Array.isArray(results) ? results : []).slice(0, 5)
+    return safeResults.map((item, idx) => {
+      const typeLabel = item.type === 'image_attachment' ? '이미지' : item.type === 'comment' ? '댓글' : '게시글'
+      const place = [item.teamName, item.channelName].filter(Boolean).join(' / ')
+      const source = [typeLabel, place, item.fileName].filter(Boolean).join(' - ')
+      const score = Number.isFinite(Number(item.score)) ? ` / score: ${Number(item.score).toFixed(3)}` : ''
+      const link = item.channelId && item.postId
+        ? `${window.location.origin}/?channelId=${encodeURIComponent(item.channelId)}&postId=${encodeURIComponent(item.postId)}${item.commentId ? `&commentId=${encodeURIComponent(item.commentId)}` : ''}${item.attachmentId ? `&attachmentId=${encodeURIComponent(item.attachmentId)}` : ''}`
+        : ''
+      const content = String(item.content || '').trim()
+      return [
+        `[키워드 검색 결과 ${idx + 1} - source: ${source}${score}]`,
+        link ? `link: ${link}` : '',
+        content,
+      ].filter(Boolean).join('\n')
+    }).filter(Boolean).join('\n\n')
+  }
+
+  function buildKeywordSearchQueries(text = '') {
+    const original = String(text || '').trim()
+    const normalized = original
+      .replace(/\s+/g, ' ')
+      .replace(/(에\s*대해서|에\s*대한|대해서|관련해서|관련하여|관해서|무엇인지|뭔지)/g, ' ')
+      .replace(/(설명해줘|설명해|알려줘|정리해줘|요약해줘|찾아줘|보여줘|해줘|주세요|해|줘)/g, ' ')
+      .replace(/[?!.,，。]+/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim()
+    return [...new Set([original, normalized].filter(q => q.length >= 2))]
+  }
+
+  function mergeKeywordResults(...groups) {
+    const seen = new Set()
+    const merged = []
+    for (const group of groups) {
+      for (const item of (Array.isArray(group) ? group : [])) {
+        const key = `${item.type || ''}:${item.id || item.postId || ''}:${item.attachmentId || ''}`
+        if (seen.has(key)) continue
+        seen.add(key)
+        merged.push(item)
+      }
+    }
+    return merged
+  }
+
   useEffect(() => {
     if (messages.length === 0) {
       setMessages([{
@@ -338,6 +420,23 @@ export default function GroqPanel({ width }) {
     }
     window.addEventListener('agentic-fill-input', onFillInput)
     return () => window.removeEventListener('agentic-fill-input', onFillInput)
+  }, [])
+
+  useEffect(() => {
+    const onSearchResults = (evt) => {
+      const query = String(evt?.detail?.query || '').trim()
+      const results = Array.isArray(evt?.detail?.results) ? evt.detail.results : []
+      if (!query) return
+      setMessages(prev => [...prev, {
+        id: `search-${Date.now()}`,
+        role: 'assistant',
+        content: buildSearchResultMessage(query, results),
+        references: buildSearchReferences(results),
+        time: new Date().toISOString(),
+      }])
+    }
+    window.addEventListener('agentic-search-results', onSearchResults)
+    return () => window.removeEventListener('agentic-search-results', onSearchResults)
   }, [])
 
   useEffect(() => {
@@ -410,6 +509,21 @@ export default function GroqPanel({ width }) {
     let ragContext = ''
     let ragReferences = []
     if (!isTranslation && !base64Data) {
+      let keywordContext = ''
+      let keywordReferences = []
+      try {
+        const keywordGroups = []
+        for (const searchQuery of buildKeywordSearchQueries(text)) {
+          const result = await apiFetch(`/posts/search?q=${encodeURIComponent(searchQuery)}&limit=5`)
+          keywordGroups.push(result)
+        }
+        const safeKeywordResults = mergeKeywordResults(...keywordGroups).slice(0, 5)
+        keywordContext = buildKeywordSearchContext(safeKeywordResults)
+        keywordReferences = buildSearchReferences(safeKeywordResults)
+      } catch (e) {
+        console.warn('[SearchIndex] 키워드 검색 실패:', e.message)
+      }
+
       // ── 1-1. RAG 검색 — LanceDB에서 관련 문서 검색 ──────────
       try {
         const dynamicLimit = isCommandQuery(text) || isTemporalQuery(text) ? 10 : isEnumerationQuery(text) ? 8 : 5
@@ -440,6 +554,11 @@ export default function GroqPanel({ width }) {
         ragReferences = ragResult.references || []
       } catch (e) {
         console.warn('[RAG] 검색 실패:', e.message)
+      }
+
+      if (keywordContext) {
+        ragContext = [keywordContext, ragContext].filter(Boolean).join('\n\n')
+        ragReferences = [...keywordReferences, ...ragReferences]
       }
 
       // ── 1-2. RAG 데이터 없으면 안내 메시지 반환 ──────────────

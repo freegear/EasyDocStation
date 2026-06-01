@@ -8,11 +8,29 @@
 
 html, body, #root {
   height: 100%;
+  min-height: 100%;
   margin: 0;
   padding: 0;
   overflow: hidden;
   background-color: #f3f4f6;
   color: #111827;
+}
+
+:root {
+  --app-viewport-top: 0px;
+  --app-safe-top: env(safe-area-inset-top, 0px);
+  --app-safe-right: env(safe-area-inset-right, 0px);
+  --app-safe-bottom: env(safe-area-inset-bottom, 0px);
+  --app-safe-left: env(safe-area-inset-left, 0px);
+}
+
+.app-shell {
+  height: 100vh;
+  height: 100dvh;
+  padding-top: max(var(--app-safe-top), var(--app-viewport-top));
+  padding-right: var(--app-safe-right);
+  padding-bottom: var(--app-safe-bottom);
+  padding-left: var(--app-safe-left);
 }
 
 ::-webkit-scrollbar {

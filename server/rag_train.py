@@ -101,6 +101,7 @@ EMBED_SERVER_RETRIES = int(
     cfg.get("embed_server_retries", os.getenv("EASYDOC_EMBED_SERVER_RETRIES", "2"))
 )
 AMOUNT_RE = re.compile(r"(?<!\d)(\d{1,3}(?:,\d{3})+|\d{5,})(?:\s*원)?")
+MAX_STORED_AMOUNT = 999_999_999_999_999
 
 if not posts and not comments and not delete_ids and not delete_post_ids and not delete_comment_ids:
     print("[RAG] 학습할 데이터가 없습니다.")
@@ -550,8 +551,11 @@ def parse_amount_to_int(value):
     s = re.sub(r"[^\d]", "", str(value))
     if not s:
         return 0
+    if len(s) > len(str(MAX_STORED_AMOUNT)):
+        return 0
     try:
-        return int(s)
+        n = int(s)
+        return n if 0 <= n <= MAX_STORED_AMOUNT else 0
     except Exception:
         return 0
 
@@ -576,8 +580,8 @@ def find_labeled_amount(text, labels):
     if not text:
         return 0
     for label in labels:
-        # 라벨과 금액 사이에 공백/문장부호가 섞여도 찾을 수 있게 허용
-        pattern = re.compile(rf"{label}[\s:：\-]*([0-9][0-9,\s]{{2,}})(?:\s*원)?", re.IGNORECASE)
+        # 라벨과 금액 사이의 공백은 허용하되, 다음 줄 숫자까지 이어 붙이지 않도록 줄바꿈은 제외한다.
+        pattern = re.compile(rf"{label}[^\S\r\n:：\-]*[:：\-]?[^\S\r\n]*([0-9][0-9, \t]{{2,}})(?:[ \t]*원)?", re.IGNORECASE)
         m = pattern.search(text)
         if not m:
             continue
@@ -1352,6 +1356,7 @@ def ingest_word(records, *, post_id, channel_id, attachment_id, comment_id, word
             print(f"[RAG] Word 파일 없음: {word_path}", file=sys.stderr)
         return 0
 
+    print(f"[RAG] Word 학습 시작: {os.path.basename(word_path)}", flush=True)
     text = load_word(word_path)
     if not text:
         return 0
@@ -1399,6 +1404,7 @@ def ingest_txt(records, *, post_id, channel_id, attachment_id, comment_id, txt_p
             print(f"[RAG] TXT 파일 없음: {txt_path}", file=sys.stderr)
         return 0
 
+    print(f"[RAG] TXT 학습 시작: {os.path.basename(txt_path)}", flush=True)
     text = load_txt_file(txt_path)
     if not text:
         return 0
@@ -1431,6 +1437,7 @@ def ingest_image(records, *, post_id, channel_id, attachment_id, comment_id, ima
         return 0
 
     source_name = file_name or os.path.basename(image_path)
+    print(f"[RAG] 이미지 학습 시작: {os.path.basename(image_path)}", flush=True)
     file_hash = calc_file_hash(image_path)
     caption = describe_image_with_gemma(image_path, source_name, page_number=1)
     if not caption:
