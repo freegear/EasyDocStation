@@ -335,6 +335,85 @@ export function ChatProvider({ children }) {
     }
   }
 
+  async function togglePostLike(channelId, postId) {
+    const prevChannelPosts = posts[channelId] || []
+    const target = prevChannelPosts.find(p => String(p.id) === String(postId))
+    const nextLiked = target?.likedByMe !== true
+    const nextCount = Math.max(0, Number(target?.likeCount || 0) + (nextLiked ? 1 : -1))
+    setPosts(prev => ({
+      ...prev,
+      [channelId]: (prev[channelId] || []).map(p => (
+        String(p.id) === String(postId)
+          ? { ...p, likedByMe: nextLiked, likeCount: nextCount }
+          : p
+      )),
+    }))
+    try {
+      const result = await apiFetch(`/posts/${postId}/like`, { method: 'POST' })
+      setPosts(prev => ({
+        ...prev,
+        [channelId]: (prev[channelId] || []).map(p => (
+          String(p.id) === String(postId)
+            ? { ...p, likedByMe: Boolean(result.liked), likeCount: Number(result.likeCount || 0) }
+            : p
+        )),
+      }))
+      return result
+    } catch (err) {
+      setPosts(prev => ({ ...prev, [channelId]: prevChannelPosts }))
+      throw err
+    }
+  }
+
+  async function toggleCommentLike(channelId, postId, commentId) {
+    const prevChannelPosts = posts[channelId] || []
+    let targetComment = null
+    for (const p of prevChannelPosts) {
+      if (String(p.id) !== String(postId)) continue
+      targetComment = (p.comments || []).find(c => String(c.id) === String(commentId))
+      break
+    }
+    const nextLiked = targetComment?.likedByMe !== true
+    const nextCount = Math.max(0, Number(targetComment?.likeCount || 0) + (nextLiked ? 1 : -1))
+    setPosts(prev => ({
+      ...prev,
+      [channelId]: (prev[channelId] || []).map(p => (
+        String(p.id) === String(postId)
+          ? {
+              ...p,
+              comments: (p.comments || []).map(c => (
+                String(c.id) === String(commentId)
+                  ? { ...c, likedByMe: nextLiked, likeCount: nextCount }
+                  : c
+              )),
+            }
+          : p
+      )),
+    }))
+    try {
+      const result = await apiFetch(`/posts/${postId}/comments/${commentId}/like`, { method: 'POST' })
+      setPosts(prev => ({
+        ...prev,
+        [channelId]: (prev[channelId] || []).map(p => (
+          String(p.id) === String(postId)
+            ? {
+                ...p,
+                comments: (p.comments || []).map(c => (
+                  String(c.id) === String(commentId)
+                    ? { ...c, likedByMe: Boolean(result.liked), likeCount: Number(result.likeCount || 0) }
+                    : c
+                )),
+              }
+            : p
+        )),
+      }))
+      return result
+    } catch (err) {
+      setPosts(prev => ({ ...prev, [channelId]: prevChannelPosts }))
+      throw err
+    }
+  }
+
   // ─── 댓글 삭제 — DB에서 삭제 후 state 반영 ──────────────────
   async function deleteComment(channelId, postId, commentId) {
     try {
@@ -490,6 +569,8 @@ export function ChatProvider({ children }) {
       deletePost,
       updatePost,
       togglePostPin,
+      togglePostLike,
+      toggleCommentLike,
       deleteComment,
       updateComment,
       refreshTeams,

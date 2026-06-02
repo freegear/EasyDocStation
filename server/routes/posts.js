@@ -682,6 +682,85 @@ async function getPinnedMapByChannel(channelId) {
   return map
 }
 
+async function ensureLikeTables() {
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS post_likes (
+      post_id TEXT NOT NULL,
+      user_id INTEGER NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      PRIMARY KEY (post_id, user_id)
+    )
+  `)
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS comment_likes (
+      comment_id TEXT NOT NULL,
+      user_id INTEGER NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      PRIMARY KEY (comment_id, user_id)
+    )
+  `)
+  await db.query('CREATE INDEX IF NOT EXISTS idx_post_likes_post_id ON post_likes(post_id)')
+  await db.query('CREATE INDEX IF NOT EXISTS idx_comment_likes_comment_id ON comment_likes(comment_id)')
+}
+
+async function getPostLikeMap(postIds = [], userId = null) {
+  const ids = [...new Set((postIds || []).map((id) => String(id || '').trim()).filter(Boolean))]
+  const map = new Map(ids.map((id) => [id, { likeCount: 0, likedByMe: false }]))
+  if (ids.length === 0) return map
+  await ensureLikeTables()
+  const countRes = await db.query(
+    `SELECT post_id, COUNT(*)::int AS like_count
+     FROM post_likes
+     WHERE post_id = ANY($1)
+     GROUP BY post_id`,
+    [ids],
+  )
+  for (const row of countRes.rows || []) {
+    const key = String(row.post_id)
+    map.set(key, { ...(map.get(key) || {}), likeCount: Number(row.like_count || 0) })
+  }
+  if (userId) {
+    const myRes = await db.query(
+      'SELECT post_id FROM post_likes WHERE post_id = ANY($1) AND user_id = $2',
+      [ids, userId],
+    )
+    for (const row of myRes.rows || []) {
+      const key = String(row.post_id)
+      map.set(key, { ...(map.get(key) || {}), likedByMe: true })
+    }
+  }
+  return map
+}
+
+async function getCommentLikeMap(commentIds = [], userId = null) {
+  const ids = [...new Set((commentIds || []).map((id) => String(id || '').trim()).filter(Boolean))]
+  const map = new Map(ids.map((id) => [id, { likeCount: 0, likedByMe: false }]))
+  if (ids.length === 0) return map
+  await ensureLikeTables()
+  const countRes = await db.query(
+    `SELECT comment_id, COUNT(*)::int AS like_count
+     FROM comment_likes
+     WHERE comment_id = ANY($1)
+     GROUP BY comment_id`,
+    [ids],
+  )
+  for (const row of countRes.rows || []) {
+    const key = String(row.comment_id)
+    map.set(key, { ...(map.get(key) || {}), likeCount: Number(row.like_count || 0) })
+  }
+  if (userId) {
+    const myRes = await db.query(
+      'SELECT comment_id FROM comment_likes WHERE comment_id = ANY($1) AND user_id = $2',
+      [ids, userId],
+    )
+    for (const row of myRes.rows || []) {
+      const key = String(row.comment_id)
+      map.set(key, { ...(map.get(key) || {}), likedByMe: true })
+    }
+  }
+  return map
+}
+
 // ─── Telegram mention 알림 ────────────────────────────────────
 function extractMentions(content) {
   const source = String(content || '')
@@ -848,7 +927,7 @@ async function linkAttachments(postId, ids) {
 }
 
 // ─── Helper: fetch comments for a post ───────────────────────
-async function fetchComments(postId) {
+async function fetchComments(postId, userId = null) {
   // ── Cassandra path ──────────────────────────────────────────
   if (isConnected()) {
     try {
@@ -857,6 +936,7 @@ async function fetchComments(postId) {
         [postId], { prepare: true }
       )
       
+      const commentLikeMap = await getCommentLikeMap((result.rows || []).map(row => row.id), userId)
       return Promise.all(result.rows.map(async row => {
         const authorRes = await db.query(
           'SELECT id, name, username, image_url FROM users WHERE id = $1',
@@ -866,6 +946,7 @@ async function fetchComments(postId) {
         const avatarLetters = author.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
         const attachments = await enrichAttachments(row.attachments || [])
         
+        const likeInfo = commentLikeMap.get(String(row.id)) || { likeCount: 0, likedByMe: false }
         return {
           id: row.id,
           post_id: row.post_id.toString(),
@@ -881,6 +962,8 @@ async function fetchComments(postId) {
           },
           createdAt: row.created_at,
           updatedAt: row.created_at, // Cassandra comments table doesn't have updated_at yet
+          likeCount: likeInfo.likeCount || 0,
+          likedByMe: Boolean(likeInfo.likedByMe),
           ...getTrainingStatus('comment', row.id),
         }
       }))
@@ -899,9 +982,11 @@ async function fetchComments(postId) {
     ORDER BY c.created_at ASC
   `, [postId])
 
+  const commentLikeMap = await getCommentLikeMap((result.rows || []).map(row => row.id), userId)
   return Promise.all(result.rows.map(async row => {
     const avatarLetters = row.author_name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
     const attachments = await enrichAttachments(row.attachments || [])
+    const likeInfo = commentLikeMap.get(String(row.id)) || { likeCount: 0, likedByMe: false }
     return {
       id: row.id,
       post_id: row.post_id,
@@ -917,6 +1002,8 @@ async function fetchComments(postId) {
       },
       createdAt: row.created_at,
       updatedAt: row.updated_at,
+      likeCount: likeInfo.likeCount || 0,
+      likedByMe: Boolean(likeInfo.likedByMe),
       ...getTrainingStatus('comment', row.id),
     }
   }))
@@ -1465,8 +1552,10 @@ router.get('/', requireAuth, async (req, res, next) => {
         'SELECT * FROM posts WHERE channel_id = ? ORDER BY created_at ASC',
         [channelId], { prepare: true }
       )
+      const postRows = result.rows.filter(row => row.id != null)
+      const postLikeMap = await getPostLikeMap(postRows.map(row => row.id), req.user.id)
 
-      const posts = await Promise.all(result.rows.filter(row => row.id != null).map(async row => {
+      const posts = await Promise.all(postRows.map(async row => {
         const authorRes = await db.query(
           'SELECT id, name, username, image_url FROM users WHERE id = $1',
           [row.author_id]
@@ -1481,8 +1570,9 @@ router.get('/', requireAuth, async (req, res, next) => {
         ].filter(Boolean)
         
         const attachments = await enrichAttachments(attachmentIds)
-        const comments = await fetchComments(row.id.toString())
+        const comments = await fetchComments(row.id.toString(), req.user.id)
         const pinInfo = pinnedMap.get(String(row.id)) || null
+        const likeInfo = postLikeMap.get(String(row.id)) || { likeCount: 0, likedByMe: false }
         const unreadMeta = buildUnreadMeta({
           postCreatedAt: row.created_at,
           postAuthorId: row.author_id,
@@ -1505,6 +1595,8 @@ router.get('/', requireAuth, async (req, res, next) => {
           createdAt: row.created_at,
           comments,
           ...getTrainingStatus('post', row.id.toString()),
+          likeCount: likeInfo.likeCount || 0,
+          likedByMe: Boolean(likeInfo.likedByMe),
           security_level: row.security_level || 0,
           tags: [],
           pinned: Boolean(pinInfo?.pinned),
@@ -1527,6 +1619,7 @@ router.get('/', requireAuth, async (req, res, next) => {
       WHERE p.channel_id = $1
       ORDER BY p.created_at ASC
     `, [channelId])
+    const postLikeMap = await getPostLikeMap(result.rows.map(row => row.id), req.user.id)
 
     const posts = await Promise.all(result.rows.map(async row => {
       const attachmentIds = [
@@ -1550,8 +1643,9 @@ router.get('/', requireAuth, async (req, res, next) => {
       }
 
       const avatarLetters = row.author_name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
-      const comments = await fetchComments(row.id)
+      const comments = await fetchComments(row.id, req.user.id)
       const pinInfo = pinnedMap.get(String(row.id)) || null
+      const likeInfo = postLikeMap.get(String(row.id)) || { likeCount: 0, likedByMe: false }
       const unreadMeta = buildUnreadMeta({
         postCreatedAt: row.created_at,
         postAuthorId: row.author_id,
@@ -1575,6 +1669,8 @@ router.get('/', requireAuth, async (req, res, next) => {
         createdAt: row.created_at,
         comments,
         ...getTrainingStatus('post', row.id),
+        likeCount: likeInfo.likeCount || 0,
+        likedByMe: Boolean(likeInfo.likedByMe),
         security_level: row.security_level || 0,
         tags: [],
         pinned: Boolean(pinInfo?.pinned),
@@ -1803,7 +1899,16 @@ router.delete('/:id', requireAuth, async (req, res, next) => {
     ).catch(() => ({ rows: [] }))
     const pgPostAttachmentIds = (pgPostAttRes.rows || []).map((r) => String(r.id))
 
-    const commentIds = (cRows.rows || []).map((c) => String(c.id)).filter(Boolean)
+    const pgCommentIdsRes = await db.query(
+      'SELECT id FROM comments WHERE post_id = $1',
+      [id],
+    ).catch(() => ({ rows: [] }))
+    const commentIds = [
+      ...new Set([
+        ...(cRows.rows || []).map((c) => String(c.id)).filter(Boolean),
+        ...(pgCommentIdsRes.rows || []).map((c) => String(c.id)).filter(Boolean),
+      ]),
+    ]
     const pgCommentAttachmentIds = []
     if (commentIds.length > 0) {
       const pgCommentAttRes = await db.query(
@@ -1841,6 +1946,11 @@ router.delete('/:id', requireAuth, async (req, res, next) => {
     ))
 
     // PostgreSQL mirror 정리
+    await ensureLikeTables().catch(() => {})
+    if (commentIds.length > 0) {
+      await db.query('DELETE FROM comment_likes WHERE comment_id = ANY($1)', [commentIds]).catch(() => {})
+    }
+    await db.query('DELETE FROM post_likes WHERE post_id = $1', [id]).catch(() => {})
     await db.query('DELETE FROM comments WHERE post_id = $1', [id])
     await db.query('DELETE FROM posts WHERE id = $1', [id])
     await db.query('DELETE FROM search_documents WHERE post_id = $1', [id]).catch(() => {})
@@ -2026,6 +2136,78 @@ router.put('/:id/pin', requireAuth, async (req, res, next) => {
   }
 })
 
+// ─── POST /api/posts/:id/like ────────────────────────────────
+router.post('/:id/like', requireAuth, async (req, res, next) => {
+  try {
+    const { id } = req.params
+    const channelId = await resolveChannelIdForPost(id)
+    if (!channelId) return res.status(404).json({ error: '게시글을 찾을 수 없습니다.' })
+    const allowed = await canAccessChannel(db, req.user, channelId)
+    if (!allowed) return res.status(403).json({ error: ACCESS_DENIED_MESSAGE })
+
+    await ensureLikeTables()
+    const existing = await db.query(
+      'SELECT 1 FROM post_likes WHERE post_id = $1 AND user_id = $2 LIMIT 1',
+      [String(id), req.user.id],
+    )
+    const liked = existing.rowCount === 0
+    if (liked) {
+      await db.query(
+        `INSERT INTO post_likes (post_id, user_id)
+         VALUES ($1, $2)
+         ON CONFLICT (post_id, user_id) DO NOTHING`,
+        [String(id), req.user.id],
+      )
+    } else {
+      await db.query(
+        'DELETE FROM post_likes WHERE post_id = $1 AND user_id = $2',
+        [String(id), req.user.id],
+      )
+    }
+
+    const countRes = await db.query(
+      'SELECT COUNT(*)::int AS like_count FROM post_likes WHERE post_id = $1',
+      [String(id)],
+    )
+    return res.json({
+      success: true,
+      postId: String(id),
+      channelId: String(channelId),
+      liked,
+      likeCount: Number(countRes.rows?.[0]?.like_count || 0),
+    })
+  } catch (err) {
+    next(err)
+  }
+})
+
+// ─── GET /api/posts/:id/likes ────────────────────────────────
+router.get('/:id/likes', requireAuth, async (req, res, next) => {
+  try {
+    const { id } = req.params
+    const channelId = await resolveChannelIdForPost(id)
+    if (!channelId) return res.status(404).json({ error: '게시글을 찾을 수 없습니다.' })
+    const allowed = await canAccessChannel(db, req.user, channelId)
+    if (!allowed) return res.status(403).json({ error: ACCESS_DENIED_MESSAGE })
+
+    await ensureLikeTables()
+    const result = await db.query(
+      `SELECT u.id, COALESCE(NULLIF(u.display_name, ''), u.name, u.username) AS name
+       FROM post_likes l
+       JOIN users u ON u.id = l.user_id
+       WHERE l.post_id = $1
+       ORDER BY l.created_at ASC, u.name ASC`,
+      [String(id)],
+    )
+    return res.json((result.rows || []).map(row => ({
+      id: row.id,
+      name: row.name || '사용자',
+    })))
+  } catch (err) {
+    next(err)
+  }
+})
+
 // ─── GET /api/posts/:id/comments ─────────────────────────────
 router.get('/:id/comments', requireAuth, async (req, res, next) => {
   try {
@@ -2033,8 +2215,95 @@ router.get('/:id/comments', requireAuth, async (req, res, next) => {
     if (!channelId) return res.status(404).json({ error: '게시글을 찾을 수 없습니다.' })
     const allowed = await canAccessChannel(db, req.user, channelId)
     if (!allowed) return res.status(403).json({ error: ACCESS_DENIED_MESSAGE })
-    const comments = await fetchComments(req.params.id)
+    const comments = await fetchComments(req.params.id, req.user.id)
     res.json(comments)
+  } catch (err) {
+    next(err)
+  }
+})
+
+// ─── GET /api/posts/:postId/comments/:commentId/likes ─────────
+router.get('/:postId/comments/:commentId/likes', requireAuth, async (req, res, next) => {
+  try {
+    const { postId, commentId } = req.params
+    const channelId = await resolveChannelIdForPost(postId)
+    if (!channelId) return res.status(404).json({ error: '게시글을 찾을 수 없습니다.' })
+    const allowed = await canAccessChannel(db, req.user, channelId)
+    if (!allowed) return res.status(403).json({ error: ACCESS_DENIED_MESSAGE })
+
+    await ensureLikeTables()
+    const result = await db.query(
+      `SELECT u.id, COALESCE(NULLIF(u.display_name, ''), u.name, u.username) AS name
+       FROM comment_likes l
+       JOIN users u ON u.id = l.user_id
+       WHERE l.comment_id = $1
+       ORDER BY l.created_at ASC, u.name ASC`,
+      [String(commentId)],
+    )
+    return res.json((result.rows || []).map(row => ({
+      id: row.id,
+      name: row.name || '사용자',
+    })))
+  } catch (err) {
+    next(err)
+  }
+})
+
+// ─── POST /api/posts/:postId/comments/:commentId/like ─────────
+router.post('/:postId/comments/:commentId/like', requireAuth, async (req, res, next) => {
+  try {
+    const { postId, commentId } = req.params
+    const channelId = await resolveChannelIdForPost(postId)
+    if (!channelId) return res.status(404).json({ error: '게시글을 찾을 수 없습니다.' })
+    const allowed = await canAccessChannel(db, req.user, channelId)
+    if (!allowed) return res.status(403).json({ error: ACCESS_DENIED_MESSAGE })
+
+    let commentExists = false
+    if (isConnected()) {
+      const locator = await findCommentLocator(postId, commentId)
+      commentExists = Boolean(locator)
+    }
+    if (!commentExists) {
+      const pgComment = await db.query(
+        'SELECT id FROM comments WHERE post_id = $1 AND id = $2 LIMIT 1',
+        [String(postId), String(commentId)],
+      )
+      commentExists = pgComment.rowCount > 0
+    }
+    if (!commentExists) return res.status(404).json({ error: '댓글을 찾을 수 없습니다.' })
+
+    await ensureLikeTables()
+    const existing = await db.query(
+      'SELECT 1 FROM comment_likes WHERE comment_id = $1 AND user_id = $2 LIMIT 1',
+      [String(commentId), req.user.id],
+    )
+    const liked = existing.rowCount === 0
+    if (liked) {
+      await db.query(
+        `INSERT INTO comment_likes (comment_id, user_id)
+         VALUES ($1, $2)
+         ON CONFLICT (comment_id, user_id) DO NOTHING`,
+        [String(commentId), req.user.id],
+      )
+    } else {
+      await db.query(
+        'DELETE FROM comment_likes WHERE comment_id = $1 AND user_id = $2',
+        [String(commentId), req.user.id],
+      )
+    }
+
+    const countRes = await db.query(
+      'SELECT COUNT(*)::int AS like_count FROM comment_likes WHERE comment_id = $1',
+      [String(commentId)],
+    )
+    return res.json({
+      success: true,
+      postId: String(postId),
+      commentId: String(commentId),
+      channelId: String(channelId),
+      liked,
+      likeCount: Number(countRes.rows?.[0]?.like_count || 0),
+    })
   } catch (err) {
     next(err)
   }
@@ -2131,7 +2400,7 @@ router.post('/:id/comments', requireAuth, async (req, res, next) => {
     )
 
     // 방금 등록한 댓글을 전체 정보와 함께 반환
-    const comments = await fetchComments(postId)
+    const comments = await fetchComments(postId, req.user.id)
     const newComment = comments.find(c => c.id === commentId)
 
     // 업로드 즉시 LanceDB 임베딩 (비동기, 응답에 영향 없음)
@@ -2281,6 +2550,8 @@ router.delete('/:postId/comments/:commentId', requireAuth, async (req, res, next
       'DELETE FROM comments_by_id WHERE id = ?',
       [commentId], { prepare: true }
     )
+    await ensureLikeTables().catch(() => {})
+    await db.query('DELETE FROM comment_likes WHERE comment_id = $1', [commentId]).catch(() => {})
     await db.query('DELETE FROM comments WHERE id = $1', [commentId])
     await deleteSearchDocument('comment', commentId).catch(() => {})
     await db.query('DELETE FROM search_documents WHERE comment_id = $1', [commentId]).catch(() => {})

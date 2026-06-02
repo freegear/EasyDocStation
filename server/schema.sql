@@ -209,6 +209,24 @@ CREATE INDEX IF NOT EXISTS idx_channel_members_ch   ON channel_members(channel_i
 CREATE INDEX IF NOT EXISTS idx_posts_channel        ON posts(channel_id);
 CREATE INDEX IF NOT EXISTS idx_attachments_post     ON attachments(post_id);
 
+-- ─── Likes ───────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS post_likes (
+  post_id    TEXT        NOT NULL,
+  user_id    INTEGER     NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  PRIMARY KEY (post_id, user_id)
+);
+
+CREATE TABLE IF NOT EXISTS comment_likes (
+  comment_id TEXT        NOT NULL,
+  user_id    INTEGER     NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  PRIMARY KEY (comment_id, user_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_post_likes_post_id ON post_likes(post_id);
+CREATE INDEX IF NOT EXISTS idx_comment_likes_comment_id ON comment_likes(comment_id);
+
 -- ─── Auto-update updated_at trigger ──────────────────────────
 CREATE OR REPLACE FUNCTION update_updated_at()
 RETURNS TRIGGER AS $$

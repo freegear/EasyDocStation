@@ -19,26 +19,35 @@ def send_email(to_email, subject, body):
     
     smtp_server = email_config.get("smtp_server", "smtp.gmail.com")
     smtp_port = email_config.get("smtp_port", 587)
+    smtp_security = email_config.get("smtp_security", "STARTTLS")
+    smtp_user = email_config.get("smtp_user", "") or email_config.get("sender_email", "")
     sender_email = email_config.get("sender_email", "")
     sender_password = email_config.get("sender_password", "") # 앱 비밀번호 등을 사용 권장
+    sender_name = email_config.get("sender_name", "") or sender_email
+    reply_to = email_config.get("reply_to", "")
 
-    if not sender_email or not sender_password:
+    if not smtp_user or not sender_email or not sender_password:
         print("Error: 메일 설정(sender_email, sender_password)이 config.json에 없습니다.")
         return False
 
     # 메달 작성
     msg = MIMEMultipart()
-    msg['From'] = sender_email
+    msg['From'] = f"{sender_name} <{sender_email}>"
     msg['To'] = to_email
     msg['Subject'] = subject
+    if reply_to:
+        msg['Reply-To'] = reply_to
     
     msg.attach(MIMEText(body, 'plain'))
 
     try:
         # SMTP 서버 연결
-        server = smtplib.SMTP(smtp_server, smtp_port)
-        server.starttls() # TLS 보안 연결
-        server.login(sender_email, sender_password)
+        if str(smtp_security).upper() == "SSL":
+            server = smtplib.SMTP_SSL(smtp_server, smtp_port)
+        else:
+            server = smtplib.SMTP(smtp_server, smtp_port)
+            server.starttls() # TLS 보안 연결
+        server.login(smtp_user, sender_password)
         
         # 메일 발송
         text = msg.as_string()

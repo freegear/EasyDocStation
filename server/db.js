@@ -307,6 +307,23 @@ async function initDb() {
         );
         CREATE INDEX IF NOT EXISTS idx_comments_post ON comments(post_id);
       `)
+      await runMigrationStep(client, 'create likes', `
+        CREATE TABLE IF NOT EXISTS post_likes (
+          post_id    TEXT        NOT NULL,
+          user_id    INTEGER     NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+          PRIMARY KEY (post_id, user_id)
+        );
+        CREATE INDEX IF NOT EXISTS idx_post_likes_post_id ON post_likes(post_id);
+
+        CREATE TABLE IF NOT EXISTS comment_likes (
+          comment_id TEXT        NOT NULL,
+          user_id    INTEGER     NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+          PRIMARY KEY (comment_id, user_id)
+        );
+        CREATE INDEX IF NOT EXISTS idx_comment_likes_comment_id ON comment_likes(comment_id);
+      `)
       await ensureSearchSchema(client)
       // dm_conversations 테이블 생성 (21. Direct Message)
       await runMigrationStep(client, 'create dm_conversations', `

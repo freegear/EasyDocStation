@@ -762,6 +762,17 @@ export default function SiteAdminPage({ onClose }) {
     line: { enabled: false, channelAccessToken: '' },
     telegram: { enabled: false, botName: '', botUserName: '', httpApiToken: '' },
   })
+  const [mailForm, setMailForm] = useState({
+    enabled: false,
+    smtp_server: 'smtp.gmail.com',
+    smtp_port: 587,
+    smtp_security: 'STARTTLS',
+    smtp_user: '',
+    sender_email: '',
+    sender_password: '',
+    sender_name: 'EasyDocStation',
+    reply_to: '',
+  })
   const [telegramWebhookUrl, setTelegramWebhookUrl] = useState('')
   const [telegramWebhookRegistered, setTelegramWebhookRegistered] = useState('')
   const [telegramWebhookStatus, setTelegramWebhookStatus] = useState(null) // null | 'loading' | 'ok' | 'error'
@@ -1017,6 +1028,19 @@ export default function SiteAdminPage({ onClose }) {
             botUserName: data.sns.telegram?.botUserName || data.sns.telegram?.botId || '',
             httpApiToken: data.sns.telegram?.httpApiToken || '',
           },
+        })
+      }
+      if (data.email_settings) {
+        setMailForm({
+          enabled: Boolean(data.email_settings.enabled),
+          smtp_server: data.email_settings.smtp_server || 'smtp.gmail.com',
+          smtp_port: data.email_settings.smtp_port || 587,
+          smtp_security: data.email_settings.smtp_security || 'STARTTLS',
+          smtp_user: data.email_settings.smtp_user || data.email_settings.sender_email || '',
+          sender_email: data.email_settings.sender_email || '',
+          sender_password: data.email_settings.sender_password || '',
+          sender_name: data.email_settings.sender_name || 'EasyDocStation',
+          reply_to: data.email_settings.reply_to || '',
         })
       }
     } catch (err) {
@@ -1378,6 +1402,18 @@ export default function SiteAdminPage({ onClose }) {
             httpApiToken: (snsForm.telegram.httpApiToken || '').trim(),
           },
         }
+      } else if (activeTab === 'mail') {
+        configData.email_settings = {
+          enabled: Boolean(mailForm.enabled),
+          smtp_server: (mailForm.smtp_server || 'smtp.gmail.com').trim(),
+          smtp_port: parseInt(mailForm.smtp_port) || 587,
+          smtp_security: mailForm.smtp_security || 'STARTTLS',
+          smtp_user: (mailForm.smtp_user || mailForm.sender_email || '').trim(),
+          sender_email: (mailForm.sender_email || '').trim(),
+          sender_password: mailForm.sender_password || '',
+          sender_name: (mailForm.sender_name || 'EasyDocStation').trim(),
+          reply_to: (mailForm.reply_to || '').trim(),
+        }
       }
 
       const result = await apiFetch('/admin/config', {
@@ -1644,6 +1680,15 @@ export default function SiteAdminPage({ onClose }) {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 3H3a2 2 0 00-2 2v14l4-4h16a2 2 0 002-2V5a2 2 0 00-2-2z" />
             </svg>
             {t.admin.navSns}
+          </button>
+          <button
+            onClick={() => setActiveTab('mail')}
+            className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${activeTab === 'mail' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-200'}`}
+          >
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+            </svg>
+            메일 서버 등록
           </button>
           <button
             onClick={() => setActiveTab('stt')}
@@ -3469,6 +3514,110 @@ export default function SiteAdminPage({ onClose }) {
                   <p className="mt-3 text-indigo-500 text-xs">
                     ① 설정 저장 후 위 URL 등록 → ② 각 사용자가 봇({snsForm.telegram.botUserName || '@봇이름'})에게 아무 메시지나 전송 → ③ chat_id 자동 연동
                   </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : activeTab === 'mail' ? (
+          <div className="max-w-4xl mx-auto py-4">
+            <div className="flex items-center justify-between mb-8">
+              <div className="flex items-center gap-3">
+                <svg className="w-6 h-6 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
+                <h2 className="text-gray-900 font-bold text-lg">메일 서버 등록</h2>
+              </div>
+              <button
+                onClick={handleSaveConfig}
+                disabled={savingConfig}
+                className="flex items-center gap-2 px-6 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-sm font-semibold transition-all shadow-lg shadow-indigo-200 active:scale-95"
+              >
+                {savingConfig ? t.admin.savingConfig : t.admin.saveSettings}
+              </button>
+            </div>
+
+            <div className="space-y-6">
+              <div className="bg-indigo-50 border border-indigo-200 rounded-2xl px-6 py-5">
+                <p className="text-indigo-700 text-sm font-medium">
+                  Gmail 발송은 Google 계정의 2단계 인증을 켠 뒤 생성한 앱 비밀번호를 사용합니다.
+                </p>
+              </div>
+
+              <div className="bg-gray-100 border border-gray-200 rounded-2xl p-6 shadow-xl">
+                <div className="flex items-center justify-between mb-5">
+                  <div>
+                    <h3 className="text-gray-900 font-bold text-base">Gmail SMTP 서버</h3>
+                    <p className="text-gray-400 text-xs mt-1">Google Gmail 계정으로 메일을 발송하기 위한 서버 정보를 입력합니다.</p>
+                  </div>
+                  <label className="flex items-center gap-2 text-sm text-gray-600">
+                    <input
+                      type="checkbox"
+                      checked={mailForm.enabled}
+                      onChange={e => setMailForm(p => ({ ...p, enabled: e.target.checked }))}
+                      className="w-4 h-4 rounded accent-indigo-600"
+                    />
+                    사용
+                  </label>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <FormField
+                    label="SMTP 서버"
+                    value={mailForm.smtp_server}
+                    onChange={v => setMailForm(p => ({ ...p, smtp_server: v }))}
+                    placeholder="smtp.gmail.com"
+                  />
+                  <FormField
+                    label="SMTP 포트"
+                    type="number"
+                    value={mailForm.smtp_port}
+                    onChange={v => setMailForm(p => ({ ...p, smtp_port: v }))}
+                    placeholder="587"
+                  />
+                  <div>
+                    <label className="block text-gray-500 text-xs font-medium mb-1.5">보안 방식</label>
+                    <select
+                      value={mailForm.smtp_security}
+                      onChange={e => setMailForm(p => ({ ...p, smtp_security: e.target.value }))}
+                      className="w-full bg-gray-100 border border-gray-200 rounded-xl px-4 py-2.5 text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-300 transition-all"
+                    >
+                      <option value="STARTTLS">STARTTLS (587 권장)</option>
+                      <option value="SSL">SSL (465)</option>
+                    </select>
+                  </div>
+                  <FormField
+                    label="SMTP 사용자"
+                    value={mailForm.smtp_user}
+                    onChange={v => setMailForm(p => ({ ...p, smtp_user: v }))}
+                    placeholder="yourname@gmail.com"
+                  />
+                  <FormField
+                    label="발신자 Gmail 주소"
+                    type="email"
+                    value={mailForm.sender_email}
+                    onChange={v => setMailForm(p => ({ ...p, sender_email: v, smtp_user: p.smtp_user || v }))}
+                    placeholder="yourname@gmail.com"
+                  />
+                  <FormField
+                    label="앱 비밀번호"
+                    type="password"
+                    value={mailForm.sender_password}
+                    onChange={v => setMailForm(p => ({ ...p, sender_password: v }))}
+                    placeholder="Google 앱 비밀번호 16자리"
+                  />
+                  <FormField
+                    label="발신자 표시 이름"
+                    value={mailForm.sender_name}
+                    onChange={v => setMailForm(p => ({ ...p, sender_name: v }))}
+                    placeholder="EasyDocStation"
+                  />
+                  <FormField
+                    label="Reply-To"
+                    type="email"
+                    value={mailForm.reply_to}
+                    onChange={v => setMailForm(p => ({ ...p, reply_to: v }))}
+                    placeholder="선택 사항"
+                  />
                 </div>
               </div>
             </div>

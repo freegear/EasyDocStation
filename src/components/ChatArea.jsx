@@ -64,6 +64,40 @@ function formatKstDividerLabel(iso) {
   return `${pick('year')}년 ${pick('month')}월 ${pick('day')}일`
 }
 
+function resolveAttachmentUrl(file) {
+  if (!file?.url) return null
+  if (file.url.startsWith('blob:')) return file.url
+  if (/^https?:\/\//i.test(file.url)) return file.url
+  const token = getToken()
+  return token ? `${file.url}?auth_token=${token}` : file.url
+}
+
+function triggerBrowserDownload(url, filename) {
+  if (!url) return
+  const a = document.createElement('a')
+  a.href = url
+  if (filename) a.download = filename
+  a.rel = 'noreferrer'
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+}
+
+async function downloadAttachmentFile(file) {
+  if (!file?.id || file.url?.startsWith('blob:')) {
+    triggerBrowserDownload(resolveAttachmentUrl(file), file?.name)
+    return
+  }
+  try {
+    const data = await apiFetch(`/files/${file.id}/get-download-url`)
+    if (data?.downloadUrl) {
+      triggerBrowserDownload(data.downloadUrl, file?.name)
+      return
+    }
+  } catch {}
+  triggerBrowserDownload(resolveAttachmentUrl(file), file?.name)
+}
+
 function buildDateSeparatedRows(items = [], getCreatedAt, getId) {
   const rows = []
   let prevDateKey = ''
@@ -754,6 +788,12 @@ function FilePreviewModal({ file, fileUrl, onClose }) {
   const slidePreviewPdfUrl = file?.id ? `/api/files/view/${file.id}?preview=pdf&auth_token=${getToken()}` : null
   const openInNewUrl = isSlide ? (slidePreviewPdfUrl || fileUrl) : fileUrl
 
+  async function handleDownload(e) {
+    e.preventDefault()
+    e.stopPropagation()
+    await downloadAttachmentFile(file)
+  }
+
   useEffect(() => {
     const onKey = e => { if (e.key === 'Escape') onClose() }
     window.addEventListener('keydown', onKey)
@@ -797,6 +837,13 @@ function FilePreviewModal({ file, fileUrl, onClose }) {
         <div className="h-11 px-4 border-b border-gray-200 bg-gray-50 flex items-center justify-between">
           <p className="text-sm text-gray-700 truncate pr-4">{file?.name || ''}</p>
           <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleDownload}
+              className="text-xs px-3 py-1.5 rounded-lg border border-gray-200 bg-white hover:bg-gray-100 text-gray-700 transition-colors"
+            >
+              다운로드
+            </button>
             <a
               href={openInNewUrl}
               target="_blank"
@@ -883,11 +930,7 @@ function AttachmentList({ attachments, compact = false, pendingOpenAttachmentId 
   }, [])
 
   function fileUrl(f) {
-    if (!f.url) return null
-    if (f.url.startsWith('blob:')) return f.url
-    if (/^https?:\/\//i.test(f.url)) return f.url
-    const token = getToken()
-    return token ? `${f.url}?auth_token=${token}` : f.url
+    return resolveAttachmentUrl(f)
   }
 
   function thumbUrl(f) {
@@ -940,32 +983,10 @@ function AttachmentList({ attachments, compact = false, pendingOpenAttachmentId 
     }
   }
 
-  function triggerBrowserDownload(url, filename) {
-    if (!url) return
-    const a = document.createElement('a')
-    a.href = url
-    if (filename) a.download = filename
-    a.rel = 'noreferrer'
-    document.body.appendChild(a)
-    a.click()
-    a.remove()
-  }
-
   async function downloadFile(e, f) {
     e.preventDefault()
     e.stopPropagation()
-    if (!f?.id || f.url?.startsWith('blob:')) {
-      triggerBrowserDownload(fileUrl(f), f?.name)
-      return
-    }
-    try {
-      const data = await apiFetch(`/files/${f.id}/get-download-url`)
-      if (data?.downloadUrl) {
-        triggerBrowserDownload(data.downloadUrl, f?.name)
-        return
-      }
-    } catch {}
-    triggerBrowserDownload(fileUrl(f), f?.name)
+    await downloadAttachmentFile(f)
   }
 
   const NativeOpenBtn = ({ f }) => (

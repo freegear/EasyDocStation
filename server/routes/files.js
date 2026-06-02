@@ -235,10 +235,34 @@ function setAttachmentHeaders(res, filename, contentType, contentLength) {
   res.setHeader('X-Content-Type-Options', 'nosniff')
 }
 
+function truncateUtf8Bytes(value = '', maxBytes = 250) {
+  let out = ''
+  let used = 0
+  for (const char of Array.from(String(value || ''))) {
+    const charBytes = Buffer.byteLength(char, 'utf8')
+    if (used + charBytes > maxBytes) break
+    out += char
+    used += charBytes
+  }
+  return out
+}
+
 function sanitizeStoredFilename(name = '') {
-  const base = path.basename(String(name || '').trim())
+  const base = path.basename(String(name || '').normalize('NFC').trim())
   const collapsed = base.replace(/[\/\\]/g, '_').replace(/\s+/g, ' ').trim()
-  return collapsed || `file-${Date.now()}`
+  if (!collapsed) return `file-${Date.now()}`
+
+  if (Buffer.byteLength(collapsed, 'utf8') <= 250) return collapsed
+
+  const ext = path.extname(collapsed)
+  const extBytes = Buffer.byteLength(ext, 'utf8')
+  if (ext && extBytes < 250) {
+    const stem = collapsed.slice(0, -ext.length).trimEnd()
+    const truncatedStem = truncateUtf8Bytes(stem, 250 - extBytes).trimEnd()
+    return `${truncatedStem || 'file'}${ext}`
+  }
+
+  return truncateUtf8Bytes(collapsed, 250) || `file-${Date.now()}`
 }
 
 function appendThumbLog(logFile, message) {

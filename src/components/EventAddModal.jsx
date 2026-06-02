@@ -23,6 +23,29 @@ const REPEAT_OPTIONS = [
   { value: 'yearly', label: '매년' },
 ]
 
+const TIMED_REMINDER_OPTIONS = [
+  { value: 'none', label: '없음', rule: { type: 'none', preset: 'none' } },
+  { value: 'at_event_time', label: '이벤트 시간', rule: { type: 'relative', preset: 'at_event_time', anchor: 'eventStart', offsetMinutes: 0 } },
+  { value: '5m_before', label: '5분 전', rule: { type: 'relative', preset: '5m_before', anchor: 'eventStart', offsetMinutes: -5 } },
+  { value: '10m_before', label: '10분 전', rule: { type: 'relative', preset: '10m_before', anchor: 'eventStart', offsetMinutes: -10 } },
+  { value: '15m_before', label: '15분 전', rule: { type: 'relative', preset: '15m_before', anchor: 'eventStart', offsetMinutes: -15 } },
+  { value: '30m_before', label: '30분 전', rule: { type: 'relative', preset: '30m_before', anchor: 'eventStart', offsetMinutes: -30 } },
+  { value: '1h_before', label: '1시간 전', rule: { type: 'relative', preset: '1h_before', anchor: 'eventStart', offsetMinutes: -60 } },
+  { value: '2h_before', label: '2시간 전', rule: { type: 'relative', preset: '2h_before', anchor: 'eventStart', offsetMinutes: -120 } },
+  { value: '1d_before', label: '1일 전', rule: { type: 'relative', preset: '1d_before', anchor: 'eventStart', offsetMinutes: -1440 } },
+  { value: '2d_before', label: '2일 전', rule: { type: 'relative', preset: '2d_before', anchor: 'eventStart', offsetMinutes: -2880 } },
+  { value: 'custom', label: '사용자화', rule: { type: 'custom', preset: 'custom' } },
+]
+
+const ALL_DAY_REMINDER_OPTIONS = [
+  { value: 'none', label: '없음', rule: { type: 'none', preset: 'none' } },
+  { value: 'event_day_9', label: '이벤트 당일(오전 9시)', rule: { type: 'allDay', preset: 'event_day_9', anchor: 'eventDate', daysBefore: 0, time: { ampm: '오전', hour: 9, minute: 0 } } },
+  { value: '1d_before_9', label: '1일 전(오전 9시)', rule: { type: 'allDay', preset: '1d_before_9', anchor: 'eventDate', daysBefore: 1, time: { ampm: '오전', hour: 9, minute: 0 } } },
+  { value: '2d_before_9', label: '2일 전(오전 9시)', rule: { type: 'allDay', preset: '2d_before_9', anchor: 'eventDate', daysBefore: 2, time: { ampm: '오전', hour: 9, minute: 0 } } },
+  { value: '1w_before_9', label: '1주 전', rule: { type: 'allDay', preset: '1w_before_9', anchor: 'eventDate', daysBefore: 7, time: { ampm: '오전', hour: 9, minute: 0 } } },
+  { value: 'custom', label: '사용자화', rule: { type: 'custom', preset: 'custom' } },
+]
+
 function getDaysInMonth(year, month) {
   return new Date(year, month, 0).getDate()
 }
@@ -42,6 +65,31 @@ function makeDefaultDt(addHours = 0) {
     hour: h === 0 ? 12 : h > 12 ? h - 12 : h,
     minute: roundedMin >= 60 ? 0 : roundedMin,
   }
+}
+
+function isDateTimeLike(value) {
+  return value && typeof value === 'object' && Number.isInteger(value.year) && Number.isInteger(value.month) && Number.isInteger(value.day)
+}
+
+function cloneRule(rule) {
+  return JSON.parse(JSON.stringify(rule))
+}
+
+function getReminderSelection(remindDt, allDay) {
+  const options = allDay ? ALL_DAY_REMINDER_OPTIONS : TIMED_REMINDER_OPTIONS
+  if (isDateTimeLike(remindDt)) return 'custom'
+  if (remindDt?.preset && options.some(option => option.value === remindDt.preset)) return remindDt.preset
+  if (remindDt?.type === 'none') return 'none'
+  return allDay ? '1d_before_9' : '15m_before'
+}
+
+function buildReminderDt(selection, customDt, allDay) {
+  if (selection === 'custom') {
+    return { type: 'custom', preset: 'custom', dt: customDt }
+  }
+  const options = allDay ? ALL_DAY_REMINDER_OPTIONS : TIMED_REMINDER_OPTIONS
+  const option = options.find(item => item.value === selection) || options[0]
+  return cloneRule(option.rule)
 }
 
 const selectCls = 'border border-gray-200 rounded-md px-1.5 py-1 text-xs text-gray-700 bg-white focus:outline-none focus:ring-1 focus:ring-indigo-400 cursor-pointer'
@@ -124,7 +172,15 @@ export default function EventAddModal({ onClose, onAdd, onSave, onDelete, event:
   const [securityLevel, setSecurityLevel] = useState(editEvent?.securityLevel ?? Math.min(1, maxLevel))
 
   // 미리 알림 탭 상태
-  const [remindDt, setRemindDt] = useState(editEvent?.remindDt ?? makeDefaultDt(0))
+  const initialReminderDt = editEvent?.remindDt ?? null
+  const [reminderSelection, setReminderSelection] = useState(() => getReminderSelection(initialReminderDt, editEvent?.allDay ?? false))
+  const [customReminderDt, setCustomReminderDt] = useState(() => (
+    initialReminderDt?.type === 'custom' && isDateTimeLike(initialReminderDt.dt)
+      ? initialReminderDt.dt
+      : isDateTimeLike(initialReminderDt)
+        ? initialReminderDt
+        : makeDefaultDt(0)
+  ))
   const [remindRepeat, setRemindRepeat] = useState(editEvent?.remindRepeat ?? 'none')
 
   const titleRef = useRef(null)
@@ -195,6 +251,16 @@ export default function EventAddModal({ onClose, onAdd, onSave, onDelete, event:
     inviteeInputRef.current?.focus()
   }
 
+  function handleToggleAllDay() {
+    if (!canMutate) return
+    const nextAllDay = !allDay
+    const nextOptions = nextAllDay ? ALL_DAY_REMINDER_OPTIONS : TIMED_REMINDER_OPTIONS
+    setAllDay(nextAllDay)
+    if (!nextOptions.some(option => option.value === reminderSelection)) {
+      setReminderSelection(nextAllDay ? '1d_before_9' : '15m_before')
+    }
+  }
+
   function buildData() {
     return {
       title: title.trim(),
@@ -206,7 +272,7 @@ export default function EventAddModal({ onClose, onAdd, onSave, onDelete, event:
       invitees: invitees.filter(inv => Number(inv?.id) !== Number(currentUser?.id)),
       memo,
       securityLevel,
-      remindDt,
+      remindDt: buildReminderDt(reminderSelection, customReminderDt, allDay),
       remindRepeat,
     }
   }
@@ -388,7 +454,7 @@ export default function EventAddModal({ onClose, onAdd, onSave, onDelete, event:
               <div>
                 <label className="flex items-center gap-2.5 cursor-pointer w-fit">
                   <div
-                    onClick={() => { if (canMutate) setAllDay(v => !v) }}
+                    onClick={handleToggleAllDay}
                     className={`w-9 h-5 rounded-full transition-colors relative ${allDay ? 'bg-indigo-600' : 'bg-gray-200'}`}
                   >
                     <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${allDay ? 'translate-x-4' : 'translate-x-0.5'}`} />
@@ -545,39 +611,69 @@ export default function EventAddModal({ onClose, onAdd, onSave, onDelete, event:
 
           {tab === 'reminder' && (
             <div className="space-y-4 py-1">
-              {/* 지정한 날짜에 */}
               <div>
-                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 block">지정한 날짜에</label>
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  {[
-                    { label: '년', key: 'year', options: Array.from({ length: 11 }, (_, i) => new Date().getFullYear() - 2 + i) },
-                    { label: '월', key: 'month', options: Array.from({ length: 12 }, (_, i) => i + 1) },
-                    { label: '일', key: 'day', options: Array.from({ length: getDaysInMonth(remindDt.year, remindDt.month) }, (_, i) => i + 1) },
-                  ].map(({ label, key, options }) => (
-                    <select key={key} value={remindDt[key]} onChange={canMutate ? e => setRemindDt({ ...remindDt, [key]: +e.target.value }) : undefined} disabled={!canMutate} className={selectCls}>
-                      {options.map(v => <option key={v} value={v}>{v}{label}</option>)}
-                    </select>
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 block">
+                  {allDay ? '하루 종일 이벤트 알림' : '시간 기반 이벤트 알림'}
+                </label>
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                  {(allDay ? ALL_DAY_REMINDER_OPTIONS : TIMED_REMINDER_OPTIONS).map(option => (
+                    <button
+                      key={option.value}
+                      onClick={() => { if (canMutate) setReminderSelection(option.value) }}
+                      disabled={!canMutate}
+                      className={`min-h-10 px-3 py-2 rounded-lg text-sm font-medium border text-left transition-all ${
+                        reminderSelection === option.value
+                          ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm'
+                          : 'text-gray-600 border-gray-200 hover:border-indigo-300 hover:text-indigo-600'
+                      }`}
+                    >
+                      {option.label}
+                    </button>
                   ))}
                 </div>
               </div>
 
-              {/* 특정한 시간에 */}
-              <div>
-                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 block">특정한 시간에</label>
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  <select value={remindDt.ampm} onChange={canMutate ? e => setRemindDt({ ...remindDt, ampm: e.target.value }) : undefined} disabled={!canMutate} className={selectCls}>
-                    <option value="오전">오전</option>
-                    <option value="오후">오후</option>
-                  </select>
-                  <select value={remindDt.hour} onChange={canMutate ? e => setRemindDt({ ...remindDt, hour: +e.target.value }) : undefined} disabled={!canMutate} className={selectCls}>
-                    {Array.from({ length: 12 }, (_, i) => i + 1).map(h => <option key={h} value={h}>{String(h).padStart(2, '0')}</option>)}
-                  </select>
-                  <span className="text-gray-400 text-sm">:</span>
-                  <select value={remindDt.minute} onChange={canMutate ? e => setRemindDt({ ...remindDt, minute: +e.target.value }) : undefined} disabled={!canMutate} className={selectCls}>
-                    {Array.from({ length: 12 }, (_, i) => i * 5).map(m => <option key={m} value={m}>{String(m).padStart(2, '0')}</option>)}
-                  </select>
+              {reminderSelection === 'custom' && (
+                <div className="space-y-3 rounded-lg border border-gray-100 bg-gray-50/70 p-3">
+                  <div>
+                    <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 block">지정한 날짜에</label>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      {[
+                        { label: '년', key: 'year', options: Array.from({ length: 11 }, (_, i) => new Date().getFullYear() - 2 + i) },
+                        { label: '월', key: 'month', options: Array.from({ length: 12 }, (_, i) => i + 1) },
+                        { label: '일', key: 'day', options: Array.from({ length: getDaysInMonth(customReminderDt.year, customReminderDt.month) }, (_, i) => i + 1) },
+                      ].map(({ label, key, options }) => (
+                        <select
+                          key={key}
+                          value={customReminderDt[key]}
+                          onChange={canMutate ? e => setCustomReminderDt({ ...customReminderDt, [key]: +e.target.value, ...(key === 'month' ? { day: 1 } : {}) }) : undefined}
+                          disabled={!canMutate}
+                          className={selectCls}
+                        >
+                          {options.map(v => <option key={v} value={v}>{v}{label}</option>)}
+                        </select>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 block">특정한 시간에</label>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <select value={customReminderDt.ampm} onChange={canMutate ? e => setCustomReminderDt({ ...customReminderDt, ampm: e.target.value }) : undefined} disabled={!canMutate} className={selectCls}>
+                        <option value="오전">오전</option>
+                        <option value="오후">오후</option>
+                      </select>
+                      <select value={customReminderDt.hour} onChange={canMutate ? e => setCustomReminderDt({ ...customReminderDt, hour: +e.target.value }) : undefined} disabled={!canMutate} className={selectCls}>
+                        {Array.from({ length: 12 }, (_, i) => i + 1).map(h => <option key={h} value={h}>{String(h).padStart(2, '0')}</option>)}
+                      </select>
+                      <span className="text-gray-400 text-sm">:</span>
+                      <select value={customReminderDt.minute} onChange={canMutate ? e => setCustomReminderDt({ ...customReminderDt, minute: +e.target.value }) : undefined} disabled={!canMutate} className={selectCls}>
+                        {Array.from({ length: 12 }, (_, i) => i * 5).map(m => <option key={m} value={m}>{String(m).padStart(2, '0')}</option>)}
+                      </select>
+                    </div>
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* 반복 */}
               <div>
