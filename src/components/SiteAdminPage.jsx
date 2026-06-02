@@ -1238,7 +1238,7 @@ export default function SiteAdminPage({ onClose }) {
 
   useEffect(() => { loadUsers(); loadTeams() }, [])
   useEffect(() => {
-    if (activeTab === 'db' || activeTab === 'display' || activeTab === 'rag' || activeTab === 'agenticai' || activeTab === 'company' || activeTab === 'site' || activeTab === 'supabase' || activeTab === 'sns' || activeTab === 'stt') loadDbStats()
+    if (activeTab === 'db' || activeTab === 'display' || activeTab === 'rag' || activeTab === 'agenticai' || activeTab === 'company' || activeTab === 'site' || activeTab === 'supabase' || activeTab === 'sns' || activeTab === 'mail' || activeTab === 'stt') loadDbStats()
     if (activeTab === 'sns') loadTelegramWebhookInfo()
     if (activeTab === 'rag-learning') loadRagDatasets()
     if (activeTab === 'stt' && !sttChannelId && sttChannels.length > 0) {
@@ -3578,7 +3578,14 @@ export default function SiteAdminPage({ onClose }) {
                     <label className="block text-gray-500 text-xs font-medium mb-1.5">보안 방식</label>
                     <select
                       value={mailForm.smtp_security}
-                      onChange={e => setMailForm(p => ({ ...p, smtp_security: e.target.value }))}
+                      onChange={e => {
+                        const smtp_security = e.target.value
+                        setMailForm(p => ({
+                          ...p,
+                          smtp_security,
+                          smtp_port: smtp_security === 'SSL' ? 465 : 587,
+                        }))
+                      }}
                       className="w-full bg-gray-100 border border-gray-200 rounded-xl px-4 py-2.5 text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-300 transition-all"
                     >
                       <option value="STARTTLS">STARTTLS (587 권장)</option>
