@@ -5,6 +5,7 @@ import TitleBar from './components/TitleBar'
 import Sidebar from './components/Sidebar'
 import ChatArea from './components/ChatArea'
 import GroqPanel from './components/GroqPanel'
+import MobileLayout from './components/MobileLayout'
 import LoginScreen from './components/LoginScreen'
 import UserProfileModal from './components/UserProfileModal'
 import SiteAdminPage from './components/SiteAdminPage'
@@ -44,7 +45,6 @@ function MainLayout() {
     return !window.matchMedia('(max-width: 768px)').matches
   })
   const mainRef = useRef(null)
-  const sidebarPanelId = 'main-sidebar-panel'
 
   const startGroqResize = useCallback((e) => {
     e.preventDefault()
@@ -185,76 +185,51 @@ function MainLayout() {
         isMobileLayout={isMobileLayout}
       />
       <div ref={mainRef} className="flex flex-1 min-h-0">
-        {!isMobileLayout && showSidebar && (
-          <Sidebar
-            showCalendar={showCalendar}
-            onToggleCalendar={() => { setShowCalendar(v => !v); setShowDM(false) }}
-            onCloseCalendar={() => setShowCalendar(false)}
-            showDM={showDM}
-            onToggleDM={() => setShowDM(v => !v)}
-            onOpenDM={(conv) => { setActiveDMConv(conv); setShowDM(true); setShowCalendar(false) }}
-            onNewDM={() => setShowNewDM(true)}
-            activeDMConvId={activeDMConv?.id}
-            isMobile={false}
-          />
-        )}
-
-        {showCalendar ? (
-          <CalendarView onClose={() => setShowCalendar(false)} />
-        ) : showDM && activeDMConv ? (
-          <DirectMessageView
-            conversation={activeDMConv}
-            onClose={() => { setShowDM(false); setActiveDMConv(null) }}
-            onConversationUpdated={(updated) => setActiveDMConv(updated)}
-          />
-        ) : isSearchMode ? (
-          <SearchResultsArea onSelectResult={handleSearchSelect} />
+        {isMobileLayout ? (
+          <MobileLayout />
         ) : (
-          <ChatArea autoOpenPostId={searchSelectedPost?.id} />
+          <>
+            {showSidebar && (
+              <Sidebar
+                showCalendar={showCalendar}
+                onToggleCalendar={() => { setShowCalendar(v => !v); setShowDM(false) }}
+                onCloseCalendar={() => setShowCalendar(false)}
+                showDM={showDM}
+                onToggleDM={() => setShowDM(v => !v)}
+                onOpenDM={(conv) => { setActiveDMConv(conv); setShowDM(true); setShowCalendar(false) }}
+                onNewDM={() => setShowNewDM(true)}
+                activeDMConvId={activeDMConv?.id}
+                isMobile={false}
+              />
+            )}
+
+            {showCalendar ? (
+              <CalendarView onClose={() => setShowCalendar(false)} />
+            ) : showDM && activeDMConv ? (
+              <DirectMessageView
+                conversation={activeDMConv}
+                onClose={() => { setShowDM(false); setActiveDMConv(null) }}
+                onConversationUpdated={(updated) => setActiveDMConv(updated)}
+              />
+            ) : isSearchMode ? (
+              <SearchResultsArea onSelectResult={handleSearchSelect} />
+            ) : (
+              <ChatArea autoOpenPostId={searchSelectedPost?.id} />
+            )}
+
+            {/* Resize handle & GroqPanel: 캘린더/DM 모드에서는 CSS로 숨김 (언마운트 X → state 유지) */}
+            <div style={{ display: (showCalendar || showDM || !showAgenticPanel) ? 'none' : 'contents' }}>
+              <div
+                onMouseDown={startGroqResize}
+                className="group relative w-1 flex-shrink-0 cursor-col-resize z-10"
+              >
+                <div className={`absolute inset-y-0 -left-1 -right-1 transition-colors group-hover:bg-indigo-500/30 ${resizingGroq ? 'bg-indigo-500/50' : ''}`} />
+              </div>
+              <GroqPanel width={groqWidth} />
+            </div>
+          </>
         )}
-
-        {/* Resize handle & GroqPanel: 캘린더/DM 모드에서는 CSS로 숨김 (언마운트 X → state 유지) */}
-        <div style={{ display: (showCalendar || showDM || !showAgenticPanel || isMobileLayout) ? 'none' : 'contents' }}>
-          <div
-            onMouseDown={startGroqResize}
-            className="group relative w-1 flex-shrink-0 cursor-col-resize z-10"
-          >
-            <div className={`absolute inset-y-0 -left-1 -right-1 transition-colors group-hover:bg-indigo-500/30 ${resizingGroq ? 'bg-indigo-500/50' : ''}`} />
-          </div>
-          <GroqPanel width={groqWidth} />
-        </div>
       </div>
-
-      {isMobileLayout && showSidebar && (
-        <div className="fixed inset-0 z-40 md:hidden" role="dialog" aria-modal="true" aria-labelledby={sidebarPanelId}>
-          <button
-            type="button"
-            aria-label="Close sidebar"
-            className="absolute inset-0 bg-black/40"
-            onClick={() => setShowSidebar(false)}
-          />
-          <div className="absolute left-0 top-0 h-full w-72 max-w-[85vw] shadow-2xl">
-            <Sidebar
-              showCalendar={showCalendar}
-              onToggleCalendar={() => { setShowCalendar(v => !v); setShowDM(false); setShowSidebar(false) }}
-              onCloseCalendar={() => setShowCalendar(false)}
-              showDM={showDM}
-              onToggleDM={() => { setShowDM(v => !v); setShowSidebar(false) }}
-              onOpenDM={(conv) => {
-                setActiveDMConv(conv)
-                setShowDM(true)
-                setShowCalendar(false)
-                setShowSidebar(false)
-              }}
-              onNewDM={() => { setShowNewDM(true); setShowSidebar(false) }}
-              activeDMConvId={activeDMConv?.id}
-              isMobile
-              onCloseMobile={() => setShowSidebar(false)}
-              panelId={sidebarPanelId}
-            />
-          </div>
-        </div>
-      )}
 
       {showProfile && (
         <UserProfileModal

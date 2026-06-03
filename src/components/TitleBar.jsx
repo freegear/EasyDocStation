@@ -257,42 +257,47 @@ export default function TitleBar({
           </button>
         )}
 
-        {/* Sidebar toggle (left of AI Panel) */}
-        <button
-          type="button"
-          onClick={onToggleSidebar}
-          aria-pressed={showSidebar}
-          title={showSidebar ? t.titlebar.sidebarHide : t.titlebar.sidebarShow}
-          className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-semibold transition-colors ${
-            showSidebar
-              ? 'bg-blue-600 border-blue-600 text-white hover:bg-blue-700'
-              : 'bg-gray-200 border-gray-300 text-gray-600 hover:bg-gray-300'
-          }`}
-        >
-          <svg className="w-3.5 h-3.5" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
-            <rect x="2.5" y="3" width="15" height="14" rx="2" />
-            <line x1="8.5" y1="3" x2="8.5" y2="17" />
-          </svg>
-          <span className="hidden xl:inline">{t.titlebar.sidebarPanelLabel}</span>
-        </button>
+        {/* Sidebar / AI 패널 토글: 데스크톱 전용 (모바일은 하단 탭바 사용) */}
+        {!isMobileLayout && (
+          <>
+            {/* Sidebar toggle (left of AI Panel) */}
+            <button
+              type="button"
+              onClick={onToggleSidebar}
+              aria-pressed={showSidebar}
+              title={showSidebar ? t.titlebar.sidebarHide : t.titlebar.sidebarShow}
+              className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-semibold transition-colors ${
+                showSidebar
+                  ? 'bg-blue-600 border-blue-600 text-white hover:bg-blue-700'
+                  : 'bg-gray-200 border-gray-300 text-gray-600 hover:bg-gray-300'
+              }`}
+            >
+              <svg className="w-3.5 h-3.5" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+                <rect x="2.5" y="3" width="15" height="14" rx="2" />
+                <line x1="8.5" y1="3" x2="8.5" y2="17" />
+              </svg>
+              <span className="hidden xl:inline">{t.titlebar.sidebarPanelLabel}</span>
+            </button>
 
-        {/* AgenticAI panel split toggle (between search and language) */}
-        <button
-          type="button"
-          onClick={onToggleAgenticPanel}
-          title={showAgenticPanel ? t.titlebar.agenticPanelHide : t.titlebar.agenticPanelShow}
-          className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-semibold transition-colors ${
-            showAgenticPanel
-              ? 'bg-blue-600 border-blue-600 text-white hover:bg-blue-700'
-              : 'bg-gray-200 border-gray-300 text-gray-600 hover:bg-gray-300'
-          }`}
-        >
-          <svg className="w-3.5 h-3.5" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
-            <rect x="2.5" y="3" width="15" height="14" rx="2" />
-            <line x1="11" y1="3" x2="11" y2="17" />
-          </svg>
-          <span className="hidden xl:inline">{t.titlebar.agenticPanelLabel}</span>
-        </button>
+            {/* AgenticAI panel split toggle (between search and language) */}
+            <button
+              type="button"
+              onClick={onToggleAgenticPanel}
+              title={showAgenticPanel ? t.titlebar.agenticPanelHide : t.titlebar.agenticPanelShow}
+              className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-semibold transition-colors ${
+                showAgenticPanel
+                  ? 'bg-blue-600 border-blue-600 text-white hover:bg-blue-700'
+                  : 'bg-gray-200 border-gray-300 text-gray-600 hover:bg-gray-300'
+              }`}
+            >
+              <svg className="w-3.5 h-3.5" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+                <rect x="2.5" y="3" width="15" height="14" rx="2" />
+                <line x1="11" y1="3" x2="11" y2="17" />
+              </svg>
+              <span className="hidden xl:inline">{t.titlebar.agenticPanelLabel}</span>
+            </button>
+          </>
+        )}
 
         {/* User avatar + popup trigger */}
         {currentUser && (

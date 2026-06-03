@@ -41663,3 +41663,164 @@ Terminated
 [20260603-08:55:28][BE] [RAG Server] [RAG Server] 임베딩 모델 로드 중 (device=cuda)...
 [20260603-08:55:44][BE] [RAG Server] [RAG Server] 임베딩 모델 로드 완료
 [20260603-08:55:44][BE] [RAG Server] 포트 5001 에서 시작됨
+AM 9:12:25 [vite] hmr update /src/components/ChatArea.jsx, /src/index.css
+AM 9:12:43 [vite] hmr update /src/components/ChatArea.jsx, /src/index.css
+AM 9:12:54 [vite] hmr update /src/components/chat/PostDetailPane.jsx, /src/index.css
+AM 9:13:01 [vite] hmr update /src/components/chat/PostDetailPane.jsx, /src/index.css
+AM 9:13:01 [vite] Internal server error: /home/freegear/EasyDocStation/src/components/chat/PostDetailPane.jsx: Unexpected token, expected "}" (738:8)
+
+  736 |       <div className={`flex items-center gap-3 border-b border-gray-200 flex-shrink-0 ${isMobile ? 'px-3 py-2 overflow-x-auto' : 'px-6 py-3'}`}>
+  737 |         {!isMobile && <div className="flex-1" />
+> 738 |         {!isEditingPost && !selectedChannel?.is_archived && (
+      |         ^
+  739 |           <div className="flex items-center gap-2">
+  740 |             {canPinSelected && (
+  741 |               <button
+  Plugin: vite:react-babel
+  File: /home/freegear/EasyDocStation/src/components/chat/PostDetailPane.jsx:738:8
+  736|        <div className={`flex items-center gap-3 border-b border-gray-200 flex-shrink-0 ${isMobile ? 'px-3 py-2 overflow-x-auto' : 'px-6 py-3'}`}>
+  737|          {!isMobile && <div className="flex-1" />
+  738|          {!isEditingPost && !selectedChannel?.is_archived && (
+     |          ^
+  739|            <div className="flex items-center gap-2">
+  740|              {canPinSelected && (
+      at constructor (/home/freegear/EasyDocStation/node_modules/@babel/parser/lib/index.js:365:19)
+      at JSXParserMixin.raise (/home/freegear/EasyDocStation/node_modules/@babel/parser/lib/index.js:6616:19)
+      at JSXParserMixin.unexpected (/home/freegear/EasyDocStation/node_modules/@babel/parser/lib/index.js:6636:16)
+      at JSXParserMixin.expect (/home/freegear/EasyDocStation/node_modules/@babel/parser/lib/index.js:6916:12)
+      at JSXParserMixin.jsxParseExpressionContainer (/home/freegear/EasyDocStation/node_modules/@babel/parser/lib/index.js:4649:10)
+      at JSXParserMixin.jsxParseElementAt (/home/freegear/EasyDocStation/node_modules/@babel/parser/lib/index.js:4723:36)
+      at JSXParserMixin.jsxParseElementAt (/home/freegear/EasyDocStation/node_modules/@babel/parser/lib/index.js:4710:32)
+      at JSXParserMixin.jsxParseElement (/home/freegear/EasyDocStation/node_modules/@babel/parser/lib/index.js:4761:17)
+      at JSXParserMixin.parseExprAtom (/home/freegear/EasyDocStation/node_modules/@babel/parser/lib/index.js:4771:19)
+      at JSXParserMixin.parseExprSubscripts (/home/freegear/EasyDocStation/node_modules/@babel/parser/lib/index.js:11098:23)
+      at JSXParserMixin.parseUpdate (/home/freegear/EasyDocStation/node_modules/@babel/parser/lib/index.js:11083:21)
+      at JSXParserMixin.parseMaybeUnary (/home/freegear/EasyDocStation/node_modules/@babel/parser/lib/index.js:11063:23)
+      at JSXParserMixin.parseMaybeUnaryOrPrivate (/home/freegear/EasyDocStation/node_modules/@babel/parser/lib/index.js:10916:61)
+      at JSXParserMixin.parseExprOps (/home/freegear/EasyDocStation/node_modules/@babel/parser/lib/index.js:10921:23)
+      at JSXParserMixin.parseMaybeConditional (/home/freegear/EasyDocStation/node_modules/@babel/parser/lib/index.js:10898:23)
+      at JSXParserMixin.parseMaybeAssign (/home/freegear/EasyDocStation/node_modules/@babel/parser/lib/index.js:10848:21)
+      at /home/freegear/EasyDocStation/node_modules/@babel/parser/lib/index.js:10817:39
+      at JSXParserMixin.allowInAnd (/home/freegear/EasyDocStation/node_modules/@babel/parser/lib/index.js:12443:12)
+      at JSXParserMixin.parseMaybeAssignAllowIn (/home/freegear/EasyDocStation/node_modules/@babel/parser/lib/index.js:10817:17)
+      at JSXParserMixin.parseMaybeAssignAllowInOrVoidPattern (/home/freegear/EasyDocStation/node_modules/@babel/parser/lib/index.js:12510:17)
+      at JSXParserMixin.parseParenAndDistinguishExpression (/home/freegear/EasyDocStation/node_modules/@babel/parser/lib/index.js:11692:28)
+      at JSXParserMixin.parseExprAtom (/home/freegear/EasyDocStation/node_modules/@babel/parser/lib/index.js:11348:23)
+      at JSXParserMixin.parseExprAtom (/home/freegear/EasyDocStation/node_modules/@babel/parser/lib/index.js:4776:20)
+      at JSXParserMixin.parseExprSubscripts (/home/freegear/EasyDocStation/node_modules/@babel/parser/lib/index.js:11098:23)
+      at JSXParserMixin.parseUpdate (/home/freegear/EasyDocStation/node_modules/@babel/parser/lib/index.js:11083:21)
+      at JSXParserMixin.parseMaybeUnary (/home/freegear/EasyDocStation/node_modules/@babel/parser/lib/index.js:11063:23)
+      at JSXParserMixin.parseMaybeUnaryOrPrivate (/home/freegear/EasyDocStation/node_modules/@babel/parser/lib/index.js:10916:61)
+      at JSXParserMixin.parseExprOps (/home/freegear/EasyDocStation/node_modules/@babel/parser/lib/index.js:10921:23)
+      at JSXParserMixin.parseMaybeConditional (/home/freegear/EasyDocStation/node_modules/@babel/parser/lib/index.js:10898:23)
+      at JSXParserMixin.parseMaybeAssign (/home/freegear/EasyDocStation/node_modules/@babel/parser/lib/index.js:10848:21)
+      at JSXParserMixin.parseExpressionBase (/home/freegear/EasyDocStation/node_modules/@babel/parser/lib/index.js:10801:23)
+      at /home/freegear/EasyDocStation/node_modules/@babel/parser/lib/index.js:10797:39
+      at JSXParserMixin.allowInAnd (/home/freegear/EasyDocStation/node_modules/@babel/parser/lib/index.js:12438:16)
+      at JSXParserMixin.parseExpression (/home/freegear/EasyDocStation/node_modules/@babel/parser/lib/index.js:10797:17)
+      at JSXParserMixin.parseReturnStatement (/home/freegear/EasyDocStation/node_modules/@babel/parser/lib/index.js:13159:28)
+      at JSXParserMixin.parseStatementContent (/home/freegear/EasyDocStation/node_modules/@babel/parser/lib/index.js:12815:21)
+      at JSXParserMixin.parseStatementLike (/home/freegear/EasyDocStation/node_modules/@babel/parser/lib/index.js:12784:17)
+      at JSXParserMixin.parseStatementListItem (/home/freegear/EasyDocStation/node_modules/@babel/parser/lib/index.js:12764:17)
+      at JSXParserMixin.parseBlockOrModuleBlockBody (/home/freegear/EasyDocStation/node_modules/@babel/parser/lib/index.js:13333:61)
+      at JSXParserMixin.parseBlockBody (/home/freegear/EasyDocStation/node_modules/@babel/parser/lib/index.js:13326:10)
+      at JSXParserMixin.parseBlock (/home/freegear/EasyDocStation/node_modules/@babel/parser/lib/index.js:13314:10)
+      at JSXParserMixin.parseFunctionBody (/home/freegear/EasyDocStation/node_modules/@babel/parser/lib/index.js:12117:24)
+      at JSXParserMixin.parseFunctionBodyAndFinish (/home/freegear/EasyDocStation/node_modules/@babel/parser/lib/index.js:12103:10)
+      at /home/freegear/EasyDocStation/node_modules/@babel/parser/lib/index.js:13462:12
+      at JSXParserMixin.withSmartMixTopicForbiddingContext (/home/freegear/EasyDocStation/node_modules/@babel/parser/lib/index.js:12420:14)
+      at JSXParserMixin.parseFunction (/home/freegear/EasyDocStation/node_modules/@babel/parser/lib/index.js:13461:10)
+      at JSXParserMixin.parseFunctionStatement (/home/freegear/EasyDocStation/node_modules/@babel/parser/lib/index.js:13142:17)
+      at JSXParserMixin.parseStatementContent (/home/freegear/EasyDocStation/node_modules/@babel/parser/lib/index.js:12808:21)
+      at JSXParserMixin.parseStatementLike (/home/freegear/EasyDocStation/node_modules/@babel/parser/lib/index.js:12784:17)
+      at JSXParserMixin.parseModuleItem (/home/freegear/EasyDocStation/node_modules/@babel/parser/lib/index.js:12761:17)
+AM 9:13:10 [vite] hmr update /src/components/chat/PostDetailPane.jsx, /src/index.css
+AM 9:13:19 [vite] hmr update /src/components/chat/PostDetailPane.jsx, /src/index.css
+AM 9:13:28 [vite] hmr update /src/components/chat/PostDetailPane.jsx, /src/index.css
+AM 9:13:38 [vite] hmr update /src/components/chat/PostDetailPane.jsx, /src/index.css
+AM 9:13:50 [vite] hmr update /src/App.jsx, /src/index.css
+AM 9:14:11 [vite] hmr update /src/App.jsx, /src/index.css
+AM 9:14:35 [vite] hmr update /src/components/TitleBar.jsx, /src/index.css
+AM 9:15:14 [vite] hmr update /src/App.jsx, /src/index.css
+AM 9:16:35 [vite] hmr update /src/components/MobileLayout.jsx, /src/index.css
+AM 9:17:12 [vite] hmr update /src/components/MobileLayout.jsx, /src/index.css
+AM 9:17:35 [vite] hmr update /src/components/MobileLayout.jsx, /src/index.css
+AM 9:39:00 [vite] hmr update /src/components/MobileLayout.jsx, /src/index.css
+[20260603-09:53:12][BE] [ATTACH-REF] sync ownerType=comment ownerId=c-975457f2-6b3b-46e5-b90b-5d89dc2204f9 actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260603-09:53:12][BE] [RAG] 댓글 학습 시작 — 1개 댓글 (제외: 0개)
+[20260603-09:53:12][BE] /home/freegear/EasyDocStation/server/rag_train.py:112: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260603-09:53:12][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260603-09:53:15][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table' already exists
+[20260603-09:53:15][BE] [RAG] comment=c-975457f2-6b3b-46e5-b90b-5d89dc2204f9 post=a4a7f863-719d-43b2-a06e-0df2f8c8d530 text → 6청크
+[20260603-09:53:15][BE] [RAG] 학습 진행률: 50% (댓글 본문)
+[20260603-09:53:15][BE] [RAG] 저장 완료 — 6청크 / 0개 게시글 / 1개 댓글
+[20260603-09:53:15][BE] [RAG] 학습 진행률: 100% (저장)
+[20260603-09:53:16][BE] [RAG] 댓글 학습 완료 — 1개 댓글 (4.2s)
+AM 10:12:48 [vite] hmr update /src/components/MobileLayout.jsx, /src/index.css
+AM 10:12:55 [vite] hmr update /src/components/ChatArea.jsx, /src/index.css
+AM 10:13:02 [vite] hmr update /src/components/ChatArea.jsx, /src/index.css
+[20260603-10:18:19][BE] [link-preview-image] meta image failed, fallback screenshot: fetch failed
+[20260603-10:18:19][BE] [link-preview-image] local render failed, try remote fallback: page.goto: net::ERR_CONNECTION_REFUSED at http://114.207.245.216/
+[20260603-10:18:19][BE] Call log:
+[20260603-10:18:19][BE]   - navigating to "http://114.207.245.216/", waiting until "domcontentloaded"
+[20260603-10:18:19][BE] 
+[20260603-10:18:19][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260603-10:18:19][BE] [link-preview-image] remote fallback failed, placeholder: fallback preview fetch failed (404)
+[20260603-10:18:20][BE] [link-preview-image] meta image failed, fallback screenshot: meta image fetch failed (404)
+[20260603-10:18:31][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+AM 10:22:34 [vite] hmr update /src/components/ChatArea.jsx, /src/index.css
+AM 10:22:44 [vite] hmr update /src/components/ChatArea.jsx, /src/index.css
+[20260603-10:26:58][BE] [ATTACH-REF] sync ownerType=post ownerId=8cddd4e9-1e9b-4af7-aaa9-15915c727d93 actorUserId=1 prev=0 next=1 add=1 remove=0
+[20260603-10:27:00][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
+[20260603-10:27:01][BE] /home/freegear/EasyDocStation/server/rag_train.py:112: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260603-10:27:01][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260603-10:27:04][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table' already exists
+[20260603-10:27:04][BE] [RAG] post=8cddd4e9-1e9b-4af7-aaa9-15915c727d93 text → 1청크
+[20260603-10:27:04][BE] [RAG] 학습 진행률: 30% (게시글 본문)
+[20260603-10:27:04][BE] [RAG] PDF 학습 시작: 01716fa8-9e0a-492d-a408-850f9c334926.pdf
+[20260603-10:27:04][BE] [RAG] PDF 파싱 시작 (Unstructured fast): 01716fa8-9e0a-492d-a408-850f9c334926.pdf
+[20260603-10:27:05][BE] [RAG] PDF 파싱 완료 (Unstructured fast): 01716fa8-9e0a-492d-a408-850f9c334926.pdf / elements=345 / 0.9s
+[20260603-10:27:06][BE] [RAG] PDF 학습 완료: 01716fa8-9e0a-492d-a408-850f9c334926.pdf (16청크)
+[20260603-10:27:06][BE] [RAG] 분리 저장 완료: /home/freegear/EasyDocStation/Database/ObjectFile/FileTrainingData/8cddd4e9-1e9b-4af7-aaa9-15915c727d93/no_comment/01716fa8-9e0a-492d-a408-850f9c334926/slides_20260603011156.pdf
+[20260603-10:27:06][BE] [RAG] 학습 진행률: 60% (게시글 PDF)
+[20260603-10:27:06][BE] [RAG] 저장 완료 — 17청크 / 1개 게시글 / 0개 댓글
+[20260603-10:27:06][BE] [RAG] 학습 진행률: 100% (저장)
+[20260603-10:27:07][BE] [RAG] 학습 완료
+[20260603-10:34:26][BE] [ATTACH-REF] sync ownerType=comment ownerId=c-3b6cdbd8-0809-4fe1-b971-99a3daf658c4 actorUserId=1 prev=0 next=1 add=1 remove=0
+[20260603-10:34:28][BE] [RAG] 댓글 학습 시작 — 1개 댓글 (제외: 0개)
+[20260603-10:34:28][BE] /home/freegear/EasyDocStation/server/rag_train.py:112: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260603-10:34:28][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260603-10:34:31][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table' already exists
+[20260603-10:34:31][BE] [RAG] comment=c-3b6cdbd8-0809-4fe1-b971-99a3daf658c4 post=8cddd4e9-1e9b-4af7-aaa9-15915c727d93 text → 1청크
+[20260603-10:34:31][BE] [RAG] 학습 진행률: 30% (댓글 본문)
+[20260603-10:34:31][BE] [RAG] PDF 학습 시작: 8f8d86b2-2d4e-4d7d-8404-94f5ab9a7906.pdf
+[20260603-10:34:32][BE] [RAG] PDF 파싱 시작 (Unstructured fast): 8f8d86b2-2d4e-4d7d-8404-94f5ab9a7906.pdf
+[20260603-10:34:33][BE] [RAG] PDF 파싱 완료 (Unstructured fast): 8f8d86b2-2d4e-4d7d-8404-94f5ab9a7906.pdf / elements=327 / 0.9s
+[20260603-10:34:33][BE] [RAG] PDF 학습 완료: 8f8d86b2-2d4e-4d7d-8404-94f5ab9a7906.pdf (15청크)
+[20260603-10:34:33][BE] [RAG] 분리 저장 완료: /home/freegear/EasyDocStation/Database/ObjectFile/FileTrainingData/8cddd4e9-1e9b-4af7-aaa9-15915c727d93/c-3b6cdbd8-0809-4fe1-b971-99a3daf658c4/8f8d86b2-2d4e-4d7d-8404-94f5ab9a7906/slides_20260603011156.pdf
+[20260603-10:34:33][BE] [RAG] 학습 진행률: 60% (댓글 PDF)
+[20260603-10:34:33][BE] [RAG] 저장 완료 — 16청크 / 0개 게시글 / 1개 댓글
+[20260603-10:34:33][BE] [RAG] 학습 진행률: 100% (저장)
+[20260603-10:34:34][BE] [RAG] 댓글 학습 완료 — 1개 댓글 (6.0s)
+[20260603-10:57:18][BE] [ATTACH-REF] sync ownerType=post ownerId=e96b2108-b952-4974-84e3-42324436e266 actorUserId=1 prev=0 next=1 add=1 remove=0
+[20260603-10:57:19][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
+[20260603-10:57:19][BE] /home/freegear/EasyDocStation/server/rag_train.py:112: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260603-10:57:19][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260603-10:57:22][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table' already exists
+[20260603-10:57:22][BE] [RAG] post=e96b2108-b952-4974-84e3-42324436e266 text → 1청크
+[20260603-10:57:22][BE] [RAG] 학습 진행률: 30% (게시글 본문)
+[20260603-10:57:22][BE] [RAG] PDF 학습 시작: 31af3a12-8486-4530-8a82-a30c6ab00927.pdf
+[20260603-10:57:23][BE] [RAG] PDF 파싱 시작 (Unstructured fast): 31af3a12-8486-4530-8a82-a30c6ab00927.pdf
+[20260603-10:57:24][BE] [RAG] PDF 파싱 완료 (Unstructured fast): 31af3a12-8486-4530-8a82-a30c6ab00927.pdf / elements=252 / 0.7s
+[20260603-10:57:24][BE] [RAG] PDF 학습 완료: 31af3a12-8486-4530-8a82-a30c6ab00927.pdf (14청크)
+[20260603-10:57:24][BE] [RAG] 분리 저장 완료: /home/freegear/EasyDocStation/Database/ObjectFile/FileTrainingData/e96b2108-b952-4974-84e3-42324436e266/no_comment/31af3a12-8486-4530-8a82-a30c6ab00927/slides_20260603015702.pdf
+[20260603-10:57:24][BE] [RAG] 학습 진행률: 60% (게시글 PDF)
+[20260603-10:57:24][BE] [RAG] 저장 완료 — 15청크 / 1개 게시글 / 0개 댓글
+[20260603-10:57:24][BE] [RAG] 학습 진행률: 100% (저장)
+[20260603-10:57:25][BE] [RAG] 학습 완료
+AM 11:21:15 [vite] hmr update /src/components/ChatArea.jsx, /src/index.css
+AM 11:21:23 [vite] hmr update /src/components/ChatArea.jsx, /src/index.css
+AM 11:21:32 [vite] hmr update /src/components/ChatArea.jsx, /src/index.css
+AM 11:21:48 [vite] hmr update /src/components/ChatArea.jsx, /src/index.css
+AM 11:21:59 [vite] hmr update /src/components/ChatArea.jsx, /src/index.css
+AM 11:28:32 [vite] hmr update /src/components/ChatArea.jsx, /src/index.css

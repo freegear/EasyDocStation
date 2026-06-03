@@ -146,6 +146,7 @@ function PostDetailPane({
   pendingOpenAttachmentId = null,
   onConsumePendingOpen = null,
   helpers = {},
+  isMobile = false,
 }) {
   const t = useT()
   const { addComment, incrementViews, deletePost, updatePost, togglePostPin, togglePostLike, toggleCommentLike, deleteComment, updateComment, posts, selectedChannel, selectedTeam, openInAgenticAI } = useChat()
@@ -732,8 +733,8 @@ function PostDetailPane({
 
   return (
     <div className="flex-1 flex flex-col min-h-0" style={{ WebkitAppRegion: 'no-drag' }}>
-      <div className="flex items-center gap-3 px-6 py-3 border-b border-gray-200 flex-shrink-0">
-        <div className="flex-1" />
+      <div className={`flex items-center gap-3 border-b border-gray-200 flex-shrink-0 ${isMobile ? 'px-3 py-2 overflow-x-auto' : 'px-6 py-3'}`}>
+        {!isMobile && <div className="flex-1" />}
         {!isEditingPost && !selectedChannel?.is_archived && (
           <div className="flex items-center gap-2">
             {canPinSelected && (
@@ -813,15 +814,17 @@ function PostDetailPane({
             </button>
           </div>
         )}
-        {/* Close right panel */}
-        <button
-          onClick={onClose}
-          className="w-7 h-7 rounded-lg text-gray-400 hover:text-gray-900 hover:bg-gray-200 flex items-center justify-center transition-colors"
-        >
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
+        {/* Close right panel (데스크톱 전용 — 모바일은 ChatArea 상단 뒤로가기 사용) */}
+        {!isMobile && (
+          <button
+            onClick={onClose}
+            className="w-7 h-7 rounded-lg text-gray-400 hover:text-gray-900 hover:bg-gray-200 flex items-center justify-center transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        )}
       </div>
 
       {showSendToDMModal && (
@@ -944,8 +947,8 @@ function PostDetailPane({
         autoSaveId={`post-detail-compose:${currentUser?.id ?? 'anon'}:${post.id ?? 'none'}`}
         className="flex-1 min-h-0"
       >
-        <Panel defaultSize={72} minSize={25} className="overflow-hidden">
-      <div className={`h-full px-6 py-6 ${isEditingPost ? 'flex flex-col overflow-hidden' : 'overflow-y-auto overflow-x-hidden'}`}>
+        <Panel defaultSize={isMobile ? 82 : 72} minSize={25} className="overflow-hidden">
+      <div className={`h-full ${isMobile ? 'px-4 py-4' : 'px-6 py-6'} ${isEditingPost ? 'flex flex-col overflow-hidden' : 'overflow-y-auto overflow-x-hidden'}`}>
         {/* Meta */}
         <div className="mb-6">
           {freshPost.pinned && <div className="flex items-center gap-1.5 text-amber-600 text-xs font-medium mb-3"><PinIcon /><span>{t.chat.pinnedPost}</span></div>}
@@ -1274,9 +1277,9 @@ function PostDetailPane({
         </Panel>
 
         <PanelResizeHandle className="h-1.5 bg-gray-200 hover:bg-indigo-400 active:bg-indigo-500 transition-colors flex-shrink-0" />
-        <Panel defaultSize={28} minSize={12} className="overflow-hidden">
+        <Panel defaultSize={isMobile ? 18 : 28} minSize={12} className="overflow-hidden">
       {/* 댓글 입력 */}
-      <div className="h-full min-h-0 flex flex-col border-t border-gray-200 px-6 py-3 bg-white">
+      <div className={`h-full min-h-0 flex flex-col border-t border-gray-200 ${isMobile ? 'px-4 py-2' : 'px-6 py-3'} bg-white`}>
         <input ref={fileInputRef} type="file" multiple className="hidden" onChange={e => { if(e.target.files?.length) addFiles(e.target.files); e.target.value = '' }} />
         {!selectedChannel?.is_archived ? (
           <form

@@ -386,7 +386,7 @@ function FileChip({ file, onRemove }) {
 
 // ─── PDF first-page preview ───────────────────────────────────
 
-function PdfPagePreview({ fileId, width = 400 }) {
+function PdfPagePreview({ fileId, width = 400, previewPdf = false }) {
   const t = useT()
   const canvasRef = useRef(null)
   const [loading, setLoading] = useState(true)
@@ -400,8 +400,12 @@ function PdfPagePreview({ fileId, width = 400 }) {
 
     ;(async () => {
       try {
-        const url = `/api/files/view/${fileId}?auth_token=${getToken()}`
-        const resp = await fetch(url)
+        const params = []
+        if (previewPdf) params.push('preview=pdf')
+        const tk = getToken()
+        if (tk) params.push(`auth_token=${tk}`)
+        const url = `/api/files/view/${fileId}${params.length ? `?${params.join('&')}` : ''}`
+        const resp = await fetch(url, { credentials: 'include' })
         if (!resp.ok) throw new Error('fetch failed')
         const arrayBuffer = await resp.arrayBuffer()
         if (cancelled) return
@@ -433,7 +437,7 @@ function PdfPagePreview({ fileId, width = 400 }) {
     })()
 
     return () => { cancelled = true }
-  }, [fileId, width])
+  }, [fileId, width, previewPdf])
 
   if (error) {
     return (
@@ -453,6 +457,44 @@ function PdfPagePreview({ fileId, width = 400 }) {
         ref={canvasRef}
         className={`rounded-xl w-full ${loading ? 'opacity-0' : 'opacity-100'} transition-opacity`}
       />
+    </div>
+  )
+}
+
+// PPT/슬라이드 첨부 미리보기: 서버 썸네일을 우선 사용하고, 이미지 로드가
+// 실패하면 변환된 PDF 첫 페이지를 pdf.js로 직접 렌더(폴백)한다. 둘 다 실패해도
+// PdfPagePreview가 에러 박스를 보여주므로 미리보기가 통째로 사라지지 않는다.
+function SlideAttachmentPreview({ file, thumbUrl, width, height, onOpen, NativeOpenBtn, DownloadBtn }) {
+  const [imgFailed, setImgFailed] = useState(false)
+  const showThumb = thumbUrl && !imgFailed
+  return (
+    <div
+      className="rounded-2xl overflow-hidden border border-gray-200 hover:border-orange-500/50 transition-colors group cursor-pointer flex-shrink-0"
+      style={{ width, maxWidth: '100%' }}
+      onClick={onOpen}
+    >
+      {showThumb ? (
+        <img
+          src={thumbUrl}
+          alt={file.name}
+          className="block group-hover:opacity-90 transition-opacity bg-white"
+          style={{ width, height, maxWidth: '100%', objectFit: 'contain' }}
+          onError={() => setImgFailed(true)}
+        />
+      ) : (
+        <PdfPagePreview fileId={file.id} previewPdf width={typeof width === 'number' ? width : 480} />
+      )}
+      <div className="px-3 py-2 flex items-center justify-between bg-gray-50">
+        <div className="flex items-center gap-2 min-w-0">
+          <FileTypeIcon category="slide" className="w-4 h-4 flex-shrink-0" />
+          <span className="text-gray-500 text-xs truncate">{file.name}</span>
+        </div>
+        <div className="flex items-center gap-1 flex-shrink-0">
+          <span className="text-gray-400 text-xs">{formatSize(file.size)}</span>
+          <NativeOpenBtn f={file} />
+          <DownloadBtn f={file} />
+        </div>
+      </div>
     </div>
   )
 }
@@ -917,6 +959,24 @@ function AttachmentList({ attachments, compact = false, pendingOpenAttachmentId 
   const [previewFile, setPreviewFile] = useState(null)
   const [failedHtmlAttachmentPreview, setFailedHtmlAttachmentPreview] = useState({})
 
+  // 모바일(≤768px)에서는 첨부 미리보기 썸네일을 숨기고 파일 칩만 노출한다.
+  const [isMobileView, setIsMobileView] = useState(() => {
+    if (typeof window === 'undefined') return false
+    return window.matchMedia('(max-width: 768px)').matches
+  })
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined
+    const mq = window.matchMedia('(max-width: 768px)')
+    const onChange = (e) => setIsMobileView(e.matches)
+    setIsMobileView(mq.matches)
+    if (typeof mq.addEventListener === 'function') {
+      mq.addEventListener('change', onChange)
+      return () => mq.removeEventListener('change', onChange)
+    }
+    mq.addListener(onChange)
+    return () => mq.removeListener(onChange)
+  }, [])
+
   useEffect(() => {
     apiFetch('/config/display')
       .then(data => {
@@ -1048,6 +1108,23 @@ function AttachmentList({ attachments, compact = false, pendingOpenAttachmentId 
         <div className="flex flex-wrap gap-3">
           {attachments.map(f => {
             const category = getFileCategory(f.type || '', f.name || '')
+
+            // 모바일: 미리보기 썸네일 없이 파일 칩(이름 + 열기/다운로드)만 표시
+            if (isMobileView) {
+              return (
+                <div
+                  key={f.id}
+                  className="w-full flex items-center gap-2 px-3 py-2 rounded-xl border border-gray-200 bg-gray-50"
+                >
+                  <FileTypeIcon category={category} className="w-5 h-5 flex-shrink-0 text-gray-400" />
+                  <span className="flex-1 min-w-0 truncate text-gray-700 text-sm">{f.name}</span>
+                  <span className="text-gray-400 text-xs flex-shrink-0">{formatSize(f.size)}</span>
+                  <NativeOpenBtn f={f} />
+                  <DownloadBtn f={f} />
+                </div>
+              )
+            }
+
             const dims = getPreviewDimensions(
               f,
               imagePreviewSize,
@@ -1271,6 +1348,22 @@ function AttachmentList({ attachments, compact = false, pendingOpenAttachmentId 
                     </div>
                   </div>
                 </div>
+              )
+            }
+
+            // ── PPT/슬라이드 → 썸네일 우선, 실패 시 pdf.js 폴백 ──
+            if (isSlide) {
+              return (
+                <SlideAttachmentPreview
+                  key={f.id}
+                  file={f}
+                  thumbUrl={thumbUrl(f)}
+                  width={w}
+                  height={h}
+                  onOpen={(e) => handleFileClick(e, f)}
+                  NativeOpenBtn={NativeOpenBtn}
+                  DownloadBtn={DownloadBtn}
+                />
               )
             }
 
@@ -3129,7 +3222,7 @@ function PostCardPreview({ post, rawForParsing = '', isTemplate = false }) {
   const preview = useMemo(() => {
     const previewAttachment = (post.attachments || []).find((f) => {
       const category = getFileCategory(String(f?.type || ''), String(f?.name || ''))
-      if (!['image', 'pdf', 'html', 'video'].includes(category)) return false
+      // 이미지는 원본으로, 그 외(PDF·PPT·오피스 문서·영상 등)는 썸네일이 있으면 미리보기
       if (category === 'image') return Boolean(f?.url)
       return Boolean(f?.thumbnail_url)
     }) || null
@@ -3383,7 +3476,7 @@ function PostCard({ post, onSelect, pinned, isSelected }) {
 
 // ─── Main ─────────────────────────────────────────────────────
 
-export default function ChatArea({ autoOpenPostId }) {
+export default function ChatArea({ autoOpenPostId, isMobile = false, onExitChannel }) {
   const {
     selectedChannel,
     posts,
@@ -3518,6 +3611,78 @@ export default function ChatArea({ autoOpenPostId }) {
 
   // MD 페이지 선택 여부
   const isMdPageSelected = selectedPost && isMdPage(selectedPost.content)
+
+  // ─── 모바일: 단일 컬럼 드릴다운 (목록 ↔ 상세를 한 번에 하나만 표시) ───
+  if (isMobile) {
+    // MD 페이지/문서함은 자체 전체화면 UI(닫기·뒤로)를 가지므로 그대로 사용
+    if (isMdPageSelected) {
+      return (
+        <MDPageViewer
+          post={selectedPost}
+          channelId={selectedChannel.id}
+          onClose={() => setSelectedPost(null)}
+        />
+      )
+    }
+    if (showDocumentList) {
+      return (
+        <ChannelDocumentListPage
+          posts={channelPosts}
+          onBack={() => setShowDocumentList(false)}
+          onOpenPost={(post) => { setSelectedPost(post); setShowDocumentList(false) }}
+        />
+      )
+    }
+
+    const backToList = () => {
+      if (selectedPost) { setSelectedPost(null); return }
+      onExitChannel?.()
+    }
+    const headerTitle = selectedPost ? (t.chat.postDetail || '게시글') : selectedChannel.name
+    const backLabel = selectedPost ? (t.chat.backToList || '글 목록') : (t.chat.backToChannels || '채널')
+
+    return (
+      <div className="flex-1 flex flex-col min-h-0 min-w-0 bg-gray-50">
+        <div className="flex items-center gap-2 px-2 h-12 border-b border-gray-200 bg-white flex-shrink-0">
+          <button
+            type="button"
+            onClick={backToList}
+            className="inline-flex items-center gap-0.5 pl-1 pr-2 py-1.5 rounded-lg text-indigo-600 hover:bg-indigo-50 text-sm font-medium"
+            aria-label={backLabel}
+          >
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+            <span className="truncate max-w-[80px]">{backLabel}</span>
+          </button>
+          <span className="flex-1 text-center text-sm font-semibold text-gray-900 truncate px-1">{headerTitle}</span>
+          <span className="w-12 flex-shrink-0" />
+        </div>
+        <div className="flex-1 min-h-0 min-w-0 overflow-hidden flex flex-col">
+          {selectedPost ? (
+            <PostDetailPane
+              post={selectedPost}
+              channelId={selectedChannel.id}
+              onClose={() => setSelectedPost(null)}
+              pendingOpenCommentId={pendingOpenCommentId}
+              pendingOpenAttachmentId={pendingOpenAttachmentId}
+              onConsumePendingOpen={clearPendingPost}
+              helpers={postDetailHelpers}
+              isMobile
+            />
+          ) : (
+            <PostList
+              posts={channelPosts}
+              selectedPostId={selectedPost?.id}
+              onSelect={setSelectedPost}
+              onSubmit={handleNewPost}
+              onOpenDocumentList={() => { setSelectedPost(null); setShowDocumentList(true) }}
+            />
+          )}
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div ref={containerRef} className="flex-1 flex min-w-0 bg-gray-50">
