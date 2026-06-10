@@ -790,7 +790,7 @@ function extractMentions(content) {
   return [...names]
 }
 
-async function notifyMentionedUsers(content, { channelId = '', postId = '', commentId = '' } = {}) {
+async function notifyMentionedUsers(content, { channelId = '', postId = '', commentId = '', attachmentIds = [] } = {}) {
   const names = extractMentions(content)
   if (names.length === 0) return
   try {
@@ -804,9 +804,9 @@ async function notifyMentionedUsers(content, { channelId = '', postId = '', comm
 
     const siteUrl = String(config?.site_url || '').trim()
     const postLink = (channelId && postId) ? buildPostLink(channelId, postId, commentId, siteUrl) : ''
-    const text = postLink
-      ? `게시물이 등록되었습니다. ${postLink}`
-      : '게시물이 등록되었습니다.'
+    // 첨부가 없는 텍스트 전용 게시물이면 본문 앞 3줄을 함께 보낸다.
+    const preview = (attachmentIds || []).filter(Boolean).length === 0 ? buildPostNotifyPreview(content) : ''
+    const text = ['게시물이 등록되었습니다.', preview, postLink].filter(Boolean).join('\n\n')
 
     for (const name of names) {
       const r = await db.query(
@@ -828,15 +828,35 @@ async function notifyMentionedUsers(content, { channelId = '', postId = '', comm
       const chatId = (user.telegram_id || '').trim()
       if (!/^-?[0-9]+$/.test(chatId)) continue
 
-      fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ chat_id: chatId, text }),
-      }).catch(() => {})
+      await sendTelegramPostNotify(botToken, chatId, text, attachmentIds)
     }
   } catch (e) {
     console.error('[notifyMentionedUsers]', e)
   }
+}
+
+// 텍스트 전용 게시물 알림에 함께 보낼 본문 미리보기(앞 3줄).
+//  - HTML 주석/캐리지리턴 정리, 앞뒤 빈 줄 제거 후 내용 있는 줄부터 최대 3줄
+//  - 3줄을 넘거나 글자수 상한(기본 300자)을 넘으면 끝에 '…' 표시
+function buildPostNotifyPreview(content = '', maxLines = 3, maxChars = 300) {
+  const cleaned = String(content || '')
+    .replace(/<!--[\s\S]*?-->/g, '')
+    .replace(/\r\n?/g, '\n')
+  const allLines = cleaned.split('\n')
+  let start = 0
+  while (start < allLines.length && allLines[start].trim() === '') start++
+  const body = allLines.slice(start)
+  while (body.length && body[body.length - 1].trim() === '') body.pop()
+  if (body.length === 0) return ''
+  const picked = body.slice(0, maxLines).map((l) => l.replace(/\s+$/, ''))
+  let preview = picked.join('\n')
+  let truncated = body.length > maxLines
+  if (preview.length > maxChars) {
+    preview = preview.slice(0, maxChars).trimEnd()
+    truncated = true
+  }
+  if (truncated) preview += ' …'
+  return preview
 }
 
 function buildPostLink(channelId, postId, commentId = '', siteUrl = '') {
@@ -849,7 +869,72 @@ function buildPostLink(channelId, postId, commentId = '', siteUrl = '') {
   return `${base}/?${params.toString()}`
 }
 
-async function notifyAuthorTelegramPostRegistered({ authorId, channelId, postId, commentId = '' }) {
+// 알림에 함께 보낼 미리보기 파일을 찾는다.
+//  - 이미지 첨부: 원본 이미지를 보냄(우선)
+//  - 그 외(PPT·PDF·오피스 등): 생성된 썸네일 PNG(첫 페이지/슬라이드)를 보냄
+//  - 보낼 미리보기가 없으면 null
+async function resolveNotifyPreviewFile(attachmentIds = []) {
+  const ids = (attachmentIds || [])
+    .map((it) => (typeof it === 'object' ? it?.id : it))
+    .filter(Boolean)
+  let fallbackThumb = null
+  for (const id of ids) {
+    try {
+      const r = await db.query(
+        'SELECT filename, storage_path, content_type, thumbnail_path FROM attachments WHERE id = $1',
+        [id],
+      )
+      const a = r.rows?.[0]
+      if (!a) continue
+
+      const isImage = String(a.content_type || '').toLowerCase().startsWith('image/')
+        || /\.(png|jpe?g|gif|webp|bmp)$/i.test(a.filename || '')
+      if (isImage && a.storage_path) {
+        const full = path.join(STORAGE_BASE, a.storage_path)
+        if (fs.existsSync(full)) return { full, filename: a.filename || 'image' } // 이미지 원본 우선
+      }
+
+      // 이미지가 아니어도 썸네일(PPT 첫 슬라이드/PDF 첫 페이지/오피스 등)이 있으면 후보로 저장
+      if (!fallbackThumb && a.thumbnail_path) {
+        const tfull = path.join(STORAGE_BASE, a.thumbnail_path)
+        if (fs.existsSync(tfull)) {
+          const base = (a.filename || 'preview').replace(/\.[^.]+$/, '')
+          fallbackThumb = { full: tfull, filename: `${base}.png` }
+        }
+      }
+    } catch (_) { /* 다음 첨부 시도 */ }
+  }
+  return fallbackThumb
+}
+
+// 텔레그램 게시물 알림 발송:
+//  - 이미지 첨부가 있으면 sendPhoto 로 미리보기 이미지를 caption(링크 포함)과 함께 전송
+//  - 이미지가 없거나 전송 실패(용량 초과 등) 시 sendMessage 로 폴백
+async function sendTelegramPostNotify(botToken, chatId, text, attachmentIds = []) {
+  try {
+    const img = await resolveNotifyPreviewFile(attachmentIds)
+    if (img) {
+      const buf = await fs.promises.readFile(img.full)
+      const form = new FormData()
+      form.append('chat_id', String(chatId))
+      form.append('caption', text)
+      form.append('photo', new Blob([buf]), img.filename)
+      const res = await fetch(`https://api.telegram.org/bot${botToken}/sendPhoto`, {
+        method: 'POST',
+        body: form,
+      })
+      const data = await res.json().catch(() => ({}))
+      if (data?.ok) return
+    }
+  } catch (_) { /* 텍스트 폴백 */ }
+  fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ chat_id: chatId, text }),
+  }).catch(() => {})
+}
+
+async function notifyAuthorTelegramPostRegistered({ authorId, channelId, postId, commentId = '', attachmentIds = [], content = '' }) {
   if (!authorId || !channelId || !postId) return
   try {
     const configPath = path.resolve(__dirname, '../../config.json')
@@ -876,13 +961,11 @@ async function notifyAuthorTelegramPostRegistered({ authorId, channelId, postId,
 
     const siteUrl = String(config?.site_url || '').trim()
     const postLink = buildPostLink(channelId, postId, commentId, siteUrl)
-    const text = `게시물이 등록되었습니다. ${postLink}`
+    // 첨부가 없는 텍스트 전용 게시물이면 본문 앞 3줄을 함께 보낸다.
+    const preview = (attachmentIds || []).filter(Boolean).length === 0 ? buildPostNotifyPreview(content) : ''
+    const text = ['게시물이 등록되었습니다.', preview, postLink].filter(Boolean).join('\n\n')
 
-    fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ chat_id: chatId, text }),
-    }).catch(() => {})
+    await sendTelegramPostNotify(botToken, chatId, text, attachmentIds)
   } catch (e) {
     console.error('[notifyAuthorTelegramPostRegistered]', e)
   }
@@ -928,6 +1011,7 @@ async function linkAttachments(postId, ids) {
 
 // ─── Helper: fetch comments for a post ───────────────────────
 async function fetchComments(postId, userId = null) {
+  const deletedCommentIds = await getDeletedItemIdSet('comment', { postId })
   // ── Cassandra path ──────────────────────────────────────────
   if (isConnected()) {
     try {
@@ -935,9 +1019,10 @@ async function fetchComments(postId, userId = null) {
         'SELECT * FROM comments WHERE post_id = ? ORDER BY created_at ASC',
         [postId], { prepare: true }
       )
-      
-      const commentLikeMap = await getCommentLikeMap((result.rows || []).map(row => row.id), userId)
-      return Promise.all(result.rows.map(async row => {
+
+      const visibleRows = (result.rows || []).filter(row => !deletedCommentIds.has(String(row.id)))
+      const commentLikeMap = await getCommentLikeMap(visibleRows.map(row => row.id), userId)
+      return Promise.all(visibleRows.map(async row => {
         const authorRes = await db.query(
           'SELECT id, name, username, image_url FROM users WHERE id = $1',
           [row.author_id]
@@ -982,8 +1067,9 @@ async function fetchComments(postId, userId = null) {
     ORDER BY c.created_at ASC
   `, [postId])
 
-  const commentLikeMap = await getCommentLikeMap((result.rows || []).map(row => row.id), userId)
-  return Promise.all(result.rows.map(async row => {
+  const visibleRows = (result.rows || []).filter(row => !deletedCommentIds.has(String(row.id)))
+  const commentLikeMap = await getCommentLikeMap(visibleRows.map(row => row.id), userId)
+  return Promise.all(visibleRows.map(async row => {
     const avatarLetters = row.author_name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
     const attachments = await enrichAttachments(row.attachments || [])
     const likeInfo = commentLikeMap.get(String(row.id)) || { likeCount: 0, likedByMe: false }
@@ -1084,6 +1170,66 @@ async function findCommentLocator(postId, commentId) {
   return row
 }
 
+// ─── 소프트 삭제(휴지통, 1분 내 복구) ─────────────────────────────
+// 원본 행(Cassandra/PG)은 건드리지 않고 deleted_items 에만 "삭제 표시"를 기록한다.
+//  · 라이브 조회(목록/댓글)는 deleted_items 를 참조해 숨긴다.
+//  · 복구는 deleted_items 행만 지우면 원본이 그대로 다시 보인다.
+//  · 1분이 지난 항목은 백그라운드 purge 가 기존 하드삭제 로직으로 영구 제거한다.
+const RESTORE_WINDOW_MS = 1 * 60 * 1000
+
+let softDeleteSchemaEnsured = false
+async function ensureSoftDeleteSchema() {
+  if (softDeleteSchemaEnsured) return
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS deleted_items (
+      item_type   TEXT NOT NULL,
+      item_id     VARCHAR(50) NOT NULL,
+      channel_id  VARCHAR(50),
+      post_id     VARCHAR(50),
+      author_id   INTEGER,
+      deleted_by  INTEGER,
+      preview     TEXT,
+      deleted_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      PRIMARY KEY (item_type, item_id)
+    )
+  `)
+  await db.query('CREATE INDEX IF NOT EXISTS idx_deleted_items_channel ON deleted_items(item_type, channel_id)')
+  await db.query('CREATE INDEX IF NOT EXISTS idx_deleted_items_post ON deleted_items(item_type, post_id)')
+  await db.query('CREATE INDEX IF NOT EXISTS idx_deleted_items_deleted_at ON deleted_items(deleted_at)')
+  softDeleteSchemaEnsured = true
+}
+
+function buildPreview(content = '', max = 80) {
+  return String(content || '')
+    .replace(/<!--[\s\S]*?-->/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, max)
+}
+
+// 특정 범위에서 현재 소프트삭제(숨김) 상태인 항목 id 집합을 돌려준다.
+async function getDeletedItemIdSet(itemType, { channelId = null, postId = null } = {}) {
+  try {
+    await ensureSoftDeleteSchema()
+    let q
+    let params
+    if (postId != null) {
+      q = 'SELECT item_id FROM deleted_items WHERE item_type = $1 AND post_id = $2'
+      params = [itemType, String(postId)]
+    } else if (channelId != null) {
+      q = 'SELECT item_id FROM deleted_items WHERE item_type = $1 AND channel_id = $2'
+      params = [itemType, String(channelId)]
+    } else {
+      q = 'SELECT item_id FROM deleted_items WHERE item_type = $1'
+      params = [itemType]
+    }
+    const r = await db.query(q, params)
+    return new Set((r.rows || []).map((x) => String(x.item_id)))
+  } catch (_) {
+    return new Set()
+  }
+}
+
 async function resolveChannelIdForPost(postId) {
   if (isConnected()) {
     const locator = await findPostLocator(postId)
@@ -1178,7 +1324,26 @@ router.get('/search', requireAuth, async (req, res, next) => {
          LIMIT $4`,
         [accessibleChannelIds, String(q), userLevel, limit, currentChannelId, currentTeamId],
       )
-      return res.json(searchRes.rows.map(row => ({
+      // 소프트삭제(휴지통) 중인 항목은 검색 결과에서도 제외
+      await ensureSoftDeleteSchema().catch(() => {})
+      const delRes = await db.query(
+        'SELECT item_type, item_id FROM deleted_items WHERE channel_id = ANY($1)',
+        [accessibleChannelIds],
+      ).catch(() => ({ rows: [] }))
+      const delPostIds = new Set()
+      const delCommentIds = new Set()
+      for (const d of delRes.rows || []) {
+        if (d.item_type === 'post') delPostIds.add(String(d.item_id))
+        else if (d.item_type === 'comment') delCommentIds.add(String(d.item_id))
+      }
+      const visibleSearchRows = (searchRes.rows || []).filter((row) => {
+        if (row.post_id && delPostIds.has(String(row.post_id))) return false
+        if (row.type === 'post' && delPostIds.has(String(row.id))) return false
+        if (row.comment_id && delCommentIds.has(String(row.comment_id))) return false
+        if (row.type === 'comment' && delCommentIds.has(String(row.id))) return false
+        return true
+      })
+      return res.json(visibleSearchRows.map(row => ({
         type: row.type,
         id: row.id,
         postId: row.post_id,
@@ -1552,7 +1717,8 @@ router.get('/', requireAuth, async (req, res, next) => {
         'SELECT * FROM posts WHERE channel_id = ? ORDER BY created_at ASC',
         [channelId], { prepare: true }
       )
-      const postRows = result.rows.filter(row => row.id != null)
+      const deletedPostIds = await getDeletedItemIdSet('post', { channelId })
+      const postRows = result.rows.filter(row => row.id != null && !deletedPostIds.has(String(row.id)))
       const postLikeMap = await getPostLikeMap(postRows.map(row => row.id), req.user.id)
 
       const posts = await Promise.all(postRows.map(async row => {
@@ -1619,9 +1785,11 @@ router.get('/', requireAuth, async (req, res, next) => {
       WHERE p.channel_id = $1
       ORDER BY p.created_at ASC
     `, [channelId])
-    const postLikeMap = await getPostLikeMap(result.rows.map(row => row.id), req.user.id)
+    const deletedPostIdsPg = await getDeletedItemIdSet('post', { channelId })
+    const visiblePostRows = result.rows.filter(row => !deletedPostIdsPg.has(String(row.id)))
+    const postLikeMap = await getPostLikeMap(visiblePostRows.map(row => row.id), req.user.id)
 
-    const posts = await Promise.all(result.rows.map(async row => {
+    const posts = await Promise.all(visiblePostRows.map(async row => {
       const attachmentIds = [
         row.attachments_1, row.attachments_2, row.attachments_3, row.attachments_4, row.attachments_5,
         row.attachments_6, row.attachments_7, row.attachments_8, row.attachments_9, row.attachments_10
@@ -1682,6 +1850,46 @@ router.get('/', requireAuth, async (req, res, next) => {
     }))
 
     res.json(posts)
+  } catch (err) {
+    next(err)
+  }
+})
+
+// ─── GET /api/posts/deleted (최근 삭제됨: 1분 내 복구 가능 목록) ────
+router.get('/deleted', requireAuth, async (req, res, next) => {
+  try {
+    const { channelId } = req.query
+    if (!channelId) return res.status(400).json({ error: 'channelId is required' })
+    const allowed = await canAccessChannel(db, req.user, channelId)
+    if (!allowed) return res.status(403).json({ error: ACCESS_DENIED_MESSAGE })
+
+    await ensureSoftDeleteSchema()
+    const isSiteAdmin = req.user.role === 'site_admin'
+    const params = [channelId]
+    let scopeClause = ''
+    if (!isSiteAdmin) {
+      params.push(req.user.id)
+      scopeClause = ` AND d.deleted_by = $${params.length}`
+    }
+    const r = await db.query(
+      `SELECT d.item_type, d.item_id, d.post_id, d.preview, d.deleted_at, d.deleted_by, u.name AS deleted_by_name
+       FROM deleted_items d
+       LEFT JOIN users u ON u.id = d.deleted_by
+       WHERE d.channel_id = $1 AND d.deleted_at > NOW() - INTERVAL '1 minute'${scopeClause}
+       ORDER BY d.deleted_at DESC`,
+      params,
+    )
+    const now = Date.now()
+    const items = (r.rows || []).map((x) => ({
+      type: x.item_type,
+      id: String(x.item_id),
+      postId: x.post_id ? String(x.post_id) : null,
+      preview: x.preview || '',
+      deletedAt: x.deleted_at,
+      deletedByName: x.deleted_by_name || null,
+      remainingMs: Math.max(0, RESTORE_WINDOW_MS - (now - new Date(x.deleted_at).getTime())),
+    }))
+    res.json(items)
   } catch (err) {
     next(err)
   }
@@ -1850,11 +2058,14 @@ router.post('/', requireAuth, async (req, res, next) => {
     notifyMentionedUsers(content, {
       channelId,
       postId,
+      attachmentIds: ids,
     })
     notifyAuthorTelegramPostRegistered({
       authorId: req.user.id,
       channelId,
       postId,
+      attachmentIds: ids,
+      content,
     })
 
     res.status(201).json({ id: postId, channelId, content, authoredAt })
@@ -1863,12 +2074,199 @@ router.post('/', requireAuth, async (req, res, next) => {
   }
 })
 
-// ─── DELETE /api/posts/:id ────────────────────────────────────
+// 게시글 영구 삭제(하드삭제). 소프트삭제 후 1분이 지난 항목을 purge 작업이 호출한다.
+async function purgePostHard(id, actorUserId = null) {
+  const row = isConnected() ? await findPostLocator(id) : null
+
+  // Cassandra 행이 이미 없으면 PG mirror/검색만 정리하고 종료.
+  if (!row) {
+    await db.query('DELETE FROM comments WHERE post_id = $1', [id]).catch(() => {})
+    await db.query('DELETE FROM post_likes WHERE post_id = $1', [id]).catch(() => {})
+    await db.query('DELETE FROM posts WHERE id = $1', [id]).catch(() => {})
+    await db.query('DELETE FROM search_documents WHERE post_id = $1', [id]).catch(() => {})
+    return
+  }
+
+  // 삭제 대상 게시글/댓글의 첨부 ID를 먼저 수집한다.
+  const postRowRes = await client.execute(
+    'SELECT * FROM posts WHERE channel_id = ? AND created_at = ?',
+    [row.channel_id, row.created_at], { prepare: true },
+  )
+  const postAttachmentIds = extractPostAttachmentIds(postRowRes.rows?.[0] || {})
+
+  const cRows = await client.execute(
+    'SELECT id, created_at, attachments FROM comments WHERE post_id = ?',
+    [id], { prepare: true },
+  )
+  const commentAttachmentIds = (cRows.rows || []).flatMap((c) => toAttachmentIdArray(c.attachments || []))
+
+  // Cassandra에 없고 PostgreSQL에만 남아 있는 첨부도 수집한다.
+  const pgPostAttRes = await db.query(
+    "SELECT id FROM attachments WHERE post_id = $1 AND delete_status != 'deleted'",
+    [id],
+  ).catch(() => ({ rows: [] }))
+  const pgPostAttachmentIds = (pgPostAttRes.rows || []).map((r) => String(r.id))
+
+  const pgCommentIdsRes = await db.query(
+    'SELECT id FROM comments WHERE post_id = $1',
+    [id],
+  ).catch(() => ({ rows: [] }))
+  const commentIds = [
+    ...new Set([
+      ...(cRows.rows || []).map((c) => String(c.id)).filter(Boolean),
+      ...(pgCommentIdsRes.rows || []).map((c) => String(c.id)).filter(Boolean),
+    ]),
+  ]
+  const pgCommentAttachmentIds = []
+  if (commentIds.length > 0) {
+    const pgCommentAttRes = await db.query(
+      "SELECT id FROM attachments WHERE comment_id = ANY($1) AND delete_status != 'deleted'",
+      [commentIds],
+    ).catch(() => ({ rows: [] }))
+    pgCommentAttachmentIds.push(...(pgCommentAttRes.rows || []).map((r) => String(r.id)))
+  }
+
+  const targetAttachmentIds = [
+    ...new Set([...postAttachmentIds, ...commentAttachmentIds, ...pgPostAttachmentIds, ...pgCommentAttachmentIds]),
+  ]
+
+  await client.execute(
+    'DELETE FROM posts WHERE channel_id = ? AND created_at = ?',
+    [row.channel_id, row.created_at], { prepare: true }
+  )
+  await client.execute(
+    'DELETE FROM posts_by_id WHERE id = ?',
+    [id], { prepare: true }
+  )
+
+  // 해당 게시글의 댓글도 Cassandra에서 삭제
+  await Promise.all(cRows.rows.map(c =>
+    Promise.all([
+      client.execute(
+        'DELETE FROM comments WHERE post_id = ? AND created_at = ?',
+        [id, c.created_at], { prepare: true }
+      ),
+      client.execute(
+        'DELETE FROM comments_by_id WHERE id = ?',
+        [c.id], { prepare: true }
+      ),
+    ])
+  ))
+
+  // PostgreSQL mirror 정리
+  await ensureLikeTables().catch(() => {})
+  if (commentIds.length > 0) {
+    await db.query('DELETE FROM comment_likes WHERE comment_id = ANY($1)', [commentIds]).catch(() => {})
+  }
+  await db.query('DELETE FROM post_likes WHERE post_id = $1', [id]).catch(() => {})
+  await db.query('DELETE FROM comments WHERE post_id = $1', [id])
+  await db.query('DELETE FROM posts WHERE id = $1', [id])
+  await db.query('DELETE FROM search_documents WHERE post_id = $1', [id]).catch(() => {})
+
+  // STT 결과물 정리 (post 기준)
+  await db.query('DELETE FROM stt_segments WHERE job_id IN (SELECT id FROM stt_jobs WHERE post_id = $1)', [id]).catch(() => {})
+  await db.query('DELETE FROM stt_summaries WHERE job_id IN (SELECT id FROM stt_jobs WHERE post_id = $1)', [id]).catch(() => {})
+  await db.query('DELETE FROM stt_jobs WHERE post_id = $1', [id]).catch(() => {})
+
+  // 첨부파일/레코드 정리 (다른 글/댓글 참조 시 삭제하지 않음)
+  await syncAttachmentRefs({
+    ownerType: 'post',
+    ownerId: id,
+    nextAttachmentIds: [],
+    actorUserId,
+  })
+  for (const c of cRows.rows || []) {
+    await syncAttachmentRefs({
+      ownerType: 'comment',
+      ownerId: String(c.id || ''),
+      nextAttachmentIds: [],
+      actorUserId,
+    })
+  }
+  for (const attId of targetAttachmentIds) {
+    await deleteAttachmentPhysicalAndRecords(attId, { excludedPostId: id })
+  }
+}
+
+// 댓글 영구 삭제(하드삭제).
+async function purgeCommentHard(postId, commentId, actorUserId = null) {
+  const row = isConnected() ? await findCommentLocator(postId, commentId) : null
+  if (!row) {
+    await db.query('DELETE FROM comment_likes WHERE comment_id = $1', [commentId]).catch(() => {})
+    await db.query('DELETE FROM comments WHERE id = $1', [commentId]).catch(() => {})
+    await db.query('DELETE FROM search_documents WHERE comment_id = $1', [commentId]).catch(() => {})
+    return
+  }
+  const commentRowRes = await client.execute(
+    'SELECT attachments FROM comments WHERE post_id = ? AND created_at = ?',
+    [row.post_id, row.created_at], { prepare: true },
+  )
+  const targetAttachmentIds = toAttachmentIdArray(commentRowRes.rows?.[0]?.attachments || [])
+
+  await client.execute(
+    'DELETE FROM comments WHERE post_id = ? AND created_at = ?',
+    [row.post_id, row.created_at], { prepare: true }
+  )
+  await client.execute(
+    'DELETE FROM comments_by_id WHERE id = ?',
+    [commentId], { prepare: true }
+  )
+  await ensureLikeTables().catch(() => {})
+  await db.query('DELETE FROM comment_likes WHERE comment_id = $1', [commentId]).catch(() => {})
+  await db.query('DELETE FROM comments WHERE id = $1', [commentId])
+  await deleteSearchDocument('comment', commentId).catch(() => {})
+  await db.query('DELETE FROM search_documents WHERE comment_id = $1', [commentId]).catch(() => {})
+  await syncAttachmentRefs({
+    ownerType: 'comment',
+    ownerId: commentId,
+    nextAttachmentIds: [],
+    actorUserId,
+  })
+  for (const attId of targetAttachmentIds) {
+    await deleteAttachmentPhysicalAndRecords(attId, { excludedPostId: postId, excludedCommentId: commentId })
+  }
+}
+
+// 1분이 지난 소프트삭제 항목을 영구 삭제한다(백그라운드 주기 실행).
+async function purgeExpiredDeletedItems() {
+  try {
+    await ensureSoftDeleteSchema()
+    const r = await db.query(
+      "SELECT item_type, item_id, post_id, deleted_by FROM deleted_items WHERE deleted_at <= NOW() - INTERVAL '1 minute' ORDER BY deleted_at ASC LIMIT 200",
+    )
+    const rows = r.rows || []
+    for (const it of rows) {
+      try {
+        if (it.item_type === 'post') {
+          await purgePostHard(String(it.item_id), it.deleted_by)
+        } else if (it.item_type === 'comment') {
+          await purgeCommentHard(String(it.post_id || ''), String(it.item_id), it.deleted_by)
+        }
+        await db.query('DELETE FROM deleted_items WHERE item_type = $1 AND item_id = $2', [it.item_type, it.item_id])
+      } catch (e) {
+        console.error('[휴지통] 영구삭제 실패:', it.item_type, it.item_id, e.message)
+      }
+    }
+    if (rows.length > 0) console.log(`[휴지통] ${rows.length}건 영구 삭제 완료`)
+  } catch (e) {
+    console.error('[휴지통] purge 작업 오류:', e.message)
+  }
+}
+
+function scheduleDeletedItemsPurge() {
+  // 서버 기동 직후 한 번, 이후 1분 간격 (DM/학습상태 정리와 동일한 패턴)
+  setTimeout(() => {
+    purgeExpiredDeletedItems()
+    setInterval(() => { purgeExpiredDeletedItems() }, 60 * 1000).unref?.()
+  }, 30 * 1000).unref?.()
+}
+scheduleDeletedItemsPurge()
+
+// ─── DELETE /api/posts/:id (소프트 삭제: 1분 내 복구 가능) ──────────
 router.delete('/:id', requireAuth, async (req, res, next) => {
   try {
     const { id } = req.params
 
-    // ── Cassandra 삭제 ────────────────────────────────────────
     if (!isConnected()) return res.status(503).json({ error: 'Cassandra 연결이 필요합니다.' })
 
     const row = await findPostLocator(id)
@@ -1879,107 +2277,50 @@ router.delete('/:id', requireAuth, async (req, res, next) => {
       return res.status(403).json({ error: '권한이 없습니다.' })
     }
 
-    // 삭제 대상 게시글/댓글의 첨부 ID를 먼저 수집한다.
+    await ensureSoftDeleteSchema()
     const postRowRes = await client.execute(
-      'SELECT * FROM posts WHERE channel_id = ? AND created_at = ?',
+      'SELECT content FROM posts WHERE channel_id = ? AND created_at = ?',
       [row.channel_id, row.created_at], { prepare: true },
     )
-    const postAttachmentIds = extractPostAttachmentIds(postRowRes.rows?.[0] || {})
+    const preview = buildPreview(postRowRes.rows?.[0]?.content || '')
 
-    const cRows = await client.execute(
-      'SELECT id, created_at, attachments FROM comments WHERE post_id = ?',
-      [id], { prepare: true },
-    )
-    const commentAttachmentIds = (cRows.rows || []).flatMap((c) => toAttachmentIdArray(c.attachments || []))
-
-    // Cassandra에 없고 PostgreSQL에만 남아 있는 첨부도 수집한다.
-    const pgPostAttRes = await db.query(
-      "SELECT id FROM attachments WHERE post_id = $1 AND delete_status != 'deleted'",
-      [id],
-    ).catch(() => ({ rows: [] }))
-    const pgPostAttachmentIds = (pgPostAttRes.rows || []).map((r) => String(r.id))
-
-    const pgCommentIdsRes = await db.query(
-      'SELECT id FROM comments WHERE post_id = $1',
-      [id],
-    ).catch(() => ({ rows: [] }))
-    const commentIds = [
-      ...new Set([
-        ...(cRows.rows || []).map((c) => String(c.id)).filter(Boolean),
-        ...(pgCommentIdsRes.rows || []).map((c) => String(c.id)).filter(Boolean),
-      ]),
-    ]
-    const pgCommentAttachmentIds = []
-    if (commentIds.length > 0) {
-      const pgCommentAttRes = await db.query(
-        "SELECT id FROM attachments WHERE comment_id = ANY($1) AND delete_status != 'deleted'",
-        [commentIds],
-      ).catch(() => ({ rows: [] }))
-      pgCommentAttachmentIds.push(...(pgCommentAttRes.rows || []).map((r) => String(r.id)))
-    }
-
-    const targetAttachmentIds = [
-      ...new Set([...postAttachmentIds, ...commentAttachmentIds, ...pgPostAttachmentIds, ...pgCommentAttachmentIds]),
-    ]
-
-    await client.execute(
-      'DELETE FROM posts WHERE channel_id = ? AND created_at = ?',
-      [row.channel_id, row.created_at], { prepare: true }
-    )
-    await client.execute(
-      'DELETE FROM posts_by_id WHERE id = ?',
-      [id], { prepare: true }
+    await db.query(
+      `INSERT INTO deleted_items (item_type, item_id, channel_id, post_id, author_id, deleted_by, preview, deleted_at)
+       VALUES ('post', $1, $2, NULL, $3, $4, $5, NOW())
+       ON CONFLICT (item_type, item_id)
+       DO UPDATE SET deleted_at = NOW(), deleted_by = EXCLUDED.deleted_by, preview = EXCLUDED.preview`,
+      [String(id), row.channel_id, row.author_id, req.user.id, preview],
     )
 
-    // 해당 게시글의 댓글도 Cassandra에서 삭제
-    await Promise.all(cRows.rows.map(c =>
-      Promise.all([
-        client.execute(
-          'DELETE FROM comments WHERE post_id = ? AND created_at = ?',
-          [id, c.created_at], { prepare: true }
-        ),
-        client.execute(
-          'DELETE FROM comments_by_id WHERE id = ?',
-          [c.id], { prepare: true }
-        ),
-      ])
-    ))
-
-    // PostgreSQL mirror 정리
-    await ensureLikeTables().catch(() => {})
-    if (commentIds.length > 0) {
-      await db.query('DELETE FROM comment_likes WHERE comment_id = ANY($1)', [commentIds]).catch(() => {})
-    }
-    await db.query('DELETE FROM post_likes WHERE post_id = $1', [id]).catch(() => {})
-    await db.query('DELETE FROM comments WHERE post_id = $1', [id])
-    await db.query('DELETE FROM posts WHERE id = $1', [id])
-    await db.query('DELETE FROM search_documents WHERE post_id = $1', [id]).catch(() => {})
-
-    // STT 결과물 정리 (post 기준)
-    await db.query('DELETE FROM stt_segments WHERE job_id IN (SELECT id FROM stt_jobs WHERE post_id = $1)', [id]).catch(() => {})
-    await db.query('DELETE FROM stt_summaries WHERE job_id IN (SELECT id FROM stt_jobs WHERE post_id = $1)', [id]).catch(() => {})
-    await db.query('DELETE FROM stt_jobs WHERE post_id = $1', [id]).catch(() => {})
-
-    // 첨부파일/레코드 정리 (다른 글/댓글 참조 시 삭제하지 않음)
-    await syncAttachmentRefs({
-      ownerType: 'post',
-      ownerId: id,
-      nextAttachmentIds: [],
-      actorUserId: req.user?.id,
+    res.json({
+      success: true,
+      deleted: { type: 'post', id: String(id), channelId: row.channel_id, preview, restoreWindowMs: RESTORE_WINDOW_MS },
     })
-    for (const c of cRows.rows || []) {
-      await syncAttachmentRefs({
-        ownerType: 'comment',
-        ownerId: String(c.id || ''),
-        nextAttachmentIds: [],
-        actorUserId: req.user?.id,
-      })
+  } catch (err) {
+    next(err)
+  }
+})
+
+// ─── POST /api/posts/:id/restore (소프트삭제 게시글 복구) ────────────
+router.post('/:id/restore', requireAuth, async (req, res, next) => {
+  try {
+    const { id } = req.params
+    await ensureSoftDeleteSchema()
+    const r = await db.query("SELECT * FROM deleted_items WHERE item_type = 'post' AND item_id = $1", [String(id)])
+    const item = r.rows[0]
+    if (!item) return res.status(404).json({ error: '복구할 게시글을 찾을 수 없습니다.' })
+
+    const isSiteAdmin = req.user.role === 'site_admin'
+    if (!isSiteAdmin && String(item.deleted_by) !== String(req.user.id)) {
+      return res.status(403).json({ error: '권한이 없습니다.' })
     }
-    for (const attId of targetAttachmentIds) {
-      await deleteAttachmentPhysicalAndRecords(attId, { excludedPostId: id })
+    const ageMs = Date.now() - new Date(item.deleted_at).getTime()
+    if (ageMs > RESTORE_WINDOW_MS) {
+      return res.status(410).json({ error: '복구 가능 시간(1분)이 지났습니다.' })
     }
 
-    res.json({ success: true })
+    await db.query("DELETE FROM deleted_items WHERE item_type = 'post' AND item_id = $1", [String(id)])
+    res.json({ success: true, channelId: item.channel_id })
   } catch (err) {
     next(err)
   }
@@ -2421,12 +2762,14 @@ router.post('/:id/comments', requireAuth, async (req, res, next) => {
       channelId: channelId || (await findPostLocator(postId))?.channel_id || '',
       postId,
       commentId,
+      attachmentIds: safeAttachmentIds,
     })
     notifyAuthorTelegramPostRegistered({
       authorId: req.user.id,
       channelId: channelId || (await findPostLocator(postId))?.channel_id || '',
       postId,
       commentId,
+      attachmentIds: safeAttachmentIds,
     })
 
     res.status(201).json(newComment)
@@ -2523,12 +2866,11 @@ router.put('/:postId/comments/:commentId', requireAuth, async (req, res, next) =
   }
 })
 
-// ─── DELETE /api/posts/:postId/comments/:commentId ───────────
+// ─── DELETE /api/posts/:postId/comments/:commentId (소프트 삭제) ────
 router.delete('/:postId/comments/:commentId', requireAuth, async (req, res, next) => {
   try {
     const { postId, commentId } = req.params
-    
-    // ── Cassandra 삭제 ────────────────────────────────────────
+
     if (!isConnected()) return res.status(503).json({ error: 'Cassandra 연결이 필요합니다.' })
     const row = await findCommentLocator(postId, commentId)
     if (!row) return res.status(404).json({ error: '댓글을 찾을 수 없습니다.' })
@@ -2536,37 +2878,53 @@ router.delete('/:postId/comments/:commentId', requireAuth, async (req, res, next
     if (!isSiteAdmin && String(row.author_id) !== String(req.user.id)) {
       return res.status(403).json({ error: '권한이 없습니다.' })
     }
+
+    await ensureSoftDeleteSchema()
     const commentRowRes = await client.execute(
-      'SELECT attachments FROM comments WHERE post_id = ? AND created_at = ?',
+      'SELECT content FROM comments WHERE post_id = ? AND created_at = ?',
       [row.post_id, row.created_at], { prepare: true },
     )
-    const targetAttachmentIds = toAttachmentIdArray(commentRowRes.rows?.[0]?.attachments || [])
+    const preview = buildPreview(commentRowRes.rows?.[0]?.content || '')
+    const locator = await findPostLocator(String(row.post_id)).catch(() => null)
+    const channelId = locator?.channel_id || null
 
-    await client.execute(
-      'DELETE FROM comments WHERE post_id = ? AND created_at = ?',
-      [row.post_id, row.created_at], { prepare: true }
+    await db.query(
+      `INSERT INTO deleted_items (item_type, item_id, channel_id, post_id, author_id, deleted_by, preview, deleted_at)
+       VALUES ('comment', $1, $2, $3, $4, $5, $6, NOW())
+       ON CONFLICT (item_type, item_id)
+       DO UPDATE SET deleted_at = NOW(), deleted_by = EXCLUDED.deleted_by, preview = EXCLUDED.preview`,
+      [String(commentId), channelId, String(row.post_id), row.author_id, req.user.id, preview],
     )
-    await client.execute(
-      'DELETE FROM comments_by_id WHERE id = ?',
-      [commentId], { prepare: true }
-    )
-    await ensureLikeTables().catch(() => {})
-    await db.query('DELETE FROM comment_likes WHERE comment_id = $1', [commentId]).catch(() => {})
-    await db.query('DELETE FROM comments WHERE id = $1', [commentId])
-    await deleteSearchDocument('comment', commentId).catch(() => {})
-    await db.query('DELETE FROM search_documents WHERE comment_id = $1', [commentId]).catch(() => {})
-    await syncAttachmentRefs({
-      ownerType: 'comment',
-      ownerId: commentId,
-      nextAttachmentIds: [],
-      actorUserId: req.user?.id,
+
+    res.json({
+      success: true,
+      deleted: { type: 'comment', id: String(commentId), postId: String(row.post_id), channelId, preview, restoreWindowMs: RESTORE_WINDOW_MS },
     })
+  } catch (err) {
+    next(err)
+  }
+})
 
-    for (const attId of targetAttachmentIds) {
-      await deleteAttachmentPhysicalAndRecords(attId, { excludedPostId: postId, excludedCommentId: commentId })
+// ─── POST /api/posts/:postId/comments/:commentId/restore (댓글 복구) ─
+router.post('/:postId/comments/:commentId/restore', requireAuth, async (req, res, next) => {
+  try {
+    const { commentId } = req.params
+    await ensureSoftDeleteSchema()
+    const r = await db.query("SELECT * FROM deleted_items WHERE item_type = 'comment' AND item_id = $1", [String(commentId)])
+    const item = r.rows[0]
+    if (!item) return res.status(404).json({ error: '복구할 댓글을 찾을 수 없습니다.' })
+
+    const isSiteAdmin = req.user.role === 'site_admin'
+    if (!isSiteAdmin && String(item.deleted_by) !== String(req.user.id)) {
+      return res.status(403).json({ error: '권한이 없습니다.' })
+    }
+    const ageMs = Date.now() - new Date(item.deleted_at).getTime()
+    if (ageMs > RESTORE_WINDOW_MS) {
+      return res.status(410).json({ error: '복구 가능 시간(1분)이 지났습니다.' })
     }
 
-    res.json({ success: true })
+    await db.query("DELETE FROM deleted_items WHERE item_type = 'comment' AND item_id = $1", [String(commentId)])
+    res.json({ success: true, channelId: item.channel_id, postId: item.post_id })
   } catch (err) {
     next(err)
   }

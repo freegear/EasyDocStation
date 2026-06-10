@@ -11,6 +11,7 @@ import config from '../config.json'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import ChannelManageModal from './ChannelManageModal'
+import RecentlyDeletedModal from './RecentlyDeletedModal'
 import ConfirmDialog from './ConfirmDialog'
 import SpeakerRegistrationModal from './SpeakerRegistrationModal'
 import PostDetailPane from './chat/PostDetailPane'
@@ -560,19 +561,54 @@ function TextPlainPreview({ src, width, height }) {
 
 // ─── Image lightbox ───────────────────────────────────────────
 
-function ImageLightbox({ file, fileUrl, onClose }) {
+// images: 라이트박스에서 좌우 이동할 이미지 배열, index: 현재 위치,
+// resolveUrl: 파일 → URL 변환 함수, onIndexChange: 인덱스 이동 콜백
+function ImageLightbox({ images, index, resolveUrl, onIndexChange, onClose }) {
   const t = useT()
+  const file = images[index]
+  const hasPrev = index > 0
+  const hasNext = index < images.length - 1
+  const multiple = images.length > 1
+
+  const goPrev = useCallback(() => { if (index > 0) onIndexChange(index - 1) }, [index, onIndexChange])
+  const goNext = useCallback(() => { if (index < images.length - 1) onIndexChange(index + 1) }, [index, images.length, onIndexChange])
+
   useEffect(() => {
-    const onKey = e => { if (e.key === 'Escape') onClose() }
+    const onKey = e => {
+      if (e.key === 'Escape') onClose()
+      else if (e.key === 'ArrowLeft') goPrev()
+      else if (e.key === 'ArrowRight') goNext()
+    }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [onClose])
+  }, [onClose, goPrev, goNext])
+
+  if (!file) return null
+  const fileUrl = resolveUrl(file)
 
   return (
     <div
       className="fixed inset-0 z-[200] flex items-center justify-center bg-black/85 backdrop-blur-sm"
       onClick={onClose}
     >
+      {/* 이전 이미지 화살표 */}
+      {multiple && (
+        <button
+          onClick={e => { e.stopPropagation(); goPrev() }}
+          disabled={!hasPrev}
+          aria-label="이전 이미지"
+          className={`absolute left-4 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full flex items-center justify-center transition-colors ${
+            hasPrev
+              ? 'bg-gray-200/90 hover:bg-gray-300 text-gray-900 cursor-pointer'
+              : 'bg-gray-200/30 text-gray-400 opacity-40 cursor-default'
+          }`}
+        >
+          <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          </svg>
+        </button>
+      )}
+
       <div className="relative max-w-[90vw] max-h-[90vh] flex flex-col items-center" onClick={e => e.stopPropagation()}>
         <img
           src={fileUrl}
@@ -580,6 +616,9 @@ function ImageLightbox({ file, fileUrl, onClose }) {
           className="max-w-[90vw] max-h-[80vh] rounded-2xl object-contain shadow-2xl"
         />
         <div className="mt-3 flex items-center gap-3">
+          {multiple && (
+            <span className="text-gray-400 text-xs tabular-nums">{index + 1} / {images.length}</span>
+          )}
           <span className="text-gray-500 text-xs">{file.name}</span>
           <a
             href={fileUrl}
@@ -591,6 +630,25 @@ function ImageLightbox({ file, fileUrl, onClose }) {
           </a>
         </div>
       </div>
+
+      {/* 다음 이미지 화살표 */}
+      {multiple && (
+        <button
+          onClick={e => { e.stopPropagation(); goNext() }}
+          disabled={!hasNext}
+          aria-label="다음 이미지"
+          className={`absolute right-4 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full flex items-center justify-center transition-colors ${
+            hasNext
+              ? 'bg-gray-200/90 hover:bg-gray-300 text-gray-900 cursor-pointer'
+              : 'bg-gray-200/30 text-gray-400 opacity-40 cursor-default'
+          }`}
+        >
+          <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+          </svg>
+        </button>
+      )}
+
       <button
         onClick={onClose}
         className="absolute top-4 right-4 w-9 h-9 rounded-full bg-gray-200 hover:bg-gray-300 flex items-center justify-center text-gray-900 transition-colors"
@@ -954,7 +1012,7 @@ function AttachmentList({ attachments, compact = false, pendingOpenAttachmentId 
   const [htmlPreviewSize, setHtmlPreviewSize] = useState(config.htmlPreview || { width: 480, height: 270 })
   const [pdfPreviewSize, setPdfPreviewSize] = useState(config.pdfPreview || { width: 480, height: 270 })
   const [txtPreviewSize, setTxtPreviewSize] = useState(config.txtPreview || { width: 270, height: 480 })
-  const [lightboxFile, setLightboxFile] = useState(null)
+  const [lightboxIndex, setLightboxIndex] = useState(-1)
   const [videoFile, setVideoFile] = useState(null)
   const [previewFile, setPreviewFile] = useState(null)
   const [failedHtmlAttachmentPreview, setFailedHtmlAttachmentPreview] = useState({})
@@ -1000,10 +1058,17 @@ function AttachmentList({ attachments, compact = false, pendingOpenAttachmentId 
     return `${f.thumbnail_url}&auth_token=${token}`
   }
 
-  // 이미지 클릭 → 라이트박스
+  // 라이트박스 캐러셀에 포함할 이미지 첨부만 모은 배열 (원본 순서 유지)
+  const imageAttachments = useMemo(
+    () => (attachments || []).filter(f => getFileCategory(f.type || '', f.name || '') === 'image'),
+    [attachments]
+  )
+
+  // 이미지 클릭 → 라이트박스 (이미지 배열 내 위치로 열기)
   function handleImageClick(e, f) {
     e.preventDefault()
-    setLightboxFile(f)
+    const idx = imageAttachments.findIndex(img => img.id === f.id)
+    setLightboxIndex(idx >= 0 ? idx : 0)
   }
 
   // 동영상 클릭 → 비디오 플레이어 모달
@@ -1023,11 +1088,14 @@ function AttachmentList({ attachments, compact = false, pendingOpenAttachmentId 
     const target = attachments.find(f => String(f.id) === String(pendingOpenAttachmentId))
     if (!target) return
     const category = getFileCategory(target.type || '', target.name || '')
-    if (category === 'image') setLightboxFile(target)
+    if (category === 'image') {
+      const idx = imageAttachments.findIndex(img => img.id === target.id)
+      setLightboxIndex(idx >= 0 ? idx : 0)
+    }
     else if (category === 'video') setVideoFile(target)
     else setPreviewFile(target)
     onConsumePendingOpen?.()
-  }, [pendingOpenAttachmentId, attachments, onConsumePendingOpen])
+  }, [pendingOpenAttachmentId, attachments, imageAttachments, onConsumePendingOpen])
 
   if (!attachments || attachments.length === 0) return null
 
@@ -1075,11 +1143,13 @@ function AttachmentList({ attachments, compact = false, pendingOpenAttachmentId 
 
   return (
     <>
-      {lightboxFile && (
+      {lightboxIndex >= 0 && lightboxIndex < imageAttachments.length && (
         <ImageLightbox
-          file={lightboxFile}
-          fileUrl={fileUrl(lightboxFile)}
-          onClose={() => setLightboxFile(null)}
+          images={imageAttachments}
+          index={lightboxIndex}
+          resolveUrl={fileUrl}
+          onIndexChange={setLightboxIndex}
+          onClose={() => setLightboxIndex(-1)}
         />
       )}
       {videoFile && (
@@ -2285,7 +2355,7 @@ function ContentRenderer({ text = '', sttPostId = '', sttChannelId = '' }) {
         />
       )}
       <ReactMarkdown
-        remarkPlugins={[remarkGfm]}
+        remarkPlugins={[remarkGfm, remarkDisableSetextHeadings]}
         components={{
           p: ({ children }) => <p className="my-1.5 text-gray-700 text-sm leading-relaxed whitespace-pre-wrap break-words">{applyMentionColor(children)}</p>,
           h1: ({ children }) => <h1 className="mt-4 mb-2 text-gray-900 font-bold text-lg">{applyMentionColor(children)}</h1>,
@@ -2393,6 +2463,18 @@ function SpeakerCorrectionModal({ segments, loading, onSave, onClose }) {
       </div>
     </div>
   )
+}
+
+// setext 제목 문법만 파서 단계에서 비활성화하는 remark 플러그인.
+// - ATX 제목(`# 제목`, `## `, `### `)은 그대로 허용한다 (의도적 입력 → 예측 가능, Slack 캔버스와 동일).
+// - setext 제목(텍스트 아래 `===` / `---` 밑줄)만 끈다 → 구분선 긋다가 의도치 않게 거대한 제목이
+//   되는 사고를 막는다. (이번 게시글/댓글 렌더링 버그의 원인이 바로 setext였다.)
+// - 본문 마크다운(굵게/리스트/표/코드블록/수평선 등)은 그대로 유지된다.
+// - 수평선(`---` 단독 줄 = thematicBreak)은 별개 구문이라 영향 없음.
+function remarkDisableSetextHeadings() {
+  const data = this.data()
+  const list = data.micromarkExtensions || (data.micromarkExtensions = [])
+  list.push({ disable: { null: ['setextUnderline'] } })
 }
 
 function normalizeMarkdownCodeFence(text) {
@@ -2803,7 +2885,7 @@ function ComposeBar({ onSubmit, isArchived, teamId }) {
 
 function PostList({ posts, onSelect, onSubmit, selectedPostId, onOpenDocumentList }) {
   const t = useT()
-  const { selectedChannel, selectedTeam, refreshTeams, markPostRead } = useChat()
+  const { selectedChannel, selectedTeam, refreshTeams, markPostRead, fetchDeletedItems, restorePost, restoreComment } = useChat()
   const pinnedPosts = posts
     .filter(p => p.pinned && !p.isUnread)
     .sort((a, b) => {
@@ -2826,6 +2908,7 @@ function PostList({ posts, onSelect, onSubmit, selectedPostId, onOpenDocumentLis
   const topRef = useRef(null)
   const bottomRef = useRef(null)
   const [showManageModal, setShowManageModal] = useState(false)
+  const [showDeletedModal, setShowDeletedModal] = useState(false)
   const { currentUser } = useAuth()
   const isAdmin = ['Admin', 'site_admin', 'channel_admin', 'team_admin'].includes(currentUser?.role)
 
@@ -2895,6 +2978,17 @@ function PostList({ posts, onSelect, onSubmit, selectedPostId, onOpenDocumentLis
             {t.chat.documentList || '문서 목록'}
           </button>
 
+          <button
+            onClick={() => setShowDeletedModal(true)}
+            title={t.chat.recentlyDeleted || '최근 삭제됨'}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gray-50 border border-gray-200 text-gray-600 hover:bg-gray-100 transition-all text-xs font-semibold"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7h18M8 7V5a2 2 0 012-2h4a2 2 0 012 2v2m-1 0v12a2 2 0 01-2 2H9a2 2 0 01-2-2V7h10z" />
+            </svg>
+            {t.chat.recentlyDeleted || '최근 삭제됨'}
+          </button>
+
           {isAdmin && (
             <button
               onClick={() => setShowManageModal(true)}
@@ -2914,6 +3008,16 @@ function PostList({ posts, onSelect, onSubmit, selectedPostId, onOpenDocumentLis
         <ChannelManageModal
           onClose={() => setShowManageModal(false)}
           onSave={() => refreshTeams()}
+        />
+      )}
+
+      {showDeletedModal && (
+        <RecentlyDeletedModal
+          channelId={selectedChannel.id}
+          fetchDeletedItems={fetchDeletedItems}
+          restorePost={restorePost}
+          restoreComment={restoreComment}
+          onClose={() => setShowDeletedModal(false)}
         />
       )}
 
@@ -3413,7 +3517,7 @@ function PostCard({ post, onSelect, pinned, isSelected }) {
             )}
           </div>
           {/* Meta */}
-          <div className={`flex items-center gap-2 text-gray-400 text-xs select-text allow-copy ${bodyPreview ? 'mb-1' : 'mb-0'}`}>
+          <div className={`flex items-center gap-2 text-gray-400 text-xs select-text allow-copy ${(bodyPreview && !pinned) ? 'mb-1' : 'mb-0'}`}>
             <span className="font-medium text-gray-500">{post.author?.name}</span>
             {post.author?.username && (
               <span className="text-gray-400">@{post.author.username}</span>
@@ -3445,8 +3549,8 @@ function PostCard({ post, onSelect, pinned, isSelected }) {
               </>
             )}
           </div>
-          {/* Body preview (second line onward) */}
-          {bodyPreview && (
+          {/* Body preview (second line onward) — 고정글은 제목/작성자/날짜만 노출하고 본문은 숨김 */}
+          {bodyPreview && !pinned && (
             <p
               className="text-gray-400 text-xs leading-relaxed line-clamp-5 whitespace-pre-wrap break-words select-text allow-copy cursor-text"
             >

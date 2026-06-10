@@ -41,6 +41,10 @@ export default function TeamManageModal({ team = null, onClose, onSave }) {
   const [error, setError] = useState('')
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [deleteConfirmName, setDeleteConfirmName] = useState('')
+  const [archivedChannels, setArchivedChannels] = useState(
+    (team?.channels || []).filter(ch => ch.is_archived)
+  )
+  const [unarchivingId, setUnarchivingId] = useState(null)
 
   const isSiteAdmin = currentUser?.role === 'site_admin'
   const isTeamAdmin = isSiteAdmin || selectedAdmins.some(a => a.id === currentUser?.id)
@@ -66,6 +70,30 @@ export default function TeamManageModal({ team = null, onClose, onSave }) {
   useEffect(() => {
     if (team) loadTeamData()
   }, [team?.id])
+
+  // 보관된 채널 해제
+  const handleUnarchive = async (channel) => {
+    setUnarchivingId(channel.id)
+    setError('')
+    try {
+      await apiFetch(`/channels/${channel.id}`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          name: channel.name,
+          type: channel.type,
+          description: channel.description,
+          team_id: team.id,
+          is_archived: false,
+        }),
+      })
+      setArchivedChannels(prev => prev.filter(ch => ch.id !== channel.id))
+      onSave?.()
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setUnarchivingId(null)
+    }
+  }
 
   async function loadTeamData() {
     try {
@@ -389,6 +417,35 @@ export default function TeamManageModal({ team = null, onClose, onSave }) {
               </div>
             )}
           </div>
+
+          {/* 보관된 채널 */}
+          {isEdit && canManage && (
+            <div>
+              <label className="block text-gray-500 text-xs font-medium mb-2">{t.team.archivedChannels}</label>
+              {archivedChannels.length === 0 ? (
+                <p className="text-gray-300 text-sm px-1 py-2">{t.team.noArchivedChannels}</p>
+              ) : (
+                <div className="flex flex-col gap-1.5">
+                  {archivedChannels.map(ch => (
+                    <div
+                      key={ch.id}
+                      className="flex items-center gap-2 px-3 py-2 bg-gray-100 border border-gray-200 rounded-xl"
+                    >
+                      <span className="flex-shrink-0 text-gray-400">{ch.type === 'private' ? '🔒' : '#'}</span>
+                      <span className="flex-1 truncate text-gray-700 text-sm font-medium">{ch.name}</span>
+                      <button
+                        onClick={() => handleUnarchive(ch)}
+                        disabled={unarchivingId === ch.id}
+                        className="flex-shrink-0 px-3 py-1 rounded-lg border border-indigo-200 text-indigo-600 hover:bg-indigo-50 hover:border-indigo-400 disabled:opacity-50 transition-all text-xs font-semibold"
+                      >
+                        {unarchivingId === ch.id ? t.team.unarchiving : t.team.unarchive}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
         </div>
 

@@ -61,6 +61,7 @@ export const translations = {
       postsCount: (team, n) => `${team} · 게시글 ${n}개`,
       manageChannel: '채널 관리',
       documentList: '문서 목록',
+      recentlyDeleted: '최근 삭제됨',
       documentCount: (n) => `문서 ${n}개`,
       documentFilterAll: '전체',
       templateDocument: '양식 문서',
@@ -208,6 +209,8 @@ export const translations = {
       deleteConfirmInput: (name) => `확인을 위해 팀 이름 [${name}]을(를) 입력하세요.`,
       searching: '검색 중...', searchNoResults: '검색 결과가 없습니다.',
       descWrite: '✏️ 편집', descPreview: '👁 미리보기', descEmpty: '미리볼 내용이 없습니다.',
+      archivedChannels: '보관된 채널', noArchivedChannels: '보관된 채널이 없습니다.',
+      unarchive: '보관 해제', unarchiving: '해제 중...',
     },
     channel: {
       addTitle: '채널 추가', manageTitle: '채널 관리', editHeader: (name) => `${name} — 채널 관리`,
@@ -549,6 +552,7 @@ export const translations = {
       postsCount: (team, n) => `${team} · ${n} post(s)`,
       manageChannel: 'Manage Channel',
       documentList: 'Document List',
+      recentlyDeleted: 'Recently Deleted',
       documentCount: (n) => `${n} document(s)`,
       documentFilterAll: 'All',
       templateDocument: 'Template',
@@ -696,6 +700,8 @@ export const translations = {
       deleteConfirmInput: (name) => `Enter the team name [${name}] to confirm.`,
       searching: 'Searching...', searchNoResults: 'No results found.',
       descWrite: '✏️ Edit', descPreview: '👁 Preview', descEmpty: 'Nothing to preview.',
+      archivedChannels: 'Archived Channels', noArchivedChannels: 'No archived channels.',
+      unarchive: 'Unarchive', unarchiving: 'Unarchiving...',
     },
     channel: {
       addTitle: 'Add Channel', manageTitle: 'Manage Channel', editHeader: (name) => `${name} — Manage Channel`,
@@ -1026,6 +1032,7 @@ translations.ja = {
   chat: {
     selectChannel: 'チャンネルを選択してください',
     documentList: 'ドキュメント一覧',
+    recentlyDeleted: '最近削除した項目',
     messagePlaceholder: 'メッセージを入力... (Shift+Enterで改行)',
     commentPlaceholder: 'コメントを入力...',
     attachFile: 'ファイル添付',

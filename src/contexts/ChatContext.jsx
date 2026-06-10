@@ -1,11 +1,13 @@
 import { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react'
 import { apiFetch } from '../lib/api'
 import { useAuth } from './AuthContext'
+import { useToast } from './ToastContext'
 
 const ChatContext = createContext(null)
 
 export function ChatProvider({ children }) {
   const { currentUser, loading: authLoading } = useAuth()
+  const { showToast } = useToast()
   const [teams, setTeams] = useState([])
   const [selectedTeam, setSelectedTeam] = useState({ id: null, channels: [], directMessages: [], admin_ids: [] })
   const [selectedChannel, setSelectedChannel] = useState(null)
@@ -280,10 +282,39 @@ export function ChatProvider({ children }) {
       await apiFetch(`/posts/${postId}`, { method: 'DELETE' })
       const data = await apiFetch(`/posts?channelId=${channelId}`)
       setPosts(prev => ({ ...prev, [channelId]: data }))
+      showToast({
+        message: '게시글을 삭제했습니다.',
+        actionLabel: '복구',
+        duration: 10000,
+        onAction: () => {
+          restorePost(channelId, postId).catch((err) => {
+            showToast({ message: `복구 실패: ${err.message}`, duration: 5000 })
+          })
+        },
+      })
     } catch (err) {
       console.error('delete post error:', err)
       throw err
     }
+  }
+
+  // ─── 삭제한 게시글 복구 (1분 이내) ──────────────────────────
+  async function restorePost(channelId, postId) {
+    await apiFetch(`/posts/${postId}/restore`, { method: 'POST' })
+    const data = await apiFetch(`/posts?channelId=${channelId}`)
+    setPosts(prev => ({ ...prev, [channelId]: data }))
+  }
+
+  // ─── 삭제한 댓글 복구 (1분 이내) ────────────────────────────
+  async function restoreComment(channelId, postId, commentId) {
+    await apiFetch(`/posts/${postId}/comments/${commentId}/restore`, { method: 'POST' })
+    const data = await apiFetch(`/posts?channelId=${channelId}`)
+    setPosts(prev => ({ ...prev, [channelId]: data }))
+  }
+
+  // ─── 최근 삭제됨(1분 내 복구 가능) 목록 조회 ────────────────
+  async function fetchDeletedItems(channelId) {
+    return apiFetch(`/posts/deleted?channelId=${channelId}`)
   }
 
   async function updatePost(channelId, postId, { content, ragContent, attachments, security_level, waitForTraining = false }) {
@@ -420,6 +451,16 @@ export function ChatProvider({ children }) {
       await apiFetch(`/posts/${postId}/comments/${commentId}`, { method: 'DELETE' })
       const data = await apiFetch(`/posts?channelId=${channelId}`)
       setPosts(prev => ({ ...prev, [channelId]: data }))
+      showToast({
+        message: '댓글을 삭제했습니다.',
+        actionLabel: '복구',
+        duration: 10000,
+        onAction: () => {
+          restoreComment(channelId, postId, commentId).catch((err) => {
+            showToast({ message: `복구 실패: ${err.message}`, duration: 5000 })
+          })
+        },
+      })
     } catch (err) {
       console.error('delete comment error:', err)
       throw err
@@ -567,6 +608,9 @@ export function ChatProvider({ children }) {
       addComment,
       incrementViews,
       deletePost,
+      restorePost,
+      restoreComment,
+      fetchDeletedItems,
       updatePost,
       togglePostPin,
       togglePostLike,

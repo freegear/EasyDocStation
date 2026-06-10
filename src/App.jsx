@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { ChatProvider, useChat } from './contexts/ChatContext'
+import { ToastProvider } from './contexts/ToastContext'
 import TitleBar from './components/TitleBar'
 import Sidebar from './components/Sidebar'
 import ChatArea from './components/ChatArea'
@@ -292,9 +293,11 @@ function AppContent() {
   // 로그인 성공 후에만 ChatProvider를 마운트
   // → useEffect의 refreshTeams()가 인증 토큰이 있는 상태에서 실행됨
   return (
-    <ChatProvider>
-      <MainLayout />
-    </ChatProvider>
+    <ToastProvider>
+      <ChatProvider>
+        <MainLayout />
+      </ChatProvider>
+    </ToastProvider>
   )
 }
 

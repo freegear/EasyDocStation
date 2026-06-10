@@ -1,0 +1,52 @@
+[20260604-05:48:08][BE] [ATTACH-REF] sync ownerType=post ownerId=e3b37fc6-4a47-4204-990e-1e48c12a290f actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260604-05:48:08][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
+[20260604-05:48:08][BE] /home/freegear/EasyDocStation/server/rag_train.py:112: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260604-05:48:08][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260604-05:48:12][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table' already exists
+[20260604-05:48:12][BE] [RAG] post=e3b37fc6-4a47-4204-990e-1e48c12a290f text → 1청크
+[20260604-05:48:12][BE] [RAG] 학습 진행률: 50% (게시글 본문)
+[20260604-05:48:12][BE] [RAG] 저장 완료 — 1청크 / 1개 게시글 / 0개 댓글
+[20260604-05:48:12][BE] [RAG] 학습 진행률: 100% (저장)
+[20260604-05:48:12][BE] [RAG] 학습 완료
+[20260604-17:52:46][BE] [ATTACH-REF] sync ownerType=post ownerId=4e67997b-f67e-40e6-a9ed-5e163e4f0a00 actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260604-17:52:46][BE] [RAG] 학습 제외 (게시글): 4e67997b-f67e-40e6-a9ed-5e163e4f0a00 — 첨부파일 없음, 26자
+[20260604-17:52:46][BE] [RAG] 학습 제외 후 학습할 게시글이 없습니다.
+[20260604-17:54:44][BE] [ATTACH-REF] sync ownerType=comment ownerId=c-e6fb10a4-2a2e-4b02-9798-3d902acb8cda actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260604-17:54:44][BE] [RAG] 댓글 학습 시작 — 1개 댓글 (제외: 0개)
+[20260604-17:54:45][BE] /home/freegear/EasyDocStation/server/rag_train.py:112: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260604-17:54:45][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260604-17:54:48][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table' already exists
+[20260604-17:54:48][BE] [RAG] comment=c-e6fb10a4-2a2e-4b02-9798-3d902acb8cda post=4e67997b-f67e-40e6-a9ed-5e163e4f0a00 text → 1청크
+[20260604-17:54:48][BE] [RAG] 학습 진행률: 50% (댓글 본문)
+[20260604-17:54:48][BE] [RAG] 저장 완료 — 1청크 / 0개 게시글 / 1개 댓글
+[20260604-17:54:48][BE] [RAG] 학습 진행률: 100% (저장)
+[20260604-17:54:48][BE] [RAG] 댓글 학습 완료 — 1개 댓글 (3.9s)
+[20260604-17:54:51][BE] [ATTACH-REF] sync ownerType=post ownerId=4e67997b-f67e-40e6-a9ed-5e163e4f0a00 actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260604-17:54:51][BE] [RAG] 학습 제외 (게시글): 4e67997b-f67e-40e6-a9ed-5e163e4f0a00 — 첨부파일 없음, 26자
+[20260604-17:54:51][BE] [RAG] 학습 제외 후 학습할 게시글이 없습니다.
+[20260604-17:55:09][BE] [ATTACH-REF] sync ownerType=comment ownerId=c-e6fb10a4-2a2e-4b02-9798-3d902acb8cda actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260604-17:55:09][BE] [RAG] 댓글 학습 시작 — 1개 댓글 (제외: 0개)
+[20260604-17:55:09][BE] /home/freegear/EasyDocStation/server/rag_train.py:112: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260604-17:55:09][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260604-17:55:12][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table' already exists
+[20260604-17:55:12][BE] [RAG] 기존 청크 삭제 완료: comment_id=c-e6fb10a4-2a2e-4b02-9798-3d902acb8cda
+[20260604-17:55:12][BE] [RAG] comment=c-e6fb10a4-2a2e-4b02-9798-3d902acb8cda post=4e67997b-f67e-40e6-a9ed-5e163e4f0a00 text → 1청크
+[20260604-17:55:12][BE] [RAG] 학습 진행률: 50% (댓글 본문)
+[20260604-17:55:12][BE] [RAG] 저장 완료 — 1청크 / 0개 게시글 / 1개 댓글
+[20260604-17:55:12][BE] [RAG] 학습 진행률: 100% (저장)
+[20260604-17:55:13][BE] [RAG] 댓글 학습 완료 — 1개 댓글 (3.9s)
+[20260604-17:55:57][BE] [ATTACH-REF] sync ownerType=comment ownerId=c-b14af9d9-37d6-4341-aadf-27c0804b46b4 actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260604-17:55:57][BE] [RAG] 댓글 학습 시작 — 1개 댓글 (제외: 0개)
+[20260604-17:55:57][BE] /home/freegear/EasyDocStation/server/rag_train.py:112: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260604-17:55:57][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260604-17:56:00][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table' already exists
+[20260604-17:56:00][BE] [RAG] comment=c-b14af9d9-37d6-4341-aadf-27c0804b46b4 post=4e67997b-f67e-40e6-a9ed-5e163e4f0a00 text → 6청크
+[20260604-17:56:00][BE] [RAG] 학습 진행률: 50% (댓글 본문)
+[20260604-17:56:00][BE] [RAG] 저장 완료 — 6청크 / 0개 게시글 / 1개 댓글
+[20260604-17:56:00][BE] [RAG] 학습 진행률: 100% (저장)
+[20260604-17:56:01][BE] [RAG] 댓글 학습 완료 — 1개 댓글 (3.9s)
+PM 8:28:08 [vite] hmr update /src/index.css, /src/components/TitleBar.jsx, /src/components/Sidebar.jsx, /src/components/SearchResultsArea.jsx, /src/components/LoginScreen.jsx, /src/components/UserProfileModal.jsx, /src/components/GroqPanel.jsx, /src/components/ChatArea.jsx, /src/components/DirectMessageView.jsx, /src/components/ChannelManageModal.jsx, /src/components/SiteAdminPage.jsx, /src/components/TeamManageModal.jsx, /src/components/EventAddModal.jsx, /src/components/chat/PostDetailPane.jsx, /src/components/chat/MDPageViewer.jsx
+PM 8:28:10 [vite] hmr update /src/index.css, /src/components/TitleBar.jsx, /src/components/Sidebar.jsx, /src/components/SearchResultsArea.jsx, /src/components/LoginScreen.jsx, /src/components/UserProfileModal.jsx, /src/components/GroqPanel.jsx, /src/components/ChatArea.jsx, /src/components/DirectMessageView.jsx, /src/components/ChannelManageModal.jsx, /src/components/SiteAdminPage.jsx, /src/components/TeamManageModal.jsx, /src/components/EventAddModal.jsx, /src/components/chat/PostDetailPane.jsx, /src/components/chat/MDPageViewer.jsx
+PM 8:28:20 [vite] hmr update /src/components/TeamManageModal.jsx, /src/index.css
+PM 8:28:29 [vite] hmr update /src/components/TeamManageModal.jsx, /src/index.css
+PM 8:28:42 [vite] hmr update /src/components/TeamManageModal.jsx, /src/index.css

@@ -35,7 +35,7 @@ function generateStrongRandomToken(length = 64) {
 function RoleBadge({ role, label }) {
   const cls = ROLE_BADGE[role] ?? ROLE_BADGE.user
   return (
-    <span className={`px-2 py-0.5 rounded-md text-xs font-medium border ${cls}`}>
+    <span className={`inline-block whitespace-nowrap px-2 py-0.5 rounded-md text-xs font-medium border ${cls}`}>
       {label ?? role}
     </span>
   )
@@ -1785,7 +1785,7 @@ export default function SiteAdminPage({ onClose }) {
                     <col style={{ width: '220px' }} />
                     <col />
                     <col style={{ width: '180px' }} />
-                    <col style={{ width: '128px' }} />
+                    <col style={{ width: '160px', minWidth: '160px' }} />
                     <col style={{ width: '72px' }} />
                     <col style={{ width: '72px' }} />
                   </colgroup>
