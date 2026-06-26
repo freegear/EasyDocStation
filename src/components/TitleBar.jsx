@@ -12,6 +12,28 @@ const LANGUAGES = [
   { code: 'ja', label: '日本語', flag: '🇯🇵' },
 ]
 
+function AgenticAICharacter({ active = true }) {
+  return (
+    <span
+      className={`relative flex h-9 w-9 items-center justify-center overflow-hidden rounded-xl transition-all ${
+        active
+          ? 'bg-slate-950 ring-2 ring-cyan-400/70 shadow-sm shadow-cyan-300/40'
+          : 'bg-gray-100 ring-1 ring-gray-300 grayscale'
+      }`}
+      aria-hidden="true"
+    >
+      <span className={`absolute inset-0 ${active ? 'bg-cyan-400/10' : 'bg-white/40'}`} />
+      <img
+        src="/img/agentic-ai-character.png"
+        alt=""
+        className="relative h-10 w-10 translate-y-0.5 object-contain"
+        draggable="false"
+      />
+      <span className={`absolute right-1 top-1 h-2 w-2 rounded-full border border-white ${active ? 'bg-emerald-400' : 'bg-gray-400'}`} />
+    </span>
+  )
+}
+
 function sanitizePostPreviewText(text = '') {
   return String(text || '')
     .replace(/<!--[\s\S]*?-->/g, ' ')
@@ -283,18 +305,16 @@ export default function TitleBar({
             <button
               type="button"
               onClick={onToggleAgenticPanel}
+              aria-label={showAgenticPanel ? t.titlebar.agenticPanelHide : t.titlebar.agenticPanelShow}
+              aria-pressed={showAgenticPanel}
               title={showAgenticPanel ? t.titlebar.agenticPanelHide : t.titlebar.agenticPanelShow}
-              className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-semibold transition-colors ${
+              className={`inline-flex h-10 w-10 items-center justify-center rounded-xl border transition-all ${
                 showAgenticPanel
-                  ? 'bg-blue-600 border-blue-600 text-white hover:bg-blue-700'
-                  : 'bg-gray-200 border-gray-300 text-gray-600 hover:bg-gray-300'
+                  ? 'bg-slate-900 border-cyan-300/60 hover:bg-slate-800'
+                  : 'bg-gray-200 border-gray-300 hover:bg-gray-300'
               }`}
             >
-              <svg className="w-3.5 h-3.5" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
-                <rect x="2.5" y="3" width="15" height="14" rx="2" />
-                <line x1="11" y1="3" x2="11" y2="17" />
-              </svg>
-              <span className="hidden xl:inline">{t.titlebar.agenticPanelLabel}</span>
+              <AgenticAICharacter active={showAgenticPanel} />
             </button>
           </>
         )}

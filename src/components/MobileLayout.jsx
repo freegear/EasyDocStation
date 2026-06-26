@@ -176,7 +176,7 @@ function AiBottomSheet({ onClose }) {
   )
 }
 
-export default function MobileLayout() {
+export default function MobileLayout({ onOpenServicePage }) {
   const { teams, selectedTeam, selectedChannel, pendingOpenPostId } = useChat()
 
   // 'channels' | 'dm' | 'calendar'
@@ -266,6 +266,7 @@ export default function MobileLayout() {
               onToggleDM={() => setTab('dm')}
               onOpenDM={(conv) => { setActiveDMConv(conv); setTab('dm') }}
               onNewDM={() => { setShowNewDM(true); setTab('dm') }}
+              onOpenServicePage={onOpenServicePage}
               activeDMConvId={activeDMConv?.id}
               onCloseMobile={() => setChannelView('channel')}
             />

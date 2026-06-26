@@ -5,7 +5,7 @@ import { apiFetch } from '../lib/api'
 import TeamManageModal from './TeamManageModal'
 import ChannelManageModal from './ChannelManageModal'
 import { useT } from '../i18n/useT'
-import { FORM_TEMPLATES } from '../templates/formTemplates'
+import { CONSTRUCT_SAFE_KANBAN_TEMPLATE, EASY_CODE_GENERATION_TEMPLATE, FORM_TEMPLATES } from '../templates/formTemplates'
 
 function ChatBubbleIcon() {
   return (
@@ -37,17 +37,24 @@ export default function Sidebar({
   onToggleCalendar,
   onCloseCalendar,
   showDM,
-  onToggleDM,
   onOpenDM,
   onNewDM,
+  onOpenServicePage,
   activeDMConvId,
   isMobile = false,
   onCloseMobile,
   panelId,
 }) {
-  const { teams, setTeams, selectedTeam, selectedChannel, selectTeam, selectChannel, refreshTeams, addPost } = useChat()
+  const { teams, selectedTeam, selectedChannel, selectTeam, selectChannel, refreshTeams, addPost } = useChat()
   const { currentUser } = useAuth()
   const t = useT()
+  const showConstructSafeKanbanTemplate = import.meta.env.VITE_CONSTRUCT_SAFE_KANBAN_TEMPLATE === '1'
+  const showEasyCodeGenerationTemplate = import.meta.env.VITE_EASY_CODE_GENERATION_TEMPLATE === '1'
+  const topServices = [
+    ...(showConstructSafeKanbanTemplate ? [CONSTRUCT_SAFE_KANBAN_TEMPLATE] : []),
+    ...(showEasyCodeGenerationTemplate ? [EASY_CODE_GENERATION_TEMPLATE] : []),
+  ]
+  const [servicesCollapsed, setServicesCollapsed] = useState(false)
   const [teamsCollapsed, setTeamsCollapsed] = useState(false)
   const [formsCollapsed, setFormsCollapsed] = useState(false)
   const [channelsCollapsed, setChannelsCollapsed] = useState(false)
@@ -87,7 +94,19 @@ export default function Sidebar({
     try {
       await addPost(selectedChannel.id, { content, security_level: 1 })
       closeMobileIfNeeded()
-    } catch (_) {}
+    } catch (err) {
+      console.error('Failed to create AI meeting note post:', err)
+    }
+  }
+
+  async function registerTemplatePost(template) {
+    if (!selectedChannel) return alert('채널을 먼저 선택해주세요.')
+    try {
+      await addPost(selectedChannel.id, { content: template.content, security_level: 1 })
+      closeMobileIfNeeded()
+    } catch (err) {
+      console.error('Failed to register template post:', err)
+    }
   }
 
   function refreshDmConversations() {
@@ -163,7 +182,6 @@ export default function Sidebar({
     return false
   }
 
-  const totalUnread = (selectedTeam?.channels || []).reduce((sum, ch) => sum + (ch.unread || 0), 0)
   const closeMobileIfNeeded = () => {
     if (isMobile) onCloseMobile?.()
   }
@@ -175,6 +193,36 @@ export default function Sidebar({
     >
       {/* Scrollable: 팀 목록 + 채널/DM/서식 전체 포함 (9.6) */}
       <div className="flex-1 overflow-y-auto py-2">
+        {topServices.length > 0 && (
+          <div className="px-3 pb-2 mb-1 border-b border-gray-300">
+            <button
+              className="flex items-center justify-between w-full px-2 py-1 text-gray-400 hover:text-gray-600 text-xs uppercase tracking-widest transition-colors mb-1"
+              onClick={() => setServicesCollapsed(v => !v)}
+            >
+              <span>Service</span>
+              <span className="text-base">{servicesCollapsed ? '▸' : '▾'}</span>
+            </button>
+            {!servicesCollapsed && (
+              <div className="flex flex-col gap-1">
+                {topServices.map(template => (
+                  <button
+                    key={template.id}
+                    type="button"
+                    onClick={() => {
+                      onOpenServicePage?.(template)
+                      closeMobileIfNeeded()
+                    }}
+                    className="flex items-center gap-2.5 w-full px-2 py-2 rounded-lg text-sm text-left text-gray-500 hover:bg-gray-100 hover:text-gray-700 transition-all"
+                  >
+                    <span className="text-base leading-none">{template.icon}</span>
+                    <span className="flex-1 font-medium truncate">{template.label}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Team selector */}
         <div className="px-3 pb-2 mb-1 border-b border-gray-300">
           <button
@@ -291,7 +339,7 @@ export default function Sidebar({
           )}
         </div>
 
-        {/* Form Templates */}
+        {/* Services */}
         <div className="mt-2">
           <button
             className="flex items-center justify-between w-full px-3 py-1.5 text-gray-400 hover:text-gray-600 text-xs uppercase tracking-widest transition-colors"
@@ -306,17 +354,11 @@ export default function Sidebar({
               {FORM_TEMPLATES.map(form => {
                 const needsDoubleClick = true
                 const displayLabel = form.id === 'md-page' ? 'EasyPage' : form.label
-                const registerForm = async () => {
-                  if (!selectedChannel) return alert('채널을 먼저 선택해주세요.')
-                  try {
-                    await addPost(selectedChannel.id, { content: form.content, security_level: 1 })
-                  } catch (_) {}
-                }
                 return (
                   <button
                     key={form.id}
-                    onClick={needsDoubleClick ? undefined : registerForm}
-                    onDoubleClick={needsDoubleClick ? registerForm : undefined}
+                    onClick={needsDoubleClick ? undefined : () => registerTemplatePost(form)}
+                    onDoubleClick={needsDoubleClick ? () => registerTemplatePost(form) : undefined}
                     title={needsDoubleClick ? '더블클릭하여 등록' : undefined}
                     className="flex items-center gap-2.5 w-full px-2 py-1.5 rounded-md text-gray-500 hover:bg-gray-100 hover:text-gray-700 text-sm text-left transition-all"
                   >

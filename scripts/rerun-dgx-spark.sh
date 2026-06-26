@@ -15,7 +15,7 @@ log() {
 if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
   cat <<'EOF'
 Usage:
-  bash scripts/rerun-dgx-spark.sh
+  bash scripts/rerun-dgx-spark.sh [run-dgx-spark options]
 
 Description:
   EasyDocStation DGX-SPARK 실행 프로세스를 종료 후 백그라운드 재실행합니다.
@@ -31,5 +31,5 @@ log "로그: $LOG_FILE"
   echo "[$(date '+%Y%m%d-%H:%M:%S')][DGX-SPARK] stop old process"
   bash "$ROOT_DIR/scripts/run-dgx-spark.sh" --stop
   echo "[$(date '+%Y%m%d-%H:%M:%S')][DGX-SPARK] start new process"
-  bash "$ROOT_DIR/scripts/run-dgx-spark.sh"
+  bash "$ROOT_DIR/scripts/run-dgx-spark.sh" "$@"
 } >>"$LOG_FILE" 2>&1

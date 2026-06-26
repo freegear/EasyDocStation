@@ -20,8 +20,21 @@ import { useT } from '../i18n/useT'
 import { isTemplateContent, isMdPage, getMdPageContent, getMdPageTitle, FORM_TEMPLATES } from '../templates/formTemplates'
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels'
 
+const MIN_CONTENT_FONT_SCALE = 90
+const MAX_CONTENT_FONT_SCALE = 130
+
 
 // ─── Helpers ──────────────────────────────────────────────────
+
+function normalizeContentFontScale(value) {
+  const parsed = Number.parseInt(value, 10)
+  if (Number.isNaN(parsed)) return 100
+  return Math.min(MAX_CONTENT_FONT_SCALE, Math.max(MIN_CONTENT_FONT_SCALE, parsed))
+}
+
+function getContentFontStyle(scale) {
+  return { '--content-font-scale': normalizeContentFontScale(scale) / 100 }
+}
 
 function formatDate(iso, t) {
   const d = new Date(iso)
@@ -1895,11 +1908,13 @@ function ContentRenderer({ text = '', sttPostId = '', sttChannelId = '' }) {
   const activeSttPostIdRef = useRef('')
   const sttPollScopeRef = useRef({ postId: '', jobId: '' })
 
-  const normalized = normalizeMarkdownCodeFence(
-    String(text || '')
-      .replace(/<!--[\s\S]*?-->/g, '')
-      .replace('<!--ai-meeting-note-->', '')
-      .replace('[새회의록작성]', '')
+  const normalized = normalizeDashNumberedLists(
+    normalizeMarkdownCodeFence(
+      String(text || '')
+        .replace(/<!--[\s\S]*?-->/g, '')
+        .replace('<!--ai-meeting-note-->', '')
+        .replace('[새회의록작성]', '')
+    )
   )
   const links = extractHttpUrls(text || '')
 
@@ -2490,6 +2505,20 @@ function normalizeMarkdownCodeFence(text) {
   }).join('\n')
 }
 
+function normalizeDashNumberedLists(text) {
+  const lines = String(text || '').split('\n')
+  let inFence = false
+
+  return lines.map((line) => {
+    if (/^\s*(```|~~~)/.test(line)) {
+      inFence = !inFence
+      return line
+    }
+    if (inFence) return line
+    return line.replace(/^(\s*)-\s+(\d+)\.\s+(.+)$/, '$1$2. $3')
+  }).join('\n')
+}
+
 // ─── Compose bar with file attach ────────────────────────────
 
 function ComposeBar({ onSubmit, isArchived, teamId }) {
@@ -2883,7 +2912,7 @@ function ComposeBar({ onSubmit, isArchived, teamId }) {
 
 // ─── Post List ────────────────────────────────────────────────
 
-function PostList({ posts, onSelect, onSubmit, selectedPostId, onOpenDocumentList }) {
+function PostList({ posts, onSelect, onSubmit, selectedPostId, onOpenDocumentList, contentFontScale = 100 }) {
   const t = useT()
   const { selectedChannel, selectedTeam, refreshTeams, markPostRead, fetchDeletedItems, restorePost, restoreComment } = useChat()
   const pinnedPosts = posts
@@ -2943,6 +2972,7 @@ function PostList({ posts, onSelect, onSubmit, selectedPostId, onOpenDocumentLis
           post={row.item}
           onSelect={handleSelectPost}
           isSelected={row.item.id === selectedPostId}
+          contentFontScale={contentFontScale}
         />
       )
     ))
@@ -3028,7 +3058,7 @@ function PostList({ posts, onSelect, onSubmit, selectedPostId, onOpenDocumentLis
       >
         <Panel defaultSize={72} minSize={25} className="overflow-hidden">
           {/* Feed */}
-          <div className="h-full overflow-y-auto px-6 py-4">
+          <div className="h-full overflow-y-auto px-6 pt-1 pb-4">
             {posts.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full text-center py-16">
                 <div className="w-16 h-16 rounded-2xl bg-indigo-50 border border-indigo-200 flex items-center justify-center text-3xl mb-4">📄</div>
@@ -3053,7 +3083,7 @@ function PostList({ posts, onSelect, onSubmit, selectedPostId, onOpenDocumentLis
                       <PinIcon /><span>{t.chat.pinnedPost}</span>
                     </div>
                     <div className="flex flex-col gap-2 max-h-[38vh] overflow-y-auto pr-1">
-                      {pinnedPosts.map(p => <PostCard key={p.id} post={p} onSelect={handleSelectPost} pinned isSelected={p.id === selectedPostId} />)}
+                      {pinnedPosts.map(p => <PostCard key={p.id} post={p} onSelect={handleSelectPost} pinned isSelected={p.id === selectedPostId} contentFontScale={contentFontScale} />)}
                     </div>
                   </div>
                 )}
@@ -3383,7 +3413,7 @@ function PostCardPreview({ post, rawForParsing = '', isTemplate = false }) {
   )
 }
 
-function PostCard({ post, onSelect, pinned, isSelected }) {
+function PostCard({ post, onSelect, pinned, isSelected, contentFontScale = 100 }) {
   const t = useT()
   const isTemplate = isTemplateContent(post.content)
   const isMd = isMdPage(post.content)
@@ -3443,6 +3473,7 @@ function PostCard({ post, onSelect, pinned, isSelected }) {
     handleClickCapture,
     shouldBlockClick,
   } = useSelectionClickGuard({ scope: 'post-card', dragThreshold: 4, blockOnAnySelection: true })
+  const contentFontStyle = getContentFontStyle(contentFontScale)
 
   function handleCardMouseUp(e) {
     const selected = handleMouseUp(e)
@@ -3511,13 +3542,13 @@ function PostCard({ post, onSelect, pinned, isSelected }) {
             )}
             {pinned && <PinIcon />}
             {leadLine && (
-              <p className="text-gray-800 font-semibold text-sm leading-tight group-hover:text-indigo-600 transition-colors overflow-hidden text-ellipsis whitespace-nowrap select-text allow-copy cursor-text">
+              <p className="text-gray-800 font-semibold leading-tight group-hover:text-indigo-600 transition-colors overflow-hidden text-ellipsis whitespace-nowrap select-text allow-copy cursor-text" style={{ ...contentFontStyle, fontSize: 'calc(0.875rem * var(--content-font-scale))' }}>
                 {renderMentionTokens(leadLine, `lead-${post.id}`)}
               </p>
             )}
           </div>
           {/* Meta */}
-          <div className={`flex items-center gap-2 text-gray-400 text-xs select-text allow-copy ${(bodyPreview && !pinned) ? 'mb-1' : 'mb-0'}`}>
+          <div className={`flex items-center gap-2 text-gray-400 select-text allow-copy ${(bodyPreview && !pinned) ? 'mb-1' : 'mb-0'}`} style={{ ...contentFontStyle, fontSize: 'calc(0.75rem * var(--content-font-scale))' }}>
             <span className="font-medium text-gray-500">{post.author?.name}</span>
             {post.author?.username && (
               <span className="text-gray-400">@{post.author.username}</span>
@@ -3552,7 +3583,8 @@ function PostCard({ post, onSelect, pinned, isSelected }) {
           {/* Body preview (second line onward) — 고정글은 제목/작성자/날짜만 노출하고 본문은 숨김 */}
           {bodyPreview && !pinned && (
             <p
-              className="text-gray-400 text-xs leading-relaxed line-clamp-5 whitespace-pre-wrap break-words select-text allow-copy cursor-text"
+              className="text-gray-400 leading-relaxed line-clamp-5 whitespace-pre-wrap break-words select-text allow-copy cursor-text"
+              style={{ ...contentFontStyle, fontSize: 'calc(0.75rem * var(--content-font-scale))' }}
             >
               {renderMentionTokens(bodyPreview, `body-${post.id}`)}
             </p>
@@ -3597,7 +3629,14 @@ export default function ChatArea({ autoOpenPostId, isMobile = false, onExitChann
   const [showDocumentList, setShowDocumentList] = useState(false)
   const [leftWidth, setLeftWidth] = useState(42) // percent
   const [resizing, setResizing] = useState(false)
+  const [contentFontScale, setContentFontScale] = useState(100)
   const containerRef = useRef(null)
+
+  useEffect(() => {
+    apiFetch('/config/display')
+      .then(data => setContentFontScale(normalizeContentFontScale(data?.contentFontScale)))
+      .catch(() => {})
+  }, [])
 
   // 검색 결과로 선택된 게시글 자동 오픈
   useEffect(() => {
@@ -3773,6 +3812,7 @@ export default function ChatArea({ autoOpenPostId, isMobile = false, onExitChann
               onConsumePendingOpen={clearPendingPost}
               helpers={postDetailHelpers}
               isMobile
+              contentFontScale={contentFontScale}
             />
           ) : (
             <PostList
@@ -3781,6 +3821,7 @@ export default function ChatArea({ autoOpenPostId, isMobile = false, onExitChann
               onSelect={setSelectedPost}
               onSubmit={handleNewPost}
               onOpenDocumentList={() => { setSelectedPost(null); setShowDocumentList(true) }}
+              contentFontScale={contentFontScale}
             />
           )}
         </div>
@@ -3825,6 +3866,7 @@ export default function ChatArea({ autoOpenPostId, isMobile = false, onExitChann
             setSelectedPost(null)
             setShowDocumentList(true)
           }}
+          contentFontScale={contentFontScale}
         />
       </div>
 
@@ -3849,6 +3891,7 @@ export default function ChatArea({ autoOpenPostId, isMobile = false, onExitChann
           pendingOpenAttachmentId={pendingOpenAttachmentId}
           onConsumePendingOpen={clearPendingPost}
           helpers={postDetailHelpers}
+          contentFontScale={contentFontScale}
         />
         </div>
       )}

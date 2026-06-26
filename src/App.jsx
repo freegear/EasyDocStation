@@ -16,6 +16,64 @@ import DirectMessageView, { NewConversationModal } from './components/DirectMess
 import ConfirmDialog from './components/ConfirmDialog'
 import SelectionGuardPlaywrightFixture from './components/dev/SelectionGuardPlaywrightFixture'
 
+function FullscreenServicePage({ service, onClose }) {
+  const iframeRef = useRef(null)
+  const lastEscapeAtRef = useRef(0)
+
+  const handleEscape = useCallback((e) => {
+    if (e.key !== 'Escape') return
+    const now = Date.now()
+    if (now - lastEscapeAtRef.current <= 700) {
+      e.preventDefault()
+      lastEscapeAtRef.current = 0
+      onClose?.()
+      return
+    }
+    lastEscapeAtRef.current = now
+  }, [onClose])
+
+  useEffect(() => {
+    window.addEventListener('keydown', handleEscape, true)
+    return () => window.removeEventListener('keydown', handleEscape, true)
+  }, [handleEscape])
+
+  const attachIframeEscapeHandler = useCallback(() => {
+    const win = iframeRef.current?.contentWindow
+    if (!win) return
+    win.removeEventListener('keydown', handleEscape, true)
+    win.addEventListener('keydown', handleEscape, true)
+  }, [handleEscape])
+
+  useEffect(() => {
+    const win = iframeRef.current?.contentWindow
+    return () => {
+      win?.removeEventListener('keydown', handleEscape, true)
+    }
+  }, [handleEscape, service])
+
+  if (!service) return null
+
+  return (
+    <div className="fixed inset-0 z-[10000] bg-slate-950">
+      <button
+        type="button"
+        aria-label="닫기"
+        onClick={onClose}
+        className="absolute right-4 top-4 z-10 flex h-9 w-9 items-center justify-center rounded-md bg-white/90 text-slate-700 shadow-lg hover:bg-white"
+      >
+        <span aria-hidden="true" className="text-xl leading-none">×</span>
+      </button>
+      <iframe
+        ref={iframeRef}
+        title={service.label}
+        srcDoc={service.content}
+        onLoad={attachIframeEscapeHandler}
+        className="h-full w-full border-0"
+      />
+    </div>
+  )
+}
+
 function MainLayout() {
   const SIDEBAR_STORAGE_KEY = 'ui.sidebar.visible'
   const accessDeniedMessage = '당신은 권한이 없습니다. 필요하시면 채널관리자/팀 관리자/채널관리자 에게 연락하여 주시기바랍니다.'
@@ -28,6 +86,7 @@ function MainLayout() {
   const [activeDMConv, setActiveDMConv] = useState(null)
   const [showNewDM, setShowNewDM] = useState(false)
   const [showAccessDeniedDialog, setShowAccessDeniedDialog] = useState(false)
+  const [fullscreenService, setFullscreenService] = useState(null)
   const { isSearchMode, teams, selectedTeam, navigateToPost } = useChat()
   const deepLinkHandledRef = useRef(false)
 
@@ -145,7 +204,6 @@ function MainLayout() {
     if (typeof window === 'undefined') return undefined
     const mq = window.matchMedia('(max-width: 768px)')
     const handleChange = (e) => setIsMobileLayout(e.matches)
-    setIsMobileLayout(mq.matches)
     if (typeof mq.addEventListener === 'function') {
       mq.addEventListener('change', handleChange)
       return () => mq.removeEventListener('change', handleChange)
@@ -187,7 +245,7 @@ function MainLayout() {
       />
       <div ref={mainRef} className="flex flex-1 min-h-0">
         {isMobileLayout ? (
-          <MobileLayout />
+          <MobileLayout onOpenServicePage={setFullscreenService} />
         ) : (
           <>
             {showSidebar && (
@@ -199,6 +257,7 @@ function MainLayout() {
                 onToggleDM={() => setShowDM(v => !v)}
                 onOpenDM={(conv) => { setActiveDMConv(conv); setShowDM(true); setShowCalendar(false) }}
                 onNewDM={() => setShowNewDM(true)}
+                onOpenServicePage={setFullscreenService}
                 activeDMConvId={activeDMConv?.id}
                 isMobile={false}
               />
@@ -248,6 +307,12 @@ function MainLayout() {
           teamId={selectedTeam?.id}
           onCreated={(conv) => { setShowNewDM(false); setActiveDMConv(conv); setShowDM(true); setShowCalendar(false) }}
           onCancel={() => setShowNewDM(false)}
+        />
+      )}
+      {fullscreenService && (
+        <FullscreenServicePage
+          service={fullscreenService}
+          onClose={() => setFullscreenService(null)}
         />
       )}
       {showProfileSavedDialog && (

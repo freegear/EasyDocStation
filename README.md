@@ -178,3 +178,9 @@ npm run restart:dgx-spark
 ```bash
 npm run dev
 ```
+
+## 칸반 설치
+bash scripts/run-dgx-spark.sh --Construct_safe_kanban_template 
+
+## 코드 생성
+bash scripts/run-dgx-spark.sh --EasyCodeGeneration

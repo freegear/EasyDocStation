@@ -147,6 +147,7 @@ function PostDetailPane({
   onConsumePendingOpen = null,
   helpers = {},
   isMobile = false,
+  contentFontScale = 100,
 }) {
   const t = useT()
   const { addComment, incrementViews, deletePost, updatePost, togglePostPin, togglePostLike, toggleCommentLike, deleteComment, updateComment, posts, selectedChannel, selectedTeam, openInAgenticAI } = useChat()
@@ -334,6 +335,10 @@ function PostDetailPane({
     dragThreshold: 4,
     blockOnAnySelection: false,
   })
+  const normalizedContentFontScale = Math.min(130, Math.max(90, Number.parseInt(contentFontScale, 10) || 100))
+  const contentFontStyle = { '--content-font-scale': normalizedContentFontScale / 100 }
+  const postTextStyle = { ...contentFontStyle, fontSize: 'calc(0.875rem * var(--content-font-scale))' }
+  const commentTextStyle = { ...contentFontStyle, fontSize: 'calc(0.875rem * var(--content-font-scale))' }
 
   useEffect(() => {
     if (!pendingOpenCommentId) return
@@ -986,6 +991,7 @@ function PostDetailPane({
                 cancelPostEdit()
               }}
               className="w-full flex-1 min-h-0 h-full bg-transparent text-gray-800 placeholder-gray-400 text-sm leading-relaxed resize-none focus:outline-none overflow-y-auto"
+              style={postTextStyle}
             />
             {postFiles.length > 0 && (
               <div className="flex flex-wrap gap-2">
@@ -1015,7 +1021,7 @@ function PostDetailPane({
           <>
             <div
               className="mb-4 select-text allow-copy cursor-text"
-              style={{ WebkitAppRegion: 'no-drag', userSelect: 'text', WebkitUserSelect: 'text' }}
+              style={{ WebkitAppRegion: 'no-drag', userSelect: 'text', WebkitUserSelect: 'text', ...postTextStyle }}
               onMouseDownCapture={(e) => guardSelectionMouseDownCapture(e, postBodySelectionGuard)}
               onMouseUpCapture={(e) => guardSelectionMouseUpCapture(e, postBodySelectionGuard)}
               onClickCapture={(e) => guardSelectionClickCapture(e, postBodySelectionGuard)}
@@ -1203,6 +1209,7 @@ function PostDetailPane({
                             cancelCommentEdit()
                           }}
                           className="w-full min-h-32 bg-gray-100 border border-gray-200 rounded-lg p-2 text-gray-700 text-sm focus:outline-none focus:border-indigo-300 resize-none overflow-y-auto"
+                          style={commentTextStyle}
                         />
                         {commentEditFiles.length > 0 && (
                           <div className="flex flex-wrap gap-1.5 mt-2">
@@ -1232,7 +1239,7 @@ function PostDetailPane({
                       <>
                         <div
                           className="text-gray-600 select-text allow-copy cursor-text min-w-0 max-w-full overflow-hidden"
-                          style={{ WebkitAppRegion: 'no-drag', userSelect: 'text', WebkitUserSelect: 'text' }}
+                          style={{ WebkitAppRegion: 'no-drag', userSelect: 'text', WebkitUserSelect: 'text', ...commentTextStyle }}
                           onMouseDownCapture={(e) => guardSelectionMouseDownCapture(e, commentBodySelectionGuard)}
                           onMouseUpCapture={(e) => guardSelectionMouseUpCapture(e, commentBodySelectionGuard)}
                           onClickCapture={(e) => guardSelectionClickCapture(e, commentBodySelectionGuard)}
@@ -1326,6 +1333,7 @@ function PostDetailPane({
                   onKeyUp={e => mention.handleChange(e.currentTarget.value, e.currentTarget.selectionStart, e.currentTarget)}
                   placeholder={t.chat.commentPlaceholder}
                   className="w-full h-full bg-transparent text-gray-700 placeholder-gray-400 text-sm px-4 pt-3 pb-2 resize-none focus:outline-none leading-relaxed overflow-y-auto"
+                  style={commentTextStyle}
                   onDragOver={handleTextareaDragOver}
                   onDrop={handleTextareaDrop}
                   onKeyDown={e => {

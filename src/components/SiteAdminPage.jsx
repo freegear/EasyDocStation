@@ -13,6 +13,8 @@ const LANGUAGES = [
   { code: 'en', label: 'English', flag: '🇺🇸' },
   { code: 'ja', label: '日本語', flag: '🇯🇵' },
 ]
+const MIN_CONTENT_FONT_SCALE = 90
+const MAX_CONTENT_FONT_SCALE = 130
 
 function formatDate(iso) {
   if (!iso) return '-'
@@ -30,6 +32,12 @@ function generateStrongRandomToken(length = 64) {
     .replace(/\//g, '_')
     .replace(/=+$/g, '')
   return base64.slice(0, length)
+}
+
+function clampContentFontScale(value) {
+  const parsed = Number.parseInt(value, 10)
+  if (Number.isNaN(parsed)) return 100
+  return Math.min(MAX_CONTENT_FONT_SCALE, Math.max(MIN_CONTENT_FONT_SCALE, parsed))
 }
 
 function RoleBadge({ role, label }) {
@@ -728,7 +736,8 @@ export default function SiteAdminPage({ onClose }) {
     excelPreview: { width: 480, height: 270 },
     wordPreview: { width: 270, height: 480 },
     moviePreview: { width: 480, height: 270 },
-    htmlPreview: { width: 480, height: 270 }
+    htmlPreview: { width: 480, height: 270 },
+    contentFontScale: 100,
   })
   const [easyDocStationFolder, setEasyDocStationFolder] = useState('')
   const [postgresPath, setPostgresPath] = useState('Database/PoseSQLDB')
@@ -943,7 +952,8 @@ export default function SiteAdminPage({ onClose }) {
           excelPreview: data.display.excelPreview || { width: 480, height: 270 },
           wordPreview: data.display.wordPreview || { width: 270, height: 480 },
           moviePreview: data.display.moviePreview || { width: 480, height: 270 },
-          htmlPreview: data.display.htmlPreview || { width: 480, height: 270 }
+          htmlPreview: data.display.htmlPreview || { width: 480, height: 270 },
+          contentFontScale: clampContentFontScale(data.display.contentFontScale),
         })
       }
       if (data.lancedb?.location) {
@@ -1333,6 +1343,7 @@ export default function SiteAdminPage({ onClose }) {
           width: parseInt(displayForm.htmlPreview.width),
           height: parseInt(displayForm.htmlPreview.height)
         }
+        configData.contentFontScale = clampContentFontScale(displayForm.contentFontScale)
       } else if (activeTab === 'db') {
         configData['EasyDocStationFolder'] = easyDocStationFolder.trim()
         configData['PostgreSQL Database Path'] = postgresPath.trim()
@@ -2739,6 +2750,38 @@ export default function SiteAdminPage({ onClose }) {
               </div>
             ) : dbStats?.display ? (
               <div className="space-y-6 pb-20">
+                <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <h3 className="text-gray-900 font-bold text-base">{t.admin.contentFontScaleTitle || '화면 글자 크기'}</h3>
+                      <p className="text-gray-400 text-xs mt-1">{t.admin.contentFontScaleDesc || '게시글 제목, 본문, 댓글, 입력창의 글자 크기를 조절합니다.'}</p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setDisplayForm(p => ({ ...p, contentFontScale: clampContentFontScale((p.contentFontScale || 100) - 10) }))}
+                        disabled={clampContentFontScale(displayForm.contentFontScale) <= MIN_CONTENT_FONT_SCALE}
+                        className="w-9 h-9 rounded-lg border border-gray-200 bg-gray-50 text-gray-700 text-xl font-bold hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed"
+                        aria-label={t.admin.contentFontScaleDecrease || '글자 크기 줄이기'}
+                      >
+                        -
+                      </button>
+                      <div className="w-20 text-center rounded-lg border border-indigo-100 bg-indigo-50 px-3 py-2 text-indigo-700 font-black">
+                        {clampContentFontScale(displayForm.contentFontScale)}%
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setDisplayForm(p => ({ ...p, contentFontScale: clampContentFontScale((p.contentFontScale || 100) + 10) }))}
+                        disabled={clampContentFontScale(displayForm.contentFontScale) >= MAX_CONTENT_FONT_SCALE}
+                        className="w-9 h-9 rounded-lg border border-gray-200 bg-gray-50 text-gray-700 text-xl font-bold hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed"
+                        aria-label={t.admin.contentFontScaleIncrease || '글자 크기 키우기'}
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
                 {/* Image Preview */}
                 <PreviewSettingCard
                   title={t.admin.previewImageTitle}

@@ -804,8 +804,8 @@ async function notifyMentionedUsers(content, { channelId = '', postId = '', comm
 
     const siteUrl = String(config?.site_url || '').trim()
     const postLink = (channelId && postId) ? buildPostLink(channelId, postId, commentId, siteUrl) : ''
-    // 첨부가 없는 텍스트 전용 게시물이면 본문 앞 3줄을 함께 보낸다.
-    const preview = (attachmentIds || []).filter(Boolean).length === 0 ? buildPostNotifyPreview(content) : ''
+    // 게시물/댓글 알림에는 본문 앞 5줄을 함께 보낸다.
+    const preview = buildPostNotifyPreview(content)
     const text = ['게시물이 등록되었습니다.', preview, postLink].filter(Boolean).join('\n\n')
 
     for (const name of names) {
@@ -835,10 +835,10 @@ async function notifyMentionedUsers(content, { channelId = '', postId = '', comm
   }
 }
 
-// 텍스트 전용 게시물 알림에 함께 보낼 본문 미리보기(앞 3줄).
-//  - HTML 주석/캐리지리턴 정리, 앞뒤 빈 줄 제거 후 내용 있는 줄부터 최대 3줄
-//  - 3줄을 넘거나 글자수 상한(기본 300자)을 넘으면 끝에 '…' 표시
-function buildPostNotifyPreview(content = '', maxLines = 3, maxChars = 300) {
+// 게시물/댓글 알림에 함께 보낼 본문 미리보기(앞 5줄).
+//  - HTML 주석/캐리지리턴 정리, 앞뒤 빈 줄 제거 후 내용 있는 줄부터 최대 5줄
+//  - 5줄을 넘거나 글자수 상한(기본 600자)을 넘으면 끝에 '…' 표시
+function buildPostNotifyPreview(content = '', maxLines = 5, maxChars = 600) {
   const cleaned = String(content || '')
     .replace(/<!--[\s\S]*?-->/g, '')
     .replace(/\r\n?/g, '\n')
@@ -961,8 +961,8 @@ async function notifyAuthorTelegramPostRegistered({ authorId, channelId, postId,
 
     const siteUrl = String(config?.site_url || '').trim()
     const postLink = buildPostLink(channelId, postId, commentId, siteUrl)
-    // 첨부가 없는 텍스트 전용 게시물이면 본문 앞 3줄을 함께 보낸다.
-    const preview = (attachmentIds || []).filter(Boolean).length === 0 ? buildPostNotifyPreview(content) : ''
+    // 게시물/댓글 알림에는 본문 앞 5줄을 함께 보낸다.
+    const preview = buildPostNotifyPreview(content)
     const text = ['게시물이 등록되었습니다.', preview, postLink].filter(Boolean).join('\n\n')
 
     await sendTelegramPostNotify(botToken, chatId, text, attachmentIds)
@@ -2770,6 +2770,7 @@ router.post('/:id/comments', requireAuth, async (req, res, next) => {
       postId,
       commentId,
       attachmentIds: safeAttachmentIds,
+      content: safeContent,
     })
 
     res.status(201).json(newComment)

@@ -1,4 +1,20 @@
 import minutesTemplate from '../../template/minutes_template.html?raw'
+import constructSafeKanbanTemplate from '../../template/Construct_Safe_kanban.html?raw'
+import easyCodeGenerationTemplate from '../../template/EasyCodeGeneration.html?raw'
+
+export const CONSTRUCT_SAFE_KANBAN_TEMPLATE = {
+  id: 'construct-safe-kanban',
+  label: '건설 안전 칸반 보드',
+  icon: '📋',
+  content: constructSafeKanbanTemplate,
+}
+
+export const EASY_CODE_GENERATION_TEMPLATE = {
+  id: 'easy-code-generation',
+  label: 'Easy Code 생성 플랫폼',
+  icon: '📋',
+  content: easyCodeGenerationTemplate,
+}
 
 export const FORM_TEMPLATES = [
   {
@@ -230,7 +246,7 @@ body { font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif; margin: 
     return 'SCSADOM-' + y + m + day + '001';
   }
 
-  function parseNum(s) { return parseFloat((s || '0').replace(/[,\s원]/g, '')) || 0; }
+  function parseNum(s) { return parseFloat((s || '0').replace(/[,\\s원]/g, '')) || 0; }
   function fmtNum(n) { return Math.round(n).toLocaleString('ko-KR'); }
 
   function recalcRow(row) {

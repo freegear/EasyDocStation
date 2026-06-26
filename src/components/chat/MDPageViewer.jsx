@@ -3,6 +3,7 @@ import { useEditor, EditorContent } from '@tiptap/react'
 import { BubbleMenu } from '@tiptap/react/menus'
 import { Node, Extension, mergeAttributes } from '@tiptap/core'
 import { Plugin, PluginKey } from '@tiptap/pm/state'
+import { Slice } from '@tiptap/pm/model'
 import { Decoration, DecorationSet } from '@tiptap/pm/view'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
@@ -54,6 +55,8 @@ const MERMAID_RENDER_CLASS = 'md-mermaid-render'
 const MERMAID_PLUGIN_KEY = new PluginKey('md-mermaid-preview')
 const ECHARTS_RENDER_CLASS = 'md-echarts-render'
 const ECHARTS_PLUGIN_KEY = new PluginKey('md-echarts-preview')
+const EASYDOC_CLIPBOARD_MIME = 'application/x-easydocstation-md-slice'
+const EASYDOC_CLIPBOARD_VERSION = 1
 let mermaidInitialized = false
 
 function hashText(source = '') {
@@ -675,6 +678,123 @@ const EchartsPreviewExtension = Extension.create({
         props: {
           decorations(state) {
             return this.getState(state)
+          },
+        },
+      }),
+    ]
+  },
+})
+
+function getSlicePlainText(view, slice) {
+  const serialized = view.serializeForClipboard?.(slice)
+  const text = serialized?.text || slice.content.textBetween(0, slice.content.size, '\n\n', '\n')
+  return String(text || '').replace(/\u00a0/g, ' ')
+}
+
+function readEasyDocClipboardSlice(view, event) {
+  const raw = event.clipboardData?.getData(EASYDOC_CLIPBOARD_MIME)
+  if (!raw) return null
+
+  try {
+    const payload = JSON.parse(raw)
+    if (payload?.version !== EASYDOC_CLIPBOARD_VERSION || !payload?.slice) return null
+    return Slice.fromJSON(view.state.schema, payload.slice)
+  } catch (err) {
+    console.warn('EasyDocStation clipboard payload ignored:', err)
+    return null
+  }
+}
+
+function getDomSelectedTextInsideElement(container) {
+  const selection = window.getSelection?.()
+  const text = selection?.toString?.() || ''
+  if (!text.trim() || !selection?.rangeCount || !container) return ''
+
+  const range = selection.getRangeAt(0)
+  const commonNode = range?.commonAncestorContainer
+  const anchor = selection.anchorNode
+  const focus = selection.focusNode
+  const isInside = (node) => Boolean(node && container.contains(node.nodeType === 1 ? node : node.parentNode))
+
+  if (isInside(commonNode) || isInside(anchor) || isInside(focus)) return text
+  return ''
+}
+
+function getDomSelectedTextInside(view) {
+  return getDomSelectedTextInsideElement(view?.dom)
+}
+
+function stopClipboardEvent(event) {
+  event.preventDefault()
+  event.stopPropagation()
+  event.nativeEvent?.stopImmediatePropagation?.()
+  event.stopImmediatePropagation?.()
+}
+
+function writeEasyDocClipboardData(view, event, { cut = false } = {}) {
+  const selection = view?.state?.selection
+  const data = event.clipboardData
+  if (!selection || !data) return false
+  if (cut && !view.editable) return false
+
+  const hasEditorSelection = !selection.empty
+  const slice = hasEditorSelection ? selection.content() : null
+  const plainText = slice ? getSlicePlainText(view, slice) : getDomSelectedTextInside(view)
+  if (!plainText.trim()) return false
+
+  stopClipboardEvent(event)
+  data.clearData()
+  data.setData('text/plain', plainText)
+
+  if (slice) {
+    const payload = {
+      version: EASYDOC_CLIPBOARD_VERSION,
+      slice: slice.toJSON(),
+    }
+    data.setData(EASYDOC_CLIPBOARD_MIME, JSON.stringify(payload))
+  }
+
+  if (cut) {
+    view.dispatch(view.state.tr.deleteSelection().scrollIntoView().setMeta('uiEvent', 'cut'))
+  }
+
+  return true
+}
+
+function pasteEasyDocClipboardData(view, event) {
+  if (!view?.editable) return false
+  const slice = readEasyDocClipboardSlice(view, event)
+  if (!slice || slice === Slice.empty) return false
+
+  stopClipboardEvent(event)
+  view.dispatch(
+    view.state.tr
+      .replaceSelection(slice)
+      .scrollIntoView()
+      .setMeta('paste', true)
+      .setMeta('uiEvent', 'paste'),
+  )
+  return true
+}
+
+const EasyDocClipboardExtension = Extension.create({
+  name: 'easyDocClipboard',
+
+  addProseMirrorPlugins() {
+    return [
+      new Plugin({
+        key: new PluginKey('easyDocClipboard'),
+        props: {
+          handleDOMEvents: {
+            copy(view, event) {
+              return writeEasyDocClipboardData(view, event)
+            },
+            cut(view, event) {
+              return writeEasyDocClipboardData(view, event, { cut: true })
+            },
+            paste(view, event) {
+              return pasteEasyDocClipboardData(view, event)
+            },
           },
         },
       }),
@@ -1445,6 +1565,7 @@ export default function MDPageViewer({ post, channelId, onClose }) {
       TocNode,
       MermaidPreviewExtension,
       EchartsPreviewExtension,
+      EasyDocClipboardExtension,
       ResizableImage.configure({
         minWidth: 120,
         maxWidth: 1200,
@@ -1574,6 +1695,52 @@ export default function MDPageViewer({ post, channelId, onClose }) {
     // 최초 진입 시 문서 시그니처를 baseline으로 저장
     if (!savedDocSignatureRef.current) {
       savedDocSignatureRef.current = getEditorDocSignature(editor)
+    }
+  }, [editor])
+
+  useEffect(() => {
+    const dom = editor?.view?.dom
+    if (!dom) return undefined
+
+    const handleCopy = (event) => {
+      writeEasyDocClipboardData(editor.view, event)
+    }
+    const handleCut = (event) => {
+      writeEasyDocClipboardData(editor.view, event, { cut: true })
+    }
+    const handlePaste = (event) => {
+      pasteEasyDocClipboardData(editor.view, event)
+    }
+
+    dom.addEventListener('copy', handleCopy, true)
+    dom.addEventListener('cut', handleCut, true)
+    dom.addEventListener('paste', handlePaste, true)
+
+    return () => {
+      dom.removeEventListener('copy', handleCopy, true)
+      dom.removeEventListener('cut', handleCut, true)
+      dom.removeEventListener('paste', handlePaste, true)
+    }
+  }, [editor])
+
+  useEffect(() => {
+    const handleDocumentCopy = (event) => {
+      const editorDom = editor?.view?.dom
+      const selectedText = getDomSelectedTextInsideElement(editorDom)
+        || getDomSelectedTextInsideElement(printContentRef.current)
+      if (!selectedText.trim() || !event.clipboardData) return
+
+      const handled = writeEasyDocClipboardData(editor?.view, event)
+      if (handled) return
+
+      stopClipboardEvent(event)
+      event.clipboardData.clearData()
+      event.clipboardData.setData('text/plain', selectedText.replace(/\u00a0/g, ' '))
+    }
+
+    document.addEventListener('copy', handleDocumentCopy, true)
+    return () => {
+      document.removeEventListener('copy', handleDocumentCopy, true)
     }
   }, [editor])
 
@@ -2241,9 +2408,9 @@ export default function MDPageViewer({ post, channelId, onClose }) {
           aria-label="링크복사"
           className="px-3 py-1.5 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 hover:text-gray-700 transition-colors flex-shrink-0"
         >
-          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-            <rect x="9" y="9" width="10" height="10" rx="2" />
-            <path d="M15 9V7a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2" />
+          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+            <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
           </svg>
         </button>
 
@@ -2336,7 +2503,18 @@ export default function MDPageViewer({ post, channelId, onClose }) {
             </>
           ) : (
             /* 미리보기 모드: TipTap WYSIWYG 에디터 */
-            <div className="max-w-4xl mx-auto px-8 py-8 relative">
+            <div
+              className="max-w-4xl mx-auto px-8 py-8 relative"
+              onCopyCapture={(event) => {
+                writeEasyDocClipboardData(editor?.view, event)
+              }}
+              onCutCapture={(event) => {
+                writeEasyDocClipboardData(editor?.view, event, { cut: true })
+              }}
+              onPasteCapture={(event) => {
+                pasteEasyDocClipboardData(editor?.view, event)
+              }}
+            >
               {canEdit && (
                 <LinkBubbleMenu editor={editor} />
               )}

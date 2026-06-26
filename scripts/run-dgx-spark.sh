@@ -22,6 +22,9 @@ OLLAMA_PID_FILE="$LOG_DIR/easydoc-ollama.pid"
 BE_LOOP_PID_FILE="$LOG_DIR/dgx-be-loop.pid"
 BE_LOOP_LOCK_FILE="$LOG_DIR/dgx-be-loop.lock"
 BE_LOOP_LOCK_DIR="$LOG_DIR/dgx-be-loop.lockdir"
+ACTION="start"
+CONSTRUCT_SAFE_KANBAN_TEMPLATE="${VITE_CONSTRUCT_SAFE_KANBAN_TEMPLATE:-0}"
+EASY_CODE_GENERATION_TEMPLATE="${VITE_EASY_CODE_GENERATION_TEMPLATE:-0}"
 
 log() {
   echo "[$(date '+%Y%m%d-%H:%M:%S')][DGX-SPARK] $*"
@@ -160,24 +163,55 @@ stop_all_tasks() {
   done
 }
 
-if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --help|-h)
+      ACTION="help"
+      ;;
+    --status)
+      ACTION="status"
+      ;;
+    --stop)
+      ACTION="stop"
+      ;;
+    --restart)
+      ACTION="restart"
+      ;;
+    --Construct_safe_kanban_template|--construct-safe-kanban-template|Construct_safe_kanban_template)
+      CONSTRUCT_SAFE_KANBAN_TEMPLATE="1"
+      ;;
+    --EasyCodeGeneration|--easy-code-generation|EasyCodeGeneration)
+      EASY_CODE_GENERATION_TEMPLATE="1"
+      ;;
+    *)
+      echo "[$(date '+%Y%m%d-%H:%M:%S')][ERROR] 알 수 없는 옵션: $1"
+      echo "[$(date '+%Y%m%d-%H:%M:%S')][ERROR] 도움말: bash scripts/run-dgx-spark.sh --help"
+      exit 2
+      ;;
+  esac
+  shift
+done
+
+if [[ "$ACTION" == "help" ]]; then
   cat <<'EOF'
 Usage:
-  bash scripts/run-dgx-spark.sh
+  bash scripts/run-dgx-spark.sh [options]
 
 Description:
   EasyDocStation을 DGX-SPARK 모드로 백그라운드 실행합니다.
   터미널 로그아웃 후에도 계속 실행됩니다.
 
 Options:
-  --status   실행 상태 확인
-  --stop     실행 중인 프로세스 중지
-  --restart  전체 태스크 정리 후 재실행
+  --status                          실행 상태 확인
+  --stop                            실행 중인 프로세스 중지
+  --restart                         전체 태스크 정리 후 재실행
+  --Construct_safe_kanban_template  Teams 위 Service 섹션에 Construct_Safe_kanban.html 표시
+  --EasyCodeGeneration              Teams 위 Service 섹션에 EasyCodeGeneration.html 표시
 EOF
   exit 0
 fi
 
-if [[ "${1:-}" == "--status" ]]; then
+if [[ "$ACTION" == "status" ]]; then
   if [[ -f "$PID_FILE" ]]; then
     pid="$(cat "$PID_FILE" 2>/dev/null || true)"
     if [[ -n "${pid:-}" ]] && kill -0 "$pid" 2>/dev/null; then
@@ -190,7 +224,7 @@ if [[ "${1:-}" == "--status" ]]; then
   exit 1
 fi
 
-if [[ "${1:-}" == "--stop" ]]; then
+if [[ "$ACTION" == "stop" ]]; then
   stop_all_tasks
 
   if ! wait_port_free 3001 30 0.5; then
@@ -208,7 +242,7 @@ if [[ "${1:-}" == "--stop" ]]; then
   exit 0
 fi
 
-if [[ "${1:-}" == "--restart" ]]; then
+if [[ "$ACTION" == "restart" ]]; then
   stop_all_tasks
 fi
 
@@ -277,6 +311,12 @@ fi
 
 log "백그라운드 실행 시작"
 log "로그: $LOG_FILE"
+if [[ "$CONSTRUCT_SAFE_KANBAN_TEMPLATE" == "1" ]]; then
+  log "Construct_Safe_kanban Service 섹션 활성화"
+fi
+if [[ "$EASY_CODE_GENERATION_TEMPLATE" == "1" ]]; then
+  log "EasyCodeGeneration Service 섹션 활성화"
+fi
 
 setsid env ROOT_DIR="$ROOT_DIR" LOG_FILE="$LOG_FILE" bash -c \
   'cd "$ROOT_DIR" && npm run ollama:serve >> "$LOG_FILE" 2>&1 < /dev/null' \
@@ -285,7 +325,7 @@ ollama_pid=$!
 disown "$ollama_pid" >/dev/null 2>&1 || true
 echo "$ollama_pid" > "$OLLAMA_PID_FILE"
 
-setsid env ROOT_DIR="$ROOT_DIR" LOG_FILE="$LOG_FILE" bash -c \
+setsid env ROOT_DIR="$ROOT_DIR" LOG_FILE="$LOG_FILE" VITE_CONSTRUCT_SAFE_KANBAN_TEMPLATE="$CONSTRUCT_SAFE_KANBAN_TEMPLATE" VITE_EASY_CODE_GENERATION_TEMPLATE="$EASY_CODE_GENERATION_TEMPLATE" bash -c \
   'cd "$ROOT_DIR" && npm run dev:frontend >> "$LOG_FILE" 2>&1 < /dev/null' \
   >/dev/null 2>&1 &
 fe_pid=$!

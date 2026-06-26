@@ -297,6 +297,19 @@ export default function GroqPanel({ width }) {
   const dragCounterRef = useRef(0)
   const abortControllerRef = useRef(null)
   const [stopping, setStopping] = useState(false)
+  const [collapsedRefs, setCollapsedRefs] = useState(() => new Set()) // 참조 섹션 전체 접힘 (msg.id 집합)
+  const [expandedRefs, setExpandedRefs] = useState(() => new Set())   // 미리보기 개수 초과분까지 펼침 (msg.id 집합)
+
+  const toggleRefsCollapsed = (id) => setCollapsedRefs(prev => {
+    const next = new Set(prev)
+    next.has(id) ? next.delete(id) : next.add(id)
+    return next
+  })
+  const toggleRefsExpanded = (id) => setExpandedRefs(prev => {
+    const next = new Set(prev)
+    next.has(id) ? next.delete(id) : next.add(id)
+    return next
+  })
 
   function buildSearchResultMessage(query, results = []) {
     const safeResults = Array.isArray(results) ? results : []
@@ -320,6 +333,8 @@ export default function GroqPanel({ width }) {
     if (safeResults.length > 10) lines.push('', `외 ${safeResults.length - 10}건은 검색 결과 페이지에서 확인할 수 있습니다.`)
     return lines.join('\n')
   }
+
+  const REF_PREVIEW_COUNT = 5 // 기본으로 보여줄 참조 자료 개수
 
   function buildSearchReferences(results = []) {
     return (Array.isArray(results) ? results : []).slice(0, 10).map((item, idx) => ({
@@ -870,6 +885,84 @@ export default function GroqPanel({ width }) {
               )}
               <span className="text-gray-400 text-xs">{formatTime(msg.time, language)}</span>
             </div>
+            {/* References section — 답변 위에 표시, 기본 5개 + 더보기/접기 */}
+            {msg.role === 'assistant' && !msg.isError && msg.references && msg.references.length > 0 && (
+              <div className="w-full mt-1 px-1">
+                <button
+                  onClick={() => toggleRefsCollapsed(msg.id)}
+                  className="flex items-center gap-1 text-[10px] text-gray-400 mb-1 font-medium hover:text-gray-600 transition-colors"
+                  title={t.ai.references}
+                >
+                  <svg className={`w-2.5 h-2.5 flex-shrink-0 transition-transform ${collapsedRefs.has(msg.id) ? '' : 'rotate-90'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                  <span>{t.ai.references} ({msg.references.length})</span>
+                </button>
+                {!collapsedRefs.has(msg.id) && (
+                  <div className="flex flex-col gap-1">
+                    {(expandedRefs.has(msg.id) ? msg.references : msg.references.slice(0, REF_PREVIEW_COUNT)).map((ref, i) => (
+                      <button
+                        key={i}
+                        onClick={() => ref.channel_id && navigateToPost(ref.channel_id, ref.post_id, { commentId: ref.comment_id, attachmentId: ref.attachment_id })}
+                        disabled={!ref.channel_id}
+                        className="w-full flex items-start gap-1.5 bg-gray-100 rounded-lg px-2 py-1.5 border border-gray-200 text-left transition-colors enabled:hover:bg-gray-200 enabled:hover:border-gray-200 disabled:opacity-40 disabled:cursor-not-allowed"
+                        title={ref.channel_id ? t.ai.gotoChannel(ref.team, ref.channel) : t.ai.gotoAfterRetrain}
+                      >
+                        {ref.type === 'pdf' || ref.type === 'table' || ref.type === 'word' ? (
+                          <svg className="w-3 h-3 text-red-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                          </svg>
+                        ) : ref.type === 'image' ? (
+                          <svg className="w-3 h-3 text-emerald-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7a2 2 0 012-2h14a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2V7z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 11h.01M21 15l-5-5L5 21" />
+                          </svg>
+                        ) : ref.type === 'comment' ? (
+                          <svg className="w-3 h-3 text-yellow-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                          </svg>
+                        ) : (
+                          <svg className="w-3 h-3 text-blue-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                          </svg>
+                        )}
+                        <div className="flex flex-col min-w-0 w-full">
+                          <div className="flex items-center gap-1">
+                            <span className="text-[10px] text-gray-600 truncate leading-tight flex-1">{ref.label}</span>
+                            {ref.type === 'image' && (
+                              <span className="text-[8px] bg-emerald-100 text-emerald-700 px-1 py-0.5 rounded font-medium flex-shrink-0">Gemma AI</span>
+                            )}
+                          </div>
+                          <span className="text-[9px] text-gray-400 leading-tight">
+                            {ref.team ? `${ref.team} · ` : ''}{ref.channel || ''}
+                            {ref.page_number > 0 ? `${ref.channel ? ' · ' : ''}p.${ref.page_number}` : ''}
+                          </span>
+                          {ref.type === 'image' && ref.img_path && (
+                            <div className="mt-1.5 rounded overflow-hidden border border-emerald-200 bg-gray-50" style={{ width: '100%', maxHeight: 80 }}>
+                              <img
+                                src={`/api/rag/image?path=${encodeURIComponent(ref.img_path)}`}
+                                alt={ref.label}
+                                className="w-full object-contain"
+                                style={{ maxHeight: 80 }}
+                                onError={e => { e.currentTarget.parentElement.style.display = 'none' }}
+                              />
+                            </div>
+                          )}
+                        </div>
+                      </button>
+                    ))}
+                    {msg.references.length > REF_PREVIEW_COUNT && (
+                      <button
+                        onClick={() => toggleRefsExpanded(msg.id)}
+                        className="self-start text-[10px] text-indigo-500 hover:text-indigo-700 px-1 py-0.5 font-medium transition-colors"
+                      >
+                        {expandedRefs.has(msg.id) ? t.ai.collapseRefList : t.ai.showMoreRefs(msg.references.length - REF_PREVIEW_COUNT)}
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
             <div className={`px-3 py-2 rounded-xl text-xs leading-relaxed max-w-full ${msg.role === 'user'
                 ? 'bg-indigo-600 text-white rounded-tr-sm whitespace-pre-wrap'
                 : msg.isError
@@ -929,65 +1022,6 @@ export default function GroqPanel({ width }) {
             </div>
             {msg.role === 'assistant' && !msg.isError && (
               <>
-                {/* References section */}
-                {msg.references && msg.references.length > 0 && (
-                  <div className="w-full mt-1 px-1">
-                    <div className="text-[10px] text-gray-400 mb-1 font-medium">{t.ai.references}</div>
-                    <div className="flex flex-col gap-1">
-                      {msg.references.map((ref, i) => (
-                        <button
-                          key={i}
-                          onClick={() => ref.channel_id && navigateToPost(ref.channel_id, ref.post_id, { commentId: ref.comment_id, attachmentId: ref.attachment_id })}
-                          disabled={!ref.channel_id}
-                          className="w-full flex items-start gap-1.5 bg-gray-100 rounded-lg px-2 py-1.5 border border-gray-200 text-left transition-colors enabled:hover:bg-gray-200 enabled:hover:border-gray-200 disabled:opacity-40 disabled:cursor-not-allowed"
-                          title={ref.channel_id ? t.ai.gotoChannel(ref.team, ref.channel) : t.ai.gotoAfterRetrain}
-                        >
-                          {ref.type === 'pdf' || ref.type === 'table' || ref.type === 'word' ? (
-                            <svg className="w-3 h-3 text-red-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                            </svg>
-                          ) : ref.type === 'image' ? (
-                            <svg className="w-3 h-3 text-emerald-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7a2 2 0 012-2h14a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2V7z" />
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 11h.01M21 15l-5-5L5 21" />
-                            </svg>
-                          ) : ref.type === 'comment' ? (
-                            <svg className="w-3 h-3 text-yellow-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                            </svg>
-                          ) : (
-                            <svg className="w-3 h-3 text-blue-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                            </svg>
-                          )}
-                          <div className="flex flex-col min-w-0 w-full">
-                            <div className="flex items-center gap-1">
-                              <span className="text-[10px] text-gray-600 truncate leading-tight flex-1">{ref.label}</span>
-                              {ref.type === 'image' && (
-                                <span className="text-[8px] bg-emerald-100 text-emerald-700 px-1 py-0.5 rounded font-medium flex-shrink-0">Gemma AI</span>
-                              )}
-                            </div>
-                            <span className="text-[9px] text-gray-400 leading-tight">
-                              {ref.team ? `${ref.team} · ` : ''}{ref.channel || ''}
-                              {ref.page_number > 0 ? `${ref.channel ? ' · ' : ''}p.${ref.page_number}` : ''}
-                            </span>
-                            {ref.type === 'image' && ref.img_path && (
-                              <div className="mt-1.5 rounded overflow-hidden border border-emerald-200 bg-gray-50" style={{ width: '100%', maxHeight: 80 }}>
-                                <img
-                                  src={`/api/rag/image?path=${encodeURIComponent(ref.img_path)}`}
-                                  alt={ref.label}
-                                  className="w-full object-contain"
-                                  style={{ maxHeight: 80 }}
-                                  onError={e => { e.currentTarget.parentElement.style.display = 'none' }}
-                                />
-                              </div>
-                            )}
-                          </div>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
                 <div className="flex items-center gap-1">
                   {!String(msg.id).startsWith('init') && Boolean(msg.content?.trim()) && (
                     <button

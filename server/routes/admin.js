@@ -404,6 +404,7 @@ function getDatabasePathConfig(config = {}) {
 }
 
 function buildDisplayConfig(config = {}) {
+  const contentFontScale = Math.min(130, Math.max(90, Number(config.contentFontScale) || 100))
   return {
     imagePreview: config.imagePreview || { width: 512, height: 512 },
     pdfPreview: config.pdfPreview || { width: 480, height: 270 },
@@ -413,7 +414,8 @@ function buildDisplayConfig(config = {}) {
     excelPreview: config.excelPreview || { width: 480, height: 270 },
     wordPreview: config.wordPreview || { width: 270, height: 480 },
     moviePreview: config.moviePreview || { width: 480, height: 270 },
-    htmlPreview: config.htmlPreview || { width: 480, height: 270 }
+    htmlPreview: config.htmlPreview || { width: 480, height: 270 },
+    contentFontScale,
   }
 }
 

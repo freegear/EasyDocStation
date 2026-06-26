@@ -142,6 +142,7 @@ app.get('/api/config/display', (req, res) => {
     const path = require('path')
     const configPath = path.resolve(__dirname, '../config.json')
     const config = JSON.parse(fs.readFileSync(configPath, 'utf8'))
+    const contentFontScale = Math.min(130, Math.max(90, Number(config.contentFontScale) || 100))
     res.json({
       imagePreview:  config.imagePreview  || { width: 512, height: 512 },
       pdfPreview:    config.pdfPreview    || { width: 480, height: 270 },
@@ -152,12 +153,14 @@ app.get('/api/config/display', (req, res) => {
       wordPreview:   config.wordPreview   || { width: 270, height: 480 },
       moviePreview:  config.moviePreview  || { width: 480, height: 270 },
       htmlPreview:   config.htmlPreview   || { width: 480, height: 270 },
+      contentFontScale,
     })
   } catch (e) {
     res.json({
       pdfPreview: { width: 480, height: 270 },
       moviePreview: { width: 480, height: 270 },
       txtPreview: { width: 270, height: 480 },
+      contentFontScale: 100,
     })
   }
 })
