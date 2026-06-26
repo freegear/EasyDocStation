@@ -129,9 +129,14 @@ export default function ChannelManageModal({ mode = 'manage', channel = null, on
   }, [searchQuery, searchTarget])
 
   async function searchUsers(query) {
+    if (!selectedTeam?.id) {
+      setSearchResults([])
+      return
+    }
+
     setIsSearching(true)
     try {
-      const results = await apiFetch(`/users/search?q=${encodeURIComponent(query)}`)
+      const results = await apiFetch(`/users/search?q=${encodeURIComponent(query)}&teamId=${encodeURIComponent(selectedTeam.id)}`)
       const existingIds = searchTarget === 'admin' 
         ? admins.map(a => a.id) 
         : members.map(m => m.id)

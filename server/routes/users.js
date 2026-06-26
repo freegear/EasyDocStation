@@ -50,17 +50,29 @@ function canAssignRole(requesterRole, targetRole) {
 
 // GET /api/users/search — search users by username or name prefix
 router.get('/search', async (req, res) => {
-  const { q } = req.query
+  const { q, teamId } = req.query
   if (!q) return res.json([])
 
   try {
+    const params = [`${q}%`]
+    let teamFilter = ''
+    if (teamId) {
+      params.push(teamId)
+      teamFilter = `
+        AND (
+          EXISTS (SELECT 1 FROM team_members tm WHERE tm.team_id = $2 AND tm.user_id = users.id)
+          OR EXISTS (SELECT 1 FROM team_admins ta WHERE ta.team_id = $2 AND ta.user_id = users.id)
+        )`
+    }
+
     const { rows } = await pool.query(
       `SELECT id, username, name, display_name, email, role, is_active, image_url FROM users
        WHERE (username ILIKE $1 OR name ILIKE $1 OR display_name ILIKE $1)
        AND is_active = true
+       ${teamFilter}
        ORDER BY username
        LIMIT 10`,
-      [`${q}%`]
+      params
     )
     res.json(rows.map(toPublicUser))
   } catch (err) {

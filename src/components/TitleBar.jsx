@@ -256,7 +256,7 @@ export default function TitleBar({
   }
 
   return (
-    <header className="relative flex items-center justify-between px-3 md:px-5 h-12 md:h-14 bg-gray-100 border-b border-gray-200 flex-shrink-0 z-10">
+    <header className="relative flex items-center justify-between px-3 md:px-5 h-12 md:h-14 bg-gray-100 border-b border-gray-200 flex-shrink-0 z-40">
       {/* 왼쪽 끝: 새로운 로고(SVG) + 타이틀 */}
       <div className="flex items-center gap-2.5 flex-shrink-0 cursor-pointer" onClick={() => window.location.href = '/'}>
         <img src="/img/logo.png" alt="Logo" className="w-8 h-8 object-contain" />

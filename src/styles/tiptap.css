@@ -349,6 +349,36 @@
   border: 1px solid #e5e7eb;
 }
 
+.tiptap-editor .ProseMirror .md-image-delete-button {
+  position: absolute;
+  top: -0.65rem;
+  right: -0.65rem;
+  z-index: 10;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.45rem;
+  height: 1.45rem;
+  border: 1px solid #fecaca;
+  border-radius: 9999px;
+  background: #fff;
+  color: #ef4444;
+  cursor: pointer;
+  box-shadow: 0 6px 16px rgba(239, 68, 68, 0.18);
+}
+
+.tiptap-editor .ProseMirror .md-image-delete-button svg {
+  width: 0.9rem;
+  height: 0.9rem;
+  pointer-events: none;
+}
+
+.tiptap-editor .ProseMirror .md-image-delete-button:hover {
+  background: #fef2f2;
+  border-color: #fca5a5;
+  color: #dc2626;
+}
+
 .tiptap-editor .ProseMirror-dropcursor {
   border-left: 2px solid #6366f1;
 }

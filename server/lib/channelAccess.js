@@ -22,11 +22,21 @@ async function canAccessChannel(db, user = {}, channelId = '') {
         OR $4::int >= 4
         OR EXISTS (
           SELECT 1 FROM channel_admins ca
-          WHERE ca.channel_id = c.id AND ca.user_id = $2
+          WHERE ca.channel_id = c.id
+            AND ca.user_id = $2
+            AND (
+              EXISTS (SELECT 1 FROM team_members tm WHERE tm.team_id = c.team_id AND tm.user_id = $2)
+              OR EXISTS (SELECT 1 FROM team_admins ta WHERE ta.team_id = c.team_id AND ta.user_id = $2)
+            )
         )
         OR EXISTS (
           SELECT 1 FROM channel_members cm
-          WHERE cm.channel_id = c.id AND cm.user_id = $2
+          WHERE cm.channel_id = c.id
+            AND cm.user_id = $2
+            AND (
+              EXISTS (SELECT 1 FROM team_members tm WHERE tm.team_id = c.team_id AND tm.user_id = $2)
+              OR EXISTS (SELECT 1 FROM team_admins ta WHERE ta.team_id = c.team_id AND ta.user_id = $2)
+            )
         )
         OR EXISTS (
           SELECT 1 FROM team_admins ta
@@ -65,11 +75,21 @@ async function getAccessibleChannelIds(db, user = {}, channelIds = null) {
       OR $4::int >= 4
       OR EXISTS (
         SELECT 1 FROM channel_admins ca
-        WHERE ca.channel_id = c.id AND ca.user_id = $2
+        WHERE ca.channel_id = c.id
+          AND ca.user_id = $2
+          AND (
+            EXISTS (SELECT 1 FROM team_members tm WHERE tm.team_id = c.team_id AND tm.user_id = $2)
+            OR EXISTS (SELECT 1 FROM team_admins ta WHERE ta.team_id = c.team_id AND ta.user_id = $2)
+          )
       )
       OR EXISTS (
         SELECT 1 FROM channel_members cm
-        WHERE cm.channel_id = c.id AND cm.user_id = $2
+        WHERE cm.channel_id = c.id
+          AND cm.user_id = $2
+          AND (
+            EXISTS (SELECT 1 FROM team_members tm WHERE tm.team_id = c.team_id AND tm.user_id = $2)
+            OR EXISTS (SELECT 1 FROM team_admins ta WHERE ta.team_id = c.team_id AND ta.user_id = $2)
+          )
       )
       OR EXISTS (
         SELECT 1 FROM team_admins ta

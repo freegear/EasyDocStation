@@ -5,6 +5,50 @@ const requireAuth = require('../middleware/auth')
 const { client, isConnected } = require('../cassandra')
 const { ACCESS_DENIED_MESSAGE, canAccessChannel, getAccessibleChannelIds } = require('../lib/channelAccess')
 
+function normalizeUserIds(userIds) {
+  if (!Array.isArray(userIds)) return []
+  const ids = []
+  const seen = new Set()
+  for (const userId of userIds) {
+    const parsed = parseInt(userId, 10)
+    if (!Number.isInteger(parsed) || parsed <= 0 || seen.has(parsed)) continue
+    seen.add(parsed)
+    ids.push(parsed)
+  }
+  return ids
+}
+
+async function getUsersOutsideTeam(teamId, userIds) {
+  const ids = normalizeUserIds(userIds)
+  if (ids.length === 0) return []
+
+  const result = await db.query(`
+    SELECT wanted.user_id
+    FROM unnest($2::int[]) AS wanted(user_id)
+    WHERE NOT EXISTS (
+      SELECT 1 FROM team_members tm
+      WHERE tm.team_id = $1 AND tm.user_id = wanted.user_id
+    )
+    AND NOT EXISTS (
+      SELECT 1 FROM team_admins ta
+      WHERE ta.team_id = $1 AND ta.user_id = wanted.user_id
+    )
+  `, [teamId, ids])
+
+  return result.rows.map(row => row.user_id)
+}
+
+async function rejectUsersOutsideTeam(res, teamId, userIds) {
+  const invalidUserIds = await getUsersOutsideTeam(teamId, userIds)
+  if (invalidUserIds.length === 0) return false
+
+  res.status(400).json({
+    error: '팀에 등록된 사용자만 채널 관리자 또는 멤버로 지정할 수 있습니다.',
+    invalidUserIds,
+  })
+  return true
+}
+
 // ─── Unread counts ────────────────────────────────────────────
 
 // GET /api/channels/unread — 현재 사용자의 채널별 읽지 않은 게시글 수
@@ -147,6 +191,11 @@ router.put('/:id', requireAuth, async (req, res, next) => {
       else return res.status(400).json({ error: '유효한 팀이 존재하지 않습니다. 먼저 팀을 생성해주세요.' })
     }
 
+    if (await rejectUsersOutsideTeam(res, finalTeamId, [
+      ...normalizeUserIds(adminIds),
+      ...normalizeUserIds(memberIds),
+    ])) return
+
     await db.query('BEGIN')
 
     const result = await db.query(
@@ -166,7 +215,7 @@ router.put('/:id', requireAuth, async (req, res, next) => {
     // Sync Admins
     if (adminIds && Array.isArray(adminIds)) {
       await db.query('DELETE FROM channel_admins WHERE channel_id = $1', [id])
-      for (const uid of adminIds) {
+      for (const uid of normalizeUserIds(adminIds)) {
         await db.query(
           'INSERT INTO channel_admins (channel_id, user_id, assigned_by) VALUES ($1, $2, $3)',
           [id, uid, req.user.id]
@@ -177,7 +226,7 @@ router.put('/:id', requireAuth, async (req, res, next) => {
     // Sync Members
     if (memberIds && Array.isArray(memberIds)) {
       await db.query('DELETE FROM channel_members WHERE channel_id = $1', [id])
-      for (const uid of memberIds) {
+      for (const uid of normalizeUserIds(memberIds)) {
         await db.query(
           'INSERT INTO channel_members (channel_id, user_id, added_by) VALUES ($1, $2, $3)',
           [id, uid, req.user.id]
@@ -236,7 +285,12 @@ router.get('/:id/admins', requireAuth, async (req, res, next) => {
       SELECT u.id, u.username, u.name, u.email
       FROM users u
       JOIN channel_admins ca ON u.id = ca.user_id
+      JOIN channels c ON c.id = ca.channel_id
       WHERE ca.channel_id = $1
+        AND (
+          EXISTS (SELECT 1 FROM team_members tm WHERE tm.team_id = c.team_id AND tm.user_id = u.id)
+          OR EXISTS (SELECT 1 FROM team_admins ta WHERE ta.team_id = c.team_id AND ta.user_id = u.id)
+        )
     `, [id])
     res.json(result.rows)
   } catch (err) {
@@ -254,7 +308,12 @@ router.get('/:id/members', requireAuth, async (req, res, next) => {
       SELECT u.id, u.username, u.name, u.email, u.role
       FROM users u
       JOIN channel_members cm ON u.id = cm.user_id
+      JOIN channels c ON c.id = cm.channel_id
       WHERE cm.channel_id = $1
+        AND (
+          EXISTS (SELECT 1 FROM team_members tm WHERE tm.team_id = c.team_id AND tm.user_id = u.id)
+          OR EXISTS (SELECT 1 FROM team_admins ta WHERE ta.team_id = c.team_id AND ta.user_id = u.id)
+        )
     `, [id])
     res.json(result.rows)
   } catch (err) {
@@ -289,6 +348,10 @@ router.post('/:id/members', requireAuth, async (req, res, next) => {
     const { userId } = req.body
 
     if (!await requireChannelMemberAdmin(req, res, id)) return
+
+    const chRes = await db.query('SELECT team_id FROM channels WHERE id = $1', [id])
+    if (chRes.rowCount === 0) return res.status(404).json({ error: '채널을 찾을 수 없습니다.' })
+    if (await rejectUsersOutsideTeam(res, chRes.rows[0].team_id, [userId])) return
 
     await db.query(
       'INSERT INTO channel_members (channel_id, user_id, added_by) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING',

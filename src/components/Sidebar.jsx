@@ -40,6 +40,7 @@ export default function Sidebar({
   onOpenDM,
   onNewDM,
   onOpenServicePage,
+  onOpenMail,
   activeDMConvId,
   isMobile = false,
   onCloseMobile,
@@ -459,6 +460,24 @@ export default function Sidebar({
             ))}
           </div>
         )}
+      </div>
+
+      {/* Mail button */}
+      <div className="px-3 pb-1 pt-1">
+        <button
+          onClick={() => {
+            if (onOpenMail) onOpenMail()
+            else window.alert('메일 기능은 데스크톱 화면에서 사용할 수 있습니다.')
+            closeMobileIfNeeded()
+          }}
+          className="flex items-center gap-2.5 w-full px-2 py-2 rounded-lg text-sm text-left transition-all text-gray-500 hover:bg-gray-200 hover:text-gray-900"
+        >
+          <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+              d="M3 8l8.2 5.47a1.5 1.5 0 001.6 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+          </svg>
+          <span className="font-medium">메일</span>
+        </button>
       </div>
 
       {/* Calendar button */}

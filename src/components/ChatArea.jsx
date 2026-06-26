@@ -8,6 +8,7 @@ import { hasAnyTextSelection } from '../lib/textSelection'
 import { findDuplicateFileNames } from '../lib/fileNameValidation'
 import { useSelectionClickGuard } from '../hooks/useSelectionClickGuard'
 import { getContentFontStyle, normalizeContentFontScale } from '../lib/contentFont'
+import { normalizeBrokenOrderedListItems } from '../lib/markdownNormalize'
 import config from '../config.json'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
@@ -1895,12 +1896,14 @@ function ContentRenderer({ text = '', sttPostId = '', sttChannelId = '', content
   const activeSttPostIdRef = useRef('')
   const sttPollScopeRef = useRef({ postId: '', jobId: '' })
 
-  const normalized = normalizeDashNumberedLists(
-    normalizeMarkdownCodeFence(
-      String(text || '')
-        .replace(/<!--[\s\S]*?-->/g, '')
-        .replace('<!--ai-meeting-note-->', '')
-        .replace('[새회의록작성]', '')
+  const normalized = normalizeBrokenOrderedListItems(
+    normalizeDashNumberedLists(
+      normalizeMarkdownCodeFence(
+        String(text || '')
+          .replace(/<!--[\s\S]*?-->/g, '')
+          .replace('<!--ai-meeting-note-->', '')
+          .replace('[새회의록작성]', '')
+      )
     )
   )
   const links = extractHttpUrls(text || '')
@@ -2248,7 +2251,7 @@ function ContentRenderer({ text = '', sttPostId = '', sttChannelId = '', content
 
   return (
     <div
-      className="text-gray-700 leading-relaxed break-words select-text allow-copy cursor-text"
+      className="eds-markdown text-gray-700 leading-relaxed break-words select-text allow-copy cursor-text"
       style={contentFontStyle || undefined}
     >
       {isAiMeetingNote && (
@@ -2497,14 +2500,14 @@ function normalizeDashNumberedLists(text) {
   const lines = String(text || '').split('\n')
   let inFence = false
 
-  return lines.map((line) => {
+  return normalizeBrokenOrderedListItems(lines.map((line) => {
     if (/^\s*(```|~~~)/.test(line)) {
       inFence = !inFence
       return line
     }
     if (inFence) return line
     return line.replace(/^(\s*)-\s+(\d+)\.\s+(.+)$/, '$1$2. $3')
-  }).join('\n')
+  }).join('\n'))
 }
 
 // ─── Compose bar with file attach ────────────────────────────

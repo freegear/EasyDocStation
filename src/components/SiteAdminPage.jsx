@@ -711,7 +711,7 @@ function FormField({ label, type = 'text', value, onChange, placeholder, require
 
 // ─── Main SiteAdminPage ───────────────────────────────────────
 
-export default function SiteAdminPage({ onClose }) {
+export default function SiteAdminPage({ onClose, initialTab = 'users' }) {
   const t = useT()
   const { currentUser, setMaxAttachmentFileSize, language, setLanguage } = useAuth()
   const [showLocalAgenticPanel, setShowLocalAgenticPanel] = useState(true)
@@ -722,7 +722,7 @@ export default function SiteAdminPage({ onClose }) {
   const [showForm, setShowForm] = useState(false)
   const [search, setSearch] = useState('')
   const [roleFilter, setRoleFilter] = useState('all')
-  const [activeTab, setActiveTab] = useState('users') // 'users', 'db', or 'display'
+  const [activeTab, setActiveTab] = useState(initialTab) // 'users', 'db', or 'display'
   const [dbStats, setDbStats] = useState(null)
   const [dbLoading, setDbLoading] = useState(false)
   const [displayForm, setDisplayForm] = useState({

@@ -80,6 +80,7 @@ function MainLayout() {
   const [showProfile, setShowProfile] = useState(false)
   const [showProfileSavedDialog, setShowProfileSavedDialog] = useState(false)
   const [showSiteAdmin, setShowSiteAdmin] = useState(false)
+  const [siteAdminInitialTab, setSiteAdminInitialTab] = useState('users')
   const [searchSelectedPost, setSearchSelectedPost] = useState(null)
   const [showCalendar, setShowCalendar] = useState(false)
   const [showDM, setShowDM] = useState(false)
@@ -92,7 +93,7 @@ function MainLayout() {
 
   const [groqWidth, setGroqWidth] = useState(320)
   const [resizingGroq, setResizingGroq] = useState(false)
-  const [showAgenticPanel, setShowAgenticPanel] = useState(true)
+  const [showAgenticPanel, setShowAgenticPanel] = useState(false)
   const [isMobileLayout, setIsMobileLayout] = useState(() => {
     if (typeof window === 'undefined') return false
     return window.matchMedia('(max-width: 768px)').matches
@@ -235,7 +236,7 @@ function MainLayout() {
     <div className="app-shell flex flex-col bg-gray-50 overflow-hidden">
       <TitleBar
         onOpenProfile={() => setShowProfile(true)}
-        onOpenSiteAdmin={() => setShowSiteAdmin(true)}
+        onOpenSiteAdmin={() => { setSiteAdminInitialTab('users'); setShowSiteAdmin(true) }}
         onSelectSearchResult={handleSearchSelect}
         showSidebar={showSidebar}
         onToggleSidebar={() => setShowSidebar(v => !v)}
@@ -258,6 +259,7 @@ function MainLayout() {
                 onOpenDM={(conv) => { setActiveDMConv(conv); setShowDM(true); setShowCalendar(false) }}
                 onNewDM={() => setShowNewDM(true)}
                 onOpenServicePage={setFullscreenService}
+                onOpenMail={() => { setSiteAdminInitialTab('mail'); setShowSiteAdmin(true) }}
                 activeDMConvId={activeDMConv?.id}
                 isMobile={false}
               />
@@ -299,6 +301,7 @@ function MainLayout() {
       )}
       {showSiteAdmin && (
         <SiteAdminPage
+          initialTab={siteAdminInitialTab}
           onClose={() => setShowSiteAdmin(false)}
         />
       )}

@@ -1209,7 +1209,7 @@ function PostDetailPane({
                             e.stopPropagation()
                             cancelCommentEdit()
                           }}
-                          className="w-full min-h-32 bg-gray-100 border border-gray-200 rounded-lg p-2 text-gray-700 text-sm focus:outline-none focus:border-indigo-300 resize-none overflow-y-auto"
+                          className="w-full h-[60vh] min-h-[220px] max-h-[60vh] bg-gray-100 border border-gray-200 rounded-lg p-3 text-gray-700 text-sm focus:outline-none focus:border-indigo-300 resize-y overflow-y-auto"
                           style={commentTextStyle}
                         />
                         {commentEditFiles.length > 0 && (
