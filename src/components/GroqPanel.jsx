@@ -67,6 +67,107 @@ function isTranslationQuery(text) {
   )
 }
 
+function isChannelPostSummaryIntent(text) {
+  const compact = String(text || '').replace(/\s+/g, '')
+  return (
+    /(오늘|어제|(\d{1,2}월)?\d{1,2}일)/.test(compact) &&
+    /(글|게시글|포스트|post)/i.test(compact) &&
+    /(요약|정리|핵심|요점)/.test(compact)
+  )
+}
+
+function buildPostHref(channelId, postId) {
+  if (!channelId || !postId) return ''
+  return `/?channelId=${encodeURIComponent(channelId)}&postId=${encodeURIComponent(postId)}`
+}
+
+function stripReferenceIdsFromSummary(summary = '') {
+  return String(summary || '')
+    .replace(
+      /(?:^|\n)\s*(?:#{1,6}\s*)?(?:\*\*)?\s*참조\s*게시글\s*ID\s*(?:\*\*)?\s*\n(?:\s*[-*]?\s*[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\s*,?\s*\n?)+/gi,
+      '\n'
+    )
+    .replace(/\n{3,}/g, '\n\n')
+    .trim()
+}
+
+function isGenericPostLabel(label = '') {
+  return /^게시글(?:\s*\d+|\s+[0-9a-f]{8})$/i.test(String(label || '').trim())
+}
+
+function stripPostContent(value = '') {
+  return String(value || '')
+    .replace(/<\s*br\s*\/?>/gi, '\n')
+    .replace(/<\/\s*(p|div|li|h[1-6]|tr|blockquote)\s*>/gi, '\n')
+    .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+    .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/[ \t]+/g, ' ')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim()
+}
+
+function firstContentLine(value = '') {
+  const text = stripPostContent(value)
+  return text.split(/\r?\n/).map(line => line.trim()).find(Boolean) || text
+}
+
+function truncateTitle(value = '', max = 80) {
+  const text = String(value || '').replace(/\s+/g, ' ').trim()
+  if (!text) return ''
+  return text.length > max ? `${text.slice(0, max)}...` : text
+}
+
+function resolvePostReferenceLabel(ref, index) {
+  const rawLabel = String(ref.label || ref.title || '').trim()
+  if (rawLabel && !isGenericPostLabel(rawLabel)) return rawLabel
+
+  const preview = firstContentLine(ref.contentPreview || ref.content || '')
+  if (preview) return truncateTitle(preview)
+
+  const id = String(ref.post_id || ref.postId || ref.id || '').trim()
+  return id ? `게시글 ${id.slice(0, 8)}` : `게시글 ${index + 1}`
+}
+
+function enrichReferencesFromLocalPosts(references = [], channelPosts = [], selectedChannelId = '') {
+  const postMap = new Map((channelPosts || []).map(post => [String(post.id), post]))
+  return references.map((ref) => {
+    const postId = String(ref.post_id || ref.postId || ref.id || '').trim()
+    const localPost = postMap.get(postId)
+    if (!localPost) return ref
+
+    const title = truncateTitle(firstContentLine(localPost.content))
+    if (!title) return ref
+
+    return {
+      ...ref,
+      id: ref.id || postId,
+      post_id: ref.post_id || ref.postId || postId,
+      postId: ref.postId || ref.post_id || postId,
+      channel_id: ref.channel_id || ref.channelId || localPost.channel_id || localPost.channelId || selectedChannelId,
+      channelId: ref.channelId || ref.channel_id || localPost.channel_id || localPost.channelId || selectedChannelId,
+      label: title,
+      title,
+      contentPreview: ref.contentPreview || stripPostContent(localPost.content).slice(0, 240),
+    }
+  })
+}
+
+function buildPostReferenceSection(references = []) {
+  if (!references.length) return ''
+  const lines = references.map((ref, index) => {
+    const channelId = ref.channel_id || ref.channelId
+    const postId = ref.post_id || ref.postId || ref.id
+    const label = resolvePostReferenceLabel(ref, index).replace(/\]/g, '\\]')
+    return `${index + 1}. [${label}](${buildPostHref(channelId, postId)})`
+  })
+  return ['## 참조 게시글', ...lines].join('\n')
+}
+
 function isCommandQuery(text = '') {
   return /(명령어|커맨드|cli|command|snmp|show\s+\S+|config|configure)/i.test(String(text || ''))
 }
@@ -139,6 +240,49 @@ function dataTransferHasFiles(dataTransfer) {
   return Boolean(files && files.length > 0)
 }
 
+function AgenticAIWelcomeCard() {
+  const capabilities = [
+    { icon: '⌕', label: '검색하고 찾아내기' },
+    { icon: '✦', label: '콘텐츠 생성 및 관리' },
+    { icon: '◷', label: '사용자의 시간 및 정보/데이터 관리' },
+  ]
+
+  return (
+    <div className="flex w-full justify-center py-4">
+      <div className="w-full max-w-[360px] rounded-2xl bg-white px-5 py-6 text-center shadow-sm ring-1 ring-gray-200">
+        <div className="mx-auto mb-5 flex h-24 w-24 items-center justify-center rounded-3xl bg-slate-950">
+          <img
+            src="/img/agentic-ai-character.png"
+            alt=""
+            className="h-24 w-24 object-contain"
+            draggable="false"
+          />
+        </div>
+        <h2 className="text-2xl font-bold leading-tight text-gray-950">
+          안녕하세요
+        </h2>
+        <p className="mt-4 text-sm leading-relaxed text-gray-500">
+          EasyStation에서 최고의 성과를 낼 수 있도록 확실히 도와드릴 수 있습니다.<br />
+          제가 할 수 있는 작업은 다음과 같습니다:
+        </p>
+        <div className="mt-6 flex flex-col gap-3 text-left">
+          {capabilities.map((item) => (
+            <div
+              key={item.label}
+              className="flex items-center gap-3 rounded-2xl border border-gray-200 bg-white px-4 py-3 shadow-sm"
+            >
+              <span className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full border border-cyan-200 bg-white text-lg text-gray-800 shadow-sm">
+                {item.icon}
+              </span>
+              <span className="text-sm font-medium text-gray-900">{item.label}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function GroqPanel({ width }) {
   const {
     navigateToPost,
@@ -150,6 +294,7 @@ export default function GroqPanel({ width }) {
     clearAgenticTarget,
     teams,
     activePostSelection,
+    posts,
   } = useChat()
   const { currentUser, language } = useAuth()
   const t = useT()
@@ -519,6 +664,93 @@ export default function GroqPanel({ width }) {
     setLoading(true)
     setError(null)
 
+    if (!attachedFile && isChannelPostSummaryIntent(text)) {
+      try {
+        if (!selectedChannel?.id) {
+          setMessages(prev => [...prev, {
+            id: `a-${Date.now()}`,
+            role: 'assistant',
+            content: '먼저 요약할 채널을 선택해주세요.',
+            references: [],
+            time: new Date().toISOString(),
+            model: null,
+          }])
+          return
+        }
+
+        const result = await apiFetch('/questions', {
+          method: 'POST',
+          signal: abortController.signal,
+          body: JSON.stringify({
+            question: text,
+            channelId: selectedChannel.id,
+            model: selectedModel,
+          }),
+        })
+
+        const dateLabel = result.intent?.dateRange
+          ? `${result.intent.dateRange.from} ~ ${result.intent.dateRange.to}`
+          : ''
+        const header = dateLabel
+          ? `현재 채널의 ${dateLabel} 게시글 요약입니다.\n\n`
+          : ''
+        const references = enrichReferencesFromLocalPosts(
+          result.references || result.posts || [],
+          posts?.[selectedChannel.id] || [],
+          selectedChannel.id,
+        )
+        const referenceSection = buildPostReferenceSection(references)
+        const fallbackNote = result.fallback
+          ? '\n\nAI 요약 서버 연결이 원활하지 않아 게시글 목록 기반으로 간단히 정리했습니다.'
+          : ''
+        const content = [
+          `${header}${stripReferenceIdsFromSummary(result.summary || '요약 결과가 없습니다.')}`,
+          referenceSection,
+          fallbackNote,
+        ].filter(Boolean).join('\n\n')
+
+        setMessages(prev => [...prev, {
+          id: `a-${Date.now()}`,
+          role: 'assistant',
+          content,
+          references: references.map((post, index) => ({
+            id: post.id,
+            label: resolvePostReferenceLabel(post, index),
+            title: resolvePostReferenceLabel(post, index),
+            type: 'post',
+            source: 'post',
+            channelId: post.channelId || post.channel_id || selectedChannel.id,
+            channel_id: post.channel_id || post.channelId || selectedChannel.id,
+            postId: post.postId || post.post_id || post.id,
+            post_id: post.post_id || post.postId || post.id,
+            contentPreview: post.contentPreview,
+            createdAt: post.createdAt,
+          })),
+          time: new Date().toISOString(),
+          model: result.model || selectedModel,
+        }])
+      } catch (err) {
+        const message = err?.name === 'AbortError'
+          ? (t.ai.stopped || '요청이 중단되었습니다.')
+          : `게시글 요약을 처리하지 못했습니다: ${err.message}`
+        setError(err?.name === 'AbortError' ? null : err.message)
+        setMessages(prev => [...prev, {
+          id: `a-${Date.now()}`,
+          role: 'assistant',
+          content: message,
+          references: [],
+          time: new Date().toISOString(),
+          model: selectedModel,
+          isError: err?.name !== 'AbortError',
+        }])
+      } finally {
+        abortControllerRef.current = null
+        setStopping(false)
+        setLoading(false)
+      }
+      return
+    }
+
     // ── 1. 번역 요청 감지 — 번역이면 RAG 검색 없이 바로 AI 호출 ──
     const isTranslation = isTranslationQuery(text)
 
@@ -800,9 +1032,9 @@ export default function GroqPanel({ width }) {
 
   function clearChat() {
     setMessages([{
-      id: 'init-' + Date.now(),
+      id: 'init',
       role: 'assistant',
-      content: t.ai.cleared,
+      content: t.ai.greeting,
       time: new Date().toISOString(),
     }])
     setError(null)
@@ -866,10 +1098,15 @@ export default function GroqPanel({ width }) {
         autoSaveId="agentic-ai-compose"
         className="flex-1 min-h-0"
       >
-        <Panel defaultSize={76} minSize={25} className="overflow-hidden">
+      <Panel defaultSize={76} minSize={25} className="overflow-hidden">
       {/* Messages */}
       <div className="h-full overflow-y-auto px-3 py-3 flex flex-col gap-3">
-        {messages.map((msg, idx) => (
+        {messages.map((msg, idx) => {
+          if (msg.id === 'init' && msg.role === 'assistant') {
+            return <AgenticAIWelcomeCard key={msg.id} />
+          }
+
+          return (
           <div key={msg.id} className={`flex flex-col gap-1 ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
             <div className={`flex items-center gap-1.5 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
               {msg.role === 'assistant' ? (
@@ -1008,7 +1245,28 @@ export default function GroqPanel({ width }) {
                     },
                     blockquote: ({ children }) => <blockquote className="border-l-2 border-white/30 pl-2 text-gray-500 italic my-1">{children}</blockquote>,
                     hr: () => <hr className="border-gray-200 my-2" />,
-                    a: ({ href, children }) => <a href={href} target="_blank" rel="noreferrer" className="text-indigo-600 underline hover:text-indigo-600">{children}</a>,
+                    a: ({ href, children }) => {
+                      const rawHref = String(href || '')
+                      const isPostLink = rawHref.startsWith('/?')
+                      return (
+                        <a
+                          href={rawHref}
+                          target={isPostLink ? undefined : '_blank'}
+                          rel={isPostLink ? undefined : 'noreferrer'}
+                          onClick={isPostLink ? (e) => {
+                            const url = new URL(rawHref, window.location.origin)
+                            const channelId = url.searchParams.get('channelId')
+                            const postId = url.searchParams.get('postId')
+                            if (!channelId || !postId) return
+                            e.preventDefault()
+                            navigateToPost(channelId, postId)
+                          } : undefined}
+                          className="text-indigo-600 underline hover:text-indigo-600"
+                        >
+                          {children}
+                        </a>
+                      )
+                    },
                     table: ({ children }) => <div className="overflow-x-auto my-1.5"><table className="w-full text-[10px] border-collapse">{children}</table></div>,
                     th: ({ children }) => <th className="border border-gray-300 px-2 py-1 bg-gray-200 font-semibold text-left">{children}</th>,
                     td: ({ children }) => <td className="border border-gray-200 px-2 py-1">{children}</td>,
@@ -1061,7 +1319,8 @@ export default function GroqPanel({ width }) {
               </>
             )}
           </div>
-        ))}
+          )
+        })}
 
         {/* Typing indicator */}
         {loading && (

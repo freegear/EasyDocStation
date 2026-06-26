@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { useT } from '../i18n/useT'
 import GroqPanel from './GroqPanel'
 import ConfirmDialog from './ConfirmDialog'
+import { MIN_CONTENT_FONT_SCALE, MAX_CONTENT_FONT_SCALE } from '../lib/contentFont'
 
 // ─── helpers ─────────────────────────────────────────────────
 const USERNAME_PATTERN = /^[A-Za-z][A-Za-z0-9_.]*$/
@@ -13,9 +14,6 @@ const LANGUAGES = [
   { code: 'en', label: 'English', flag: '🇺🇸' },
   { code: 'ja', label: '日本語', flag: '🇯🇵' },
 ]
-const MIN_CONTENT_FONT_SCALE = 90
-const MAX_CONTENT_FONT_SCALE = 130
-
 function formatDate(iso) {
   if (!iso) return '-'
   return new Date(iso).toLocaleString(undefined, {
@@ -2754,7 +2752,7 @@ export default function SiteAdminPage({ onClose }) {
                   <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                     <div>
                       <h3 className="text-gray-900 font-bold text-base">{t.admin.contentFontScaleTitle || '화면 글자 크기'}</h3>
-                      <p className="text-gray-400 text-xs mt-1">{t.admin.contentFontScaleDesc || '게시글 제목, 본문, 댓글, 입력창의 글자 크기를 조절합니다.'}</p>
+                      <p className="text-gray-400 text-xs mt-1">{t.admin.contentFontScaleDesc || '게시글 본문, 댓글 본문, 입력창의 공통 글자 크기를 조절합니다.'}</p>
                     </div>
                     <div className="flex items-center gap-3">
                       <button

@@ -30,6 +30,7 @@ import { useT } from '../../i18n/useT'
 import ConfirmDialog from '../ConfirmDialog'
 import { getMdPageContent, getMdPageTitle } from '../../templates/formTemplates'
 import { apiFetch, getToken } from '../../lib/api'
+import { getContentFontStyle } from '../../lib/contentFont'
 import '../../styles/tiptap.css'
 
 const MD_PAGE_MARKER = '<!--md-page-->'
@@ -50,6 +51,7 @@ const DEFAULT_PREVIEW_CONFIG = {
   wordPreview: { width: 270, height: 480 },
   moviePreview: { width: 480, height: 270 },
   htmlPreview: { width: 480, height: 270 },
+  contentFontScale: 100,
 }
 const MERMAID_RENDER_CLASS = 'md-mermaid-render'
 const MERMAID_PLUGIN_KEY = new PluginKey('md-mermaid-preview')
@@ -1328,6 +1330,7 @@ export default function MDPageViewer({ post, channelId, onClose }) {
   const [commentSubmitting, setCommentSubmitting] = useState(false)
   const [pendingDeleteCommentId, setPendingDeleteCommentId] = useState(null)
   const [previewConfig, setPreviewConfig] = useState(DEFAULT_PREVIEW_CONFIG)
+  const contentFontStyle = getContentFontStyle(previewConfig.contentFontScale)
   const splitAreaRef = useRef(null)
   const resizeStartRef = useRef({ x: 0, width: 420 })
   const commentFileInputRef = useRef(null)
@@ -2521,7 +2524,7 @@ export default function MDPageViewer({ post, channelId, onClose }) {
               {canEdit && (
                 <TableBubbleMenu editor={editor} />
               )}
-              <EditorContent editor={editor} className="tiptap-editor" />
+              <EditorContent editor={editor} className="tiptap-editor" style={contentFontStyle} />
               {canEdit && (
                 <InternalLinkAutocomplete editor={editor} />
               )}
@@ -2573,7 +2576,7 @@ export default function MDPageViewer({ post, channelId, onClose }) {
                               </button>
                             )}
                           </div>
-                          <div className="text-sm text-gray-800 whitespace-pre-wrap break-words">
+                          <div className="text-gray-800 whitespace-pre-wrap break-words" style={contentFontStyle}>
                             <ReactMarkdown
                               remarkPlugins={[remarkGfm]}
                               components={{
@@ -2631,7 +2634,8 @@ export default function MDPageViewer({ post, channelId, onClose }) {
                   onDragLeave={handleCommentInputDragLeave}
                   onDrop={handleCommentInputDrop}
                   placeholder="댓글을 입력하세요..."
-                  className={`w-full min-h-[72px] max-h-36 resize-y rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-200 ${commentDragOver ? 'border-indigo-400 bg-indigo-50' : 'border-gray-300 bg-white'}`}
+                  className={`w-full min-h-[72px] max-h-36 resize-y rounded-lg border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-200 ${commentDragOver ? 'border-indigo-400 bg-indigo-50' : 'border-gray-300 bg-white'}`}
+                  style={contentFontStyle}
                   disabled={commentSubmitting}
                 />
                 {commentFiles.length > 0 && (

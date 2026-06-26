@@ -5,12 +5,13 @@
   min-height: 300px;
   color: #1f2937;
   line-height: 1.75;
+  font-size: var(--content-font-size, 0.875rem);
 }
 
 .tiptap-editor .ProseMirror p {
   margin: 0.75rem 0;
   color: #374151;
-  font-size: 0.9375rem;
+  font-size: var(--content-font-size, 0.875rem);
 }
 
 .tiptap-editor .ProseMirror h1 {

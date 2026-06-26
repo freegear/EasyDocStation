@@ -441,7 +441,7 @@ export const translations = {
       displayLoading: '설정을 불러오는 중...',
       displayNoInfo: '인터페이스 설정 정보를 불러올 수 없습니다.',
       contentFontScaleTitle: '화면 글자 크기',
-      contentFontScaleDesc: '게시글 제목, 본문, 댓글, 입력창의 글자 크기를 조절합니다.',
+      contentFontScaleDesc: '게시글 본문, 댓글 본문, 입력창의 공통 글자 크기를 조절합니다.',
       contentFontScaleDecrease: '글자 크기 줄이기',
       contentFontScaleIncrease: '글자 크기 키우기',
       // AgenticAI tab
@@ -935,7 +935,7 @@ export const translations = {
       displayLoading: 'Loading settings...',
       displayNoInfo: 'Could not load interface settings.',
       contentFontScaleTitle: 'Content Font Size',
-      contentFontScaleDesc: 'Adjusts the font size for post titles, bodies, comments, and input fields.',
+      contentFontScaleDesc: 'Adjusts the shared font size for post bodies, comment bodies, and input fields.',
       contentFontScaleDecrease: 'Decrease font size',
       contentFontScaleIncrease: 'Increase font size',
       // AgenticAI tab
@@ -1292,7 +1292,7 @@ translations.ja = {
     dbTabTitle: 'データベース/オブジェクト管理',
     displayTabTitle: '全体表示設定',
     contentFontScaleTitle: '画面文字サイズ',
-    contentFontScaleDesc: '投稿、コメント、入力欄の文字サイズを調整します。',
+    contentFontScaleDesc: '投稿本文、コメント本文、入力欄の共通文字サイズを調整します。',
     contentFontScaleDecrease: '文字サイズを小さく',
     contentFontScaleIncrease: '文字サイズを大きく',
     ragTabTitle: 'RAG学習オプション設定',

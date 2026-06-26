@@ -17,6 +17,7 @@
     "lint": "eslint .",
     "test:e2e": "playwright test",
     "preview": "vite preview",
+    "preview:pwa": "vite preview --host 0.0.0.0 --port 5173",
     "setup:dgx-spark": "bash scripts/setup-dgx-spark.sh",
     "dev:dgx-spark": "bash scripts/dev-dgx-spark.sh",
     "setup:local-ollama": "bash scripts/setup-local-ollama.sh"

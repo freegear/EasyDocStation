@@ -6,6 +6,7 @@ import { useT } from '../../i18n/useT'
 import { isTemplateContent } from '../../templates/formTemplates'
 import { useSelectionClickGuard } from '../../hooks/useSelectionClickGuard'
 import { findDuplicateFileNames } from '../../lib/fileNameValidation'
+import { getContentFontStyle } from '../../lib/contentFont'
 import useMentionAutocomplete from '../../hooks/useMentionAutocomplete'
 import MentionDropdown from '../MentionDropdown'
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels'
@@ -335,10 +336,9 @@ function PostDetailPane({
     dragThreshold: 4,
     blockOnAnySelection: false,
   })
-  const normalizedContentFontScale = Math.min(130, Math.max(90, Number.parseInt(contentFontScale, 10) || 100))
-  const contentFontStyle = { '--content-font-scale': normalizedContentFontScale / 100 }
-  const postTextStyle = { ...contentFontStyle, fontSize: 'calc(0.875rem * var(--content-font-scale))' }
-  const commentTextStyle = { ...contentFontStyle, fontSize: 'calc(0.875rem * var(--content-font-scale))' }
+  const contentFontStyle = getContentFontStyle(contentFontScale)
+  const postTextStyle = contentFontStyle
+  const commentTextStyle = contentFontStyle
 
   useEffect(() => {
     if (!pendingOpenCommentId) return
@@ -1121,6 +1121,7 @@ function PostDetailPane({
                   text={freshPost.content}
                   sttPostId={freshPost.id}
                   sttChannelId={channelId}
+                  contentFontStyle={postTextStyle}
                 />
               )}
             </div>
@@ -1244,7 +1245,7 @@ function PostDetailPane({
                           onMouseUpCapture={(e) => guardSelectionMouseUpCapture(e, commentBodySelectionGuard)}
                           onClickCapture={(e) => guardSelectionClickCapture(e, commentBodySelectionGuard)}
                         >
-                          <ContentRenderer text={c.text} />
+                          <ContentRenderer text={c.text} contentFontStyle={commentTextStyle} />
                         </div>
                         {c.attachments && c.attachments.length > 0 && (
                           <div className="mt-3">

@@ -7,6 +7,7 @@ import { apiFetch, getToken } from '../lib/api'
 import { hasAnyTextSelection } from '../lib/textSelection'
 import { findDuplicateFileNames } from '../lib/fileNameValidation'
 import { useSelectionClickGuard } from '../hooks/useSelectionClickGuard'
+import { getContentFontStyle, normalizeContentFontScale } from '../lib/contentFont'
 import config from '../config.json'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
@@ -20,21 +21,7 @@ import { useT } from '../i18n/useT'
 import { isTemplateContent, isMdPage, getMdPageContent, getMdPageTitle, FORM_TEMPLATES } from '../templates/formTemplates'
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels'
 
-const MIN_CONTENT_FONT_SCALE = 90
-const MAX_CONTENT_FONT_SCALE = 130
-
-
 // ─── Helpers ──────────────────────────────────────────────────
-
-function normalizeContentFontScale(value) {
-  const parsed = Number.parseInt(value, 10)
-  if (Number.isNaN(parsed)) return 100
-  return Math.min(MAX_CONTENT_FONT_SCALE, Math.max(MIN_CONTENT_FONT_SCALE, parsed))
-}
-
-function getContentFontStyle(scale) {
-  return { '--content-font-scale': normalizeContentFontScale(scale) / 100 }
-}
 
 function formatDate(iso, t) {
   const d = new Date(iso)
@@ -1887,7 +1874,7 @@ function canShowMeetingActionButtons(statusType = 'idle') {
   return s === 'idle' || s === 'failed' || s === 'canceled'
 }
 
-function ContentRenderer({ text = '', sttPostId = '', sttChannelId = '' }) {
+function ContentRenderer({ text = '', sttPostId = '', sttChannelId = '', contentFontStyle = null }) {
   const isAiMeetingNote = String(text || '').includes('<!--ai-meeting-note-->')
   const [isRecording, setIsRecording] = useState(false)
   const [sttUploading, setSttUploading] = useState(false)
@@ -2261,7 +2248,8 @@ function ContentRenderer({ text = '', sttPostId = '', sttChannelId = '' }) {
 
   return (
     <div
-      className="text-gray-700 text-sm leading-relaxed break-words select-text allow-copy cursor-text"
+      className="text-gray-700 leading-relaxed break-words select-text allow-copy cursor-text"
+      style={contentFontStyle || undefined}
     >
       {isAiMeetingNote && (
         <div className="mb-3 flex items-center gap-2">
@@ -2372,13 +2360,13 @@ function ContentRenderer({ text = '', sttPostId = '', sttChannelId = '' }) {
       <ReactMarkdown
         remarkPlugins={[remarkGfm, remarkDisableSetextHeadings]}
         components={{
-          p: ({ children }) => <p className="my-1.5 text-gray-700 text-sm leading-relaxed whitespace-pre-wrap break-words">{applyMentionColor(children)}</p>,
+          p: ({ children }) => <p className="my-1.5 text-gray-700 leading-relaxed whitespace-pre-wrap break-words" style={{ fontSize: 'inherit' }}>{applyMentionColor(children)}</p>,
           h1: ({ children }) => <h1 className="mt-4 mb-2 text-gray-900 font-bold text-lg">{applyMentionColor(children)}</h1>,
           h2: ({ children }) => <h2 className="mt-4 mb-2 text-gray-900 font-bold text-base">{applyMentionColor(children)}</h2>,
           h3: ({ children }) => <h3 className="mt-3 mb-1.5 text-gray-900 font-semibold text-sm">{applyMentionColor(children)}</h3>,
           ul: ({ children }) => <ul className="list-disc pl-9 my-1.5 space-y-1">{children}</ul>,
           ol: ({ children, ...props }) => <ol {...props} className="list-decimal pl-5 my-1.5 space-y-1">{children}</ol>,
-          li: ({ children }) => <li className="text-gray-700 text-sm whitespace-pre-wrap break-words">{applyMentionColor(children)}</li>,
+          li: ({ children }) => <li className="text-gray-700 whitespace-pre-wrap break-words" style={{ fontSize: 'inherit' }}>{applyMentionColor(children)}</li>,
           hr: () => <hr className="border-gray-200 my-3" />,
           table: ({ children }) => (
             <div className="overflow-x-auto my-2">
@@ -2521,7 +2509,7 @@ function normalizeDashNumberedLists(text) {
 
 // ─── Compose bar with file attach ────────────────────────────
 
-function ComposeBar({ onSubmit, isArchived, teamId }) {
+function ComposeBar({ onSubmit, isArchived, teamId, contentFontScale = 100 }) {
   const t = useT()
   const { currentUser, maxAttachmentFileSize } = useAuth()
   const { selectedChannel } = useChat()
@@ -2722,6 +2710,7 @@ function ComposeBar({ onSubmit, isArchived, teamId }) {
 
   const hasContent = content.trim().length > 0 || files.length > 0
   const showActions = focused || hasContent
+  const contentFontStyle = getContentFontStyle(contentFontScale)
 
   if (isArchived) {
     return (
@@ -2788,7 +2777,8 @@ function ComposeBar({ onSubmit, isArchived, teamId }) {
                 onDragOver={handleTextareaDragOver}
                 onDrop={handleTextareaDrop}
                 placeholder={t.chat.messagePlaceholder}
-                className="w-full h-full min-h-0 bg-transparent text-gray-800 placeholder-gray-400 text-sm leading-relaxed resize-none focus:outline-none pt-0.5 overflow-y-auto"
+                className="w-full h-full min-h-0 bg-transparent text-gray-800 placeholder-gray-400 leading-relaxed resize-none focus:outline-none pt-0.5 overflow-y-auto"
+                style={contentFontStyle}
               />
               {mention.open && (
                 <MentionDropdown
@@ -3103,7 +3093,12 @@ function PostList({ posts, onSelect, onSubmit, selectedPostId, onOpenDocumentLis
         </Panel>
         <PanelResizeHandle className="h-1.5 bg-gray-200 hover:bg-indigo-400 active:bg-indigo-500 transition-colors flex-shrink-0" />
         <Panel defaultSize={28} minSize={12} className="overflow-hidden">
-          <ComposeBar onSubmit={onSubmit} isArchived={selectedChannel?.is_archived} teamId={selectedTeam?.id} />
+          <ComposeBar
+            onSubmit={onSubmit}
+            isArchived={selectedChannel?.is_archived}
+            teamId={selectedTeam?.id}
+            contentFontScale={contentFontScale}
+          />
         </Panel>
       </PanelGroup>
     </div>
