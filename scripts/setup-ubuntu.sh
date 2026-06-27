@@ -211,6 +211,7 @@ required = [
     "sentence_transformers",
     "langchain_community",
     "langchain_text_splitters",
+    "markitdown",
     "pytesseract",
 ]
 missing = []

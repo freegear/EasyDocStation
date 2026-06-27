@@ -25,7 +25,7 @@ function MailIcon({ className = 'w-4 h-4' }) {
   )
 }
 
-function MenuIcon({ type }) {
+function MenuIcon({ type, filled }) {
   const paths = {
     all: 'M4 6h16M4 12h16M4 18h16',
     star: 'M11.48 3.5l2.12 4.3 4.74.69-3.43 3.34.81 4.72-4.24-2.23-4.24 2.23.81-4.72-3.43-3.34 4.74-.69 2.12-4.3z',
@@ -47,8 +47,10 @@ function MenuIcon({ type }) {
     chevronDown: 'M6 9l6 6 6-6',
   }
 
+  // 폴더 아이콘에 색상이 지정되면 내부까지 같은 색(currentColor)으로 채운다.
+  const fillFolder = filled && type === 'folder'
   return (
-    <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <svg className="w-4 h-4 flex-shrink-0" fill={fillFolder ? 'currentColor' : 'none'} viewBox="0 0 24 24" stroke="currentColor">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={paths[type] || paths.folder} />
     </svg>
   )
@@ -1203,7 +1205,7 @@ function MailMenuButton({ active, icon, label, count, unreadCount, iconColor, on
       style={{ paddingLeft: `${8 + depth * 14}px` }}
     >
       <span style={active || !iconColor ? undefined : { color: iconColor }}>
-        <MenuIcon type={icon} />
+        <MenuIcon type={icon} filled={!active && !!iconColor && icon === 'folder'} />
       </span>
       <span className="flex-1 font-medium truncate">{label}</span>
       <span className={`text-xs rounded-full px-1.5 py-0.5 font-bold min-w-[18px] text-center ${

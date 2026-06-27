@@ -14,6 +14,7 @@ langchain-community
 langchain-text-splitters
 pyarrow
 docx2txt
+markitdown[all]
 unstructured[pdf]
 pytesseract
 resemblyzer
