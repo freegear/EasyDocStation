@@ -513,6 +513,8 @@ const ACCOUNT_FOLDERS_SUBQUERY = `
       'provider_folder_id', mf.provider_folder_id,
       'name', mf.name,
       'type', mf.type,
+      'parent_folder_id', mf.parent_folder_id,
+      'color_key', mf.color_key,
       'message_count', COALESCE((
         SELECT COUNT(*)
         FROM mail_messages mm
@@ -765,11 +767,73 @@ async function upsertFolders({ tenantId, account, folders }) {
 async function getFolderById({ tenantId, accountId, folderId }) {
   const { rows } = await tenantQuery(
     tenantId,
-    `SELECT id, account_id, provider_folder_id, name, type
+    `SELECT id, account_id, provider_folder_id, name, type, parent_folder_id, color_key
      FROM mail_folders
      WHERE id = $1 AND account_id = $2
      LIMIT 1`,
     [folderId, accountId],
+  )
+  return rows[0] || null
+}
+
+async function createFolder({ tenantId, account, name, parentFolderId }) {
+  const cleanName = String(name || '').trim()
+  if (!cleanName) throw new Error('폴더 이름이 필요합니다.')
+  return withTenantTx(tenantId, async (client) => {
+    let parent = null
+    if (parentFolderId) {
+      const parentResult = await client.query(
+        `SELECT id, provider_folder_id, type
+         FROM mail_folders
+         WHERE id = $1 AND account_id = $2
+         LIMIT 1`,
+        [parentFolderId, account.id],
+      )
+      parent = parentResult.rows[0] || null
+      if (!parent) throw new Error('상위 폴더를 찾을 수 없습니다.')
+    }
+    const providerFolderId = parent
+      ? `${parent.provider_folder_id}/${cleanName}`
+      : `USER/${cleanName}`
+    const { rows } = await client.query(
+      `INSERT INTO mail_folders (tenant_id, user_id, account_id, provider_folder_id, name, type, parent_folder_id)
+       VALUES ($1, $2, $3, $4, $5, 'custom', $6)
+       ON CONFLICT (account_id, provider_folder_id)
+       DO UPDATE SET name = EXCLUDED.name,
+                     parent_folder_id = EXCLUDED.parent_folder_id,
+                     updated_at = NOW()
+       RETURNING id, account_id, provider_folder_id, name, type, parent_folder_id, color_key`,
+      [tenantId, account.user_id, account.id, providerFolderId, cleanName, parent?.id || null],
+    )
+    return rows[0]
+  })
+}
+
+async function updateFolderColor({ tenantId, accountId, folderId, colorKey, userId, isSiteAdmin }) {
+  const { rows } = await tenantQuery(
+    tenantId,
+    `UPDATE mail_folders mf
+     SET color_key = NULLIF($1, ''),
+         updated_at = NOW()
+     WHERE mf.id = $2
+       AND mf.account_id = $3
+       AND ($4::boolean = true OR mf.user_id = $5)
+     RETURNING id, account_id, provider_folder_id, name, type, parent_folder_id, color_key`,
+    [String(colorKey || '').trim(), folderId, accountId, !!isSiteAdmin, userId],
+  )
+  return rows[0] || null
+}
+
+async function deleteFolder({ tenantId, accountId, folderId, userId, isSiteAdmin }) {
+  const { rows } = await tenantQuery(
+    tenantId,
+    `DELETE FROM mail_folders mf
+     WHERE mf.id = $1
+       AND mf.account_id = $2
+       AND mf.type = 'custom'
+       AND ($3::boolean = true OR mf.user_id = $4)
+     RETURNING id`,
+    [folderId, accountId, !!isSiteAdmin, userId],
   )
   return rows[0] || null
 }
@@ -1226,6 +1290,9 @@ module.exports = {
   getFolderMap,
   upsertFolders,
   getFolderById,
+  createFolder,
+  updateFolderColor,
+  deleteFolder,
   listMessages,
   getMessage,
   markMessageRead,

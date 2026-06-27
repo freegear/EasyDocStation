@@ -482,6 +482,88 @@ router.patch('/messages/:id', async (req, res, next) => {
   }
 })
 
+router.post('/accounts/:id/folders', async (req, res, next) => {
+  try {
+    const accountId = String(req.params.id || '').trim()
+    const tenantId = String(req.query.tenantId || req.body?.tenantId || '').trim()
+    const name = String(req.body?.name || '').trim()
+    const parentFolderId = String(req.body?.parentFolderId || '').trim()
+    if (!accountId || !tenantId || !name) {
+      return res.status(400).json({ error: 'accountId, tenantId, name이 필요합니다.' })
+    }
+    if (!(await repo.canAccessTenant({ userId: req.user.id, tenantId, isSiteAdmin: isSiteAdmin(req) }))) {
+      return res.status(403).json({ error: '메일 tenant 접근 권한이 없습니다.' })
+    }
+    const account = await repo.getAccountForSync({
+      tenantId,
+      accountId,
+      userId: req.user.id,
+      isSiteAdmin: isSiteAdmin(req),
+    })
+    if (!account) return res.status(404).json({ error: '메일 계정을 찾을 수 없습니다.' })
+    const folder = await repo.createFolder({
+      tenantId,
+      account,
+      name,
+      parentFolderId: parentFolderId || null,
+    })
+    res.json({ ok: true, folder })
+  } catch (err) {
+    next(err)
+  }
+})
+
+router.patch('/accounts/:id/folders/:folderId', async (req, res, next) => {
+  try {
+    const accountId = String(req.params.id || '').trim()
+    const folderId = String(req.params.folderId || '').trim()
+    const tenantId = String(req.query.tenantId || req.body?.tenantId || '').trim()
+    if (!accountId || !folderId || !tenantId) {
+      return res.status(400).json({ error: 'accountId, folderId, tenantId가 필요합니다.' })
+    }
+    if (!(await repo.canAccessTenant({ userId: req.user.id, tenantId, isSiteAdmin: isSiteAdmin(req) }))) {
+      return res.status(403).json({ error: '메일 tenant 접근 권한이 없습니다.' })
+    }
+    const folder = await repo.updateFolderColor({
+      tenantId,
+      accountId,
+      folderId,
+      colorKey: req.body?.colorKey,
+      userId: req.user.id,
+      isSiteAdmin: isSiteAdmin(req),
+    })
+    if (!folder) return res.status(404).json({ error: '폴더를 찾을 수 없습니다.' })
+    res.json({ ok: true, folder })
+  } catch (err) {
+    next(err)
+  }
+})
+
+router.delete('/accounts/:id/folders/:folderId', async (req, res, next) => {
+  try {
+    const accountId = String(req.params.id || '').trim()
+    const folderId = String(req.params.folderId || '').trim()
+    const tenantId = String(req.query.tenantId || req.body?.tenantId || '').trim()
+    if (!accountId || !folderId || !tenantId) {
+      return res.status(400).json({ error: 'accountId, folderId, tenantId가 필요합니다.' })
+    }
+    if (!(await repo.canAccessTenant({ userId: req.user.id, tenantId, isSiteAdmin: isSiteAdmin(req) }))) {
+      return res.status(403).json({ error: '메일 tenant 접근 권한이 없습니다.' })
+    }
+    const folder = await repo.deleteFolder({
+      tenantId,
+      accountId,
+      folderId,
+      userId: req.user.id,
+      isSiteAdmin: isSiteAdmin(req),
+    })
+    if (!folder) return res.status(404).json({ error: '삭제할 수 있는 사용자 폴더를 찾을 수 없습니다.' })
+    res.json({ ok: true, folderId: folder.id })
+  } catch (err) {
+    next(err)
+  }
+})
+
 router.delete('/accounts/:id/folders/:folderId/trash', async (req, res, next) => {
   try {
     const accountId = String(req.params.id || '').trim()

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { $getRoot, $getSelection, $isRangeSelection, FORMAT_ELEMENT_COMMAND, FORMAT_TEXT_COMMAND, REDO_COMMAND, UNDO_COMMAND } from 'lexical'
+import { $createParagraphNode, $getRoot, $getSelection, $isRangeSelection, FORMAT_ELEMENT_COMMAND, FORMAT_TEXT_COMMAND, REDO_COMMAND, UNDO_COMMAND } from 'lexical'
 import { $generateHtmlFromNodes, $generateNodesFromDOM } from '@lexical/html'
 import { $patchStyleText } from '@lexical/selection'
 import { LexicalComposer } from '@lexical/react/LexicalComposer'
@@ -509,7 +509,7 @@ function MailComposeToolbar() {
   )
 }
 
-function InitialHtmlPlugin({ html }) {
+function InitialHtmlPlugin({ html, focusEmptyTop = false }) {
   const [editor] = useLexicalComposerContext()
   const appliedRef = useRef(false)
 
@@ -522,14 +522,21 @@ function InitialHtmlPlugin({ html }) {
       const nodes = $generateNodesFromDOM(editor, dom)
       const root = $getRoot()
       root.clear()
-      if (nodes.length) root.append(...nodes)
+      if (focusEmptyTop) {
+        const blankParagraph = $createParagraphNode()
+        root.append(blankParagraph)
+        if (nodes.length) root.append(...nodes)
+        blankParagraph.select()
+      } else if (nodes.length) {
+        root.append(...nodes)
+      }
     })
-  }, [editor, html])
+  }, [editor, focusEmptyTop, html])
 
   return null
 }
 
-function MailComposeEditor({ onChange, initialHtml = '' }) {
+function MailComposeEditor({ onChange, initialHtml = '', focusEmptyTop = false }) {
   return (
     <LexicalComposer
       initialConfig={{
@@ -570,7 +577,7 @@ function MailComposeEditor({ onChange, initialHtml = '' }) {
           <HistoryPlugin />
           <ListPlugin />
           <LinkPlugin />
-          <InitialHtmlPlugin html={initialHtml} />
+          <InitialHtmlPlugin html={initialHtml} focusEmptyTop={focusEmptyTop} />
           <OnChangePlugin
             onChange={(editorState, editor) => {
               editorState.read(() => {
@@ -772,7 +779,11 @@ function MailComposeView({ accounts, defaultAccountId, initialDraft, onCancel, o
 
           <div className="grid gap-2 text-sm font-bold text-gray-600 md:grid-cols-[96px_1fr]">
             <span className="pt-3">본문</span>
-            <MailComposeEditor onChange={setBody} initialHtml={initialDraft?.html || ''} />
+            <MailComposeEditor
+              onChange={setBody}
+              initialHtml={initialDraft?.html || ''}
+              focusEmptyTop={!!initialDraft?.focusEmptyTop}
+            />
           </div>
 
           {(error || status) && (
@@ -839,6 +850,77 @@ function getDraftComposeData(message, accountId) {
     subject: message?.subject || '',
     html: message?.body_html || textToDraftHtml(text),
     text,
+  }
+}
+
+function addSubjectPrefix(subject, prefix) {
+  const value = String(subject || '').trim() || '(제목 없음)'
+  const pattern = new RegExp(`^${prefix.replace(':', '')}\\s*:`, 'i')
+  return pattern.test(value) ? value : `${prefix} ${value}`
+}
+
+function uniqueAddresses(addresses, excludedEmails = new Set()) {
+  const seen = new Set()
+  return normalizeAddressList(addresses).filter(address => {
+    const email = String(address.email || '').trim().toLowerCase()
+    const key = email || String(address.name || '').trim().toLowerCase()
+    if (!key || excludedEmails.has(email) || seen.has(key)) return false
+    seen.add(key)
+    return true
+  })
+}
+
+function formatOriginalDate(message) {
+  const value = message?.received_at || message?.sent_at || message?.created_at || ''
+  if (!value) return '-'
+  try {
+    return new Date(value).toLocaleString()
+  } catch (_) {
+    return String(value)
+  }
+}
+
+function buildOriginalMessageHtml(message, mode) {
+  const from = formatAddress({ name: message?.from_name || '', email: message?.from_email || '' }) || '-'
+  const to = addressListToInput(message?.to_json) || '-'
+  const cc = addressListToInput(message?.cc_json)
+  const subject = message?.subject || '(제목 없음)'
+  const body = message?.body_html || textToDraftHtml(message?.body_text || message?.snippet || '')
+  const title = mode === 'forward' ? '-----Forwarded Message-----' : '-----Original Message-----'
+  const ccLine = cc ? `<br><b>Cc:</b> ${escapeHtml(cc)}` : ''
+
+  return [
+    '<p><br></p>',
+    `<p>${escapeHtml(title)}<br>`,
+    `<b>From:</b> ${escapeHtml(from)}<br>`,
+    `<b>To:</b> ${escapeHtml(to)}${ccLine}<br>`,
+    `<b>Date:</b> ${escapeHtml(formatOriginalDate(message))}<br>`,
+    `<b>Subject:</b> ${escapeHtml(subject)}</p>`,
+    '<div>',
+    body,
+    '</div>',
+  ].join('')
+}
+
+function getMailActionComposeData(message, action, accountId, ownEmails = new Set()) {
+  const from = uniqueAddresses([{ name: message?.from_name || '', email: message?.from_email || '' }])
+  const originalTo = normalizeAddressList(message?.to_json)
+  const originalCc = normalizeAddressList(message?.cc_json)
+  const isForward = action === 'forward'
+  const isReplyAll = action === 'replyAll'
+
+  return {
+    accountId: message?.account_id || accountId || '',
+    draftId: '',
+    to: isForward
+      ? ''
+      : addressListToInput(isReplyAll ? uniqueAddresses([...from, ...originalTo]) : from),
+    cc: isReplyAll ? addressListToInput(uniqueAddresses(originalCc)) : '',
+    bcc: '',
+    subject: addSubjectPrefix(message?.subject, isForward ? 'FWD:' : 'RE:'),
+    html: buildOriginalMessageHtml(message, isForward ? 'forward' : 'reply'),
+    text: '',
+    focusEmptyTop: true,
   }
 }
 
@@ -979,10 +1061,11 @@ function AddressRow({ label, addresses, onOpen }) {
   )
 }
 
-function MailReplyActionButton({ icon, label }) {
+function MailReplyActionButton({ icon, label, onClick }) {
   return (
     <button
       type="button"
+      onClick={onClick}
       className="inline-flex h-11 items-center gap-2 rounded-md px-2 text-sm font-semibold text-gray-500 transition hover:bg-gray-50 hover:text-gray-800"
     >
       <MenuIcon type={icon} />
@@ -991,7 +1074,7 @@ function MailReplyActionButton({ icon, label }) {
   )
 }
 
-function MailViewer({ message, loading, error, onAddressSearch }) {
+function MailViewer({ message, loading, error, onAddressSearch, onMailAction }) {
   const [addressMenu, setAddressMenu] = useState(null)
 
   useEffect(() => {
@@ -1062,9 +1145,9 @@ function MailViewer({ message, loading, error, onAddressSearch }) {
         )}
       </div>
       <footer className="flex flex-shrink-0 items-center gap-6 border-t border-gray-100 px-6 py-4">
-        <MailReplyActionButton icon="forward" label="전달" />
-        <MailReplyActionButton icon="reply" label="전체 답장" />
-        <MailReplyActionButton icon="reply" label="답장" />
+        <MailReplyActionButton icon="forward" label="전달" onClick={() => onMailAction?.('forward', message)} />
+        <MailReplyActionButton icon="reply" label="전체 답장" onClick={() => onMailAction?.('replyAll', message)} />
+        <MailReplyActionButton icon="reply" label="답장" onClick={() => onMailAction?.('reply', message)} />
       </footer>
       <MailAddressMenu
         menu={addressMenu}
@@ -1075,7 +1158,36 @@ function MailViewer({ message, loading, error, onAddressSearch }) {
   )
 }
 
-function MailMenuButton({ active, icon, label, count, unreadCount, onClick, onContextMenu, depth = 0 }) {
+const FOLDER_COLOR_OPTIONS = [
+  { key: '', label: '기본값', value: '' },
+  { key: 'red', label: '빨강', value: '#ff4b55' },
+  { key: 'orange', label: '주황', value: '#ff9f43' },
+  { key: 'yellow', label: '노랑', value: '#ffd84d' },
+  { key: 'green', label: '녹색', value: '#32e96b' },
+  { key: 'blue', label: '파랑', value: '#3db7f2' },
+  { key: 'purple', label: '퍼플', value: '#bf3df2' },
+]
+
+const FOLDER_COLOR_MAP = Object.fromEntries(FOLDER_COLOR_OPTIONS.map(item => [item.key, item.value]))
+
+function getFolderDepth(folders, folder) {
+  const byId = new Map((folders || []).map(item => [item.id, item]))
+  let depth = 0
+  let current = folder
+  const seen = new Set()
+  while (current?.parent_folder_id && byId.has(current.parent_folder_id) && !seen.has(current.parent_folder_id)) {
+    seen.add(current.parent_folder_id)
+    depth += 1
+    current = byId.get(current.parent_folder_id)
+  }
+  return depth
+}
+
+function isSystemMailFolder(folder) {
+  return ['inbox', 'sent', 'drafts', 'trash', 'archive', 'spam'].includes(folder?.type)
+}
+
+function MailMenuButton({ active, icon, label, count, unreadCount, iconColor, onClick, onContextMenu, depth = 0 }) {
   return (
     <button
       type="button"
@@ -1090,7 +1202,9 @@ function MailMenuButton({ active, icon, label, count, unreadCount, onClick, onCo
       }`}
       style={{ paddingLeft: `${8 + depth * 14}px` }}
     >
-      <MenuIcon type={icon} />
+      <span style={active || !iconColor ? undefined : { color: iconColor }}>
+        <MenuIcon type={icon} />
+      </span>
       <span className="flex-1 font-medium truncate">{label}</span>
       <span className={`text-xs rounded-full px-1.5 py-0.5 font-bold min-w-[18px] text-center ${
         active ? 'bg-white/20 text-white' : 'bg-gray-300 text-gray-700'
@@ -1101,25 +1215,82 @@ function MailMenuButton({ active, icon, label, count, unreadCount, onClick, onCo
   )
 }
 
-function FolderContextMenu({ menu, onClose, onEmptyTrash }) {
-  if (!menu?.folder || menu.folder.type !== 'trash') return null
+function FolderContextMenu({ menu, onClose, onCreateFolder, onCreateSubFolder, onDeleteFolder, onSetFolderColor, onEmptyTrash }) {
+  if (!menu?.folder) return null
+  const canDelete = !isSystemMailFolder(menu.folder)
   return (
     <div
-      className="fixed z-50 min-w-[170px] rounded-lg border border-gray-200 bg-white py-1 text-sm font-bold text-gray-700 shadow-xl shadow-gray-900/10"
+      className="fixed z-50 min-w-[210px] rounded-lg border border-gray-200 bg-white py-1 text-sm font-bold text-gray-700 shadow-xl shadow-gray-900/10"
       style={{ left: menu.x, top: menu.y }}
       onClick={event => event.stopPropagation()}
     >
       <button
         type="button"
         onClick={() => {
-          onEmptyTrash(menu)
+          onCreateFolder(menu)
           onClose()
         }}
-        className="flex w-full items-center gap-2 px-3 py-2 text-left text-red-600 hover:bg-red-50"
+        className="flex w-full items-center gap-2 px-3 py-2 text-left hover:bg-gray-50"
+      >
+        <span className="w-4 text-center text-gray-400">+</span>
+        <span>폴더 추가</span>
+      </button>
+      <button
+        type="button"
+        onClick={() => {
+          onCreateSubFolder(menu)
+          onClose()
+        }}
+        className="flex w-full items-center gap-2 px-3 py-2 text-left hover:bg-gray-50"
+      >
+        <span className="w-4 text-center text-gray-400">↳</span>
+        <span>서브 폴더 추가</span>
+      </button>
+      <button
+        type="button"
+        disabled={!canDelete}
+        onClick={() => {
+          if (!canDelete) return
+          onDeleteFolder(menu)
+          onClose()
+        }}
+        className="flex w-full items-center gap-2 px-3 py-2 text-left text-red-600 hover:bg-red-50 disabled:cursor-not-allowed disabled:text-gray-300 disabled:hover:bg-white"
       >
         <MenuIcon type="trash" />
-        <span>휴지통 비우기</span>
+        <span>폴더 삭제</span>
       </button>
+      {menu.folder.type === 'trash' && (
+        <button
+          type="button"
+          onClick={() => {
+            onEmptyTrash(menu)
+            onClose()
+          }}
+          className="flex w-full items-center gap-2 px-3 py-2 text-left text-red-600 hover:bg-red-50"
+        >
+          <MenuIcon type="trash" />
+          <span>휴지통 비우기</span>
+        </button>
+      )}
+      <div className="my-1 border-t border-gray-100" />
+      <div className="px-3 py-2 text-xs font-extrabold text-gray-400">폴더 색상 설정</div>
+      {FOLDER_COLOR_OPTIONS.map(option => (
+        <button
+          key={option.key || 'default'}
+          type="button"
+          onClick={() => {
+            onSetFolderColor(menu, option.key)
+            onClose()
+          }}
+          className="flex w-full items-center gap-3 px-3 py-1.5 text-left hover:bg-gray-50"
+        >
+          <span
+            className="h-4 w-4 rounded-full border border-gray-200"
+            style={{ backgroundColor: option.value || '#e5e7eb' }}
+          />
+          <span>{option.label}</span>
+        </button>
+      ))}
     </div>
   )
 }
@@ -1999,12 +2170,11 @@ export default function MailPage({ onBackToMain }) {
   }
 
   function openFolderMenu(event, account, folder) {
-    if (folder?.type !== 'trash') return
     event.preventDefault()
     event.stopPropagation()
     setFolderMenu({
       x: Math.min(event.clientX, window.innerWidth - 190),
-      y: Math.min(event.clientY, window.innerHeight - 120),
+      y: Math.min(event.clientY, window.innerHeight - 360),
       account,
       folder,
     })
@@ -2018,7 +2188,7 @@ export default function MailPage({ onBackToMain }) {
     setMessageMenu(null)
   }
 
-  async function emptyTrashFolder(menu) {
+	  async function emptyTrashFolder(menu) {
     const account = menu?.account
     const folder = menu?.folder
     if (!account?.id || !folder?.id) return
@@ -2054,6 +2224,88 @@ export default function MailPage({ onBackToMain }) {
       setMessagesError(err.message || '휴지통을 비우지 못했습니다.')
     } finally {
       setPendingEmptyTrash(null)
+    }
+	  }
+
+  async function createMailFolder(menu, parentFolder = null) {
+    const account = menu?.account
+    if (!account?.id || !account?.tenant_id) return
+    const name = window.prompt(parentFolder ? '서브 폴더 이름을 입력하세요.' : '새 폴더 이름을 입력하세요.')
+    const cleanName = String(name || '').trim()
+    if (!cleanName) return
+    try {
+      const params = new URLSearchParams({ tenantId: account.tenant_id })
+      const result = await apiFetch(`/mail/accounts/${account.id}/folders?${params.toString()}`, {
+        method: 'POST',
+        body: JSON.stringify({
+          tenantId: account.tenant_id,
+          name: cleanName,
+          parentFolderId: parentFolder?.id || '',
+        }),
+      })
+      const folder = result?.folder
+      if (!folder?.id) return
+      setAccounts(prev => prev.map(item => (
+        item.id === account.id
+          ? { ...item, folders: [...(item.folders || []).filter(existing => existing.id !== folder.id), folder] }
+          : item
+      )))
+      setActiveKey(`${account.id}:${folder.id}`)
+      setComposeMode(false)
+    } catch (err) {
+      setMessagesError(err.message || '폴더를 추가하지 못했습니다.')
+    }
+  }
+
+  async function deleteMailFolder(menu) {
+    const account = menu?.account
+    const folder = menu?.folder
+    if (!account?.id || !folder?.id || !account?.tenant_id || isSystemMailFolder(folder)) return
+    if (!window.confirm(`"${getMailFolderLabel(folder)}" 폴더를 삭제하시겠습니까?`)) return
+    try {
+      const params = new URLSearchParams({ tenantId: account.tenant_id })
+      await apiFetch(`/mail/accounts/${account.id}/folders/${folder.id}?${params.toString()}`, {
+        method: 'DELETE',
+      })
+      setAccounts(prev => prev.map(item => (
+        item.id === account.id
+          ? { ...item, folders: (item.folders || []).filter(existing => existing.id !== folder.id && existing.parent_folder_id !== folder.id) }
+          : item
+      )))
+      const active = resolveActiveFolder()
+      if (active?.folder?.id === folder.id) {
+        setActiveKey('inbox')
+        setMessages([])
+        clearMailSelection()
+      }
+    } catch (err) {
+      setMessagesError(err.message || '폴더를 삭제하지 못했습니다.')
+    }
+  }
+
+  async function setMailFolderColor(menu, colorKey) {
+    const account = menu?.account
+    const folder = menu?.folder
+    if (!account?.id || !folder?.id || !account?.tenant_id) return
+    try {
+      const params = new URLSearchParams({ tenantId: account.tenant_id })
+      const result = await apiFetch(`/mail/accounts/${account.id}/folders/${folder.id}?${params.toString()}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ tenantId: account.tenant_id, colorKey }),
+      })
+      const nextFolder = result?.folder || { ...folder, color_key: colorKey || null }
+      setAccounts(prev => prev.map(item => (
+        item.id === account.id
+          ? {
+              ...item,
+              folders: (item.folders || []).map(existing => (
+                existing.id === folder.id ? { ...existing, color_key: nextFolder.color_key || null } : existing
+              )),
+            }
+          : item
+      )))
+    } catch (err) {
+      setMessagesError(err.message || '폴더 색상을 변경하지 못했습니다.')
     }
   }
 
@@ -2295,6 +2547,24 @@ export default function MailPage({ onBackToMain }) {
     }
   }
 
+  function startMailAction(action, message) {
+    if (!message) return
+    const active = resolveActiveFolder()
+    const accountId = message.account_id || active?.account?.id || accounts[0]?.id || ''
+    const ownEmails = new Set(
+      accounts
+        .map(account => String(account.email_address || '').trim().toLowerCase())
+        .filter(Boolean),
+    )
+    setComposeDraft(getMailActionComposeData(message, action, accountId, ownEmails))
+    setSelectedMessage(null)
+    setSelectedMessageIds([])
+    setLastSelectedIndex(null)
+    setMessageMenu(null)
+    setMessageDetailError('')
+    setComposeMode(true)
+  }
+
   useEffect(() => {
     let cancelled = false
     const openedKey = activeKey
@@ -2464,6 +2734,8 @@ export default function MailPage({ onBackToMain }) {
                       <div className="flex flex-col gap-0.5">
                         {folders.map(folder => {
                           const key = `${account.id}:${folder.id || folder.name}`
+                          const folderDepth = 1 + getFolderDepth(folders, folder)
+                          const folderColor = FOLDER_COLOR_MAP[folder.color_key] || ''
                           return (
                             <MailMenuButton
                               key={key}
@@ -2472,7 +2744,8 @@ export default function MailPage({ onBackToMain }) {
                               label={getMailFolderLabel(folder)}
                               count={folder.message_count}
                               unreadCount={folder.unread_count}
-                              depth={1}
+                              iconColor={folderColor}
+                              depth={folderDepth}
                               onClick={() => activateMailKey(key)}
                               onContextMenu={(event) => openFolderMenu(event, account, folder)}
                             />
@@ -2611,6 +2884,7 @@ export default function MailPage({ onBackToMain }) {
                       loading={messageDetailLoading}
                       error={messageDetailError}
                       onAddressSearch={setMailSearchQuery}
+                      onMailAction={startMailAction}
                     />
                   </div>
                 </div>
@@ -2638,6 +2912,10 @@ export default function MailPage({ onBackToMain }) {
       <FolderContextMenu
         menu={folderMenu}
         onClose={() => setFolderMenu(null)}
+        onCreateFolder={(menu) => createMailFolder(menu)}
+        onCreateSubFolder={(menu) => createMailFolder(menu, menu?.folder)}
+        onDeleteFolder={deleteMailFolder}
+        onSetFolderColor={setMailFolderColor}
         onEmptyTrash={setPendingEmptyTrash}
       />
       {pendingEmptyTrash && (

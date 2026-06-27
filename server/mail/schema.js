@@ -178,6 +178,8 @@ async function ensureMailDataSchema(client, { standalone = false } = {}) {
       provider_folder_id TEXT NOT NULL,
       name               TEXT NOT NULL,
       type               TEXT NOT NULL DEFAULT 'custom' CHECK (type IN ('inbox', 'sent', 'drafts', 'trash', 'archive', 'spam', 'custom')),
+      parent_folder_id   TEXT REFERENCES mail_folders(id) ON DELETE CASCADE,
+      color_key          TEXT,
       created_at         TIMESTAMPTZ NOT NULL DEFAULT NOW(),
       updated_at         TIMESTAMPTZ NOT NULL DEFAULT NOW(),
       UNIQUE (account_id, provider_folder_id)
@@ -232,6 +234,13 @@ async function ensureMailDataSchema(client, { standalone = false } = {}) {
     CREATE INDEX IF NOT EXISTS idx_mail_messages_account_internet_id ON mail_messages(account_id, internet_message_id);
     CREATE INDEX IF NOT EXISTS idx_mail_messages_tenant_user ON mail_messages(tenant_id, user_id);
     CREATE INDEX IF NOT EXISTS idx_mail_attachments_message ON mail_attachments(message_id);
+  `)
+
+  await run(client, 'mail folder metadata columns', `
+    ALTER TABLE mail_folders
+      ADD COLUMN IF NOT EXISTS parent_folder_id TEXT REFERENCES mail_folders(id) ON DELETE CASCADE;
+    ALTER TABLE mail_folders
+      ADD COLUMN IF NOT EXISTS color_key TEXT;
   `)
 
   await run(client, 'mail message internet id column', `
