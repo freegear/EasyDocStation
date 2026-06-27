@@ -6,6 +6,7 @@ const {
   gmailListMessages,
   gmailGetMessage,
   gmailGetAttachment,
+  gmailListLabels,
 } = require('./gmailOAuth')
 const { parseGmailMessage, decodeBase64Url } = require('./messageParser')
 
@@ -57,12 +58,16 @@ function pickFolderProviderId(labelIds = []) {
 }
 
 // 최신 메시지 id 목록을 limit 까지 모은다.
-async function collectMessageIds(accessToken, limit) {
+// full(전체 증분) 동기화 시 한 번에 훑을 안전 상한
+const GMAIL_FULL_MAX = 2000
+
+async function collectMessageIds(accessToken, limit, full, labelIds) {
   const ids = []
   let pageToken
-  while (ids.length < limit) {
-    const pageSize = Math.min(100, limit - ids.length)
-    const list = await gmailListMessages(accessToken, { maxResults: pageSize, pageToken })
+  const cap = full ? GMAIL_FULL_MAX : limit
+  while (ids.length < cap) {
+    const pageSize = full ? 100 : Math.min(100, cap - ids.length)
+    const list = await gmailListMessages(accessToken, { maxResults: pageSize, pageToken, labelIds })
     for (const m of (list.messages || [])) ids.push(m.id)
     pageToken = list.nextPageToken
     if (!pageToken) break
@@ -70,8 +75,19 @@ async function collectMessageIds(accessToken, limit) {
   return ids
 }
 
+// 메시지의 폴더(folder_id)를 결정한다. forceFolderId(특정 폴더 동기화) > 표준 폴더 > 사용자 라벨 순.
+function resolveGmailFolderId(folderMap, labelIds, forceFolderId) {
+  if (forceFolderId) return forceFolderId
+  const std = pickFolderProviderId(labelIds)
+  if (std && folderMap[std]) return folderMap[std]
+  for (const l of (labelIds || [])) {
+    if (folderMap[l]) return folderMap[l]
+  }
+  return null
+}
+
 // 메시지 1건: 상세 조회 → 본문/첨부 저장 → DB 적재
-async function syncOneMessage({ tenantId, account, accessToken, storage, folderMap, providerMessageId }) {
+async function syncOneMessage({ tenantId, account, accessToken, storage, folderMap, providerMessageId, forceFolderId }) {
   const full = await gmailGetMessage(accessToken, providerMessageId, { format: 'full' })
   const parsed = parseGmailMessage(full)
 
@@ -114,17 +130,17 @@ async function syncOneMessage({ tenantId, account, accessToken, storage, folderM
     attachments.push({ ...att, sizeBytes: att.sizeBytes || data.length, objectKey: k })
   }
 
-  const folderId = folderMap[pickFolderProviderId(parsed.labelIds)] || null
+  const folderId = resolveGmailFolderId(folderMap, parsed.labelIds, forceFolderId)
   await repo.saveSyncedMessage({ tenantId, account, parsed, folderId, objectKeys, attachments })
 }
 
 // 계정 1개를 동기화한다. (account는 repo.getAccountForSync 결과: storage_prefix 포함)
-async function syncGmailAccount({ tenantId, account, limit = 50 }) {
+async function syncGmailAccount({ tenantId, account, limit = 50, full = false }) {
   const accessToken = await ensureAccessToken({ tenantId, account })
   const storage = getMailStorage()
   const folderMap = await repo.getFolderMap({ tenantId, accountId: account.id })
 
-  const ids = await collectMessageIds(accessToken, limit)
+  const ids = await collectMessageIds(accessToken, limit, full)
   const existing = await repo.getExistingProviderMessageIds({ tenantId, accountId: account.id, ids })
   const newIds = ids.filter(id => !existing.has(id))
 
@@ -151,7 +167,42 @@ async function syncGmailAccount({ tenantId, account, limit = 50 }) {
   }
 }
 
+// 사용자 라벨을 폴더로 발견해 반환한다.
+async function discoverGmailFolders({ tenantId, account }) {
+  const accessToken = await ensureAccessToken({ tenantId, account })
+  const { labels } = await gmailListLabels(accessToken)
+  return (labels || [])
+    .filter(l => l.type === 'user')
+    .map(l => ({ providerFolderId: l.id, name: l.name, type: 'custom' }))
+}
+
+// 특정 라벨(폴더) 1개의 메시지를 on-demand로 동기화한다.
+async function syncGmailFolder({ tenantId, account, folder, limit = 50, full = false }) {
+  const accessToken = await ensureAccessToken({ tenantId, account })
+  const storage = getMailStorage()
+  const folderMap = await repo.getFolderMap({ tenantId, accountId: account.id })
+
+  const ids = await collectMessageIds(accessToken, limit, full, [folder.provider_folder_id])
+  const existing = await repo.getExistingProviderMessageIds({ tenantId, accountId: account.id, ids })
+  const newIds = ids.filter(id => !existing.has(id))
+
+  let saved = 0
+  const errors = []
+  for (const id of newIds) {
+    try {
+      await syncOneMessage({ tenantId, account, accessToken, storage, folderMap, providerMessageId: id, forceFolderId: folder.id })
+      saved += 1
+    } catch (err) {
+      errors.push({ id, error: err.message })
+    }
+  }
+  await repo.recomputeUsage({ tenantId, accountId: account.id, userId: account.user_id })
+  return { listed: ids.length, new: newIds.length, saved, failed: errors.length, errors: errors.slice(0, 10) }
+}
+
 module.exports = {
   syncGmailAccount,
   ensureAccessToken,
+  discoverGmailFolders,
+  syncGmailFolder,
 }

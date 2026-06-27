@@ -9,11 +9,19 @@ TORCH_VERSION="${TORCH_VERSION:-}"
 TORCH_MIN_VERSION="${TORCH_MIN_VERSION:-2.6}"
 
 install_frontend_dependencies() {
-  # Supabase Auth 사용을 위해 SDK 설치를 포함한다.
+  # Supabase Auth와 메일 작성(Lexical) 사용을 위해 필수 SDK 설치를 포함한다.
   echo "[DGX] 프론트 의존성 설치 (package.json 기준)"
   npm install
-  npm install @supabase/supabase-js
-  npm install jose --prefix server
+  npm install \
+    @supabase/supabase-js \
+    lexical \
+    @lexical/html \
+    @lexical/react \
+    @lexical/rich-text \
+    @lexical/history \
+    @lexical/list \
+    @lexical/link
+  npm install jose nodemailer --prefix server
 
   echo "  Playwright 시스템 의존성/브라우저 설치"
   sudo npx playwright install-deps

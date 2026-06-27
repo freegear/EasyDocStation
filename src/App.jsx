@@ -90,8 +90,10 @@ function MainLayout() {
   const [showNewDM, setShowNewDM] = useState(false)
   const [showAccessDeniedDialog, setShowAccessDeniedDialog] = useState(false)
   const [fullscreenService, setFullscreenService] = useState(null)
-  const { isSearchMode, teams, selectedTeam, navigateToPost } = useChat()
+  const { currentUser } = useAuth()
+  const { isSearchMode, teams, selectedTeam, navigateToPost, recoverFromAccessDenied } = useChat()
   const deepLinkHandledRef = useRef(false)
+  const lastUserIdRef = useRef(null)
 
   const [groqWidth, setGroqWidth] = useState(320)
   const [resizingGroq, setResizingGroq] = useState(false)
@@ -108,6 +110,17 @@ function MainLayout() {
     return !window.matchMedia('(max-width: 768px)').matches
   })
   const mainRef = useRef(null)
+
+  const clearPostDeepLinkParams = useCallback(() => {
+    if (typeof window === 'undefined') return
+    const url = new URL(window.location.href)
+    url.searchParams.delete('channelId')
+    url.searchParams.delete('postId')
+    url.searchParams.delete('commentId')
+    url.searchParams.delete('attachmentId')
+    const next = `${url.pathname}${url.search}${url.hash}`
+    window.history.replaceState({}, '', next)
+  }, [])
 
   const startGroqResize = useCallback((e) => {
     e.preventDefault()
@@ -149,6 +162,24 @@ function MainLayout() {
   }
 
   useEffect(() => {
+    const userId = currentUser?.id || null
+    if (!userId || lastUserIdRef.current === userId) {
+      lastUserIdRef.current = userId
+      return
+    }
+    lastUserIdRef.current = userId
+    setSearchSelectedPost(null)
+    setShowCalendar(false)
+    setShowMail(false)
+    setShowDM(false)
+    setActiveDMConv(null)
+    setShowNewDM(false)
+    setShowAccessDeniedDialog(false)
+    setFullscreenService(null)
+    deepLinkHandledRef.current = false
+  }, [currentUser?.id])
+
+  useEffect(() => {
     if (!Array.isArray(teams) || teams.length === 0) return
 
     const params = new URLSearchParams(window.location.search)
@@ -169,19 +200,15 @@ function MainLayout() {
     navigateToPost(channelId, postId, { commentId, attachmentId })
       .then((opened) => {
         if (!opened) {
+          deepLinkHandledRef.current = signature
+          clearPostDeepLinkParams()
           setShowAccessDeniedDialog(true)
           return
         }
         deepLinkHandledRef.current = signature
-        const url = new URL(window.location.href)
-        url.searchParams.delete('channelId')
-        url.searchParams.delete('postId')
-        url.searchParams.delete('commentId')
-        url.searchParams.delete('attachmentId')
-        const next = `${url.pathname}${url.search}${url.hash}`
-        window.history.replaceState({}, '', next)
+        clearPostDeepLinkParams()
       })
-  }, [teams, navigateToPost])
+  }, [teams, navigateToPost, clearPostDeepLinkParams])
 
   useEffect(() => {
     function handleOpenAgenticPanel() {
@@ -192,12 +219,16 @@ function MainLayout() {
   }, [])
 
   useEffect(() => {
-    function handleChannelAccessDenied() {
-      setShowAccessDeniedDialog(true)
+    async function handleChannelAccessDenied() {
+      clearPostDeepLinkParams()
+      const recovered = await recoverFromAccessDenied?.()
+      if (!recovered) {
+        setShowAccessDeniedDialog(true)
+      }
     }
     window.addEventListener('channel-access-denied', handleChannelAccessDenied)
     return () => window.removeEventListener('channel-access-denied', handleChannelAccessDenied)
-  }, [])
+  }, [recoverFromAccessDenied, clearPostDeepLinkParams])
 
   useEffect(() => {
     if (typeof window === 'undefined') return
@@ -361,6 +392,7 @@ function MainLayout() {
           message={accessDeniedMessage}
           confirmText="확인"
           onConfirm={() => setShowAccessDeniedDialog(false)}
+          onCancel={() => setShowAccessDeniedDialog(false)}
         />
       )}
     </div>

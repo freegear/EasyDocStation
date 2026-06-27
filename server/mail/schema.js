@@ -189,6 +189,7 @@ async function ensureMailDataSchema(client, { standalone = false } = {}) {
       user_id               INTEGER NOT NULL ${userFk},
       account_id            TEXT NOT NULL REFERENCES mail_accounts(id) ON DELETE CASCADE,
       provider_message_id   TEXT NOT NULL,
+      internet_message_id   TEXT,
       folder_id             TEXT REFERENCES mail_folders(id) ON DELETE SET NULL,
       subject               TEXT NOT NULL DEFAULT '',
       from_email            TEXT,
@@ -228,8 +229,16 @@ async function ensureMailDataSchema(client, { standalone = false } = {}) {
 
     CREATE INDEX IF NOT EXISTS idx_mail_folders_account ON mail_folders(account_id);
     CREATE INDEX IF NOT EXISTS idx_mail_messages_account_received ON mail_messages(account_id, received_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_mail_messages_account_internet_id ON mail_messages(account_id, internet_message_id);
     CREATE INDEX IF NOT EXISTS idx_mail_messages_tenant_user ON mail_messages(tenant_id, user_id);
     CREATE INDEX IF NOT EXISTS idx_mail_attachments_message ON mail_attachments(message_id);
+  `)
+
+  await run(client, 'mail message internet id column', `
+    ALTER TABLE mail_messages
+      ADD COLUMN IF NOT EXISTS internet_message_id TEXT;
+    CREATE INDEX IF NOT EXISTS idx_mail_messages_account_internet_id
+      ON mail_messages(account_id, internet_message_id);
   `)
 
   await run(client, 'create mail sync and usage', `

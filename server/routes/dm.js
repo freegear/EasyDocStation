@@ -152,6 +152,50 @@ async function cleanupExpiredDmMessages() {
   }
 }
 
+async function ensureDmMessageLikeTable() {
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS dm_message_likes (
+      message_id TEXT NOT NULL REFERENCES dm_messages(id) ON DELETE CASCADE,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      PRIMARY KEY (message_id, user_id)
+    )
+  `)
+  await db.query('CREATE INDEX IF NOT EXISTS idx_dm_message_likes_message_id ON dm_message_likes(message_id)')
+}
+
+async function getDmMessageLikeMap(messageIds = [], userId = null) {
+  const ids = [...new Set((messageIds || []).map(id => String(id || '').trim()).filter(Boolean))]
+  const map = new Map(ids.map(id => [id, { likeCount: 0, likedByMe: false }]))
+  if (ids.length === 0) return map
+  await ensureDmMessageLikeTable()
+
+  const countRes = await db.query(
+    `SELECT message_id, COUNT(*)::int AS like_count
+     FROM dm_message_likes
+     WHERE message_id = ANY($1)
+     GROUP BY message_id`,
+    [ids],
+  )
+  for (const row of countRes.rows || []) {
+    const key = String(row.message_id)
+    map.set(key, { ...(map.get(key) || {}), likeCount: Number(row.like_count || 0) })
+  }
+
+  if (userId) {
+    const myRes = await db.query(
+      'SELECT message_id FROM dm_message_likes WHERE message_id = ANY($1) AND user_id = $2',
+      [ids, userId],
+    )
+    for (const row of myRes.rows || []) {
+      const key = String(row.message_id)
+      map.set(key, { ...(map.get(key) || {}), likedByMe: true })
+    }
+  }
+
+  return map
+}
+
 async function telegramPost(token, method, body) {
   const res = await fetch(`https://api.telegram.org/bot${token}/${method}`, {
     method: 'POST',
@@ -235,7 +279,7 @@ router.get('/conversations', async (req, res) => {
   try {
     const { rows } = await db.query(
       `SELECT c.*,
-         (SELECT json_agg(json_build_object('id', u.id, 'username', u.username, 'display_name', u.display_name, 'image_url', u.image_url))
+         (SELECT json_agg(json_build_object('id', u.id, 'username', u.username, 'display_name', u.display_name, 'image_url', u.image_url, 'is_logged_in', u.active_session_id IS NOT NULL))
             FROM users u WHERE u.id = ANY(
               SELECT (jsonb_array_elements(c.participants)::int)
             )
@@ -357,7 +401,7 @@ router.post('/conversations', async (req, res) => {
   // 중복 이름 체크 — 이미 있으면 해당 대화를 그대로 반환 (기존 창 열기)
   const { rows: dup } = await db.query(
     `SELECT c.*,
-       (SELECT json_agg(json_build_object('id', u.id, 'username', u.username, 'display_name', u.display_name, 'image_url', u.image_url))
+       (SELECT json_agg(json_build_object('id', u.id, 'username', u.username, 'display_name', u.display_name, 'image_url', u.image_url, 'is_logged_in', u.active_session_id IS NOT NULL))
           FROM users u WHERE u.id = ANY(SELECT (jsonb_array_elements(c.participants)::int))
        ) AS participant_details
      FROM dm_conversations c
@@ -469,7 +513,7 @@ router.post('/conversations/:id/participants', async (req, res) => {
   // participant_details 포함하여 반환 (헤더 이름 즉시 반영용)
   const { rows: full } = await db.query(
     `SELECT c.*,
-       (SELECT json_agg(json_build_object('id', u.id, 'username', u.username, 'display_name', u.display_name, 'image_url', u.image_url))
+       (SELECT json_agg(json_build_object('id', u.id, 'username', u.username, 'display_name', u.display_name, 'image_url', u.image_url, 'is_logged_in', u.active_session_id IS NOT NULL))
           FROM users u WHERE u.id = ANY(SELECT (jsonb_array_elements(c.participants)::int))
        ) AS participant_details
      FROM dm_conversations c WHERE c.id = $1`,
@@ -509,7 +553,7 @@ router.delete('/conversations/:id/participants/:participantId', async (req, res)
 
   const { rows: full } = await db.query(
     `SELECT c.*,
-       (SELECT json_agg(json_build_object('id', u.id, 'username', u.username, 'display_name', u.display_name, 'image_url', u.image_url))
+       (SELECT json_agg(json_build_object('id', u.id, 'username', u.username, 'display_name', u.display_name, 'image_url', u.image_url, 'is_logged_in', u.active_session_id IS NOT NULL))
           FROM users u WHERE u.id = ANY(SELECT (jsonb_array_elements(c.participants)::int))
        ) AS participant_details
      FROM dm_conversations c WHERE c.id = $1`,
@@ -540,7 +584,15 @@ router.get('/conversations/:id/messages', async (req, res) => {
        ORDER BY m.created_at ASC`,
       [id]
     )
-    res.json(rows)
+    const likeMap = await getDmMessageLikeMap(rows.map(row => row.id), userId)
+    res.json(rows.map(row => {
+      const likeInfo = likeMap.get(String(row.id)) || { likeCount: 0, likedByMe: false }
+      return {
+        ...row,
+        likeCount: likeInfo.likeCount || 0,
+        likedByMe: Boolean(likeInfo.likedByMe),
+      }
+    }))
   } catch (err) {
     console.error(err)
     res.status(500).json({ error: '서버 오류' })
@@ -615,7 +667,7 @@ router.post('/conversations/:id/messages', async (req, res) => {
     // DM 전송 성공 후 수신자들에게 Telegram 알림 전송 (실패해도 DM 전송은 유지)
     notifyDmToTelegram({ conversationId: id, senderId: userId }).catch(() => {})
 
-    res.status(201).json(full[0])
+    res.status(201).json({ ...full[0], likeCount: 0, likedByMe: false })
   } catch (err) {
     console.error(err)
     res.status(500).json({ error: '서버 오류' })
@@ -680,6 +732,8 @@ router.delete('/conversations/:convId/messages/:msgId', async (req, res) => {
      RETURNING *`,
     [userId, msgId]
   )
+  await ensureDmMessageLikeTable()
+  await db.query('DELETE FROM dm_message_likes WHERE message_id = $1', [msgId])
 
   const { rows: full } = await db.query(
     `SELECT m.*,
@@ -689,7 +743,62 @@ router.delete('/conversations/:convId/messages/:msgId', async (req, res) => {
      WHERE m.id = $1`,
     [updated[0].id]
   )
-  res.json(full[0])
+  res.json({ ...full[0], likeCount: 0, likedByMe: false })
+})
+
+// 메시지 좋아요 토글
+// POST /api/dm/conversations/:convId/messages/:msgId/like
+router.post('/conversations/:convId/messages/:msgId/like', async (req, res) => {
+  const userId = req.user.id
+  const { convId, msgId } = req.params
+
+  try {
+    const { rows: conv } = await db.query(
+      'SELECT id FROM dm_conversations WHERE id = $1 AND participants @> $2::jsonb',
+      [convId, JSON.stringify([userId])]
+    )
+    if (!conv[0]) return res.status(404).json({ error: '대화를 찾을 수 없습니다.' })
+
+    const { rows: msgRows } = await db.query(
+      'SELECT id FROM dm_messages WHERE id = $1 AND conversation_id = $2 AND is_deleted = false',
+      [msgId, convId],
+    )
+    if (!msgRows[0]) return res.status(404).json({ error: '메시지를 찾을 수 없습니다.' })
+
+    await ensureDmMessageLikeTable()
+    const existing = await db.query(
+      'SELECT 1 FROM dm_message_likes WHERE message_id = $1 AND user_id = $2 LIMIT 1',
+      [msgId, userId],
+    )
+    const liked = existing.rowCount === 0
+    if (liked) {
+      await db.query(
+        `INSERT INTO dm_message_likes (message_id, user_id)
+         VALUES ($1, $2)
+         ON CONFLICT (message_id, user_id) DO NOTHING`,
+        [msgId, userId],
+      )
+    } else {
+      await db.query(
+        'DELETE FROM dm_message_likes WHERE message_id = $1 AND user_id = $2',
+        [msgId, userId],
+      )
+    }
+
+    const countRes = await db.query(
+      'SELECT COUNT(*)::int AS like_count FROM dm_message_likes WHERE message_id = $1',
+      [msgId],
+    )
+    res.json({
+      success: true,
+      messageId: msgId,
+      liked,
+      likeCount: Number(countRes.rows?.[0]?.like_count || 0),
+    })
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ error: '서버 오류' })
+  }
 })
 
 // 파일 업로드 URL 발급 (DM 첨부용)

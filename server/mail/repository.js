@@ -239,7 +239,7 @@ async function upsertDefaultFoldersTx(client, oauthState, accountId) {
   const defaultFolders = [
     ['INBOX', '받은 편지함', 'inbox'],
     ['SENT', '보낸 메일', 'sent'],
-    ['DRAFT', '임시보관함', 'drafts'],
+    ['DRAFT', '임시 보관함', 'drafts'],
     ['TRASH', '휴지통', 'trash'],
   ]
   for (const [providerFolderId, name, type] of defaultFolders) {
@@ -450,6 +450,60 @@ async function upsertImapAccount({ tenantId, userId, fields }) {
   }
 }
 
+async function updateImapAccount({ tenantId, accountId, userId, isSiteAdmin, fields }) {
+  const passwordSet = typeof fields.password === 'string' && fields.password.length > 0
+  const params = [
+    fields.emailAddress,
+    fields.displayName,
+    fields.username,
+    fields.imapHost,
+    fields.imapPort,
+    fields.imapSecurity,
+    fields.smtpHost,
+    fields.smtpPort,
+    fields.smtpSecurity,
+    tenantId,
+    accountId,
+    !!isSiteAdmin,
+    userId,
+  ]
+  let passwordSql = ''
+  if (passwordSet) {
+    params.push(encryptSecret(fields.password))
+    passwordSql = `, password_encrypted = $${params.length}`
+  }
+
+  const { rows } = await tenantQuery(
+    tenantId,
+    `UPDATE mail_accounts
+     SET email_address = $1,
+         provider_account_id = $1,
+         display_name = $2,
+         username = $3,
+         imap_host = $4,
+         imap_port = $5,
+         imap_security = $6,
+         smtp_host = $7,
+         smtp_port = $8,
+         smtp_security = $9,
+         status = 'connected',
+         sync_status = 'idle',
+         updated_at = NOW()
+         ${passwordSql}
+     WHERE tenant_id = $10
+       AND id = $11
+       AND provider IN ('naver', 'apple', 'imap', 'other')
+       AND ($12::boolean = true OR user_id = $13)
+     RETURNING id, tenant_id, user_id, provider, provider_account_id,
+               email_address, display_name, username,
+               imap_host, imap_port, imap_security,
+               smtp_host, smtp_port, smtp_security,
+               status, sync_status, last_synced_at, created_at, updated_at`,
+    params,
+  )
+  return rows[0] || null
+}
+
 // ===== data plane: accounts listing =======================================
 
 const ACCOUNT_FOLDERS_SUBQUERY = `
@@ -458,8 +512,28 @@ const ACCOUNT_FOLDERS_SUBQUERY = `
       'id', mf.id,
       'provider_folder_id', mf.provider_folder_id,
       'name', mf.name,
-      'type', mf.type
-    ) ORDER BY mf.name ASC)
+      'type', mf.type,
+      'message_count', COALESCE((
+        SELECT COUNT(*)
+        FROM mail_messages mm
+        WHERE mm.folder_id = mf.id
+          AND mm.deleted_at IS NULL
+      ), 0),
+      'unread_count', COALESCE((
+        SELECT COUNT(*)
+        FROM mail_messages mm
+        WHERE mm.folder_id = mf.id
+          AND mm.deleted_at IS NULL
+          AND mm.is_read = false
+      ), 0)
+    ) ORDER BY
+      CASE
+        WHEN mf.provider_folder_id = 'INBOX' OR mf.type = 'inbox' THEN 0
+        WHEN mf.provider_folder_id = 'SENT' OR mf.type = 'sent' THEN 1
+        WHEN mf.provider_folder_id = 'DRAFT' OR mf.type = 'drafts' THEN 2
+        ELSE 3
+      END,
+      mf.name ASC)
     FROM mail_folders mf
     WHERE mf.account_id = ma.id
   ), '[]'::json) AS folders`
@@ -530,6 +604,39 @@ async function listAccounts({ userId, isSiteAdmin, tenantId }) {
     params,
   )
   return rows
+}
+
+async function listSyncableAccounts() {
+  const control = cm.getControlPool()
+  const { rows: tenants } = await control.query(
+    `SELECT id, name, storage_prefix FROM mail_tenants ORDER BY id ASC`,
+  )
+  const all = []
+  for (const tenant of tenants) {
+    try {
+      const { pool } = await cm.resolveTenant(tenant.id)
+      const { rows } = await pool.query(
+        `SELECT id, tenant_id, user_id, provider, email_address, display_name,
+                username, password_encrypted, imap_host, imap_port, imap_security,
+                smtp_host, smtp_port, smtp_security,
+                access_token_encrypted, refresh_token_encrypted, token_expires_at, status
+         FROM mail_accounts
+         WHERE tenant_id = $1
+           AND status = 'connected'
+           AND provider IN ('gmail', 'naver', 'apple', 'imap', 'other')
+         ORDER BY email_address ASC`,
+        [tenant.id],
+      )
+      all.push(...rows.map(row => ({
+        ...row,
+        tenant_name: tenant.name,
+        storage_prefix: tenant.storage_prefix,
+      })))
+    } catch (err) {
+      console.warn(`[Mail sync] tenant 계정 조회 실패: ${tenant.id}`, err.message)
+    }
+  }
+  return all
 }
 
 // ===== data plane: 동기화(sync) ==========================================
@@ -620,6 +727,53 @@ async function getExistingProviderMessageIds({ tenantId, accountId, ids }) {
   return new Set(rows.map(r => r.provider_message_id))
 }
 
+async function getExistingInternetMessageIds({ tenantId, accountId, ids }) {
+  const cleanIds = [...new Set((ids || []).filter(Boolean))]
+  if (cleanIds.length === 0) return new Set()
+  const { rows } = await tenantQuery(
+    tenantId,
+    `SELECT internet_message_id FROM mail_messages
+     WHERE account_id = $1 AND internet_message_id = ANY($2)`,
+    [accountId, cleanIds],
+  )
+  return new Set(rows.map(r => r.internet_message_id).filter(Boolean))
+}
+
+// 발견한 폴더 목록을 mail_folders에 일괄 upsert한다. (provider_folder_id 기준)
+async function upsertFolders({ tenantId, account, folders }) {
+  if (!Array.isArray(folders) || folders.length === 0) return 0
+  return withTenantTx(tenantId, async (client) => {
+    let count = 0
+    for (const f of folders) {
+      if (!f || !f.providerFolderId || !f.name) continue
+      await client.query(
+        `INSERT INTO mail_folders (tenant_id, user_id, account_id, provider_folder_id, name, type)
+         VALUES ($1, $2, $3, $4, $5, $6)
+         ON CONFLICT (account_id, provider_folder_id)
+         DO UPDATE SET name = EXCLUDED.name,
+                       type = CASE WHEN mail_folders.type = 'custom' THEN EXCLUDED.type ELSE mail_folders.type END,
+                       updated_at = NOW()`,
+        [tenantId, account.user_id, account.id, f.providerFolderId, f.name, f.type || 'custom'],
+      )
+      count += 1
+    }
+    return count
+  })
+}
+
+// 폴더 1건 조회 (on-demand 동기화 시 provider_folder_id/type 확인용)
+async function getFolderById({ tenantId, accountId, folderId }) {
+  const { rows } = await tenantQuery(
+    tenantId,
+    `SELECT id, account_id, provider_folder_id, name, type
+     FROM mail_folders
+     WHERE id = $1 AND account_id = $2
+     LIMIT 1`,
+    [folderId, accountId],
+  )
+  return rows[0] || null
+}
+
 // account의 provider_folder_id → folder.id 매핑
 async function getFolderMap({ tenantId, accountId }) {
   const { rows } = await tenantQuery(
@@ -632,18 +786,229 @@ async function getFolderMap({ tenantId, accountId }) {
   return map
 }
 
+async function listMessages({ tenantId, accountId, folderId, userId, isSiteAdmin, limit = 50, offset = 0 }) {
+  const safeLimit = Math.min(200, Math.max(1, Number(limit) || 50))
+  const safeOffset = Math.max(0, Number(offset) || 0)
+  const { rows } = await tenantQuery(
+    tenantId,
+    `SELECT mm.id,
+            mm.tenant_id,
+            mm.user_id,
+            mm.account_id,
+            mm.provider_message_id,
+            mm.folder_id,
+            mm.subject,
+            mm.from_email,
+            mm.from_name,
+            mm.to_json,
+            mm.cc_json,
+            mm.bcc_json,
+            mm.snippet,
+            mm.received_at,
+            mm.sent_at,
+            mm.is_read,
+            mm.is_starred,
+            mm.has_attachments,
+            mm.size_bytes,
+            mm.created_at,
+            mm.updated_at
+     FROM mail_messages mm
+     JOIN mail_accounts ma ON ma.id = mm.account_id
+     WHERE mm.tenant_id = $1
+       AND mm.account_id = $2
+       AND ($3::text = '' OR mm.folder_id = $3)
+       AND ($4::boolean = true OR mm.user_id = $5)
+     ORDER BY COALESCE(mm.received_at, mm.sent_at, mm.created_at) DESC
+     LIMIT ${safeLimit} OFFSET ${safeOffset}`,
+    [tenantId, accountId, folderId || '', !!isSiteAdmin, userId],
+  )
+  return rows
+}
+
+async function getMessage({ tenantId, messageId, userId, isSiteAdmin }) {
+  const { rows } = await tenantQuery(
+    tenantId,
+    `SELECT mm.id,
+            mm.tenant_id,
+            mm.user_id,
+            mm.account_id,
+            mm.provider_message_id,
+            mm.folder_id,
+            mm.subject,
+            mm.from_email,
+            mm.from_name,
+            mm.to_json,
+            mm.cc_json,
+            mm.bcc_json,
+            mm.snippet,
+            mm.received_at,
+            mm.sent_at,
+            mm.is_read,
+            mm.is_starred,
+            mm.has_attachments,
+            mm.size_bytes,
+            mm.raw_object_key,
+            mm.body_text_object_key,
+            mm.body_html_object_key,
+            mm.created_at,
+            mm.updated_at
+     FROM mail_messages mm
+     WHERE mm.tenant_id = $1
+       AND mm.id = $2
+       AND ($3::boolean = true OR mm.user_id = $4)
+     LIMIT 1`,
+    [tenantId, messageId, !!isSiteAdmin, userId],
+  )
+  return rows[0] || null
+}
+
+async function markMessageRead({ tenantId, messageId, userId, isSiteAdmin }) {
+  const { rows } = await tenantQuery(
+    tenantId,
+    `UPDATE mail_messages
+     SET is_read = true,
+         updated_at = NOW()
+     WHERE tenant_id = $1
+       AND id = $2
+       AND is_read = false
+       AND ($3::boolean = true OR user_id = $4)
+     RETURNING id`,
+    [tenantId, messageId, !!isSiteAdmin, userId],
+  )
+  return rows[0] || null
+}
+
+async function updateMessageReadState({ tenantId, messageId, userId, isSiteAdmin, isRead }) {
+  const { rows } = await tenantQuery(
+    tenantId,
+    `UPDATE mail_messages
+     SET is_read = $5,
+         updated_at = NOW()
+     WHERE tenant_id = $1
+       AND id = $2
+       AND ($3::boolean = true OR user_id = $4)
+     RETURNING id, account_id, folder_id, is_read`,
+    [tenantId, messageId, !!isSiteAdmin, userId, !!isRead],
+  )
+  return rows[0] || null
+}
+
+async function moveMessageToFolder({ tenantId, messageId, targetFolderId, userId, isSiteAdmin }) {
+  const { rows } = await tenantQuery(
+    tenantId,
+    `WITH target AS (
+       SELECT id, account_id
+       FROM mail_folders
+       WHERE id = $3
+       LIMIT 1
+     )
+     UPDATE mail_messages mm
+     SET folder_id = target.id,
+         updated_at = NOW()
+     FROM target
+     WHERE mm.tenant_id = $1
+       AND mm.id = $2
+       AND mm.account_id = target.account_id
+       AND ($4::boolean = true OR mm.user_id = $5)
+     RETURNING mm.id, mm.account_id, mm.folder_id, mm.is_read`,
+    [tenantId, messageId, targetFolderId, !!isSiteAdmin, userId],
+  )
+  return rows[0] || null
+}
+
+async function deleteMessage({ tenantId, messageId, userId, isSiteAdmin }) {
+  const { rows } = await tenantQuery(
+    tenantId,
+    `WITH msg AS (
+       SELECT id, account_id, folder_id AS previous_folder_id, is_read
+       FROM mail_messages
+       WHERE tenant_id = $1
+         AND id = $2
+         AND ($3::boolean = true OR user_id = $4)
+       LIMIT 1
+     ),
+     trash AS (
+       SELECT id
+       FROM mail_folders
+       WHERE account_id = (SELECT account_id FROM msg)
+         AND type = 'trash'
+       ORDER BY CASE WHEN provider_folder_id = 'TRASH' THEN 0 ELSE 1 END, name ASC
+       LIMIT 1
+     )
+     UPDATE mail_messages mm
+     SET folder_id = CASE
+           WHEN EXISTS (SELECT 1 FROM trash)
+            AND msg.previous_folder_id IS DISTINCT FROM (SELECT id FROM trash)
+           THEN (SELECT id FROM trash)
+           ELSE mm.folder_id
+         END,
+         deleted_at = CASE
+           WHEN EXISTS (SELECT 1 FROM trash)
+            AND msg.previous_folder_id IS DISTINCT FROM (SELECT id FROM trash)
+           THEN mm.deleted_at
+           ELSE NOW()
+         END,
+         updated_at = NOW()
+     FROM msg
+     WHERE mm.id = msg.id
+     RETURNING mm.id,
+               mm.account_id,
+               msg.previous_folder_id,
+               mm.folder_id,
+               mm.is_read,
+               (SELECT id FROM trash) AS trash_folder_id,
+               mm.deleted_at IS NOT NULL AS soft_deleted`,
+    [tenantId, messageId, !!isSiteAdmin, userId],
+  )
+  return rows[0] || null
+}
+
+async function purgeTrashFolder({ tenantId, accountId, folderId, userId, isSiteAdmin }) {
+  return withTenantTx(tenantId, async (client) => {
+    const { rows: folderRows } = await client.query(
+      `SELECT id, account_id, name, type
+       FROM mail_folders
+       WHERE tenant_id = $1
+         AND account_id = $2
+         AND id = $3
+         AND type = 'trash'
+       LIMIT 1`,
+      [tenantId, accountId, folderId],
+    )
+    const folder = folderRows[0] || null
+    if (!folder) return null
+
+    const { rows } = await client.query(
+      `DELETE FROM mail_messages mm
+       WHERE mm.tenant_id = $1
+         AND mm.account_id = $2
+         AND mm.folder_id = $3
+         AND ($4::boolean = true OR mm.user_id = $5)
+       RETURNING mm.id, mm.is_read`,
+      [tenantId, accountId, folderId, !!isSiteAdmin, userId],
+    )
+
+    return {
+      folder,
+      count: rows.length,
+      unread_count: rows.filter(row => row.is_read === false).length,
+    }
+  })
+}
+
 // 파싱된 메시지 1건 + 첨부를 트랜잭션으로 저장한다. (object_key는 이미 스토리지에 기록된 상태)
 async function saveSyncedMessage({ tenantId, account, parsed, folderId, objectKeys, attachments }) {
   return withTenantTx(tenantId, async (client) => {
     const msgResult = await client.query(
       `INSERT INTO mail_messages (
-         tenant_id, user_id, account_id, provider_message_id, folder_id,
+         tenant_id, user_id, account_id, provider_message_id, internet_message_id, folder_id,
          subject, from_email, from_name, to_json, cc_json, bcc_json, snippet,
          received_at, sent_at, is_read, is_starred, has_attachments, size_bytes,
          raw_object_key, body_text_object_key, body_html_object_key, updated_at
        )
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9::jsonb,$10::jsonb,$11::jsonb,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21, NOW())
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10::jsonb,$11::jsonb,$12::jsonb,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22, NOW())
        ON CONFLICT (account_id, provider_message_id) DO UPDATE SET
+         internet_message_id = COALESCE(EXCLUDED.internet_message_id, mail_messages.internet_message_id),
          folder_id = EXCLUDED.folder_id,
          subject = EXCLUDED.subject,
          from_email = EXCLUDED.from_email,
@@ -664,7 +1029,7 @@ async function saveSyncedMessage({ tenantId, account, parsed, folderId, objectKe
          updated_at = NOW()
        RETURNING id`,
       [
-        tenantId, account.user_id, account.id, parsed.providerMessageId, folderId || null,
+        tenantId, account.user_id, account.id, parsed.providerMessageId, parsed.internetMessageId || null, folderId || null,
         parsed.subject, parsed.fromEmail, parsed.fromName,
         JSON.stringify(parsed.to), JSON.stringify(parsed.cc), JSON.stringify(parsed.bcc),
         parsed.snippet, parsed.receivedAt, parsed.sentAt,
@@ -690,6 +1055,106 @@ async function saveSyncedMessage({ tenantId, account, parsed, folderId, objectKe
       )
     }
     return messageId
+  })
+}
+
+async function saveDraftMessage({
+  tenantId,
+  account,
+  draftId,
+  providerMessageId,
+  subject,
+  to,
+  cc,
+  bcc,
+  snippet,
+  objectKeys,
+  sizeBytes,
+}) {
+  return withTenantTx(tenantId, async (client) => {
+    const folderResult = await client.query(
+      `INSERT INTO mail_folders (tenant_id, user_id, account_id, provider_folder_id, name, type)
+       VALUES ($1, $2, $3, 'DRAFT', '임시 보관함', 'drafts')
+       ON CONFLICT (account_id, provider_folder_id)
+       DO UPDATE SET name = EXCLUDED.name, type = EXCLUDED.type, updated_at = NOW()
+       RETURNING id`,
+      [tenantId, account.user_id, account.id],
+    )
+    const folderId = folderResult.rows[0].id
+    const values = [
+      subject || '(제목 없음)',
+      JSON.stringify(to || []),
+      JSON.stringify(cc || []),
+      JSON.stringify(bcc || []),
+      snippet || '',
+      objectKeys.bodyText || null,
+      objectKeys.bodyHtml || null,
+      Number(sizeBytes || 0),
+    ]
+
+    if (draftId) {
+      const updateResult = await client.query(
+        `UPDATE mail_messages
+         SET folder_id = $1,
+             subject = $2,
+             to_json = $3::jsonb,
+             cc_json = $4::jsonb,
+             bcc_json = $5::jsonb,
+             snippet = $6,
+             body_text_object_key = $7,
+             body_html_object_key = $8,
+             size_bytes = $9,
+             is_read = true,
+             updated_at = NOW()
+         WHERE id = $10
+           AND tenant_id = $11
+           AND account_id = $12
+           AND user_id = $13
+         RETURNING id, provider_message_id, folder_id`,
+        [folderId, ...values, draftId, tenantId, account.id, account.user_id],
+      )
+      if (updateResult.rows[0]) return updateResult.rows[0]
+    }
+
+    const insertResult = await client.query(
+      `INSERT INTO mail_messages (
+         tenant_id, user_id, account_id, provider_message_id, folder_id,
+         subject, from_email, from_name, to_json, cc_json, bcc_json, snippet,
+         received_at, sent_at, is_read, is_starred, has_attachments, size_bytes,
+         body_text_object_key, body_html_object_key, updated_at
+       )
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9::jsonb,$10::jsonb,$11::jsonb,$12,NOW(),NULL,true,false,false,$13,$14,$15,NOW())
+       ON CONFLICT (account_id, provider_message_id) DO UPDATE SET
+         folder_id = EXCLUDED.folder_id,
+         subject = EXCLUDED.subject,
+         to_json = EXCLUDED.to_json,
+         cc_json = EXCLUDED.cc_json,
+         bcc_json = EXCLUDED.bcc_json,
+         snippet = EXCLUDED.snippet,
+         size_bytes = EXCLUDED.size_bytes,
+         body_text_object_key = EXCLUDED.body_text_object_key,
+         body_html_object_key = EXCLUDED.body_html_object_key,
+         updated_at = NOW()
+       RETURNING id, provider_message_id, folder_id`,
+      [
+        tenantId,
+        account.user_id,
+        account.id,
+        providerMessageId,
+        folderId,
+        subject || '(제목 없음)',
+        account.email_address,
+        account.display_name || account.email_address,
+        JSON.stringify(to || []),
+        JSON.stringify(cc || []),
+        JSON.stringify(bcc || []),
+        snippet || '',
+        Number(sizeBytes || 0),
+        objectKeys.bodyText || null,
+        objectKeys.bodyHtml || null,
+      ],
+    )
+    return insertResult.rows[0]
   })
 }
 
@@ -747,7 +1212,9 @@ module.exports = {
   // gmail oauth completion + accounts
   completeGmailOAuth,
   upsertImapAccount,
+  updateImapAccount,
   listAccounts,
+  listSyncableAccounts,
   // sync (data plane)
   tenantQuery,
   withTenantTx,
@@ -755,8 +1222,19 @@ module.exports = {
   updateAccountTokens,
   setAccountSyncStatus,
   getExistingProviderMessageIds,
+  getExistingInternetMessageIds,
   getFolderMap,
+  upsertFolders,
+  getFolderById,
+  listMessages,
+  getMessage,
+  markMessageRead,
+  updateMessageReadState,
+  moveMessageToFolder,
+  deleteMessage,
+  purgeTrashFolder,
   saveSyncedMessage,
+  saveDraftMessage,
   updateSyncState,
   recomputeUsage,
 }

@@ -26,6 +26,13 @@ install_frontend_dependencies() {
     "@tiptap/extension-table-cell"
     "@tiptap/extension-table-header"
     "@tiptap/extension-table-of-contents"
+    "lexical"
+    "@lexical/html"
+    "@lexical/react"
+    "@lexical/rich-text"
+    "@lexical/history"
+    "@lexical/list"
+    "@lexical/link"
   )
 
   for pkg in "${packages[@]}"; do
@@ -40,6 +47,20 @@ install_frontend_dependencies() {
     fi
     echo "  3) 우회 설치(--legacy-peer-deps): $pkg"
     npm install "$pkg" --legacy-peer-deps
+  done
+
+  local server_packages=(
+    "jose"
+    "nodemailer"
+  )
+
+  for pkg in "${server_packages[@]}"; do
+    if npm ls "$pkg" --prefix server --depth=0 >/dev/null 2>&1; then
+      echo "  - server/$pkg: OK"
+      continue
+    fi
+    echo "  4) 서버 패키지 설치 시도: $pkg"
+    npm install "$pkg" --prefix server
   done
 }
 

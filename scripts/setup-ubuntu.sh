@@ -165,9 +165,17 @@ echo "[6/8] Node 패키지 설치"
 # stale lock file이 peer dependency 버전 충돌을 일으킬 수 있으므로 삭제 후 설치
 rm -f package-lock.json
 npm install
-npm install @supabase/supabase-js
+npm install \
+  @supabase/supabase-js \
+  lexical \
+  @lexical/html \
+  @lexical/react \
+  @lexical/rich-text \
+  @lexical/history \
+  @lexical/list \
+  @lexical/link
 npm install --prefix server
-npm install jose --prefix server
+npm install jose nodemailer --prefix server
 sudo npx playwright install-deps
 npx playwright install
 

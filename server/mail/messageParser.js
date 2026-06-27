@@ -1,4 +1,13 @@
+const { buildSnippet } = require('./textPreview')
+const { decodeHeaderString } = require('./mimeHeaderDecode')
+
 // Gmail users.messages.get(format=full) 응답을 정규화한다. (순수 함수, DB/네트워크 의존 없음)
+
+function normalizeInternetMessageId(value) {
+  const text = String(value || '').trim()
+  if (!text) return null
+  return text.replace(/^<+|>+$/g, '').trim().toLowerCase() || null
+}
 
 function decodeBase64Url(data) {
   if (!data) return Buffer.alloc(0)
@@ -83,19 +92,20 @@ function parseGmailMessage(message) {
   const acc = { bodyText: null, bodyHtml: null, attachments: [] }
   walkParts(payload, acc)
 
-  const from = parseAddressList(getHeader(headers, 'From'))[0] || { name: '', email: '' }
+  const from = parseAddressList(decodeHeaderString(getHeader(headers, 'From')))[0] || { name: '', email: '' }
 
   return {
     providerMessageId: message.id,
+    internetMessageId: normalizeInternetMessageId(getHeader(headers, 'Message-ID')),
     threadId: message.threadId || null,
     labelIds,
-    subject: getHeader(headers, 'Subject') || '',
+    subject: decodeHeaderString(getHeader(headers, 'Subject')) || '',
     fromEmail: from.email || null,
     fromName: from.name || null,
-    to: parseAddressList(getHeader(headers, 'To')),
-    cc: parseAddressList(getHeader(headers, 'Cc')),
-    bcc: parseAddressList(getHeader(headers, 'Bcc')),
-    snippet: message.snippet || '',
+    to: parseAddressList(decodeHeaderString(getHeader(headers, 'To'))),
+    cc: parseAddressList(decodeHeaderString(getHeader(headers, 'Cc'))),
+    bcc: parseAddressList(decodeHeaderString(getHeader(headers, 'Bcc'))),
+    snippet: buildSnippet([message.snippet, acc.bodyText, acc.bodyHtml]),
     receivedAt: message.internalDate ? new Date(Number(message.internalDate)) : null,
     sentAt: parseDate(getHeader(headers, 'Date')),
     isRead: !labelIds.includes('UNREAD'),
@@ -112,4 +122,5 @@ module.exports = {
   parseGmailMessage,
   parseAddressList,
   decodeBase64Url,
+  normalizeInternetMessageId,
 }

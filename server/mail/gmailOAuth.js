@@ -109,6 +109,11 @@ async function gmailGetAttachment(accessToken, messageId, attachmentId) {
   return fetchJson(url, { headers: authHeader(accessToken) })
 }
 
+// 라벨 목록 조회. 반환: { labels: [{ id, name, type('system'|'user'), ... }] }
+async function gmailListLabels(accessToken) {
+  return fetchJson(`${GMAIL_API_BASE}/labels`, { headers: authHeader(accessToken) })
+}
+
 async function getGoogleUserInfo(accessToken) {
   return fetchJson('https://www.googleapis.com/oauth2/v2/userinfo', {
     headers: { Authorization: `Bearer ${accessToken}` },
@@ -131,4 +136,5 @@ module.exports = {
   gmailListMessages,
   gmailGetMessage,
   gmailGetAttachment,
+  gmailListLabels,
 }

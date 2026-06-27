@@ -35,6 +35,13 @@ const IMAGE_SEARCH_CONTENT_TYPES = new Set([
 ])
 const IMAGE_SEARCH_FILE_EXT_RE = /\.(jpe?g|png|webp|gif|bmp|tiff?|heic|heif)$/i
 
+function canMutatePostRow(user = {}, row = {}) {
+  const role = String(user?.role || '')
+  const isPrivilegedRole = ['site_admin', 'team_admin', 'channel_admin'].includes(role)
+  const isAuthor = String(row?.author_id || '') === String(user?.id || '')
+  return isPrivilegedRole || isAuthor
+}
+
 function toAttachmentIdArray(raw) {
   if (!Array.isArray(raw)) return []
   return raw
@@ -2334,7 +2341,9 @@ router.put('/:id', requireAuth, async (req, res, next) => {
     if (!isConnected()) return res.status(503).json({ error: 'Cassandra 연결이 필요합니다.' })
     const row = await findPostLocator(id)
     if (!row) return res.status(404).json({ error: '게시글을 찾을 수 없습니다.' })
-    if (String(row.author_id) !== String(req.user.id)) return res.status(403).json({ error: '권한이 없습니다.' })
+    const allowedChannel = await canAccessChannel(db, req.user, row.channel_id)
+    if (!allowedChannel) return res.status(403).json({ error: ACCESS_DENIED_MESSAGE })
+    if (!canMutatePostRow(req.user, row)) return res.status(403).json({ error: '권한이 없습니다.' })
     const attachmentIds = uniqAttachmentIds(
       (Array.isArray(attachments) ? attachments : [])
         .map((item) => (typeof item === 'object' ? item.id : item)),

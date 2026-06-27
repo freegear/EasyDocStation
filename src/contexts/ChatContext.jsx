@@ -4,15 +4,27 @@ import { useAuth } from './AuthContext'
 import { useToast } from './ToastContext'
 
 const ChatContext = createContext(null)
+const EMPTY_SELECTED_TEAM = { id: null, channels: [], directMessages: [], admin_ids: [] }
 
 export function ChatProvider({ children }) {
   const { currentUser, loading: authLoading } = useAuth()
   const { showToast } = useToast()
   const [teams, setTeams] = useState([])
-  const [selectedTeam, setSelectedTeam] = useState({ id: null, channels: [], directMessages: [], admin_ids: [] })
+  const [selectedTeam, setSelectedTeam] = useState(EMPTY_SELECTED_TEAM)
   const [selectedChannel, setSelectedChannel] = useState(null)
   const [posts, setPosts] = useState({})
+  const [pendingOpenPostId, setPendingOpenPostId] = useState(null)
+  const [pendingOpenCommentId, setPendingOpenCommentId] = useState(null)
+  const [pendingOpenAttachmentId, setPendingOpenAttachmentId] = useState(null)
+  const [agenticTarget, setAgenticTarget] = useState(null)
+  const [activePostSelection, setActivePostSelection] = useState({ channelId: null, postId: null })
+  const [isSearchMode, setIsSearchMode] = useState(false)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [searchResults, setSearchResults] = useState([])
+  const [isSearching, setIsSearching] = useState(false)
   const selectedChannelRef = useRef(selectedChannel)
+  const lastUserIdRef = useRef(null)
+  const accessRecoveryRef = useRef(false)
 
   useEffect(() => {
     selectedChannelRef.current = selectedChannel
@@ -20,14 +32,20 @@ export function ChatProvider({ children }) {
 
   useEffect(() => {
     if (authLoading) return
-    if (currentUser?.id) {
-      refreshTeams()
+    const userId = currentUser?.id || null
+    if (userId) {
+      const userChanged = lastUserIdRef.current !== userId
+      lastUserIdRef.current = userId
+      if (userChanged) {
+        setTeams([])
+        clearTransientNavigationState()
+      }
+      refreshTeams({ forceDefault: userChanged })
       return
     }
+    lastUserIdRef.current = null
     setTeams([])
-    setSelectedTeam({ id: null, channels: [], directMessages: [], admin_ids: [] })
-    setPosts({})
-    clearSelectedChannel()
+    clearTransientNavigationState()
   }, [authLoading, currentUser?.id])
 
   // 현재 채널 게시글 목록 주기 갱신 (학습 상태 변화 반영)
@@ -93,6 +111,53 @@ export function ChatProvider({ children }) {
     setSelectedChannel(null)
   }
 
+  function clearTransientNavigationState({ clearPosts = true } = {}) {
+    clearSelectedChannel()
+    setSelectedTeam(EMPTY_SELECTED_TEAM)
+    if (clearPosts) setPosts({})
+    setPendingOpenPostId(null)
+    setPendingOpenCommentId(null)
+    setPendingOpenAttachmentId(null)
+    setAgenticTarget(null)
+    setActivePostSelection({ channelId: null, postId: null })
+    setIsSearchMode(false)
+    setSearchTerm('')
+    setSearchResults([])
+    setIsSearching(false)
+  }
+
+  function findDefaultTeamChannel(teamsData = []) {
+    for (const team of teamsData) {
+      const channels = Array.isArray(team.channels) ? team.channels : []
+      const channel = channels.find(item => !item.is_archived) || channels[0]
+      if (channel) return { team, channel }
+    }
+    return null
+  }
+
+  function findTeamChannelById(channelId, teamsData = teams) {
+    if (!channelId) return null
+    for (const team of teamsData || []) {
+      const channel = (team.channels || []).find(item => String(item.id) === String(channelId))
+      if (channel) return { team, channel }
+    }
+    return null
+  }
+
+  async function selectDefaultChannel(teamsData = [], options = {}) {
+    const fallback = findDefaultTeamChannel(teamsData)
+    if (!fallback) {
+      setSelectedTeam(teamsData[0] || EMPTY_SELECTED_TEAM)
+      clearSelectedChannel()
+      return false
+    }
+    setSelectedTeam(fallback.team)
+    return selectChannel(fallback.channel, {
+      markRead: options.markRead ?? false,
+      suppressAccessDenied: options.suppressAccessDenied ?? true,
+    })
+  }
+
   function mergeChannelPosts(channelId, nextPosts = [], { preserveUnread = false } = {}) {
     setPosts(prev => {
       const previousById = new Map((prev[channelId] || []).map(post => [String(post.id), post]))
@@ -113,7 +178,8 @@ export function ChatProvider({ children }) {
     })
   }
 
-  async function refreshTeams() {
+  async function refreshTeams(options = {}) {
+    const { forceDefault = false } = options
     try {
       const [data, unreadCounts] = await Promise.all([
         apiFetch('/teams'),
@@ -141,7 +207,7 @@ export function ChatProvider({ children }) {
         }))
         setTeams(enriched)
 
-        if (selectedTeam?.id) {
+        if (!forceDefault && selectedTeam?.id) {
           const updated = enriched.find(t => t.id === selectedTeam.id)
           if (updated) {
             setSelectedTeam(updated)
@@ -154,29 +220,21 @@ export function ChatProvider({ children }) {
             }
           } else {
             // 기존 선택 팀이 사라진 경우 첫 번째 팀으로 폴백
-            setSelectedTeam(enriched[0])
-            if (enriched[0].channels?.length > 0) {
-              selectChannel(enriched[0].channels[0], { markRead: false })
-            } else {
-              clearSelectedChannel()
-            }
+            await selectDefaultChannel(enriched, { markRead: false })
           }
         } else {
           // 최초 로드 — 첫 번째 팀/채널 자동 선택
-          setSelectedTeam(enriched[0])
-          if (enriched[0].channels?.length > 0) {
-            selectChannel(enriched[0].channels[0], { markRead: false })
-          } else {
-            clearSelectedChannel()
-          }
+          await selectDefaultChannel(enriched, { markRead: false })
         }
+        return enriched
       } else {
         setTeams([])
-        setSelectedTeam({ id: null, channels: [], directMessages: [], admin_ids: [] })
-        clearSelectedChannel()
+        clearTransientNavigationState()
+        return []
       }
     } catch (err) {
       console.error('Failed to fetch teams:', err)
+      return []
     }
   }
 
@@ -191,7 +249,8 @@ export function ChatProvider({ children }) {
   }
 
   async function selectChannel(channel, options = {}) {
-    const { markRead = true } = options
+    const { markRead = true, suppressAccessDenied = false } = options
+    if (!channel?.id) return false
     setSelectedChannel(channel)
     closeSearch()
 
@@ -210,12 +269,14 @@ export function ChatProvider({ children }) {
           channels: prev.channels.map(c => c.id === channel.id ? { ...c, unread: 0 } : c),
         }))
       }
+      return true
     } catch (err) {
-      if (err?.status === 403) {
+      if (err?.status === 403 && !suppressAccessDenied) {
         window.dispatchEvent(new CustomEvent('channel-access-denied'))
       }
       console.error('Failed to fetch posts:', err)
       setPosts(prev => ({ ...prev, [channel.id]: [] }))
+      return false
     }
   }
 
@@ -237,9 +298,30 @@ export function ChatProvider({ children }) {
     }))
   }
 
+  async function handleSaveAccessDenied() {
+    const recovered = await recoverFromAccessDenied({ refreshTeamsFirst: true })
+    showToast?.({
+      message: recovered
+        ? '권한이 없는 채널이라 접근 가능한 채널로 이동했습니다. 새 채널에서 다시 저장해주세요.'
+        : '현재 계정이 접근할 수 있는 채널이 없습니다.',
+      duration: 5000,
+    })
+    return recovered
+  }
+
   async function addPost(channelId, { content, attachmentIds = [], security_level }, options = {}) {
     const { suppressAlert = false } = options
     try {
+      const target = findTeamChannelById(channelId)
+      if (!target) {
+        const recovered = await handleSaveAccessDenied()
+        const err = new Error(recovered
+          ? '현재 계정이 접근할 수 있는 채널로 이동했습니다. 새 채널에서 다시 저장해주세요.'
+          : '현재 계정이 접근할 수 없는 채널입니다.')
+        err.status = 403
+        err.accessHandled = true
+        throw err
+      }
       await apiFetch('/posts', {
         method: 'POST',
         body: JSON.stringify({ channelId, content, attachmentIds, security_level }),
@@ -247,6 +329,10 @@ export function ChatProvider({ children }) {
       const data = await apiFetch(`/posts?channelId=${channelId}`)
       setPosts(prev => ({ ...prev, [channelId]: data }))
     } catch (err) {
+      if (err?.status === 403) {
+        if (!err.accessHandled) await handleSaveAccessDenied()
+        throw err
+      }
       if (!suppressAlert) {
         alert('게시글 저장에 실패했습니다: ' + err.message)
       }
@@ -257,6 +343,13 @@ export function ChatProvider({ children }) {
   // ─── 댓글 추가 — DB에 저장 후 최신 목록 재조회 ──────────────
   async function addComment(channelId, postId, text, user, attachmentIds = [], security_level) {
     try {
+      if (!findTeamChannelById(channelId)) {
+        await handleSaveAccessDenied()
+        const err = new Error('현재 계정이 접근할 수 없는 채널입니다.')
+        err.status = 403
+        err.accessHandled = true
+        throw err
+      }
       await apiFetch(`/posts/${postId}/comments`, {
         method: 'POST',
         body: JSON.stringify({ channelId, content: text, attachmentIds, security_level }),
@@ -264,6 +357,9 @@ export function ChatProvider({ children }) {
       const data = await apiFetch(`/posts?channelId=${channelId}`)
       setPosts(prev => ({ ...prev, [channelId]: data }))
     } catch (err) {
+      if (err?.status === 403 && !err.accessHandled) {
+        await handleSaveAccessDenied()
+      }
       throw err
     }
   }
@@ -319,6 +415,13 @@ export function ChatProvider({ children }) {
 
   async function updatePost(channelId, postId, { content, ragContent, attachments, security_level, waitForTraining = false }) {
     try {
+      if (!findTeamChannelById(channelId)) {
+        await handleSaveAccessDenied()
+        const err = new Error('현재 계정이 접근할 수 없는 채널입니다.')
+        err.status = 403
+        err.accessHandled = true
+        throw err
+      }
       await apiFetch(`/posts/${postId}`, {
         method: 'PUT',
         body: JSON.stringify({ content, ragContent, security_level, attachments, waitForTraining }),
@@ -331,6 +434,9 @@ export function ChatProvider({ children }) {
       }))
       return true
     } catch (err) {
+      if (err?.status === 403 && !err.accessHandled) {
+        await handleSaveAccessDenied()
+      }
       console.error('update post error:', err)
       throw err
     }
@@ -473,6 +579,13 @@ export function ChatProvider({ children }) {
       .map(item => (typeof item === 'object' ? item.id : item))
       .filter(Boolean)
     try {
+      if (!findTeamChannelById(channelId)) {
+        await handleSaveAccessDenied()
+        const err = new Error('현재 계정이 접근할 수 없는 채널입니다.')
+        err.status = 403
+        err.accessHandled = true
+        throw err
+      }
       await apiFetch(`/posts/${postId}/comments/${commentId}`, {
         method: 'PUT',
         body: JSON.stringify({ content: text, attachments: attachmentIds, security_level }),
@@ -480,25 +593,23 @@ export function ChatProvider({ children }) {
       const data = await apiFetch(`/posts?channelId=${channelId}`)
       setPosts(prev => ({ ...prev, [channelId]: data }))
     } catch (err) {
+      if (err?.status === 403 && !err.accessHandled) {
+        await handleSaveAccessDenied()
+      }
       console.error('update comment error:', err)
       throw err
     }
   }
 
   // ─── RAG 참고 문서 클릭 시 해당 채널+게시글로 이동 ──────────
-  const [pendingOpenPostId, setPendingOpenPostId] = useState(null)
-  const [pendingOpenCommentId, setPendingOpenCommentId] = useState(null)
-  const [pendingOpenAttachmentId, setPendingOpenAttachmentId] = useState(null)
-  const [agenticTarget, setAgenticTarget] = useState(null)
-  const [activePostSelection, setActivePostSelection] = useState({ channelId: null, postId: null })
-
   async function navigateToPost(channelId, postId, meta = {}) {
     // teams에서 channelId에 해당하는 채널 객체를 찾아 이동
     for (const team of teams) {
       const ch = (team.channels || []).find(c => String(c.id) === String(channelId))
       if (ch) {
         setSelectedTeam(team)
-        await selectChannel(ch)
+        const opened = await selectChannel(ch)
+        if (!opened) return false
         if (postId) setPendingOpenPostId(postId)
         if (meta.commentId) setPendingOpenCommentId(meta.commentId)
         if (meta.attachmentId) setPendingOpenAttachmentId(meta.attachmentId)
@@ -506,6 +617,37 @@ export function ChatProvider({ children }) {
       }
     }
     return false
+  }
+
+  async function recoverFromAccessDenied(options = {}) {
+    const { refreshTeamsFirst = false } = options
+    if (accessRecoveryRef.current) return false
+    accessRecoveryRef.current = true
+    try {
+      setPendingOpenPostId(null)
+      setPendingOpenCommentId(null)
+      setPendingOpenAttachmentId(null)
+      setAgenticTarget(null)
+      setActivePostSelection({ channelId: null, postId: null })
+      setIsSearchMode(false)
+      setSearchResults([])
+
+      let sourceTeams = teams
+      if (refreshTeamsFirst || !Array.isArray(sourceTeams) || sourceTeams.length === 0) {
+        sourceTeams = await refreshTeams({ forceDefault: true })
+        return Array.isArray(sourceTeams) && sourceTeams.length > 0
+      }
+
+      const fallback = findDefaultTeamChannel(sourceTeams)
+      if (!fallback?.channel?.id) return false
+      if (String(selectedChannelRef.current?.id || '') === String(fallback.channel.id)) {
+        return false
+      }
+      setSelectedTeam(fallback.team)
+      return await selectChannel(fallback.channel, { markRead: false, suppressAccessDenied: true })
+    } finally {
+      accessRecoveryRef.current = false
+    }
   }
 
   function clearPendingPost() {
@@ -549,11 +691,6 @@ export function ChatProvider({ children }) {
         : { channelId: null, postId: null }
     ))
   }, [])
-
-  const [isSearchMode, setIsSearchMode] = useState(false)
-  const [searchTerm, setSearchTerm] = useState('')
-  const [searchResults, setSearchResults] = useState([])
-  const [isSearching, setIsSearching] = useState(false)
 
   async function performSearch(query) {
     if (!query.trim()) return
@@ -632,6 +769,7 @@ export function ChatProvider({ children }) {
       pendingOpenCommentId,
       pendingOpenAttachmentId,
       navigateToPost,
+      recoverFromAccessDenied,
       clearPendingPost,
       agenticTarget,
       openInAgenticAI,

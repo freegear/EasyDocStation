@@ -110,39 +110,31 @@ html, body, #root {
 }
 
 .eds-markdown ol {
-  list-style: none !important;
-  counter-reset: eds-ordered-list;
-  padding-left: 0 !important;
+  list-style: decimal;
+  padding-left: 1.5rem;
 }
 
 .eds-markdown ol > li {
-  counter-increment: eds-ordered-list;
-  display: grid;
-  grid-template-columns: 2.25rem minmax(0, 1fr);
-  column-gap: 0.35rem;
-  align-items: start;
-}
-
-.eds-markdown ol > li::before {
-  content: counter(eds-ordered-list) ".";
-  grid-column: 1;
-  grid-row: 1;
-  color: inherit;
-  font-weight: inherit;
-  text-align: right;
-  white-space: nowrap;
-}
-
-.eds-markdown ol > li > * {
-  grid-column: 2;
   min-width: 0;
 }
 
 .eds-markdown ol > li > p:first-child {
+  display: inline;
   margin-top: 0;
 }
 
 .eds-markdown ol > li > p:first-child + p {
+  display: block;
+  margin-top: 0.375rem;
+}
+
+.eds-markdown ul > li > p:first-child {
+  display: inline;
+  margin-top: 0;
+}
+
+.eds-markdown ul > li > p:first-child + p {
+  display: block;
   margin-top: 0.375rem;
 }
 

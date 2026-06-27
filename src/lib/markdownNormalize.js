@@ -17,12 +17,16 @@ export function normalizeBrokenOrderedListItems(markdown = '') {
 
       const nextLine = lines[next] || ''
       const itemMatch = line.match(/^(\s*)(\d+)\.\s*$/)
-      const bodyMatch = nextLine.match(/^(\s{2,}|\t)(\S.*)$/)
-      const body = bodyMatch?.[2] || ''
+      const bodyMatch = nextLine.match(/^(\s*)(\S.*)$/)
+      const markerIndent = itemMatch?.[1] || ''
+      const bodyIndent = bodyMatch?.[1] || ''
+      const body = bodyMatch && bodyIndent.length >= markerIndent.length
+        ? nextLine.slice(markerIndent.length).trimStart()
+        : ''
       const looksLikeNestedBlock = /^([-*+]|\d+\.|```|~~~|#{1,6}\s|\||>|<table\b|<pre\b)/i.test(body)
 
       if (itemMatch && bodyMatch && !looksLikeNestedBlock) {
-        out.push(`${itemMatch[1]}${itemMatch[2]}. ${body}`)
+        out.push(`${markerIndent}${itemMatch[2]}. ${body}`)
         i = next
         continue
       }

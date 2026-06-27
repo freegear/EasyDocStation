@@ -25,6 +25,13 @@ function SendIcon() {
     </svg>
   )
 }
+function HeartIcon({ filled = false }) {
+  return (
+    <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill={filled ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 000-7.78z" />
+    </svg>
+  )
+}
 function PlusUserIcon() {
   return (
     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -155,6 +162,8 @@ function sameMessages(prev, next) {
     if (a.is_deleted !== b.is_deleted) return false
     if (a.deleted_at !== b.deleted_at) return false
     if (a.updated_at !== b.updated_at) return false
+    if (Number(a.likeCount || 0) !== Number(b.likeCount || 0)) return false
+    if (Boolean(a.likedByMe) !== Boolean(b.likedByMe)) return false
     if (!sameReadBy(a.read_by, b.read_by)) return false
   }
   return true
@@ -479,6 +488,7 @@ function NewConversationModal({ teamId, onCreated, onCancel }) {
 function MessageBubble({
   msg,
   isMine,
+  onToggleLike,
   onEdit,
   onDelete,
   totalParticipants,
@@ -506,6 +516,8 @@ function MessageBubble({
   const readAccountsText = readByOthers.length > 0 && readAccountNames.length > 0
     ? readAccountsLabel(readAccountNames.join(', '))
     : null
+  const likeCount = Number(msg.likeCount || msg.like_count || 0)
+  const likedByMe = Boolean(msg.likedByMe || msg.liked_by_me)
 
   useEffect(() => {
     const createdAtMs = new Date(msg.created_at).getTime()
@@ -667,6 +679,22 @@ function MessageBubble({
               </>
             )}
           </div>
+          {!msg.is_deleted && (
+            <button
+              type="button"
+              onClick={() => onToggleLike?.(msg.id)}
+              className={`mb-0.5 inline-flex h-7 min-w-7 items-center justify-center gap-1 rounded-full border px-2 text-xs font-bold shadow-sm transition-colors ${
+                likedByMe
+                  ? 'border-red-200 bg-red-50 text-red-500 hover:bg-red-100'
+                  : 'border-gray-200 bg-white text-gray-400 hover:border-red-200 hover:bg-red-50 hover:text-red-500'
+              }`}
+              title="좋아요"
+              aria-pressed={likedByMe}
+            >
+              <HeartIcon filled={likedByMe} />
+              {likeCount > 0 && <span className="tabular-nums">{likeCount}</span>}
+            </button>
+          )}
         </div>
 
         {isMine && !editMode && !msg.is_deleted && (
@@ -887,6 +915,29 @@ export default function DirectMessageView({ conversation, onClose, onConversatio
     }
   }
 
+  async function handleToggleLike(msgId) {
+    const target = messages.find(m => m.id === msgId)
+    if (!target || target.is_deleted) return
+    const nextLiked = target.likedByMe !== true
+    const nextCount = Math.max(0, Number(target.likeCount || 0) + (nextLiked ? 1 : -1))
+    setMessages(prev => prev.map(m => (
+      m.id === msgId ? { ...m, likedByMe: nextLiked, likeCount: nextCount } : m
+    )))
+    try {
+      const result = await apiFetch(`/dm/conversations/${conversation.id}/messages/${msgId}/like`, {
+        method: 'POST',
+      })
+      setMessages(prev => prev.map(m => (
+        m.id === msgId
+          ? { ...m, likedByMe: Boolean(result.liked), likeCount: Number(result.likeCount || 0) }
+          : m
+      )))
+    } catch (e) {
+      setMessages(prev => prev.map(m => (m.id === msgId ? target : m)))
+      alert('좋아요 처리에 실패했습니다: ' + e.message)
+    }
+  }
+
   async function handleRename(newName) {
     try {
       const data = await apiFetch(`/dm/conversations/${conversation.id}`, {
@@ -1036,7 +1087,9 @@ export default function DirectMessageView({ conversation, onClose, onConversatio
               {displayParticipants.map((p, i) => {
                 const isCreator = p.id === conversation?.created_by
                 const isMe = p.id === currentUser?.id
+                const isLoggedIn = isMe || Boolean(p.is_logged_in)
                 const canRemove = isOwner && !isMe
+                const onlineNameClass = 'rounded-md bg-emerald-100 px-1.5 py-0.5 text-emerald-700 ring-1 ring-emerald-200'
                 return (
                   <span key={p.id} className="flex items-center gap-0.5">
                     {/* 방장 왕관 표시 */}
@@ -1046,12 +1099,18 @@ export default function DirectMessageView({ conversation, onClose, onConversatio
                       <button
                         onClick={() => setRemovingParticipant(p)}
                         title="클릭하여 삭제"
-                        className="text-xs text-gray-500 font-medium hover:text-red-500 hover:line-through transition-colors"
+                        className={`text-xs font-medium transition-colors hover:text-red-500 hover:line-through ${
+                          isLoggedIn ? onlineNameClass : 'text-gray-500'
+                        }`}
                       >
                         {p.display_name || p.username}
                       </button>
                     ) : (
-                      <span className="text-xs text-gray-500 font-medium">
+                      <span className={`text-xs font-medium ${
+                        isLoggedIn
+                          ? onlineNameClass
+                          : 'text-gray-500'
+                      }`}>
                         {p.display_name || p.username}
                         {isMe ? ' (나)' : ''}
                       </span>
@@ -1115,6 +1174,7 @@ export default function DirectMessageView({ conversation, onClose, onConversatio
               key={msg.id}
               msg={msg}
               isMine={msg.sender_id === currentUser?.id}
+              onToggleLike={handleToggleLike}
               onEdit={handleEdit}
               onDelete={handleDelete}
               totalParticipants={participantIds.length}

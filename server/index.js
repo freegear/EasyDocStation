@@ -60,6 +60,7 @@ const snsRouter = require('./routes/sns')
 const mailRouter = require('./routes/mail')
 const { initCassandra } = require('./cassandra')
 const { initRag } = require('./rag')
+const { startMailSyncScheduler } = require('./mail/scheduler')
 
 const app = express()
 const PORT = process.env.PORT || 3001
@@ -100,6 +101,9 @@ initCassandra()
 
 // Initialize RAG scheduler (config.json 의 rag 설정 반영)
 initRag()
+
+// Initialize Mail sync scheduler (10분 주기)
+startMailSyncScheduler()
 
 app.use(cors({
   origin: process.env.CLIENT_ORIGIN || 'http://localhost:5173',
