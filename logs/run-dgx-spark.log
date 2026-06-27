@@ -250,3 +250,4 @@ Terminated
 [20260628-00:27:41][BE] [RAG Server] [RAG Server] 임베딩 모델 로드 완료
 [20260628-00:27:41][BE] [RAG Server] [RAG Server] 포트 5001 에서 시작됨
 [20260628-00:28:01][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+[20260628-00:29:27][BE] [imapSync] jylim3@naver.com 프로모션: 누락분이 많아 이번엔 50건만 가져왔습니다(나머지는 다음 새로고침에서).

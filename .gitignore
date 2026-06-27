@@ -11,3 +11,5 @@ node_modules/
 *.mp4
 Database/ObjectFile/
 .venv/
+config.json.org
+
