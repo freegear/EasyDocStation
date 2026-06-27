@@ -57,6 +57,7 @@ const expenseRouter = require('./routes/expense')
 const tripRouter = require('./routes/trip')
 const dmRouter = require('./routes/dm')
 const snsRouter = require('./routes/sns')
+const mailRouter = require('./routes/mail')
 const { initCassandra } = require('./cassandra')
 const { initRag } = require('./rag')
 
@@ -122,6 +123,7 @@ app.use('/api/expense', expenseRouter)
 app.use('/api/trip', tripRouter)
 app.use('/api/dm', dmRouter)
 app.use('/api/sns', snsRouter)
+app.use('/api/mail', mailRouter)
 
 app.get('/api/health', (_req, res) => res.json({ ok: true }))
 

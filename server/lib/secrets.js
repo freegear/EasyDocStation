@@ -3,8 +3,20 @@ const crypto = require('crypto')
 const ENC_PREFIX = 'enc:v1'
 const MASK_VALUE = '********'
 
+function readConfigEncryptionKey() {
+  try {
+    const fs = require('fs')
+    const path = require('path')
+    const cfg = JSON.parse(fs.readFileSync(path.resolve(__dirname, '../../config.json'), 'utf8'))
+    return String(cfg.DATA_ENCRYPTION_KEY || '').trim()
+  } catch {
+    return ''
+  }
+}
+
 function getEncryptionKey() {
-  const raw = String(process.env.DATA_ENCRYPTION_KEY || '').trim()
+  // 우선순위: 환경변수 → config.json
+  const raw = String(process.env.DATA_ENCRYPTION_KEY || '').trim() || readConfigEncryptionKey()
   if (!raw) return null
 
   if (/^[0-9a-fA-F]{64}$/.test(raw)) {

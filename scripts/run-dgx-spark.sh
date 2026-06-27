@@ -135,6 +135,26 @@ wait_port_free() {
   return 1
 }
 
+print_port_holders() {
+  local port="$1"
+  local pids=""
+  if command -v lsof >/dev/null 2>&1; then
+    pids="$(lsof -ti tcp:"$port" 2>/dev/null || true)"
+  elif command -v fuser >/dev/null 2>&1; then
+    pids="$(fuser -n tcp "$port" 2>/dev/null || true)"
+  fi
+  pids="$(echo "$pids" | tr ' ' '\n' | awk 'NF' | sort -u)"
+  if [[ -z "${pids:-}" ]]; then
+    log "포트 ${port} 점유 프로세스 없음"
+    return 0
+  fi
+  log "포트 ${port} 점유 프로세스 상세:"
+  while IFS= read -r pid; do
+    [[ -z "${pid:-}" ]] && continue
+    ps -p "$pid" -o pid=,user=,comm=,args= 2>/dev/null | sed "s/^/[$(date '+%Y%m%d-%H:%M:%S')][DGX-SPARK]   /" || true
+  done <<< "$pids"
+}
+
 stop_all_tasks() {
   if [[ -f "$PID_FILE" ]]; then
     pid="$(cat "$PID_FILE" 2>/dev/null || true)"
@@ -252,34 +272,14 @@ if [[ ! -f "$ROOT_DIR/server/.env" ]]; then
   exit 1
 fi
 
-print_port_holders() {
-  local port="$1"
-  local pids=""
-  if command -v lsof >/dev/null 2>&1; then
-    pids="$(lsof -ti tcp:"$port" 2>/dev/null || true)"
-  elif command -v fuser >/dev/null 2>&1; then
-    pids="$(fuser -n tcp "$port" 2>/dev/null || true)"
-  fi
-  pids="$(echo "$pids" | tr ' ' '\n' | awk 'NF' | sort -u)"
-  if [[ -z "${pids:-}" ]]; then
-    log "포트 ${port} 점유 프로세스 없음"
-    return 0
-  fi
-  log "포트 ${port} 점유 프로세스 상세:"
-  while IFS= read -r pid; do
-    [[ -z "${pid:-}" ]] && continue
-    ps -p "$pid" -o pid=,user=,comm=,args= 2>/dev/null | sed "s/^/[$(date '+%Y%m%d-%H:%M:%S')][DGX-SPARK]   /" || true
-  done <<< "$pids"
-}
-
 if [[ -f "$PID_FILE" ]]; then
   old_pid="$(cat "$PID_FILE" 2>/dev/null || true)"
   if [[ -n "${old_pid:-}" ]] && kill -0 "$old_pid" 2>/dev/null; then
-    log "이미 실행 중입니다. (PID: $old_pid)"
-    log "로그: $LOG_FILE"
-    exit 0
+    log "기존 실행을 중지한 뒤 재실행합니다. (PID: $old_pid)"
+    stop_all_tasks
+  else
+    rm -f "$PID_FILE"
   fi
-  rm -f "$PID_FILE"
 fi
 
 # start는 항상 전체 태스크를 먼저 정리해서 깨끗한 단일 세션으로 시작한다.

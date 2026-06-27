@@ -3,6 +3,7 @@ const fs = require('fs')
 const path = require('path')
 const bcrypt = require('bcryptjs')
 const { getPostgresPoolOptions } = require('./runtimeDbConfig')
+const { ensureMailSchema } = require('./mail/schema')
 
 const pool = new Pool(getPostgresPoolOptions())
 
@@ -363,6 +364,7 @@ async function initDb() {
         ALTER TABLE dm_messages ADD COLUMN IF NOT EXISTS deleted_by INTEGER REFERENCES users(id) ON DELETE SET NULL;
       `)
       await ensureDefaultUsers(client)
+      await ensureMailSchema(client)
       console.log('✅ Database migration complete.')
     } finally {
       client.release()

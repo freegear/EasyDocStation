@@ -6,6 +6,7 @@ import ChatArea from './ChatArea'
 import CalendarView from './CalendarView'
 import DirectMessageView, { NewConversationModal } from './DirectMessageView'
 import GroqPanel from './GroqPanel'
+import MailPage from '../features/mail/MailPage'
 
 // ─── Bottom tab bar icons ─────────────────────────────────────
 function HashIcon({ className = 'w-5 h-5' }) {
@@ -234,6 +235,10 @@ export default function MobileLayout({ onOpenServicePage }) {
           <CalendarView onClose={() => setTab('channels')} />
         )}
 
+        {tab === 'mail' && (
+          <MailPage onBackToMain={() => setTab('channels')} />
+        )}
+
         {tab === 'dm' && (
           activeDMConv ? (
             <DirectMessageView
@@ -267,6 +272,7 @@ export default function MobileLayout({ onOpenServicePage }) {
               onOpenDM={(conv) => { setActiveDMConv(conv); setTab('dm') }}
               onNewDM={() => { setShowNewDM(true); setTab('dm') }}
               onOpenServicePage={onOpenServicePage}
+              onOpenMail={() => setTab('mail')}
               activeDMConvId={activeDMConv?.id}
               onCloseMobile={() => setChannelView('channel')}
             />

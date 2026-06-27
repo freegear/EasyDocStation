@@ -6,3 +6,7 @@
 > easydocstation@1.0.0 dev:backend
 > PYTHON_BIN=${PYTHON_BIN:-$PWD/.venv/bin/python3} npm run dev --prefix server
 
+
+> easydocstation@1.0.0 dev:backend
+> PYTHON_BIN=${PYTHON_BIN:-$PWD/.venv/bin/python3} npm run dev --prefix server
+

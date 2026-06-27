@@ -6,12 +6,15 @@ export default defineConfig({
   plugins: [react()],
   server: {
     host: '0.0.0.0',
+    port: 5173,
+    strictPort: true,
+    allowedHosts: ['www.easystation.co.kr', 'easystation.co.kr', '218.237.25.214'],
     watch: {
-      ignored: [
-        '**/.venv/**',
-        '**/Database/**',
-        '**/server/__pycache__/**',
-      ],
+        ignored: [
+          '**/.venv/**',
+          '**/Database/**',
+          '**/server/__pycache__/**',
+        ],
     },
     proxy: {
       '/api': {

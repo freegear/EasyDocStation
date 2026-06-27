@@ -15,6 +15,7 @@ import CalendarView from './components/CalendarView'
 import DirectMessageView, { NewConversationModal } from './components/DirectMessageView'
 import ConfirmDialog from './components/ConfirmDialog'
 import SelectionGuardPlaywrightFixture from './components/dev/SelectionGuardPlaywrightFixture'
+import MailPage from './features/mail/MailPage'
 
 function FullscreenServicePage({ service, onClose }) {
   const iframeRef = useRef(null)
@@ -83,6 +84,7 @@ function MainLayout() {
   const [siteAdminInitialTab, setSiteAdminInitialTab] = useState('users')
   const [searchSelectedPost, setSearchSelectedPost] = useState(null)
   const [showCalendar, setShowCalendar] = useState(false)
+  const [showMail, setShowMail] = useState(false)
   const [showDM, setShowDM] = useState(false)
   const [activeDMConv, setActiveDMConv] = useState(null)
   const [showNewDM, setShowNewDM] = useState(false)
@@ -160,6 +162,7 @@ function MainLayout() {
     if (deepLinkHandledRef.current === signature) return
 
     setShowCalendar(false)
+    setShowMail(false)
     setShowDM(false)
     setActiveDMConv(null)
 
@@ -249,46 +252,70 @@ function MainLayout() {
           <MobileLayout onOpenServicePage={setFullscreenService} />
         ) : (
           <>
-            {showSidebar && (
-              <Sidebar
-                showCalendar={showCalendar}
-                onToggleCalendar={() => { setShowCalendar(v => !v); setShowDM(false) }}
-                onCloseCalendar={() => setShowCalendar(false)}
-                showDM={showDM}
-                onToggleDM={() => setShowDM(v => !v)}
-                onOpenDM={(conv) => { setActiveDMConv(conv); setShowDM(true); setShowCalendar(false) }}
-                onNewDM={() => setShowNewDM(true)}
-                onOpenServicePage={setFullscreenService}
-                onOpenMail={() => { setSiteAdminInitialTab('mail'); setShowSiteAdmin(true) }}
-                activeDMConvId={activeDMConv?.id}
-                isMobile={false}
-              />
-            )}
-
-            {showCalendar ? (
-              <CalendarView onClose={() => setShowCalendar(false)} />
-            ) : showDM && activeDMConv ? (
-              <DirectMessageView
-                conversation={activeDMConv}
-                onClose={() => { setShowDM(false); setActiveDMConv(null) }}
-                onConversationUpdated={(updated) => setActiveDMConv(updated)}
-              />
-            ) : isSearchMode ? (
-              <SearchResultsArea onSelectResult={handleSearchSelect} />
+            {showMail ? (
+              <>
+                <MailPage onBackToMain={() => setShowMail(false)} />
+                {showAgenticPanel && (
+                  <>
+                    <div
+                      onMouseDown={startGroqResize}
+                      className="group relative w-1 flex-shrink-0 cursor-col-resize z-10"
+                    >
+                      <div className={`absolute inset-y-0 -left-1 -right-1 transition-colors group-hover:bg-indigo-500/30 ${resizingGroq ? 'bg-indigo-500/50' : ''}`} />
+                    </div>
+                    <GroqPanel width={groqWidth} />
+                  </>
+                )}
+              </>
             ) : (
-              <ChatArea autoOpenPostId={searchSelectedPost?.id} />
-            )}
+              <>
+                {showSidebar && (
+                  <Sidebar
+                    showCalendar={showCalendar}
+                    onToggleCalendar={() => { setShowCalendar(v => !v); setShowDM(false); setShowMail(false) }}
+                    onCloseCalendar={() => setShowCalendar(false)}
+                    showDM={showDM}
+                    onToggleDM={() => setShowDM(v => !v)}
+                    onOpenDM={(conv) => { setActiveDMConv(conv); setShowDM(true); setShowCalendar(false); setShowMail(false) }}
+                    onNewDM={() => setShowNewDM(true)}
+                    onOpenServicePage={setFullscreenService}
+                    onOpenMail={() => {
+                      setShowMail(true)
+                      setShowCalendar(false)
+                      setShowDM(false)
+                      setActiveDMConv(null)
+                    }}
+                    activeDMConvId={activeDMConv?.id}
+                    isMobile={false}
+                  />
+                )}
 
-            {/* Resize handle & GroqPanel: 캘린더/DM 모드에서는 CSS로 숨김 (언마운트 X → state 유지) */}
-            <div style={{ display: (showCalendar || showDM || !showAgenticPanel) ? 'none' : 'contents' }}>
-              <div
-                onMouseDown={startGroqResize}
-                className="group relative w-1 flex-shrink-0 cursor-col-resize z-10"
-              >
-                <div className={`absolute inset-y-0 -left-1 -right-1 transition-colors group-hover:bg-indigo-500/30 ${resizingGroq ? 'bg-indigo-500/50' : ''}`} />
-              </div>
-              <GroqPanel width={groqWidth} />
-            </div>
+                {showCalendar ? (
+                  <CalendarView onClose={() => setShowCalendar(false)} />
+                ) : showDM && activeDMConv ? (
+                  <DirectMessageView
+                    conversation={activeDMConv}
+                    onClose={() => { setShowDM(false); setActiveDMConv(null) }}
+                    onConversationUpdated={(updated) => setActiveDMConv(updated)}
+                  />
+                ) : isSearchMode ? (
+                  <SearchResultsArea onSelectResult={handleSearchSelect} />
+                ) : (
+                  <ChatArea autoOpenPostId={searchSelectedPost?.id} />
+                )}
+
+                {/* Resize handle & GroqPanel: 캘린더/DM 모드에서는 CSS로 숨김 (언마운트 X → state 유지) */}
+                <div style={{ display: (showCalendar || showDM || !showAgenticPanel) ? 'none' : 'contents' }}>
+                  <div
+                    onMouseDown={startGroqResize}
+                    className="group relative w-1 flex-shrink-0 cursor-col-resize z-10"
+                  >
+                    <div className={`absolute inset-y-0 -left-1 -right-1 transition-colors group-hover:bg-indigo-500/30 ${resizingGroq ? 'bg-indigo-500/50' : ''}`} />
+                  </div>
+                  <GroqPanel width={groqWidth} />
+                </div>
+              </>
+            )}
           </>
         )}
       </div>
@@ -308,7 +335,7 @@ function MainLayout() {
       {showNewDM && (
         <NewConversationModal
           teamId={selectedTeam?.id}
-          onCreated={(conv) => { setShowNewDM(false); setActiveDMConv(conv); setShowDM(true); setShowCalendar(false) }}
+          onCreated={(conv) => { setShowNewDM(false); setActiveDMConv(conv); setShowDM(true); setShowCalendar(false); setShowMail(false) }}
           onCancel={() => setShowNewDM(false)}
         />
       )}
