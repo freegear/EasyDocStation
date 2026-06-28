@@ -124,32 +124,45 @@ class RagHandler(BaseHTTPRequestHandler):
         query        = payload.get("query", "")
         limit        = int(payload.get("limit", 5))
         allowed_channel_ids = normalize_id_list(payload.get("allowed_channel_ids", []))
+        include_status = bool(payload.get("include_status"))
         lancedb_path = cfg.get("lancedb_path", "")
+        table_name = cfg.get("table_name") or cfg.get("rag_table_name") or "my_rag_table"
+
+        def respond_search(results, ok=True, reason="ok"):
+            if include_status:
+                self._respond(200, {
+                    "ok": bool(ok),
+                    "reason": reason,
+                    "table_name": table_name,
+                    "results": results,
+                })
+            else:
+                self._respond(200, results)
 
         if not query.strip() or not lancedb_path or not allowed_channel_ids:
-            self._respond(200, [])
+            respond_search([], True, "invalid_query_or_acl")
             return
 
         if not os.path.exists(lancedb_path):
-            self._respond(200, [])
+            respond_search([], False, "lancedb_missing")
             return
 
         try:
             db = get_db(lancedb_path)
             tables = db.table_names() if hasattr(db, 'table_names') else db.list_tables()
-            if "my_rag_table" not in tables:
-                self._respond(200, [])
+            if table_name not in tables:
+                respond_search([], False, "table_missing")
                 return
 
-            table = db.open_table("my_rag_table")
+            table = db.open_table(table_name)
             if len(table) <= 1:
-                self._respond(200, [])
+                respond_search([], False, "empty_table")
                 return
 
             query_vec = embed_model.encode(query, show_progress_bar=False).tolist()
             search = apply_channel_acl(table.search(query_vec), allowed_channel_ids)
             if search is None:
-                self._respond(200, [])
+                respond_search([], True, "invalid_acl")
                 return
             results = search.limit(limit).to_list()
 
@@ -180,13 +193,41 @@ class RagHandler(BaseHTTPRequestHandler):
                         "amount_vat":       meta.get("amount_vat", 0),
                         "currency":         meta.get("currency", ""),
                         "amount_candidates": meta.get("amount_candidates", ""),
+                        "schema_version":    meta.get("schema_version", 1),
+                        "document_kind":     meta.get("document_kind", ""),
+                        "source_ext":        meta.get("source_ext", ""),
+                        "converted_by":      meta.get("converted_by", ""),
+                        "converted_format":  meta.get("converted_format", ""),
+                        "parser_version":    meta.get("parser_version", ""),
+                        "fallback_used":     meta.get("fallback_used", False),
+                        "fallback_pipeline": meta.get("fallback_pipeline", ""),
+                        "sheet_name":        meta.get("sheet_name", ""),
+                        "row_range":         meta.get("row_range", ""),
+                        "column_headers":    meta.get("column_headers", ""),
+                        "slide_number":      meta.get("slide_number", 0),
+                        "slide_title":       meta.get("slide_title", ""),
+                        "xml_path":          meta.get("xml_path", ""),
+                        "html_title":        meta.get("html_title", ""),
+                        "heading_path":      meta.get("heading_path", ""),
+                        "archive_id":        meta.get("archive_id", ""),
+                        "archive_file_path": meta.get("archive_file_path", ""),
+                        "inner_source_ext":  meta.get("inner_source_ext", ""),
                     }
                 })
-            self._respond(200, output)
+            respond_search(output, True, "ok")
 
         except Exception as e:
             print(f"[RAG Server] 검색 오류: {e}", flush=True)
-            self._respond(500, {"error": str(e)})
+            if include_status:
+                self._respond(200, {
+                    "ok": False,
+                    "reason": "search_error",
+                    "table_name": table_name,
+                    "error": str(e),
+                    "results": [],
+                })
+            else:
+                self._respond(500, {"error": str(e)})
 
     def _respond(self, code, data):
         body = json.dumps(data, ensure_ascii=False).encode('utf-8')

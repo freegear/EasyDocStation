@@ -19,6 +19,7 @@ except Exception as e:
 cfg   = payload.get("config", {})
 query = payload.get("query", "")
 limit = int(payload.get("limit", 3))
+include_status = bool(payload.get("include_status"))
 
 def normalize_id_list(values):
     if not isinstance(values, list):
@@ -66,10 +67,22 @@ def default_lancedb_path():
     return repo_default
 
 LANCEDB_PATH = cfg.get("lancedb_path") or default_lancedb_path()
+TABLE_NAME = cfg.get("table_name") or cfg.get("rag_table_name") or "my_rag_table"
 VECTOR_SIZE  = int(cfg.get("vector_size", 1024))
 
+def respond(results, ok=True, reason="ok"):
+    if include_status:
+        print(json.dumps({
+            "ok": bool(ok),
+            "reason": reason,
+            "table_name": TABLE_NAME,
+            "results": results,
+        }, ensure_ascii=False))
+    else:
+        print(json.dumps(results, ensure_ascii=False))
+
 if not query.strip() or not allowed_channel_ids:
-    print(json.dumps([]))
+    respond([], True, "invalid_query_or_acl")
     sys.exit(0)
 
 import torch
@@ -92,18 +105,18 @@ embed_model = SentenceTransformer("BAAI/bge-m3", device=device)
 
 # LanceDB 연결 및 검색
 if not os.path.exists(LANCEDB_PATH):
-    print(json.dumps([]))
+    respond([], False, "lancedb_missing")
     sys.exit(0)
 
 db = lancedb.connect(LANCEDB_PATH)
 tables = db.table_names() if hasattr(db, 'table_names') else db.list_tables()
-if "my_rag_table" not in tables:
-    print(json.dumps([]))
+if TABLE_NAME not in tables:
+    respond([], False, "table_missing")
     sys.exit(0)
 
-table = db.open_table("my_rag_table")
+table = db.open_table(TABLE_NAME)
 if len(table) <= 1:          # init 레코드만 있으면 skip
-    print(json.dumps([]))
+    respond([], False, "empty_table")
     sys.exit(0)
 
 query_vec = embed_model.encode(query, show_progress_bar=False).tolist()
@@ -140,7 +153,26 @@ for r in results:
             "amount_vat":       meta.get("amount_vat", 0),
             "currency":         meta.get("currency", ""),
             "amount_candidates": meta.get("amount_candidates", ""),
+            "schema_version":     meta.get("schema_version", 1),
+            "document_kind":      meta.get("document_kind", ""),
+            "source_ext":         meta.get("source_ext", ""),
+            "converted_by":       meta.get("converted_by", ""),
+            "converted_format":   meta.get("converted_format", ""),
+            "parser_version":     meta.get("parser_version", ""),
+            "fallback_used":      meta.get("fallback_used", False),
+            "fallback_pipeline":  meta.get("fallback_pipeline", ""),
+            "sheet_name":         meta.get("sheet_name", ""),
+            "row_range":          meta.get("row_range", ""),
+            "column_headers":     meta.get("column_headers", ""),
+            "slide_number":       meta.get("slide_number", 0),
+            "slide_title":        meta.get("slide_title", ""),
+            "xml_path":           meta.get("xml_path", ""),
+            "html_title":         meta.get("html_title", ""),
+            "heading_path":       meta.get("heading_path", ""),
+            "archive_id":         meta.get("archive_id", ""),
+            "archive_file_path":  meta.get("archive_file_path", ""),
+            "inner_source_ext":   meta.get("inner_source_ext", ""),
         }
     })
 
-print(json.dumps(output, ensure_ascii=False))
+respond(output, True, "ok")

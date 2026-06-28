@@ -417,3 +417,225 @@ AM 12:45:43 [vite] hmr update /src/features/mail/MailPage.jsx, /src/index.css
 [20260628-07:17:57][BE] [RAG] 학습 진행률: 100% (저장)
 [20260628-07:17:58][BE] [RAG] 댓글 학습 완료 — 1개 댓글 (3.9s)
 [20260628-07:20:55][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+[20260628-07:30:48][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+[20260628-07:34:20][BE] [ATTACH-REF] sync ownerType=comment ownerId=c-f45ad7de-5af8-4b6e-bac0-34a2d73adf35 actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260628-07:34:20][BE] [RAG] 댓글 학습 시작 — 1개 댓글 (제외: 0개)
+[20260628-07:34:20][BE] /home/freegear/EasyDocStation/server/rag_train.py:112: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260628-07:34:20][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260628-07:34:23][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table' already exists
+[20260628-07:34:23][BE] [RAG] comment=c-f45ad7de-5af8-4b6e-bac0-34a2d73adf35 post=f534349c-46d9-484a-b8b0-7bddf35eefc0 text → 2청크
+[20260628-07:34:23][BE] [RAG] 학습 진행률: 50% (댓글 본문)
+[20260628-07:34:23][BE] [RAG] 저장 완료 — 2청크 / 0개 게시글 / 1개 댓글
+[20260628-07:34:23][BE] [RAG] 학습 진행률: 100% (저장)
+[20260628-07:34:24][BE] [RAG] 댓글 학습 완료 — 1개 댓글 (3.8s)
+[20260628-07:37:01][BE] [ATTACH-REF] sync ownerType=comment ownerId=c-c3cdb5be-0d57-4f5d-b076-a9c57cbca6e5 actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260628-07:37:01][BE] [RAG] 댓글 학습 시작 — 1개 댓글 (제외: 0개)
+[20260628-07:37:01][BE] /home/freegear/EasyDocStation/server/rag_train.py:112: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260628-07:37:01][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260628-07:37:04][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table' already exists
+[20260628-07:37:04][BE] [RAG] comment=c-c3cdb5be-0d57-4f5d-b076-a9c57cbca6e5 post=f534349c-46d9-484a-b8b0-7bddf35eefc0 text → 3청크
+[20260628-07:37:04][BE] [RAG] 학습 진행률: 50% (댓글 본문)
+[20260628-07:37:04][BE] [RAG] 저장 완료 — 3청크 / 0개 게시글 / 1개 댓글
+[20260628-07:37:04][BE] [RAG] 학습 진행률: 100% (저장)
+[20260628-07:37:05][BE] [RAG] 댓글 학습 완료 — 1개 댓글 (3.9s)
+[20260628-07:40:55][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+[20260628-07:43:29][BE] [ATTACH-REF] sync ownerType=comment ownerId=c-ffed11f5-f3f3-446f-9a68-31247b34b81d actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260628-07:43:29][BE] [RAG] 댓글 학습 시작 — 1개 댓글 (제외: 0개)
+[20260628-07:43:29][BE] /home/freegear/EasyDocStation/server/rag_train.py:112: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260628-07:43:29][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260628-07:43:32][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table' already exists
+[20260628-07:43:32][BE] [RAG] comment=c-ffed11f5-f3f3-446f-9a68-31247b34b81d post=f534349c-46d9-484a-b8b0-7bddf35eefc0 text → 1청크
+[20260628-07:43:32][BE] [RAG] 학습 진행률: 50% (댓글 본문)
+[20260628-07:43:32][BE] [RAG] 저장 완료 — 1청크 / 0개 게시글 / 1개 댓글
+[20260628-07:43:32][BE] [RAG] 학습 진행률: 100% (저장)
+[20260628-07:43:33][BE] [RAG] 댓글 학습 완료 — 1개 댓글 (3.8s)
+[20260628-07:46:38][BE] [ATTACH-REF] sync ownerType=comment ownerId=c-353f90fe-2526-46ae-ab43-7b882445ab60 actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260628-07:46:38][BE] [RAG] 댓글 학습 시작 — 1개 댓글 (제외: 0개)
+[20260628-07:46:39][BE] /home/freegear/EasyDocStation/server/rag_train.py:112: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260628-07:46:39][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260628-07:46:42][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table' already exists
+[20260628-07:46:42][BE] [RAG] comment=c-353f90fe-2526-46ae-ab43-7b882445ab60 post=f534349c-46d9-484a-b8b0-7bddf35eefc0 text → 4청크
+[20260628-07:46:42][BE] [RAG] 학습 진행률: 50% (댓글 본문)
+[20260628-07:46:42][BE] [RAG] 저장 완료 — 4청크 / 0개 게시글 / 1개 댓글
+[20260628-07:46:42][BE] [RAG] 학습 진행률: 100% (저장)
+[20260628-07:46:42][BE] [RAG] 댓글 학습 완료 — 1개 댓글 (3.9s)
+AM 7:48:52 [vite] hmr update /src/components/SiteAdminPage.jsx, /src/index.css
+AM 7:49:22 [vite] hmr update /src/components/SiteAdminPage.jsx, /src/index.css
+[20260628-07:50:09][BE] [ATTACH-REF] sync ownerType=post ownerId=c71a9665-8f52-40da-9265-edebfc6f5452 actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260628-07:50:09][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
+[20260628-07:50:09][BE] /home/freegear/EasyDocStation/server/rag_train.py:112: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260628-07:50:09][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260628-07:50:13][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table' already exists
+[20260628-07:50:13][BE] [RAG] post=c71a9665-8f52-40da-9265-edebfc6f5452 text → 1청크
+[20260628-07:50:13][BE] [RAG] 학습 진행률: 50% (게시글 본문)
+[20260628-07:50:13][BE] [RAG] 저장 완료 — 1청크 / 1개 게시글 / 0개 댓글
+[20260628-07:50:13][BE] [RAG] 학습 진행률: 100% (저장)
+[20260628-07:50:13][BE] [RAG] 학습 완료
+[20260628-07:50:49][BE] [ATTACH-REF] sync ownerType=comment ownerId=c-75f92569-bd7d-43bc-a901-7bbe3e89445b actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260628-07:50:49][BE] [RAG] 댓글 학습 시작 — 1개 댓글 (제외: 0개)
+[20260628-07:50:49][BE] /home/freegear/EasyDocStation/server/rag_train.py:112: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260628-07:50:49][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260628-07:50:52][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table' already exists
+[20260628-07:50:52][BE] [RAG] comment=c-75f92569-bd7d-43bc-a901-7bbe3e89445b post=f534349c-46d9-484a-b8b0-7bddf35eefc0 text → 2청크
+[20260628-07:50:52][BE] [RAG] 학습 진행률: 50% (댓글 본문)
+[20260628-07:50:52][BE] [RAG] 저장 완료 — 2청크 / 0개 게시글 / 1개 댓글
+[20260628-07:50:52][BE] [RAG] 학습 진행률: 100% (저장)
+[20260628-07:50:53][BE] [RAG] 댓글 학습 완료 — 1개 댓글 (3.9s)
+[20260628-07:50:55][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+종료됨
+[20260628-07:53:20][BE] process exited with code 143. restarting in 2s...
+종료됨
+[20260628-07:53:20][BE] 
+[20260628-07:53:20][BE] > easydocstation-server@1.0.0 start
+[20260628-07:53:20][BE] > node index.js
+[20260628-07:53:20][BE] 
+[20260628-07:53:21][BE] [RAG] 초기화 — 학습 방식: immediate
+[20260628-07:53:21][BE] [RAG] 초기화 — PDF 파싱 모드: FAST
+[20260628-07:53:21][BE] [Mail sync] 자동 동기화 스케줄러 시작: interval=600s
+[20260628-07:53:21][BE] ✅ EasyDocStation server running on http://localhost:3001
+[20260628-07:53:21][BE] ✅ [CONFIG] HF_TOKEN 확인됨 (hf_u****butv, 길이 37)
+[20260628-07:53:21][BE] ✅ Cassandra connected
+[20260628-07:53:21][BE] ✅ Cassandra schema initialized
+[20260628-07:53:21][BE] ✅ Database migration complete.
+[20260628-07:53:21][BE] Terminated
+
+> easydocstation@1.0.0 dev:frontend
+> vite
+
+
+> easydocstation@1.0.0 ollama:serve
+> node scripts/ollama-serve-safe.mjs
+
+[Ollama] already running on 127.0.0.1:11434, skipping duplicate serve.
+[20260628-07:53:23][BE] 
+[20260628-07:53:23][BE] > easydocstation-server@1.0.0 start
+[20260628-07:53:23][BE] > node index.js
+[20260628-07:53:23][BE] 
+
+  VITE v5.4.21  ready in 100 ms
+
+  ➜  Local:   http://localhost:5173/
+  ➜  Network: http://10.0.0.194:5173/
+[20260628-07:53:23][BE] [RAG] 초기화 — 학습 방식: immediate
+[20260628-07:53:23][BE] [RAG] 초기화 — PDF 파싱 모드: FAST
+[20260628-07:53:23][BE] [Mail sync] 자동 동기화 스케줄러 시작: interval=600s
+[20260628-07:53:23][BE] ✅ EasyDocStation server running on http://localhost:3001
+[20260628-07:53:23][BE] ✅ [CONFIG] HF_TOKEN 확인됨 (hf_u****butv, 길이 37)
+[20260628-07:53:23][BE] ✅ Cassandra connected
+[20260628-07:53:23][BE] ✅ Cassandra schema initialized
+[20260628-07:53:23][BE] ✅ Database migration complete.
+[20260628-07:53:26][BE] [RAG Server] [RAG Server] 임베딩 모델 로드 중 (device=cuda)...
+[20260628-07:53:30][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260628-07:53:31][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260628-07:53:31][BE] [link-preview-image] 내부망 주소는 미리보기를 지원하지 않습니다.
+[20260628-07:53:42][BE] [RAG Server] [RAG Server] 임베딩 모델 로드 완료
+[20260628-07:53:42][BE] [RAG Server] 포트 5001 에서 시작됨
+[20260628-07:54:01][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+[20260628-08:03:30][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+[20260628-08:05:08][BE] [link-preview-image] 내부망 주소는 미리보기를 지원하지 않습니다.
+[20260628-08:06:50][BE] /home/freegear/EasyDocStation/server/rag_train.py:112: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260628-08:06:50][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260628-08:06:53][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table' already exists
+[20260628-08:06:53][BE] [RAG] 기존 청크 삭제 완료: post_id=rag-1782601562030-ple4dh
+[20260628-08:06:54][BE] [RAG] post=rag-1782601562030-ple4dh text → 1청크
+[20260628-08:06:54][BE] [RAG] 학습 진행률: 50% (게시글 본문)
+[20260628-08:06:54][BE] [RAG] 저장 완료 — 1청크 / 1개 게시글 / 0개 댓글
+[20260628-08:06:54][BE] [RAG] 학습 진행률: 100% (저장)
+[20260628-08:06:54][BE] /home/freegear/EasyDocStation/server/rag_train.py:112: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260628-08:06:54][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260628-08:06:57][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table' already exists
+[20260628-08:06:58][BE] [RAG] 기존 청크 삭제 완료: post_id=rag-1782601590395-vmsi0h
+[20260628-08:06:58][BE] [RAG] post=rag-1782601590395-vmsi0h text → 1청크
+[20260628-08:06:58][BE] [RAG] 학습 진행률: 50% (게시글 본문)
+[20260628-08:06:58][BE] [RAG] 저장 완료 — 1청크 / 1개 게시글 / 0개 댓글
+[20260628-08:06:58][BE] [RAG] 학습 진행률: 100% (저장)
+[20260628-08:06:58][BE] /home/freegear/EasyDocStation/server/rag_train.py:112: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260628-08:06:58][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260628-08:07:01][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table' already exists
+[20260628-08:07:01][BE] [RAG] 기존 청크 삭제 완료: post_id=rag-1782601607139-cepn6m
+[20260628-08:07:01][BE] [RAG] post=rag-1782601607139-cepn6m text → 1청크
+[20260628-08:07:01][BE] [RAG] 학습 진행률: 50% (게시글 본문)
+[20260628-08:07:01][BE] [RAG] 저장 완료 — 1청크 / 1개 게시글 / 0개 댓글
+[20260628-08:07:01][BE] [RAG] 학습 진행률: 100% (저장)
+[20260628-08:13:31][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+[20260628-08:23:31][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+[20260628-08:33:31][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+[20260628-08:43:31][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+[20260628-08:53:32][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+[20260628-08:58:06][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260628-08:58:06][BE] [link-preview-image] 내부망 주소는 미리보기를 지원하지 않습니다.
+[20260628-08:58:06][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260628-08:58:35][BE] [link-preview-image] 내부망 주소는 미리보기를 지원하지 않습니다.
+[20260628-09:03:31][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+[20260628-09:04:04][BE] [ATTACH-REF] sync ownerType=post ownerId=6c9b815b-80c5-42e0-880a-53413b7b172f actorUserId=1 prev=0 next=4 add=4 remove=0
+[20260628-09:04:04][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
+[20260628-09:04:04][BE] /home/freegear/EasyDocStation/server/rag_train.py:120: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260628-09:04:04][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260628-09:04:07][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table' already exists
+[20260628-09:04:07][BE] [RAG] post=6c9b815b-80c5-42e0-880a-53413b7b172f text → 1청크
+[20260628-09:04:07][BE] [RAG] 학습 진행률: 10% (게시글 본문)
+[20260628-09:04:07][BE] [RAG] PDF 학습 시작: 2. 신청서식.pdf
+[20260628-09:04:07][BE] [RAG] PDF 파싱 시작 (Unstructured fast): 2. 신청서식.pdf
+[20260628-09:04:09][BE] [RAG] PDF 파싱 완료 (Unstructured fast): 2. 신청서식.pdf / elements=426 / 1.7s
+[20260628-09:04:10][BE] [RAG] PDF 학습 완료: 2. 신청서식.pdf (20청크)
+[20260628-09:04:10][BE] [RAG] 분리 저장 완료: /home/freegear/EasyDocStation/Database/ObjectFile/FileTrainingData/6c9b815b-80c5-42e0-880a-53413b7b172f/no_comment/62e08339-1695-4915-a070-a0c22c947220/2._신청서식.pdf
+[20260628-09:04:10][BE] [RAG] 학습 진행률: 30% (게시글 PDF)
+[20260628-09:04:10][BE] [RAG] PDF 학습 시작: 1. 공고문.pdf
+[20260628-09:04:10][BE] [RAG] PDF 파싱 시작 (Unstructured fast): 1. 공고문.pdf
+[20260628-09:04:19][BE] [RAG] PDF 학습 완료: 1. 공고문.pdf (77청크)
+[20260628-09:04:19][BE] [RAG] 분리 저장 완료: /home/freegear/EasyDocStation/Database/ObjectFile/FileTrainingData/6c9b815b-80c5-42e0-880a-53413b7b172f/no_comment/0ba11abf-cd04-4c12-a908-8a67b5c3f0bd/1._공고문.pdf
+[20260628-09:04:19][BE] [RAG] 학습 진행률: 50% (게시글 PDF)
+[20260628-09:04:19][BE] [RAG] PDF 학습 시작: 3. 질의응답.pdf
+[20260628-09:04:19][BE] [RAG] PDF 파싱 시작 (Unstructured fast): 3. 질의응답.pdf
+[20260628-09:04:20][BE] [RAG] PDF 파싱 완료 (Unstructured fast): 3. 질의응답.pdf / elements=229 / 0.8s
+[20260628-09:04:21][BE] [RAG] PDF 학습 완료: 3. 질의응답.pdf (15청크)
+[20260628-09:04:21][BE] [RAG] 분리 저장 완료: /home/freegear/EasyDocStation/Database/ObjectFile/FileTrainingData/6c9b815b-80c5-42e0-880a-53413b7b172f/no_comment/0c3528bb-8b19-4cb6-a301-1134f3667030/3._질의응답.pdf
+[20260628-09:04:21][BE] [RAG] 학습 진행률: 60% (게시글 PDF)
+[20260628-09:04:21][BE] [RAG] PDF 학습 시작: 4_2026년 혁신 소상공인 AI 활용지원 사업 소상공인 사업신청 가이드.pdf
+[20260628-09:04:21][BE] [RAG] PDF 파싱 시작 (Unstructured fast): 4_2026년 혁신 소상공인 AI 활용지원 사업 소상공인 사업신청 가이드.pdf
+[20260628-09:04:24][BE] [RAG] Tesseract OCR fallback 시작: lang=kor+eng, pages=12
+[20260628-09:04:24][BE] [RAG] Tesseract OCR 진행: 1/12
+[20260628-09:04:30][BE] [RAG] Tesseract OCR 진행: 5/12
+[20260628-09:04:37][BE] [RAG] Tesseract OCR 진행: 10/12
+[20260628-09:04:41][BE] [RAG] Tesseract OCR 진행: 12/12
+[20260628-09:04:43][BE] [RAG] Tesseract OCR fallback 완료: 추출 페이지 12/12
+[20260628-09:04:43][BE] [RAG] PDF 학습 완료: 4_2026년 혁신 소상공인 AI 활용지원 사업 소상공인 사업신청 가이드.pdf (13청크)
+[20260628-09:04:43][BE] [RAG] 분리 저장 완료: /home/freegear/EasyDocStation/Database/ObjectFile/FileTrainingData/6c9b815b-80c5-42e0-880a-53413b7b172f/no_comment/e3b25e53-a3b1-4b20-bfaf-f756ced5e938/4_2026년_혁신_소상공인_AI_활용지원_사업_소상공인_사업신청_가이드.pdf
+[20260628-09:04:43][BE] [RAG] 학습 진행률: 80% (게시글 PDF)
+[20260628-09:04:43][BE] [RAG] 저장 완료 — 126청크 / 1개 게시글 / 0개 댓글
+[20260628-09:04:43][BE] [RAG] 학습 진행률: 100% (저장)
+[20260628-09:04:48][BE] [RAG] 학습 완료
+[20260628-09:11:29][BE] [link-preview-image] 내부망 주소는 미리보기를 지원하지 않습니다.
+[20260628-09:11:34][BE] [ATTACH-REF] sync ownerType=comment ownerId=c-0d9f0a08-e233-4e48-ac83-1bd75df9fc01 actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260628-09:11:34][BE] [RAG] 댓글 학습 시작 — 1개 댓글 (제외: 0개)
+[20260628-09:11:34][BE] /home/freegear/EasyDocStation/server/rag_train.py:120: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260628-09:11:34][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260628-09:11:39][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table' already exists
+[20260628-09:11:39][BE] [RAG] comment=c-0d9f0a08-e233-4e48-ac83-1bd75df9fc01 post=25b92cd8-b9f6-4922-a59a-f5454c57f463 text → 3청크
+[20260628-09:11:39][BE] [RAG] 학습 진행률: 50% (댓글 본문)
+[20260628-09:11:39][BE] [RAG] 저장 완료 — 3청크 / 0개 게시글 / 1개 댓글
+[20260628-09:11:39][BE] [RAG] 학습 진행률: 100% (저장)
+[20260628-09:11:42][BE] [RAG] 댓글 학습 완료 — 1개 댓글 (7.6s)
+[20260628-09:12:00][BE] [ATTACH-REF] sync ownerType=comment ownerId=c-0a15ea2b-81b0-4532-8eb1-495605446bbe actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260628-09:12:00][BE] [RAG] 댓글 학습 시작 — 1개 댓글 (제외: 0개)
+[20260628-09:12:00][BE] /home/freegear/EasyDocStation/server/rag_train.py:120: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260628-09:12:00][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260628-09:12:05][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table' already exists
+[20260628-09:12:06][BE] [RAG] comment=c-0a15ea2b-81b0-4532-8eb1-495605446bbe post=25b92cd8-b9f6-4922-a59a-f5454c57f463 text → 3청크
+[20260628-09:12:06][BE] [RAG] 학습 진행률: 50% (댓글 본문)
+[20260628-09:12:06][BE] [RAG] 저장 완료 — 3청크 / 0개 게시글 / 1개 댓글
+[20260628-09:12:06][BE] [RAG] 학습 진행률: 100% (저장)
+[20260628-09:12:08][BE] [RAG] 댓글 학습 완료 — 1개 댓글 (7.8s)
+[20260628-09:12:53][BE] [ATTACH-REF] sync ownerType=comment ownerId=c-0d9f0a08-e233-4e48-ac83-1bd75df9fc01 actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260628-09:12:53][BE] [휴지통] 1건 영구 삭제 완료
+[20260628-09:13:31][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+[20260628-09:14:45][BE] [ATTACH-REF] sync ownerType=comment ownerId=c-2d8a8504-907e-4611-842c-404dec5bb1ba actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260628-09:14:45][BE] [RAG] 댓글 학습 시작 — 1개 댓글 (제외: 0개)
+[20260628-09:14:45][BE] /home/freegear/EasyDocStation/server/rag_train.py:120: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260628-09:14:45][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260628-09:14:50][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table' already exists
+[20260628-09:14:51][BE] [RAG] comment=c-2d8a8504-907e-4611-842c-404dec5bb1ba post=25b92cd8-b9f6-4922-a59a-f5454c57f463 text → 4청크
+[20260628-09:14:51][BE] [RAG] 학습 진행률: 50% (댓글 본문)
+[20260628-09:14:51][BE] [RAG] 저장 완료 — 4청크 / 0개 게시글 / 1개 댓글
+[20260628-09:14:51][BE] [RAG] 학습 진행률: 100% (저장)
+[20260628-09:14:53][BE] [RAG] 댓글 학습 완료 — 1개 댓글 (7.8s)

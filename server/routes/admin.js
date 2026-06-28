@@ -4,7 +4,7 @@ const pool = require('../db')
 const requireAuth = require('../middleware/auth')
 const path = require('path')
 const fs = require('fs')
-const { execFile, spawn } = require('child_process')
+const { spawn } = require('child_process')
 const bcrypt = require('bcryptjs')
 const { client: cassandraClient } = require('../cassandra')
 const { runManualTraining, reloadRagConfig, getState: getRagState } = require('../rag')
@@ -655,24 +655,56 @@ router.post('/rag/reinit-lancedb', async (req, res) => {
   try {
     const configPath = path.resolve(__dirname, '../../config.json')
     const config = JSON.parse(fs.readFileSync(configPath, 'utf8'))
+    const ragCfg = config.rag || {}
     const uri = getDatabasePath(config, 'lancedb Database Path')
-    const dim = config.rag?.vectorSize || 1024
+    const objectFilePath = getDatabasePath(config, 'ObjectFile Path')
+    const dim = ragCfg.vectorSize || 1024
+    const tableName = config.rag?.active_table || config.rag?.table_name || 'my_rag_table'
+    const schemaVersion = Number(ragCfg.schema_version || (String(tableName).endsWith('_v2') ? 2 : 1))
+    const scriptPath = path.resolve(__dirname, '../rag_train.py')
+    const payload = {
+      reset_table: true,
+      config: {
+        lancedb_path: uri,
+        file_training_path: path.join(objectFilePath, 'FileTrainingData'),
+        table_name: tableName,
+        rag_table_name: tableName,
+        schema_version: Number.isFinite(schemaVersion) && schemaVersion > 0 ? schemaVersion : 1,
+        vector_size: dim,
+        reset_table: true,
+      },
+      posts: [],
+      comments: [],
+    }
 
-    const script = `
-import lancedb
-db = lancedb.connect(${JSON.stringify(uri)})
-data = [{"vector": [0.1] * ${dim}, "text": "init", "metadata": {"source": "system"}}]
-table = db.create_table("my_rag_table", data=data, mode="overwrite")
-print(f"벡터 크기 ${dim}으로 재설정 완료: {table.count_rows()}건")
-`
-    execFile(getPythonExecutable(), ['-c', script], { timeout: 30000 }, (err, stdout, stderr) => {
-      if (err) {
-        console.error('[LanceDB reinit error]', stderr)
-        return res.status(500).json({ error: 'LanceDB 재초기화 실패: ' + (stderr || err.message) })
-      }
-      console.log('[LanceDB reinit]', stdout.trim())
-      res.json({ success: true, message: stdout.trim() })
+    const child = spawn(getPythonExecutable(), [scriptPath], {
+      cwd: path.resolve(__dirname, '..'),
+      stdio: ['pipe', 'pipe', 'pipe'],
     })
+    let stdout = ''
+    let stderr = ''
+    const timer = setTimeout(() => {
+      child.kill('SIGTERM')
+    }, 30000)
+    child.stdout.on('data', chunk => { stdout += chunk.toString() })
+    child.stderr.on('data', chunk => { stderr += chunk.toString() })
+    child.on('error', (err) => {
+      clearTimeout(timer)
+      console.error('[LanceDB reinit error]', err)
+      res.status(500).json({ error: 'LanceDB 재초기화 실패: ' + err.message })
+    })
+    child.on('close', (code) => {
+      clearTimeout(timer)
+      if (res.headersSent) return
+      if (code !== 0) {
+        console.error('[LanceDB reinit error]', stderr || stdout)
+        return res.status(500).json({ error: 'LanceDB 재초기화 실패: ' + (stderr || stdout || `exit code ${code}`) })
+      }
+      const message = `벡터 크기 ${dim}, 테이블 ${tableName}, 스키마 v${payload.config.schema_version}로 재설정 완료`
+      console.log('[LanceDB reinit]', stdout.trim() || message)
+      res.json({ success: true, message, output: stdout.trim() })
+    })
+    child.stdin.end(JSON.stringify(payload))
   } catch (err) {
     res.status(500).json({ error: err.message })
   }

@@ -37,5 +37,70 @@
     "status": "trained",
     "trained_at": "2026-04-18T15:56:04.424Z",
     "error": null
+  },
+  {
+    "id": "rag-1782601562030-ple4dh",
+    "filename": "bluetop_proposal_1.0.pptx",
+    "original_filename": "bluetop_proposal_1.0.pptx",
+    "content_type": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+    "size": 175005,
+    "ext": "pptx",
+    "storage_path": "rag-1782601562030-ple4dh-bluetop_proposal_1.0.pptx",
+    "created_at": "2026-06-27T23:06:02.030Z",
+    "status": "trained",
+    "trained_at": "2026-06-27T23:06:54.848Z",
+    "error": null
+  },
+  {
+    "id": "rag-1782601590395-vmsi0h",
+    "filename": "ai_smart_callcenter_fsm_1.31.pptx",
+    "original_filename": "ai_smart_callcenter_fsm_1.31.pptx",
+    "content_type": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+    "size": 2595734,
+    "ext": "pptx",
+    "storage_path": "rag-1782601590395-vmsi0h-ai_smart_callcenter_fsm_1.31.pptx",
+    "created_at": "2026-06-27T23:06:30.396Z",
+    "status": "trained",
+    "trained_at": "2026-06-27T23:06:58.761Z",
+    "error": null
+  },
+  {
+    "id": "rag-1782601607139-cepn6m",
+    "filename": "ai_towel_inspection_ui_20260131053426.pptx",
+    "original_filename": "ai_towel_inspection_ui_20260131053426.pptx",
+    "content_type": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+    "size": 768942,
+    "ext": "pptx",
+    "storage_path": "rag-1782601607139-cepn6m-ai_towel_inspection_ui_20260131053426.pptx",
+    "created_at": "2026-06-27T23:06:47.139Z",
+    "status": "trained",
+    "trained_at": "2026-06-27T23:07:02.671Z",
+    "error": null
+  },
+  {
+    "id": "rag-1782605148541-2exi79",
+    "filename": "Elim AI-EasyStation 통합 플랫폼.pptx",
+    "original_filename": "Elim AI-EasyStation 통합 플랫폼.pptx",
+    "content_type": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+    "size": 1753751,
+    "ext": "pptx",
+    "storage_path": "rag-1782605148541-2exi79-Elim AI-EasyStation 통합 플랫폼.pptx",
+    "created_at": "2026-06-28T00:05:48.541Z",
+    "status": "ready",
+    "trained_at": null,
+    "error": null
+  },
+  {
+    "id": "rag-1782605163505-gy52wd",
+    "filename": "HD_마곡현장_설치계획_V0.2_0428.pptx",
+    "original_filename": "HD_마곡현장_설치계획_V0.2_0428.pptx",
+    "content_type": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+    "size": 10718992,
+    "ext": "pptx",
+    "storage_path": "rag-1782605163505-gy52wd-HD_마곡현장_설치계획_V0.2_0428.pptx",
+    "created_at": "2026-06-28T00:06:03.505Z",
+    "status": "ready",
+    "trained_at": null,
+    "error": null
   }
 ]

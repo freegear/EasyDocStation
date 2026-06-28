@@ -1,0 +1,858 @@
+[2026-06-27T23:49:26.262Z][RAG-REBUILD] Python: /home/freegear/EasyDocStation/.venv/bin/python3
+[2026-06-27T23:49:26.262Z][RAG-REBUILD] 배치 크기: 10
+✅ Database migration complete.
+[2026-06-27T23:49:27.161Z][RAG-REBUILD] "찾을 수 없습니다"류의 이전 AI 실패 답변은 RAG 오염 방지를 위해 제외합니다.
+✅ Cassandra connected
+✅ Cassandra schema initialized
+[2026-06-27T23:49:27.177Z][RAG-REBUILD] ObjectFile Path: /home/freegear/EasyDocStation/Database/ObjectFile
+[2026-06-27T23:49:27.177Z][RAG-REBUILD] LanceDB Path: /home/freegear/EasyDocStation/Database/LanceDB
+[2026-06-27T23:49:27.177Z][RAG-REBUILD] RAG target table: my_rag_table_v2 (schema=2)
+[2026-06-27T23:49:27.178Z][RAG-REBUILD] 배치 학습 시간 제한: 없음
+[2026-06-27T23:49:27.179Z][RAG-REBUILD] 기존 RAG 임베딩 서버 사용: 127.0.0.1:5001
+[2026-06-27T23:49:27.179Z][RAG-REBUILD] RAG 대상 테이블 초기화: my_rag_table_v2
+/home/freegear/EasyDocStation/server/rag_train.py:120: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+  from langchain_community.document_loaders import Docx2txtLoader
+[RAG] 테이블 초기화 완료: my_rag_table_v2 (dim=1024, schema=2)
+[RAG] 저장할 레코드 없음
+[RAG] 학습 진행률: 100% (저장)
+[2026-06-27T23:49:31.109Z][RAG-REBUILD] 조회 완료: 게시글 635건, 댓글 919건
+[2026-06-27T23:49:31.122Z][RAG-REBUILD] 파싱 미지원 첨부 형식, 메타데이터만 본문에 포함 예정: KakaoTalk_20260422_140922251.mp4 (video/mp4)
+[2026-06-27T23:49:31.122Z][RAG-REBUILD] 파싱 미지원 첨부 형식, 메타데이터만 본문에 포함 예정: KakaoTalk_20260119_110833374.mp4 (video/mp4)
+[2026-06-27T23:49:31.123Z][RAG-REBUILD] 파싱 미지원 첨부 형식, 메타데이터만 본문에 포함 예정: KakaoTalk_20251117_145851003.mp4 (video/mp4)
+[2026-06-27T23:49:31.123Z][RAG-REBUILD] 파싱 미지원 첨부 형식, 메타데이터만 본문에 포함 예정: KakaoTalk_20251016_184653386.mp4 (video/mp4)
+[2026-06-27T23:49:31.124Z][RAG-REBUILD] 파싱 미지원 첨부 형식, 메타데이터만 본문에 포함 예정: KakaoTalk_20251013_152939797.mp4 (video/mp4)
+[2026-06-27T23:49:31.124Z][RAG-REBUILD] 파싱 미지원 첨부 형식, 메타데이터만 본문에 포함 예정: G-TLD_Hongik University.mp4 (video/mp4)
+[2026-06-27T23:49:31.125Z][RAG-REBUILD] 파싱 미지원 첨부 형식, 메타데이터만 본문에 포함 예정: G-TLD_Hoka.mp4 (video/mp4)
+[2026-06-27T23:49:31.125Z][RAG-REBUILD] 파싱 미지원 첨부 형식, 메타데이터만 본문에 포함 예정: G-TLD_CES.mp4 (video/mp4)
+[2026-06-27T23:49:31.126Z][RAG-REBUILD] 파싱 미지원 첨부 형식, 메타데이터만 본문에 포함 예정: G-TLD_BUS.mp4 (video/mp4)
+[2026-06-27T23:49:31.126Z][RAG-REBUILD] 파싱 미지원 첨부 형식, 메타데이터만 본문에 포함 예정: 스미토모.mp4 (video/mp4)
+[2026-06-27T23:49:31.127Z][RAG-REBUILD] 파싱 미지원 첨부 형식, 메타데이터만 본문에 포함 예정: 2025년 국립중앙박물관 COB1.53 설치 사례.mp4 (video/mp4)
+[2026-06-27T23:49:31.130Z][RAG-REBUILD] 파싱 미지원 첨부 형식, 메타데이터만 본문에 포함 예정: 비밀유지및거래보호계약서(디플럭스-실리콘큐브).hwp (unknown)
+[2026-06-27T23:49:31.133Z][RAG-REBUILD] 파싱 미지원 첨부 형식, 메타데이터만 본문에 포함 예정: 화면 기록 2026-06-20 오후 7.18.21.mov (video/quicktime)
+[2026-06-27T23:49:31.138Z][RAG-REBUILD] 파싱 미지원 첨부 형식, 메타데이터만 본문에 포함 예정: KakaoTalk_Video_2026-05-10-14-25-25.mp4 (video/mp4)
+[2026-06-27T23:49:31.154Z][RAG-REBUILD] 파싱 미지원 첨부 형식, 메타데이터만 본문에 포함 예정: CremaXample.exe (application/x-msdownload)
+[2026-06-27T23:49:31.155Z][RAG-REBUILD] 파싱 미지원 첨부 형식, 메타데이터만 본문에 포함 예정: 화면 기록 2026-06-27 오전 6.59.15.mov (video/quicktime)
+[2026-06-27T23:49:31.156Z][RAG-REBUILD] 파싱 미지원 첨부 형식, 메타데이터만 본문에 포함 예정: _talkf_wzc5u730qA_w0QcXNt3AR0NzRImDK2Ch0_f_e3e84459a45f 2.MP4 (video/mp4)
+[2026-06-27T23:49:31.156Z][RAG-REBUILD] 파싱 미지원 첨부 형식, 메타데이터만 본문에 포함 예정: _talkf_wzc5u730qA_w0QcXNt3AR0NzRImDK2Ch0_f_e3e84459a45f.MP4 (video/mp4)
+[2026-06-27T23:49:31.157Z][RAG-REBUILD] 파싱 미지원 첨부 형식, 메타데이터만 본문에 포함 예정: _talkf_wzc7lJZN7U_5LkTDBZz1x10BYxK7eP7Ik_f_e236cc9d6298 2.MP4 (video/mp4)
+[2026-06-27T23:49:31.157Z][RAG-REBUILD] 파싱 미지원 첨부 형식, 메타데이터만 본문에 포함 예정: _talkf_wzc7lJZN7U_5LkTDBZz1x10BYxK7eP7Ik_f_e236cc9d6298.MP4 (video/mp4)
+[2026-06-27T23:49:31.158Z][RAG-REBUILD] 파싱 미지원 첨부 형식, 메타데이터만 본문에 포함 예정: _talkf_wzM72BH2sd_PbWOThKHgsL9fpe4oQ91e1_f_81d284e251e6.mp4 (video/mp4)
+[2026-06-27T23:49:31.158Z][RAG-REBUILD] 파싱 미지원 첨부 형식, 메타데이터만 본문에 포함 예정: Pop Girl.mp4 (video/mp4)
+[2026-06-27T23:49:31.161Z][RAG-REBUILD] 파싱 미지원 첨부 형식, 메타데이터만 본문에 포함 예정: MG79RU5UfVYVqUhkjF9R5cQk4ME.avif (image/avif)
+[2026-06-27T23:49:31.168Z][RAG-REBUILD] 파싱 미지원 첨부 형식, 메타데이터만 본문에 포함 예정: 구매자금 협조 요청서 .hwpx (unknown)
+[2026-06-27T23:49:31.186Z][RAG-REBUILD] 파싱 미지원 첨부 형식, 메타데이터만 본문에 포함 예정: stock_recommend_quant.py (text/x-python-script)
+[2026-06-27T23:49:31.190Z][RAG-REBUILD] 파싱 미지원 첨부 형식, 메타데이터만 본문에 포함 예정: 화면 기록 2026-05-17 오후 4.18.12.mov (video/quicktime)
+[2026-06-27T23:49:31.254Z][RAG-REBUILD] 파싱 미지원 첨부 형식, 메타데이터만 본문에 포함 예정: _talkv_dJMcaFwQdZz_oqbpypnj9z1EyeIKUHUJDK_talkv_high.mp4 (video/mp4)
+[2026-06-27T23:49:31.254Z][RAG-REBUILD] 파싱 미지원 첨부 형식, 메타데이터만 본문에 포함 예정: _talkv_dJMcaFXUAdx_DYZz62JRA0dVGDVCjZtXY1_talkv_high.mp4 (video/mp4)
+[2026-06-27T23:49:31.254Z][RAG-REBUILD] 파싱 미지원 첨부 형식, 메타데이터만 본문에 포함 예정: _talkv_dJMcawNsvx1_PVh0aN4KKFkNVP7QCsjbk0_talkv_high.mp4 (video/mp4)
+[2026-06-27T23:49:31.255Z][RAG-REBUILD] 파싱 미지원 첨부 형식, 메타데이터만 본문에 포함 예정: _talkv_dJMcaxevpwU_VPfd13QHUdhyvaLlvXX4Zk_talkv_high.mp4 (video/mp4)
+[2026-06-27T23:49:31.256Z][RAG-REBUILD] 파싱 미지원 첨부 형식, 메타데이터만 본문에 포함 예정: _talkv_wzPwfZuyGG_xbNnSu4TlwSK41mhy6xoN1_talkv_high.mp4 (video/mp4)
+[2026-06-27T23:49:31.256Z][RAG-REBUILD] 파싱 미지원 첨부 형식, 메타데이터만 본문에 포함 예정: IMG_1096.MOV (video/quicktime)
+[2026-06-27T23:49:31.257Z][RAG-REBUILD] 파싱 미지원 첨부 형식, 메타데이터만 본문에 포함 예정: IMG_1097.MOV (video/quicktime)
+[2026-06-27T23:49:31.258Z][RAG-REBUILD] 파싱 미지원 첨부 형식, 메타데이터만 본문에 포함 예정: IMG_1098.MOV (video/quicktime)
+[2026-06-27T23:49:31.265Z][RAG-REBUILD] 파싱 미지원 첨부 형식, 메타데이터만 본문에 포함 예정: IP-VAV_&_Wi-F260410韓国版.mp4 (video/mp4)
+[2026-06-27T23:49:31.265Z][RAG-REBUILD] 파싱 미지원 첨부 형식, 메타데이터만 본문에 포함 예정: AIが創る、次世代のスマートオフィス韓国語字幕.mp4 (video/mp4)
+[2026-06-27T23:49:31.289Z][RAG-REBUILD] 파싱 미지원 첨부 형식, 메타데이터만 본문에 포함 예정: 1. 연구개발계획서_트리포스_v1.4.hwp (unknown)
+[2026-06-27T23:49:31.289Z][RAG-REBUILD] 파싱 미지원 첨부 형식, 메타데이터만 본문에 포함 예정: 1. 연구개발계획서_트리포스_v1.5 (1).hwp (unknown)
+[2026-06-27T23:49:31.289Z][RAG-REBUILD] 파싱 미지원 첨부 형식, 메타데이터만 본문에 포함 예정: 1. 연구개발계획서_트리포스_v1.7_SC.hwp (unknown)
+[2026-06-27T23:49:31.289Z][RAG-REBUILD] 파싱 미지원 첨부 형식, 메타데이터만 본문에 포함 예정: 1. 연구개발계획서_트리포스_v1.7_SC.hwp (unknown)
+[2026-06-27T23:49:31.289Z][RAG-REBUILD] 파싱 미지원 첨부 형식, 메타데이터만 본문에 포함 예정: 1. 연구개발계획서_트리포스_v1.99.hwp (unknown)
+[2026-06-27T23:49:31.289Z][RAG-REBUILD] 파싱 미지원 첨부 형식, 메타데이터만 본문에 포함 예정: 1. 연구개발계획서_트리포스_v1.999.hwp (unknown)
+[2026-06-27T23:49:31.289Z][RAG-REBUILD] 파싱 미지원 첨부 형식, 메타데이터만 본문에 포함 예정: 1. 연구개발계획서_트리포스_v1.9999_SC.hwp (unknown)
+[2026-06-27T23:49:31.289Z][RAG-REBUILD] 파싱 미지원 첨부 형식, 메타데이터만 본문에 포함 예정: 1. 연구개발계획서_트리포스_v1.9999_SC.hwp (unknown)
+[2026-06-27T23:49:31.289Z][RAG-REBUILD] 파싱 미지원 첨부 형식, 메타데이터만 본문에 포함 예정: 연구개발계획서_트리포스_최종.hwp (unknown)
+[2026-06-27T23:49:31.289Z][RAG-REBUILD] 파싱 미지원 첨부 형식, 메타데이터만 본문에 포함 예정: 연구개발계획서_트리포스_최종-1.1.hwp (unknown)
+[2026-06-27T23:49:31.290Z][RAG-REBUILD] 파싱 미지원 첨부 형식, 메타데이터만 본문에 포함 예정: [붙임 3] 4대 업무혁신 분야 및 품목개요서 (1).hwpx (unknown)
+[2026-06-27T23:49:31.290Z][RAG-REBUILD] 파싱 미지원 첨부 형식, 메타데이터만 본문에 포함 예정: [붙임 1-1] 신청방법 및 신청 또는 지원 제외사항 등 유의사항.hwpx (unknown)
+[2026-06-27T23:49:31.290Z][RAG-REBUILD] 파싱 미지원 첨부 형식, 메타데이터만 본문에 포함 예정: [붙임 1-2] 중소기업기술개발 지원사업 보안대책.hwpx (unknown)
+[2026-06-27T23:49:31.290Z][RAG-REBUILD] 파싱 미지원 첨부 형식, 메타데이터만 본문에 포함 예정: [붙임 2] 2026년도 중소기업기술혁신개발(도메인특화AI모델개발) 세부 지원내용.hwpx (unknown)
+[2026-06-27T23:49:31.290Z][RAG-REBUILD] 파싱 미지원 첨부 형식, 메타데이터만 본문에 포함 예정: [붙임 3] 4대 업무혁신 분야 및 품목개요서.hwpx (unknown)
+[2026-06-27T23:49:31.290Z][RAG-REBUILD] 파싱 미지원 첨부 형식, 메타데이터만 본문에 포함 예정: 1. 연구개발계획서 양식.hwp (unknown)
+[2026-06-27T23:49:31.290Z][RAG-REBUILD] 파싱 미지원 첨부 형식, 메타데이터만 본문에 포함 예정: 2. 신용상태 조회 정보활용 동의서.hwp (unknown)
+[2026-06-27T23:49:31.290Z][RAG-REBUILD] 파싱 미지원 첨부 형식, 메타데이터만 본문에 포함 예정: 3. 중소기업기술개발사업 개인정보 수집이용 동의서.hwp (unknown)
+[2026-06-27T23:49:31.290Z][RAG-REBUILD] 파싱 미지원 첨부 형식, 메타데이터만 본문에 포함 예정: 4. 외부기술도입비 현물산정 신청서.hwp (unknown)
+[2026-06-27T23:49:31.290Z][RAG-REBUILD] 파싱 미지원 첨부 형식, 메타데이터만 본문에 포함 예정: 5. 컨소시엄 확약서.hwp (unknown)
+[2026-06-27T23:49:31.291Z][RAG-REBUILD] 파싱 미지원 첨부 형식, 메타데이터만 본문에 포함 예정: spc 지비전K연새비상 주식회사 연세대 교직원식당 한경관 어울샘 관련 ai _1777854322831.hwp (unknown)
+[2026-06-27T23:49:31.291Z][RAG-REBUILD] 파싱 미지원 첨부 형식, 메타데이터만 본문에 포함 예정: 최요한 연세대학교 상남경영관 관련내용 (1)_1777854341309.hwp (unknown)
+[2026-06-27T23:49:31.292Z][RAG-REBUILD] 파싱 미지원 첨부 형식, 메타데이터만 본문에 포함 예정: 공모중점기술7종컨셉예시_yh수정.hwpx (unknown)
+[2026-06-27T23:49:31.328Z][RAG-REBUILD] 파싱 미지원 첨부 형식, 메타데이터만 본문에 포함 예정: 통화 녹음 KC 하승한 부사장.성장전략실. 한홍규전무소개.더에이스테크.25.9.25.이성하대표님소개회사._260506_103303.m4a (audio/x-m4a)
+[2026-06-27T23:49:31.329Z][RAG-REBUILD] 파싱 미지원 첨부 형식, 메타데이터만 본문에 포함 예정: AAA.m4a (audio/x-m4a)
+[2026-06-27T23:49:31.330Z][RAG-REBUILD] 파싱 미지원 첨부 형식, 메타데이터만 본문에 포함 예정: _talkv_wy5gXQr7YD_In47ccAPApINSVeaf2STY1_talkv_high.mov (video/quicktime)
+[2026-06-27T23:49:31.330Z][RAG-REBUILD] 파싱 미지원 첨부 형식, 메타데이터만 본문에 포함 예정: towel_sequence_hist_eq.mp4 (video/mp4)
+[2026-06-27T23:49:31.330Z][RAG-REBUILD] 파싱 미지원 첨부 형식, 메타데이터만 본문에 포함 예정: SBS_AVM.mp4 (video/mp4)
+[2026-06-27T23:49:31.332Z][RAG-REBUILD] 파싱 미지원 첨부 형식, 메타데이터만 본문에 포함 예정: 60504_090852 복사본.m4a (audio/x-m4a)
+[2026-06-27T23:49:31.336Z][RAG-REBUILD] 파싱 미지원 첨부 형식, 메타데이터만 본문에 포함 예정: 60504_090852 복사본.m4a (audio/x-m4a)
+[2026-06-27T23:49:31.336Z][RAG-REBUILD] 파싱 미지원 첨부 형식, 메타데이터만 본문에 포함 예정: 60504_090852 복사본.m4a (audio/x-m4a)
+[2026-06-27T23:49:31.336Z][RAG-REBUILD] 파싱 미지원 첨부 형식, 메타데이터만 본문에 포함 예정: 60504_090852 복사본.m4a (audio/x-m4a)
+[2026-06-27T23:49:31.337Z][RAG-REBUILD] 파싱 미지원 첨부 형식, 메타데이터만 본문에 포함 예정: 60504_090852.m4a (audio/x-m4a)
+[2026-06-27T23:49:31.339Z][RAG-REBUILD] 첨부 파일 없음, 건너뜀: audio.m4a (/home/freegear/EasyDocStation/Database/ObjectFile/ch-1776440801214/c545d592-42ff-40e7-810f-d93a3a1eff2b/audio.m4a)
+[2026-06-27T23:49:31.340Z][RAG-REBUILD] 첨부 파일 없음, 건너뜀: audio.m4a (/home/freegear/EasyDocStation/Database/ObjectFile/ch-1776440801214/5d296ced-64e8-4181-bb6f-b33f55ce3141/audio.m4a)
+[2026-06-27T23:49:31.340Z][RAG-REBUILD] 첨부 파일 없음, 건너뜀: audio.m4a (/home/freegear/EasyDocStation/Database/ObjectFile/ch-1776440801214/cc2b7f02-f9c8-49d0-95c2-a9e2cc7491db/audio.m4a)
+[2026-06-27T23:49:31.355Z][RAG-REBUILD] 파싱 미지원 첨부 형식, 메타데이터만 본문에 포함 예정: media1.mp4 (video/mp4)
+[2026-06-27T23:49:31.357Z][RAG-REBUILD] 파싱 미지원 첨부 형식, 메타데이터만 본문에 포함 예정: KakaoTalk_Video_2026-06-20-09-42-35.mp4 (video/mp4)
+[2026-06-27T23:49:31.465Z][RAG-REBUILD] 파싱 미지원 첨부 형식, 메타데이터만 본문에 포함 예정: 2026년 예비창업패키지 사업계획서_1.1.hwp (unknown)
+[2026-06-27T23:49:31.466Z][RAG-REBUILD] 파싱 미지원 첨부 형식, 메타데이터만 본문에 포함 예정: 2026년 예비창업패키지 사업계획서_1.2.hwp (unknown)
+[2026-06-27T23:49:31.467Z][RAG-REBUILD] 파싱 미지원 첨부 형식, 메타데이터만 본문에 포함 예정: 2026년 예비창업패키지 사업계획서_1.3.hwp (unknown)
+[2026-06-27T23:49:31.494Z][RAG-REBUILD] 파싱 미지원 첨부 형식, 메타데이터만 본문에 포함 예정: 화면 기록 2026-05-02 오후 11.32.16.mov (video/quicktime)
+[2026-06-27T23:49:31.495Z][RAG-REBUILD] 파싱 미지원 첨부 형식, 메타데이터만 본문에 포함 예정: 화면 기록 2026-05-02 오전 9.51.34.mp4 (video/mp4)
+[2026-06-27T23:49:31.545Z][RAG-REBUILD] 파싱 미지원 첨부 형식, 메타데이터만 본문에 포함 예정: 화면 기록 2026-05-02 오전 9.51.34.mov (video/quicktime)
+[2026-06-27T23:49:31.688Z][RAG-REBUILD] 파싱 미지원 첨부 형식, 메타데이터만 본문에 포함 예정: CremaXample.exe (application/x-msdownload)
+[2026-06-27T23:49:31.716Z][RAG-REBUILD] 파싱 미지원 첨부 형식, 메타데이터만 본문에 포함 예정: media1.mp4 (video/mp4)
+[2026-06-27T23:49:31.732Z][RAG-REBUILD] 파싱 미지원 첨부 형식, 메타데이터만 본문에 포함 예정: spc 지비전K연새비상 주식회사 연세대 교직원식당 한경관 어울샘 관련 ai _1777854322831.hwp (unknown)
+[2026-06-27T23:49:31.762Z][RAG-REBUILD] 파싱 미지원 첨부 형식, 메타데이터만 본문에 포함 예정: _talkv_wy5gXQr7YD_In47ccAPApINSVeaf2STY1_talkv_high.mov (video/quicktime)
+[2026-06-27T23:49:31.763Z][RAG-REBUILD] 파싱 미지원 첨부 형식, 메타데이터만 본문에 포함 예정: towel_sequence_hist_eq.mp4 (video/mp4)
+[2026-06-27T23:49:31.764Z][RAG-REBUILD] 파싱 미지원 첨부 형식, 메타데이터만 본문에 포함 예정: SBS_AVM.mp4 (video/mp4)
+[2026-06-27T23:49:31.782Z][RAG-REBUILD] 파싱 미지원 첨부 형식, 메타데이터만 본문에 포함 예정: [붙임 1-1] 신청방법 및 신청 또는 지원 제외사항 등 유의사항.hwpx (unknown)
+[2026-06-27T23:49:31.782Z][RAG-REBUILD] 파싱 미지원 첨부 형식, 메타데이터만 본문에 포함 예정: [붙임 1-2] 중소기업기술개발 지원사업 보안대책.hwpx (unknown)
+[2026-06-27T23:49:31.782Z][RAG-REBUILD] 파싱 미지원 첨부 형식, 메타데이터만 본문에 포함 예정: [붙임 2] 2026년도 중소기업기술혁신개발(도메인특화AI모델개발) 세부 지원내용.hwpx (unknown)
+[2026-06-27T23:49:31.782Z][RAG-REBUILD] 파싱 미지원 첨부 형식, 메타데이터만 본문에 포함 예정: [붙임 3] 4대 업무혁신 분야 및 품목개요서.hwpx (unknown)
+[2026-06-27T23:49:31.783Z][RAG-REBUILD] 파싱 미지원 첨부 형식, 메타데이터만 본문에 포함 예정: 1. 연구개발계획서 양식.hwp (unknown)
+[2026-06-27T23:49:31.783Z][RAG-REBUILD] 파싱 미지원 첨부 형식, 메타데이터만 본문에 포함 예정: 2. 신용상태 조회 정보활용 동의서.hwp (unknown)
+[2026-06-27T23:49:31.783Z][RAG-REBUILD] 파싱 미지원 첨부 형식, 메타데이터만 본문에 포함 예정: 3. 중소기업기술개발사업 개인정보 수집이용 동의서.hwp (unknown)
+[2026-06-27T23:49:31.783Z][RAG-REBUILD] 파싱 미지원 첨부 형식, 메타데이터만 본문에 포함 예정: 4. 외부기술도입비 현물산정 신청서.hwp (unknown)
+[2026-06-27T23:49:31.783Z][RAG-REBUILD] 파싱 미지원 첨부 형식, 메타데이터만 본문에 포함 예정: 5. 컨소시엄 확약서.hwp (unknown)
+[2026-06-27T23:49:31.959Z][RAG-REBUILD] 파싱 미지원 첨부 형식, 메타데이터만 본문에 포함 예정: 1. 연구개발계획서_트리포스_v1.5 (1).hwp (unknown)
+[2026-06-27T23:49:31.960Z][RAG-REBUILD] 파싱 미지원 첨부 형식, 메타데이터만 본문에 포함 예정: 1. 연구개발계획서_트리포스_v1.7_SC.hwp (unknown)
+[2026-06-27T23:49:31.961Z][RAG-REBUILD] 파싱 미지원 첨부 형식, 메타데이터만 본문에 포함 예정: 1. 연구개발계획서_트리포스_v1.7_SC.hwp (unknown)
+[2026-06-27T23:49:31.962Z][RAG-REBUILD] 파싱 미지원 첨부 형식, 메타데이터만 본문에 포함 예정: 1. 연구개발계획서_트리포스_v1.99.hwp (unknown)
+[2026-06-27T23:49:31.964Z][RAG-REBUILD] 파싱 미지원 첨부 형식, 메타데이터만 본문에 포함 예정: 1. 연구개발계획서_트리포스_v1.999.hwp (unknown)
+[2026-06-27T23:49:31.965Z][RAG-REBUILD] 파싱 미지원 첨부 형식, 메타데이터만 본문에 포함 예정: 1. 연구개발계획서_트리포스_v1.9999_SC.hwp (unknown)
+[2026-06-27T23:49:31.967Z][RAG-REBUILD] 파싱 미지원 첨부 형식, 메타데이터만 본문에 포함 예정: 1. 연구개발계획서_트리포스_v1.9999_SC.hwp (unknown)
+[2026-06-27T23:49:31.974Z][RAG-REBUILD] 파싱 미지원 첨부 형식, 메타데이터만 본문에 포함 예정: 연구개발계획서_트리포스_최종.hwp (unknown)
+[2026-06-27T23:49:31.975Z][RAG-REBUILD] 파싱 미지원 첨부 형식, 메타데이터만 본문에 포함 예정: 연구개발계획서_트리포스_최종-1.1.hwp (unknown)
+[2026-06-27T23:49:32.000Z][RAG-REBUILD] 파싱 미지원 첨부 형식, 메타데이터만 본문에 포함 예정: MG79RU5UfVYVqUhkjF9R5cQk4ME.avif (image/avif)
+[2026-06-27T23:49:32.005Z][RAG-REBUILD] 학습 대상: 게시글 635건, 댓글 919건, 첨부 1075건
+[2026-06-27T23:49:32.882Z][RAG-REBUILD] 게시글 배치 학습 1/64: 10건
+/home/freegear/EasyDocStation/server/rag_train.py:120: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+  from langchain_community.document_loaders import Docx2txtLoader
+[RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v2' already exists
+[RAG] post=2f87ee3b-5a3f-496f-a13e-06083d75930f text → 1청크
+[RAG] 이미지 학습 시작: 스크린샷 2026-06-26 오전 4.00.41.png
+[RAG] Gemma 이미지 설명 완료 (page=1, 36.9s): 2523자
+[RAG] 이미지 학습 완료: 스크린샷 2026-06-26 오전 4.00.41.png (6청크)
+[RAG] MarkItDown 학습 시작: EasyDocStation (offline) (1).html (html)
+[RAG] MarkItDown 학습 완료: EasyDocStation (offline) (1).html (1청크, 0.4s)
+[RAG] 학습 진행률: 10% (게시글 MarkItDown)
+[RAG] post=dff62c12-47e7-4e2f-a2c6-fc33f9dc0e82 text → 5청크
+[RAG] post=5db304e1-7831-4a78-8a32-b442cf63cef1 text → 1청크
+[RAG] 학습 진행률: 20% (게시글 본문)
+[RAG] post=e96b2108-b952-4974-84e3-42324436e266 text → 1청크
+[RAG] MarkItDown 학습 시작: slides_20260603015702.pptx (presentation)
+[RAG] MarkItDown 학습 완료: slides_20260603015702.pptx (11청크, 0.4s)
+[RAG] 학습 진행률: 30% (게시글 PPT)
+[RAG] post=81de8c45-1b3c-4655-8239-1a71751f5f2e text → 1청크
+[RAG] MarkItDown 학습 시작: 임종윤대표.xls (excel)
+[RAG] MarkItDown 학습 완료: 임종윤대표.xls (4청크, 0.2s)
+[RAG] post=4e2ee88e-b7cc-445c-8249-1e7a825ae5c0 text → 1청크
+[RAG] 학습 진행률: 40% (게시글 본문)
+[RAG] MarkItDown 학습 시작: SEE BEYOND THE SCREEN .pptx (presentation)
+[RAG] MarkItDown 학습 완료: SEE BEYOND THE SCREEN .pptx (14청크, 0.5s)
+[RAG] post=fc9cfec0-335d-4a09-a3ba-a6824264026a text → 1청크
+[RAG] 학습 진행률: 50% (게시글 본문)
+[RAG] MarkItDown 학습 시작: G-TLD 일본 단가표_수정 (1).xlsx (excel)
+[RAG] MarkItDown 학습 완료: G-TLD 일본 단가표_수정 (1).xlsx (2청크, 0.1s)
+[RAG] MarkItDown 학습 시작: G-TLD 일본 단가표_수정_1.1.xlsx (excel)
+[RAG] MarkItDown 학습 완료: G-TLD 일본 단가표_수정_1.1.xlsx (2청크, 0.1s)
+[RAG] 학습 진행률: 60% (게시글 Excel)
+[RAG] post=c29aec5a-2d32-4671-8f14-94af4b717f21 text → 1청크
+[RAG] Word 학습 시작: 업무협력 및 해외판매 계약서_1.2.docx
+[RAG] Word 학습 완료: 업무협력 및 해외판매 계약서_1.2.docx (5청크)
+[RAG] Word 학습 시작: 위임장_동우화인켐_1.3.docx
+[RAG] Word 학습 완료: 위임장_동우화인켐_1.3.docx (2청크)
+[RAG] 학습 진행률: 70% (게시글 Word)
+[RAG] Word 학습 시작: 위임장_동우화인켐_1.2.docx
+[RAG] Word 학습 완료: 위임장_동우화인켐_1.2.docx (2청크)
+[RAG] post=6b1455a2-0a28-4b5b-82b1-cfac5e768b6a text → 1청크
+[RAG] 학습 진행률: 80% (게시글 본문)
+[RAG] Word 학습 시작: 업무협력 및 해외판매 계약서.docx
+[RAG] Word 학습 완료: 업무협력 및 해외판매 계약서.docx (6청크)
+[RAG] post=d407acd9-0803-41f0-83e6-c8e002a66c7a text → 1청크
+[RAG] 학습 진행률: 90% (게시글 본문)
+[RAG] Word 학습 시작: 위임장_DongWoo_1.2.docx
+[RAG] Word 학습 완료: 위임장_DongWoo_1.2.docx (2청크)
+[RAG] 저장 완료 — 71청크 / 10개 게시글 / 0개 댓글
+[RAG] 학습 진행률: 100% (저장)
+[2026-06-27T23:50:17.638Z][RAG-REBUILD] 게시글 배치 학습 2/64: 10건
+/home/freegear/EasyDocStation/server/rag_train.py:120: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+  from langchain_community.document_loaders import Docx2txtLoader
+[RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v2' already exists
+[RAG] post=f7e94527-e499-4188-88a8-8d7907872b94 text → 3청크
+[RAG] post=92ab1e0b-56e8-4997-a403-c081271e778c text → 1청크
+[RAG] 학습 진행률: 10% (게시글 본문)
+[RAG] PDF 학습 시작: GTLD leaflet.pdf
+[RAG] PDF 파싱 시작 (Unstructured fast): GTLD leaflet.pdf
+[RAG] PDF 파싱 완료 (Unstructured fast): GTLD leaflet.pdf / elements=528 / 1.8s
+[RAG] PDF 학습 완료: GTLD leaflet.pdf (22청크)
+[RAG] 분리 저장 완료: /home/freegear/EasyDocStation/Database/ObjectFile/FileTrainingData/92ab1e0b-56e8-4997-a403-c081271e778c/no_comment/7db94e5b-1ff4-4a0b-9a40-601bd94fc316/GTLD_leaflet.pdf
+[RAG] PDF 학습 시작: GTLD.pdf
+[RAG] PDF 파싱 시작 (Unstructured fast): GTLD.pdf
+[RAG] PDF 파싱 완료 (Unstructured fast): GTLD.pdf / elements=189 / 0.3s
+[RAG] PDF 학습 완료: GTLD.pdf (11청크)
+[RAG] 분리 저장 완료: /home/freegear/EasyDocStation/Database/ObjectFile/FileTrainingData/92ab1e0b-56e8-4997-a403-c081271e778c/no_comment/bb314fb3-8b43-4098-b65d-508a33b338ed/GTLD.pdf
+[RAG] 학습 진행률: 20% (게시글 PDF)
+[RAG] PDF 학습 시작: 2026 DFLUX CATALOGUE_V1.pdf
+[RAG] PDF 파싱 시작 (Unstructured fast): 2026 DFLUX CATALOGUE_V1.pdf
+[RAG] PDF 학습 완료: 2026 DFLUX CATALOGUE_V1.pdf (61청크)
+[RAG] 분리 저장 완료: /home/freegear/EasyDocStation/Database/ObjectFile/FileTrainingData/92ab1e0b-56e8-4997-a403-c081271e778c/no_comment/e2e5d161-785b-4784-8fd8-342a8e247cf5/2026_DFLUX_CATALOGUE_V1.pdf
+[RAG] PDF 학습 시작: 2026 DFLUX CATALOGUE_V2_JP Version.pdf
+[RAG] PDF 파싱 시작 (Unstructured fast): 2026 DFLUX CATALOGUE_V2_JP Version.pdf
+Cannot set non-stroke color because expected 4 components but got [1]
+Cannot set non-stroke color because expected 4 components but got [1]
+Cannot set non-stroke color because expected 4 components but got [1]
+Cannot set non-stroke color because expected 4 components but got [1]
+Cannot set non-stroke color because expected 4 components but got [1]
+[RAG] PDF 학습 완료: 2026 DFLUX CATALOGUE_V2_JP Version.pdf (29청크)
+[RAG] 분리 저장 완료: /home/freegear/EasyDocStation/Database/ObjectFile/FileTrainingData/92ab1e0b-56e8-4997-a403-c081271e778c/no_comment/8b893328-d3f4-40d3-95e3-970431877161/2026_DFLUX_CATALOGUE_V2_JP_Version.pdf
+[RAG] 학습 진행률: 30% (게시글 PDF)
+[RAG] PDF 학습 시작: 2026 DFLUX CATALOGUE_V2.pdf
+[RAG] PDF 파싱 시작 (Unstructured fast): 2026 DFLUX CATALOGUE_V2.pdf
+Cannot set non-stroke color because expected 4 components but got [1]
+Cannot set non-stroke color because expected 4 components but got [1]
+Cannot set non-stroke color because expected 4 components but got [1]
+Cannot set non-stroke color because expected 4 components but got [1]
+Cannot set non-stroke color because expected 4 components but got [1]
+[RAG] PDF 학습 완료: 2026 DFLUX CATALOGUE_V2.pdf (27청크)
+[RAG] 분리 저장 완료: /home/freegear/EasyDocStation/Database/ObjectFile/FileTrainingData/92ab1e0b-56e8-4997-a403-c081271e778c/no_comment/c923b889-8348-4834-855b-e9c577fb6e57/2026_DFLUX_CATALOGUE_V2.pdf
+[RAG] 학습 진행률: 40% (게시글 PDF)
+[RAG] PDF 학습 시작: 2026 DFLUX CATALOGUE_V3.pdf
+[RAG] PDF 파싱 시작 (Unstructured fast): 2026 DFLUX CATALOGUE_V3.pdf
+Cannot set non-stroke color because expected 3 components but got [1]
+Cannot set non-stroke color because expected 3 components but got [1]
+Cannot set non-stroke color because expected 3 components but got [1]
+Cannot set non-stroke color because expected 3 components but got [1]
+Cannot set non-stroke color because expected 3 components but got [1]
+[RAG] PDF 파싱 완료 (Unstructured fast): 2026 DFLUX CATALOGUE_V3.pdf / elements=430 / 0.9s
+[RAG] PDF 학습 완료: 2026 DFLUX CATALOGUE_V3.pdf (37청크)
+[RAG] 분리 저장 완료: /home/freegear/EasyDocStation/Database/ObjectFile/FileTrainingData/92ab1e0b-56e8-4997-a403-c081271e778c/no_comment/4052cf28-773d-4b34-9477-af7af86cc5d1/2026_DFLUX_CATALOGUE_V3.pdf
+[RAG] post=8f1507f7-fb8f-42bc-a121-deb4b4352d28 text → 1청크
+[RAG] 학습 진행률: 50% (게시글 본문)
+[RAG] post=39380665-9606-40cd-8466-93a657d7dd57 text → 1청크
+[RAG] post=756dc9b5-18cd-4384-b9b5-f83e51e654ce text → 1청크
+[RAG] 학습 진행률: 60% (게시글 본문)
+[RAG] post=404a196e-ccfc-4f4c-84f7-ba3cbd5de038 text → 1청크
+[RAG] 학습 진행률: 70% (게시글 본문)
+[RAG] post=6763087d-f1d6-4092-a47d-ae5cf20d1046 text → 1청크
+[RAG] post=843f34ac-eada-46de-a1bd-9be823f9d6a9 text → 1청크
+[RAG] 학습 진행률: 80% (게시글 본문)
+[RAG] post=7d22e279-9742-4ced-89d4-f3c2755f917d text → 1청크
+[RAG] post=1207ef61-ae8f-49f3-991e-9ab2b60f5b7f text → 1청크
+[RAG] 학습 진행률: 90% (게시글 본문)
+[RAG] 저장 완료 — 199청크 / 10개 게시글 / 0개 댓글
+[RAG] 학습 진행률: 100% (저장)
+[2026-06-27T23:50:35.990Z][RAG-REBUILD] 게시글 배치 학습 3/64: 10건
+/home/freegear/EasyDocStation/server/rag_train.py:120: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+  from langchain_community.document_loaders import Docx2txtLoader
+[RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v2' already exists
+[RAG] post=eaeb3e2d-d4cd-4d3f-8f8b-043f1261a625 text → 1청크
+[RAG] post=500d2109-feab-46fe-9a0b-e180be093fd1 text → 1청크
+[RAG] 학습 진행률: 10% (게시글 본문)
+[RAG] post=e096671a-da0a-4907-a5a4-0dbf5209c696 text → 1청크
+[RAG] MarkItDown 학습 시작: 202604 G-TLD 표준제안서.pptx (presentation)
+[RAG] MarkItDown 학습 완료: 202604 G-TLD 표준제안서.pptx (13청크, 0.8s)
+[RAG] 학습 진행률: 20% (게시글 PPT)
+[RAG] post=f6a32f35-6618-474e-a95e-af1ae4b7a1ab text → 1청크
+[RAG] post=230819f2-bdd8-4a83-a9db-234b7397e5a8 text → 1청크
+[RAG] 학습 진행률: 30% (게시글 본문)
+[RAG] PDF 학습 시작: IR_포지티브섬_외부공유용_V202601pdf.pdf
+[RAG] PDF 파싱 시작 (Unstructured fast): IR_포지티브섬_외부공유용_V202601pdf.pdf
+[RAG] PDF 파싱 완료 (Unstructured fast): IR_포지티브섬_외부공유용_V202601pdf.pdf / elements=416 / 1.8s
+[RAG] PDF 학습 완료: IR_포지티브섬_외부공유용_V202601pdf.pdf (23청크)
+[RAG] 분리 저장 완료: /home/freegear/EasyDocStation/Database/ObjectFile/FileTrainingData/230819f2-bdd8-4a83-a9db-234b7397e5a8/no_comment/1a9e3432-782a-4886-a1b2-dcac6a599384/IR_포지티브섬_외부공유용_V202601pdf.pdf
+[RAG] post=3d239121-50a7-4247-8853-f02216c75261 text → 1청크
+[RAG] 학습 진행률: 40% (게시글 본문)
+[RAG] PDF 학습 시작: DFlux_회사(제품)소개서.pdf
+[RAG] PDF 파싱 시작 (Unstructured fast): DFlux_회사(제품)소개서.pdf
+Cannot set non-stroke color because expected 3 components but got [1]
+Cannot set non-stroke color because expected 3 components but got [1]
+Cannot set non-stroke color because expected 3 components but got [1]
+Cannot set non-stroke color because expected 3 components but got [1]
+Cannot set non-stroke color because expected 3 components but got [1]
+[RAG] PDF 파싱 완료 (Unstructured fast): DFlux_회사(제품)소개서.pdf / elements=430 / 0.8s
+[RAG] PDF 학습 완료: DFlux_회사(제품)소개서.pdf (37청크)
+[RAG] 분리 저장 완료: /home/freegear/EasyDocStation/Database/ObjectFile/FileTrainingData/3d239121-50a7-4247-8853-f02216c75261/no_comment/c8958b8f-2898-4e01-bd27-3e0ab709defc/DFlux_회사_제품_소개서.pdf
+[RAG] 학습 진행률: 50% (게시글 PDF)
+[RAG] post=e6541993-1842-483d-b1e8-974525a562db text → 1청크
+[RAG] PDF 학습 시작: 2026 DFlux Company Introduction (1).pdf
+[RAG] PDF 파싱 시작 (Unstructured fast): 2026 DFlux Company Introduction (1).pdf
+[RAG] PDF 파싱 완료 (Unstructured fast): 2026 DFlux Company Introduction (1).pdf / elements=4 / 0.6s
+[RAG] PDF 학습 완료: 2026 DFlux Company Introduction (1).pdf (3청크)
+[RAG] 분리 저장 완료: /home/freegear/EasyDocStation/Database/ObjectFile/FileTrainingData/e6541993-1842-483d-b1e8-974525a562db/no_comment/2eaad6a4-a4fb-4649-a7fe-8659f3a10d7e/2026_DFlux_Company_Introduction_1_.pdf
+[RAG] 학습 진행률: 60% (게시글 PDF)
+[RAG] PDF 학습 시작: 2026 DFLUX DIGITAL SIGNAGE CATALOGUE (1).pdf
+[RAG] PDF 파싱 시작 (Unstructured fast): 2026 DFLUX DIGITAL SIGNAGE CATALOGUE (1).pdf
+Cannot set non-stroke color because expected 4 components but got [1]
+Cannot set non-stroke color because expected 4 components but got [1]
+Cannot set non-stroke color because expected 4 components but got [1]
+Cannot set non-stroke color because expected 4 components but got [1]
+Cannot set non-stroke color because expected 4 components but got [1]
+[RAG] PDF 학습 완료: 2026 DFLUX DIGITAL SIGNAGE CATALOGUE (1).pdf (27청크)
+[RAG] 분리 저장 완료: /home/freegear/EasyDocStation/Database/ObjectFile/FileTrainingData/e6541993-1842-483d-b1e8-974525a562db/no_comment/c788e747-0908-4914-bad3-0646c2817bd5/2026_DFLUX_DIGITAL_SIGNAGE_CATALOGUE_1_.pdf
+[RAG] post=f953d222-7234-454b-a68c-e068adb567b2 text → 1청크
+[RAG] 학습 진행률: 70% (게시글 본문)
+[RAG] post=a91a4b49-ab76-422c-a8ed-679692129bdd text → 1청크
+[RAG] PDF 학습 시작: Company_introduction.pptx (1).pdf
+[RAG] PDF 파싱 시작 (Unstructured fast): Company_introduction.pptx (1).pdf
+[RAG] PDF 파싱 완료 (Unstructured fast): Company_introduction.pptx (1).pdf / elements=255 / 0.6s
+[RAG] PDF 학습 완료: Company_introduction.pptx (1).pdf (25청크)
+[RAG] 분리 저장 완료: /home/freegear/EasyDocStation/Database/ObjectFile/FileTrainingData/a91a4b49-ab76-422c-a8ed-679692129bdd/no_comment/cbf8af84-cdb4-43e0-8a68-6cf84edd4e02/Company_introduction.pptx_1_.pdf
+[RAG] 학습 진행률: 80% (게시글 PDF)
+[RAG] post=121e8498-db74-4320-b490-ec825092278d text → 1청크
+[RAG] Word 학습 시작: 실리콘큐브_해외판매협력계약서.docx
+[RAG] Word 학습 완료: 실리콘큐브_해외판매협력계약서.docx (8청크)
+[RAG] 학습 진행률: 90% (게시글 Word)
+[RAG] 저장 완료 — 146청크 / 10개 게시글 / 0개 댓글
+[RAG] 학습 진행률: 100% (저장)
+[2026-06-27T23:50:51.007Z][RAG-REBUILD] 게시글 배치 학습 4/64: 10건
+/home/freegear/EasyDocStation/server/rag_train.py:120: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+  from langchain_community.document_loaders import Docx2txtLoader
+[RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v2' already exists
+[RAG] post=11f57778-ceac-41a1-8e79-019a9470aad3 text → 1청크
+[RAG] post=aafa615c-799f-4e7c-9ea2-b9f1304e675f text → 1청크
+[RAG] 학습 진행률: 10% (게시글 본문)
+[RAG] post=9f8bc680-219a-4812-bb69-9c2b1ef5cffa text → 1청크
+[RAG] Word 학습 시작: 업무협력 및 해외판매 계약서_1.3.docx
+[RAG] Word 학습 완료: 업무협력 및 해외판매 계약서_1.3.docx (5청크)
+[RAG] 학습 진행률: 20% (게시글 Word)
+[RAG] post=fabf571f-1722-48ab-ae57-9f2977355d86 text → 1청크
+[RAG] 학습 진행률: 30% (게시글 본문)
+[RAG] Word 학습 시작: 업무협력 및 해외판매 계약서_1.2.docx
+[RAG] Word 학습 완료: 업무협력 및 해외판매 계약서_1.2.docx (6청크)
+[RAG] post=5ff27408-c605-45b2-a3a5-110cf7b5f695 text → 1청크
+[RAG] 학습 진행률: 40% (게시글 본문)
+[RAG] Word 학습 시작: 업무협력 및 해외판매 계약서_1.1.docx
+[RAG] Word 학습 완료: 업무협력 및 해외판매 계약서_1.1.docx (5청크)
+[RAG] 학습 진행률: 50% (게시글 Word)
+[RAG] post=7c7dce50-d183-4d18-980c-0703c82c0063 text → 3청크
+[RAG] post=0732a4ac-9465-4db2-be49-5b2cf9612d4a text → 2청크
+[RAG] 학습 진행률: 60% (게시글 본문)
+[RAG] post=0d512304-6b0e-4cd2-ac48-71ca2e3e0aa4 text → 2청크
+[RAG] post=416156c4-1c65-4a54-9fa5-76477a021c8d text → 1청크
+[RAG] 학습 진행률: 70% (게시글 본문)
+[RAG] post=493db148-a976-47af-8bb6-a36535631993 text → 1청크
+[RAG] 학습 진행률: 80% (게시글 본문)
+[RAG] 이미지 학습 시작: 스크린샷 2026-06-20 오전 5.11.38.png
+[RAG] Gemma 이미지 설명 완료 (page=1, 49.4s): 2212자
+[RAG] 이미지 학습 완료: 스크린샷 2026-06-20 오전 5.11.38.png (4청크)
+[RAG] 이미지 학습 시작: 스크린샷 2026-06-20 오전 5.15.06.png
+[RAG] Gemma 이미지 설명 완료 (page=1, 48.7s): 2693자
+[RAG] 이미지 학습 완료: 스크린샷 2026-06-20 오전 5.15.06.png (5청크)
+[RAG] 학습 진행률: 90% (게시글 이미지)
+[RAG] 저장 완료 — 39청크 / 10개 게시글 / 0개 댓글
+[RAG] 학습 진행률: 100% (저장)
+[2026-06-27T23:52:35.663Z][RAG-REBUILD] 게시글 배치 학습 5/64: 10건
+/home/freegear/EasyDocStation/server/rag_train.py:120: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+  from langchain_community.document_loaders import Docx2txtLoader
+[RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v2' already exists
+[RAG] post=6c8fe170-2b6e-4a22-a7bb-5b0f88dc87c2 text → 3청크
+[RAG] post=c5c7ce90-1e3f-475d-96fc-d2af6a036900 text → 1청크
+[RAG] 이미지 학습 시작: ficon.png
+[RAG] Gemma 이미지 설명 완료 (page=1, 25.4s): 1639자
+[RAG] 이미지 학습 완료: ficon.png (3청크)
+[RAG] 학습 진행률: 10% (게시글 이미지)
+[RAG] 이미지 학습 시작: logo.png
+[RAG] Gemma 이미지 설명 완료 (page=1, 23.1s): 1318자
+[RAG] 이미지 학습 완료: logo.png (2청크)
+[RAG] post=2ed49eeb-e83a-4cc3-bd56-d0f0cf53944a text → 1청크
+[RAG] 학습 진행률: 20% (게시글 본문)
+[RAG] post=cb4742d5-b3d8-4842-a725-48dd5c4efcca text → 1청크
+[RAG] post=23df8d24-22e5-45e9-89ec-4528cb27cdb7 text → 1청크
+[RAG] 학습 진행률: 30% (게시글 본문)
+[RAG] post=64159887-159d-4959-9ec1-a7ea7a769635 text → 1청크
+[RAG] PDF 학습 시작: 고연봉 급여소득자 절세 포트폴리오 결과2.pdf
+[RAG] PDF 파싱 시작 (Unstructured fast): 고연봉 급여소득자 절세 포트폴리오 결과2.pdf
+Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+Could not get FontBBox from font descriptor because None cannot be parsed as 4 floats
+[RAG] PDF 파싱 완료 (Unstructured fast): 고연봉 급여소득자 절세 포트폴리오 결과2.pdf / elements=228 / 0.8s
+[RAG] PDF 학습 완료: 고연봉 급여소득자 절세 포트폴리오 결과2.pdf (5청크)
+[RAG] 분리 저장 완료: /home/freegear/EasyDocStation/Database/ObjectFile/FileTrainingData/64159887-159d-4959-9ec1-a7ea7a769635/no_comment/0a06fd7f-51bf-488e-b9b0-c538bd42ffaf/고연봉_급여소득자_절세_포트폴리오_결과2.pdf
+[RAG] 학습 진행률: 40% (게시글 PDF)
+[RAG] post=edce00a3-5d75-4ccf-ad97-60373652263a text → 2청크
+[RAG] MarkItDown 학습 시작: ピープルカウント用カメラ設定一覧.xlsx (excel)
+[RAG] MarkItDown 학습 완료: ピープルカウント用カメラ設定一覧.xlsx (8청크, 0.4s)
+[RAG] 학습 진행률: 50% (게시글 Excel)
+[RAG] MarkItDown 학습 시작: ピープルカウント用VPN接続の設定状態.xlsx (excel)
+[RAG] MarkItDown 학습 완료: ピープルカウント用VPN接続の設定状態.xlsx (5청크, 0.2s)
+[RAG] post=aa49f0e0-9850-4fc1-8f00-1772cdd5b041 text → 1청크
+[RAG] post=8fbdb933-6ee8-4227-b170-b013e4456574 text → 1청크
+[RAG] 학습 진행률: 60% (게시글 본문)
+[RAG] post=0c7e3d82-b4e0-4141-8bb5-f3a3fa2875d7 text → 1청크
+[RAG] 이미지 학습 시작: 1.png
+[RAG] Gemma 이미지 설명 완료 (page=1, 28.1s): 1625자
+[RAG] 이미지 학습 완료: 1.png (3청크)
+[RAG] 학습 진행률: 70% (게시글 이미지)
+[RAG] 이미지 학습 시작: 2.png
+[RAG] Gemma 이미지 설명 완료 (page=1, 24.4s): 1585자
+[RAG] 이미지 학습 완료: 2.png (3청크)
+[RAG] 이미지 학습 시작: 3.png
+[RAG] Gemma 이미지 설명 완료 (page=1, 29.8s): 1999자
+[RAG] 이미지 학습 완료: 3.png (4청크)
+[RAG] 학습 진행률: 80% (게시글 이미지)
+[RAG] 이미지 학습 시작: 4.png
+[RAG] Gemma 이미지 설명 완료 (page=1, 31.8s): 1945자
+[RAG] 이미지 학습 완료: 4.png (3청크)
+[RAG] 이미지 학습 시작: 5.png
+[RAG] Gemma 이미지 설명 완료 (page=1, 32.0s): 1842자
+[RAG] 이미지 학습 완료: 5.png (4청크)
+[RAG] 학습 진행률: 90% (게시글 이미지)
+[RAG] 이미지 학습 시작: 6.png
+[RAG] Gemma 이미지 설명 완료 (page=1, 30.4s): 1800자
+[RAG] 이미지 학습 완료: 6.png (3청크)
+[RAG] 저장 완료 — 56청크 / 10개 게시글 / 0개 댓글
+[RAG] 학습 진행률: 100% (저장)
+[2026-06-27T23:56:28.967Z][RAG-REBUILD] 게시글 배치 학습 6/64: 10건
+/home/freegear/EasyDocStation/server/rag_train.py:120: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+  from langchain_community.document_loaders import Docx2txtLoader
+[RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v2' already exists
+[RAG] post=2649a0ed-6c3b-478b-a9c0-55c1ec44804c text → 1청크
+[RAG] post=f1abf033-738e-4ee1-817d-fc1bd14fe95f text → 1청크
+[RAG] PDF 학습 시작: 2026.05-현대건설 과제 계약 사항 (1).pdf
+[RAG] PDF 파싱 시작 (Unstructured fast): 2026.05-현대건설 과제 계약 사항 (1).pdf
+Ignoring wrong pointing object 9 0 (offset 0)
+Ignoring wrong pointing object 81 0 (offset 0)
+Ignoring wrong pointing object 82 0 (offset 0)
+[RAG] PDF 파싱 완료 (Unstructured fast): 2026.05-현대건설 과제 계약 사항 (1).pdf / elements=37 / 0.5s
+[RAG] PDF 학습 완료: 2026.05-현대건설 과제 계약 사항 (1).pdf (11청크)
+[RAG] 분리 저장 완료: /home/freegear/EasyDocStation/Database/ObjectFile/FileTrainingData/f1abf033-738e-4ee1-817d-fc1bd14fe95f/no_comment/4c2cfae7-f28a-4acc-8dee-328fdadff7aa/2026.05-현대건설_과제_계약_사항_1_.pdf
+[RAG] PDF 학습 시작: HD_마곡현장_설치계획_V0.2_0513_설치업체용 (1).pdf
+[RAG] PDF 파싱 시작 (Unstructured fast): HD_마곡현장_설치계획_V0.2_0513_설치업체용 (1).pdf
+[RAG] PDF 파싱 완료 (Unstructured fast): HD_마곡현장_설치계획_V0.2_0513_설치업체용 (1).pdf / elements=316 / 0.7s
+[RAG] PDF 학습 완료: HD_마곡현장_설치계획_V0.2_0513_설치업체용 (1).pdf (18청크)
+[RAG] 분리 저장 완료: /home/freegear/EasyDocStation/Database/ObjectFile/FileTrainingData/f1abf033-738e-4ee1-817d-fc1bd14fe95f/no_comment/cb2f7dfb-c6bf-44e4-b03d-39dda46ad765/HD_마곡현장_설치계획_V0.2_0513_설치업체용_1_.pdf
+[RAG] 학습 진행률: 10% (게시글 PDF)
+[RAG] post=57451ca7-e77d-4bda-a2d2-728da4ecd361 text → 1청크
+[RAG] 이미지 학습 시작: KakaoTalk_Photo_2026-05-25-18-46-32 001.jpeg
+[RAG] Gemma 이미지 설명 완료 (page=1, 34.8s): 2314자
+[RAG] 이미지 학습 완료: KakaoTalk_Photo_2026-05-25-18-46-32 001.jpeg (4청크)
+[RAG] 이미지 학습 시작: KakaoTalk_Photo_2026-05-25-18-46-32 002.jpeg
+[RAG] Gemma 이미지 설명 완료 (page=1, 29.6s): 2028자
+[RAG] 이미지 학습 완료: KakaoTalk_Photo_2026-05-25-18-46-32 002.jpeg (4청크)
+[RAG] 학습 진행률: 20% (게시글 이미지)
+[RAG] 이미지 학습 시작: KakaoTalk_Photo_2026-05-25-18-46-32 003.jpeg
+[RAG] Gemma 이미지 설명 완료 (page=1, 37.4s): 2301자
+[RAG] 이미지 학습 완료: KakaoTalk_Photo_2026-05-25-18-46-32 003.jpeg (5청크)
+[RAG] 이미지 학습 시작: KakaoTalk_Photo_2026-05-25-18-47-03 001.jpeg
+[RAG] Gemma 이미지 설명 완료 (page=1, 34.8s): 2314자
+[RAG] 이미지 학습 완료: KakaoTalk_Photo_2026-05-25-18-47-03 001.jpeg (4청크)
+[RAG] 이미지 학습 시작: KakaoTalk_Photo_2026-05-25-18-47-03 002.jpeg
+[RAG] Gemma 이미지 설명 완료 (page=1, 29.8s): 2028자
+[RAG] 이미지 학습 완료: KakaoTalk_Photo_2026-05-25-18-47-03 002.jpeg (4청크)
+[RAG] 이미지 학습 시작: KakaoTalk_Photo_2026-05-25-18-47-03 003.jpeg
+[RAG] Gemma 이미지 설명 완료 (page=1, 37.4s): 2301자
+[RAG] 이미지 학습 완료: KakaoTalk_Photo_2026-05-25-18-47-03 003.jpeg (5청크)
+[RAG] 학습 진행률: 30% (게시글 이미지)
+[RAG] 이미지 학습 시작: KakaoTalk_Photo_2026-05-25-18-47-03 004.jpeg
+[RAG] Gemma 이미지 설명 완료 (page=1, 34.0s): 2069자
+[RAG] 이미지 학습 완료: KakaoTalk_Photo_2026-05-25-18-47-03 004.jpeg (3청크)
+[RAG] 이미지 학습 시작: KakaoTalk_Photo_2026-05-25-18-47-03 005.jpeg
+[RAG] Gemma 이미지 설명 완료 (page=1, 33.6s): 2094자
+[RAG] 이미지 학습 완료: KakaoTalk_Photo_2026-05-25-18-47-03 005.jpeg (4청크)
+[RAG] 이미지 학습 시작: KakaoTalk_Photo_2026-05-25-18-47-04 006.jpeg
+[RAG] Gemma 이미지 설명 완료 (page=1, 32.3s): 2029자
+[RAG] 이미지 학습 완료: KakaoTalk_Photo_2026-05-25-18-47-04 006.jpeg (3청크)
+[RAG] 학습 진행률: 40% (게시글 이미지)
+[RAG] 이미지 학습 시작: KakaoTalk_Photo_2026-05-25-18-47-04 007.jpeg
+[RAG] Gemma 이미지 설명 완료 (page=1, 30.9s): 2287자
+[RAG] 이미지 학습 완료: KakaoTalk_Photo_2026-05-25-18-47-04 007.jpeg (4청크)
+[RAG] post=eaf06197-e4a7-4970-b898-d10cee95427d text → 1청크
+[RAG] PDF 학습 시작: hyundai_ansim_proposal_1.31.pdf
+[RAG] PDF 파싱 시작 (Unstructured fast): hyundai_ansim_proposal_1.31.pdf
+[RAG] PDF 파싱 완료 (Unstructured fast): hyundai_ansim_proposal_1.31.pdf / elements=154 / 0.3s
+[RAG] PDF 학습 완료: hyundai_ansim_proposal_1.31.pdf (13청크)
+[RAG] 분리 저장 완료: /home/freegear/EasyDocStation/Database/ObjectFile/FileTrainingData/eaf06197-e4a7-4970-b898-d10cee95427d/no_comment/6e666636-6bf7-4beb-8218-de954b706330/hyundai_ansim_proposal_1.31.pdf
+[RAG] PDF 학습 시작: 2026.05-현대건설 과제 계약 사항.pdf
+[RAG] PDF 파싱 시작 (Unstructured fast): 2026.05-현대건설 과제 계약 사항.pdf
+Ignoring wrong pointing object 9 0 (offset 0)
+Ignoring wrong pointing object 81 0 (offset 0)
+Ignoring wrong pointing object 82 0 (offset 0)
+[RAG] PDF 파싱 완료 (Unstructured fast): 2026.05-현대건설 과제 계약 사항.pdf / elements=37 / 0.1s
+[RAG] PDF 학습 완료: 2026.05-현대건설 과제 계약 사항.pdf (11청크)
+[RAG] 분리 저장 완료: /home/freegear/EasyDocStation/Database/ObjectFile/FileTrainingData/eaf06197-e4a7-4970-b898-d10cee95427d/no_comment/34428702-206b-45ac-aad8-db0f484c1f29/2026.05-현대건설_과제_계약_사항.pdf
+[RAG] 학습 진행률: 50% (게시글 PDF)
+[RAG] PDF 학습 시작: 2026.05-현대건설 과제 계약 사항s.pdf
+[RAG] PDF 파싱 시작 (Unstructured fast): 2026.05-현대건설 과제 계약 사항s.pdf
+[RAG] PDF 파싱 완료 (Unstructured fast): 2026.05-현대건설 과제 계약 사항s.pdf / elements=37 / 0.1s
+[RAG] PDF 학습 완료: 2026.05-현대건설 과제 계약 사항s.pdf (11청크)
+[RAG] 분리 저장 완료: /home/freegear/EasyDocStation/Database/ObjectFile/FileTrainingData/eaf06197-e4a7-4970-b898-d10cee95427d/no_comment/47f4d1f7-286c-4fbd-8b03-169d5e7de734/2026.05-현대건설_과제_계약_사항s.pdf
+[RAG] PDF 학습 시작: hyundai_ansim_proposal_1.3.pdf
+[RAG] PDF 파싱 시작 (Unstructured fast): hyundai_ansim_proposal_1.3.pdf
+[RAG] PDF 파싱 완료 (Unstructured fast): hyundai_ansim_proposal_1.3.pdf / elements=154 / 0.2s
+[RAG] PDF 학습 완료: hyundai_ansim_proposal_1.3.pdf (13청크)
+[RAG] 분리 저장 완료: /home/freegear/EasyDocStation/Database/ObjectFile/FileTrainingData/eaf06197-e4a7-4970-b898-d10cee95427d/no_comment/e9a30a3d-69cd-45ff-ab49-1979497d9e85/hyundai_ansim_proposal_1.3.pdf
+[RAG] PDF 학습 시작: hyundai_ansim_proposal_1.31.pdf
+[RAG] PDF 파싱 시작 (Unstructured fast): hyundai_ansim_proposal_1.31.pdf
+[RAG] PDF 파싱 완료 (Unstructured fast): hyundai_ansim_proposal_1.31.pdf / elements=154 / 0.2s
+[RAG] PDF 학습 완료: hyundai_ansim_proposal_1.31.pdf (13청크)
+[RAG] 분리 저장 완료: /home/freegear/EasyDocStation/Database/ObjectFile/FileTrainingData/eaf06197-e4a7-4970-b898-d10cee95427d/no_comment/e54ab242-05ab-4422-80d2-4a74de5a48fb/hyundai_ansim_proposal_1.31.pdf
+[RAG] 학습 진행률: 60% (게시글 PDF)
+[RAG] PDF 학습 시작: hyundai_ansim_proposal_20260128014809.pdf
+[RAG] PDF 파싱 시작 (Unstructured fast): hyundai_ansim_proposal_20260128014809.pdf
+[RAG] PDF 파싱 완료 (Unstructured fast): hyundai_ansim_proposal_20260128014809.pdf / elements=161 / 0.3s
+[RAG] PDF 학습 완료: hyundai_ansim_proposal_20260128014809.pdf (12청크)
+[RAG] 분리 저장 완료: /home/freegear/EasyDocStation/Database/ObjectFile/FileTrainingData/eaf06197-e4a7-4970-b898-d10cee95427d/no_comment/78f1fc1c-28bc-4fd9-84b0-3eea0922e95d/hyundai_ansim_proposal_20260128014809.pdf
+[RAG] MarkItDown 학습 시작: hyundai_ansim_proposal_1.2.pptx (presentation)
+[RAG] MarkItDown 학습 완료: hyundai_ansim_proposal_1.2.pptx (5청크, 0.3s)
+[RAG] MarkItDown 학습 시작: hyundai_ansim_proposal_1.3.pptx (presentation)
+[RAG] MarkItDown 학습 완료: hyundai_ansim_proposal_1.3.pptx (4청크, 0.2s)
+[RAG] post=7a04592a-33c0-431b-b3e3-1728c2ef14e6 text → 1청크
+[RAG] 학습 진행률: 70% (게시글 본문)
+[RAG] 이미지 학습 시작: 본문-현대건설 원격현장관리플랫폼 대시보드.jpg
+[RAG] Gemma 이미지 설명 완료 (page=1, 49.2s): 3032자
+[RAG] 이미지 학습 완료: 본문-현대건설 원격현장관리플랫폼 대시보드.jpg (5청크)
+[RAG] post=975c6ce2-1a84-4a57-be55-1d8aeb31be71 text → 1청크
+[RAG] MarkItDown 학습 시작: 마곡더그리드 시스템 설치공사 견적서_1차 발신_260506.xlsx (excel)
+[RAG] MarkItDown 학습 완료: 마곡더그리드 시스템 설치공사 견적서_1차 발신_260506.xlsx (12청크, 12.5s)
+[RAG] 학습 진행률: 80% (게시글 Excel)
+[RAG] post=8eb80461-8b65-49ff-bbcc-d1164df7ecae text → 1청크
+[RAG] MarkItDown 학습 시작: TADS-Rplus 260227.pptx (presentation)
+[RAG] MarkItDown 학습 완료: TADS-Rplus 260227.pptx (23청크, 0.7s)
+[RAG] post=709abbda-ee39-4dd0-8729-33e7d697d308 text → 27청크
+[RAG] post=bdde1b3b-7959-4ef9-821b-e7600d1b6521 text → 45청크
+[RAG] 학습 진행률: 90% (게시글 본문)
+[RAG] post=46a9e654-ae2a-495b-8240-ce4d82157593 text → 1청크
+[RAG] 이미지 학습 시작: Gemini_Generated_Image_b0du1pb0du1pb0du (1).png
+[RAG] Gemma 이미지 설명 완료 (page=1, 35.6s): 2257자
+[RAG] 이미지 학습 완료: Gemini_Generated_Image_b0du1pb0du1pb0du (1).png (4청크)
+[RAG] 저장 완료 — 275청크 / 10개 게시글 / 0개 댓글
+[RAG] 학습 진행률: 100% (저장)
+[2026-06-28T00:03:56.176Z][RAG-REBUILD] 게시글 배치 학습 7/64: 10건
+/home/freegear/EasyDocStation/server/rag_train.py:120: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+  from langchain_community.document_loaders import Docx2txtLoader
+[RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v2' already exists
+[RAG] post=756bf068-7173-40b8-913a-72e7b756fe2e text → 1청크
+[RAG] MarkItDown 학습 시작: 수량 산출 및 검토사항_260429.xlsx (excel)
+[RAG] MarkItDown 학습 완료: 수량 산출 및 검토사항_260429.xlsx (3청크, 0.4s)
+[RAG] 학습 진행률: 10% (게시글 Excel)
+[RAG] post=da645980-755b-4ba4-8dd8-df3bc4acf8e8 text → 1청크
+[RAG] 학습 진행률: 20% (게시글 본문)
+[RAG] PDF 학습 시작: HD_마곡현장_설치계획_V0.2_0428.pdf
+[RAG] PDF 파싱 시작 (Unstructured fast): HD_마곡현장_설치계획_V0.2_0428.pdf
+[RAG] PDF 파싱 완료 (Unstructured fast): HD_마곡현장_설치계획_V0.2_0428.pdf / elements=230 / 0.7s
+[RAG] PDF 학습 완료: HD_마곡현장_설치계획_V0.2_0428.pdf (8청크)
+[RAG] 분리 저장 완료: /home/freegear/EasyDocStation/Database/ObjectFile/FileTrainingData/da645980-755b-4ba4-8dd8-df3bc4acf8e8/no_comment/2e00ea71-4d51-4dfb-b6ff-c532d0d9f3a6/HD_마곡현장_설치계획_V0.2_0428.pdf
+[RAG] MarkItDown 학습 시작: HD_마곡현장_설치계획_V0.2_0428.pptx (presentation)
+[RAG] MarkItDown 학습 완료: HD_마곡현장_설치계획_V0.2_0428.pptx (8청크, 0.3s)
+[RAG] 학습 진행률: 30% (게시글 PPT)
+[RAG] post=6e0c84b2-abb8-4f3b-b9a6-6f7901208cab text → 1청크
+[RAG] 학습 진행률: 40% (게시글 본문)
+[RAG] post=4928b736-76fd-4c2f-982e-a220507bf19f text → 1청크
+[RAG] post=57ceab3e-3533-4ad2-ad28-c0681a9c36c0 text → 1청크
+[RAG] 학습 진행률: 50% (게시글 본문)
+[RAG] post=8795c93f-6a9b-4715-b478-dec075a2827c text → 1청크
+[RAG] 학습 진행률: 60% (게시글 본문)
+[RAG] post=907f0433-e9dd-4262-a7d8-136628fae708 text → 1청크
+[RAG] post=b9a23313-1cf2-44b8-815d-7bf57be06b8e text → 1청크
+[RAG] 학습 진행률: 70% (게시글 본문)
+[RAG] post=93fe529e-ffe9-407b-b36c-50805e08952c text → 1청크
+[RAG] 학습 진행률: 80% (게시글 본문)
+[RAG] post=7a333c43-00a8-4e0d-abcb-dceb15df948d text → 1청크
+[RAG] PDF 학습 시작: 260511_業務委託契約書 SC＝GOIZ_1.1 - 서명됨.pdf
+[RAG] PDF 파싱 시작 (Unstructured fast): 260511_業務委託契約書 SC＝GOIZ_1.1 - 서명됨.pdf
+[RAG] PDF 파싱 완료 (Unstructured fast): 260511_業務委託契約書 SC＝GOIZ_1.1 - 서명됨.pdf / elements=150 / 0.4s
+[RAG] PDF 학습 완료: 260511_業務委託契約書 SC＝GOIZ_1.1 - 서명됨.pdf (12청크)
+[RAG] 분리 저장 완료: /home/freegear/EasyDocStation/Database/ObjectFile/FileTrainingData/7a333c43-00a8-4e0d-abcb-dceb15df948d/no_comment/c7acfc9a-1f39-4c23-a5d6-fc668580c649/260511_業務委託契約書_SC_GOIZ_1.1_-_서명됨.pdf
+[RAG] 학습 진행률: 90% (게시글 PDF)
+[RAG] 저장 완료 — 41청크 / 10개 게시글 / 0개 댓글
+[RAG] 학습 진행률: 100% (저장)
+[2026-06-28T00:04:05.074Z][RAG-REBUILD] 게시글 배치 학습 8/64: 10건
+/home/freegear/EasyDocStation/server/rag_train.py:120: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+  from langchain_community.document_loaders import Docx2txtLoader
+[RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v2' already exists
+[RAG] post=209393e8-21db-405c-9b8d-e431e6f74034 text → 1청크
+[RAG] Word 학습 시작: 260511_業務委託契約書 SC＝GOIZ_일부 수정_1.1 (1).docx
+[RAG] Word 학습 완료: 260511_業務委託契約書 SC＝GOIZ_일부 수정_1.1 (1).docx (4청크)
+[RAG] post=32684c1f-9ff2-4237-b54b-98cbf747d48d text → 2청크
+[RAG] 학습 진행률: 10% (게시글 본문)
+[RAG] post=47c8b5c5-5f59-42b8-b551-07950fdb5795 text → 3청크
+[RAG] post=7e379083-e598-4248-9dc8-54e1bd7cb589 text → 2청크
+[RAG] 학습 진행률: 20% (게시글 본문)
+[RAG] post=286b9ae9-73c5-45d1-b02b-33e6e658515b text → 1청크
+[RAG] post=d9010e8f-095d-4e5b-9481-5d60612637a6 text → 1청크
+[RAG] 학습 진행률: 30% (게시글 본문)
+[RAG] PDF 학습 시작: 삼표시멘트공장현장.pdf
+[RAG] PDF 파싱 시작 (Unstructured fast): 삼표시멘트공장현장.pdf
+[RAG] PDF 파싱 완료 (Unstructured fast): 삼표시멘트공장현장.pdf / elements=21 / 0.4s
+[RAG] PDF 학습 완료: 삼표시멘트공장현장.pdf (2청크)
+[RAG] 분리 저장 완료: /home/freegear/EasyDocStation/Database/ObjectFile/FileTrainingData/d9010e8f-095d-4e5b-9481-5d60612637a6/no_comment/bad6d3f9-eaca-47e7-be3d-4adc06567108/삼표시멘트공장현장.pdf
+[RAG] post=c437a355-8c5f-4b71-8a6f-3921ec74f7e8 text → 1청크
+[RAG] 학습 진행률: 40% (게시글 본문)
+[RAG] Word 학습 시작: LPR정보_API_V0_2026_02_05_16_12 (1).docx
+[RAG] Word 학습 완료: LPR정보_API_V0_2026_02_05_16_12 (1).docx (1청크)
+[RAG] 이미지 학습 시작: 스크린샷 2026-05-10 오후 9.56.08.png
+[RAG] Gemma 이미지 설명 완료 (page=1, 39.5s): 2336자
+[RAG] 이미지 학습 완료: 스크린샷 2026-05-10 오후 9.56.08.png (4청크)
+[RAG] 학습 진행률: 50% (게시글 이미지)
+[RAG] 이미지 학습 시작: 스크린샷 2026-05-10 오후 11.11.16.png
+[RAG] Gemma 이미지 설명 완료 (page=1, 31.0s): 1780자
+[RAG] 이미지 학습 완료: 스크린샷 2026-05-10 오후 11.11.16.png (3청크)
+[RAG] 이미지 학습 시작: 17-18-38_20mu4485.jpg
+[RAG] Gemma 이미지 설명 완료 (page=1, 26.2s): 1684자
+[RAG] 이미지 학습 완료: 17-18-38_20mu4485.jpg (3청크)
+[RAG] 학습 진행률: 60% (게시글 이미지)
+[RAG] 이미지 학습 시작: 20-07-32_14ro8788.jpg
+[RAG] Gemma 이미지 설명 완료 (page=1, 26.2s): 1605자
+[RAG] 이미지 학습 완료: 20-07-32_14ro8788.jpg (3청크)
+[RAG] post=c4f64717-f63b-4c81-b70b-ab5f875929ce text → 1청크
+[RAG] 학습 진행률: 70% (게시글 본문)
+[RAG] post=a6e98e01-3f5c-4b6f-9568-5a690dddcd5a text → 1청크
+[RAG] Word 학습 시작: 250721_ODROID_LPR_Manual_v0.1_2.docx
+[RAG] Word 학습 완료: 250721_ODROID_LPR_Manual_v0.1_2.docx (5청크)
+[RAG] 학습 진행률: 80% (게시글 Word)
+[RAG] TXT 학습 시작: key_정보.txt
+[RAG] TXT 학습 완료: key_정보.txt (1청크)
+[RAG] ZIP 학습 시작: CREMA_2.2.6.zip
+[RAG] TXT 학습 시작: key_정보.txt
+[RAG] TXT 학습 완료: key_정보.txt (1청크)
+[RAG] ZIP 학습 완료: CREMA_2.2.6.zip (1청크)
+[RAG] 학습 진행률: 90% (게시글 ZIP)
+[RAG] post=4da4bd11-a95e-4876-86a5-b87195c05148 text → 1청크
+[RAG] 저장 완료 — 41청크 / 10개 게시글 / 0개 댓글
+[RAG] 학습 진행률: 100% (저장)
+[2026-06-28T00:06:15.836Z][RAG-REBUILD] 게시글 배치 학습 9/64: 10건
+/home/freegear/EasyDocStation/server/rag_train.py:120: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+  from langchain_community.document_loaders import Docx2txtLoader
+[RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v2' already exists
+[RAG] post=12224ec7-2a91-4467-93d1-c4cad1b4453f text → 1청크
+[RAG] post=9f7e86c1-7533-41f4-9815-aae374431c08 text → 1청크
+[RAG] 학습 진행률: 10% (게시글 본문)
+[RAG] post=22866f29-5743-4859-860b-b873996f0b32 text → 1청크
+[RAG] post=69b12f9f-b182-41ed-a410-5ba03ac4cbec text → 1청크
+[RAG] 학습 진행률: 20% (게시글 본문)
+[RAG] post=51251e5f-bdc1-4d03-9434-32f29cefe210 text → 1청크
+[RAG] 학습 진행률: 30% (게시글 본문)
+[RAG] post=993cbca7-4286-4f49-8fd5-6d5d9ebc3706 text → 1청크
+[RAG] post=8bf2fab2-fb95-4724-a82b-016359b0095a text → 1청크
+[RAG] 학습 진행률: 40% (게시글 본문)
+[RAG] Word 학습 시작: SiliconCube 제공사항.docx
+[RAG] Word 학습 완료: SiliconCube 제공사항.docx (1청크)
+[RAG] 학습 진행률: 50% (게시글 Word)
+[RAG] Word 학습 시작: AI 컨설팅 제안-260623 (1).docx
+[RAG] Word 학습 완료: AI 컨설팅 제안-260623 (1).docx (1청크)
+[RAG] post=51fd65e0-b398-48d3-af12-03c45e08bec3 text → 3청크
+[RAG] 학습 진행률: 60% (게시글 본문)
+[RAG] post=78462e37-9f44-4eba-a4e2-be53f25f062a text → 1청크
+[RAG] MarkItDown 학습 시작: 프로젝트 관리 대시보드 (오프라인) (4).html (html)
+[RAG] MarkItDown 학습 완료: 프로젝트 관리 대시보드 (오프라인) (4).html (1청크, 0.4s)
+[RAG] 학습 진행률: 70% (게시글 MarkItDown)
+[RAG] post=d010e791-2a65-48fc-a246-54e5d6b423bf text → 1청크
+[RAG] 학습 진행률: 80% (게시글 본문)
+[RAG] MarkItDown 학습 시작: 프로젝트 관리 대시보드 (오프라인) (1).html (html)
+[RAG] MarkItDown 학습 완료: 프로젝트 관리 대시보드 (오프라인) (1).html (1청크, 0.1s)
+[RAG] MarkItDown 학습 시작: 프로젝트 관리 대시보드 (오프라인) (3).html (html)
+[RAG] MarkItDown 학습 완료: 프로젝트 관리 대시보드 (오프라인) (3).html (1청크, 0.1s)
+[RAG] 학습 진행률: 90% (게시글 MarkItDown)
+[RAG] 저장 완료 — 17청크 / 10개 게시글 / 0개 댓글
+[RAG] 학습 진행률: 100% (저장)
+[2026-06-28T00:06:21.625Z][RAG-REBUILD] 게시글 배치 학습 10/64: 10건
+/home/freegear/EasyDocStation/server/rag_train.py:120: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+  from langchain_community.document_loaders import Docx2txtLoader
+[RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v2' already exists
+[RAG] post=2bb0dca2-49cf-4ecd-badb-399b8b9a7642 text → 1청크
+[RAG] MarkItDown 학습 시작: 프로젝트 관리 대시보드 (오프라인).html (html)
+[RAG] MarkItDown 학습 완료: 프로젝트 관리 대시보드 (오프라인).html (1청크, 0.4s)
+[RAG] post=8d950111-80ce-489f-8276-a6d9a0a0026c text → 1청크
+[RAG] 이미지 학습 시작: ChatGPT Image 2026년 6월 17일 오후 12_32_37.png
+[RAG] Gemma 이미지 설명 완료 (page=1, 43.0s): 2383자
+[RAG] 이미지 학습 완료: ChatGPT Image 2026년 6월 17일 오후 12_32_37.png (4청크)
+[RAG] post=53520944-76e1-4b9a-9712-9a98076aa8bb text → 1청크
+[RAG] 학습 진행률: 10% (게시글 본문)
+[RAG] 이미지 학습 시작: ChatGPT Image 2026년 6월 17일 오후 12_30_04.png
+[RAG] Gemma 이미지 설명 완료 (page=1, 50.6s): 3090자
+[RAG] 이미지 학습 완료: ChatGPT Image 2026년 6월 17일 오후 12_30_04.png (5청크)
+[RAG] post=4458d267-8d85-4fe3-a81b-a5bbe4f0ab53 text → 1청크
+[RAG] 이미지 학습 시작: ChatGPT Image 2026년 6월 17일 오후 12_28_29.png
+[RAG] Gemma 이미지 설명 완료 (page=1, 46.0s): 2454자
+[RAG] 이미지 학습 완료: ChatGPT Image 2026년 6월 17일 오후 12_28_29.png (4청크)
+[RAG] post=751034e0-ac1a-4792-9599-b626d677416c text → 1청크
+[RAG] 학습 진행률: 20% (게시글 본문)
+[RAG] 이미지 학습 시작: ChatGPT Image 2026년 6월 17일 오후 12_26_53.png
+[RAG] Gemma 이미지 설명 완료 (page=1, 52.0s): 2882자
+[RAG] 이미지 학습 완료: ChatGPT Image 2026년 6월 17일 오후 12_26_53.png (5청크)
+[RAG] MarkItDown 학습 시작: 프로젝트 관리 대시보드 (오프라인) (2).html (html)
+[RAG] MarkItDown 학습 완료: 프로젝트 관리 대시보드 (오프라인) (2).html (1청크, 0.1s)
+[RAG] post=35a3e84c-0921-43ad-a948-3a96a8174b6d text → 1청크
+[RAG] 이미지 학습 시작: Gemini_Generated_Image_78enkz78enkz78en.png
+[RAG] Gemma 이미지 설명 완료 (page=1, 47.6s): 3050자
+[RAG] 이미지 학습 완료: Gemini_Generated_Image_78enkz78enkz78en.png (6청크)
+[RAG] 학습 진행률: 30% (게시글 이미지)
+[RAG] 이미지 학습 시작: Gemini_Generated_Image_sz14gwsz14gwsz14.png
+[RAG] Gemma 이미지 설명 완료 (page=1, 46.5s): 2935자
+[RAG] 이미지 학습 완료: Gemini_Generated_Image_sz14gwsz14gwsz14.png (6청크)
+[RAG] post=340c5d62-8f11-4928-99eb-e37e4cb161a3 text → 1청크
+[RAG] post=8cddd4e9-1e9b-4af7-aaa9-15915c727d93 text → 1청크
+[RAG] 이미지 학습 시작: Gemini_Generated_Image_u019b6u019b6u019.png
+[RAG] Gemma 이미지 설명 완료 (page=1, 41.4s): 3199자
+[RAG] 이미지 학습 완료: Gemini_Generated_Image_u019b6u019b6u019.png (6청크)
+[RAG] 학습 진행률: 40% (게시글 이미지)
+[RAG] 이미지 학습 시작: Gemini_Generated_Image_qz334jqz334jqz33.png
+[RAG] Gemma 이미지 설명 완료 (page=1, 29.1s): 2163자
+[RAG] 이미지 학습 완료: Gemini_Generated_Image_qz334jqz334jqz33.png (4청크)
+[RAG] 이미지 학습 시작: c7b0a0c3-34c7-4514-b1b5-2f4c2fae976d.jpeg
+[RAG] Gemma 이미지 설명 완료 (page=1, 40.0s): 3020자
+[RAG] 이미지 학습 완료: c7b0a0c3-34c7-4514-b1b5-2f4c2fae976d.jpeg (5청크)
+[RAG] 이미지 학습 시작: kfK86h14YSKjCvNi1HxERKjivdk.webp
+[RAG] Gemma 이미지 설명 완료 (page=1, 50.6s): 3412자
+[RAG] 이미지 학습 완료: kfK86h14YSKjCvNi1HxERKjivdk.webp (6청크)
+[RAG] 이미지 학습 시작: wingman-platform-dashboard.webp
+[RAG] Gemma 이미지 설명 완료 (page=1, 38.1s): 3139자
+[RAG] 이미지 학습 완료: wingman-platform-dashboard.webp (6청크)
+[RAG] 학습 진행률: 50% (게시글 이미지)
+[RAG] 이미지 학습 시작: Gemini_Generated_Image_sj2zdbsj2zdbsj2z.png
+[RAG] Gemma 이미지 설명 완료 (page=1, 47.6s): 3107자
+[RAG] 이미지 학습 완료: Gemini_Generated_Image_sj2zdbsj2zdbsj2z.png (7청크)
+[RAG] MarkItDown 학습 시작: slides_20260603011156.pptx (presentation)
+[RAG] MarkItDown 학습 완료: slides_20260603011156.pptx (17청크, 0.6s)
+[RAG] MarkItDown 학습 시작: slides_20260603011156.pptx (presentation)
+[RAG] MarkItDown 학습 완료: slides_20260603011156.pptx (16청크, 0.5s)
+[RAG] MarkItDown 학습 시작: AI지식자산플랫폼제안.pptx (presentation)
+[RAG] MarkItDown 학습 완료: AI지식자산플랫폼제안.pptx (16청크, 0.5s)
+[RAG] 학습 진행률: 60% (게시글 PPT)
+[RAG] MarkItDown 학습 시작: AI지식자산플랫폼제안_1.1.pptx (presentation)
+[RAG] MarkItDown 학습 완료: AI지식자산플랫폼제안_1.1.pptx (17청크, 0.6s)
+[RAG] post=99c5b770-ad75-462e-ad42-189107104383 text → 1청크
+[RAG] 이미지 학습 시작: Gemini_Generated_Image_p94suip94suip94s.png
+[RAG] Gemma 이미지 설명 완료 (page=1, 41.6s): 3098자
+[RAG] 이미지 학습 완료: Gemini_Generated_Image_p94suip94suip94s.png (5청크)
+[RAG] 이미지 학습 시작: Gemini_Generated_Image_m0g80mm0g80mm0g8.png
+[RAG] Gemma 이미지 설명 완료 (page=1, 40.0s): 3657자
+[RAG] 이미지 학습 완료: Gemini_Generated_Image_m0g80mm0g80mm0g8.png (6청크)
+[RAG] 학습 진행률: 70% (게시글 이미지)
+[RAG] 이미지 학습 시작: Gemini_Generated_Image_v8n6ghv8n6ghv8n6.png
+[RAG] Gemma 이미지 설명 완료 (page=1, 40.9s): 3120자
+[RAG] 이미지 학습 완료: Gemini_Generated_Image_v8n6ghv8n6ghv8n6.png (5청크)
+[RAG] 이미지 학습 시작: Gemini_Generated_Image_6kz00r6kz00r6kz0.png
+[RAG] Gemma 이미지 설명 완료 (page=1, 36.3s): 2803자
+[RAG] 이미지 학습 완료: Gemini_Generated_Image_6kz00r6kz00r6kz0.png (5청크)
+[RAG] 이미지 학습 시작: Gemini_Generated_Image_gslhurgslhurgslh.png
+[RAG] Gemma 이미지 설명 완료 (page=1, 45.1s): 3082자
+[RAG] 이미지 학습 완료: Gemini_Generated_Image_gslhurgslhurgslh.png (6청크)
+[RAG] 이미지 학습 시작: Gemini_Generated_Image_gslhurgslhurgslh.png
+[RAG] Gemma 이미지 설명 완료 (page=1, 46.4s): 3415자
+[RAG] 이미지 학습 완료: Gemini_Generated_Image_gslhurgslhurgslh.png (5청크)
+[RAG] 학습 진행률: 80% (게시글 이미지)
+[RAG] 이미지 학습 시작: Gemini_Generated_Image_nt6bm4nt6bm4nt6b.png
+[RAG] Gemma 이미지 설명 완료 (page=1, 39.1s): 3565자
+[RAG] 이미지 학습 완료: Gemini_Generated_Image_nt6bm4nt6bm4nt6b.png (6청크)
+[RAG] 이미지 학습 시작: Gemini_Generated_Image_j9t6ydj9t6ydj9t6.png
+[RAG] Gemma 이미지 설명 완료 (page=1, 49.1s): 4211자
+[RAG] 이미지 학습 완료: Gemini_Generated_Image_j9t6ydj9t6ydj9t6.png (7청크)
+[RAG] 이미지 학습 시작: Gemini_Generated_Image_9gxo0y9gxo0y9gxo.png
+[RAG] Gemma 이미지 설명 완료 (page=1, 31.8s): 2461자
+[RAG] 이미지 학습 완료: Gemini_Generated_Image_9gxo0y9gxo0y9gxo.png (5청크)
+[RAG] 이미지 학습 시작: Gemini_Generated_Image_pulsafpulsafpuls (1).png
+[RAG] Gemma 이미지 설명 완료 (page=1, 31.8s): 2545자
+[RAG] 이미지 학습 완료: Gemini_Generated_Image_pulsafpulsafpuls (1).png (4청크)
+[RAG] 학습 진행률: 90% (게시글 이미지)
+[RAG] 이미지 학습 시작: Gemini_Generated_Image_9gxo0y9gxo0y9gxo (1).png
+[RAG] Gemma 이미지 설명 완료 (page=1, 31.8s): 2461자
+[RAG] 이미지 학습 완료: Gemini_Generated_Image_9gxo0y9gxo0y9gxo (1).png (5청크)
+[RAG] post=a4a7f863-719d-43b2-a06e-0df2f8c8d530 text → 1청크
+[RAG] TXT 학습 시작: AI_DigitalWorkforce_미팅제안용_PPT스토리.md
+[RAG] TXT 학습 완료: AI_DigitalWorkforce_미팅제안용_PPT스토리.md (5청크)
+[RAG] 저장 완료 — 206청크 / 10개 게시글 / 0개 댓글
+[RAG] 학습 진행률: 100% (저장)
+[2026-06-28T00:22:39.352Z][RAG-REBUILD] 게시글 배치 학습 11/64: 10건
+/home/freegear/EasyDocStation/server/rag_train.py:120: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+  from langchain_community.document_loaders import Docx2txtLoader
+[RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v2' already exists
+[RAG] post=e2ee351a-7ab9-4bcb-85d8-cd490957a5cc text → 1청크
+[RAG] post=e33c1146-20d3-46ac-abe5-418414dcb11c text → 1청크
+[RAG] PDF 학습 시작: IR 자료_에스지비젼(20260529)_외부용.pdf
+[RAG] PDF 파싱 시작 (Unstructured fast): IR 자료_에스지비젼(20260529)_외부용.pdf
+[RAG] PDF 파싱 완료 (Unstructured fast): IR 자료_에스지비젼(20260529)_외부용.pdf / elements=222 / 0.8s
+[RAG] PDF 학습 완료: IR 자료_에스지비젼(20260529)_외부용.pdf (30청크)
+[RAG] 분리 저장 완료: /home/freegear/EasyDocStation/Database/ObjectFile/FileTrainingData/e33c1146-20d3-46ac-abe5-418414dcb11c/no_comment/6364a441-81bd-49c4-95cb-a19cf14f6193/IR_자료_에스지비젼_20260529__외부용.pdf
+[RAG] 학습 진행률: 10% (게시글 PDF)
+[RAG] post=7049ab64-a523-47e3-a2e8-46d3adb4d6d3 text → 1청크
+[RAG] 이미지 학습 시작: 스크린샷 2026-06-25 오전 8.07.46.png

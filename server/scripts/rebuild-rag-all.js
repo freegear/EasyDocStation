@@ -142,6 +142,10 @@ function countTrainerAttachments(items = []) {
     + (item.words?.length || 0)
     + (item.txts?.length || 0)
     + (item.images?.length || 0)
+    + (item.excels?.length || 0)
+    + (item.presentations?.length || 0)
+    + (item.markitdown_files?.length || 0)
+    + (item.archives?.length || 0)
   ), 0)
 }
 
@@ -161,8 +165,25 @@ function readConfig() {
 }
 
 function buildTrainerConfig(cfg, ragCfg) {
+  const targetTable = process.env.EASYDOC_RAG_REBUILD_TABLE
+    || ragCfg.rebuild_table
+    || ragCfg.next_table
+    || ragCfg.active_table
+    || ragCfg.table_name
+    || 'my_rag_table'
+  const schemaVersion = Number(
+    process.env.EASYDOC_RAG_REBUILD_SCHEMA_VERSION
+    || ragCfg.rebuild_schema_version
+    || ragCfg.schema_version
+    || (String(targetTable).endsWith('_v2') ? 2 : 1)
+  )
   return {
     lancedb_path: getDatabasePath(cfg, 'lancedb Database Path'),
+    table_name: targetTable,
+    rag_table_name: targetTable,
+    active_table: ragCfg.active_table || ragCfg.table_name || 'my_rag_table',
+    next_table: ragCfg.next_table || 'my_rag_table_v2',
+    schema_version: schemaVersion,
     file_training_path: path.resolve(ROOT_DIR, 'Database/ObjectFile/FileTrainingData'),
     chunk_size: ragCfg.chunk_size ?? 800,
     chunk_overlap: ragCfg.chunk_overlap ?? 100,
@@ -220,6 +241,35 @@ function isWordAttachment(row = {}) {
     || WORD_FILE_EXT_RE.test(filename)
 }
 
+function isExcelAttachment(row = {}) {
+  const ct = String(row.content_type || '').toLowerCase()
+  const filename = String(row.filename || '').toLowerCase()
+  return ct === 'application/vnd.ms-excel'
+    || ct === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    || filename.endsWith('.xls')
+    || filename.endsWith('.xlsx')
+}
+
+function isPresentationAttachment(row = {}) {
+  const ct = String(row.content_type || '').toLowerCase()
+  const filename = String(row.filename || '').toLowerCase()
+  return ct.includes('powerpoint')
+    || ct.includes('presentation')
+    || filename.endsWith('.ppt')
+    || filename.endsWith('.pptx')
+}
+
+function isMarkItDownAttachment(row = {}) {
+  const filename = String(row.filename || '').toLowerCase()
+  return filename.endsWith('.xml') || filename.endsWith('.html') || filename.endsWith('.htm') || filename.endsWith('.csv')
+}
+
+function isZipAttachment(row = {}) {
+  const ct = String(row.content_type || '').toLowerCase()
+  const filename = String(row.filename || '').toLowerCase()
+  return ct === 'application/zip' || ct === 'application/x-zip-compressed' || filename.endsWith('.zip')
+}
+
 function isTextAttachment(row = {}) {
   const ct = String(row.content_type || '').toLowerCase()
   const filename = String(row.filename || '').toLowerCase()
@@ -235,7 +285,7 @@ function toTrainerAttachment(row, storageBase) {
 }
 
 function classifyAttachments(rows, storageBase) {
-  const docs = { pdfs: [], words: [], txts: [], images: [] }
+  const docs = { pdfs: [], words: [], txts: [], images: [], excels: [], presentations: [], markitdown_files: [], archives: [] }
   for (const row of rows || []) {
     if (!row || !row.storage_path) continue
     const item = toTrainerAttachment(row, storageBase)
@@ -248,6 +298,16 @@ function classifyAttachments(rows, storageBase) {
     if (ct === 'application/pdf' || filename.endsWith('.pdf')) docs.pdfs.push(item)
     else if (isTextAttachment(row)) docs.txts.push(item)
     else if (isImageAttachment(row)) docs.images.push(item)
+    else if (isExcelAttachment(row)) docs.excels.push(item)
+    else if (isPresentationAttachment(row)) docs.presentations.push(item)
+    else if (isMarkItDownAttachment(row)) {
+      const ext = path.extname(row.filename || '').replace('.', '').toLowerCase()
+      docs.markitdown_files.push({
+        ...item,
+        doc_type: ext === 'csv' ? 'table' : (ext === 'xml' ? 'structured_xml' : 'html'),
+      })
+    }
+    else if (isZipAttachment(row)) docs.archives.push(item)
     else if (isWordAttachment(row)) docs.words.push(item)
     else {
       log(`파싱 미지원 첨부 형식, 메타데이터만 본문에 포함 예정: ${row.filename || row.id} (${row.content_type || 'unknown'})`)
@@ -379,6 +439,7 @@ async function getCommentAttachments(comment, storageBase) {
 
 function appendUnsupportedAttachmentNotice(content, docs, allAttachmentCount) {
   const knownCount = docs.pdfs.length + docs.words.length + docs.txts.length + docs.images.length
+    + docs.excels.length + docs.presentations.length + docs.markitdown_files.length + docs.archives.length
   if (allAttachmentCount <= knownCount) return content || ''
   const suffix = `[RAG 재학습 참고] 파싱 미지원 첨부 ${allAttachmentCount - knownCount}개가 있어 원문 대신 파일 메타데이터만 확인되었습니다.`
   return [content || '', suffix].filter(Boolean).join('\n\n')
@@ -640,9 +701,20 @@ Python: ${getPythonExecutable()}
 
   log(`ObjectFile Path: ${storageBase}`)
   log(`LanceDB Path: ${trainerConfig.lancedb_path}`)
+  log(`RAG target table: ${trainerConfig.table_name} (schema=${trainerConfig.schema_version})`)
   log(`배치 학습 시간 제한: ${timeoutMs > 0 ? `${Math.round(timeoutMs / 1000)}초` : '없음'}`)
 
   await ensureRagServerForEmbedding()
+
+  if (String(process.env.EASYDOC_RAG_REBUILD_RESET_TABLE || '1') !== '0') {
+    log(`RAG 대상 테이블 초기화: ${trainerConfig.table_name}`)
+    await callPythonTrainer({
+      config: { ...trainerConfig, reset_table: true },
+      reset_table: true,
+      posts: [],
+      comments: [],
+    }, timeoutMs, null)
+  }
 
   const rawPosts = await queryAllPosts()
   const postChannelMap = new Map(rawPosts.map(p => [String(p.id), String(p.channel_id || '')]))
@@ -653,8 +725,12 @@ Python: ${getPythonExecutable()}
   const posts = await buildTrainerPosts(rawPosts, storageBase)
   const comments = await buildTrainerComments(rawComments, storageBase)
 
-  const postAttachmentCount = posts.reduce((n, p) => n + p.pdfs.length + p.words.length + p.txts.length + p.images.length, 0)
-  const commentAttachmentCount = comments.reduce((n, c) => n + c.pdfs.length + c.words.length + c.txts.length + c.images.length, 0)
+  const countAttachments = item => (
+    item.pdfs.length + item.words.length + item.txts.length + item.images.length
+    + item.excels.length + item.presentations.length + item.markitdown_files.length + item.archives.length
+  )
+  const postAttachmentCount = posts.reduce((n, p) => n + countAttachments(p), 0)
+  const commentAttachmentCount = comments.reduce((n, c) => n + countAttachments(c), 0)
   trainingSummary = {
     posts: posts.length,
     comments: comments.length,

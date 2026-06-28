@@ -750,6 +750,8 @@ export default function SiteAdminPage({ onClose, initialTab = 'users' }) {
   const [ragDatasetSelectedIds, setRagDatasetSelectedIds] = useState([])
   const [ragDatasetUploading, setRagDatasetUploading] = useState(false)
   const [ragDatasetTraining, setRagDatasetTraining] = useState(false)
+  const [ragPptComparing, setRagPptComparing] = useState(false)
+  const [ragPptCompareResults, setRagPptCompareResults] = useState([])
   const [showRagResetConfirm, setShowRagResetConfirm] = useState(false)
   const [ragResetting, setRagResetting] = useState(false)
   const [agenticaiForm, setAgenticaiForm] = useState({ num_predict: 4096, num_ctx: 8192, history: 6, language: 'ko', operation_mode: 'server' })
@@ -1241,6 +1243,29 @@ export default function SiteAdminPage({ onClose, initialTab = 'users' }) {
       alert(err.message)
     } finally {
       setRagDatasetTraining(false)
+    }
+  }
+
+  async function handleComparePptPipelines() {
+    const selectedPptIds = ragDatasets
+      .filter(item => ragDatasetSelectedIds.includes(item.id))
+      .filter(item => ['ppt', 'pptx'].includes(String(item.ext || '').toLowerCase()))
+      .map(item => item.id)
+    if (selectedPptIds.length === 0) {
+      alert('비교 검증할 PPT/PPTX 학습 데이터를 선택해주세요.')
+      return
+    }
+    setRagPptComparing(true)
+    try {
+      const result = await apiFetch('/rag/datasets/ppt-compare', {
+        method: 'POST',
+        body: JSON.stringify({ ids: selectedPptIds }),
+      })
+      setRagPptCompareResults(Array.isArray(result?.results) ? result.results : [])
+    } catch (err) {
+      alert(err.message)
+    } finally {
+      setRagPptComparing(false)
     }
   }
 
@@ -2615,6 +2640,13 @@ export default function SiteAdminPage({ onClose, initialTab = 'users' }) {
                   {ragDatasetTraining ? (t.admin.ragTrainingNow || '학습 중...') : (t.admin.ragStartTraining || '학습 시작')}
                 </button>
                 <button
+                  onClick={handleComparePptPipelines}
+                  disabled={ragPptComparing || ragDatasets.filter(item => ragDatasetSelectedIds.includes(item.id) && ['ppt', 'pptx'].includes(String(item.ext || '').toLowerCase())).length === 0}
+                  className="px-4 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 disabled:opacity-50 text-white text-sm font-semibold"
+                >
+                  {ragPptComparing ? '검증 중...' : 'PPT 파이프라인 비교'}
+                </button>
+                <button
                   onClick={handleDeleteSelectedRagDatasets}
                   disabled={ragDatasetSelectedIds.length === 0}
                   className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-500 disabled:opacity-50 text-white text-sm font-semibold"
@@ -2718,6 +2750,69 @@ export default function SiteAdminPage({ onClose, initialTab = 'users' }) {
                   </tbody>
                 </table>
               </div>
+
+              {ragPptCompareResults.length > 0 && (
+                <div className="mt-6 rounded-2xl border border-gray-200 bg-gray-50 overflow-hidden">
+                  <div className="px-4 py-3 border-b border-gray-200 bg-gray-100">
+                    <h3 className="text-sm font-bold text-gray-900">PPT 학습 파이프라인 비교 검증 결과</h3>
+                  </div>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-xs">
+                      <thead className="bg-white border-b border-gray-200">
+                        <tr>
+                          <th className="px-3 py-2 text-left min-w-48">파일</th>
+                          <th className="px-3 py-2 text-left">항목</th>
+                          <th className="px-3 py-2 text-left min-w-44">LibreOffice - PDF</th>
+                          <th className="px-3 py-2 text-left min-w-44">MarkItDown</th>
+                          <th className="px-3 py-2 text-left min-w-36">추천</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {ragPptCompareResults.map(result => {
+                          const pdf = result.libreoffice_pdf || {}
+                          const mark = result.markitdown || {}
+                          const rows = [
+                            ['처리 상태', pdf.status || 'failed', mark.status || 'failed'],
+                            ['처리 시간', `${pdf.processing_time_sec ?? '-'}초`, `${mark.processing_time_sec ?? '-'}초`],
+                            ['추출 글자 수', (pdf.text_length ?? 0).toLocaleString(), (mark.text_length ?? 0).toLocaleString()],
+                            ['빈 슬라이드/페이지 수', pdf.empty_page_count ?? '-', mark.empty_slide_count ?? '-'],
+                            ['제목 보존', pdf.title_preservation || '-', mark.title_preservation || '-'],
+                            ['표 보존', pdf.table_preservation || '-', mark.table_preservation || '-'],
+                            ['한글 깨짐', pdf.has_hangul_broken ? '있음' : '없음', mark.has_hangul_broken ? '있음' : '없음'],
+                            ['금액/날짜 단서', `${pdf.amount_count ?? 0}/${pdf.date_count ?? 0}`, `${mark.amount_count ?? 0}/${mark.date_count ?? 0}`],
+                          ]
+                          if (result.status === 'failed') {
+                            rows.push(['오류', result.error || '-', '-'])
+                          } else {
+                            if (pdf.error) rows.push(['PDF 오류', pdf.error, '-'])
+                            if (mark.error) rows.push(['MarkItDown 오류', '-', mark.error])
+                          }
+                          return rows.map((row, idx) => (
+                            <tr key={`${result.id || result.file_name}-${idx}`} className="border-b border-gray-200 last:border-b-0">
+                              {idx === 0 && (
+                                <td rowSpan={rows.length} className="px-3 py-2 align-top font-medium text-gray-800">
+                                  <div className="max-w-64 truncate" title={result.file_name || result.filename}>
+                                    {result.file_name || result.filename || '-'}
+                                  </div>
+                                </td>
+                              )}
+                              <td className="px-3 py-2 text-gray-500">{row[0]}</td>
+                              <td className="px-3 py-2 text-gray-700 max-w-96 break-words">{row[1]}</td>
+                              <td className="px-3 py-2 text-gray-700 max-w-96 break-words">{row[2]}</td>
+                              {idx === 0 && (
+                                <td rowSpan={rows.length} className="px-3 py-2 align-top">
+                                  <div className="font-bold text-sky-700">{result.recommended_pipeline || '-'}</div>
+                                  <div className="mt-1 text-gray-500 leading-relaxed">{result.reason || ''}</div>
+                                </td>
+                              )}
+                            </tr>
+                          ))
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         ) : activeTab === 'display' ? (

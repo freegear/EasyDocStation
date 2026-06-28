@@ -45,8 +45,14 @@ function normalizeTrainerTimeoutMs(ragCfg = {}) {
 }
 
 function buildTrainerConfig(cfg, ragCfg) {
+  const activeTable = ragCfg.active_table || ragCfg.table_name || 'my_rag_table'
   return {
     lancedb_path: getDatabasePath(cfg, 'lancedb Database Path'),
+    table_name: activeTable,
+    rag_table_name: activeTable,
+    active_table: activeTable,
+    next_table: ragCfg.next_table || 'my_rag_table_v2',
+    schema_version: Number(ragCfg.schema_version || 1),
     file_training_path: path.resolve(__dirname, '../Database/ObjectFile/FileTrainingData'),
     chunk_size: ragCfg.chunk_size ?? 800,
     chunk_overlap: ragCfg.chunk_overlap ?? 100,
@@ -83,12 +89,19 @@ const IMAGE_CONTENT_TYPES = [
 const IMAGE_FILE_EXT_RE = /\.(jpe?g|png|webp|gif|bmp|tiff?|heic|heif)$/i
 const WORD_FILE_EXT_RE = /\.(doc|docx)$/i
 const PPT_FILE_EXT_RE = /\.(ppt|pptx)$/i
+const EXCEL_FILE_EXT_RE = /\.(xls|xlsx)$/i
+const MARKITDOWN_FILE_EXT_RE = /\.(xml|html|htm|csv)$/i
+const ZIP_FILE_EXT_RE = /\.zip$/i
 const PPT_CONTENT_TYPES = new Set([
   'application/vnd.ms-powerpoint',
   'application/mspowerpoint',
   'application/powerpoint',
   'application/x-mspowerpoint',
   'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+])
+const EXCEL_CONTENT_TYPES = new Set([
+  'application/vnd.ms-excel',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
 ])
 const LIBREOFFICE_COMMAND_CANDIDATES = [
   'libreoffice',
@@ -123,6 +136,23 @@ function isPresentationAttachment(row = {}) {
   const ct = String(row.content_type || '').toLowerCase()
   const filename = String(row.filename || '')
   return PPT_CONTENT_TYPES.has(ct) || PPT_FILE_EXT_RE.test(filename)
+}
+
+function isExcelAttachment(row = {}) {
+  const ct = String(row.content_type || '').toLowerCase()
+  const filename = String(row.filename || '')
+  return EXCEL_CONTENT_TYPES.has(ct) || EXCEL_FILE_EXT_RE.test(filename)
+}
+
+function isMarkItDownAttachment(row = {}) {
+  const filename = String(row.filename || '')
+  return MARKITDOWN_FILE_EXT_RE.test(filename)
+}
+
+function isZipAttachment(row = {}) {
+  const filename = String(row.filename || '')
+  const ct = String(row.content_type || '').toLowerCase()
+  return ct === 'application/zip' || ct === 'application/x-zip-compressed' || ZIP_FILE_EXT_RE.test(filename)
 }
 
 function execFileAsync(command, args, options = {}) {
@@ -210,27 +240,38 @@ async function getDocumentPathsForPost(postId) {
     const words = []
     const txts = []
     const images = []
+    const excels = []
+    const presentations = []
+    const markitdown_files = []
+    const archives = []
     for (const r of result.rows) {
       const item = { id: r.id, path: path.join(storageBase, r.storage_path), file_name: r.filename || '' }
       if (r.content_type === 'application/pdf') pdfs.push(item)
       else if (isTxtAttachment(r)) txts.push(item)
       else if (isImageAttachment(r)) images.push(item)
+      else if (isExcelAttachment(r)) excels.push(item)
+      else if (isMarkItDownAttachment(r)) {
+        const ext = path.extname(item.file_name || '').replace('.', '').toLowerCase()
+        markitdown_files.push({
+          ...item,
+          doc_type: ext === 'csv' ? 'table' : (ext === 'xml' ? 'structured_xml' : 'html'),
+        })
+      }
+      else if (isZipAttachment(r)) archives.push(item)
       else if (isWordAttachment(r)) words.push(item)
       else if (isPresentationAttachment(r)) {
         const convertedPdfPath = await convertPresentationToPdf(r.id, item.path, storageBase)
-        if (convertedPdfPath) {
-          pdfs.push({
-            id: r.id,
-            path: convertedPdfPath,
-            file_name: `${path.parse(item.file_name || 'presentation').name}.pdf`,
-          })
-        }
+        presentations.push({
+          ...item,
+          fallback_pdf_path: convertedPdfPath || '',
+          fallback_pdf_name: convertedPdfPath ? `${path.parse(item.file_name || 'presentation').name}.pdf` : '',
+        })
       }
     }
-    return { pdfs, words, txts, images }
+    return { pdfs, words, txts, images, excels, presentations, markitdown_files, archives }
   } catch (e) {
     console.error('[RAG] 문서 경로 조회 실패:', e.message)
-    return { pdfs: [], words: [], txts: [], images: [] }
+    return { pdfs: [], words: [], txts: [], images: [], excels: [], presentations: [], markitdown_files: [], archives: [] }
   }
 }
 
@@ -264,8 +305,8 @@ function callPythonTrainer(payload, options = {}) {
 // ─── 학습 제외 조건: 첨부 없고 100자 미만 ────────────────────
 const RAG_MIN_CONTENT_LENGTH = 100
 
-function shouldSkipTraining(content, pdfs, words, txts = [], images = []) {
-  return pdfs.length === 0 && words.length === 0 && txts.length === 0 && images.length === 0 && (content || '').length < RAG_MIN_CONTENT_LENGTH
+function shouldSkipTraining(content, pdfs, words, txts = [], images = [], extras = []) {
+  return pdfs.length === 0 && words.length === 0 && txts.length === 0 && images.length === 0 && extras.length === 0 && (content || '').length < RAG_MIN_CONTENT_LENGTH
 }
 
 // ─── 실제 학습 로직 ───────────────────────────────────────────
@@ -281,7 +322,7 @@ async function runTraining(posts, options = {}) {
   // 각 게시글의 PDF + Word + TXT 첨부파일 경로를 함께 전달
   const postsWithPdfs = (await Promise.all(
     posts.map(async post => {
-      const { pdfs, words, txts, images } = await getDocumentPathsForPost(post.id)
+      const { pdfs, words, txts, images, excels, presentations, markitdown_files, archives } = await getDocumentPathsForPost(post.id)
       return {
         id:         post.id,
         channel_id: post.channel_id || '',
@@ -291,10 +332,19 @@ async function runTraining(posts, options = {}) {
         words,
         txts,
         images,
+        excels,
+        presentations,
+        markitdown_files,
+        archives,
       }
     })
   )).filter(p => {
-    if (shouldSkipTraining(p.content, p.pdfs, p.words, p.txts, p.images)) {
+    if (shouldSkipTraining(p.content, p.pdfs, p.words, p.txts, p.images, [
+      ...(p.excels || []),
+      ...(p.presentations || []),
+      ...(p.markitdown_files || []),
+      ...(p.archives || []),
+    ])) {
       console.log(`[RAG] 학습 제외 (게시글): ${p.id} — 첨부파일 없음, ${(p.content || '').length}자`)
       return false
     }
@@ -414,7 +464,7 @@ async function retrainPostImmediate(post) {
 
 // ─── 댓글 첨부파일 경로 조회 (attachment ID 목록으로 직접 조회) ─
 async function getDocumentPathsByIds(attachmentIds) {
-  if (!attachmentIds || attachmentIds.length === 0) return { pdfs: [], words: [], txts: [], images: [] }
+  if (!attachmentIds || attachmentIds.length === 0) return { pdfs: [], words: [], txts: [], images: [], excels: [], presentations: [], markitdown_files: [], archives: [] }
   try {
     const cfg         = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'))
     const storageBase = getDatabasePath(cfg, 'ObjectFile Path')
@@ -424,28 +474,35 @@ async function getDocumentPathsByIds(attachmentIds) {
        WHERE id IN (${placeholders}) AND status = 'COMPLETED'`,
       [...attachmentIds]
     )
-    const pdfs = [], words = [], txts = [], images = []
+    const pdfs = [], words = [], txts = [], images = [], excels = [], presentations = [], markitdown_files = [], archives = []
     for (const r of result.rows) {
       const item = { id: r.id, path: path.join(storageBase, r.storage_path), file_name: r.filename || '' }
       if (r.content_type === 'application/pdf') pdfs.push(item)
       else if (isTxtAttachment(r)) txts.push(item)
       else if (isImageAttachment(r)) images.push(item)
+      else if (isExcelAttachment(r)) excels.push(item)
+      else if (isMarkItDownAttachment(r)) {
+        const ext = path.extname(item.file_name || '').replace('.', '').toLowerCase()
+        markitdown_files.push({
+          ...item,
+          doc_type: ext === 'csv' ? 'table' : (ext === 'xml' ? 'structured_xml' : 'html'),
+        })
+      }
+      else if (isZipAttachment(r)) archives.push(item)
       else if (isWordAttachment(r)) words.push(item)
       else if (isPresentationAttachment(r)) {
         const convertedPdfPath = await convertPresentationToPdf(r.id, item.path, storageBase)
-        if (convertedPdfPath) {
-          pdfs.push({
-            id: r.id,
-            path: convertedPdfPath,
-            file_name: `${path.parse(item.file_name || 'presentation').name}.pdf`,
-          })
-        }
+        presentations.push({
+          ...item,
+          fallback_pdf_path: convertedPdfPath || '',
+          fallback_pdf_name: convertedPdfPath ? `${path.parse(item.file_name || 'presentation').name}.pdf` : '',
+        })
       }
     }
-    return { pdfs, words, txts, images }
+    return { pdfs, words, txts, images, excels, presentations, markitdown_files, archives }
   } catch (e) {
     console.error('[RAG] 댓글 문서 경로 조회 실패:', e.message)
-    return { pdfs: [], words: [], txts: [], images: [] }
+    return { pdfs: [], words: [], txts: [], images: [], excels: [], presentations: [], markitdown_files: [], archives: [] }
   }
 }
 
@@ -462,7 +519,7 @@ async function runCommentTraining(comments, options = {}) {
   // 각 댓글의 PDF + Word + TXT 첨부파일 경로 조회
   const commentsWithDocs = (await Promise.all(
     comments.map(async c => {
-      const { pdfs, words, txts, images } = await getDocumentPathsByIds(c.attachmentIds || [])
+      const { pdfs, words, txts, images, excels, presentations, markitdown_files, archives } = await getDocumentPathsByIds(c.attachmentIds || [])
       return {
         id:            c.id,
         post_id:       c.post_id,
@@ -472,10 +529,19 @@ async function runCommentTraining(comments, options = {}) {
         words,
         txts,
         images,
+        excels,
+        presentations,
+        markitdown_files,
+        archives,
       }
     })
   )).filter(c => {
-    if (shouldSkipTraining(c.content, c.pdfs, c.words, c.txts, c.images)) {
+    if (shouldSkipTraining(c.content, c.pdfs, c.words, c.txts, c.images, [
+      ...(c.excels || []),
+      ...(c.presentations || []),
+      ...(c.markitdown_files || []),
+      ...(c.archives || []),
+    ])) {
       console.log(`[RAG] 학습 제외 (댓글): ${c.id} — 첨부파일 없음, ${(c.content || '').length}자`)
       return false
     }

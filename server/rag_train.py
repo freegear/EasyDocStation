@@ -20,6 +20,7 @@ import base64
 import time
 import threading
 import shutil
+import zipfile
 from datetime import datetime, timezone
 
 # ─── 입력 파싱 ────────────────────────────────────────────────
@@ -35,6 +36,7 @@ comments   = payload.get("comments", [])
 delete_ids = payload.get("delete_ids", [])
 delete_post_ids = payload.get("delete_post_ids", [])
 delete_comment_ids = payload.get("delete_comment_ids", [])
+reset_table = bool(payload.get("reset_table") or cfg.get("reset_table"))
 
 def default_lancedb_path():
     env_lancedb = os.getenv("EASYDOC_LANCEDB_PATH", "").strip()
@@ -70,6 +72,12 @@ def default_file_training_path():
 
 LANCEDB_PATH  = cfg.get("lancedb_path") or default_lancedb_path()
 FILE_TRAINING_PATH = cfg.get("file_training_path") or default_file_training_path()
+TABLE_NAME = (
+    cfg.get("table_name")
+    or cfg.get("rag_table_name")
+    or os.getenv("EASYDOC_RAG_TABLE", "my_rag_table")
+)
+RAG_SCHEMA_VERSION = int(cfg.get("schema_version", os.getenv("EASYDOC_RAG_SCHEMA_VERSION", "1")))
 CHUNK_SIZE    = int(cfg.get("chunk_size", 800))
 CHUNK_OVERLAP = int(cfg.get("chunk_overlap", 100))
 VECTOR_SIZE   = int(cfg.get("vector_size", 1024))
@@ -103,7 +111,7 @@ EMBED_SERVER_RETRIES = int(
 AMOUNT_RE = re.compile(r"(?<!\d)(\d{1,3}(?:,\d{3})+|\d{5,})(?:\s*원)?")
 MAX_STORED_AMOUNT = 999_999_999_999_999
 
-if not posts and not comments and not delete_ids and not delete_post_ids and not delete_comment_ids:
+if not posts and not comments and not delete_ids and not delete_post_ids and not delete_comment_ids and not reset_table:
     print("[RAG] 학습할 데이터가 없습니다.")
     sys.exit(0)
 
@@ -178,10 +186,9 @@ def embed_texts(texts):
 os.makedirs(LANCEDB_PATH, exist_ok=True)
 os.makedirs(FILE_TRAINING_PATH, exist_ok=True)
 db = lancedb.connect(LANCEDB_PATH)
-TABLE_NAME = "my_rag_table"
 
 
-def ensure_table(vector_size):
+def ensure_table(vector_size, force_recreate=False):
     init_meta = {
         "post_id": "",
         "chunk_id": 0,
@@ -204,6 +211,28 @@ def ensure_table(vector_size):
         "currency": "",
         "amount_candidates": "",
     }
+    if RAG_SCHEMA_VERSION >= 2:
+        init_meta.update({
+            "schema_version": RAG_SCHEMA_VERSION,
+            "document_kind": "",
+            "source_ext": "",
+            "converted_by": "",
+            "converted_format": "",
+            "parser_version": "",
+            "fallback_used": False,
+            "fallback_pipeline": "",
+            "sheet_name": "",
+            "row_range": "",
+            "column_headers": "",
+            "slide_number": 0,
+            "slide_title": "",
+            "xml_path": "",
+            "html_title": "",
+            "heading_path": "",
+            "archive_id": "",
+            "archive_file_path": "",
+            "inner_source_ext": "",
+        })
     init_data = [{
         "vector": [0.0] * vector_size,
         "text": "__init__",
@@ -232,6 +261,11 @@ def ensure_table(vector_size):
                 names.add(str(item))
         return TABLE_NAME in names
 
+    if force_recreate:
+        tbl = db.create_table(TABLE_NAME, data=init_data, mode="overwrite")
+        print(f"[RAG] 테이블 초기화 완료: {TABLE_NAME} (dim={vector_size}, schema={RAG_SCHEMA_VERSION})", flush=True)
+        return tbl
+
     if not _table_exists():
         try:
             tbl = db.create_table(TABLE_NAME, data=init_data)
@@ -254,6 +288,14 @@ def ensure_table(vector_size):
         "element_id", "original_content", "img_path", "doc_version", "file_hash",
         "amount_total", "amount_subtotal", "amount_vat", "currency", "amount_candidates",
     ]
+    if RAG_SCHEMA_VERSION >= 2:
+        required.extend([
+            "schema_version", "document_kind", "source_ext", "converted_by",
+            "converted_format", "parser_version", "fallback_used", "fallback_pipeline",
+            "sheet_name", "row_range", "column_headers", "slide_number",
+            "slide_title", "xml_path", "html_title", "heading_path",
+            "archive_id", "archive_file_path", "inner_source_ext",
+        ])
 
     needs_recreate = vec_size != vector_size
     if not needs_recreate:
@@ -269,7 +311,7 @@ def ensure_table(vector_size):
     return tbl
 
 
-table = ensure_table(VECTOR_SIZE)
+table = ensure_table(VECTOR_SIZE, force_recreate=reset_table)
 
 delete_post_targets = []
 delete_post_targets.extend(delete_ids if isinstance(delete_ids, list) else [])
@@ -484,7 +526,7 @@ def build_image_caption(file_name, page_number, image_path=""):
 
 
 def metadata_base(post_id, channel_id, attachment_id, comment_id, source, file_name, file_hash):
-    return {
+    meta = {
         "post_id": str(post_id or ""),
         "chunk_id": 0,
         "chunk_index": 0,
@@ -506,6 +548,29 @@ def metadata_base(post_id, channel_id, attachment_id, comment_id, source, file_n
         "currency": "",
         "amount_candidates": "",
     }
+    if RAG_SCHEMA_VERSION >= 2:
+        meta.update({
+            "schema_version": RAG_SCHEMA_VERSION,
+            "document_kind": "",
+            "source_ext": "",
+            "converted_by": "",
+            "converted_format": "",
+            "parser_version": "",
+            "fallback_used": False,
+            "fallback_pipeline": "",
+            "sheet_name": "",
+            "row_range": "",
+            "column_headers": "",
+            "slide_number": 0,
+            "slide_title": "",
+            "xml_path": "",
+            "html_title": "",
+            "heading_path": "",
+            "archive_id": "",
+            "archive_file_path": "",
+            "inner_source_ext": "",
+        })
+    return meta
 
 
 def build_context_prefix(meta):
@@ -1430,6 +1495,227 @@ def ingest_txt(records, *, post_id, channel_id, attachment_id, comment_id, txt_p
     return count
 
 
+def markitdown_version():
+    try:
+        import importlib.metadata
+        return importlib.metadata.version("markitdown")
+    except Exception:
+        return ""
+
+
+def load_markitdown_text(file_path):
+    try:
+        from markitdown import MarkItDown
+        result = MarkItDown().convert(file_path)
+        return (getattr(result, "text_content", "") or "").strip()
+    except Exception as e:
+        print(f"[RAG] MarkItDown 변환 실패 ({file_path}): {e}", file=sys.stderr)
+        return ""
+
+
+def document_kind_from_ext(ext):
+    e = (ext or "").lower().lstrip(".")
+    if e in ("xls", "xlsx"):
+        return "excel"
+    if e in ("ppt", "pptx"):
+        return "presentation"
+    if e == "xml":
+        return "structured_xml"
+    if e in ("html", "htm"):
+        return "html"
+    if e == "csv":
+        return "table"
+    return "markitdown"
+
+
+def ingest_markitdown_document(
+    records,
+    *,
+    post_id,
+    channel_id,
+    attachment_id,
+    comment_id,
+    file_path,
+    file_name,
+    doc_type="markitdown",
+    archive_id="",
+    archive_file_path="",
+):
+    if not file_path or not os.path.isfile(file_path):
+        if file_path:
+            print(f"[RAG] MarkItDown 파일 없음: {file_path}", file=sys.stderr)
+        return 0
+
+    source_name = file_name or os.path.basename(file_path)
+    ext = os.path.splitext(source_name)[1].replace(".", "").lower()
+    document_kind = document_kind_from_ext(ext)
+    print(f"[RAG] MarkItDown 학습 시작: {os.path.basename(file_path)} ({document_kind})", flush=True)
+
+    started_at = time.time()
+    text = load_markitdown_text(file_path)
+    split_base_dir = build_file_training_dir(post_id, comment_id, attachment_id, source_name)
+    os.makedirs(split_base_dir, exist_ok=True)
+    converted_path = os.path.join(split_base_dir, "converted_markitdown.md")
+    try:
+        with open(converted_path, "w", encoding="utf-8") as f:
+            f.write(text or "")
+    except Exception as e:
+        print(f"[RAG] MarkItDown 변환 결과 저장 실패 ({converted_path}): {e}", file=sys.stderr)
+
+    if not text:
+        print(f"[RAG] MarkItDown 학습 건너뜀(변환 결과 없음): {os.path.basename(file_path)}", flush=True)
+        return 0
+
+    file_hash = calc_file_hash(file_path)
+    split_records = {
+        "text": [{
+            "post_id": str(post_id or ""),
+            "comment_id": str(comment_id or ""),
+            "attachment_id": str(attachment_id or ""),
+            "source": source_name,
+            "file_name": source_name,
+            "type": doc_type,
+            "document_kind": document_kind,
+            "source_ext": ext,
+            "converted_by": "markitdown",
+            "converted_format": "markdown",
+            "parser_version": markitdown_version(),
+            "archive_id": archive_id,
+            "archive_file_path": archive_file_path,
+            "search_content": text,
+            "file_hash": file_hash,
+            "saved_at": DOC_VERSION,
+        }],
+        "table": [],
+        "image": [],
+    }
+    persist_split_results(split_base_dir, split_records)
+
+    meta = metadata_base(
+        post_id=post_id,
+        channel_id=channel_id,
+        attachment_id=attachment_id,
+        comment_id=comment_id,
+        source=source_name,
+        file_name=source_name,
+        file_hash=file_hash,
+    )
+    meta["type"] = doc_type
+    meta["page_number"] = 0
+    meta["element_id"] = f"{doc_type}-{attachment_id or post_id or comment_id}"
+    meta["original_content"] = text[:4000]
+    apply_amount_meta(meta, text)
+    if RAG_SCHEMA_VERSION >= 2:
+        meta["document_kind"] = document_kind
+        meta["source_ext"] = ext
+        meta["converted_by"] = "markitdown"
+        meta["converted_format"] = "markdown"
+        meta["parser_version"] = markitdown_version()
+        meta["archive_id"] = str(archive_id or "")
+        meta["archive_file_path"] = str(archive_file_path or "")
+        meta["inner_source_ext"] = ext if archive_id else ""
+
+    count = append_text_chunks(records, text, meta, chunk_prefix=meta["element_id"])
+    elapsed = time.time() - started_at
+    print(f"[RAG] MarkItDown 학습 완료: {os.path.basename(file_path)} ({count}청크, {elapsed:.1f}s)", flush=True)
+    return count
+
+
+def safe_zip_member_name(name):
+    normalized = os.path.normpath(str(name or "")).replace("\\", "/")
+    if normalized.startswith("../") or normalized.startswith("/") or "/../" in normalized:
+        return ""
+    if normalized in ("", ".") or normalized.endswith("/"):
+        return ""
+    return normalized
+
+
+def ingest_zip(records, *, post_id, channel_id, attachment_id, comment_id, zip_path, file_name):
+    if not zip_path or not os.path.isfile(zip_path):
+        if zip_path:
+            print(f"[RAG] ZIP 파일 없음: {zip_path}", file=sys.stderr)
+        return 0
+
+    source_name = file_name or os.path.basename(zip_path)
+    print(f"[RAG] ZIP 학습 시작: {os.path.basename(zip_path)}", flush=True)
+    max_files = int(os.getenv("EASYDOC_ZIP_MAX_FILES", "100"))
+    max_total_size = int(os.getenv("EASYDOC_ZIP_MAX_TOTAL_SIZE", str(200 * 1024 * 1024)))
+    supported_markitdown = {"xls", "xlsx", "ppt", "pptx", "xml", "html", "htm", "csv"}
+    supported_text = {"txt", "md", "json", "log"}
+    local_chunks = 0
+    tmp_dir = ""
+
+    try:
+        with zipfile.ZipFile(zip_path) as zf:
+            infos = [info for info in zf.infolist() if safe_zip_member_name(info.filename)]
+            if len(infos) > max_files:
+                raise RuntimeError(f"ZIP 내부 파일 개수 초과: {len(infos)} > {max_files}")
+            total_size = sum(max(0, int(info.file_size or 0)) for info in infos)
+            if total_size > max_total_size:
+                raise RuntimeError(f"ZIP 압축 해제 크기 초과: {total_size} > {max_total_size}")
+            tmp_dir = os.path.join(build_file_training_dir(post_id, comment_id, attachment_id, source_name), "zip_extract")
+            if os.path.exists(tmp_dir):
+                shutil.rmtree(tmp_dir, ignore_errors=True)
+            os.makedirs(tmp_dir, exist_ok=True)
+
+            for info in infos:
+                member = safe_zip_member_name(info.filename)
+                if not member:
+                    continue
+                ext = os.path.splitext(member)[1].replace(".", "").lower()
+                if ext in {"exe", "sh", "bat", "cmd", "ps1", "js"}:
+                    continue
+                target_path = os.path.join(tmp_dir, member)
+                os.makedirs(os.path.dirname(target_path), exist_ok=True)
+                with zf.open(info) as src, open(target_path, "wb") as dst:
+                    shutil.copyfileobj(src, dst)
+
+                item_id = f"{attachment_id or post_id or comment_id}:{member}"
+                if ext in supported_markitdown:
+                    local_chunks += ingest_markitdown_document(
+                        records,
+                        post_id=post_id,
+                        channel_id=channel_id,
+                        attachment_id=item_id,
+                        comment_id=comment_id,
+                        file_path=target_path,
+                        file_name=member,
+                        doc_type=document_kind_from_ext(ext),
+                        archive_id=attachment_id or "",
+                        archive_file_path=member,
+                    )
+                elif ext in supported_text:
+                    local_chunks += ingest_txt(
+                        records,
+                        post_id=post_id,
+                        channel_id=channel_id,
+                        attachment_id=item_id,
+                        comment_id=comment_id,
+                        txt_path=target_path,
+                        file_name=member,
+                    )
+    except Exception as e:
+        print(f"[RAG] ZIP 학습 실패 ({source_name}): {e}", file=sys.stderr)
+        meta_text = f"[ZIP 학습 데이터] {source_name}\nZIP 처리 실패: {e}"
+        meta = metadata_base(
+            post_id=post_id,
+            channel_id=channel_id,
+            attachment_id=attachment_id,
+            comment_id=comment_id,
+            source=source_name,
+            file_name=source_name,
+            file_hash=calc_file_hash(zip_path),
+        )
+        meta["type"] = "archive"
+        if RAG_SCHEMA_VERSION >= 2:
+            meta["document_kind"] = "archive"
+            meta["source_ext"] = "zip"
+        local_chunks += append_text_chunks(records, meta_text, meta, chunk_prefix=f"zip-{attachment_id or post_id or comment_id}")
+
+    print(f"[RAG] ZIP 학습 완료: {os.path.basename(zip_path)} ({local_chunks}청크)", flush=True)
+    return local_chunks
+
+
 def ingest_image(records, *, post_id, channel_id, attachment_id, comment_id, image_path, file_name):
     if not image_path or not os.path.isfile(image_path):
         if image_path:
@@ -1493,12 +1779,20 @@ def count_training_steps(posts, comments):
         steps += len(post.get("words", []) or [])
         steps += len(post.get("txts", []) or [])
         steps += len(post.get("images", []) or [])
+        steps += len(post.get("excels", []) or [])
+        steps += len(post.get("presentations", []) or [])
+        steps += len(post.get("markitdown_files", []) or [])
+        steps += len(post.get("archives", []) or [])
     for comment in comments:
         steps += 1
         steps += len(comment.get("pdfs", []) or [])
         steps += len(comment.get("words", []) or [])
         steps += len(comment.get("txts", []) or [])
         steps += len(comment.get("images", []) or [])
+        steps += len(comment.get("excels", []) or [])
+        steps += len(comment.get("presentations", []) or [])
+        steps += len(comment.get("markitdown_files", []) or [])
+        steps += len(comment.get("archives", []) or [])
     return max(steps, 1)
 
 
@@ -1600,6 +1894,69 @@ for post in posts:
         )
         progress.step(label="게시글 이미지")
 
+    # MarkItDown 문서 첨부 (Excel / PPT / XML / HTML / CSV)
+    for excel_info in post.get("excels", []):
+        total_chunks += ingest_markitdown_document(
+            records,
+            post_id=post_id,
+            channel_id=channel_id,
+            attachment_id=excel_info.get("id") or "",
+            comment_id="",
+            file_path=excel_info.get("path") or "",
+            file_name=excel_info.get("file_name") or "",
+            doc_type="excel",
+        )
+        progress.step(label="게시글 Excel")
+
+    for presentation_info in post.get("presentations", []):
+        count = ingest_markitdown_document(
+            records,
+            post_id=post_id,
+            channel_id=channel_id,
+            attachment_id=presentation_info.get("id") or "",
+            comment_id="",
+            file_path=presentation_info.get("path") or "",
+            file_name=presentation_info.get("file_name") or "",
+            doc_type="presentation",
+        )
+        total_chunks += count
+        if count == 0 and presentation_info.get("fallback_pdf_path"):
+            total_chunks += ingest_pdf(
+                records,
+                post_id=post_id,
+                channel_id=channel_id,
+                attachment_id=presentation_info.get("id") or "",
+                comment_id="",
+                pdf_path=presentation_info.get("fallback_pdf_path") or "",
+                file_name=presentation_info.get("fallback_pdf_name") or "",
+            )
+        progress.step(label="게시글 PPT")
+
+    for markitdown_info in post.get("markitdown_files", []):
+        total_chunks += ingest_markitdown_document(
+            records,
+            post_id=post_id,
+            channel_id=channel_id,
+            attachment_id=markitdown_info.get("id") or "",
+            comment_id="",
+            file_path=markitdown_info.get("path") or "",
+            file_name=markitdown_info.get("file_name") or "",
+            doc_type=markitdown_info.get("doc_type") or "markitdown",
+        )
+        progress.step(label="게시글 MarkItDown")
+
+    for archive_info in post.get("archives", []):
+        total_chunks += ingest_zip(
+            records,
+            post_id=post_id,
+            channel_id=channel_id,
+            attachment_id=archive_info.get("id") or "",
+            comment_id="",
+            zip_path=archive_info.get("path") or "",
+            file_name=archive_info.get("file_name") or "",
+        )
+        progress.step(label="게시글 ZIP")
+
 for comment in comments:
     comment_id = comment.get("id", "unknown")
     post_id = comment.get("post_id", "")
@@ -1670,6 +2027,69 @@ for comment in comments:
             file_name=image_info.get("file_name") or "",
         )
         progress.step(label="댓글 이미지")
+
+    # 댓글 MarkItDown 문서 첨부
+    for excel_info in comment.get("excels", []):
+        total_chunks += ingest_markitdown_document(
+            records,
+            post_id=post_id,
+            channel_id=channel_id,
+            attachment_id=excel_info.get("id") or "",
+            comment_id=comment_id,
+            file_path=excel_info.get("path") or "",
+            file_name=excel_info.get("file_name") or "",
+            doc_type="excel",
+        )
+        progress.step(label="댓글 Excel")
+
+    for presentation_info in comment.get("presentations", []):
+        count = ingest_markitdown_document(
+            records,
+            post_id=post_id,
+            channel_id=channel_id,
+            attachment_id=presentation_info.get("id") or "",
+            comment_id=comment_id,
+            file_path=presentation_info.get("path") or "",
+            file_name=presentation_info.get("file_name") or "",
+            doc_type="presentation",
+        )
+        total_chunks += count
+        if count == 0 and presentation_info.get("fallback_pdf_path"):
+            total_chunks += ingest_pdf(
+                records,
+                post_id=post_id,
+                channel_id=channel_id,
+                attachment_id=presentation_info.get("id") or "",
+                comment_id=comment_id,
+                pdf_path=presentation_info.get("fallback_pdf_path") or "",
+                file_name=presentation_info.get("fallback_pdf_name") or "",
+            )
+        progress.step(label="댓글 PPT")
+
+    for markitdown_info in comment.get("markitdown_files", []):
+        total_chunks += ingest_markitdown_document(
+            records,
+            post_id=post_id,
+            channel_id=channel_id,
+            attachment_id=markitdown_info.get("id") or "",
+            comment_id=comment_id,
+            file_path=markitdown_info.get("path") or "",
+            file_name=markitdown_info.get("file_name") or "",
+            doc_type=markitdown_info.get("doc_type") or "markitdown",
+        )
+        progress.step(label="댓글 MarkItDown")
+
+    for archive_info in comment.get("archives", []):
+        total_chunks += ingest_zip(
+            records,
+            post_id=post_id,
+            channel_id=channel_id,
+            attachment_id=archive_info.get("id") or "",
+            comment_id=comment_id,
+            zip_path=archive_info.get("path") or "",
+            file_name=archive_info.get("file_name") or "",
+        )
+        progress.step(label="댓글 ZIP")
 
 
 if records:

@@ -3,7 +3,7 @@ const router = express.Router()
 const path = require('path')
 const fs = require('fs')
 const http = require('http')
-const { spawn } = require('child_process')
+const { spawn, execFile } = require('child_process')
 const multer = require('multer')
 const db = require('../db')
 const requireAuth = require('../middleware/auth')
@@ -17,6 +17,12 @@ const RAG_DATA_DIR = path.resolve(__dirname, '../../Database/RAGTrainingData')
 const RAG_DATA_INDEX_PATH = path.join(RAG_DATA_DIR, 'index.json')
 const RAG_DATA_TMP_DIR = path.join(RAG_DATA_DIR, 'tmp')
 const FILE_TRAINING_BASE_PATH = path.resolve(__dirname, '../../Database/ObjectFile/FileTrainingData')
+const LIBREOFFICE_COMMAND_CANDIDATES = [
+  'libreoffice',
+  'soffice',
+  '/usr/bin/libreoffice',
+  '/usr/bin/soffice',
+]
 
 function readConfig() {
   try { return JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8')) }
@@ -30,8 +36,14 @@ function normalizeTrainerTimeoutMs(ragCfg = {}) {
 }
 
 function buildTrainerConfig(cfg, ragCfg) {
+  const activeTable = ragCfg.active_table || ragCfg.table_name || 'my_rag_table'
   return {
     lancedb_path: getDatabasePath(cfg, 'lancedb Database Path'),
+    table_name: activeTable,
+    rag_table_name: activeTable,
+    active_table: activeTable,
+    next_table: ragCfg.next_table || 'my_rag_table_v2',
+    schema_version: Number(ragCfg.schema_version || 1),
     file_training_path: path.resolve(__dirname, '../../Database/ObjectFile/FileTrainingData'),
     chunk_size: ragCfg.chunk_size ?? 800,
     chunk_overlap: ragCfg.chunk_overlap ?? 100,
@@ -64,6 +76,10 @@ function readRagDatasetIndex() {
 function writeRagDatasetIndex(items) {
   ensureRagDatasetStore()
   fs.writeFileSync(RAG_DATA_INDEX_PATH, JSON.stringify(items, null, 2), 'utf8')
+}
+
+function writeConfig(config) {
+  fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2), 'utf8')
 }
 
 function buildPgInClause(values = [], startIndex = 1) {
@@ -191,6 +207,289 @@ function toDatasetRecordView(item) {
   }
 }
 
+function isPresentationDataset(item = {}) {
+  const ext = String(item.ext || '').toLowerCase()
+  const ct = String(item.content_type || '').toLowerCase()
+  return ['ppt', 'pptx'].includes(ext)
+    || ct.includes('powerpoint')
+    || ct.includes('presentation')
+}
+
+function execFileAsync(command, args, options = {}) {
+  return new Promise((resolve, reject) => {
+    execFile(command, args, options, (err, stdout, stderr) => {
+      if (err) {
+        err.stdout = stdout
+        err.stderr = stderr
+        reject(err)
+        return
+      }
+      resolve({ stdout, stderr })
+    })
+  })
+}
+
+function runPythonJson(args, input = null, options = {}) {
+  return new Promise((resolve, reject) => {
+    const proc = spawn(getPythonExecutable(), args, {
+      timeout: options.timeoutMs || 180000,
+      cwd: options.cwd || path.resolve(__dirname, '..'),
+    })
+    let stdout = ''
+    let stderr = ''
+    proc.stdout.on('data', d => { stdout += d.toString() })
+    proc.stderr.on('data', d => { stderr += d.toString() })
+    proc.on('error', reject)
+    proc.on('close', code => {
+      if (code !== 0) {
+        reject(new Error(stderr || `python exit ${code}`))
+        return
+      }
+      try {
+        resolve(JSON.parse(stdout || '{}'))
+      } catch (e) {
+        reject(new Error(`Python JSON 파싱 실패: ${e.message}\n${stdout.slice(0, 500)}`))
+      }
+    })
+    if (input != null) proc.stdin.write(input)
+    proc.stdin.end()
+  })
+}
+
+function textStats(text = '') {
+  const src = String(text || '')
+  const lines = src.split(/\r?\n/)
+  const nonEmptyLines = lines.filter(line => line.trim()).length
+  const tableLineCount = lines.filter(line => /^\s*\|.+\|\s*$/.test(line)).length
+  const headingCount = lines.filter(line => /^\s{0,3}#{1,6}\s+\S/.test(line)).length
+  const bulletCount = lines.filter(line => /^\s*[-*+]\s+\S/.test(line)).length
+  const hasHangulBroken = /[�]/.test(src) || /[ÃÂ]/.test(src)
+  const amountCount = (src.match(/(?<!\d)(\d{1,3}(?:,\d{3})+|\d{5,})(?:\s*원)?/g) || []).length
+  const dateCount = (src.match(/\b20\d{2}[.\-/년\s]*(?:0?[1-9]|1[0-2])[.\-/월\s]*(?:0?[1-9]|[12]\d|3[01])?/g) || []).length
+  return {
+    text_length: src.trim().length,
+    non_empty_lines: nonEmptyLines,
+    heading_count: headingCount,
+    bullet_count: bulletCount,
+    table_line_count: tableLineCount,
+    has_hangul_broken: hasHangulBroken,
+    amount_count: amountCount,
+    date_count: dateCount,
+  }
+}
+
+function qualityLabel(value, goodAt = 3, okAt = 1) {
+  if (value >= goodAt) return '좋음'
+  if (value >= okAt) return '보통'
+  return '나쁨'
+}
+
+function buildPptCompareRecommendation(pdfMetrics, markMetrics) {
+  if (pdfMetrics.error && markMetrics.error) {
+    return { recommended_pipeline: 'none', reason: '두 파이프라인 모두 실패했습니다.' }
+  }
+  if (pdfMetrics.error) {
+    return { recommended_pipeline: 'markitdown', reason: '기존 PDF 파이프라인이 실패했고 MarkItDown 변환은 성공했습니다.' }
+  }
+  if (markMetrics.error) {
+    return { recommended_pipeline: 'libreoffice_pdf', reason: 'MarkItDown 변환이 실패했고 기존 PDF 파이프라인은 성공했습니다.' }
+  }
+  const pdfScore =
+    Math.min(pdfMetrics.text_length || 0, 20000) / 1000
+    + (pdfMetrics.page_count || 0)
+    + (pdfMetrics.amount_count || 0) * 2
+    + (pdfMetrics.date_count || 0)
+    - (pdfMetrics.empty_page_count || 0) * 2
+    - (pdfMetrics.has_hangul_broken ? 5 : 0)
+  const markScore =
+    Math.min(markMetrics.text_length || 0, 20000) / 1000
+    + (markMetrics.heading_count || 0) * 2
+    + (markMetrics.bullet_count || 0)
+    + (markMetrics.table_line_count || 0)
+    + (markMetrics.amount_count || 0) * 2
+    + (markMetrics.date_count || 0)
+    - (markMetrics.has_hangul_broken ? 5 : 0)
+  if (Math.abs(markScore - pdfScore) < 3) {
+    return { recommended_pipeline: 'hybrid', reason: '두 파이프라인의 품질 지표가 비슷해 상호 보완 검증이 필요합니다.' }
+  }
+  if (markScore > pdfScore) {
+    return { recommended_pipeline: 'markitdown', reason: 'MarkItDown의 구조 보존 지표와 핵심 정보 추출 지표가 더 높습니다.' }
+  }
+  return { recommended_pipeline: 'libreoffice_pdf', reason: '기존 PDF 파이프라인의 추출량과 페이지 기반 출처 추적 지표가 더 높습니다.' }
+}
+
+async function convertPptDatasetToPdf(sourcePath, outDir) {
+  fs.mkdirSync(outDir, { recursive: true })
+  const profileDir = fs.mkdtempSync(path.join(outDir, 'lo-profile-'))
+  const args = [
+    '--headless',
+    '--nologo',
+    '--nolockcheck',
+    '--nodefault',
+    '--norestore',
+    `-env:UserInstallation=file://${profileDir}`,
+    '--convert-to', 'pdf:impress_pdf_Export',
+    '--outdir', outDir,
+    sourcePath,
+  ]
+  let lastErr = null
+  for (const cmd of LIBREOFFICE_COMMAND_CANDIDATES) {
+    try {
+      await execFileAsync(cmd, args, { timeout: 180000, maxBuffer: 8 * 1024 * 1024 })
+      const expected = path.join(outDir, `${path.parse(sourcePath).name}.pdf`)
+      const fallback = fs.readdirSync(outDir).find(name => name.toLowerCase().endsWith('.pdf'))
+      const pdfPath = fs.existsSync(expected) ? expected : (fallback ? path.join(outDir, fallback) : '')
+      if (pdfPath) return pdfPath
+    } catch (e) {
+      lastErr = e
+    }
+  }
+  throw new Error(lastErr?.stderr || lastErr?.message || 'LibreOffice PDF 변환 실패')
+}
+
+async function extractPdfTextForCompare(pdfPath, outputJsonPath) {
+  const code = `
+import json, sys
+from pathlib import Path
+import pdfplumber
+pdf_path = sys.argv[1]
+out_path = sys.argv[2]
+pages = []
+with pdfplumber.open(pdf_path) as pdf:
+    for idx, page in enumerate(pdf.pages, start=1):
+        text = page.extract_text() or ""
+        pages.append({"page_number": idx, "text": text})
+Path(out_path).write_text(json.dumps(pages, ensure_ascii=False, indent=2), encoding="utf-8")
+print(json.dumps({
+    "ok": True,
+    "page_count": len(pages),
+    "empty_page_count": sum(1 for p in pages if not (p.get("text") or "").strip()),
+    "text": "\\n\\n".join(p["text"] for p in pages)
+}, ensure_ascii=False))
+`
+  return runPythonJson(['-c', code, pdfPath, outputJsonPath], null, { timeoutMs: 180000 })
+}
+
+async function convertWithMarkItDownForCompare(sourcePath, outputMdPath) {
+  const code = `
+import json, sys
+from pathlib import Path
+from markitdown import MarkItDown
+src = sys.argv[1]
+out = sys.argv[2]
+result = MarkItDown().convert(src)
+text = getattr(result, "text_content", "") or ""
+Path(out).write_text(text, encoding="utf-8")
+print(json.dumps({"ok": True, "text": text}, ensure_ascii=False))
+`
+  return runPythonJson(['-c', code, sourcePath, outputMdPath], null, { timeoutMs: 180000 })
+}
+
+async function comparePptDataset(item) {
+  if (!isPresentationDataset(item)) {
+    throw new Error(`${getDisplayFilename(item)} 파일은 PPT/PPTX 형식이 아닙니다.`)
+  }
+  const absPath = path.resolve(RAG_DATA_DIR, item.storage_path || '')
+  if (!fs.existsSync(absPath)) throw new Error(`학습 파일이 존재하지 않습니다: ${getDisplayFilename(item)}`)
+
+  const fileName = getDisplayFilename(item)
+  const baseDir = path.join(
+    FILE_TRAINING_BASE_PATH,
+    'rag_dataset',
+    'no_comment',
+    safeDatasetPathPart(item.id),
+    safeDatasetPathPart(fileName)
+  )
+  fs.mkdirSync(baseDir, { recursive: true })
+
+  const pdfMetric = {
+    status: 'failed',
+    error: '',
+    processing_time_sec: 0,
+    page_count: 0,
+    empty_page_count: 0,
+    text_length: 0,
+  }
+  const markMetric = {
+    status: 'failed',
+    error: '',
+    processing_time_sec: 0,
+    empty_slide_count: 0,
+    text_length: 0,
+  }
+
+  const pdfStarted = Date.now()
+  try {
+    const pdfPath = await convertPptDatasetToPdf(absPath, baseDir)
+    const pdfJsonPath = path.join(baseDir, 'converted_pdf_text.json')
+    const pdfResult = await extractPdfTextForCompare(pdfPath, pdfJsonPath)
+    const stats = textStats(pdfResult.text || '')
+    Object.assign(pdfMetric, stats, {
+      status: 'success',
+      error: '',
+      page_count: pdfResult.page_count || 0,
+      empty_page_count: pdfResult.empty_page_count || 0,
+      processing_time_sec: Number(((Date.now() - pdfStarted) / 1000).toFixed(2)),
+      output_path: pdfJsonPath,
+      pdf_path: pdfPath,
+      title_preservation: qualityLabel(stats.heading_count, 2, 1),
+      table_preservation: qualityLabel(stats.table_line_count, 3, 1),
+    })
+  } catch (e) {
+    pdfMetric.error = e.message || String(e)
+    pdfMetric.processing_time_sec = Number(((Date.now() - pdfStarted) / 1000).toFixed(2))
+  }
+
+  const markStarted = Date.now()
+  try {
+    const mdPath = path.join(baseDir, 'converted_markitdown.md')
+    const markResult = await convertWithMarkItDownForCompare(absPath, mdPath)
+    const stats = textStats(markResult.text || '')
+    Object.assign(markMetric, stats, {
+      status: 'success',
+      error: '',
+      empty_slide_count: stats.text_length > 0 ? 0 : 1,
+      processing_time_sec: Number(((Date.now() - markStarted) / 1000).toFixed(2)),
+      output_path: mdPath,
+      title_preservation: qualityLabel(stats.heading_count, 2, 1),
+      table_preservation: qualityLabel(stats.table_line_count, 3, 1),
+    })
+  } catch (e) {
+    markMetric.error = e.message || String(e)
+    markMetric.processing_time_sec = Number(((Date.now() - markStarted) / 1000).toFixed(2))
+  }
+
+  const recommendation = buildPptCompareRecommendation(pdfMetric, markMetric)
+  const report = {
+    file_name: fileName,
+    attachment_id: item.id,
+    post_id: 'rag_dataset',
+    comment_id: '',
+    libreoffice_pdf: pdfMetric,
+    markitdown: markMetric,
+    search_eval: {
+      top3_hit_rate: null,
+      top5_hit_rate: null,
+      note: '현재 단계에서는 변환 산출물 기반 지표만 계산합니다. 검색 정답률은 검증 질문 세트가 준비되면 추가합니다.',
+    },
+    ...recommendation,
+    evaluated_at: new Date().toISOString(),
+    report_path: path.join(baseDir, 'ppt_compare.json'),
+  }
+  fs.writeFileSync(report.report_path, JSON.stringify(report, null, 2), 'utf8')
+  return report
+}
+
+function safeDatasetPathPart(value = '') {
+  return String(value || 'unknown')
+    .normalize('NFC')
+    .replace(/[\/\\]/g, '_')
+    .replace(/[^\p{L}\p{N}.\-() _]+/gu, '_')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 120) || 'unknown'
+}
+
 async function buildTrainerPostFromDataset(item) {
   const cfg = readConfig()
   const ragCfg = cfg.rag || {}
@@ -198,7 +497,11 @@ async function buildTrainerPostFromDataset(item) {
   const ext = (item.ext || '').toLowerCase()
   const isPdf = ext === 'pdf' || String(item.content_type || '').includes('pdf')
   const isWord = ['doc', 'docx'].includes(ext)
-  const isText = ['txt', 'md', 'csv', 'log', 'json'].includes(ext) || String(item.content_type || '').startsWith('text/')
+  const isExcel = ['xls', 'xlsx'].includes(ext)
+  const isPresentation = ['ppt', 'pptx'].includes(ext)
+  const isMarkup = ['xml', 'html', 'htm', 'csv'].includes(ext)
+  const isArchive = ext === 'zip'
+  const isText = ['txt', 'md', 'log', 'json'].includes(ext) || String(item.content_type || '').startsWith('text/')
 
   const post = {
     id: item.id,
@@ -207,6 +510,11 @@ async function buildTrainerPostFromDataset(item) {
     source: 'manual_dataset',
     pdfs: [],
     words: [],
+    txts: [],
+    excels: [],
+    presentations: [],
+    markitdown_files: [],
+    archives: [],
   }
 
   if (!fs.existsSync(absPath)) {
@@ -220,6 +528,23 @@ async function buildTrainerPostFromDataset(item) {
   } else if (isWord) {
     post.content = `[RAG 학습 데이터] ${displayFilename}`
     post.words = [{ id: item.id, path: absPath, file_name: displayFilename }]
+  } else if (isExcel) {
+    post.content = `[RAG 학습 데이터] ${displayFilename}`
+    post.excels = [{ id: item.id, path: absPath, file_name: displayFilename }]
+  } else if (isPresentation) {
+    post.content = `[RAG 학습 데이터] ${displayFilename}`
+    post.presentations = [{ id: item.id, path: absPath, file_name: displayFilename }]
+  } else if (isMarkup) {
+    post.content = `[RAG 학습 데이터] ${displayFilename}`
+    post.markitdown_files = [{
+      id: item.id,
+      path: absPath,
+      file_name: displayFilename,
+      doc_type: ext === 'csv' ? 'table' : (ext === 'xml' ? 'structured_xml' : 'html'),
+    }]
+  } else if (isArchive) {
+    post.content = `[RAG 학습 데이터] ${displayFilename}`
+    post.archives = [{ id: item.id, path: absPath, file_name: displayFilename }]
   } else if (isText) {
     let text = ''
     try {
@@ -419,12 +744,107 @@ async function callPythonSearch(payload) {
   if (!ready) return []
 
   try {
-    return await callRagServer(payload)
+    const response = await callRagServer(payload)
+    if (Array.isArray(response)) return response
+    if (response && Array.isArray(response.results)) return response.results
+    return []
   } catch (e) {
     ragServerReady = false
     console.warn('[RAG] 서버 검색 실패, 이번 요청은 빈 결과로 처리:', e.message)
     return []
   }
+}
+
+function normalizeSearchResponse(response, fallbackReason = 'ok') {
+  if (Array.isArray(response)) {
+    return { ok: true, reason: fallbackReason, table_name: '', results: response }
+  }
+  if (response && Array.isArray(response.results)) {
+    return {
+      ok: response.ok !== false,
+      reason: response.reason || fallbackReason,
+      table_name: response.table_name || '',
+      error: response.error || '',
+      results: response.results,
+    }
+  }
+  if (response && response.error) {
+    return { ok: false, reason: 'search_error', table_name: '', error: response.error, results: [] }
+  }
+  return { ok: false, reason: fallbackReason, table_name: '', results: [] }
+}
+
+async function callPythonSearchStatus(payload) {
+  if (ragServerDisabled) {
+    return { ok: false, reason: 'server_disabled', table_name: '', results: [] }
+  }
+  const ready = ragServerReady ? true : await waitForRagServerReady(7000)
+  if (!ready) {
+    return { ok: false, reason: 'server_unavailable', table_name: '', results: [] }
+  }
+
+  try {
+    return normalizeSearchResponse(await callRagServer({ ...payload, include_status: true }))
+  } catch (e) {
+    ragServerReady = false
+    console.warn('[RAG] 서버 검색 실패:', e.message)
+    return { ok: false, reason: 'server_error', table_name: '', error: e.message, results: [] }
+  }
+}
+
+function getFallbackTableName(ragCfg = {}, primaryTable = '') {
+  const fallbackTable = String(ragCfg.fallback_table || ragCfg.previous_table || '').trim()
+  if (fallbackTable && fallbackTable !== primaryTable) return fallbackTable
+  if (String(primaryTable || '').endsWith('_v2')) return 'my_rag_table'
+  return ''
+}
+
+function schemaVersionForTable(tableName, fallbackVersion = 1) {
+  if (String(tableName || '').endsWith('_v2')) return 2
+  return fallbackVersion
+}
+
+function shouldFallbackRagSearch(status = {}) {
+  return ['lancedb_missing', 'table_missing', 'empty_table', 'search_error', 'server_error', 'server_unavailable'].includes(status.reason)
+}
+
+async function searchWithVersionFallback(payload, ragCfg = {}) {
+  const primaryTable = payload?.config?.table_name || payload?.config?.rag_table_name || 'my_rag_table'
+  const primary = await callPythonSearchStatus(payload)
+  if (!shouldFallbackRagSearch(primary)) {
+    return { results: primary.results, payload, status: primary, fallback_used: false }
+  }
+
+  const fallbackEnabled = ragCfg.search_fallback_enabled !== false
+  const fallbackTable = fallbackEnabled ? getFallbackTableName(ragCfg, primaryTable) : ''
+  if (!fallbackTable) {
+    return { results: primary.results, payload, status: primary, fallback_used: false }
+  }
+
+  const fallbackPayload = {
+    ...payload,
+    config: {
+      ...(payload.config || {}),
+      table_name: fallbackTable,
+      rag_table_name: fallbackTable,
+      schema_version: Number(ragCfg.fallback_schema_version || schemaVersionForTable(fallbackTable, 1)),
+    },
+  }
+  const fallback = await callPythonSearchStatus(fallbackPayload)
+  if (fallback.ok) {
+    console.warn(`[RAG] active table fallback: ${primaryTable} -> ${fallbackTable} (${primary.reason})`)
+    return {
+      results: fallback.results,
+      payload: fallbackPayload,
+      status: fallback,
+      fallback_used: true,
+      fallback_reason: primary.reason,
+      fallback_table: fallbackTable,
+      primary_table: primaryTable,
+    }
+  }
+
+  return { results: [], payload, status: fallback, fallback_used: false }
 }
 
 function isAmountQuery(query = '') {
@@ -1430,6 +1850,9 @@ router.post('/search', requireAuth, async (req, res) => {
     const payload = {
       config: {
         lancedb_path: getDatabasePath(cfg, 'lancedb Database Path'),
+        table_name: ragCfg.active_table || ragCfg.table_name || 'my_rag_table',
+        rag_table_name: ragCfg.active_table || ragCfg.table_name || 'my_rag_table',
+        schema_version: Number(ragCfg.schema_version || 1),
         vector_size: ragCfg.vectorSize ?? 1024,
       },
       query,
@@ -1437,7 +1860,9 @@ router.post('/search', requireAuth, async (req, res) => {
       allowed_channel_ids: allowedChannelIds,
     }
 
-    let results = await callPythonSearch(payload)
+    const initialSearch = await searchWithVersionFallback(payload, ragCfg)
+    let results = initialSearch.results
+    const searchPayload = initialSearch.payload
 
     if (amountQuery) {
       const baseResults = Array.isArray(results) ? results : []
@@ -1446,8 +1871,8 @@ router.post('/search', requireAuth, async (req, res) => {
         const secondPassLimit = Math.max(effectiveRequestedLimit * 4, 16)
         const amountHintQuery = `${query}\n합계 총액 공급가액 부가세 VAT 견적 금액 원`
         const [r2, r3] = await Promise.all([
-          callPythonSearch({ ...payload, limit: secondPassLimit }),
-          callPythonSearch({ ...payload, query: amountHintQuery, limit: secondPassLimit }),
+          callPythonSearch({ ...searchPayload, limit: secondPassLimit }),
+          callPythonSearch({ ...searchPayload, query: amountHintQuery, limit: secondPassLimit }),
         ])
         results = mergeUniqueResults(baseResults, r2, r3)
       }
@@ -1460,8 +1885,8 @@ router.post('/search', requireAuth, async (req, res) => {
         const secondPassLimit = Math.max(effectiveRequestedLimit * 4, 24)
         const commandHintQuery = `${query}\nCLI 명령어 command show configure config snmp-server no snmp-server`
         const [r2, r3] = await Promise.all([
-          callPythonSearch({ ...payload, limit: secondPassLimit }),
-          callPythonSearch({ ...payload, query: commandHintQuery, limit: secondPassLimit }),
+          callPythonSearch({ ...searchPayload, limit: secondPassLimit }),
+          callPythonSearch({ ...searchPayload, query: commandHintQuery, limit: secondPassLimit }),
         ])
         results = mergeUniqueResults(baseResults, r2, r3)
       }
@@ -1474,8 +1899,8 @@ router.post('/search', requireAuth, async (req, res) => {
         const secondPassLimit = Math.max(effectiveRequestedLimit * 4, 24)
         const temporalHintQuery = `${query}\n작업 희망 일시 예정 일시 날짜 시간 시행일자 년 월 일 시 분`
         const [r2, r3] = await Promise.all([
-          callPythonSearch({ ...payload, limit: secondPassLimit }),
-          callPythonSearch({ ...payload, query: temporalHintQuery, limit: secondPassLimit }),
+          callPythonSearch({ ...searchPayload, limit: secondPassLimit }),
+          callPythonSearch({ ...searchPayload, query: temporalHintQuery, limit: secondPassLimit }),
         ])
         results = mergeUniqueResults(baseResults, r2, r3)
       }
@@ -1488,8 +1913,8 @@ router.post('/search', requireAuth, async (req, res) => {
         const secondPassLimit = Math.max(effectiveRequestedLimit * 4, 24)
         const enumHintQuery = `${query}\n핵심 투자 포인트 WHY INVEST NOW 핵심 요약 1) 2) 3) 4) 5)`
         const [r2, r3] = await Promise.all([
-          callPythonSearch({ ...payload, limit: secondPassLimit }),
-          callPythonSearch({ ...payload, query: enumHintQuery, limit: secondPassLimit }),
+          callPythonSearch({ ...searchPayload, limit: secondPassLimit }),
+          callPythonSearch({ ...searchPayload, query: enumHintQuery, limit: secondPassLimit }),
         ])
         results = mergeUniqueResults(baseResults, r2, r3)
       }
@@ -1577,7 +2002,17 @@ router.post('/search', requireAuth, async (req, res) => {
       }
     }
 
-    res.json({ context, references })
+    res.json({
+      context,
+      references,
+      rag_table: searchPayload?.config?.table_name || '',
+      rag_fallback: initialSearch.fallback_used ? {
+        used: true,
+        reason: initialSearch.fallback_reason || '',
+        primary_table: initialSearch.primary_table || '',
+        fallback_table: initialSearch.fallback_table || '',
+      } : { used: false },
+    })
   } catch (err) {
     console.error('[RAG Search Error]', err.message)
     // 검색 실패 시 RAG 없이 진행할 수 있도록 빈 결과 반환
@@ -1816,6 +2251,121 @@ router.post('/datasets/train', requireAuth, async (req, res) => {
     res.json({ total: targets.length, results })
   } catch (e) {
     res.status(500).json({ error: `학습 시작 실패: ${e.message}` })
+  }
+})
+
+// ─── POST /api/rag/datasets/ppt-compare ──────────────────────
+// 선택한 PPT/PPTX 학습 데이터를 기존 LibreOffice→PDF 경로와 MarkItDown 경로로 변환해 비교 리포트를 생성한다.
+router.post('/datasets/ppt-compare', requireAuth, async (req, res) => {
+  const ids = Array.isArray(req.body?.ids) ? req.body.ids.map(String) : []
+  try {
+    const items = readRagDatasetIndex()
+    const targets = items.filter(item => {
+      if (!isPresentationDataset(item)) return false
+      return ids.length === 0 || ids.includes(String(item.id))
+    })
+    if (targets.length === 0) {
+      return res.status(400).json({ error: '비교 검증할 PPT/PPTX 학습 데이터가 없습니다.' })
+    }
+
+    const results = []
+    for (const target of targets) {
+      try {
+        const report = await comparePptDataset(target)
+        results.push({ id: target.id, status: 'success', ...report })
+      } catch (e) {
+        results.push({
+          id: target.id,
+          file_name: getDisplayFilename(target),
+          status: 'failed',
+          error: e.message || String(e),
+          evaluated_at: new Date().toISOString(),
+        })
+      }
+    }
+    res.json({ total: targets.length, results })
+  } catch (e) {
+    res.status(500).json({ error: `PPT 파이프라인 비교 검증 실패: ${e.message}` })
+  }
+})
+
+// ─── GET /api/rag/versioned/status ───────────────────────────
+router.get('/versioned/status', requireAuth, async (req, res) => {
+  try {
+    const cfg = readConfig()
+    const ragCfg = cfg.rag || {}
+    res.json({
+      active_table: ragCfg.active_table || ragCfg.table_name || 'my_rag_table',
+      next_table: ragCfg.next_table || 'my_rag_table_v2',
+      previous_table: ragCfg.previous_table || '',
+      fallback_table: ragCfg.fallback_table || ragCfg.previous_table || '',
+      search_fallback_enabled: ragCfg.search_fallback_enabled !== false,
+      schema_version: Number(ragCfg.schema_version || 1),
+      fallback_schema_version: Number(ragCfg.fallback_schema_version || 1),
+      rebuild_schema_version: Number(ragCfg.rebuild_schema_version || 2),
+    })
+  } catch (e) {
+    res.status(500).json({ error: `RAG 버전 상태 조회 실패: ${e.message}` })
+  }
+})
+
+// ─── POST /api/rag/versioned/switch ──────────────────────────
+router.post('/versioned/switch', requireAuth, async (req, res) => {
+  try {
+    const tableName = String(req.body?.table_name || '').trim()
+    if (!tableName) return res.status(400).json({ error: 'table_name이 필요합니다.' })
+    const cfg = readConfig()
+    cfg.rag = cfg.rag || {}
+    const current = cfg.rag.active_table || cfg.rag.table_name || 'my_rag_table'
+    const schemaVersion = Number(req.body?.schema_version || (tableName.endsWith('_v2') ? 2 : 1))
+    cfg.rag.previous_table = current
+    cfg.rag.fallback_table = current
+    cfg.rag.active_table = tableName
+    cfg.rag.table_name = tableName
+    cfg.rag.schema_version = Number.isFinite(schemaVersion) && schemaVersion > 0 ? schemaVersion : 1
+    cfg.rag.fallback_schema_version = current.endsWith('_v2') ? 2 : 1
+    cfg.rag.search_fallback_enabled = cfg.rag.search_fallback_enabled !== false
+    if (cfg.rag.next_table === tableName) cfg.rag.next_table = current
+    writeConfig(cfg)
+    res.json({
+      ok: true,
+      active_table: cfg.rag.active_table,
+      previous_table: cfg.rag.previous_table,
+      fallback_table: cfg.rag.fallback_table,
+      schema_version: cfg.rag.schema_version,
+      fallback_schema_version: cfg.rag.fallback_schema_version,
+    })
+  } catch (e) {
+    res.status(500).json({ error: `RAG 테이블 전환 실패: ${e.message}` })
+  }
+})
+
+// ─── POST /api/rag/versioned/rollback ────────────────────────
+router.post('/versioned/rollback', requireAuth, async (req, res) => {
+  try {
+    const cfg = readConfig()
+    cfg.rag = cfg.rag || {}
+    const previous = String(cfg.rag.previous_table || '').trim()
+    if (!previous) return res.status(400).json({ error: 'previous_table이 비어 있어 rollback 할 수 없습니다.' })
+    const current = cfg.rag.active_table || cfg.rag.table_name || 'my_rag_table'
+    cfg.rag.active_table = previous
+    cfg.rag.table_name = previous
+    cfg.rag.previous_table = current
+    cfg.rag.fallback_table = current
+    cfg.rag.schema_version = previous.endsWith('_v2') ? 2 : 1
+    cfg.rag.fallback_schema_version = current.endsWith('_v2') ? 2 : 1
+    cfg.rag.search_fallback_enabled = cfg.rag.search_fallback_enabled !== false
+    writeConfig(cfg)
+    res.json({
+      ok: true,
+      active_table: cfg.rag.active_table,
+      previous_table: cfg.rag.previous_table,
+      fallback_table: cfg.rag.fallback_table,
+      schema_version: cfg.rag.schema_version,
+      fallback_schema_version: cfg.rag.fallback_schema_version,
+    })
+  } catch (e) {
+    res.status(500).json({ error: `RAG 테이블 rollback 실패: ${e.message}` })
   }
 })
 
