@@ -9,6 +9,7 @@ const {
   gmailListLabels,
 } = require('./gmailOAuth')
 const { parseGmailMessage, decodeBase64Url } = require('./messageParser')
+const { enqueueMessageSynced } = require('./agentic/worker')
 
 // ---------------------------------------------------------------------------
 // Gmail 동기화 오케스트레이터.
@@ -131,7 +132,10 @@ async function syncOneMessage({ tenantId, account, accessToken, storage, folderM
   }
 
   const folderId = resolveGmailFolderId(folderMap, parsed.labelIds, forceFolderId)
-  await repo.saveSyncedMessage({ tenantId, account, parsed, folderId, objectKeys, attachments })
+  const messageId = await repo.saveSyncedMessage({ tenantId, account, parsed, folderId, objectKeys, attachments })
+  await enqueueMessageSynced({ tenantId, messageId, direction: 'inbound' }).catch(err => {
+    console.warn('[AgenticAI Mail] Gmail sync event enqueue failed:', err.message)
+  })
 }
 
 // 계정 1개를 동기화한다. (account는 repo.getAccountForSync 결과: storage_prefix 포함)

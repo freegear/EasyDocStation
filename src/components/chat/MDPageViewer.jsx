@@ -1483,9 +1483,10 @@ export default function MDPageViewer({ post, channelId, onClose }) {
 
   const freshPost = posts[channelId]?.find((p) => p.id === post.id) || post
   const comments = Array.isArray(freshPost.comments) ? freshPost.comments : []
-  const canEdit = String(freshPost.author?.id ?? '') === String(currentUser?.id ?? '')
+  const isAuthor = String(freshPost.author?.id ?? '') === String(currentUser?.id ?? '')
+  const canEdit = freshPost.can_edit != null ? Boolean(freshPost.can_edit) : isAuthor
   const isPinManagerRole = ['site_admin', 'team_admin', 'channel_admin'].includes(String(currentUser?.role || ''))
-  const canPinPost = (isPinManagerRole || canEdit) && !selectedChannel?.is_archived
+  const canPinPost = (isPinManagerRole || isAuthor) && !selectedChannel?.is_archived
   useEffect(() => { canEditRef.current = canEdit }, [canEdit])
 
   useEffect(() => {

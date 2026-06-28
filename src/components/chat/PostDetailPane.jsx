@@ -311,11 +311,17 @@ function PostDetailPane({
   const activeTargetType = selectedComment ? 'comment' : 'post'
   const isSiteAdmin = currentUser?.role === 'site_admin'
   const isPinManagerRole = ['site_admin', 'team_admin', 'channel_admin'].includes(String(currentUser?.role || ''))
-  const canEditPost = String(freshPost.author?.id ?? '') === String(currentUser?.id ?? '')
-  const canDeletePost = isSiteAdmin || canEditPost
-  const canPinPost = isPinManagerRole || canEditPost
-  const canEditComment = selectedComment && String(selectedComment.author?.id ?? '') === String(currentUser?.id ?? '')
-  const canDeleteComment = selectedComment && (isSiteAdmin || canEditComment)
+  const isPostAuthor = String(freshPost.author?.id ?? '') === String(currentUser?.id ?? '')
+  const canEditPost = freshPost.can_edit != null ? Boolean(freshPost.can_edit) : isPostAuthor
+  const canDeletePost = isSiteAdmin || isPostAuthor
+  const canPinPost = isPinManagerRole || isPostAuthor
+  const canEditComment = selectedComment && (
+    selectedComment.can_edit != null
+      ? Boolean(selectedComment.can_edit)
+      : String(selectedComment.author?.id ?? '') === String(currentUser?.id ?? '')
+  )
+  const isCommentAuthor = selectedComment && String(selectedComment.author?.id ?? '') === String(currentUser?.id ?? '')
+  const canDeleteComment = selectedComment && (isSiteAdmin || isCommentAuthor)
   const canEditSelected = activeTargetType === 'post' ? canEditPost : Boolean(canEditComment)
   const canDeleteSelected = activeTargetType === 'post' ? canDeletePost : Boolean(canDeleteComment)
   const canPinSelected = activeTargetType === 'post' && canPinPost

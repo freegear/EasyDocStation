@@ -672,6 +672,344 @@ redis_memory_used
 dead_letter_count
 ```
 
+## 7.8 설치 스크립트 업그레이드
+
+Redis 적용 시 수동 설치에만 의존하지 않도록 기존 EasyStation 설치 스크립트도 함께 업그레이드한다. 목표는 `npm run setup:ubuntu`, `npm run setup:dgx-spark` 실행만으로 Redis 사용 준비가 끝나는 것이다.
+
+대상 스크립트:
+
+```txt
+scripts/setup-ubuntu.sh
+scripts/setup-dgx-spark.sh
+scripts/dev-ubuntu.sh
+scripts/dev-dgx-spark.sh
+scripts/run-dgx-spark.sh
+server/package.json
+server/requirements.txt
+```
+
+### 7.8.1 Ubuntu 설치 스크립트
+
+`scripts/setup-ubuntu.sh`에는 Redis 설치 옵션을 추가한다.
+
+권장 환경 변수:
+
+```bash
+INSTALL_REDIS=1
+REDIS_STACK=0
+REDIS_PORT=6379
+REDIS_MAXMEMORY=4gb
+REDIS_MAXMEMORY_POLICY=allkeys-lru
+```
+
+동작 정책:
+
+- `INSTALL_REDIS=1`이면 Redis를 설치하고 기동한다.
+- 기본 Ubuntu 환경에서는 `redis-server` 패키지를 우선 사용한다.
+- Vector Search가 필요한 경우에는 `REDIS_STACK=1`로 Redis Stack Docker 구성을 사용한다.
+- 설치 후 `redis-cli ping` 또는 Docker health check로 `PONG`을 확인한다.
+- 이미 Redis가 실행 중이면 재설치하지 않고 설정 검증만 수행한다.
+- 서버 `.env`가 없으면 생성하고, 있으면 Redis 관련 값만 누락 시 추가한다.
+
+`.env`에 추가할 기본값:
+
+```bash
+REDIS_URL=redis://127.0.0.1:6379
+REDIS_AI_CACHE_ENABLED=true
+REDIS_AI_QUEUE_ENABLED=false
+REDIS_AI_VECTOR_CACHE_ENABLED=false
+REDIS_AI_DEFAULT_TTL_SEC=3600
+REDIS_AI_PAYLOAD_TTL_SEC=300
+REDIS_AI_RESULT_TTL_SEC=3600
+```
+
+초기 단계에서는 `REDIS_AI_QUEUE_ENABLED=false`를 기본값으로 둔다. 캐시 기능이 안정화된 뒤 queue를 활성화한다.
+
+### 7.8.2 DGX Spark 설치 스크립트
+
+`scripts/setup-dgx-spark.sh`에는 GPU 워커와 Redis Queue를 고려한 설정을 추가한다.
+
+권장 기본값:
+
+```bash
+INSTALL_REDIS=1
+REDIS_STACK=1
+REDIS_MAXMEMORY=16gb
+REDIS_AI_CACHE_ENABLED=true
+REDIS_AI_QUEUE_ENABLED=true
+AI_BATCH_MAX_SIZE=16
+AI_BATCH_MAX_WAIT_MS=50
+AI_WORKER_HEARTBEAT_SEC=5
+```
+
+DGX 환경에서는 Redis Stack을 기본 권장한다. Redis Vector Search, Streams, worker heartbeat, load-aware routing을 같은 Redis 인스턴스에서 검증하기 쉽기 때문이다.
+
+추가 동작:
+
+- Docker가 설치되어 있지 않으면 Redis Stack 설치 전에 Docker 설치 여부를 확인한다.
+- `easystation-redis` 컨테이너가 이미 있으면 재생성하지 않고 `docker start`로 기동한다.
+- 운영 모드에서는 volume `easystation-redis-data:/data`를 사용한다.
+- `appendonly yes`, `maxmemory`, `maxmemory-policy` 설정을 명시한다.
+- 설치 완료 후 Redis memory policy와 stream 명령 사용 가능 여부를 확인한다.
+
+검증 명령 예시:
+
+```bash
+redis-cli -u "$REDIS_URL" PING
+redis-cli -u "$REDIS_URL" XADD ai:queue:healthcheck '*' created_at "$(date -Iseconds)"
+redis-cli -u "$REDIS_URL" XLEN ai:queue:healthcheck
+```
+
+### 7.8.3 Node/Python 의존성 자동 반영
+
+설치 스크립트는 Redis 기능에 필요한 의존성을 자동으로 설치해야 한다.
+
+Node.js 서버:
+
+```bash
+npm install --prefix server redis
+```
+
+Python RAG/GPU worker:
+
+```bash
+python -m pip install redis
+```
+
+비동기 worker 또는 고성능 Redis IO가 필요하면 다음을 사용한다.
+
+```bash
+python -m pip install 'redis[hiredis]'
+```
+
+의존성은 스크립트에서만 임시 설치하지 말고 `server/package.json`, `server/package-lock.json`, `server/requirements.txt`에도 반영한다.
+
+### 7.8.4 실행 스크립트 연동
+
+`scripts/dev-ubuntu.sh`, `scripts/dev-dgx-spark.sh`, `scripts/run-dgx-spark.sh`는 서버 실행 전 Redis 상태를 점검한다.
+
+권장 처리:
+
+- `REDIS_AI_CACHE_ENABLED=true` 또는 `REDIS_AI_QUEUE_ENABLED=true`인데 Redis 연결 실패 시 경고를 출력한다.
+- 캐시만 사용하는 경우에는 Redis 장애를 cache miss로 보고 서버를 계속 실행한다.
+- queue가 필수인 DGX worker 모드에서는 Redis 장애 시 명확한 에러로 실행을 중단한다.
+- 개발 모드에서는 `INSTALL_REDIS=1 npm run setup:ubuntu` 또는 `npm run setup:dgx-spark` 안내 메시지를 출력한다.
+
+예시 메시지:
+
+```txt
+[WARN] Redis 연결 실패: redis://127.0.0.1:6379
+[INFO] 캐시 기능은 비활성 fallback으로 실행됩니다.
+[INFO] Redis를 설치하려면 INSTALL_REDIS=1 npm run setup:ubuntu 를 실행하세요.
+```
+
+### 7.8.5 설치 후 자동 검증
+
+설치 스크립트 마지막 단계에서 아래 항목을 검증한다.
+
+- Redis 프로세스 또는 컨테이너 실행 여부
+- `REDIS_URL` 접속 가능 여부
+- `PING` 응답
+- `SETEX`/`GET` 테스트
+- Streams 사용 시 `XADD`/`XLEN` 테스트
+- Redis Stack 사용 시 Vector Search module 로드 여부
+- 서버 `.env` Redis 설정 존재 여부
+- Node `redis` 패키지 설치 여부
+- Python `redis` 패키지 import 가능 여부
+
+검증 실패 시 설치 자체를 무조건 실패 처리하지 말고, Redis 기능 사용 가능 여부를 명확히 출력한다. 단, `REDIS_AI_QUEUE_ENABLED=true`인 DGX worker 설치에서는 Redis 연결 실패를 치명 오류로 본다.
+
+## 7.9 사이트 관리 GPU 최적화 UI
+
+사이트 관리 페이지에는 Redis 기반 GPU 최적화 효과를 설정하고 측정할 수 있는 UI를 추가한다.
+
+배치 위치:
+
+- 사이트 관리 페이지의 `RAG 학습 옵션 설정` 버튼 바로 밑에 `GPU 최적화` 버튼을 둔다.
+- `GPU 최적화` 버튼은 사이트 관리자에게만 표시한다.
+- 버튼을 클릭하면 `GPU 최적화` 설정/측정 페이지를 연다.
+
+### 7.9.1 GPU 최적화 페이지 목적
+
+이 페이지의 목적은 Redis 기능을 단순히 켜고 끄는 것이 아니라, Redis 적용 효과를 On/Off 방식으로 비교 측정하는 것이다.
+
+핵심 원칙:
+
+- Redis 전체 On/Off만 제공하지 않는다.
+- `Cache`, `Queue`, `Vector Cache`를 각각 독립적으로 On/Off할 수 있어야 한다.
+- 각 기능을 켰을 때 GPU 호출 감소, 응답 시간 개선, throughput 증가가 실제로 발생했는지 측정한다.
+- 측정 결과는 관리자에게 숫자로 보여준다.
+
+### 7.9.2 기본 토글 구성
+
+페이지 상단에는 Redis 기능별 토글을 둔다.
+
+```txt
+GPU 최적화
+
+[ ] Redis 사용
+[ ] Cache 사용
+[ ] Queue 사용
+[ ] Vector Cache 사용
+[ ] Dynamic Batching 사용
+[ ] Load-Aware Routing 사용
+```
+
+토글 정책:
+
+- `Redis 사용`이 꺼져 있으면 하위 기능은 모두 비활성화한다.
+- `Cache 사용`은 `REDIS_AI_CACHE_ENABLED`와 연결한다.
+- `Queue 사용`은 `REDIS_AI_QUEUE_ENABLED`와 연결한다.
+- `Vector Cache 사용`은 `REDIS_AI_VECTOR_CACHE_ENABLED`와 연결한다.
+- `Dynamic Batching 사용`은 Queue가 켜져 있을 때만 활성화한다.
+- `Load-Aware Routing 사용`은 Queue 또는 worker heartbeat가 준비된 경우에만 활성화한다.
+
+### 7.9.3 On/Off 측정 모드
+
+Redis 효과 측정은 아래 실험 모드로 제공한다.
+
+```txt
+측정 모드
+
+1. Redis Off
+2. Redis Cache On
+3. Redis Cache + Queue On
+4. Redis Cache + Queue + Dynamic Batch On
+5. Redis Cache + Queue + Dynamic Batch + Vector Cache On
+```
+
+관리자는 각 모드를 선택해 동일한 테스트 요청 세트로 비교 측정할 수 있어야 한다.
+
+측정 시 반드시 구분할 상태:
+
+- Cold Cache: Redis는 켜져 있지만 캐시가 비어 있는 상태
+- Warm Cache: 동일 요청이 반복되어 캐시가 채워진 상태
+
+Cold Cache와 Warm Cache 결과를 분리해서 보여준다. Cold Cache에서는 Redis 조회 비용 때문에 개선이 작거나 느려질 수 있고, Warm Cache에서 실제 캐시 효과가 드러난다.
+
+### 7.9.4 측정 지표
+
+GPU 최적화 페이지에는 아래 지표를 표시한다.
+
+기본 지표:
+
+```txt
+p50 latency
+p95 latency
+p99 latency
+GPU 호출 수
+GPU 호출 감소율
+cache hit rate
+cache miss rate
+error rate
+timeout count
+Redis memory used
+```
+
+Queue 사용 시 추가 지표:
+
+```txt
+queue wait ms
+pending count
+average batch size
+dead letter count
+GPU utilization
+GPU VRAM usage
+worker heartbeat age
+```
+
+기능별 지표:
+
+```txt
+RAG embedding cache hit rate
+RAG search cache hit rate
+LLM answer cache hit rate
+STT transcript cache hit rate
+OCR result cache hit rate
+Vision analysis cache hit rate
+```
+
+### 7.9.5 비교 결과 UI
+
+측정 결과는 비교 표로 보여준다.
+
+예시:
+
+```txt
+항목                  Redis Off   Cache On   Cache+Queue On
+p95 latency           8.2s        2.1s       2.5s
+GPU 호출 수           100         58         58
+GPU 호출 감소율       0%          42%        42%
+cache hit rate        0%          42%        42%
+timeout count         6           1          1
+avg batch size        -           -          8.4
+queue wait ms         -           -          45ms
+```
+
+관리자가 한눈에 아래 내용을 판단할 수 있어야 한다.
+
+- Cache가 GPU 호출을 몇 % 줄였는가
+- Queue가 API timeout을 줄였는가
+- Dynamic Batching이 평균 batch size와 throughput을 올렸는가
+- Vector Cache가 정확도 위험 없이 hit rate를 올렸는가
+- Redis memory 사용량이 적절한가
+
+### 7.9.6 측정 실행 버튼
+
+페이지에는 다음 버튼을 둔다.
+
+```txt
+[현재 설정 저장]
+[Redis 연결 테스트]
+[Cold Cache 측정 시작]
+[Warm Cache 측정 시작]
+[측정 결과 초기화]
+[CSV 다운로드]
+```
+
+동작:
+
+- `현재 설정 저장`: Redis 기능별 On/Off 값을 저장한다.
+- `Redis 연결 테스트`: `PING`, `SETEX/GET`, 필요 시 `XADD/XLEN`을 확인한다.
+- `Cold Cache 측정 시작`: 관련 테스트 cache key를 비운 뒤 측정한다.
+- `Warm Cache 측정 시작`: 같은 요청 세트를 반복 실행해서 캐시가 채워진 상태를 측정한다.
+- `측정 결과 초기화`: 저장된 실험 결과를 삭제한다.
+- `CSV 다운로드`: 비교 결과를 파일로 내려받는다.
+
+### 7.9.7 테스트 요청 세트
+
+측정에는 동일한 요청 세트를 사용한다.
+
+기본 테스트 세트:
+
+- RAG 질문 100개
+- 중복 질문 포함
+- 권한이 다른 사용자 포함
+- 긴 문서 검색 포함
+- STT/OCR/Vision 같은 무거운 작업 포함
+- 실패가 예상되는 요청 일부 포함
+
+권한이 다른 사용자 테스트는 중요하다. RAG 캐시는 사용자 ACL에 따라 결과가 달라질 수 있으므로, cache key에 ACL fingerprint가 반영되었는지 검증해야 한다.
+
+### 7.9.8 관리자 경고 문구
+
+GPU 최적화 페이지에는 아래 안내 문구를 표시한다.
+
+```txt
+Redis 효과 측정은 On/Off 방식이 가장 설득력 있는 검증 방법입니다.
+다만 전체 Redis를 한 번에 켜고 끄기보다 Cache, Queue, Vector Cache를 따로 켜고 끄는 구조가 좋습니다.
+그래야 "Redis가 효과 있다"가 아니라 "캐시가 GPU 호출을 몇 % 줄였고, Queue가 throughput을 몇 % 올렸다"까지 확인할 수 있습니다.
+```
+
+### 7.9.9 권한 및 안전 정책
+
+- GPU 최적화 페이지는 사이트 관리자만 접근할 수 있다.
+- Redis Off 또는 Queue Off 변경은 실행 중인 worker가 있으면 확인 dialog를 띄운다.
+- Vector Cache 활성화 시 RAG 권한/계약/금액/정책 질의에는 보수적인 threshold 또는 비활성화를 기본값으로 둔다.
+- 설정 변경은 감사 로그에 남긴다.
+- 측정 실행 중에는 같은 사이트에서 중복 측정을 시작하지 못하게 lock을 둔다.
+- 운영 중 측정은 실제 사용자 요청과 분리된 synthetic test set을 우선 사용한다.
+
 ---
 
 # 8. 장애 대응
@@ -794,7 +1132,11 @@ GPU 워커가 queue에서 요청을 모아 batch로 처리한다.
 # 10. 구현 체크리스트
 
 - Redis Stack 설치
+- Ubuntu/DGX 설치 스크립트 Redis 옵션 추가
+- 실행 스크립트 Redis health check 추가
 - `REDIS_URL` 환경 변수 추가
+- 서버 `.env` Redis 기본값 자동 추가
+- Node/Python Redis 의존성 설치 자동화
 - Redis client singleton 추가
 - cache key normalizer 구현
 - task별 TTL 정책 구현
@@ -806,6 +1148,10 @@ GPU 워커가 queue에서 요청을 모아 batch로 처리한다.
 - worker heartbeat 구현
 - dead letter queue 구현
 - 관리자 모니터링 화면 추가
+- 사이트 관리 페이지에 `GPU 최적화` 버튼 추가
+- GPU 최적화 페이지 Cache/Queue/Vector Cache 개별 On/Off UI 추가
+- Redis On/Off 효과 측정 비교표 추가
+- Cold Cache/Warm Cache 측정 실행 기능 추가
 - Redis 장애 fallback 구현
 - 운영 maxmemory/eviction 정책 설정
 
@@ -837,4 +1183,3 @@ Request
 - GPU 워커 간 부하 쏠림이 줄어든다.
 - 대용량 payload 전달 비용이 줄어든다.
 - Redis 장애 시에도 단계별 fallback이 가능하다.
-

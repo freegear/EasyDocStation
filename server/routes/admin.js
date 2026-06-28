@@ -12,6 +12,10 @@ const ragRouter = require('./rag')
 const { getDatabasePath, resolveAppBasePath } = require('../databasePaths')
 const { getPostgresDatabaseName } = require('../runtimeDbConfig')
 const { getPythonExecutable } = require('../pythonRuntime')
+const { getAiOptimizationConfig, saveAiOptimizationConfig } = require('../aiOptimization')
+const { pingRedis } = require('../redisClient')
+const aiMetrics = require('../aiMetrics')
+const { runQueueHealthcheck } = require('../aiQueue')
 
 // ... (existing code helpers)
 
@@ -490,6 +494,8 @@ router.get('/stats', async (req, res) => {
       pathConfig: getDatabasePathConfig(config),
       display: buildDisplayConfig(config),
       rag: config.rag || { trainingType: 'manual', dailyTime: '02:00', vectorSize: 1024 },
+      redis_ai: getAiOptimizationConfig(),
+      ai_metrics: aiMetrics.snapshot(),
       agenticai: normalizeAgenticAiConfig(config.agenticai || {}),
       agenticai_operation_mode: normalizeAgenticAiOperationMode(config.agenticai_operation_mode),
       maxAttachmentFileSize: config.MaxAttachmentFileSize ?? 100,
@@ -538,6 +544,8 @@ router.get('/stats', async (req, res) => {
         pathConfig: getDatabasePathConfig(config),
         display: buildDisplayConfig(config),
         rag: config.rag || { trainingType: 'manual', dailyTime: '02:00', vectorSize: 1024 },
+        redis_ai: getAiOptimizationConfig(),
+        ai_metrics: aiMetrics.snapshot(),
         agenticai: normalizeAgenticAiConfig(config.agenticai || {}),
         agenticai_operation_mode: normalizeAgenticAiOperationMode(config.agenticai_operation_mode),
         maxAttachmentFileSize: config.MaxAttachmentFileSize ?? 100,
@@ -622,6 +630,87 @@ router.put('/stt/settings', requireSiteAdmin, async (req, res) => {
     console.error('Save STT Settings Error:', err)
     res.status(500).json({ error: 'STT 설정을 저장하는 중 오류가 발생했습니다.' })
   }
+})
+
+// GET /api/admin/gpu-optimization — Redis/GPU optimization settings and metrics
+router.get('/gpu-optimization', requireSiteAdmin, async (_req, res) => {
+  try {
+    res.json({
+      config: getAiOptimizationConfig(),
+      metrics: aiMetrics.snapshot(),
+    })
+  } catch (err) {
+    console.error('GPU Optimization Load Error:', err)
+    res.status(500).json({ error: 'GPU 최적화 설정을 불러오지 못했습니다.' })
+  }
+})
+
+// PUT /api/admin/gpu-optimization — save Redis/GPU optimization settings
+router.put('/gpu-optimization', requireSiteAdmin, async (req, res) => {
+  try {
+    const saved = saveAiOptimizationConfig(req.body || {})
+    res.json({
+      success: true,
+      ...saved,
+      restartRequired: true,
+    })
+  } catch (err) {
+    console.error('GPU Optimization Save Error:', err)
+    res.status(500).json({ error: 'GPU 최적화 설정을 저장하지 못했습니다.' })
+  }
+})
+
+// POST /api/admin/gpu-optimization/test — Redis connection and command health check
+router.post('/gpu-optimization/test', requireSiteAdmin, async (_req, res) => {
+  try {
+    const ping = await pingRedis()
+    let queue = null
+    if (ping.ok) {
+      queue = await runQueueHealthcheck().catch(err => ({ ok: false, message: err.message }))
+    }
+    res.json({ ok: Boolean(ping.ok), ping, queue })
+  } catch (err) {
+    console.error('GPU Optimization Test Error:', err)
+    res.status(500).json({ error: 'Redis 연결 테스트를 수행하지 못했습니다.' })
+  }
+})
+
+// POST /api/admin/gpu-optimization/measure — store an On/Off measurement snapshot
+router.post('/gpu-optimization/measure', requireSiteAdmin, async (req, res) => {
+  try {
+    const mode = String(req.body?.mode || 'redis_off')
+    const cacheState = String(req.body?.cacheState || 'warm')
+    const ping = await pingRedis().catch(err => ({ ok: false, message: err.message }))
+    const metrics = aiMetrics.snapshot()
+    const tasks = metrics.tasks || {}
+    const totalGpuCalls = Object.values(tasks).reduce((sum, task) => sum + Number(task.gpu_call_count || 0), 0)
+    const totalRequests = Object.values(tasks).reduce((sum, task) => sum + Number(task.request_count || 0), 0)
+    const totalHits = Object.values(tasks).reduce((sum, task) => sum + Number(task.cache_hit || 0), 0)
+    const totalMisses = Object.values(tasks).reduce((sum, task) => sum + Number(task.cache_miss || 0), 0)
+    const taskLatencies = Object.values(tasks).map(task => Number(task.p95_latency_ms || 0)).filter(Boolean)
+    const p95 = taskLatencies.length ? Math.max(...taskLatencies) : 0
+    const result = aiMetrics.addExperiment({
+      mode,
+      cache_state: cacheState,
+      redis_ok: Boolean(ping.ok),
+      p95_latency_ms: p95,
+      gpu_call_count: totalGpuCalls,
+      request_count: totalRequests,
+      cache_hit_rate: (totalHits + totalMisses) > 0 ? totalHits / (totalHits + totalMisses) : 0,
+      timeout_count: Object.values(tasks).reduce((sum, task) => sum + Number(task.timeout_count || 0), 0),
+      avg_batch_size: Object.values(tasks).reduce((sum, task) => sum + Number(task.avg_batch_size || 0), 0),
+      note: '현재 누적 메트릭 스냅샷 기반 측정입니다. Synthetic test set 실행기는 worker 구현 단계에서 연결합니다.',
+    })
+    res.json({ success: true, result, metrics: aiMetrics.snapshot(), ping })
+  } catch (err) {
+    console.error('GPU Optimization Measure Error:', err)
+    res.status(500).json({ error: 'GPU 최적화 측정을 수행하지 못했습니다.' })
+  }
+})
+
+router.post('/gpu-optimization/metrics/reset', requireSiteAdmin, (_req, res) => {
+  aiMetrics.resetMetrics()
+  res.json({ success: true, metrics: aiMetrics.snapshot() })
 })
 
 // GET /api/admin/rag/status — 현재 RAG 상태 조회

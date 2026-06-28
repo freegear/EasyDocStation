@@ -58,9 +58,11 @@ const tripRouter = require('./routes/trip')
 const dmRouter = require('./routes/dm')
 const snsRouter = require('./routes/sns')
 const mailRouter = require('./routes/mail')
+const mailAgenticRouter = require('./routes/mailAgentic')
 const { initCassandra } = require('./cassandra')
 const { initRag } = require('./rag')
 const { startMailSyncScheduler } = require('./mail/scheduler')
+const { startAgenticMailWorker } = require('./mail/agentic/worker')
 
 const app = express()
 const PORT = process.env.PORT || 3001
@@ -104,6 +106,9 @@ initRag()
 
 // Initialize Mail sync scheduler (10분 주기)
 startMailSyncScheduler()
+startAgenticMailWorker({
+  intervalSec: Number(process.env.AGENTICAI_MAIL_WORKER_INTERVAL_SEC || 30),
+})
 
 app.use(cors({
   origin: process.env.CLIENT_ORIGIN || 'http://localhost:5173',
@@ -128,6 +133,7 @@ app.use('/api/trip', tripRouter)
 app.use('/api/dm', dmRouter)
 app.use('/api/sns', snsRouter)
 app.use('/api/mail', mailRouter)
+app.use('/api/mail/agentic', mailAgenticRouter)
 
 app.get('/api/health', (_req, res) => res.json({ ok: true }))
 

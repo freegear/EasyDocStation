@@ -62,6 +62,7 @@ CREATE TABLE IF NOT EXISTS users (
   display_name  VARCHAR(100),
   image_url     TEXT,
   is_active     BOOLEAN      NOT NULL DEFAULT true,
+  can_edit_search_results BOOLEAN NOT NULL DEFAULT false,
   department_id VARCHAR(50),
   security_level INTEGER     NOT NULL DEFAULT 0,
   created_at    TIMESTAMPTZ  NOT NULL DEFAULT NOW(),

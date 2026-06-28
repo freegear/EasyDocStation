@@ -67,6 +67,14 @@ function isTranslationQuery(text) {
   )
 }
 
+function isGlobalRagQuery(text = '') {
+  return /(전체|모든|전사|전체\s*RAG|전체\s*검색|전역|global|all documents|all data)/i.test(String(text || ''))
+}
+
+function isImageRagQuery(text = '') {
+  return /(이미지|사진|그림|첨부\s*이미지|이\s*이미지|해당\s*이미지|image|photo|picture|screenshot)/i.test(String(text || ''))
+}
+
 function isChannelPostSummaryIntent(text) {
   const compact = String(text || '').replace(/\s+/g, '')
   return (
@@ -76,9 +84,82 @@ function isChannelPostSummaryIntent(text) {
   )
 }
 
-function buildPostHref(channelId, postId) {
+function isChannelResourceLocateIntent(text) {
+  const compact = String(text || '').replace(/\s+/g, '')
+  const hasImageTarget = /(이미지|사진|그림|스크린샷|캡처|캡쳐|image|photo|picture|screenshot)/i.test(compact)
+  const imageLocate = (
+    hasImageTarget &&
+    !/(요약|정리|핵심|요점|설명|무엇|뭐야|뭔가|어떻게|왜|비교|번역|translate|summary)/i.test(compact) &&
+    !/^(이|해당)?(이미지|사진|그림|스크린샷|캡처|캡쳐|image|photo|picture|screenshot)$/i.test(compact) &&
+    compact.replace(/(?:을|를|은|는|이|가|의)?(?:(?:사용|이용)한|포함(?:된|한)|관련(?:된)?|담긴)?(?:이미지|사진|그림|스크린샷|캡처|캡쳐|image|photo|picture|screenshot)(?:자료|파일|첨부)?(?:어디(?:에)?(?:있는가|있어|있나요|있습니까)?|위치|찾아줘|찾아|검색|검색해줘|링크(?:보여줘|줘)?|보여줘|알려줘)?$/i, '').length >= 2
+  )
+  return (
+    imageLocate ||
+    (
+      /(글|게시글|포스트|post|문서|자료|파일|첨부|데이터|블럭도|블록도|도면|회로도|다이어그램|이미지|사진|그림|스크린샷|캡처|캡쳐|diagram|blockdiagram|image|photo|picture|screenshot|document|resource|file|attachment)/i.test(compact) ||
+      /^[A-Za-z0-9가-힣_.+\-/#]+(?:을|를|은|는|이|가|의)?(?:찾아줘|찾아|검색|검색해줘)$/u.test(compact)
+    ) &&
+    /(어디|위치|찾아줘|찾아|검색|검색해줘|링크|바로가기|문서로가기)/i.test(compact)
+  )
+}
+
+function isInternalToolJson(text = '') {
+  const raw = String(text || '').trim()
+  if (!raw) return false
+  const cleaned = raw
+    .replace(/^```(?:json)?/i, '')
+    .replace(/```$/i, '')
+    .trim()
+  try {
+    const parsed = JSON.parse(cleaned)
+    return parsed?.action === 'call' && typeof parsed?.function === 'string'
+  } catch (_) {
+    return false
+  }
+}
+
+function isInternalToolJsonLike(text = '') {
+  const raw = String(text || '').trim()
+  return /^```(?:json)?\s*\{/i.test(raw) || (/^\{/.test(raw) && /"action"\s*:\s*"call"|function"\s*:\s*"locate_/i.test(raw))
+}
+
+function hideInternalToolJson(text = '') {
+  return isInternalToolJson(text) || isInternalToolJsonLike(text) ? '' : text
+}
+
+function removePlaceholderLinks(text = '') {
+  return String(text || '')
+    .replace(/^\s*[-*•]?\s*(?:링크|Link|URL)\s*:\s*(?:\[?[^\]\n]*\]?\()?(?:\/channels\/\{channelId\}\/posts\/\{postId\}|\/channels\/:channelId\/posts\/:postId|https?:\/\/[^\s)]*\/channels\/\{channelId\}\/posts\/\{postId\})(?:\))?(?:\s*\([^)]*\))?\s*$/gim, '')
+    .replace(/^\s*[-*•]?\s*(?:링크|Link|URL)\s*:\s*(?:\{channelId\}|\{postId\}|.*\{channelId\}.*\{postId\}).*$/gim, '')
+    .replace(/\[([^\]]+)\]\((?:\/channels\/\{channelId\}\/posts\/\{postId\}|\/channels\/:channelId\/posts\/:postId|[^)]*\{channelId\}[^)]*\{postId\}[^)]*)\)/g, '$1')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim()
+}
+
+function sanitizeAssistantContent(text = '') {
+  return removePlaceholderLinks(hideInternalToolJson(text))
+}
+
+function isSingleKeywordLocateIntent(text) {
+  const normalized = String(text || '')
+    .replace(/[?？!！.,，。]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+  if (!normalized || /\s/.test(normalized)) return false
+  if (normalized.length < 2 || normalized.length > 80) return false
+  if (/(요약|정리|핵심|요점|설명|무엇|뭐야|뭔가|어떻게|왜|비교|번역|translate|summary)/i.test(normalized)) return false
+  if (/^(안녕|hello|hi)$/i.test(normalized)) return false
+  return /^[A-Za-z0-9가-힣_.+\-/#]+$/u.test(normalized)
+}
+
+function buildPostHref(channelId, postId, commentId = '') {
   if (!channelId || !postId) return ''
-  return `/?channelId=${encodeURIComponent(channelId)}&postId=${encodeURIComponent(postId)}`
+  const params = new URLSearchParams({
+    channelId: String(channelId),
+    postId: String(postId),
+  })
+  if (commentId) params.set('commentId', String(commentId))
+  return `/?${params.toString()}`
 }
 
 function stripReferenceIdsFromSummary(summary = '') {
@@ -162,8 +243,9 @@ function buildPostReferenceSection(references = []) {
   const lines = references.map((ref, index) => {
     const channelId = ref.channel_id || ref.channelId
     const postId = ref.post_id || ref.postId || ref.id
+    const commentId = ref.comment_id || ref.commentId || ''
     const label = resolvePostReferenceLabel(ref, index).replace(/\]/g, '\\]')
-    return `${index + 1}. [${label}](${buildPostHref(channelId, postId)})`
+    return `${index + 1}. [${label}](${ref.link || buildPostHref(channelId, postId, commentId)})`
   })
   return ['## 참조 게시글', ...lines].join('\n')
 }
@@ -250,12 +332,19 @@ function AgenticAIWelcomeCard() {
   return (
     <div className="flex w-full justify-center py-4">
       <div className="w-full max-w-[360px] rounded-2xl bg-white px-5 py-6 text-center shadow-sm ring-1 ring-gray-200">
-        <div className="mx-auto mb-5 flex h-24 w-24 items-center justify-center rounded-3xl bg-slate-950">
-          <img
-            src="/img/agentic-ai-character.png"
-            alt=""
-            className="h-24 w-24 object-contain"
-            draggable="false"
+        <div
+          className="mx-auto mb-5 flex h-24 w-24 items-center justify-center overflow-hidden rounded-3xl"
+          style={{ backgroundColor: '#4c2361' }}
+        >
+          <video
+            src="/img/agentic-ai_char.mp4"
+            poster="/img/agentic-ai-character.png"
+            autoPlay
+            muted
+            loop
+            playsInline
+            className="h-24 w-24 object-cover"
+            aria-hidden="true"
           />
         </div>
         <h2 className="text-2xl font-bold leading-tight text-gray-950">
@@ -300,7 +389,10 @@ export default function GroqPanel({ width }) {
   const t = useT()
   const [copiedId, setCopiedId] = useState(null)
   const [postingId, setPostingId] = useState(null)
+  const [excludingRefKey, setExcludingRefKey] = useState(null)
+  const [referenceMenuKey, setReferenceMenuKey] = useState(null)
   const [noticeDialog, setNoticeDialog] = useState(null) // { title, message }
+  const canEditSearchResults = currentUser?.role === 'site_admin' || Boolean(currentUser?.can_edit_search_results)
 
   function openNotice(message, title = '알림') {
     setNoticeDialog({ title, message })
@@ -441,6 +533,44 @@ export default function GroqPanel({ width }) {
   const textareaRef = useRef(null)
   const dragCounterRef = useRef(0)
   const abortControllerRef = useRef(null)
+
+  function getReferenceExclusionKey(ref = {}) {
+    return [
+      ref.type || ref.source || 'post',
+      ref.post_id || ref.postId || ref.id || '',
+      ref.comment_id || ref.commentId || '',
+      ref.attachment_id || ref.attachmentId || '',
+    ].join(':')
+  }
+
+  async function handleExcludeReference(messageId, ref = {}) {
+    const key = getReferenceExclusionKey(ref)
+    if (excludingRefKey === key) return
+    setExcludingRefKey(key)
+    try {
+      await apiFetch('/questions/exclusions', {
+        method: 'POST',
+        body: JSON.stringify({
+          sourceType: ref.type || ref.source || 'post',
+          postId: ref.post_id || ref.postId || ref.id || '',
+          commentId: ref.comment_id || ref.commentId || '',
+          attachmentId: ref.attachment_id || ref.attachmentId || '',
+          reason: 'wrong_result',
+        }),
+      })
+      setMessages(prev => prev.map(msg => (
+        msg.id === messageId
+          ? { ...msg, references: (msg.references || []).filter(item => getReferenceExclusionKey(item) !== key) }
+          : msg
+      )))
+      openNotice('이 결과는 향후 위치 찾기 결과에서 제외됩니다.', '검색 결과 제외')
+    } catch (err) {
+      openNotice(`검색 결과 제외에 실패했습니다: ${err.message}`, '검색 결과 제외')
+    } finally {
+      setExcludingRefKey(null)
+      setReferenceMenuKey(null)
+    }
+  }
   const [stopping, setStopping] = useState(false)
   const [collapsedRefs, setCollapsedRefs] = useState(() => new Set()) // 참조 섹션 전체 접힘 (msg.id 집합)
   const [expandedRefs, setExpandedRefs] = useState(() => new Set())   // 미리보기 개수 초과분까지 펼침 (msg.id 집합)
@@ -502,13 +632,9 @@ export default function GroqPanel({ width }) {
       const place = [item.teamName, item.channelName].filter(Boolean).join(' / ')
       const source = [typeLabel, place, item.fileName].filter(Boolean).join(' - ')
       const score = Number.isFinite(Number(item.score)) ? ` / score: ${Number(item.score).toFixed(3)}` : ''
-      const link = item.channelId && item.postId
-        ? `${window.location.origin}/?channelId=${encodeURIComponent(item.channelId)}&postId=${encodeURIComponent(item.postId)}${item.commentId ? `&commentId=${encodeURIComponent(item.commentId)}` : ''}${item.attachmentId ? `&attachmentId=${encodeURIComponent(item.attachmentId)}` : ''}`
-        : ''
       const content = String(item.content || '').trim()
       return [
         `[키워드 검색 결과 ${idx + 1} - source: ${source}${score}]`,
-        link ? `link: ${link}` : '',
         content,
       ].filter(Boolean).join('\n')
     }).filter(Boolean).join('\n\n')
@@ -524,6 +650,97 @@ export default function GroqPanel({ width }) {
       .replace(/\s+/g, ' ')
       .trim()
     return [...new Set([original, normalized].filter(q => q.length >= 2))]
+  }
+
+  function getUrlTargetIds() {
+    try {
+      const params = new URLSearchParams(window.location.search)
+      return {
+        channelId: params.get('channelId') || '',
+        postId: params.get('postId') || '',
+        commentId: params.get('commentId') || '',
+        attachmentId: params.get('attachmentId') || '',
+      }
+    } catch (_) {
+      return { channelId: '', postId: '', commentId: '', attachmentId: '' }
+    }
+  }
+
+  function resolveRagScope(text = '') {
+    if (isGlobalRagQuery(text)) {
+      return { scope: 'global_scope', filter: {}, target: {} }
+    }
+
+    const urlTarget = getUrlTargetIds()
+    const target = {
+      channelId: agenticTarget?.channelId || activePostSelection?.channelId || urlTarget.channelId || selectedChannel?.id || '',
+      postId: agenticTarget?.postId || activePostSelection?.postId || urlTarget.postId || '',
+      commentId: agenticTarget?.commentId || urlTarget.commentId || '',
+      attachmentId: agenticTarget?.attachmentId || urlTarget.attachmentId || '',
+    }
+
+    if (isImageRagQuery(text) && target.postId) {
+      return {
+        scope: 'image_scope',
+        target,
+        filter: {
+          post_id: String(target.postId),
+          ...(target.attachmentId ? { attachment_id: String(target.attachmentId) } : {}),
+          type: 'image_attachment',
+        },
+      }
+    }
+
+    if (target.commentId && target.postId) {
+      return {
+        scope: 'comment_scope',
+        target,
+        filter: {
+          post_id: String(target.postId),
+          comment_id: String(target.commentId),
+        },
+      }
+    }
+
+    if (target.postId) {
+      return {
+        scope: 'post_scope',
+        target,
+        filter: {
+          post_id: String(target.postId),
+        },
+      }
+    }
+
+    // 게시글/댓글/이미지를 콕 집은 질문(post/comment/image_scope)만 엄격하게 좁힌다.
+    // 현재 채널에 서 있다는 이유만으로 채널에 가두면(channel_scope), 다른 접근 가능 채널에
+    // 있는 자료(예: 타 채널의 PDF)가 evidence gate에서 전량 차단된다. 따라서 주제/내용 질문은
+    // global_scope로 두고, 현재 채널 자료는 서버의 priority boost(current_channel_id)로 우선시한다.
+    // 날짜 기반 채널 요약/locate는 이미 상위(/api/questions 분기)에서 처리되므로 여기로 오지 않는다.
+    return { scope: 'global_scope', filter: {}, target }
+  }
+
+  function filterKeywordResultsByScope(results = [], ragScopeInfo = {}) {
+    const scope = ragScopeInfo.scope || 'global_scope'
+    if (scope === 'global_scope') return results
+    if (scope === 'image_scope') return []
+
+    const filter = ragScopeInfo.filter || {}
+    return (Array.isArray(results) ? results : []).filter(item => {
+      if (scope === 'post_scope') {
+        return filter.post_id && String(item.postId || item.id || '') === String(filter.post_id)
+      }
+      if (scope === 'comment_scope') {
+        return (
+          (filter.comment_id && String(item.id || item.commentId || '') === String(filter.comment_id)) ||
+          (filter.post_id && String(item.postId || '') === String(filter.post_id))
+        )
+      }
+      if (scope === 'channel_scope') {
+        return filter.channel_id && String(item.channelId || '') === String(filter.channel_id)
+      }
+      return true
+    })
   }
 
   function mergeKeywordResults(...groups) {
@@ -664,13 +881,13 @@ export default function GroqPanel({ width }) {
     setLoading(true)
     setError(null)
 
-    if (!attachedFile && isChannelPostSummaryIntent(text)) {
+    if (!attachedFile && (isChannelPostSummaryIntent(text) || isChannelResourceLocateIntent(text) || isSingleKeywordLocateIntent(text))) {
       try {
         if (!selectedChannel?.id) {
           setMessages(prev => [...prev, {
             id: `a-${Date.now()}`,
             role: 'assistant',
-            content: '먼저 요약할 채널을 선택해주세요.',
+            content: '먼저 검색할 채널을 선택해주세요.',
             references: [],
             time: new Date().toISOString(),
             model: null,
@@ -687,6 +904,47 @@ export default function GroqPanel({ width }) {
             model: selectedModel,
           }),
         })
+
+        if (result.intent?.action === 'locate') {
+          const references = (result.references || []).map((ref, index) => ({
+            id: ref.id,
+            label: resolvePostReferenceLabel(ref, index),
+            title: resolvePostReferenceLabel(ref, index),
+            type: ref.type || 'post',
+            source: ref.type || 'post',
+            channelId: ref.channelId || ref.channel_id || selectedChannel.id,
+            channel_id: ref.channel_id || ref.channelId || selectedChannel.id,
+            postId: ref.postId || ref.post_id || ref.id,
+            post_id: ref.post_id || ref.postId || ref.id,
+            commentId: ref.commentId || ref.comment_id || '',
+            comment_id: ref.comment_id || ref.commentId || '',
+            attachmentId: ref.attachmentId || ref.attachment_id || '',
+            attachment_id: ref.attachment_id || ref.attachmentId || '',
+            fileName: ref.fileName || ref.file_name || '',
+            file_name: ref.file_name || ref.fileName || '',
+            contentPreview: ref.contentPreview,
+            createdAt: ref.createdAt,
+            link: ref.link,
+          }))
+          const content = result.message || (
+            references.length
+              ? ['관련 자료를 찾았습니다.', '', ...references.map((ref, index) => {
+                  const label = ref.fileName || ref.title || ref.label || `자료 ${index + 1}`
+                  return `${index + 1}. ${label}\n   링크: ${ref.link || buildPostHref(ref.channelId, ref.postId, ref.commentId)}`
+                })].join('\n')
+              : '현재 채널에서 관련 자료 링크를 찾지 못했습니다.'
+          )
+
+          setMessages(prev => [...prev, {
+            id: `a-${Date.now()}`,
+            role: 'assistant',
+            content,
+            references,
+            time: new Date().toISOString(),
+            model: result.model || null,
+          }])
+          return
+        }
 
         const dateLabel = result.intent?.dateRange
           ? `${result.intent.dateRange.from} ~ ${result.intent.dateRange.to}`
@@ -753,6 +1011,9 @@ export default function GroqPanel({ width }) {
 
     // ── 1. 번역 요청 감지 — 번역이면 RAG 검색 없이 바로 AI 호출 ──
     const isTranslation = isTranslationQuery(text)
+    const ragScopeInfo = (!isTranslation && !base64Data)
+      ? resolveRagScope(text)
+      : { scope: 'global_scope', filter: {}, target: {} }
 
     let ragContext = ''
     let ragReferences = []
@@ -768,7 +1029,10 @@ export default function GroqPanel({ width }) {
           const result = await apiFetch(`/posts/search?${searchParams.toString()}`)
           keywordGroups.push(result)
         }
-        const safeKeywordResults = mergeKeywordResults(...keywordGroups).slice(0, 5)
+        const safeKeywordResults = filterKeywordResultsByScope(
+          mergeKeywordResults(...keywordGroups),
+          ragScopeInfo,
+        ).slice(0, 5)
         keywordContext = buildKeywordSearchContext(safeKeywordResults)
         keywordReferences = buildSearchReferences(safeKeywordResults)
       } catch (e) {
@@ -779,16 +1043,15 @@ export default function GroqPanel({ width }) {
       try {
         const dynamicLimit = isCommandQuery(text) || isTemporalQuery(text) ? 10 : isEnumerationQuery(text) ? 8 : 5
         const preferredSources = extractSourceHints(text)
-        const scopeFilter = {}
-        if (agenticTarget?.postId) scopeFilter.post_id = String(agenticTarget.postId)
-        if (agenticTarget?.commentId) scopeFilter.comment_id = String(agenticTarget.commentId)
+        const scopedFetchK = ragScopeInfo.scope === 'global_scope' ? dynamicLimit * 3 : 80
         const retrievalPayload = {
           ...ragRetrieval,
           k: Math.max(dynamicLimit, ragRetrieval.k || dynamicLimit),
-          fetch_k: Math.max((ragRetrieval.fetch_k || dynamicLimit * 3), dynamicLimit * 3),
+          fetch_k: Math.max((ragRetrieval.fetch_k || scopedFetchK), scopedFetchK),
+          scope: ragScopeInfo.scope,
           filter: {
             ...(ragRetrieval.filter || {}),
-            ...scopeFilter,
+            ...(ragScopeInfo.filter || {}),
           },
         }
         const ragResult = await apiFetch('/rag/search', {
@@ -799,10 +1062,23 @@ export default function GroqPanel({ width }) {
             limit: dynamicLimit,
             preferred_sources: preferredSources,
             retrieval: retrievalPayload,
+            rag_scope: ragScopeInfo.scope,
             current_channel_id: selectedChannel?.id || '',
             current_team_id: selectedTeam?.id || '',
           }),
         })
+        if (ragResult.blocked) {
+          setMessages(prev => [...prev, {
+            id: `a-${Date.now()}`,
+            role: 'assistant',
+            content: ragResult.message || '현재 질문 범위와 일치하는 학습 근거를 찾지 못했습니다. 다른 자료를 근거로 추정 답변을 생성하지 않았습니다.',
+            references: [],
+            time: new Date().toISOString(),
+            model: selectedModel,
+          }])
+          setLoading(false)
+          return
+        }
         ragContext = ragResult.context || ''
         ragReferences = ragResult.references || []
       } catch (e) {
@@ -834,7 +1110,7 @@ export default function GroqPanel({ width }) {
     // 이미지 첨부: RAG context 무시하고 직접 전송
     // 일반 질문: RAG context를 프롬프트에 포함
     const contentWithContext = (ragContext && !base64Data && !isTranslation)
-      ? `아래 [참고 정보]에 있는 사실만 근거로 답변하세요. 참고 정보에 없는 사실은 추측하지 마세요. 다만 언어/문체/역할 요청(예: 일본어로 답변)은 반영하세요.\n\n[참고 정보]\n${ragContext}\n\n[질문]\n${fullText}`
+      ? `아래 [참고 정보]에 있는 사실만 근거로 답변하세요. 참고 정보에 없는 사실은 추측하지 마세요. 다만 언어/문체/역할 요청(예: 일본어로 답변)은 반영하세요.\n링크, URL, 경로는 절대 추측해서 만들지 마세요. /channels/{channelId}/posts/{postId} 같은 템플릿 링크를 작성하지 마세요. 실제 link 값이 참고 정보에 명시되어 있지 않으면 본문에 링크 항목을 쓰지 말고, 자료 위치는 참고 문서 카드에서 확인할 수 있다고만 안내하세요.\n\n[참고 정보]\n${ragContext}\n\n[질문]\n${fullText}`
       : fullText
 
     const scopedContentWithContext = agenticTarget
@@ -853,10 +1129,16 @@ export default function GroqPanel({ width }) {
       userApiMessage.images = [base64Data] // Ollama 멀티모달 형식
     }
 
-    const historyForApi = messages
-      .filter(m => m.role !== 'system')
-      .slice(-(aiConfig.history ?? 6))  // 관리자 설정값만큼 최근 메시지 유지
-      .map(m => ({ role: m.role, content: m.content }))
+    const isScopedRagQuestion = !isTranslation && !base64Data && ragScopeInfo.scope !== 'global_scope'
+    const historyForApi = isScopedRagQuestion
+      ? messages
+          .filter(m => m.role === 'user')
+          .slice(-1)
+          .map(m => ({ role: m.role, content: m.content }))
+      : messages
+          .filter(m => m.role !== 'system')
+          .slice(-(aiConfig.history ?? 6))  // 관리자 설정값만큼 최근 메시지 유지
+          .map(m => ({ role: m.role, content: m.content }))
 
     // ── 3-1. 스트리밍용 빈 메시지 먼저 추가 ────────────────────
     const msgId = `a-${Date.now()}`
@@ -926,8 +1208,9 @@ export default function GroqPanel({ width }) {
             const obj = JSON.parse(line)
             if (obj.message?.content) {
               accumulated += obj.message.content
+              const visibleContent = sanitizeAssistantContent(accumulated)
               setMessages(prev => prev.map(m =>
-                m.id === msgId ? { ...m, content: accumulated } : m
+                m.id === msgId ? { ...m, content: visibleContent } : m
               ))
               bottomRef.current?.scrollIntoView({ behavior: 'instant' })
             }
@@ -937,7 +1220,7 @@ export default function GroqPanel({ width }) {
 
       // 스트리밍 완료 — streaming 플래그 제거
       setMessages(prev => prev.map(m =>
-        m.id === msgId ? { ...m, streaming: false } : m
+        m.id === msgId ? { ...m, content: sanitizeAssistantContent(accumulated), streaming: false } : m
       ))
     } catch (err) {
       if (err?.name === 'AbortError') {
@@ -1138,13 +1421,13 @@ export default function GroqPanel({ width }) {
                 {!collapsedRefs.has(msg.id) && (
                   <div className="flex flex-col gap-1">
                     {(expandedRefs.has(msg.id) ? msg.references : msg.references.slice(0, REF_PREVIEW_COUNT)).map((ref, i) => (
-                      <button
-                        key={i}
-                        onClick={() => ref.channel_id && navigateToPost(ref.channel_id, ref.post_id, { commentId: ref.comment_id, attachmentId: ref.attachment_id })}
-                        disabled={!ref.channel_id}
-                        className="w-full flex items-start gap-1.5 bg-gray-100 rounded-lg px-2 py-1.5 border border-gray-200 text-left transition-colors enabled:hover:bg-gray-200 enabled:hover:border-gray-200 disabled:opacity-40 disabled:cursor-not-allowed"
-                        title={ref.channel_id ? t.ai.gotoChannel(ref.team, ref.channel) : t.ai.gotoAfterRetrain}
-                      >
+                      <div key={i} className="w-full rounded-lg border border-gray-200 bg-gray-100">
+                        <button
+                          onClick={() => ref.channel_id && navigateToPost(ref.channel_id, ref.post_id, { commentId: ref.comment_id, attachmentId: ref.attachment_id })}
+                          disabled={!ref.channel_id}
+                          className="w-full flex items-start gap-1.5 rounded-t-lg px-2 py-1.5 text-left transition-colors enabled:hover:bg-gray-200 disabled:opacity-40 disabled:cursor-not-allowed"
+                          title={ref.channel_id ? t.ai.gotoChannel(ref.team, ref.channel) : t.ai.gotoAfterRetrain}
+                        >
                         {ref.type === 'pdf' || ref.type === 'table' || ref.type === 'word' ? (
                           <svg className="w-3 h-3 text-red-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
@@ -1186,7 +1469,39 @@ export default function GroqPanel({ width }) {
                             </div>
                           )}
                         </div>
-                      </button>
+                        </button>
+                        {canEditSearchResults && (
+                          <div className="relative flex justify-end border-t border-gray-200 px-2 py-1">
+                            <button
+                              type="button"
+                              onClick={(event) => {
+                                event.stopPropagation()
+                                const key = getReferenceExclusionKey(ref)
+                                setReferenceMenuKey(prev => prev === key ? null : key)
+                              }}
+                              disabled={excludingRefKey === getReferenceExclusionKey(ref)}
+                              className="text-[9px] font-medium text-gray-400 transition-colors hover:text-gray-700 disabled:cursor-wait disabled:opacity-50"
+                              title="검색 결과 설정"
+                            >
+                              {excludingRefKey === getReferenceExclusionKey(ref) ? '처리 중...' : '결과 설정'}
+                            </button>
+                            {referenceMenuKey === getReferenceExclusionKey(ref) && (
+                              <div className="absolute right-2 top-6 z-20 w-44 overflow-hidden rounded-lg border border-gray-200 bg-white shadow-lg">
+                                <button
+                                  type="button"
+                                  onClick={(event) => {
+                                    event.stopPropagation()
+                                    handleExcludeReference(msg.id, ref)
+                                  }}
+                                  className="w-full px-3 py-2 text-left text-[10px] font-medium text-red-600 hover:bg-red-50"
+                                >
+                                  이것은 아니다. 잘못된 결과이다.
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
                     ))}
                     {msg.references.length > REF_PREVIEW_COUNT && (
                       <button
@@ -1400,7 +1715,7 @@ export default function GroqPanel({ width }) {
         )}
 
         <div
-          className={`flex-1 min-h-0 flex items-stretch gap-2 rounded-xl border px-2 py-2 transition-colors relative overflow-hidden ${
+          className={`flex-1 min-h-0 flex flex-col gap-1 rounded-xl border px-2 py-2 transition-colors relative overflow-hidden ${
             dragOver
               ? 'border-green-500/60 bg-green-50 shadow-sm shadow-green-200'
               : 'bg-gray-200 border-gray-200 focus-within:border-green-500/40'
@@ -1424,16 +1739,6 @@ export default function GroqPanel({ width }) {
             onChange={handleFileChange}
             className="hidden"
           />
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            disabled={loading}
-            title={t.ai.attachFile}
-            className="flex-shrink-0 w-7 h-7 rounded-lg hover:bg-gray-200 text-gray-400 hover:text-gray-600 flex items-center justify-center transition-colors self-end"
-          >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.414a4 4 0 00-5.656-5.656l-6.415 6.414a6 6 0 008.486 8.486L20.5 13" />
-            </svg>
-          </button>
           <textarea
             ref={textareaRef}
             value={input}
@@ -1443,21 +1748,34 @@ export default function GroqPanel({ width }) {
             onDrop={handleTextareaDrop}
             placeholder={t.ai.inputPlaceholder}
             disabled={loading}
-            className="flex-1 h-full min-h-0 bg-transparent text-gray-900 placeholder-white/30 text-xs resize-none focus:outline-none leading-relaxed overflow-y-auto disabled:opacity-50"
+            className="flex-1 w-full min-h-0 bg-transparent text-gray-900 placeholder-white/30 text-xs resize-none focus:outline-none leading-relaxed overflow-y-auto disabled:opacity-50"
           />
-          <button
-            onClick={sendMessage}
-            disabled={(!input.trim() && !attachedFile) || loading}
-            className="flex-shrink-0 w-7 h-7 rounded-lg bg-green-600 disabled:bg-gray-200 enabled:hover:bg-green-500 flex items-center justify-center transition-colors self-end"
-          >
-            {loading ? (
-              <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-            ) : (
-              <svg className="w-3.5 h-3.5 text-gray-900" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+          {/* 버튼은 입력창 아래 별도 행. 이 행에는 글이 들어가지 않는다. */}
+          <div className="flex-shrink-0 flex items-center justify-end gap-2">
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={loading}
+              title={t.ai.attachFile}
+              className="flex-shrink-0 w-7 h-7 rounded-lg hover:bg-gray-300 text-gray-400 hover:text-gray-600 flex items-center justify-center transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.414a4 4 0 00-5.656-5.656l-6.415 6.414a6 6 0 008.486 8.486L20.5 13" />
               </svg>
-            )}
-          </button>
+            </button>
+            <button
+              onClick={sendMessage}
+              disabled={(!input.trim() && !attachedFile) || loading}
+              className="flex-shrink-0 w-7 h-7 rounded-lg bg-green-600 disabled:bg-gray-200 enabled:hover:bg-green-500 flex items-center justify-center transition-colors"
+            >
+              {loading ? (
+                <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              ) : (
+                <svg className="w-3.5 h-3.5 text-gray-900" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                </svg>
+              )}
+            </button>
+          </div>
         </div>
         <p className="text-gray-300 text-xs mt-1 px-0.5 flex-shrink-0">{t.ai.inputHint}</p>
       </div>

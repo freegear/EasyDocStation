@@ -194,6 +194,9 @@ async function initDb() {
           IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='active_session_id') THEN
             ALTER TABLE users ADD COLUMN active_session_id TEXT;
           END IF;
+          IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='can_edit_search_results') THEN
+            ALTER TABLE users ADD COLUMN can_edit_search_results BOOLEAN NOT NULL DEFAULT false;
+          END IF;
           IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='supabase_user_id') THEN
             ALTER TABLE users ADD COLUMN supabase_user_id UUID;
           END IF;

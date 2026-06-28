@@ -51,6 +51,7 @@ function toPublicUser(u) {
     use_sns_channel: u.use_sns_channel ?? null,
     role: u.role,
     is_active: u.is_active,
+    can_edit_search_results: Boolean(u.can_edit_search_results),
     avatar: (u.display_name || u.name).split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2),
     image_url: u.image_url,
     stamp_picture: u.stamp_picture ?? null,

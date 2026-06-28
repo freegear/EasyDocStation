@@ -10,6 +10,8 @@ const requireAuth = require('../middleware/auth')
 const { getDatabasePath } = require('../databasePaths')
 const { getPythonExecutable } = require('../pythonRuntime')
 const { getAccessibleChannelIds } = require('../lib/channelAccess')
+const { getCachedJson, setCachedJson, hashPayload } = require('../aiCache')
+const aiMetrics = require('../aiMetrics')
 
 const CONFIG_PATH = path.resolve(__dirname, '../../config.json')
 const RAG_SERVER_PORT = 5001
@@ -1108,6 +1110,34 @@ function applySimilarityScoreThreshold(results = [], scoreThreshold = 0) {
   })
 }
 
+function normalizeRagScope(value = '') {
+  const scope = String(value || '').trim().toLowerCase()
+  return ['image_scope', 'post_scope', 'comment_scope', 'channel_scope', 'global_scope'].includes(scope)
+    ? scope
+    : 'global_scope'
+}
+
+function isEvidenceGatedScope(scope = '') {
+  return ['image_scope', 'post_scope', 'comment_scope', 'channel_scope'].includes(scope)
+}
+
+function buildBlockedRagResponse({ scope, reason, message, filter = {}, details = {} }) {
+  return {
+    context: '',
+    references: [],
+    blocked: true,
+    block_reason: reason,
+    message,
+    evidence_gate: {
+      passed: false,
+      scope,
+      reason,
+      filter,
+      ...details,
+    },
+  }
+}
+
 function applyMetadataFilter(results = [], filter = {}) {
   if (!filter || typeof filter !== 'object') return results
   const types = Array.isArray(filter.type)
@@ -1140,6 +1170,63 @@ function applyMetadataFilter(results = [], filter = {}) {
     if (docVersion && String(meta.doc_version || '') !== docVersion) return false
     return true
   })
+}
+
+function validateEvidenceScope(results = [], { scope, filter = {}, stage = 'final' } = {}) {
+  const safeResults = Array.isArray(results) ? results : []
+  if (!isEvidenceGatedScope(scope)) return { ok: true }
+  if (safeResults.length === 0) {
+    return {
+      ok: false,
+      reason: 'no_evidence',
+      message: '현재 학습 데이터에서 답변 근거를 찾지 못했습니다. 다른 자료를 근거로 추정 답변을 생성하지 않았습니다.',
+      details: { stage },
+    }
+  }
+
+  const postId = String(filter.post_id || '').trim()
+  const commentId = String(filter.comment_id || '').trim()
+  const channelId = String(filter.channel_id || '').trim()
+  const attachmentId = String(filter.attachment_id || '').trim()
+
+  const hasMatching = safeResults.some(item => {
+    const meta = item?.metadata || {}
+    if (scope === 'image_scope') {
+      if (String(meta.type || '').toLowerCase() !== 'image_attachment') return false
+      if (postId && String(meta.post_id || '') !== postId) return false
+      if (attachmentId && String(meta.attachment_id || '') !== attachmentId) return false
+      return true
+    }
+    if (scope === 'post_scope') {
+      return postId && String(meta.post_id || '') === postId
+    }
+    if (scope === 'comment_scope') {
+      if (commentId) return String(meta.comment_id || '') === commentId
+      return postId && String(meta.post_id || '') === postId
+    }
+    if (scope === 'channel_scope') {
+      return channelId && String(meta.channel_id || '') === channelId
+    }
+    return true
+  })
+
+  if (!hasMatching) {
+    const targetLabel = scope === 'image_scope'
+      ? '현재 이미지'
+      : scope === 'post_scope'
+      ? '현재 게시글'
+      : scope === 'comment_scope'
+      ? '현재 댓글'
+      : '현재 채널'
+    return {
+      ok: false,
+      reason: 'wrong_evidence',
+      message: `${targetLabel}에 해당하는 학습 근거를 찾지 못했습니다. 다른 자료를 근거로 추정 답변을 생성하지 않았습니다.`,
+      details: { stage },
+    }
+  }
+
+  return { ok: true }
 }
 
 function normalizeIdSet(values = []) {
@@ -1606,7 +1693,7 @@ async function enrichReferences(results) {
     if (t.includes('comment')) return 'comment'
     if (t === 'amount_summary') return 'amount'
     if (t === 'table') return 'table'
-    if (t === 'image') return 'image'
+    if (t === 'image' || t === 'image_attachment') return 'image'
     if (t === 'word') return 'word'
     if (t === 'text') return 'text'
     return 'post'
@@ -1728,12 +1815,14 @@ async function enrichReferences(results) {
       channel: channelInfo.channel_name || '',
       channel_id: channelId || '',
       team: channelInfo.team_name || '',
+      source_type: type || '',
       post_id: post_id || '',
       attachment_id: attachment_id || '',
       comment_id: comment_id || '',
       page_number: Number(page_number || 0),
       source: source || file_name || '',
       file_name: file_name || source || '',
+      score: asNum(r.score),
     }
 
     if (mappedType === 'comment') {
@@ -1812,6 +1901,7 @@ function expandPageContextFromTrainingData(results) {
 
 // ─── POST /api/rag/search ─────────────────────────────────────
 router.post('/search', requireAuth, async (req, res) => {
+  const requestStartedAt = Date.now()
   try {
     const { query, limit = 3, preferred_sources: preferredSources = [], retrieval: retrievalRaw = {} } = req.body
     if (!query?.trim()) return res.json({ context: '', references: [] })
@@ -1827,6 +1917,7 @@ router.post('/search', requireAuth, async (req, res) => {
     const sourceHints = extractSourceHints(query, preferredSources)
     const clientLimit = Math.max(1, Number(limit) || 3)
     const retrievalOptions = parseRetrievalOptions(retrievalRaw, clientLimit)
+    const ragScope = normalizeRagScope(req.body?.rag_scope || retrievalRaw?.scope || retrievalRaw?.rag_scope)
     const requestedLimit = Math.max(clientLimit, retrievalOptions.k)
     const effectiveRequestedLimit = commandQuery
       ? Math.max(requestedLimit, 8)
@@ -1846,12 +1937,13 @@ router.post('/search', requireAuth, async (req, res) => {
 
     const cfg = readConfig()
     const ragCfg = cfg.rag || {}
+    const activeTable = ragCfg.active_table || ragCfg.table_name || 'my_rag_table'
 
     const payload = {
       config: {
         lancedb_path: getDatabasePath(cfg, 'lancedb Database Path'),
-        table_name: ragCfg.active_table || ragCfg.table_name || 'my_rag_table',
-        rag_table_name: ragCfg.active_table || ragCfg.table_name || 'my_rag_table',
+        table_name: activeTable,
+        rag_table_name: activeTable,
         schema_version: Number(ragCfg.schema_version || 1),
         vector_size: ragCfg.vectorSize ?? 1024,
       },
@@ -1860,6 +1952,27 @@ router.post('/search', requireAuth, async (req, res) => {
       allowed_channel_ids: allowedChannelIds,
     }
 
+    const cachePayload = {
+      query,
+      limit: effectiveRequestedLimit,
+      preferred_sources: preferredSources,
+      retrieval: retrievalOptions,
+      active_table: activeTable,
+      schema_version: Number(ragCfg.schema_version || 1),
+      vector_size: ragCfg.vectorSize ?? 1024,
+      allowed_channel_ids_fingerprint: hashPayload([...allowedChannelIds].sort()),
+      priority_context: priorityContext,
+      rag_scope: ragScope,
+      query_flags: { amountQuery, commandQuery, temporalQuery, enumerationQuery },
+      source_hints: sourceHints,
+    }
+    const cached = await getCachedJson('rag_search', cachePayload, { ttlSec: 600 })
+    if (cached.hit) {
+      aiMetrics.recordRequest('rag_search', Date.now() - requestStartedAt)
+      return res.json({ ...cached.value, rag_cache: { hit: true, key: cached.key } })
+    }
+
+    aiMetrics.recordGpuCall('rag_search')
     const initialSearch = await searchWithVersionFallback(payload, ragCfg)
     let results = initialSearch.results
     const searchPayload = initialSearch.payload
@@ -1870,6 +1983,7 @@ router.post('/search', requireAuth, async (req, res) => {
       if (needsSecondPass) {
         const secondPassLimit = Math.max(effectiveRequestedLimit * 4, 16)
         const amountHintQuery = `${query}\n합계 총액 공급가액 부가세 VAT 견적 금액 원`
+        aiMetrics.recordGpuCall('rag_search', 2)
         const [r2, r3] = await Promise.all([
           callPythonSearch({ ...searchPayload, limit: secondPassLimit }),
           callPythonSearch({ ...searchPayload, query: amountHintQuery, limit: secondPassLimit }),
@@ -1884,6 +1998,7 @@ router.post('/search', requireAuth, async (req, res) => {
       if (needsSecondPass) {
         const secondPassLimit = Math.max(effectiveRequestedLimit * 4, 24)
         const commandHintQuery = `${query}\nCLI 명령어 command show configure config snmp-server no snmp-server`
+        aiMetrics.recordGpuCall('rag_search', 2)
         const [r2, r3] = await Promise.all([
           callPythonSearch({ ...searchPayload, limit: secondPassLimit }),
           callPythonSearch({ ...searchPayload, query: commandHintQuery, limit: secondPassLimit }),
@@ -1898,6 +2013,7 @@ router.post('/search', requireAuth, async (req, res) => {
       if (needsSecondPass) {
         const secondPassLimit = Math.max(effectiveRequestedLimit * 4, 24)
         const temporalHintQuery = `${query}\n작업 희망 일시 예정 일시 날짜 시간 시행일자 년 월 일 시 분`
+        aiMetrics.recordGpuCall('rag_search', 2)
         const [r2, r3] = await Promise.all([
           callPythonSearch({ ...searchPayload, limit: secondPassLimit }),
           callPythonSearch({ ...searchPayload, query: temporalHintQuery, limit: secondPassLimit }),
@@ -1912,6 +2028,7 @@ router.post('/search', requireAuth, async (req, res) => {
       if (needsSecondPass) {
         const secondPassLimit = Math.max(effectiveRequestedLimit * 4, 24)
         const enumHintQuery = `${query}\n핵심 투자 포인트 WHY INVEST NOW 핵심 요약 1) 2) 3) 4) 5)`
+        aiMetrics.recordGpuCall('rag_search', 2)
         const [r2, r3] = await Promise.all([
           callPythonSearch({ ...searchPayload, limit: secondPassLimit }),
           callPythonSearch({ ...searchPayload, query: enumHintQuery, limit: secondPassLimit }),
@@ -1921,6 +2038,15 @@ router.post('/search', requireAuth, async (req, res) => {
     }
 
     if (!Array.isArray(results) || results.length === 0) {
+      if (isEvidenceGatedScope(ragScope)) {
+        return res.json(buildBlockedRagResponse({
+          scope: ragScope,
+          reason: 'no_evidence',
+          message: '현재 학습 데이터에서 답변 근거를 찾지 못했습니다. 다른 자료를 근거로 추정 답변을 생성하지 않았습니다.',
+          filter: retrievalOptions.filter,
+          details: { stage: 'initial_search' },
+        }))
+      }
       return res.json({ context: '', references: [] })
     }
 
@@ -1931,7 +2057,27 @@ router.post('/search', requireAuth, async (req, res) => {
     validResults = applyChannelAccessFilter(validResults, allowedChannelIds)
     validResults = applySimilarityScoreThreshold(validResults, retrievalOptions.searchType === 'similarity_score_threshold' ? retrievalOptions.scoreThreshold : 0)
     if (validResults.length === 0) {
+      if (isEvidenceGatedScope(ragScope)) {
+        const validation = validateEvidenceScope(validResults, { scope: ragScope, filter: retrievalOptions.filter, stage: 'metadata_filter' })
+        return res.json(buildBlockedRagResponse({
+          scope: ragScope,
+          reason: validation.reason || 'no_evidence',
+          message: validation.message || '현재 질문 범위와 일치하는 학습 근거를 찾지 못했습니다. 다른 자료를 근거로 추정 답변을 생성하지 않았습니다.',
+          filter: retrievalOptions.filter,
+          details: validation.details || { stage: 'metadata_filter' },
+        }))
+      }
       return res.json({ context: '', references: [] })
+    }
+    const validEvidence = validateEvidenceScope(validResults, { scope: ragScope, filter: retrievalOptions.filter, stage: 'valid_results' })
+    if (!validEvidence.ok) {
+      return res.json(buildBlockedRagResponse({
+        scope: ragScope,
+        reason: validEvidence.reason,
+        message: validEvidence.message,
+        filter: retrievalOptions.filter,
+        details: validEvidence.details,
+      }))
     }
     validResults = await attachPrioritySignals(validResults)
 
@@ -1968,9 +2114,31 @@ router.post('/search', requireAuth, async (req, res) => {
     // 벡터 검색 결과에서 누락된 같은 페이지 내용을 text.json으로 보강 (재학습 없이 즉시 효과)
     finalResults = mergeUniqueResults(expandPageContextFromTrainingData(finalResults))
     finalResults = applyChannelAccessFilter(finalResults, allowedChannelIds)
+    if (isEvidenceGatedScope(ragScope)) {
+      finalResults = applyMetadataFilter(finalResults, retrievalOptions.filter)
+    }
     finalResults = await attachPrioritySignals(finalResults)
     if (finalResults.length === 0) {
+      if (isEvidenceGatedScope(ragScope)) {
+        return res.json(buildBlockedRagResponse({
+          scope: ragScope,
+          reason: 'no_evidence',
+          message: '현재 질문 범위와 일치하는 학습 근거를 찾지 못했습니다. 다른 자료를 근거로 추정 답변을 생성하지 않았습니다.',
+          filter: retrievalOptions.filter,
+          details: { stage: 'final_results' },
+        }))
+      }
       return res.json({ context: '', references: [] })
+    }
+    const finalEvidence = validateEvidenceScope(finalResults, { scope: ragScope, filter: retrievalOptions.filter, stage: 'final_results' })
+    if (!finalEvidence.ok) {
+      return res.json(buildBlockedRagResponse({
+        scope: ragScope,
+        reason: finalEvidence.reason,
+        message: finalEvidence.message,
+        filter: retrievalOptions.filter,
+        details: finalEvidence.details,
+      }))
     }
 
     let context = finalResults.map((r) => {
@@ -1985,7 +2153,7 @@ router.post('/search', requireAuth, async (req, res) => {
         ? ` / amount_total: ${total || 0} / amount_subtotal: ${subtotal || 0} / amount_vat: ${vat || 0}`
         : ''
 
-      if (type === 'image') {
+      if (type === 'image' || type === 'image_attachment') {
         const header = `[AI 이미지 분석 (Gemma Vision) - source: ${source}${page > 0 ? ` / page: ${page}` : ''}]`
         return `${header}\n${r.text}`
       }
@@ -2002,9 +2170,14 @@ router.post('/search', requireAuth, async (req, res) => {
       }
     }
 
-    res.json({
+    const responsePayload = {
       context,
       references,
+      evidence_gate: {
+        passed: true,
+        scope: ragScope,
+        filter: retrievalOptions.filter,
+      },
       rag_table: searchPayload?.config?.table_name || '',
       rag_fallback: initialSearch.fallback_used ? {
         used: true,
@@ -2012,9 +2185,14 @@ router.post('/search', requireAuth, async (req, res) => {
         primary_table: initialSearch.primary_table || '',
         fallback_table: initialSearch.fallback_table || '',
       } : { used: false },
-    })
+      rag_cache: { hit: false },
+    }
+    await setCachedJson('rag_search', cachePayload, responsePayload, { ttlSec: 600 })
+    aiMetrics.recordRequest('rag_search', Date.now() - requestStartedAt)
+    res.json(responsePayload)
   } catch (err) {
     console.error('[RAG Search Error]', err.message)
+    aiMetrics.recordRequest('rag_search', Date.now() - requestStartedAt, { error: true })
     // 검색 실패 시 RAG 없이 진행할 수 있도록 빈 결과 반환
     res.json({ context: '', references: [] })
   }

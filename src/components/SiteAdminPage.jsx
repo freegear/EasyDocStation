@@ -14,12 +14,39 @@ const LANGUAGES = [
   { code: 'en', label: 'English', flag: '🇺🇸' },
   { code: 'ja', label: '日本語', flag: '🇯🇵' },
 ]
+const GPU_OPTIMIZATION_DEFAULTS = {
+  redis_enabled: false,
+  redis_url: 'redis://127.0.0.1:6379',
+  cache_enabled: false,
+  queue_enabled: false,
+  vector_cache_enabled: false,
+  dynamic_batching_enabled: false,
+  load_aware_routing_enabled: false,
+  default_ttl_sec: 3600,
+  payload_ttl_sec: 300,
+  result_ttl_sec: 3600,
+  batch_max_size: 16,
+  batch_max_wait_ms: 50,
+  worker_heartbeat_sec: 5,
+}
+
 function formatDate(iso) {
   if (!iso) return '-'
   return new Date(iso).toLocaleString(undefined, {
     year: 'numeric', month: 'short', day: 'numeric',
     hour: '2-digit', minute: '2-digit',
   })
+}
+
+function formatPercent(value) {
+  const n = Number(value || 0)
+  return `${Math.round(n * 1000) / 10}%`
+}
+
+function formatMs(value) {
+  const n = Number(value || 0)
+  if (!n) return '-'
+  return `${Math.round(n)}ms`
 }
 
 function generateStrongRandomToken(length = 64) {
@@ -60,6 +87,28 @@ function Avatar({ name, imageUrl, size = 8 }) {
   )
 }
 
+function AgenticAICharacter({ active = true }) {
+  return (
+    <span
+      className={`relative flex h-9 w-9 items-center justify-center overflow-hidden rounded-xl transition-all ${
+        active
+          ? 'bg-slate-950 ring-2 ring-cyan-400/70 shadow-sm shadow-cyan-300/40'
+          : 'bg-gray-100 ring-1 ring-gray-300 grayscale'
+      }`}
+      aria-hidden="true"
+    >
+      <span className={`absolute inset-0 ${active ? 'bg-cyan-400/10' : 'bg-white/40'}`} />
+      <img
+        src="/img/agentic-ai-character.png"
+        alt=""
+        className="relative h-10 w-10 translate-y-0.5 object-contain"
+        draggable="false"
+      />
+      <span className={`absolute right-1 top-1 h-2 w-2 rounded-full border border-white ${active ? 'bg-emerald-400' : 'bg-gray-400'}`} />
+    </span>
+  )
+}
+
 // ─── User form modal ──────────────────────────────────────────
 
 function UserFormModal({ user, onClose, onSave, teams = [] }) {
@@ -79,6 +128,7 @@ function UserFormModal({ user, onClose, onSave, teams = [] }) {
     password: '',
     confirmPassword: '',
     is_active: user?.is_active ?? true,
+    can_edit_search_results: user?.can_edit_search_results ?? false,
     image_url: user?.image_url ?? '',
     stamp_picture: user?.stamp_picture ?? '',
     department_id: user?.department_id ?? '',
@@ -204,6 +254,7 @@ function UserFormModal({ user, onClose, onSave, teams = [] }) {
         const body = {
           name: normalizedName, display_name: form.display_name, email: form.email, phone: form.phone, role: form.role,
           is_active: form.is_active, image_url: form.image_url, stamp_picture: form.stamp_picture || null,
+          can_edit_search_results: form.can_edit_search_results,
           department_id: deptDisabled ? null : (form.department_id || null),
           security_level: form.security_level,
           telegram_id: form.telegram_id || null,
@@ -223,6 +274,7 @@ function UserFormModal({ user, onClose, onSave, teams = [] }) {
             department_id: deptDisabled ? null : (form.department_id || null),
             security_level: form.security_level,
             is_active: form.is_active,
+            can_edit_search_results: form.can_edit_search_results,
             telegram_id: form.telegram_id || null,
             kakaotalk_api_key: form.kakaotalk_api_key || null,
             line_channel_access_token: form.line_channel_access_token || null,
@@ -653,6 +705,18 @@ function UserFormModal({ user, onClose, onSave, teams = [] }) {
               </div>
             </div>
 
+            {/* 검색 결과 편집 권한 */}
+            <div className={`${isUnifiedLayout ? 'md:col-span-2' : ''} flex items-center justify-between py-2 px-4 rounded-xl bg-gray-50 border border-gray-200`}>
+              <span className="text-gray-600 text-sm">검색 결과 편집 권한</span>
+              <button
+                type="button"
+                onClick={() => set('can_edit_search_results', !form.can_edit_search_results)}
+                className={`w-10 h-5 rounded-full transition-colors relative ${form.can_edit_search_results ? 'bg-indigo-500' : 'bg-gray-300'}`}
+              >
+                <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all ${form.can_edit_search_results ? 'left-5' : 'left-0.5'}`} />
+              </button>
+            </div>
+
             {/* 계정 활성화 */}
             <div className={`${isUnifiedLayout ? 'md:col-span-2' : ''} flex items-center justify-between py-2 px-4 rounded-xl bg-gray-50 border border-gray-200`}>
               <span className="text-gray-600 text-sm">{t.admin.labelIsActive}</span>
@@ -816,6 +880,12 @@ export default function SiteAdminPage({ onClose, initialTab = 'users' }) {
   const [sttUseSpeakerCorrection, setSttUseSpeakerCorrection] = useState(true)
   const [sttUseCustomModel, setSttUseCustomModel] = useState(false)
   const [sttRestartCountdown, setSttRestartCountdown] = useState(-1)
+  const [gpuOptimization, setGpuOptimization] = useState(GPU_OPTIMIZATION_DEFAULTS)
+  const [gpuMetrics, setGpuMetrics] = useState(null)
+  const [gpuSaving, setGpuSaving] = useState(false)
+  const [gpuTesting, setGpuTesting] = useState(false)
+  const [gpuMeasuring, setGpuMeasuring] = useState('')
+  const [gpuMessage, setGpuMessage] = useState('')
   const sttRestartTimerRef = useRef(null)
   const sttPollTimerRef = useRef(null)
 
@@ -937,6 +1007,117 @@ export default function SiteAdminPage({ onClose, initialTab = 'users' }) {
     }
   }
 
+  async function loadGpuOptimization() {
+    try {
+      const data = await apiFetch('/admin/gpu-optimization')
+      setGpuOptimization({ ...GPU_OPTIMIZATION_DEFAULTS, ...(data.config || {}) })
+      setGpuMetrics(data.metrics || null)
+    } catch (err) {
+      setGpuMessage(`GPU 최적화 설정 조회 실패: ${err.message}`)
+    }
+  }
+
+  function setGpuOption(key, value) {
+    setGpuOptimization(prev => {
+      const next = { ...prev, [key]: value }
+      if (key === 'redis_enabled' && !value) {
+        next.cache_enabled = false
+        next.queue_enabled = false
+        next.vector_cache_enabled = false
+        next.dynamic_batching_enabled = false
+        next.load_aware_routing_enabled = false
+      }
+      if (key === 'queue_enabled' && !value) {
+        next.dynamic_batching_enabled = false
+        next.load_aware_routing_enabled = false
+      }
+      return next
+    })
+  }
+
+  async function saveGpuOptimization() {
+    setGpuSaving(true)
+    setGpuMessage('')
+    try {
+      const data = await apiFetch('/admin/gpu-optimization', {
+        method: 'PUT',
+        body: JSON.stringify(gpuOptimization),
+      })
+      setGpuOptimization({ ...GPU_OPTIMIZATION_DEFAULTS, ...(data.config || gpuOptimization) })
+      setGpuMessage('GPU 최적화 설정을 저장했습니다. 서버 재시작 후 .env 값이 완전히 반영됩니다.')
+    } catch (err) {
+      setGpuMessage(`저장 실패: ${err.message}`)
+    } finally {
+      setGpuSaving(false)
+    }
+  }
+
+  async function testGpuRedis() {
+    setGpuTesting(true)
+    setGpuMessage('')
+    try {
+      const data = await apiFetch('/admin/gpu-optimization/test', { method: 'POST' })
+      setGpuMessage(data.ok ? `Redis 연결 성공 (${data.ping?.latency_ms ?? 0}ms)` : `Redis 연결 실패: ${data.ping?.message || 'unknown'}`)
+    } catch (err) {
+      setGpuMessage(`Redis 테스트 실패: ${err.message}`)
+    } finally {
+      setGpuTesting(false)
+    }
+  }
+
+  async function measureGpuOptimization(cacheState) {
+    setGpuMeasuring(cacheState)
+    setGpuMessage('')
+    try {
+      const mode = !gpuOptimization.redis_enabled
+        ? 'redis_off'
+        : gpuOptimization.cache_enabled && gpuOptimization.queue_enabled && gpuOptimization.dynamic_batching_enabled && gpuOptimization.vector_cache_enabled
+        ? 'cache_queue_dynamic_vector_on'
+        : gpuOptimization.cache_enabled && gpuOptimization.queue_enabled && gpuOptimization.dynamic_batching_enabled
+        ? 'cache_queue_dynamic_on'
+        : gpuOptimization.cache_enabled && gpuOptimization.queue_enabled
+        ? 'cache_queue_on'
+        : gpuOptimization.cache_enabled
+        ? 'cache_on'
+        : 'redis_on'
+      const data = await apiFetch('/admin/gpu-optimization/measure', {
+        method: 'POST',
+        body: JSON.stringify({ mode, cacheState }),
+      })
+      setGpuMetrics(data.metrics || null)
+      setGpuMessage(`${cacheState === 'cold' ? 'Cold Cache' : 'Warm Cache'} 측정값을 저장했습니다.`)
+    } catch (err) {
+      setGpuMessage(`측정 실패: ${err.message}`)
+    } finally {
+      setGpuMeasuring('')
+    }
+  }
+
+  async function resetGpuMetrics() {
+    try {
+      const data = await apiFetch('/admin/gpu-optimization/metrics/reset', { method: 'POST' })
+      setGpuMetrics(data.metrics || null)
+      setGpuMessage('측정 결과를 초기화했습니다.')
+    } catch (err) {
+      setGpuMessage(`초기화 실패: ${err.message}`)
+    }
+  }
+
+  function downloadGpuMetricsCsv() {
+    const experiments = gpuMetrics?.experiments || []
+    const header = ['created_at', 'mode', 'cache_state', 'redis_ok', 'p95_latency_ms', 'gpu_call_count', 'cache_hit_rate', 'timeout_count', 'avg_batch_size']
+    const rows = experiments.map(row => header.map(key => JSON.stringify(row[key] ?? '')).join(','))
+    const blob = new Blob([[header.join(','), ...rows].join('\n')], { type: 'text/csv;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `gpu-optimization-${Date.now()}.csv`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+  }
+
   async function loadDbStats() {
     setDbLoading(true)
     try {
@@ -979,6 +1160,12 @@ export default function SiteAdminPage({ onClose, initialTab = 'users' }) {
           chunkOverlap: data.rag.chunk_overlap ?? p.chunkOverlap,
           pdfParseStrategy
         }))
+      }
+      if (data.redis_ai) {
+        setGpuOptimization({ ...GPU_OPTIMIZATION_DEFAULTS, ...data.redis_ai })
+      }
+      if (data.ai_metrics) {
+        setGpuMetrics(data.ai_metrics)
       }
       if (data.agenticai) {
         setAgenticaiForm({
@@ -1070,7 +1257,7 @@ export default function SiteAdminPage({ onClose, initialTab = 'users' }) {
         clearInterval(sttPollTimerRef.current)
         sttPollTimerRef.current = null
         window.location.reload()
-      } catch (_) {
+      } catch {
         if (attempts >= MAX_ATTEMPTS) {
           clearInterval(sttPollTimerRef.current)
           sttPollTimerRef.current = null
@@ -1106,7 +1293,9 @@ export default function SiteAdminPage({ onClose, initialTab = 'users' }) {
     setSttRestartCountdown(0)
     try {
       await apiFetch('/admin/restart', { method: 'POST' })
-    } catch (_) {}
+    } catch {
+      setSttMessage('서버 재시작 요청 중 오류가 발생했습니다. 상태 확인을 계속합니다.')
+    }
     startSttRestartPoll()
   }
 
@@ -1271,9 +1460,10 @@ export default function SiteAdminPage({ onClose, initialTab = 'users' }) {
 
   useEffect(() => { loadUsers(); loadTeams() }, [])
   useEffect(() => {
-    if (activeTab === 'db' || activeTab === 'display' || activeTab === 'rag' || activeTab === 'agenticai' || activeTab === 'company' || activeTab === 'site' || activeTab === 'supabase' || activeTab === 'sns' || activeTab === 'mail' || activeTab === 'stt') loadDbStats()
+    if (activeTab === 'db' || activeTab === 'display' || activeTab === 'rag' || activeTab === 'gpu-optimization' || activeTab === 'agenticai' || activeTab === 'company' || activeTab === 'site' || activeTab === 'supabase' || activeTab === 'sns' || activeTab === 'mail' || activeTab === 'stt') loadDbStats()
     if (activeTab === 'sns') loadTelegramWebhookInfo()
     if (activeTab === 'rag-learning') loadRagDatasets()
+    if (activeTab === 'gpu-optimization') loadGpuOptimization()
     if (activeTab === 'stt' && !sttChannelId && sttChannels.length > 0) {
       setSttChannelId(sttChannels[0].id)
     }
@@ -1584,18 +1774,16 @@ export default function SiteAdminPage({ onClose, initialTab = 'users' }) {
           <button
             type="button"
             onClick={() => setShowLocalAgenticPanel(v => !v)}
+            aria-label={showLocalAgenticPanel ? t.titlebar.agenticPanelHide : t.titlebar.agenticPanelShow}
+            aria-pressed={showLocalAgenticPanel}
             title={showLocalAgenticPanel ? t.titlebar.agenticPanelHide : t.titlebar.agenticPanelShow}
-            className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-semibold transition-colors ${
+            className={`inline-flex h-10 w-10 items-center justify-center rounded-xl border transition-all ${
               showLocalAgenticPanel
-                ? 'bg-blue-600 border-blue-600 text-white hover:bg-blue-700'
-                : 'bg-gray-200 border-gray-300 text-gray-600 hover:bg-gray-300'
+                ? 'bg-slate-900 border-cyan-300/60 hover:bg-slate-800'
+                : 'bg-gray-200 border-gray-300 hover:bg-gray-300'
             }`}
           >
-            <svg className="w-3.5 h-3.5" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
-              <rect x="2.5" y="3" width="15" height="14" rx="2" />
-              <line x1="11" y1="3" x2="11" y2="17" />
-            </svg>
-            <span>{t.titlebar.agenticPanelLabel}</span>
+            <AgenticAICharacter active={showLocalAgenticPanel} />
           </button>
 
           <div className="flex items-center bg-gray-100 border border-gray-200 rounded-lg overflow-hidden">
@@ -1667,6 +1855,15 @@ export default function SiteAdminPage({ onClose, initialTab = 'users' }) {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
             </svg>
             {t.admin.navRag}
+          </button>
+          <button
+            onClick={() => setActiveTab('gpu-optimization')}
+            className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${activeTab === 'gpu-optimization' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-200'}`}
+          >
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+            GPU 최적화
           </button>
           <button
             onClick={() => setActiveTab('agenticai')}
@@ -2591,6 +2788,21 @@ export default function SiteAdminPage({ onClose, initialTab = 'users' }) {
                 </div>
               </div>
 
+              <div className="bg-gray-100 border border-gray-200 rounded-2xl p-6 shadow-xl">
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <h3 className="text-gray-900 font-bold text-base">GPU 최적화</h3>
+                    <p className="text-gray-400 text-xs mt-0.5">Redis Cache, Queue, Vector Cache를 개별 On/Off하고 효과를 측정합니다.</p>
+                  </div>
+                  <button
+                    onClick={() => setActiveTab('gpu-optimization')}
+                    className="px-5 py-2.5 rounded-xl bg-teal-600 hover:bg-teal-500 text-white text-sm font-semibold transition-all"
+                  >
+                    GPU 최적화
+                  </button>
+                </div>
+              </div>
+
 
             </div>
           </div>
@@ -2815,6 +3027,221 @@ export default function SiteAdminPage({ onClose, initialTab = 'users' }) {
               )}
             </div>
           </div>
+        ) : activeTab === 'gpu-optimization' ? (
+          (() => {
+            const tasks = gpuMetrics?.tasks || {}
+            const experiments = gpuMetrics?.experiments || []
+            const totalHit = Object.values(tasks).reduce((sum, item) => sum + Number(item.cache_hit || 0), 0)
+            const totalMiss = Object.values(tasks).reduce((sum, item) => sum + Number(item.cache_miss || 0), 0)
+            const totalGpuCalls = Object.values(tasks).reduce((sum, item) => sum + Number(item.gpu_call_count || 0), 0)
+            const totalRequests = Object.values(tasks).reduce((sum, item) => sum + Number(item.request_count || 0), 0)
+            const cacheHitRate = totalHit + totalMiss > 0 ? totalHit / (totalHit + totalMiss) : 0
+            const toggles = [
+              ['redis_enabled', 'Redis 사용', 'Redis 연결과 Redis 기반 기능 전체를 활성화합니다.'],
+              ['cache_enabled', 'Cache 사용', 'RAG/STT/OCR 등 안전한 exact cache를 사용합니다.'],
+              ['queue_enabled', 'Queue 사용', 'Redis Streams 기반 비동기 처리 경로를 활성화합니다.'],
+              ['vector_cache_enabled', 'Vector Cache 사용', '유사 요청 재사용 후보를 활성화합니다.'],
+              ['dynamic_batching_enabled', 'Dynamic Batching 사용', 'Queue 요청을 batch로 묶는 처리 경로를 활성화합니다.'],
+              ['load_aware_routing_enabled', 'Load-Aware Routing 사용', 'worker heartbeat와 부하 점수 기반 라우팅을 사용합니다.'],
+            ]
+            return (
+              <div className="max-w-7xl mx-auto py-4 space-y-6">
+                <div>
+                  <h2 className="text-gray-900 font-bold text-lg flex items-center gap-2">
+                    <svg className="w-5 h-5 text-teal-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                    GPU 최적화
+                  </h2>
+                  <p className="text-gray-400 text-xs mt-1">
+                    Redis Cache, Queue, Vector Cache를 따로 켜고 끄며 GPU 호출 감소와 응답 시간 개선을 측정합니다.
+                  </p>
+                </div>
+
+                <div className="bg-gray-100 border border-gray-200 rounded-2xl p-6 shadow-xl">
+                    <div className="flex items-center justify-between gap-4 mb-5">
+                      <div>
+                        <h3 className="text-gray-900 font-bold text-base">기능 On/Off</h3>
+                        <p className="text-gray-400 text-xs mt-0.5">전체 Redis가 아니라 기능별 효과를 분리해서 측정합니다.</p>
+                      </div>
+                      <span className={`px-3 py-1 rounded-full text-xs font-bold ${gpuOptimization.redis_enabled ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-200 text-gray-500'}`}>
+                        {gpuOptimization.redis_enabled ? 'Redis On' : 'Redis Off'}
+                      </span>
+                    </div>
+
+                    <label className="block mb-4">
+                      <span className="text-xs font-semibold text-gray-500">REDIS_URL</span>
+                      <input
+                        value={gpuOptimization.redis_url || ''}
+                        onChange={e => setGpuOption('redis_url', e.target.value)}
+                        className="mt-1 w-full rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-teal-400/30"
+                      />
+                    </label>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {toggles.map(([key, label, desc]) => {
+                        const disabled = key !== 'redis_enabled' && !gpuOptimization.redis_enabled
+                          || ['dynamic_batching_enabled', 'load_aware_routing_enabled'].includes(key) && !gpuOptimization.queue_enabled
+                        return (
+                          <label
+                            key={key}
+                            className={`flex items-start gap-3 rounded-xl border p-4 transition-colors ${
+                              disabled ? 'bg-gray-50 border-gray-100 opacity-60' : gpuOptimization[key] ? 'bg-teal-50 border-teal-300' : 'bg-white border-gray-200'
+                            }`}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={Boolean(gpuOptimization[key])}
+                              disabled={disabled}
+                              onChange={e => setGpuOption(key, e.target.checked)}
+                              className="mt-1 h-4 w-4 accent-teal-600"
+                            />
+                            <span>
+                              <span className="block text-sm font-bold text-gray-900">{label}</span>
+                              <span className="block text-xs text-gray-400 mt-1">{desc}</span>
+                            </span>
+                          </label>
+                        )
+                      })}
+                    </div>
+
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-5">
+                      {[
+                        ['default_ttl_sec', '기본 TTL'],
+                        ['payload_ttl_sec', 'Payload TTL'],
+                        ['batch_max_size', 'Batch Size'],
+                        ['batch_max_wait_ms', 'Batch Wait ms'],
+                      ].map(([key, label]) => (
+                        <label key={key} className="block">
+                          <span className="text-xs font-semibold text-gray-500">{label}</span>
+                          <input
+                            type="number"
+                            min={0}
+                            value={gpuOptimization[key] ?? 0}
+                            onChange={e => setGpuOption(key, Number(e.target.value))}
+                            className="mt-1 w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-teal-400/30"
+                          />
+                        </label>
+                      ))}
+                    </div>
+
+                    <div className="flex flex-wrap gap-2 mt-5">
+                      <button onClick={saveGpuOptimization} disabled={gpuSaving} className="px-4 py-2 rounded-xl bg-teal-600 text-white text-sm font-semibold hover:bg-teal-500 disabled:opacity-50">
+                        {gpuSaving ? '저장 중...' : '현재 설정 저장'}
+                      </button>
+                      <button onClick={testGpuRedis} disabled={gpuTesting} className="px-4 py-2 rounded-xl bg-white border border-gray-200 text-gray-700 text-sm font-semibold hover:bg-gray-50 disabled:opacity-50">
+                        {gpuTesting ? '테스트 중...' : 'Redis 연결 테스트'}
+                      </button>
+                      <button onClick={() => measureGpuOptimization('cold')} disabled={Boolean(gpuMeasuring)} className="px-4 py-2 rounded-xl bg-white border border-gray-200 text-gray-700 text-sm font-semibold hover:bg-gray-50 disabled:opacity-50">
+                        {gpuMeasuring === 'cold' ? '측정 중...' : 'Cold Cache 측정 시작'}
+                      </button>
+                      <button onClick={() => measureGpuOptimization('warm')} disabled={Boolean(gpuMeasuring)} className="px-4 py-2 rounded-xl bg-white border border-gray-200 text-gray-700 text-sm font-semibold hover:bg-gray-50 disabled:opacity-50">
+                        {gpuMeasuring === 'warm' ? '측정 중...' : 'Warm Cache 측정 시작'}
+                      </button>
+                      <button onClick={resetGpuMetrics} className="px-4 py-2 rounded-xl bg-white border border-gray-200 text-gray-700 text-sm font-semibold hover:bg-gray-50">
+                        측정 결과 초기화
+                      </button>
+                      <button onClick={downloadGpuMetricsCsv} className="px-4 py-2 rounded-xl bg-white border border-gray-200 text-gray-700 text-sm font-semibold hover:bg-gray-50">
+                        CSV 다운로드
+                      </button>
+                    </div>
+
+                    {gpuMessage && (
+                      <p className="mt-4 rounded-xl bg-white border border-gray-200 px-4 py-3 text-sm text-gray-700 whitespace-pre-wrap">
+                        {gpuMessage}
+                      </p>
+                    )}
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  {[
+                    ['Cache Hit Rate', formatPercent(cacheHitRate)],
+                    ['GPU Calls', totalGpuCalls.toLocaleString()],
+                    ['Requests', totalRequests.toLocaleString()],
+                    ['Redis Memory', '-'],
+                  ].map(([label, value]) => (
+                    <div key={label} className="rounded-2xl border border-gray-200 bg-gray-100 p-6 shadow-xl">
+                      <p className="text-xs font-semibold text-gray-400">{label}</p>
+                      <p className="text-3xl font-black text-gray-900 mt-3">{value}</p>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="rounded-2xl border border-gray-200 bg-gray-100 p-6 shadow-xl">
+                  <h3 className="text-gray-900 font-bold text-base mb-3">측정 원칙</h3>
+                  <p className="text-sm text-gray-600 leading-relaxed">
+                    Redis 효과 측정은 On/Off 방식이 가장 설득력 있는 검증 방법입니다. 전체 Redis를 한 번에 켜고 끄기보다 Cache, Queue, Vector Cache를 따로 켜고 끄면 캐시가 GPU 호출을 몇 % 줄였고 Queue가 throughput을 얼마나 올렸는지 분리해서 확인할 수 있습니다.
+                  </p>
+                </div>
+
+                <div className="bg-gray-100 border border-gray-200 rounded-2xl p-6 shadow-xl">
+                  <h3 className="text-gray-900 font-bold text-base mb-4">작업별 지표</h3>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead className="text-xs text-gray-400 border-b border-gray-200">
+                        <tr>
+                          <th className="text-left py-2">Task</th>
+                          <th className="text-right py-2">Hit Rate</th>
+                          <th className="text-right py-2">GPU Calls</th>
+                          <th className="text-right py-2">p95</th>
+                          <th className="text-right py-2">Queue Wait</th>
+                          <th className="text-right py-2">Batch</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {Object.keys(tasks).length === 0 ? (
+                          <tr><td colSpan={6} className="py-6 text-center text-gray-400">아직 수집된 지표가 없습니다.</td></tr>
+                        ) : Object.entries(tasks).map(([task, item]) => (
+                          <tr key={task} className="border-b border-gray-200/70">
+                            <td className="py-2 font-semibold text-gray-700">{task}</td>
+                            <td className="py-2 text-right text-gray-600">{formatPercent(item.cache_hit_rate)}</td>
+                            <td className="py-2 text-right text-gray-600">{Number(item.gpu_call_count || 0).toLocaleString()}</td>
+                            <td className="py-2 text-right text-gray-600">{formatMs(item.p95_latency_ms)}</td>
+                            <td className="py-2 text-right text-gray-600">{formatMs(item.avg_queue_wait_ms)}</td>
+                            <td className="py-2 text-right text-gray-600">{Number(item.avg_batch_size || 0).toFixed(1)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <div className="bg-gray-100 border border-gray-200 rounded-2xl p-6 shadow-xl">
+                  <h3 className="text-gray-900 font-bold text-base mb-4">On/Off 측정 결과</h3>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead className="text-xs text-gray-400 border-b border-gray-200">
+                        <tr>
+                          <th className="text-left py-2">시간</th>
+                          <th className="text-left py-2">Mode</th>
+                          <th className="text-left py-2">Cache</th>
+                          <th className="text-right py-2">p95</th>
+                          <th className="text-right py-2">GPU Calls</th>
+                          <th className="text-right py-2">Hit Rate</th>
+                          <th className="text-right py-2">Batch</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {experiments.length === 0 ? (
+                          <tr><td colSpan={7} className="py-6 text-center text-gray-400">저장된 측정 결과가 없습니다.</td></tr>
+                        ) : experiments.map((row, idx) => (
+                          <tr key={`${row.created_at}-${idx}`} className="border-b border-gray-200/70">
+                            <td className="py-2 text-gray-600">{formatDate(row.created_at)}</td>
+                            <td className="py-2 font-semibold text-gray-700">{row.mode}</td>
+                            <td className="py-2 text-gray-600">{row.cache_state}</td>
+                            <td className="py-2 text-right text-gray-600">{formatMs(row.p95_latency_ms)}</td>
+                            <td className="py-2 text-right text-gray-600">{Number(row.gpu_call_count || 0).toLocaleString()}</td>
+                            <td className="py-2 text-right text-gray-600">{formatPercent(row.cache_hit_rate)}</td>
+                            <td className="py-2 text-right text-gray-600">{Number(row.avg_batch_size || 0).toFixed(1)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            )
+          })()
         ) : activeTab === 'display' ? (
           <div className="max-w-4xl mx-auto py-4">
             <div className="flex items-center justify-between mb-8">

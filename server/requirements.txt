@@ -18,3 +18,4 @@ markitdown[all]
 unstructured[pdf]
 pytesseract
 resemblyzer
+redis

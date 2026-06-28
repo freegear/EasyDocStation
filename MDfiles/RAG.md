@@ -466,3 +466,390 @@ v2 전환 전에 아래 항목을 검증한다.
 운영 전환: v2 백그라운드 재학습 완료 후 active_table 전환
 장애 대응: previous_table로 즉시 rollback
 ```
+
+
+# 4. RAG 답변 제어
+
+RAG 답변 제어의 목표는 "근거가 없는데도 AI가 답변을 확장하는 현상"을 구조적으로 차단하는 것이다.
+
+프롬프트에 "추정하지 말라"고 지시하는 것만으로는 충분하지 않다. RAG 검색 결과가 없거나, 현재 질문 대상과 다른 자료가 검색되었을 때는 LLM 호출 자체를 막아야 한다.
+
+따라서 RAG 답변은 아래 순서로만 생성한다.
+
+```txt
+질문 범위 결정
+-> RAG 검색 필터 생성
+-> RAG 검색 실행
+-> Evidence Gate 검증
+-> 검증된 근거만 context 구성
+-> LLM 호출
+-> 참고자료 표시
+```
+
+## 4.1 질문 범위 결정
+
+AI 질문을 처리하기 전에 사용자의 질문 범위를 먼저 결정한다.
+
+지원 범위는 다음과 같다.
+
+| scope | 의미 | 기본 사용 상황 |
+| --- | --- | --- |
+| `image_scope` | 현재 이미지 질문 | 게시글 첨부 이미지 또는 이미지 참조 버튼에서 질문 |
+| `post_scope` | 현재 게시글 질문 | 특정 게시글 상세 화면에서 질문 |
+| `comment_scope` | 현재 댓글 질문 | 특정 댓글을 AgenticAI로 보낸 경우 |
+| `channel_scope` | 현재 채널 질문 | 현재 채널 범위 요약/검색 |
+| `global_scope` | 전체 RAG 검색 | 사용자가 명시적으로 전체 검색을 요청 |
+
+기본 정책은 가장 좁은 범위를 선택하는 것이다.
+
+```txt
+현재 이미지가 명확하면 image_scope
+현재 게시글이 명확하면 post_scope
+현재 채널만 명확하면 channel_scope
+사용자가 "전체에서 찾아줘"라고 명시하면 global_scope
+```
+
+`global_scope`는 기본값으로 사용하지 않는다. 전체 검색은 다른 게시글/문서가 섞여 답변이 확대되는 주요 원인이므로 사용자가 명시적으로 요청한 경우에만 허용한다.
+
+## 4.2 RAG 검색 필터 생성
+
+scope에 따라 RAG 검색 필터를 반드시 생성한다.
+
+### 4.2.1 image_scope
+
+이미지 질문은 반드시 현재 이미지 첨부 파일로 제한한다.
+
+필수 필터:
+
+```json
+{
+  "post_id": "현재 게시글 ID",
+  "attachment_id": "현재 이미지 첨부 ID",
+  "type": "image_attachment"
+}
+```
+
+이미지 질문에서 `post_id`만 사용하는 것은 충분하지 않다. 같은 게시글에 여러 첨부 파일이나 본문 텍스트가 있을 수 있으므로 `attachment_id`와 `type=image_attachment`까지 함께 제한한다.
+
+### 4.2.2 post_scope
+
+현재 게시글 질문은 현재 게시글 ID로 제한한다.
+
+```json
+{
+  "post_id": "현재 게시글 ID"
+}
+```
+
+기본적으로 다른 `post_id`의 검색 결과는 제외한다.
+
+### 4.2.3 comment_scope
+
+댓글 질문은 댓글 ID와 원 게시글 ID를 함께 제한한다.
+
+```json
+{
+  "post_id": "댓글이 속한 게시글 ID",
+  "comment_id": "현재 댓글 ID"
+}
+```
+
+### 4.2.4 channel_scope
+
+현재 채널 질문은 현재 채널 ID로 제한한다.
+
+```json
+{
+  "channel_id": "현재 채널 ID"
+}
+```
+
+### 4.2.5 global_scope
+
+전체 검색은 권한이 허용된 전체 RAG 데이터에서 검색한다.
+
+단, `global_scope`는 사용자가 전체 검색을 명시한 경우에만 사용한다.
+
+## 4.3 Evidence Gate
+
+RAG 검색 결과는 LLM에 전달하기 전에 반드시 Evidence Gate를 통과해야 한다.
+
+Evidence Gate는 아래 조건을 검사한다.
+
+1. 검색 결과가 존재하는가
+2. 검색 결과가 질문 범위와 일치하는가
+3. 검색 결과의 source type이 질문 유형과 맞는가
+4. 검색 점수가 최소 기준을 넘는가
+5. 참고자료가 사용자에게 표시 가능한 출처를 가지고 있는가
+
+하나라도 실패하면 LLM을 호출하지 않는다.
+
+## 4.4 No Evidence Gate
+
+검색 결과가 없으면 LLM을 호출하지 않는다.
+
+처리 기준:
+
+```txt
+references.length === 0
+또는 context가 비어 있음
+-> LLM 호출 금지
+-> "현재 학습 데이터에서 답변 근거를 찾지 못했습니다." 반환
+```
+
+이때 fallback으로 일반 지식 답변을 생성하면 안 된다.
+
+반환 메시지 예:
+
+```txt
+현재 학습 데이터에서 이 질문에 답할 근거를 찾지 못했습니다.
+참고자료를 추가하거나 질문 범위를 좁혀 주세요.
+```
+
+## 4.5 Wrong Evidence Gate
+
+검색 결과가 있어도 현재 질문 대상과 맞지 않으면 LLM을 호출하지 않는다.
+
+### 4.5.1 image_scope 검증
+
+이미지 질문은 아래 조건을 모두 만족해야 한다.
+
+- 최소 1개 이상의 reference가 존재한다.
+- 최소 1개 이상의 reference가 `type=image_attachment`이다.
+- 주요 reference의 `attachment_id`가 현재 이미지 첨부 ID와 일치한다.
+- 주요 reference의 `post_id`가 현재 게시글 ID와 일치한다.
+- 참고자료에 이미지 썸네일 또는 `img_path`를 표시할 수 있다.
+
+실패 시:
+
+```txt
+현재 이미지에 해당하는 학습 근거를 찾지 못했습니다.
+다른 게시글이나 다른 문서를 근거로 답변하지 않습니다.
+```
+
+### 4.5.2 post_scope 검증
+
+게시글 질문은 아래 조건을 만족해야 한다.
+
+- 최소 1개 이상의 reference가 현재 `post_id`와 일치한다.
+- 다른 `post_id`의 reference는 기본적으로 제외한다.
+- 제외 후 reference가 0개가 되면 LLM을 호출하지 않는다.
+
+### 4.5.3 comment_scope 검증
+
+댓글 질문은 아래 조건을 만족해야 한다.
+
+- 최소 1개 이상의 reference가 현재 `comment_id`와 일치한다.
+- 댓글 첨부 파일 질문이면 `attachment_id`도 일치해야 한다.
+
+### 4.5.4 channel_scope 검증
+
+채널 질문은 아래 조건을 만족해야 한다.
+
+- reference의 `channel_id`가 현재 채널 ID와 일치한다.
+- 권한이 없는 채널의 reference는 제외한다.
+
+## 4.6 Score Gate
+
+검색 결과가 있더라도 유사도 점수가 너무 낮으면 답변하지 않는다.
+
+구현 기준:
+
+```txt
+상위 결과가 score_threshold 미달
+또는 상위 N개 결과가 모두 기준 미달
+-> LLM 호출 금지
+```
+
+score 기준은 LanceDB 검색 방식에 맞춰 실험적으로 정한다.
+
+권장 초기 정책:
+
+- similarity distance 방식이면 낮을수록 좋은 값인지 확인한다.
+- 현재 검색 결과의 score 분포를 로그로 남긴다.
+- 운영 초기에는 보수적으로 적용하고, 오탐이 많으면 threshold를 조정한다.
+
+## 4.7 Context 구성 규칙
+
+LLM에 전달하는 context는 Evidence Gate를 통과한 reference만 사용한다.
+
+금지:
+
+- 검색된 모든 chunk를 그대로 넣기
+- 현재 질문 범위 밖의 reference를 섞기
+- 이전 assistant 답변을 근거처럼 넣기
+- 이미지 질문에서 일반 게시글 검색 결과를 우선 사용하기
+
+필수:
+
+- 중복 chunk 제거
+- source별 최대 chunk 수 제한
+- image_scope에서는 `image_attachment`를 최우선 사용
+- post_scope에서는 현재 `post_id`의 chunk만 사용
+- context마다 `source_type`, `post_id`, `attachment_id`, `score`를 보존
+
+LLM 전달 형식 예:
+
+```txt
+[답변 규칙]
+- 아래 [검증된 근거]에 있는 내용만 사용하세요.
+- 근거에 없는 내용은 답하지 마세요.
+- 추정, 일반 지식, 이전 답변의 내용을 보충하지 마세요.
+- 답변할 근거가 부족하면 "근거가 부족합니다"라고 답하세요.
+
+[질문 범위]
+scope: image_scope
+post_id: ...
+attachment_id: ...
+
+[검증된 근거]
+1. source_type: image_attachment
+   post_id: ...
+   attachment_id: ...
+   file_name: ...
+   score: ...
+   excerpt: ...
+
+[질문]
+...
+```
+
+## 4.8 히스토리 정책
+
+RAG 사실 질문에서는 대화 히스토리를 일반 대화와 다르게 처리한다.
+
+권장 정책:
+
+| scope | history 정책 |
+| --- | --- |
+| `image_scope` | history 0 |
+| `post_scope` | history 0 또는 최근 user 질문 1개 |
+| `comment_scope` | history 0 또는 최근 user 질문 1개 |
+| `channel_scope` | history 1~2 |
+| `global_scope` | 관리자 설정값 사용 가능 |
+
+특히 이전 assistant 답변은 RAG 사실 질문의 근거로 사용하지 않는다.
+
+이전 답변이 한 번 확대되면 다음 답변이 그 내용을 다시 이어받아 더 확대될 수 있으므로, RAG 사실 질문에서는 assistant history를 제외하는 것이 기본이다.
+
+## 4.9 키워드 검색 병합 제한
+
+이미지 질문과 현재 게시글 질문에서는 키워드 검색 결과를 무조건 RAG context에 병합하지 않는다.
+
+정책:
+
+- `image_scope`: 키워드 검색 결과 병합 금지
+- `post_scope`: 현재 `post_id`와 일치하는 키워드 결과만 병합
+- `comment_scope`: 현재 `comment_id` 또는 `post_id`와 일치하는 결과만 병합
+- `global_scope`: 키워드 검색 병합 허용
+
+키워드 검색 결과가 현재 범위 밖의 게시글을 가져오면 답변 확대의 원인이 된다.
+
+## 4.10 참고자료 표시 정책
+
+답변 아래 참고자료에는 검증된 reference만 표시한다.
+
+표시 필드:
+
+- `scope`
+- `source_type`
+- `post_id`
+- `comment_id`
+- `attachment_id`
+- `channel_id`
+- `file_name`
+- `img_path`
+- `score`
+
+이미지 reference는 반드시 썸네일 또는 이미지 미리보기를 표시한다.
+
+참고자료가 현재 질문 범위와 일치하지 않으면 답변을 표시하지 않는다.
+
+차단 UI 예:
+
+```txt
+근거 상태: 차단
+사유: 현재 이미지와 일치하는 참고자료 없음
+```
+
+통과 UI 예:
+
+```txt
+근거 상태: 통과
+범위: 현재 이미지
+참고자료: image_attachment / attachment_id=... / score=...
+```
+
+## 4.11 응답 차단 조건
+
+아래 조건 중 하나라도 해당하면 LLM을 호출하지 않는다.
+
+1. RAG context가 비어 있다.
+2. references가 비어 있다.
+3. 현재 scope와 reference 메타데이터가 일치하지 않는다.
+4. 이미지 질문인데 `image_attachment` reference가 없다.
+5. 현재 이미지 질문인데 `attachment_id`가 다르다.
+6. 현재 게시글 질문인데 다른 `post_id`만 검색되었다.
+7. 검색 score가 기준 미달이다.
+8. 사용자가 전체 검색을 요청하지 않았는데 `global_scope`로 검색되었다.
+
+차단 메시지는 실패 사유를 명확히 알려야 한다.
+
+예:
+
+```txt
+현재 이미지에 대한 학습 근거를 찾지 못했습니다.
+다른 자료를 근거로 추정 답변을 생성하지 않았습니다.
+```
+
+## 4.12 구현 대상 파일
+
+우선 구현 대상은 다음과 같다.
+
+- `src/components/GroqPanel.jsx`
+  - 현재 화면의 `postId`, `channelId`, 선택된 `attachmentId`를 RAG 요청에 전달한다.
+  - 질문 scope를 결정한다.
+  - RAG 사실 질문에서는 history를 축소하거나 assistant history를 제외한다.
+  - 이미지 질문에서는 키워드 검색 결과 병합을 제한한다.
+
+- `server/routes/rag.js`
+  - `retrieval.filter`에 `post_id`, `comment_id`, `attachment_id`, `channel_id`, `type`을 지원한다.
+  - Evidence Gate를 서버에서 수행한다.
+  - Gate 실패 시 context 없이 명확한 차단 응답을 반환한다.
+  - reference enrichment 단계에서 `source_type`, `attachment_id`, `score`, `img_path`를 유지한다.
+
+- `server/rag_train.py`
+  - 이미지 학습 chunk의 `type`을 `image_attachment`로 일관되게 저장한다.
+  - `post_id`, `channel_id`, `attachment_id`, `file_name`, `img_path`, `file_hash`를 필수 메타데이터로 저장한다.
+  - 이미지 caption은 보이는 사실 중심으로 작성되도록 한다.
+
+- `src/components/chat/PostDetailPane.jsx`
+  - 게시글 이미지별로 "이 이미지로 질문" 액션을 제공한다.
+  - 해당 액션은 `attachment_id`를 AgenticAI target으로 전달한다.
+
+## 4.13 검증 기준
+
+아래 시나리오를 통과해야 한다.
+
+1. 현재 이미지 질문에서 참고자료에 해당 이미지 1개 이상이 표시된다.
+2. 현재 이미지 질문에서 다른 게시글 링크가 참고자료로 표시되지 않는다.
+3. 해당 이미지 학습 근거가 없으면 답변하지 않고 차단 메시지를 표시한다.
+4. 현재 게시글 질문에서 다른 게시글만 검색되면 답변하지 않는다.
+5. 새 채팅과 기존 채팅에서 동일 이미지 질문의 답변 범위가 크게 달라지지 않는다.
+6. 이전 assistant 답변이 다음 RAG 사실 답변의 근거로 사용되지 않는다.
+7. 사용자가 명시적으로 전체 검색을 요청한 경우에만 전체 RAG 검색을 수행한다.
+8. 참고자료 UI에서 `source_type`, `post_id`, `attachment_id`, `score`를 확인할 수 있다.
+
+## 4.14 최종 운영 정책
+
+최종 운영 정책은 다음과 같다.
+
+```txt
+기본 검색 범위는 현재 화면 기준으로 자동 제한한다.
+이미지 질문은 attachment_id + type=image_attachment로 제한한다.
+검색 결과가 없으면 LLM을 호출하지 않는다.
+검색 결과가 질문 대상과 다르면 LLM을 호출하지 않는다.
+RAG 사실 질문에서는 이전 assistant 답변을 근거로 쓰지 않는다.
+전체 검색은 사용자가 명시적으로 선택한 경우에만 허용한다.
+참고자료에 실제 근거가 표시되지 않으면 답변을 보여주지 않는다.
+```

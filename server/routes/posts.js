@@ -11,6 +11,7 @@ const config = require('../../config.json')
 const { getDatabasePath } = require('../databasePaths')
 const requireAuth = require('../middleware/auth')
 const { trainPostImmediate, retrainPostImmediate, trainCommentImmediate, retrainCommentImmediate } = require('../rag')
+const PostSearchService = require('../search/PostSearchService')
 const {
   markTrainingStarted,
   markTrainingCompleted,
@@ -20,6 +21,7 @@ const {
 const { ACCESS_DENIED_MESSAGE, canAccessChannel, getAccessibleChannelIds } = require('../lib/channelAccess')
 const STORAGE_BASE = getDatabasePath(config, 'ObjectFile Path')
 const STORAGE_BASE_ABS = path.resolve(STORAGE_BASE)
+const postSearchService = new PostSearchService()
 let attachmentRefSchemaEnsured = false
 let searchIndexSchemaEnsured = false
 const IMAGE_SEARCH_CONTENT_TYPES = new Set([
@@ -35,11 +37,72 @@ const IMAGE_SEARCH_CONTENT_TYPES = new Set([
 ])
 const IMAGE_SEARCH_FILE_EXT_RE = /\.(jpe?g|png|webp|gif|bmp|tiff?|heic|heif)$/i
 
-function canMutatePostRow(user = {}, row = {}) {
-  const role = String(user?.role || '')
-  const isPrivilegedRole = ['site_admin', 'team_admin', 'channel_admin'].includes(role)
-  const isAuthor = String(row?.author_id || '') === String(user?.id || '')
-  return isPrivilegedRole || isAuthor
+function securityLevelOf(value = {}) {
+  if (value?.role === 'site_admin') return 4
+  const parsed = Number.parseInt(value?.security_level, 10)
+  return Number.isFinite(parsed) ? parsed : 0
+}
+
+async function getAuthorSecurityLevel(authorId) {
+  if (!authorId) return 0
+  const result = await db.query('SELECT role, security_level FROM users WHERE id = $1 LIMIT 1', [authorId])
+  return securityLevelOf(result.rows?.[0] || {})
+}
+
+async function getChannelMembershipForUser(userId, channelId) {
+  if (!userId || !channelId) {
+    return { isTeamMember: false, isChannelMember: false }
+  }
+  const result = await db.query(
+    `
+    SELECT
+      EXISTS (
+        SELECT 1
+        FROM channels c
+        WHERE c.id = $2
+          AND (
+            EXISTS (SELECT 1 FROM team_members tm WHERE tm.team_id = c.team_id AND tm.user_id = $1)
+            OR EXISTS (SELECT 1 FROM team_admins ta WHERE ta.team_id = c.team_id AND ta.user_id = $1)
+          )
+      ) AS is_team_member,
+      EXISTS (
+        SELECT 1
+        FROM channels c
+        WHERE c.id = $2
+          AND (
+            EXISTS (SELECT 1 FROM channel_members cm WHERE cm.channel_id = c.id AND cm.user_id = $1)
+            OR EXISTS (SELECT 1 FROM channel_admins ca WHERE ca.channel_id = c.id AND ca.user_id = $1)
+          )
+      ) AS is_channel_member
+    `,
+    [userId, channelId],
+  )
+  const row = result.rows?.[0] || {}
+  return {
+    isTeamMember: Boolean(row.is_team_member),
+    isChannelMember: Boolean(row.is_channel_member),
+  }
+}
+
+async function canMutatePostRow(user = {}, row = {}) {
+  if (!user?.id || !row?.channel_id || !row?.author_id) return false
+  if (user.role === 'site_admin') return true
+
+  const userLevel = securityLevelOf(user)
+  const authorLevel = await getAuthorSecurityLevel(row.author_id)
+  if (userLevel < authorLevel) return false
+
+  const { isTeamMember, isChannelMember } = await getChannelMembershipForUser(user.id, row.channel_id)
+  if (!isTeamMember) return false
+  if (userLevel >= 3) return true
+  return isChannelMember
+}
+
+async function canMutateCommentRow(user = {}, row = {}) {
+  return canMutatePostRow(user, {
+    author_id: row?.author_id,
+    channel_id: row?.channel_id,
+  })
 }
 
 function toAttachmentIdArray(raw) {
@@ -218,12 +281,6 @@ async function deleteSearchDocument(sourceType, sourceId) {
   if (!safeSourceType || !safeSourceId) return
   await ensureSearchIndexSchema()
   await db.query('DELETE FROM search_documents WHERE id = $1', [`${safeSourceType}:${safeSourceId}`])
-}
-
-function userSearchSecurityLevel(user = {}) {
-  if (user?.role === 'site_admin') return 4
-  const parsed = Number.parseInt(user?.security_level, 10)
-  return Number.isFinite(parsed) ? parsed : 0
 }
 
 function getOllamaChatUrl() {
@@ -1017,7 +1074,9 @@ async function linkAttachments(postId, ids) {
 }
 
 // ─── Helper: fetch comments for a post ───────────────────────
-async function fetchComments(postId, userId = null) {
+async function fetchComments(postId, userContext = null) {
+  const userId = typeof userContext === 'object' ? userContext?.id : userContext
+  const currentUser = typeof userContext === 'object' ? userContext : null
   const deletedCommentIds = await getDeletedItemIdSet('comment', { postId })
   // ── Cassandra path ──────────────────────────────────────────
   if (isConnected()) {
@@ -1039,6 +1098,14 @@ async function fetchComments(postId, userId = null) {
         const attachments = await enrichAttachments(row.attachments || [])
         
         const likeInfo = commentLikeMap.get(String(row.id)) || { likeCount: 0, likedByMe: false }
+        const commentRowForPermission = {
+          author_id: row.author_id,
+          channel_id: row.channel_id || '',
+        }
+        if (!commentRowForPermission.channel_id) {
+          const postChannel = await resolveChannelIdForPost(row.post_id?.toString?.() || row.post_id)
+          commentRowForPermission.channel_id = postChannel || ''
+        }
         return {
           id: row.id,
           post_id: row.post_id.toString(),
@@ -1056,6 +1123,7 @@ async function fetchComments(postId, userId = null) {
           updatedAt: row.created_at, // Cassandra comments table doesn't have updated_at yet
           likeCount: likeInfo.likeCount || 0,
           likedByMe: Boolean(likeInfo.likedByMe),
+          can_edit: currentUser ? await canMutateCommentRow(currentUser, commentRowForPermission) : false,
           ...getTrainingStatus('comment', row.id),
         }
       }))
@@ -1097,6 +1165,7 @@ async function fetchComments(postId, userId = null) {
       updatedAt: row.updated_at,
       likeCount: likeInfo.likeCount || 0,
       likedByMe: Boolean(likeInfo.likedByMe),
+      can_edit: currentUser ? await canMutateCommentRow(currentUser, row) : false,
       ...getTrainingStatus('comment', row.id),
     }
   }))
@@ -1253,126 +1322,14 @@ router.get('/search', requireAuth, async (req, res, next) => {
     if (!q) return res.status(400).json({ error: 'Search query is required' })
 
     try {
-      await ensureSearchIndexSchema()
-      const accessibleChannelIds = await getAccessibleChannelIds(db, req.user)
-      if (accessibleChannelIds.length === 0) return res.json([])
-      const limit = Math.max(1, Math.min(100, Number(req.query.limit) || 50))
-      const userLevel = userSearchSecurityLevel(req.user)
-      const currentChannelId = accessibleChannelIds.includes(String(req.query.current_channel_id || '').trim())
-        ? String(req.query.current_channel_id || '').trim()
-        : ''
-      const currentTeamId = String(req.query.current_team_id || '').trim()
-      const searchRes = await db.query(
-        `WITH matched AS (
-           SELECT
-             d.*,
-             POSITION(LOWER($2) IN LOWER(d.content)) AS match_pos,
-             MIN(EXTRACT(EPOCH FROM d.created_at)) OVER () AS min_epoch,
-             MAX(EXTRACT(EPOCH FROM d.created_at)) OVER () AS max_epoch
-           FROM search_documents d
-           WHERE d.channel_id = ANY($1)
-             AND d.security_level <= $3
-             AND d.content ILIKE '%' || $2 || '%'
-         ),
-         scored AS (
-           SELECT
-             m.*,
-             CASE
-               WHEN LOWER(m.content) = LOWER($2) THEN 1.0
-               ELSE LEAST(
-                 1.0,
-                 GREATEST(
-                   0.0,
-                   (
-                     (1.0 - ((GREATEST(m.match_pos, 1) - 1)::float / GREATEST(char_length(m.content), 1))) * 0.7
-                   ) + (
-                     LEAST(1.0, char_length($2)::float / GREATEST(char_length(m.content), char_length($2), 1)) * 0.3
-                   )
-                 )
-               )
-             END AS match_score,
-             CASE
-               WHEN m.max_epoch = m.min_epoch THEN 1.0
-               ELSE (EXTRACT(EPOCH FROM m.created_at) - m.min_epoch) / NULLIF(m.max_epoch - m.min_epoch, 0)
-             END AS recency_score
-           FROM matched m
-         )
-         SELECT
-           s.source_type AS type,
-           s.source_id AS id,
-           s.post_id,
-           s.comment_id,
-           s.attachment_id,
-           s.channel_id,
-           s.author_id,
-           s.file_name,
-           s.content,
-           s.created_at,
-           c.name AS channel_name,
-           t.name AS team_name,
-           u.name AS author_name,
-           u.username AS author_username,
-           u.image_url AS author_image_url,
-           p.content AS post_content,
-           (
-             (s.match_score * 0.45)
-             + (s.recency_score * 0.35)
-             + (CASE WHEN $5::text <> '' AND s.channel_id = $5 THEN 0.14 ELSE 0 END)
-             + (CASE WHEN $6::text <> '' AND c.team_id = $6 THEN 0.06 ELSE 0 END)
-           ) AS score,
-           s.match_score,
-           s.recency_score
-         FROM scored s
-         JOIN channels c ON c.id = s.channel_id
-         JOIN teams t ON t.id = c.team_id
-         LEFT JOIN users u ON u.id = s.author_id
-         LEFT JOIN posts p ON p.id = s.post_id
-         ORDER BY score DESC, s.created_at DESC
-         LIMIT $4`,
-        [accessibleChannelIds, String(q), userLevel, limit, currentChannelId, currentTeamId],
-      )
-      // 소프트삭제(휴지통) 중인 항목은 검색 결과에서도 제외
-      await ensureSoftDeleteSchema().catch(() => {})
-      const delRes = await db.query(
-        'SELECT item_type, item_id FROM deleted_items WHERE channel_id = ANY($1)',
-        [accessibleChannelIds],
-      ).catch(() => ({ rows: [] }))
-      const delPostIds = new Set()
-      const delCommentIds = new Set()
-      for (const d of delRes.rows || []) {
-        if (d.item_type === 'post') delPostIds.add(String(d.item_id))
-        else if (d.item_type === 'comment') delCommentIds.add(String(d.item_id))
-      }
-      const visibleSearchRows = (searchRes.rows || []).filter((row) => {
-        if (row.post_id && delPostIds.has(String(row.post_id))) return false
-        if (row.type === 'post' && delPostIds.has(String(row.id))) return false
-        if (row.comment_id && delCommentIds.has(String(row.comment_id))) return false
-        if (row.type === 'comment' && delCommentIds.has(String(row.id))) return false
-        return true
+      const results = await postSearchService.exactSearch({
+        query: String(q),
+        user: req.user,
+        limit: req.query.limit || 50,
+        currentChannelId: req.query.current_channel_id || '',
+        currentTeamId: req.query.current_team_id || '',
       })
-      return res.json(visibleSearchRows.map(row => ({
-        type: row.type,
-        id: row.id,
-        postId: row.post_id,
-        commentId: row.comment_id || '',
-        attachmentId: row.attachment_id || '',
-        fileName: row.file_name || '',
-        content: row.content,
-        createdAt: row.created_at,
-        teamName: row.team_name || '',
-        channelName: row.channel_name || '',
-        channelId: row.channel_id,
-        postContent: row.type === 'comment' || row.type === 'image_attachment' ? (row.post_content || '') : '',
-        score: Number(row.score || 0),
-        matchScore: Number(row.match_score || 0),
-        recencyScore: Number(row.recency_score || 0),
-        author: {
-          id: row.author_id,
-          name: row.author_name || '알 수 없음',
-          username: row.author_username || 'unknown',
-          image_url: row.author_image_url || null,
-        },
-      })))
+      return res.json(results)
     } catch (pgErr) {
       console.warn('[SearchIndex] PostgreSQL 검색 실패, Cassandra 검색으로 fallback:', pgErr.message)
     }
@@ -1743,7 +1700,7 @@ router.get('/', requireAuth, async (req, res, next) => {
         ].filter(Boolean)
         
         const attachments = await enrichAttachments(attachmentIds)
-        const comments = await fetchComments(row.id.toString(), req.user.id)
+        const comments = await fetchComments(row.id.toString(), req.user)
         const pinInfo = pinnedMap.get(String(row.id)) || null
         const likeInfo = postLikeMap.get(String(row.id)) || { likeCount: 0, likedByMe: false }
         const unreadMeta = buildUnreadMeta({
@@ -1771,6 +1728,7 @@ router.get('/', requireAuth, async (req, res, next) => {
           likeCount: likeInfo.likeCount || 0,
           likedByMe: Boolean(likeInfo.likedByMe),
           security_level: row.security_level || 0,
+          can_edit: await canMutatePostRow(req.user, row),
           tags: [],
           pinned: Boolean(pinInfo?.pinned),
           pinned_at: pinInfo?.pinned_at || null,
@@ -1818,7 +1776,7 @@ router.get('/', requireAuth, async (req, res, next) => {
       }
 
       const avatarLetters = row.author_name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
-      const comments = await fetchComments(row.id, req.user.id)
+      const comments = await fetchComments(row.id, req.user)
       const pinInfo = pinnedMap.get(String(row.id)) || null
       const likeInfo = postLikeMap.get(String(row.id)) || { likeCount: 0, likedByMe: false }
       const unreadMeta = buildUnreadMeta({
@@ -1847,6 +1805,7 @@ router.get('/', requireAuth, async (req, res, next) => {
         likeCount: likeInfo.likeCount || 0,
         likedByMe: Boolean(likeInfo.likedByMe),
         security_level: row.security_level || 0,
+        can_edit: await canMutatePostRow(req.user, row),
         tags: [],
         pinned: Boolean(pinInfo?.pinned),
         pinned_at: pinInfo?.pinned_at || null,
@@ -2343,7 +2302,7 @@ router.put('/:id', requireAuth, async (req, res, next) => {
     if (!row) return res.status(404).json({ error: '게시글을 찾을 수 없습니다.' })
     const allowedChannel = await canAccessChannel(db, req.user, row.channel_id)
     if (!allowedChannel) return res.status(403).json({ error: ACCESS_DENIED_MESSAGE })
-    if (!canMutatePostRow(req.user, row)) return res.status(403).json({ error: '권한이 없습니다.' })
+    if (!(await canMutatePostRow(req.user, row))) return res.status(403).json({ error: '권한이 없습니다.' })
     const attachmentIds = uniqAttachmentIds(
       (Array.isArray(attachments) ? attachments : [])
         .map((item) => (typeof item === 'object' ? item.id : item)),
@@ -2355,7 +2314,7 @@ router.put('/:id', requireAuth, async (req, res, next) => {
     attachmentIds.forEach((v, i) => { attCols[i] = v })
 
     // security_level은 요청자의 레벨 이하만 허용
-    const userLevel = req.user.security_level ?? 0
+    const userLevel = securityLevelOf(req.user)
     const safeLevel = (security_level != null) ? Math.min(Math.max(parseInt(security_level) || 0, 0), userLevel) : undefined
     if (safeLevel !== undefined) {
       await client.execute(
@@ -2565,7 +2524,7 @@ router.get('/:id/comments', requireAuth, async (req, res, next) => {
     if (!channelId) return res.status(404).json({ error: '게시글을 찾을 수 없습니다.' })
     const allowed = await canAccessChannel(db, req.user, channelId)
     if (!allowed) return res.status(403).json({ error: ACCESS_DENIED_MESSAGE })
-    const comments = await fetchComments(req.params.id, req.user.id)
+    const comments = await fetchComments(req.params.id, req.user)
     res.json(comments)
   } catch (err) {
     next(err)
@@ -2750,7 +2709,7 @@ router.post('/:id/comments', requireAuth, async (req, res, next) => {
     )
 
     // 방금 등록한 댓글을 전체 정보와 함께 반환
-    const comments = await fetchComments(postId, req.user.id)
+    const comments = await fetchComments(postId, req.user)
     const newComment = comments.find(c => c.id === commentId)
 
     // 업로드 즉시 LanceDB 임베딩 (비동기, 응답에 영향 없음)
@@ -2799,8 +2758,11 @@ router.put('/:postId/comments/:commentId', requireAuth, async (req, res, next) =
     if (!isConnected()) return res.status(503).json({ error: 'Cassandra 연결이 필요합니다.' })
     const row = await findCommentLocator(postId, commentId)
     if (!row) return res.status(404).json({ error: '댓글을 찾을 수 없습니다.' })
-    if (String(row.author_id) !== String(req.user.id)) return res.status(403).json({ error: '권한이 없습니다.' })
-    const userLevel = req.user.security_level ?? 0
+    const resolvedChannelId = await resolveChannelIdForPost(postId)
+    if (!(await canMutateCommentRow(req.user, { ...row, channel_id: resolvedChannelId }))) {
+      return res.status(403).json({ error: '권한이 없습니다.' })
+    }
+    const userLevel = securityLevelOf(req.user)
     const safeLevel = (security_level != null) ? Math.min(Math.max(parseInt(security_level) || 0, 0), userLevel) : undefined
     if (safeLevel !== undefined) {
       await client.execute(
@@ -2813,7 +2775,6 @@ router.put('/:postId/comments/:commentId', requireAuth, async (req, res, next) =
         [content, attachmentIds, row.post_id, row.created_at], { prepare: true }
       )
     }
-    const resolvedChannelId = await resolveChannelIdForPost(postId)
     await db.query(
       `UPDATE comments
        SET content = $1,

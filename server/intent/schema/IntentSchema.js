@@ -1,9 +1,15 @@
 const ACTIONS = Object.freeze({
   SUMMARIZE: 'summarize',
+  LOCATE: 'locate',
 })
 
 const TARGETS = Object.freeze({
   POSTS: 'posts',
+  DOCUMENTS: 'documents',
+  RESOURCES: 'resources',
+  ATTACHMENTS: 'attachments',
+  DIAGRAM: 'diagram',
+  IMAGE: 'image',
 })
 
 const SCOPES = Object.freeze({
@@ -18,6 +24,7 @@ function createEmptyIntent() {
     dateRange: null,
     author: null,
     keywords: [],
+    matchMode: null,
     confidence: 0,
   }
 }

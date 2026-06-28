@@ -7,6 +7,7 @@ const repo = require('../mail/repository')
 const { syncGmailAccount, discoverGmailFolders, syncGmailFolder } = require('../mail/gmailSync')
 const { syncImapAccount, listImapFolders, syncImapFolder } = require('../mail/imapSync')
 const { decryptSecret } = require('../lib/secrets')
+const { enqueueMessageSynced } = require('../mail/agentic/worker')
 
 const IMAP_PROVIDERS = ['naver', 'apple', 'imap', 'other']
 const {
@@ -501,11 +502,14 @@ router.post('/accounts/:id/folders', async (req, res, next) => {
       isSiteAdmin: isSiteAdmin(req),
     })
     if (!account) return res.status(404).json({ error: '메일 계정을 찾을 수 없습니다.' })
+    // 앱에서 만드는 폴더는 기본적으로 로컬 전용(서버 IMAP 미동기화)이다.
+    const isLocal = req.body?.isLocal === undefined ? true : !!req.body.isLocal
     const folder = await repo.createFolder({
       tenantId,
       account,
       name,
       parentFolderId: parentFolderId || null,
+      isLocal,
     })
     res.json({ ok: true, folder })
   } catch (err) {
@@ -773,7 +777,50 @@ router.post('/accounts/:id/send', async (req, res, next) => {
       html: html || undefined,
     })
 
-    res.json({ ok: true, messageId: info.messageId || null, accepted: info.accepted || [] })
+    const providerMessageId = info.messageId || `local-sent-${crypto.randomUUID()}`
+    const storage = getMailStorage()
+    const keyBase = {
+      storagePrefix: account.storage_prefix,
+      tenantId,
+      userId: account.user_id,
+      accountId: account.id,
+      providerMessageId,
+    }
+    const bodyTextKey = buildMailObjectKey({ ...keyBase, suffix: 'body.txt' })
+    const bodyHtmlKey = buildMailObjectKey({ ...keyBase, suffix: 'body.html' })
+    await storage.saveObject(bodyTextKey, Buffer.from(text || '', 'utf8'))
+    await storage.saveObject(bodyHtmlKey, Buffer.from(html || '', 'utf8'))
+    const folderMap = await repo.getFolderMap({ tenantId, accountId: account.id })
+    const messageId = await repo.saveSyncedMessage({
+      tenantId,
+      account,
+      parsed: {
+        providerMessageId,
+        internetMessageId: info.messageId || null,
+        threadId: null,
+        subject: subject || '(제목 없음)',
+        fromEmail: account.email_address,
+        fromName: account.display_name || account.email_address,
+        to: parseAddressObjects(to),
+        cc: parseAddressObjects(cc),
+        bcc: parseAddressObjects(bcc),
+        snippet: (text || stripHtmlToText(html) || subject || '').slice(0, 240),
+        receivedAt: null,
+        sentAt: new Date(),
+        isRead: true,
+        isStarred: false,
+        hasAttachments: false,
+        sizeBytes: Buffer.byteLength(text || '', 'utf8') + Buffer.byteLength(html || '', 'utf8'),
+      },
+      folderId: folderMap.SENT || null,
+      objectKeys: { bodyText: bodyTextKey, bodyHtml: bodyHtmlKey, raw: null },
+      attachments: [],
+    })
+    await enqueueMessageSynced({ tenantId, messageId, direction: 'outbound' }).catch(err => {
+      console.warn('[AgenticAI Mail] sent event enqueue failed:', err.message)
+    })
+
+    res.json({ ok: true, messageId: info.messageId || null, savedMessageId: messageId, accepted: info.accepted || [] })
   } catch (err) {
     next(err)
   }

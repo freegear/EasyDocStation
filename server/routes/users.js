@@ -22,6 +22,7 @@ function toPublicUser(u) {
     use_sns_channel: u.use_sns_channel ?? null,
     role: u.role,
     is_active: u.is_active,
+    can_edit_search_results: Boolean(u.can_edit_search_results),
     avatar: u.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2),
     image_url: u.image_url,
     stamp_picture: u.stamp_picture ?? null,
@@ -130,6 +131,7 @@ router.get('/:id/basic', async (req, res) => {
 router.post('/', requireSiteAdmin, async (req, res) => {
   const {
     username, name, display_name, email, phone, password, role, image_url, stamp_picture, department_id, security_level, is_active,
+    can_edit_search_results,
     telegram_id, kakaotalk_api_key, line_channel_access_token, use_sns_channel,
   } = req.body
   if (!username || !name || !email || !password) {
@@ -147,6 +149,7 @@ router.post('/', requireSiteAdmin, async (req, res) => {
   }
   const secLevel = (security_level !== undefined && security_level !== null) ? parseInt(security_level) : 0
   const active = is_active !== undefined ? is_active : true
+  const canEditSearchResults = can_edit_search_results !== undefined ? Boolean(can_edit_search_results) : false
   const useSns = use_sns_channel || null
   if (useSns && !['telegram', 'kakaotalk', 'line'].includes(useSns)) {
     return res.status(400).json({ error: 'UseSNSChannel 값이 올바르지 않습니다.' })
@@ -155,10 +158,10 @@ router.post('/', requireSiteAdmin, async (req, res) => {
   try {
     const hash = await bcrypt.hash(password, 10)
     const { rows } = await pool.query(
-      `INSERT INTO users (username, name, display_name, email, phone, password_hash, role, image_url, stamp_picture, department_id, security_level, is_active, telegram_id, kakaotalk_api_key, line_channel_access_token, use_sns_channel)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16) RETURNING *`,
+      `INSERT INTO users (username, name, display_name, email, phone, password_hash, role, image_url, stamp_picture, department_id, security_level, is_active, can_edit_search_results, telegram_id, kakaotalk_api_key, line_channel_access_token, use_sns_channel)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17) RETURNING *`,
       [normalizedUsername, name.trim(), display_name?.trim() || null, email.trim().toLowerCase(), phone?.trim() || null, hash, assignRole,
-       image_url || null, stamp_picture || null, department_id || null, secLevel, active,
+       image_url || null, stamp_picture || null, department_id || null, secLevel, active, canEditSearchResults,
        telegram_id?.trim() || null,
        (kakaotalk_api_key?.trim() ? encryptSecret(kakaotalk_api_key.trim()) : null),
        (line_channel_access_token?.trim() ? encryptSecret(line_channel_access_token.trim()) : null),
@@ -177,6 +180,7 @@ router.put('/:id', requireSiteAdmin, async (req, res) => {
   const targetId = parseInt(req.params.id)
   const {
     name, display_name, email, phone, role, password, is_active, image_url, stamp_picture, department_id, security_level,
+    can_edit_search_results,
     telegram_id, kakaotalk_api_key, line_channel_access_token, use_sns_channel,
   } = req.body
 
@@ -199,6 +203,7 @@ router.put('/:id', requireSiteAdmin, async (req, res) => {
     if (phone !== undefined)            { sets.push(`phone = $${i++}`);            vals.push(phone?.trim() || null) }
     if (role !== undefined)             { sets.push(`role = $${i++}`);             vals.push(role) }
     if (is_active !== undefined)        { sets.push(`is_active = $${i++}`);        vals.push(is_active) }
+    if (can_edit_search_results !== undefined) { sets.push(`can_edit_search_results = $${i++}`); vals.push(Boolean(can_edit_search_results)) }
     if (image_url !== undefined)        { sets.push(`image_url = $${i++}`);        vals.push(image_url) }
     if (stamp_picture !== undefined)    { sets.push(`stamp_picture = $${i++}`);    vals.push(stamp_picture || null) }
     if (department_id !== undefined)    { sets.push(`department_id = $${i++}`);    vals.push(department_id || null) }

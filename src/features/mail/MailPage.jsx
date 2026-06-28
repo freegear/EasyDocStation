@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels'
 import { $createParagraphNode, $getRoot, $getSelection, $isRangeSelection, FORMAT_ELEMENT_COMMAND, FORMAT_TEXT_COMMAND, REDO_COMMAND, UNDO_COMMAND } from 'lexical'
 import { $generateHtmlFromNodes, $generateNodesFromDOM } from '@lexical/html'
 import { $patchStyleText } from '@lexical/selection'
@@ -166,7 +167,7 @@ function MailMessageList({ messages, loading, error, label, selectedId, selected
   )
 }
 
-function MailMessageContextMenu({ menu, folders, onClose, onDelete, onMarkUnread, onMove }) {
+function MailMessageContextMenu({ menu, folders, onClose, onDelete, onMarkUnread, onMove, onAgenticWatch }) {
   if (!menu?.message) return null
   const moveFolders = folders.filter(folder => folder.id && folder.id !== menu.message.folder_id)
   const count = Number(menu.targetIds?.length || 1)
@@ -202,6 +203,17 @@ function MailMessageContextMenu({ menu, folders, onClose, onDelete, onMarkUnread
       >
         <span className="h-2.5 w-2.5 rounded-full bg-blue-500" />
         <span>안읽은 메일로</span>
+      </button>
+      <button
+        type="button"
+        onClick={() => {
+          onAgenticWatch?.(menu)
+          onClose()
+        }}
+        className="flex w-full items-center gap-2 px-3 py-2 text-left text-indigo-700 hover:bg-indigo-50"
+      >
+        <MenuIcon type="ai" />
+        <span>EasyAI가 글타래로 모니터링 하도록 등록</span>
       </button>
       <div className="group relative">
         <button
@@ -861,6 +873,16 @@ function addSubjectPrefix(subject, prefix) {
   return pattern.test(value) ? value : `${prefix} ${value}`
 }
 
+function normalizeMailThreadSubject(subject) {
+  let value = String(subject || '').trim()
+  let previous
+  do {
+    previous = value
+    value = value.replace(/^\s*(re|fw|fwd)\s*:\s*/i, '')
+  } while (value !== previous)
+  return value.replace(/\s+/g, ' ').trim()
+}
+
 function uniqueAddresses(addresses, excludedEmails = new Set()) {
   const seen = new Set()
   return normalizeAddressList(addresses).filter(address => {
@@ -1189,10 +1211,11 @@ function isSystemMailFolder(folder) {
   return ['inbox', 'sent', 'drafts', 'trash', 'archive', 'spam'].includes(folder?.type)
 }
 
-function MailMenuButton({ active, icon, label, count, unreadCount, iconColor, onClick, onContextMenu, depth = 0 }) {
+function MailMenuButton({ active, icon, label, count, unreadCount, iconColor, onClick, onContextMenu, depth = 0, title }) {
   return (
     <button
       type="button"
+      title={title}
       onClick={onClick}
       onContextMenu={onContextMenu}
       className={`flex items-center gap-2.5 w-full rounded-lg text-sm text-left transition-all ${
@@ -2040,6 +2063,57 @@ export default function MailPage({ onBackToMain }) {
     })
   }, [mailSearchQuery, messages])
 
+  // lg(≥1024px) 이상에서만 목록↔본문을 드래그로 리사이즈한다. 그 미만은 기존 세로 스택 유지.
+  const [isDesktopSplit, setIsDesktopSplit] = useState(() =>
+    typeof window !== 'undefined' && window.matchMedia('(min-width: 1024px)').matches,
+  )
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 1024px)')
+    const handler = (event) => setIsDesktopSplit(event.matches)
+    setIsDesktopSplit(mq.matches)
+    mq.addEventListener('change', handler)
+    return () => mq.removeEventListener('change', handler)
+  }, [])
+
+  // md(≥768px) 이상에서 사이드바↔본문 사이를 드래그로 리사이즈한다. 그 미만은 기존 세로 스택 유지.
+  const [isSidebarResizable, setIsSidebarResizable] = useState(() =>
+    typeof window !== 'undefined' && window.matchMedia('(min-width: 768px)').matches,
+  )
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 768px)')
+    const handler = (event) => setIsSidebarResizable(event.matches)
+    setIsSidebarResizable(mq.matches)
+    mq.addEventListener('change', handler)
+    return () => mq.removeEventListener('change', handler)
+  }, [])
+
+  const [sidebarWidth, setSidebarWidth] = useState(() => {
+    if (typeof window === 'undefined') return 256
+    const saved = Number(window.localStorage.getItem('mail-sidebar-width'))
+    return saved >= 200 && saved <= 480 ? saved : 256
+  })
+  function startSidebarResize(event) {
+    event.preventDefault()
+    const startX = event.clientX
+    const startWidth = sidebarWidth
+    let lastWidth = startWidth
+    const onMove = (moveEvent) => {
+      lastWidth = Math.min(480, Math.max(200, startWidth + (moveEvent.clientX - startX)))
+      setSidebarWidth(lastWidth)
+    }
+    const onUp = () => {
+      window.removeEventListener('mousemove', onMove)
+      window.removeEventListener('mouseup', onUp)
+      document.body.style.cursor = ''
+      document.body.style.userSelect = ''
+      try { window.localStorage.setItem('mail-sidebar-width', String(Math.round(lastWidth))) } catch { /* noop */ }
+    }
+    document.body.style.cursor = 'col-resize'
+    document.body.style.userSelect = 'none'
+    window.addEventListener('mousemove', onMove)
+    window.addEventListener('mouseup', onUp)
+  }
+
   useEffect(() => {
     let cancelled = false
     setMailMetaLoading(true)
@@ -2409,6 +2483,32 @@ export default function MailPage({ onBackToMain }) {
     }
   }
 
+  async function registerAgenticWatch(target) {
+    const active = resolveActiveFolder()
+    const message = target?.message
+    const account = accounts.find(item => item.id === message?.account_id) || active?.account
+    if (!message?.id || !account?.tenant_id) return
+    try {
+      await apiFetch('/mail/agentic/watch-targets', {
+        method: 'POST',
+        body: JSON.stringify({
+          tenantId: account.tenant_id,
+          target_type: 'condition_group',
+          account_conditions: [account.email_address || message.account_id].filter(Boolean),
+          keyword_conditions: [],
+          subject_conditions: [normalizeMailThreadSubject(message.subject || '')].filter(Boolean),
+          condition_match_type: 'contains',
+          notify_telegram: true,
+          auto_create_todos: true,
+          message_id: message.id,
+        }),
+      })
+      setMessagesError('')
+    } catch (err) {
+      setMessagesError(err.message || 'AgenticAI 모니터링 등록에 실패했습니다.')
+    }
+  }
+
   async function loadActiveMessages(sourceAccounts = accounts, options = {}) {
     setComposeMode(false)
     const { silent = false, resetSelection = true } = options
@@ -2573,8 +2673,10 @@ export default function MailPage({ onBackToMain }) {
     ;(async () => {
       await loadActiveMessages()
       const active = resolveActiveFolder()
-      // 사용자 지정 폴더는 DB 목록을 먼저 보여준 뒤, IMAP 동기화는 백그라운드로 수행한다.
+      // 거울(custom) 폴더만 DB 목록을 먼저 보여준 뒤 IMAP 동기화를 백그라운드로 수행한다.
+      // 로컬 전용 폴더(is_local)나 서버에서 사라진 폴더(sync_status='missing')는 동기화하지 않는다.
       if (cancelled || !active || active.folder.type !== 'custom') return
+      if (active.folder.is_local || active.folder.sync_status === 'missing') return
       const syncKey = `${active.account.id}:${active.folder.id}`
       const lastSyncedAt = folderSyncTimesRef.current.get(syncKey) || 0
       if (Date.now() - lastSyncedAt < FOLDER_SYNC_COOLDOWN_MS) return
@@ -2593,7 +2695,13 @@ export default function MailPage({ onBackToMain }) {
         }
       } catch (err) {
         folderSyncTimesRef.current.delete(syncKey)
-        if (!cancelled) setMessagesError(err.message || '폴더 동기화에 실패했습니다.')
+        // 백그라운드 동기화 실패는 이미 표시된 DB 목록을 덮지 않는다(목록은 그대로 유효).
+        // 재인증이 필요한 경우만 사용자에게 알린다.
+        if (!cancelled && err.code === 'MAIL_REAUTH_REQUIRED') {
+          setMessagesError(err.message || '메일 계정 재인증이 필요합니다.')
+        } else {
+          console.warn('[Mail] 폴더 백그라운드 동기화 실패:', err.message)
+        }
       } finally {
         if (!cancelled) setSyncLoading(false)
       }
@@ -2671,9 +2779,106 @@ export default function MailPage({ onBackToMain }) {
   const contextMenuFolders = (accounts.find(account => account.id === messageMenu?.message?.account_id)?.folders || [])
   const selectedMessageIdSet = new Set(selectedMessageIds)
 
+  // 목록/본문 내용은 한 번만 정의하고, 데스크톱(분할 리사이즈)·모바일(세로 스택) 양쪽에서 재사용한다.
+  const mailListContent = (
+    <>
+      <div className="flex-shrink-0 border-b border-gray-100 p-3">
+        <div className="relative">
+          <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+            <MenuIcon type="search" />
+          </span>
+          <input
+            type="search"
+            value={mailSearchQuery}
+            onChange={event => setMailSearchQuery(event.target.value)}
+            placeholder="메일 검색..."
+            className="h-10 w-full rounded-lg border border-gray-200 bg-gray-50 pl-10 pr-3 text-sm text-gray-700 outline-none transition focus:border-indigo-400 focus:bg-white focus:ring-2 focus:ring-indigo-100"
+          />
+        </div>
+        <div className="mt-3 flex items-center justify-between text-xs text-gray-400">
+          <span className="font-bold">메일 목록</span>
+          {selectedMessageIds.length > 0 ? (
+            <button
+              type="button"
+              onClick={clearMailSelection}
+              className="inline-flex items-center gap-1 rounded-full bg-indigo-50 px-2 py-1 font-extrabold text-indigo-600 transition hover:bg-indigo-100"
+              title="선택 해제"
+            >
+              <span>{selectedMessageIds.length}개 선택됨</span>
+              <span aria-hidden="true">×</span>
+            </button>
+          ) : (
+            <span>{displayedMessages.length}개</span>
+          )}
+        </div>
+      </div>
+
+      <div
+        className="min-h-0 flex-1 overflow-y-auto"
+        onClick={(event) => {
+          if (event.currentTarget === event.target) clearMailSelection()
+        }}
+        onScroll={handleMessagesScroll}
+      >
+        <MailMessageList
+          messages={displayedMessages}
+          loading={messagesLoading}
+          error={messagesError}
+          label={activeLabel}
+          selectedId={selectedMessage?.id}
+          selectedIds={selectedMessageIdSet}
+          onSelect={selectMessage}
+          onDoubleClick={isActiveDraftFolder ? openDraftForEditing : undefined}
+          onContextMenu={openMessageMenu}
+          loadingMore={loadingMore}
+        />
+      </div>
+    </>
+  )
+
+  const mailBodyContent = composeMode ? (
+    <MailComposeView
+      key={composeDraft?.draftId || 'new-compose'}
+      accounts={accounts}
+      defaultAccountId={activeAccountId}
+      initialDraft={composeDraft}
+      onCancel={() => setComposeMode(false)}
+      onSent={() => {
+        setComposeMode(false)
+        refreshMail()
+      }}
+      onDraftSaved={async (accountId, draft) => {
+        setComposeMode(false)
+        const nextAccounts = await reloadMailAccounts()
+        const account = nextAccounts.find(item => item.id === accountId)
+        const draftFolder = (account?.folders || []).find(folder => folder.id === draft?.folder_id || folder.type === 'drafts')
+        if (draftFolder) {
+          setActiveKey(`${accountId}:${draftFolder.id || draftFolder.name}`)
+        } else {
+          await loadActiveMessages(nextAccounts, { silent: true, resetSelection: true })
+        }
+      }}
+    />
+  ) : (
+    <div className="flex h-full min-h-0 flex-col">
+      <div className="min-h-0 flex-1 overflow-y-auto">
+        <MailViewer
+          message={selectedMessage}
+          loading={messageDetailLoading}
+          error={messageDetailError}
+          onAddressSearch={setMailSearchQuery}
+          onMailAction={startMailAction}
+        />
+      </div>
+    </div>
+  )
+
   return (
     <div className="flex flex-col md:flex-row flex-1 min-h-0 min-w-0 overflow-hidden bg-gray-50">
-      <aside className="w-full md:w-64 flex-shrink-0 bg-gray-200 flex flex-col h-auto md:h-full max-h-72 md:max-h-none border-b md:border-b-0 md:border-r border-gray-100">
+      <aside
+        className="w-full flex-shrink-0 bg-gray-200 flex flex-col h-auto md:h-full max-h-72 md:max-h-none border-b md:border-b-0 border-gray-100"
+        style={isSidebarResizable ? { width: sidebarWidth } : undefined}
+      >
         <div className="flex-1 overflow-y-auto py-2">
           <div className="px-3 pb-2 mb-1 border-b border-gray-300">
             <div className="flex items-center gap-2.5 px-2 py-2 text-gray-900">
@@ -2744,6 +2949,7 @@ export default function MailPage({ onBackToMain }) {
                               active={activeKey === key}
                               icon={folder.type === 'inbox' || folder.name === '받은 편지함' ? 'inbox' : folder.type === 'trash' ? 'trash' : 'folder'}
                               label={getMailFolderLabel(folder)}
+                              title={folder.sync_status === 'missing' ? '서버에 없는 폴더입니다. 로컬 보관 메일만 표시되며 동기화하지 않습니다.' : (folder.is_local ? '로컬 전용 폴더' : undefined)}
                               count={folder.message_count}
                               unreadCount={folder.unread_count}
                               iconColor={folderColor}
@@ -2795,103 +3001,43 @@ export default function MailPage({ onBackToMain }) {
         </div>
       </aside>
 
+      {isSidebarResizable && (
+        <div
+          role="separator"
+          aria-orientation="vertical"
+          onMouseDown={startSidebarResize}
+          title="드래그하여 사이드바 너비 조절"
+          className="hidden md:block w-1.5 flex-shrink-0 cursor-col-resize bg-gray-200 transition-colors hover:bg-indigo-400 active:bg-indigo-500"
+        />
+      )}
+
       <main className="flex-1 min-w-0 overflow-hidden flex flex-col bg-gray-50">
         <section className="flex-1 min-h-0 overflow-hidden p-4 md:p-5">
           <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-lg border border-gray-200 bg-white lg:flex-row">
-            {!composeMode && (
-              <div className="flex h-80 flex-shrink-0 flex-col border-b border-gray-200 lg:h-full lg:w-[360px] lg:border-b-0 lg:border-r">
-                <div className="flex-shrink-0 border-b border-gray-100 p-3">
-                  <div className="relative">
-                    <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
-                      <MenuIcon type="search" />
-                    </span>
-                    <input
-                      type="search"
-                      value={mailSearchQuery}
-                      onChange={event => setMailSearchQuery(event.target.value)}
-                      placeholder="메일 검색..."
-                      className="h-10 w-full rounded-lg border border-gray-200 bg-gray-50 pl-10 pr-3 text-sm text-gray-700 outline-none transition focus:border-indigo-400 focus:bg-white focus:ring-2 focus:ring-indigo-100"
-                    />
+            {!composeMode && isDesktopSplit ? (
+              // 데스크톱: 목록↔본문을 드래그로 리사이즈. autoSaveId로 위치를 localStorage에 영속화.
+              <PanelGroup direction="horizontal" autoSaveId="mail-list-split" className="flex h-full min-h-0 w-full">
+                <Panel defaultSize={28} minSize={18} maxSize={50} className="flex min-h-0 flex-col">
+                  {mailListContent}
+                </Panel>
+                <PanelResizeHandle className="w-1.5 flex-shrink-0 cursor-col-resize bg-gray-200 transition-colors hover:bg-indigo-400 active:bg-indigo-500" />
+                <Panel minSize={35} className="flex min-w-0 flex-col overflow-hidden">
+                  {mailBodyContent}
+                </Panel>
+              </PanelGroup>
+            ) : (
+              // 모바일(<lg) 또는 쓰기 모드: 기존 세로 스택 / 본문 전체 폭 유지.
+              <>
+                {!composeMode && (
+                  <div className="flex h-80 flex-shrink-0 flex-col border-b border-gray-200 lg:h-full lg:w-[360px] lg:border-b-0 lg:border-r">
+                    {mailListContent}
                   </div>
-                  <div className="mt-3 flex items-center justify-between text-xs text-gray-400">
-                    <span className="font-bold">메일 목록</span>
-                    {selectedMessageIds.length > 0 ? (
-                      <button
-                        type="button"
-                        onClick={clearMailSelection}
-                        className="inline-flex items-center gap-1 rounded-full bg-indigo-50 px-2 py-1 font-extrabold text-indigo-600 transition hover:bg-indigo-100"
-                        title="선택 해제"
-                      >
-                        <span>{selectedMessageIds.length}개 선택됨</span>
-                        <span aria-hidden="true">×</span>
-                      </button>
-                    ) : (
-                      <span>{displayedMessages.length}개</span>
-                    )}
-                  </div>
+                )}
+                <div className="min-w-0 flex-1 overflow-hidden">
+                  {mailBodyContent}
                 </div>
-
-                <div
-                  className="min-h-0 flex-1 overflow-y-auto"
-                  onClick={(event) => {
-                    if (event.currentTarget === event.target) clearMailSelection()
-                  }}
-                  onScroll={handleMessagesScroll}
-                >
-                  <MailMessageList
-                    messages={displayedMessages}
-                    loading={messagesLoading}
-                    error={messagesError}
-                    label={activeLabel}
-                    selectedId={selectedMessage?.id}
-                    selectedIds={selectedMessageIdSet}
-                    onSelect={selectMessage}
-                    onDoubleClick={isActiveDraftFolder ? openDraftForEditing : undefined}
-                    onContextMenu={openMessageMenu}
-                    loadingMore={loadingMore}
-                  />
-                </div>
-              </div>
+              </>
             )}
-
-            <div className="min-w-0 flex-1 overflow-hidden">
-              {composeMode ? (
-                <MailComposeView
-                  key={composeDraft?.draftId || 'new-compose'}
-                  accounts={accounts}
-                  defaultAccountId={activeAccountId}
-                  initialDraft={composeDraft}
-                  onCancel={() => setComposeMode(false)}
-                  onSent={() => {
-                    setComposeMode(false)
-                    refreshMail()
-                  }}
-                  onDraftSaved={async (accountId, draft) => {
-                    setComposeMode(false)
-                    const nextAccounts = await reloadMailAccounts()
-                    const account = nextAccounts.find(item => item.id === accountId)
-                    const draftFolder = (account?.folders || []).find(folder => folder.id === draft?.folder_id || folder.type === 'drafts')
-                    if (draftFolder) {
-                      setActiveKey(`${accountId}:${draftFolder.id || draftFolder.name}`)
-                    } else {
-                      await loadActiveMessages(nextAccounts, { silent: true, resetSelection: true })
-                    }
-                  }}
-                />
-              ) : (
-                <div className="flex h-full min-h-0 flex-col">
-                  <div className="min-h-0 flex-1 overflow-y-auto">
-                    <MailViewer
-                      message={selectedMessage}
-                      loading={messageDetailLoading}
-                      error={messageDetailError}
-                      onAddressSearch={setMailSearchQuery}
-                      onMailAction={startMailAction}
-                    />
-                  </div>
-                </div>
-              )}
-            </div>
           </div>
         </section>
       </main>
@@ -2910,6 +3056,7 @@ export default function MailPage({ onBackToMain }) {
         onDelete={deleteMessage}
         onMarkUnread={markMessageUnread}
         onMove={moveMessage}
+        onAgenticWatch={registerAgenticWatch}
       />
       <FolderContextMenu
         menu={folderMenu}

@@ -1,224 +1,214 @@
-[20260628-00:00:07][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
-[20260628-00:00:08][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
-[20260628-00:00:08][BE] [link-preview-image] 내부망 주소는 미리보기를 지원하지 않습니다.
-[20260628-00:01:44][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
-[20260628-00:04:02][BE] [imapSync] jylim3@naver.com 프로모션: 누락분이 많아 이번엔 50건만 가져왔습니다(나머지는 다음 새로고침에서).
-[20260628-00:05:14][BE] [link-preview-image] 내부망 주소는 미리보기를 지원하지 않습니다.
-[20260628-00:09:59][BE] [imapSync] jylim3@naver.com 프로모션: 누락분이 많아 이번엔 50건만 가져왔습니다(나머지는 다음 새로고침에서).
-[20260628-00:11:44][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
-[20260628-00:14:13][BE] [ATTACH-REF] sync ownerType=post ownerId=4d0d9fa1-13f0-4908-9696-f6ec21740236 actorUserId=1 prev=0 next=0 add=0 remove=0
-[20260628-00:14:13][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
-[20260628-00:14:14][BE] /home/freegear/EasyDocStation/server/rag_train.py:112: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
-[20260628-00:14:14][BE]   from langchain_community.document_loaders import Docx2txtLoader
-[20260628-00:14:17][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table' already exists
-[20260628-00:14:17][BE] [RAG] post=4d0d9fa1-13f0-4908-9696-f6ec21740236 text → 2청크
-[20260628-00:14:17][BE] [RAG] 학습 진행률: 50% (게시글 본문)
-[20260628-00:14:17][BE] [RAG] 저장 완료 — 2청크 / 1개 게시글 / 0개 댓글
-[20260628-00:14:17][BE] [RAG] 학습 진행률: 100% (저장)
-[20260628-00:14:18][BE] [RAG] 학습 완료
-[20260628-00:14:41][BE] [ATTACH-REF] sync ownerType=post ownerId=868ed888-bde0-454f-8c0c-841d3810352b actorUserId=199 prev=0 next=0 add=0 remove=0
-[20260628-00:14:41][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
-[20260628-00:14:41][BE] [ATTACH-REF] sync ownerType=post ownerId=868ed888-bde0-454f-8c0c-841d3810352b actorUserId=199 prev=0 next=0 add=0 remove=0
-[20260628-00:14:41][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
-[20260628-00:14:41][BE] [ATTACH-REF] sync ownerType=post ownerId=868ed888-bde0-454f-8c0c-841d3810352b actorUserId=199 prev=0 next=0 add=0 remove=0
-[20260628-00:14:41][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
-[20260628-00:14:41][BE] [ATTACH-REF] sync ownerType=post ownerId=868ed888-bde0-454f-8c0c-841d3810352b actorUserId=199 prev=0 next=0 add=0 remove=0
-[20260628-00:14:41][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
-[20260628-00:14:41][BE] [ATTACH-REF] sync ownerType=post ownerId=868ed888-bde0-454f-8c0c-841d3810352b actorUserId=199 prev=0 next=0 add=0 remove=0
-[20260628-00:14:41][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
-[20260628-00:14:41][BE] /home/freegear/EasyDocStation/server/rag_train.py:112: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
-[20260628-00:14:41][BE]   from langchain_community.document_loaders import Docx2txtLoader
-[20260628-00:14:41][BE] /home/freegear/EasyDocStation/server/rag_train.py:112: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
-[20260628-00:14:41][BE]   from langchain_community.document_loaders import Docx2txtLoader
-[20260628-00:14:41][BE] [ATTACH-REF] sync ownerType=post ownerId=868ed888-bde0-454f-8c0c-841d3810352b actorUserId=199 prev=0 next=0 add=0 remove=0
-[20260628-00:14:41][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
-[20260628-00:14:41][BE] /home/freegear/EasyDocStation/server/rag_train.py:112: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
-[20260628-00:14:41][BE]   from langchain_community.document_loaders import Docx2txtLoader
-[20260628-00:14:41][BE] /home/freegear/EasyDocStation/server/rag_train.py:112: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
-[20260628-00:14:41][BE]   from langchain_community.document_loaders import Docx2txtLoader
-[20260628-00:14:41][BE] [ATTACH-REF] sync ownerType=post ownerId=868ed888-bde0-454f-8c0c-841d3810352b actorUserId=199 prev=0 next=0 add=0 remove=0
-[20260628-00:14:41][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
-[20260628-00:14:42][BE] /home/freegear/EasyDocStation/server/rag_train.py:112: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
-[20260628-00:14:42][BE]   from langchain_community.document_loaders import Docx2txtLoader
-[20260628-00:14:42][BE] /home/freegear/EasyDocStation/server/rag_train.py:112: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
-[20260628-00:14:42][BE]   from langchain_community.document_loaders import Docx2txtLoader
-[20260628-00:14:42][BE] /home/freegear/EasyDocStation/server/rag_train.py:112: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
-[20260628-00:14:42][BE]   from langchain_community.document_loaders import Docx2txtLoader
-[20260628-00:14:44][BE] [ATTACH-REF] sync ownerType=post ownerId=2d4fa735-1d21-41c2-bca7-574a141f52f4 actorUserId=199 prev=0 next=0 add=0 remove=0
-[20260628-00:14:44][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
-[20260628-00:14:44][BE] [ATTACH-REF] sync ownerType=post ownerId=2d4fa735-1d21-41c2-bca7-574a141f52f4 actorUserId=199 prev=0 next=0 add=0 remove=0
-[20260628-00:14:44][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
-[20260628-00:14:44][BE] /home/freegear/EasyDocStation/server/rag_train.py:112: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
-[20260628-00:14:44][BE]   from langchain_community.document_loaders import Docx2txtLoader
-[20260628-00:14:44][BE] /home/freegear/EasyDocStation/server/rag_train.py:112: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
-[20260628-00:14:44][BE]   from langchain_community.document_loaders import Docx2txtLoader
-[20260628-00:14:44][BE] [ATTACH-REF] sync ownerType=post ownerId=2d4fa735-1d21-41c2-bca7-574a141f52f4 actorUserId=199 prev=0 next=0 add=0 remove=0
-[20260628-00:14:44][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
-[20260628-00:14:44][BE] [ATTACH-REF] sync ownerType=post ownerId=2d4fa735-1d21-41c2-bca7-574a141f52f4 actorUserId=199 prev=0 next=0 add=0 remove=0
-[20260628-00:14:44][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
-[20260628-00:14:45][BE] /home/freegear/EasyDocStation/server/rag_train.py:112: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
-[20260628-00:14:45][BE]   from langchain_community.document_loaders import Docx2txtLoader
-[20260628-00:14:45][BE] /home/freegear/EasyDocStation/server/rag_train.py:112: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
-[20260628-00:14:45][BE]   from langchain_community.document_loaders import Docx2txtLoader
-[20260628-00:14:45][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table' already exists
-[20260628-00:14:45][BE] [RAG] 기존 청크 삭제 완료: post_id=868ed888-bde0-454f-8c0c-841d3810352b
-[20260628-00:14:45][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table' already exists
-[20260628-00:14:45][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table' already exists
-[20260628-00:14:45][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table' already exists
-[20260628-00:14:45][BE] [RAG] 기존 청크 삭제 완료: post_id=868ed888-bde0-454f-8c0c-841d3810352b
-[20260628-00:14:45][BE] [RAG] 기존 청크 삭제 완료: post_id=868ed888-bde0-454f-8c0c-841d3810352b
-[20260628-00:14:45][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table' already exists
-[20260628-00:14:45][BE] [RAG] 기존 청크 삭제 완료: post_id=868ed888-bde0-454f-8c0c-841d3810352b
-[20260628-00:14:45][BE] [RAG] 기존 청크 삭제 완료: post_id=868ed888-bde0-454f-8c0c-841d3810352b
-[20260628-00:14:45][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table' already exists
-[20260628-00:14:45][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table' already exists
-[20260628-00:14:45][BE] [RAG] 기존 청크 삭제 완료: post_id=868ed888-bde0-454f-8c0c-841d3810352b
-[20260628-00:14:45][BE] [RAG] 기존 청크 삭제 완료: post_id=868ed888-bde0-454f-8c0c-841d3810352b
-[20260628-00:14:46][BE] [RAG] post=868ed888-bde0-454f-8c0c-841d3810352b text → 45청크
-[20260628-00:14:46][BE] [RAG] 학습 진행률: 50% (게시글 본문)
-[20260628-00:14:46][BE] [RAG] 저장 완료 — 45청크 / 1개 게시글 / 0개 댓글
-[20260628-00:14:46][BE] [RAG] 학습 진행률: 100% (저장)
-[20260628-00:14:47][BE] [RAG] post=868ed888-bde0-454f-8c0c-841d3810352b text → 45청크
-[20260628-00:14:47][BE] [RAG] 학습 진행률: 50% (게시글 본문)
-[20260628-00:14:47][BE] [RAG] 저장 완료 — 45청크 / 1개 게시글 / 0개 댓글
-[20260628-00:14:47][BE] [RAG] 학습 진행률: 100% (저장)
-[20260628-00:14:47][BE] [RAG] 학습 완료
-[20260628-00:14:48][BE] [RAG] post=868ed888-bde0-454f-8c0c-841d3810352b text → 45청크
-[20260628-00:14:48][BE] [RAG] 학습 진행률: 50% (게시글 본문)
-[20260628-00:14:48][BE] [RAG] 저장 완료 — 45청크 / 1개 게시글 / 0개 댓글
-[20260628-00:14:48][BE] [RAG] 학습 진행률: 100% (저장)
-[20260628-00:14:48][BE] [RAG] 학습 완료
-[20260628-00:14:48][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table' already exists
-[20260628-00:14:48][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table' already exists
-[20260628-00:14:48][BE] [RAG] 기존 청크 삭제 완료: post_id=2d4fa735-1d21-41c2-bca7-574a141f52f4
-[20260628-00:14:48][BE] [RAG] 기존 청크 삭제 완료: post_id=2d4fa735-1d21-41c2-bca7-574a141f52f4
-[20260628-00:14:48][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table' already exists
-[20260628-00:14:48][BE] [RAG] 기존 청크 삭제 완료: post_id=2d4fa735-1d21-41c2-bca7-574a141f52f4
-[20260628-00:14:48][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table' already exists
-[20260628-00:14:48][BE] [RAG] 기존 청크 삭제 완료: post_id=2d4fa735-1d21-41c2-bca7-574a141f52f4
-[20260628-00:14:48][BE] [RAG] post=868ed888-bde0-454f-8c0c-841d3810352b text → 45청크
-[20260628-00:14:48][BE] [RAG] 학습 진행률: 50% (게시글 본문)
-[20260628-00:14:48][BE] [RAG] 저장 완료 — 45청크 / 1개 게시글 / 0개 댓글
-[20260628-00:14:48][BE] [RAG] 학습 진행률: 100% (저장)
-[20260628-00:14:49][BE] [RAG] 학습 완료
-[20260628-00:14:49][BE] [RAG] post=868ed888-bde0-454f-8c0c-841d3810352b text → 45청크
-[20260628-00:14:49][BE] [RAG] 학습 진행률: 50% (게시글 본문)
-[20260628-00:14:49][BE] [RAG] 저장 완료 — 45청크 / 1개 게시글 / 0개 댓글
-[20260628-00:14:49][BE] [RAG] 학습 진행률: 100% (저장)
-[20260628-00:14:49][BE] [RAG] 학습 완료
-[20260628-00:14:50][BE] [RAG] post=868ed888-bde0-454f-8c0c-841d3810352b text → 45청크
-[20260628-00:14:50][BE] [RAG] 학습 진행률: 50% (게시글 본문)
-[20260628-00:14:50][BE] [RAG] 저장 완료 — 45청크 / 1개 게시글 / 0개 댓글
-[20260628-00:14:50][BE] [RAG] 학습 진행률: 100% (저장)
-[20260628-00:14:50][BE] [RAG] 학습 완료
-[20260628-00:14:51][BE] [RAG] post=868ed888-bde0-454f-8c0c-841d3810352b text → 45청크
-[20260628-00:14:51][BE] [RAG] 학습 진행률: 50% (게시글 본문)
-[20260628-00:14:51][BE] [RAG] 저장 완료 — 45청크 / 1개 게시글 / 0개 댓글
-[20260628-00:14:51][BE] [RAG] 학습 진행률: 100% (저장)
-[20260628-00:14:51][BE] [RAG] 학습 완료
-[20260628-00:14:52][BE] [RAG] post=2d4fa735-1d21-41c2-bca7-574a141f52f4 text → 45청크
-[20260628-00:14:52][BE] [RAG] 학습 진행률: 50% (게시글 본문)
-[20260628-00:14:52][BE] [RAG] 저장 완료 — 45청크 / 1개 게시글 / 0개 댓글
-[20260628-00:14:52][BE] [RAG] 학습 진행률: 100% (저장)
-[20260628-00:14:52][BE] [RAG] 학습 완료
-[20260628-00:14:52][BE] [RAG] post=2d4fa735-1d21-41c2-bca7-574a141f52f4 text → 45청크
-[20260628-00:14:52][BE] [RAG] 학습 진행률: 50% (게시글 본문)
-[20260628-00:14:52][BE] [RAG] 저장 완료 — 45청크 / 1개 게시글 / 0개 댓글
-[20260628-00:14:52][BE] [RAG] 학습 진행률: 100% (저장)
-[20260628-00:14:53][BE] [RAG] 학습 완료
-[20260628-00:14:53][BE] [RAG] post=2d4fa735-1d21-41c2-bca7-574a141f52f4 text → 45청크
-[20260628-00:14:53][BE] [RAG] 학습 진행률: 50% (게시글 본문)
-[20260628-00:14:53][BE] [RAG] 저장 완료 — 45청크 / 1개 게시글 / 0개 댓글
-[20260628-00:14:53][BE] [RAG] 학습 진행률: 100% (저장)
-[20260628-00:14:53][BE] [RAG] 학습 완료
-[20260628-00:14:54][BE] [RAG] post=2d4fa735-1d21-41c2-bca7-574a141f52f4 text → 45청크
-[20260628-00:14:54][BE] [RAG] 학습 진행률: 50% (게시글 본문)
-[20260628-00:14:54][BE] [RAG] 저장 완료 — 45청크 / 1개 게시글 / 0개 댓글
-[20260628-00:14:54][BE] [RAG] 학습 진행률: 100% (저장)
-[20260628-00:14:54][BE] [RAG] 학습 완료
-[20260628-00:14:55][BE] [RAG] 학습 완료
-[20260628-00:15:33][BE] [link-preview-image] 내부망 주소는 미리보기를 지원하지 않습니다.
-[20260628-00:15:34][BE] [link-preview-image] 내부망 주소는 미리보기를 지원하지 않습니다.
-12:19:51 AM [vite] hmr update /src/features/mail/MailPage.jsx, /src/index.css
-12:20:02 AM [vite] hmr update /src/features/mail/MailPage.jsx, /src/index.css
-12:20:45 AM [vite] hmr update /src/features/mail/MailPage.jsx, /src/index.css
-12:20:59 AM [vite] hmr update /src/features/mail/MailPage.jsx, /src/index.css
-12:21:28 AM [vite] hmr update /src/features/mail/MailPage.jsx, /src/index.css
-[20260628-00:21:44][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
-Terminated
-[20260628-00:22:12][BE] process exited with code 143. restarting in 2s...
-Terminated
-[20260628-00:22:12][BE] 
-[20260628-00:22:12][BE] > easydocstation-server@1.0.0 start
-[20260628-00:22:12][BE] > node index.js
-[20260628-00:22:12][BE] 
-[20260628-00:22:12][BE] [RAG] 초기화 — 학습 방식: immediate
-[20260628-00:22:12][BE] [RAG] 초기화 — PDF 파싱 모드: FAST
-[20260628-00:22:12][BE] [Mail sync] 자동 동기화 스케줄러 시작: interval=600s
-[20260628-00:22:12][BE] ✅ EasyDocStation server running on http://localhost:3001
-[20260628-00:22:12][BE] ✅ [CONFIG] HF_TOKEN 확인됨 (hf_u****butv, 길이 37)
-[20260628-00:22:12][BE] ✅ Cassandra connected
-[20260628-00:22:12][BE] ✅ Cassandra schema initialized
-[20260628-00:22:12][BE] ✅ Database migration complete.
-[20260628-00:22:12][BE] Terminated
-
-> easydocstation@1.0.0 ollama:serve
-> node scripts/ollama-serve-safe.mjs
-
+[20260629-00:04:24][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+[20260629-00:14:24][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+[20260629-00:24:24][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+[20260629-00:34:24][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+[20260629-00:44:24][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+[20260629-00:54:24][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+[20260629-01:04:24][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+[20260629-01:14:24][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+[20260629-01:24:24][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+[20260629-01:34:24][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+[20260629-01:44:24][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+[20260629-01:54:24][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+[20260629-02:04:24][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+[20260629-02:05:44][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260629-02:05:44][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260629-02:05:44][BE] [link-preview-image] 내부망 주소는 미리보기를 지원하지 않습니다.
+[20260629-02:12:39][BE] [link-preview-image] meta image failed, fallback screenshot: meta page fetch failed (403)
+[20260629-02:12:39][BE] [link-preview-image] meta image failed, fallback screenshot: meta page fetch failed (403)
+[20260629-02:12:39][BE] [link-preview-image] meta image failed, fallback screenshot: meta page fetch failed (403)
+[20260629-02:12:39][BE] [link-preview-image] meta image failed, fallback screenshot: meta page fetch failed (403)
+[20260629-02:13:46][BE] [ATTACH-REF] sync ownerType=comment ownerId=c-9777ebc7-c972-4a3e-af9a-3f5b29c506e0 actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260629-02:13:46][BE] [휴지통] 1건 영구 삭제 완료
+[20260629-02:14:24][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+[20260629-02:16:52][BE] [link-preview-image] 내부망 주소는 미리보기를 지원하지 않습니다.
+[20260629-02:17:23][BE] [ATTACH-REF] sync ownerType=post ownerId=ee4cceb0-dbf2-4680-93a2-19553d4c8620 actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260629-02:17:23][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
+[20260629-02:17:23][BE] /home/freegear/EasyDocStation/server/rag_train.py:120: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260629-02:17:23][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260629-02:17:26][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v2' already exists
+[20260629-02:17:26][BE] [RAG] post=ee4cceb0-dbf2-4680-93a2-19553d4c8620 text → 2청크
+[20260629-02:17:26][BE] [RAG] 학습 진행률: 50% (게시글 본문)
+[20260629-02:17:26][BE] [RAG] 저장 완료 — 2청크 / 1개 게시글 / 0개 댓글
+[20260629-02:17:26][BE] [RAG] 학습 진행률: 100% (저장)
+[20260629-02:17:27][BE] [RAG] 학습 완료
+[20260629-02:18:53][BE] [link-preview-image] 내부망 주소는 미리보기를 지원하지 않습니다.
+[20260629-02:21:09][BE] [ATTACH-REF] sync ownerType=comment ownerId=c-8f421dbc-0ae1-4df7-b692-c5c2f4f944c5 actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260629-02:21:09][BE] [RAG] 댓글 학습 시작 — 1개 댓글 (제외: 0개)
+[20260629-02:21:10][BE] /home/freegear/EasyDocStation/server/rag_train.py:120: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260629-02:21:10][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260629-02:21:13][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v2' already exists
+[20260629-02:21:13][BE] [RAG] comment=c-8f421dbc-0ae1-4df7-b692-c5c2f4f944c5 post=ee4cceb0-dbf2-4680-93a2-19553d4c8620 text → 4청크
+[20260629-02:21:13][BE] [RAG] 학습 진행률: 50% (댓글 본문)
+[20260629-02:21:13][BE] [RAG] 저장 완료 — 4청크 / 0개 게시글 / 1개 댓글
+[20260629-02:21:13][BE] [RAG] 학습 진행률: 100% (저장)
+[20260629-02:21:13][BE] [RAG] 댓글 학습 완료 — 1개 댓글 (3.9s)
+[20260629-02:24:15][BE] [ATTACH-REF] sync ownerType=comment ownerId=c-d12cd41d-3735-4886-92fa-9155d87d7c3b actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260629-02:24:15][BE] [RAG] 댓글 학습 시작 — 1개 댓글 (제외: 0개)
+[20260629-02:24:15][BE] /home/freegear/EasyDocStation/server/rag_train.py:120: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260629-02:24:15][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260629-02:24:18][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v2' already exists
+[20260629-02:24:18][BE] [RAG] comment=c-d12cd41d-3735-4886-92fa-9155d87d7c3b post=ee4cceb0-dbf2-4680-93a2-19553d4c8620 text → 1청크
+[20260629-02:24:18][BE] [RAG] 학습 진행률: 50% (댓글 본문)
+[20260629-02:24:18][BE] [RAG] 저장 완료 — 1청크 / 0개 게시글 / 1개 댓글
+[20260629-02:24:18][BE] [RAG] 학습 진행률: 100% (저장)
+[20260629-02:24:19][BE] [RAG] 댓글 학습 완료 — 1개 댓글 (3.9s)
+[20260629-02:24:24][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+[20260629-02:25:18][BE] [ATTACH-REF] sync ownerType=comment ownerId=c-349442c3-7654-4519-9219-f059861ede91 actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260629-02:25:18][BE] [RAG] 댓글 학습 시작 — 1개 댓글 (제외: 0개)
+[20260629-02:25:19][BE] /home/freegear/EasyDocStation/server/rag_train.py:120: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260629-02:25:19][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260629-02:25:22][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v2' already exists
+[20260629-02:25:22][BE] [RAG] comment=c-349442c3-7654-4519-9219-f059861ede91 post=ee4cceb0-dbf2-4680-93a2-19553d4c8620 text → 4청크
+[20260629-02:25:22][BE] [RAG] 학습 진행률: 50% (댓글 본문)
+[20260629-02:25:22][BE] [RAG] 저장 완료 — 4청크 / 0개 게시글 / 1개 댓글
+[20260629-02:25:22][BE] [RAG] 학습 진행률: 100% (저장)
+[20260629-02:25:22][BE] [RAG] 댓글 학습 완료 — 1개 댓글 (3.9s)
+[20260629-02:27:56][BE] [ATTACH-REF] sync ownerType=comment ownerId=c-c56da248-2961-4d6a-b9db-bfb83e613ca9 actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260629-02:27:56][BE] [RAG] 댓글 학습 시작 — 1개 댓글 (제외: 0개)
+[20260629-02:27:56][BE] /home/freegear/EasyDocStation/server/rag_train.py:120: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260629-02:27:56][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260629-02:27:59][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v2' already exists
+[20260629-02:27:59][BE] [RAG] comment=c-c56da248-2961-4d6a-b9db-bfb83e613ca9 post=ee4cceb0-dbf2-4680-93a2-19553d4c8620 text → 2청크
+[20260629-02:27:59][BE] [RAG] 학습 진행률: 50% (댓글 본문)
+[20260629-02:27:59][BE] [RAG] 저장 완료 — 2청크 / 0개 게시글 / 1개 댓글
+[20260629-02:27:59][BE] [RAG] 학습 진행률: 100% (저장)
+[20260629-02:28:00][BE] [RAG] 댓글 학습 완료 — 1개 댓글 (3.9s)
+[20260629-02:28:57][BE] [ATTACH-REF] sync ownerType=comment ownerId=c-d89098e6-edb9-4f2f-a98a-d97deacad9fc actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260629-02:28:57][BE] [RAG] 학습 제외 (댓글): c-d89098e6-edb9-4f2f-a98a-d97deacad9fc — 첨부파일 없음, 66자
+[20260629-02:28:57][BE] [RAG] 학습 제외 후 학습할 댓글이 없습니다.
+[20260629-02:28:58][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260629-02:30:46][BE] [ATTACH-REF] sync ownerType=comment ownerId=c-d89098e6-edb9-4f2f-a98a-d97deacad9fc actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260629-02:30:46][BE] [휴지통] 1건 영구 삭제 완료
+AM 2:32:29 [vite] hmr update /src/components/GroqPanel.jsx, /src/index.css
+AM 2:32:44 [vite] hmr update /src/components/GroqPanel.jsx, /src/index.css
+[20260629-02:34:23][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+[20260629-02:36:02][BE] [ATTACH-REF] sync ownerType=comment ownerId=c-2eb65c96-57ac-47bc-91d9-89733528bf3f actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260629-02:36:02][BE] [RAG] 댓글 학습 시작 — 1개 댓글 (제외: 0개)
+[20260629-02:36:02][BE] /home/freegear/EasyDocStation/server/rag_train.py:120: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260629-02:36:02][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260629-02:36:05][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v2' already exists
+[20260629-02:36:05][BE] [RAG] comment=c-2eb65c96-57ac-47bc-91d9-89733528bf3f post=ee4cceb0-dbf2-4680-93a2-19553d4c8620 text → 4청크
+[20260629-02:36:05][BE] [RAG] 학습 진행률: 50% (댓글 본문)
+[20260629-02:36:05][BE] [RAG] 저장 완료 — 4청크 / 0개 게시글 / 1개 댓글
+[20260629-02:36:05][BE] [RAG] 학습 진행률: 100% (저장)
+[20260629-02:36:06][BE] [RAG] 댓글 학습 완료 — 1개 댓글 (3.9s)
+종료됨
+[20260629-02:36:51][BE] process exited with code 143. restarting in 2s...
+종료됨
+[20260629-02:36:51][BE] 
+[20260629-02:36:51][BE] > easydocstation-server@1.0.0 start
+[20260629-02:36:51][BE] > node index.js
+[20260629-02:36:51][BE] 
+[20260629-02:36:51][BE] [RAG] 초기화 — 학습 방식: immediate
+[20260629-02:36:51][BE] [RAG] 초기화 — PDF 파싱 모드: FAST
+[20260629-02:36:51][BE] [Mail sync] 자동 동기화 스케줄러 시작: interval=600s
+[20260629-02:36:51][BE] ✅ EasyDocStation server running on http://localhost:3001
+[20260629-02:36:51][BE] ✅ [CONFIG] HF_TOKEN 확인됨 (hf_u****butv, 길이 37)
+[20260629-02:36:51][BE] ✅ Cassandra connected
+[20260629-02:36:51][BE] ✅ Cassandra schema initialized
+[20260629-02:36:51][BE] ✅ Database migration complete.
+[20260629-02:36:51][BE] Terminated
 
 > easydocstation@1.0.0 dev:frontend
 > vite
 
-[Ollama] already running on 127.0.0.1:11434, skipping duplicate serve.
-[20260628-00:22:15][BE] 
-[20260628-00:22:15][BE] > easydocstation-server@1.0.0 start
-[20260628-00:22:15][BE] > node index.js
-[20260628-00:22:15][BE] 
 
-  VITE v5.4.21  ready in 97 ms
+> easydocstation@1.0.0 ollama:serve
+> node scripts/ollama-serve-safe.mjs
+
+[Ollama] already running on 127.0.0.1:11434, skipping duplicate serve.
+[20260629-02:36:54][BE] 
+[20260629-02:36:54][BE] > easydocstation-server@1.0.0 start
+[20260629-02:36:54][BE] > node index.js
+[20260629-02:36:54][BE] 
+
+  VITE v5.4.21  ready in 95 ms
 
   ➜  Local:   http://localhost:5173/
   ➜  Network: http://10.0.0.194:5173/
-[20260628-00:22:15][BE] [RAG] 초기화 — 학습 방식: immediate
-[20260628-00:22:15][BE] [RAG] 초기화 — PDF 파싱 모드: FAST
-[20260628-00:22:15][BE] [Mail sync] 자동 동기화 스케줄러 시작: interval=600s
-[20260628-00:22:15][BE] ✅ EasyDocStation server running on http://localhost:3001
-[20260628-00:22:15][BE] ✅ [CONFIG] HF_TOKEN 확인됨 (hf_u****butv, 길이 37)
-[20260628-00:22:15][BE] ✅ Cassandra connected
-[20260628-00:22:15][BE] ✅ Cassandra schema initialized
-[20260628-00:22:15][BE] ✅ Database migration complete.
-[20260628-00:22:18][BE] [RAG Server] [RAG Server] 임베딩 모델 로드 중 (device=cuda)...
-[20260628-00:22:32][BE] [RAG Server] [RAG Server] 임베딩 모델 로드 완료
-[20260628-00:22:32][BE] [RAG Server] 포트 5001 에서 시작됨
-[20260628-00:22:53][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
-[20260628-00:25:13][BE] [link-preview-image] 내부망 주소는 미리보기를 지원하지 않습니다.
-[20260628-00:26:49][BE] [ATTACH-REF] sync ownerType=comment ownerId=c-e9c0459c-4d53-4425-a3ee-709dbedfa03b actorUserId=1 prev=0 next=0 add=0 remove=0
-[20260628-00:26:49][BE] [RAG] 댓글 학습 시작 — 1개 댓글 (제외: 0개)
-[20260628-00:26:49][BE] /home/freegear/EasyDocStation/server/rag_train.py:112: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
-[20260628-00:26:49][BE]   from langchain_community.document_loaders import Docx2txtLoader
-[20260628-00:26:49][BE] [link-preview-image] 내부망 주소는 미리보기를 지원하지 않습니다.
-[20260628-00:26:52][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table' already exists
-[20260628-00:26:52][BE] [RAG] comment=c-e9c0459c-4d53-4425-a3ee-709dbedfa03b post=4d0d9fa1-13f0-4908-9696-f6ec21740236 text → 1청크
-[20260628-00:26:52][BE] [RAG] 학습 진행률: 50% (댓글 본문)
-[20260628-00:26:52][BE] [RAG] 저장 완료 — 1청크 / 0개 게시글 / 1개 댓글
-[20260628-00:26:52][BE] [RAG] 학습 진행률: 100% (저장)
-[20260628-00:26:53][BE] [RAG] 댓글 학습 완료 — 1개 댓글 (4.1s)
-Terminated
-[20260628-00:27:19][BE] process exited with code 143. restarting in 2s...
-Terminated
-[20260628-00:27:20][BE] 
-[20260628-00:27:20][BE] > easydocstation-server@1.0.0 start
-[20260628-00:27:20][BE] > node index.js
-[20260628-00:27:20][BE] 
-[20260628-00:27:20][BE] [RAG] 초기화 — 학습 방식: immediate
-[20260628-00:27:20][BE] [RAG] 초기화 — PDF 파싱 모드: FAST
-[20260628-00:27:20][BE] [Mail sync] 자동 동기화 스케줄러 시작: interval=600s
-[20260628-00:27:20][BE] ✅ EasyDocStation server running on http://localhost:3001
-[20260628-00:27:20][BE] ✅ [CONFIG] HF_TOKEN 확인됨 (hf_u****butv, 길이 37)
-[20260628-00:27:20][BE] ✅ Cassandra connected
-[20260628-00:27:20][BE] ✅ Cassandra schema initialized
-[20260628-00:27:20][BE] ✅ Database migration complete.
-[20260628-00:27:20][BE] Terminated
+[20260629-02:36:54][BE] [RAG] 초기화 — 학습 방식: immediate
+[20260629-02:36:54][BE] [RAG] 초기화 — PDF 파싱 모드: FAST
+[20260629-02:36:54][BE] [Mail sync] 자동 동기화 스케줄러 시작: interval=600s
+[20260629-02:36:54][BE] ✅ EasyDocStation server running on http://localhost:3001
+[20260629-02:36:54][BE] ✅ [CONFIG] HF_TOKEN 확인됨 (hf_u****butv, 길이 37)
+[20260629-02:36:54][BE] ✅ Cassandra connected
+[20260629-02:36:54][BE] ✅ Cassandra schema initialized
+[20260629-02:36:54][BE] ✅ Database migration complete.
+[20260629-02:36:57][BE] [RAG Server] [RAG Server] 임베딩 모델 로드 중 (device=cuda)...
+[20260629-02:37:00][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260629-02:37:00][BE] [link-preview-image] 내부망 주소는 미리보기를 지원하지 않습니다.
+[20260629-02:37:00][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260629-02:37:12][BE] [RAG Server] [RAG Server] 임베딩 모델 로드 완료
+[20260629-02:37:12][BE] [RAG Server] [RAG Server] 포트 5001 에서 시작됨
+[20260629-02:37:32][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+[20260629-02:37:54][BE] [ATTACH-REF] sync ownerType=comment ownerId=c-fa4316d1-56ad-4810-b029-655d4052c75e actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260629-02:37:54][BE] [RAG] 댓글 학습 시작 — 1개 댓글 (제외: 0개)
+[20260629-02:37:54][BE] /home/freegear/EasyDocStation/server/rag_train.py:120: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260629-02:37:54][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260629-02:37:57][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v2' already exists
+[20260629-02:37:58][BE] [RAG] comment=c-fa4316d1-56ad-4810-b029-655d4052c75e post=ee4cceb0-dbf2-4680-93a2-19553d4c8620 text → 4청크
+[20260629-02:37:58][BE] [RAG] 학습 진행률: 50% (댓글 본문)
+[20260629-02:37:58][BE] [RAG] 저장 완료 — 4청크 / 0개 게시글 / 1개 댓글
+[20260629-02:37:58][BE] [RAG] 학습 진행률: 100% (저장)
+[20260629-02:37:58][BE] [RAG] 댓글 학습 완료 — 1개 댓글 (4.2s)
+[20260629-02:38:53][BE] [link-preview-image] meta image failed, fallback screenshot: fetch failed
+[20260629-02:38:53][BE] [link-preview-image] local render failed, try remote fallback: page.goto: net::ERR_CERT_AUTHORITY_INVALID at https://www.gtsystem.co.kr/?utm_source=chatgpt.com
+[20260629-02:38:53][BE] Call log:
+[20260629-02:38:53][BE] [2m  - navigating to "https://www.gtsystem.co.kr/?utm_source=chatgpt.com", waiting until "domcontentloaded"[22m
+[20260629-02:38:53][BE] 
+[20260629-02:38:57][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260629-02:38:57][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260629-02:39:07][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260629-02:39:24][BE] [ATTACH-REF] sync ownerType=comment ownerId=c-fa4316d1-56ad-4810-b029-655d4052c75e actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260629-02:39:24][BE] [휴지통] 1건 영구 삭제 완료
+[20260629-02:39:34][BE] [link-preview-image] 내부망 주소는 미리보기를 지원하지 않습니다.
+[20260629-02:41:01][BE] [link-preview-image] meta image failed, fallback screenshot: fetch failed
+[20260629-02:41:01][BE] [link-preview-image] 내부망 주소는 미리보기를 지원하지 않습니다.
+[20260629-02:41:01][BE] [link-preview-image] local render failed, try remote fallback: page.goto: net::ERR_NAME_NOT_RESOLVED at https://xn--()-w41jw5mbqa507a/api/mail/gmail/callback
+[20260629-02:41:01][BE] Call log:
+[20260629-02:41:01][BE] [2m  - navigating to "https://xn--()-w41jw5mbqa507a/api/mail/gmail/callback", waiting until "domcontentloaded"[22m
+[20260629-02:41:01][BE] 
+[20260629-02:41:01][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260629-02:45:03][BE] [link-preview-image] 내부망 주소는 미리보기를 지원하지 않습니다.
+[20260629-02:45:09][BE] [ATTACH-REF] sync ownerType=comment ownerId=c-b680ddcf-8d45-4d27-be7a-34d01185b454 actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260629-02:45:09][BE] [RAG] 댓글 학습 시작 — 1개 댓글 (제외: 0개)
+[20260629-02:45:09][BE] /home/freegear/EasyDocStation/server/rag_train.py:120: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260629-02:45:09][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260629-02:45:12][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v2' already exists
+[20260629-02:45:12][BE] [RAG] comment=c-b680ddcf-8d45-4d27-be7a-34d01185b454 post=ee4cceb0-dbf2-4680-93a2-19553d4c8620 text → 1청크
+[20260629-02:45:12][BE] [RAG] 학습 진행률: 50% (댓글 본문)
+[20260629-02:45:12][BE] [RAG] 저장 완료 — 1청크 / 0개 게시글 / 1개 댓글
+[20260629-02:45:12][BE] [RAG] 학습 진행률: 100% (저장)
+[20260629-02:45:13][BE] [RAG] 댓글 학습 완료 — 1개 댓글 (3.8s)
+AM 2:45:24 [vite] hmr update /src/components/GroqPanel.jsx, /src/index.css
+[20260629-02:47:01][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+[20260629-02:47:18][BE] [ATTACH-REF] sync ownerType=comment ownerId=c-52ce13f5-e1ce-49ba-a00b-a48b1fc27dca actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260629-02:47:18][BE] [RAG] 댓글 학습 시작 — 1개 댓글 (제외: 0개)
+[20260629-02:47:18][BE] /home/freegear/EasyDocStation/server/rag_train.py:120: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260629-02:47:18][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260629-02:47:21][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v2' already exists
+[20260629-02:47:21][BE] [RAG] comment=c-52ce13f5-e1ce-49ba-a00b-a48b1fc27dca post=ee4cceb0-dbf2-4680-93a2-19553d4c8620 text → 2청크
+[20260629-02:47:21][BE] [RAG] 학습 진행률: 50% (댓글 본문)
+[20260629-02:47:21][BE] [RAG] 저장 완료 — 2청크 / 0개 게시글 / 1개 댓글
+[20260629-02:47:21][BE] [RAG] 학습 진행률: 100% (저장)
+[20260629-02:47:22][BE] [RAG] 댓글 학습 완료 — 1개 댓글 (3.9s)
+종료됨
+[20260629-02:47:43][BE] process exited with code 143. restarting in 2s...
+종료됨
+[20260629-02:47:43][BE] 
+[20260629-02:47:43][BE] > easydocstation-server@1.0.0 start
+[20260629-02:47:43][BE] > node index.js
+[20260629-02:47:43][BE] 
+[20260629-02:47:44][BE] [RAG] 초기화 — 학습 방식: immediate
+[20260629-02:47:44][BE] [RAG] 초기화 — PDF 파싱 모드: FAST
+[20260629-02:47:44][BE] [Mail sync] 자동 동기화 스케줄러 시작: interval=600s
+[20260629-02:47:44][BE] ✅ EasyDocStation server running on http://localhost:3001
+[20260629-02:47:44][BE] ✅ [CONFIG] HF_TOKEN 확인됨 (hf_u****butv, 길이 37)
+[20260629-02:47:44][BE] ✅ Cassandra connected
+[20260629-02:47:44][BE] ✅ Cassandra schema initialized
+[20260629-02:47:44][BE] ✅ Database migration complete.
+[20260629-02:47:44][BE] Terminated
 
 > easydocstation@1.0.0 ollama:serve
 > node scripts/ollama-serve-safe.mjs
@@ -228,276 +218,338 @@ Terminated
 > vite
 
 [Ollama] already running on 127.0.0.1:11434, skipping duplicate serve.
+
+  VITE v5.4.21  ready in 89 ms
+
+  ➜  Local:   http://localhost:5173/
+  ➜  Network: http://10.0.0.194:5173/
+[20260629-02:47:46][BE] 
+[20260629-02:47:46][BE] > easydocstation-server@1.0.0 start
+[20260629-02:47:46][BE] > node index.js
+[20260629-02:47:46][BE] 
+[20260629-02:47:46][BE] [RAG] 초기화 — 학습 방식: immediate
+[20260629-02:47:46][BE] [RAG] 초기화 — PDF 파싱 모드: FAST
+[20260629-02:47:46][BE] [Mail sync] 자동 동기화 스케줄러 시작: interval=600s
+[20260629-02:47:46][BE] ✅ EasyDocStation server running on http://localhost:3001
+[20260629-02:47:46][BE] ✅ [CONFIG] HF_TOKEN 확인됨 (hf_u****butv, 길이 37)
+[20260629-02:47:46][BE] ✅ Cassandra connected
+[20260629-02:47:46][BE] ✅ Cassandra schema initialized
+[20260629-02:47:46][BE] ✅ Database migration complete.
+[20260629-02:47:49][BE] [RAG Server] [RAG Server] 임베딩 모델 로드 중 (device=cuda)...
+[20260629-02:47:51][BE] [link-preview-image] 내부망 주소는 미리보기를 지원하지 않습니다.
+[20260629-02:48:04][BE] [RAG Server] [RAG Server] 임베딩 모델 로드 완료
+[20260629-02:48:04][BE] [RAG Server] 포트 5001 에서 시작됨
+[20260629-02:48:10][BE] [link-preview-image] 내부망 주소는 미리보기를 지원하지 않습니다.
+[20260629-02:48:22][BE] [link-preview-image] 내부망 주소는 미리보기를 지원하지 않습니다.
+[20260629-02:48:24][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+[20260629-02:48:44][BE] [link-preview-image] 내부망 주소는 미리보기를 지원하지 않습니다.
+[20260629-02:49:17][BE] [link-preview-image] 내부망 주소는 미리보기를 지원하지 않습니다.
+[20260629-02:49:48][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260629-02:49:50][BE] [link-preview-image] meta image failed, fallback screenshot: meta image fetch failed (404)
+[20260629-02:49:50][BE] [link-preview-image] meta image failed, fallback screenshot: meta page fetch failed (403)
+[20260629-02:49:51][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260629-02:49:55][BE] [link-preview-image] meta image failed, fallback screenshot: fetch failed
+[20260629-02:49:58][BE] [link-preview-image] meta image failed, fallback screenshot: This operation was aborted
+[20260629-02:50:10][BE] [link-preview-image] local render failed, try remote fallback: page.goto: Timeout 12000ms exceeded.
+[20260629-02:50:10][BE] Call log:
+[20260629-02:50:10][BE] [2m  - navigating to "http://114.207.245.216/", waiting until "domcontentloaded"[22m
+[20260629-02:50:10][BE] 
+[20260629-02:50:11][BE] [link-preview-image] remote fallback failed, placeholder: fallback preview fetch failed (404)
+[20260629-02:51:26][BE] [link-preview-image] 내부망 주소는 미리보기를 지원하지 않습니다.
+[20260629-02:52:04][BE] [link-preview-image] 내부망 주소는 미리보기를 지원하지 않습니다.
+[20260629-02:57:13][BE] [ATTACH-REF] sync ownerType=comment ownerId=c-53d7cca7-a6e9-416c-b80f-2de7c5df10ba actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260629-02:57:13][BE] [RAG] 학습 제외 (댓글): c-53d7cca7-a6e9-416c-b80f-2de7c5df10ba — 첨부파일 없음, 87자
+[20260629-02:57:13][BE] [RAG] 학습 제외 후 학습할 댓글이 없습니다.
+[20260629-02:57:28][BE] [ATTACH-REF] sync ownerType=comment ownerId=c-3bdf2bfd-d170-49d7-92e1-5bff4834917f actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260629-02:57:28][BE] [RAG] 댓글 학습 시작 — 1개 댓글 (제외: 0개)
+[20260629-02:57:28][BE] /home/freegear/EasyDocStation/server/rag_train.py:120: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260629-02:57:28][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260629-02:57:31][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v2' already exists
+[20260629-02:57:31][BE] [RAG] comment=c-3bdf2bfd-d170-49d7-92e1-5bff4834917f post=ee4cceb0-dbf2-4680-93a2-19553d4c8620 text → 2청크
+[20260629-02:57:31][BE] [RAG] 학습 진행률: 50% (댓글 본문)
+[20260629-02:57:31][BE] [RAG] 저장 완료 — 2청크 / 0개 게시글 / 1개 댓글
+[20260629-02:57:31][BE] [RAG] 학습 진행률: 100% (저장)
+[20260629-02:57:32][BE] [RAG] 댓글 학습 완료 — 1개 댓글 (4.3s)
+[20260629-02:57:54][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+[20260629-02:59:38][BE] [ATTACH-REF] sync ownerType=comment ownerId=c-900f3ffd-0160-4c01-b682-6f6d5b8ac70e actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260629-02:59:38][BE] [RAG] 댓글 학습 시작 — 1개 댓글 (제외: 0개)
+[20260629-02:59:38][BE] /home/freegear/EasyDocStation/server/rag_train.py:120: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260629-02:59:38][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260629-02:59:39][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260629-02:59:41][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v2' already exists
+[20260629-02:59:41][BE] [RAG] comment=c-900f3ffd-0160-4c01-b682-6f6d5b8ac70e post=ee4cceb0-dbf2-4680-93a2-19553d4c8620 text → 3청크
+[20260629-02:59:41][BE] [RAG] 학습 진행률: 50% (댓글 본문)
+[20260629-02:59:41][BE] [RAG] 저장 완료 — 3청크 / 0개 게시글 / 1개 댓글
+[20260629-02:59:41][BE] [RAG] 학습 진행률: 100% (저장)
+[20260629-02:59:42][BE] [RAG] 댓글 학습 완료 — 1개 댓글 (4.1s)
+[20260629-03:02:21][BE] [ATTACH-REF] sync ownerType=comment ownerId=c-bd3826ad-dd6d-4b56-a260-1d3f4ee4f9c2 actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260629-03:02:21][BE] [RAG] 댓글 학습 시작 — 1개 댓글 (제외: 0개)
+[20260629-03:02:21][BE] /home/freegear/EasyDocStation/server/rag_train.py:120: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260629-03:02:21][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260629-03:02:24][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v2' already exists
+[20260629-03:02:24][BE] [RAG] comment=c-bd3826ad-dd6d-4b56-a260-1d3f4ee4f9c2 post=ee4cceb0-dbf2-4680-93a2-19553d4c8620 text → 1청크
+[20260629-03:02:24][BE] [RAG] 학습 진행률: 50% (댓글 본문)
+[20260629-03:02:24][BE] [RAG] 저장 완료 — 1청크 / 0개 게시글 / 1개 댓글
+[20260629-03:02:24][BE] [RAG] 학습 진행률: 100% (저장)
+[20260629-03:02:25][BE] [RAG] 댓글 학습 완료 — 1개 댓글 (3.9s)
+종료됨
+[20260629-03:02:28][BE] process exited with code 143. restarting in 2s...
+종료됨
+[20260629-03:02:28][BE] 
+[20260629-03:02:28][BE] > easydocstation-server@1.0.0 start
+[20260629-03:02:28][BE] > node index.js
+[20260629-03:02:28][BE] 
+[20260629-03:02:28][BE] [RAG] 초기화 — 학습 방식: immediate
+[20260629-03:02:28][BE] [RAG] 초기화 — PDF 파싱 모드: FAST
+[20260629-03:02:28][BE] [Mail sync] 자동 동기화 스케줄러 시작: interval=600s
+[20260629-03:02:28][BE] ✅ EasyDocStation server running on http://localhost:3001
+[20260629-03:02:28][BE] ✅ [CONFIG] HF_TOKEN 확인됨 (hf_u****butv, 길이 37)
+[20260629-03:02:28][BE] ✅ Cassandra connected
+[20260629-03:02:29][BE] ✅ Cassandra schema initialized
+[20260629-03:02:29][BE] ✅ Database migration complete.
+[20260629-03:02:29][BE] Terminated
+
+> easydocstation@1.0.0 ollama:serve
+> node scripts/ollama-serve-safe.mjs
+
+
+> easydocstation@1.0.0 dev:frontend
+> vite
+
+[Ollama] already running on 127.0.0.1:11434, skipping duplicate serve.
+[20260629-03:02:31][BE] 
+[20260629-03:02:31][BE] > easydocstation-server@1.0.0 start
+[20260629-03:02:31][BE] > node index.js
+[20260629-03:02:31][BE] 
 
   VITE v5.4.21  ready in 88 ms
 
   ➜  Local:   http://localhost:5173/
   ➜  Network: http://10.0.0.194:5173/
-[20260628-00:27:23][BE] 
-[20260628-00:27:23][BE] > easydocstation-server@1.0.0 start
-[20260628-00:27:23][BE] > node index.js
-[20260628-00:27:23][BE] 
-[20260628-00:27:23][BE] [RAG] 초기화 — 학습 방식: immediate
-[20260628-00:27:23][BE] [RAG] 초기화 — PDF 파싱 모드: FAST
-[20260628-00:27:23][BE] [Mail sync] 자동 동기화 스케줄러 시작: interval=600s
-[20260628-00:27:23][BE] ✅ EasyDocStation server running on http://localhost:3001
-[20260628-00:27:23][BE] ✅ [CONFIG] HF_TOKEN 확인됨 (hf_u****butv, 길이 37)
-[20260628-00:27:23][BE] ✅ Cassandra connected
-[20260628-00:27:23][BE] ✅ Cassandra schema initialized
-[20260628-00:27:23][BE] ✅ Database migration complete.
-[20260628-00:27:26][BE] [RAG Server] [RAG Server] 임베딩 모델 로드 중 (device=cuda)...
-[20260628-00:27:33][BE] [link-preview-image] 내부망 주소는 미리보기를 지원하지 않습니다.
-[20260628-00:27:41][BE] [RAG Server] [RAG Server] 임베딩 모델 로드 완료
-[20260628-00:27:41][BE] [RAG Server] [RAG Server] 포트 5001 에서 시작됨
-[20260628-00:28:01][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
-[20260628-00:29:27][BE] [imapSync] jylim3@naver.com 프로모션: 누락분이 많아 이번엔 50건만 가져왔습니다(나머지는 다음 새로고침에서).
-
-> easydocstation@1.0.0 dev:frontend
-> vite
-
+[20260629-03:02:31][BE] [RAG] 초기화 — 학습 방식: immediate
+[20260629-03:02:31][BE] [RAG] 초기화 — PDF 파싱 모드: FAST
+[20260629-03:02:31][BE] [Mail sync] 자동 동기화 스케줄러 시작: interval=600s
+[20260629-03:02:31][BE] ✅ EasyDocStation server running on http://localhost:3001
+[20260629-03:02:31][BE] ✅ [CONFIG] HF_TOKEN 확인됨 (hf_u****butv, 길이 37)
+[20260629-03:02:31][BE] ✅ Cassandra connected
+[20260629-03:02:31][BE] ✅ Cassandra schema initialized
+[20260629-03:02:31][BE] ✅ Database migration complete.
+[20260629-03:02:34][BE] [RAG Server] [RAG Server] 임베딩 모델 로드 중 (device=cuda)...
+[20260629-03:02:35][BE] [link-preview-image] 내부망 주소는 미리보기를 지원하지 않습니다.
+[20260629-03:02:49][BE] [RAG Server] [RAG Server] 임베딩 모델 로드 완료
+[20260629-03:02:49][BE] [RAG Server] 포트 5001 에서 시작됨
+[20260629-03:02:59][BE] [link-preview-image] 내부망 주소는 미리보기를 지원하지 않습니다.
+[20260629-03:03:09][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+[20260629-03:03:20][BE] [link-preview-image] 내부망 주소는 미리보기를 지원하지 않습니다.
+[20260629-03:05:15][BE] [link-preview-image] 내부망 주소는 미리보기를 지원하지 않습니다.
+[20260629-03:05:23][BE] [link-preview-image] 내부망 주소는 미리보기를 지원하지 않습니다.
+[20260629-03:05:29][BE] [link-preview-image] 내부망 주소는 미리보기를 지원하지 않습니다.
+[20260629-03:05:54][BE] [link-preview-image] 내부망 주소는 미리보기를 지원하지 않습니다.
+AM 3:08:29 [vite] hmr update /src/components/GroqPanel.jsx, /src/index.css
+AM 3:08:52 [vite] hmr update /src/components/GroqPanel.jsx, /src/index.css
+[20260629-03:09:51][BE] [link-preview-image] meta image failed, fallback screenshot: meta page fetch failed (404)
+[20260629-03:12:39][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+[20260629-03:13:11][BE] [ATTACH-REF] sync ownerType=comment ownerId=c-412087c1-8036-45c9-b732-3ac7f631a6e8 actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260629-03:13:11][BE] [RAG] 댓글 학습 시작 — 1개 댓글 (제외: 0개)
+[20260629-03:13:11][BE] /home/freegear/EasyDocStation/server/rag_train.py:120: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260629-03:13:11][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260629-03:13:14][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v2' already exists
+[20260629-03:13:14][BE] [RAG] comment=c-412087c1-8036-45c9-b732-3ac7f631a6e8 post=c17cd64a-f40a-4b01-bb69-0a41a9f3d2f1 text → 3청크
+[20260629-03:13:14][BE] [RAG] 학습 진행률: 50% (댓글 본문)
+[20260629-03:13:14][BE] [RAG] 저장 완료 — 3청크 / 0개 게시글 / 1개 댓글
+[20260629-03:13:14][BE] [RAG] 학습 진행률: 100% (저장)
+[20260629-03:13:15][BE] [RAG] 댓글 학습 완료 — 1개 댓글 (4.0s)
+[20260629-03:13:32][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260629-03:13:36][BE] [ATTACH-REF] sync ownerType=comment ownerId=c-6e80621f-df6d-4717-a1b5-cf8ae1b7bafc actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260629-03:13:36][BE] [RAG] 댓글 학습 시작 — 1개 댓글 (제외: 0개)
+[20260629-03:13:36][BE] /home/freegear/EasyDocStation/server/rag_train.py:120: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260629-03:13:36][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260629-03:13:36][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260629-03:13:39][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v2' already exists
+[20260629-03:13:39][BE] [RAG] comment=c-6e80621f-df6d-4717-a1b5-cf8ae1b7bafc post=ee4cceb0-dbf2-4680-93a2-19553d4c8620 text → 3청크
+[20260629-03:13:39][BE] [RAG] 학습 진행률: 50% (댓글 본문)
+[20260629-03:13:39][BE] [RAG] 저장 완료 — 3청크 / 0개 게시글 / 1개 댓글
+[20260629-03:13:39][BE] [RAG] 학습 진행률: 100% (저장)
+[20260629-03:13:40][BE] [RAG] 댓글 학습 완료 — 1개 댓글 (4.1s)
+AM 3:14:53 [vite] hmr update /src/components/GroqPanel.jsx, /src/index.css
+AM 3:15:01 [vite] hmr update /src/components/GroqPanel.jsx, /src/index.css
+[20260629-03:15:01][BE] [ATTACH-REF] sync ownerType=comment ownerId=c-412087c1-8036-45c9-b732-3ac7f631a6e8 actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260629-03:15:01][BE] [휴지통] 1건 영구 삭제 완료
+[20260629-03:15:44][BE] [ATTACH-REF] sync ownerType=comment ownerId=c-3439f42f-0da0-4db5-bc26-aaccb339ebd5 actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260629-03:15:44][BE] [RAG] 댓글 학습 시작 — 1개 댓글 (제외: 0개)
+[20260629-03:15:44][BE] /home/freegear/EasyDocStation/server/rag_train.py:120: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260629-03:15:44][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260629-03:15:47][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v2' already exists
+[20260629-03:15:47][BE] [RAG] comment=c-3439f42f-0da0-4db5-bc26-aaccb339ebd5 post=ee4cceb0-dbf2-4680-93a2-19553d4c8620 text → 1청크
+[20260629-03:15:47][BE] [RAG] 학습 진행률: 50% (댓글 본문)
+[20260629-03:15:47][BE] [RAG] 저장 완료 — 1청크 / 0개 게시글 / 1개 댓글
+[20260629-03:15:47][BE] [RAG] 학습 진행률: 100% (저장)
+[20260629-03:15:48][BE] [RAG] 댓글 학습 완료 — 1개 댓글 (3.8s)
+종료됨
+[20260629-03:15:49][BE] process exited with code 143. restarting in 2s...
+종료됨
+[20260629-03:15:50][BE] 
+[20260629-03:15:50][BE] > easydocstation-server@1.0.0 start
+[20260629-03:15:50][BE] > node index.js
+[20260629-03:15:50][BE] 
+[20260629-03:15:50][BE] [RAG] 초기화 — 학습 방식: immediate
+[20260629-03:15:50][BE] [RAG] 초기화 — PDF 파싱 모드: FAST
+[20260629-03:15:50][BE] [Mail sync] 자동 동기화 스케줄러 시작: interval=600s
+[20260629-03:15:50][BE] ✅ EasyDocStation server running on http://localhost:3001
+[20260629-03:15:50][BE] ✅ [CONFIG] HF_TOKEN 확인됨 (hf_u****butv, 길이 37)
+[20260629-03:15:50][BE] ✅ Cassandra connected
+[20260629-03:15:50][BE] ✅ Cassandra schema initialized
+[20260629-03:15:50][BE] ✅ Database migration complete.
+[20260629-03:15:50][BE] Terminated
 
 > easydocstation@1.0.0 ollama:serve
 > node scripts/ollama-serve-safe.mjs
 
-[Ollama] already running on 127.0.0.1:11434, skipping duplicate serve.
-[20260628-00:40:47][BE] 
-[20260628-00:40:47][BE] > easydocstation-server@1.0.0 start
-[20260628-00:40:47][BE] > node index.js
-[20260628-00:40:47][BE] 
 
-  VITE v5.4.21  ready in 93 ms
+> easydocstation@1.0.0 dev:frontend
+> vite
+
+[Ollama] already running on 127.0.0.1:11434, skipping duplicate serve.
+[20260629-03:15:52][BE] 
+[20260629-03:15:52][BE] > easydocstation-server@1.0.0 start
+[20260629-03:15:52][BE] > node index.js
+[20260629-03:15:52][BE] 
+
+  VITE v5.4.21  ready in 87 ms
 
   ➜  Local:   http://localhost:5173/
   ➜  Network: http://10.0.0.194:5173/
-[20260628-00:40:47][BE] [RAG] 초기화 — 학습 방식: immediate
-[20260628-00:40:47][BE] [RAG] 초기화 — PDF 파싱 모드: FAST
-[20260628-00:40:47][BE] [Mail sync] 자동 동기화 스케줄러 시작: interval=600s
-[20260628-00:40:47][BE] ✅ EasyDocStation server running on http://localhost:3001
-[20260628-00:40:48][BE] ✅ [CONFIG] HF_TOKEN 확인됨 (hf_u****butv, 길이 37)
-[20260628-00:40:48][BE] ✅ Cassandra connected
-[20260628-00:40:48][BE] ✅ Cassandra schema initialized
-[20260628-00:40:48][BE] ✅ Database migration complete.
-[20260628-00:40:51][BE] [RAG Server] [RAG Server] 임베딩 모델 로드 중 (device=cuda)...
-[20260628-00:41:01][BE] [link-preview-image] 내부망 주소는 미리보기를 지원하지 않습니다.
-[20260628-00:41:04][BE] [RAG Server] [RAG Server] 임베딩 모델 로드 완료
-[20260628-00:41:04][BE] [RAG Server] 포트 5001 에서 시작됨
-[20260628-00:41:25][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
-AM 12:45:15 [vite] hmr update /src/features/mail/MailPage.jsx, /src/index.css
-AM 12:45:26 [vite] hmr update /src/features/mail/MailPage.jsx, /src/index.css
-AM 12:45:43 [vite] hmr update /src/features/mail/MailPage.jsx, /src/index.css
-[20260628-00:50:55][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
-[20260628-01:00:55][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
-[20260628-01:10:55][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
-[20260628-01:20:55][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
-[20260628-01:30:55][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
-[20260628-01:40:55][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
-[20260628-01:50:55][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
-[20260628-02:00:56][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
-[20260628-02:10:56][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
-[20260628-02:20:55][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
-[20260628-02:30:55][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
-[20260628-02:40:55][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
-[20260628-02:50:55][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
-[20260628-03:00:55][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
-[20260628-03:10:55][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
-[20260628-03:20:55][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
-[20260628-03:30:56][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
-[20260628-03:40:55][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
-[20260628-03:50:55][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
-[20260628-04:00:55][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
-[20260628-04:10:56][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
-[20260628-04:20:55][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
-[20260628-04:30:55][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
-[20260628-04:40:55][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
-[20260628-04:50:55][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
-[20260628-05:00:55][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
-[20260628-05:10:55][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
-[20260628-05:20:55][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
-[20260628-05:30:55][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
-[20260628-05:40:55][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
-[20260628-05:50:55][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
-[20260628-06:00:55][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
-[20260628-06:10:55][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
-[20260628-06:20:56][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
-[20260628-06:21:02][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
-[20260628-06:21:04][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
-[20260628-06:21:04][BE] [link-preview-image] 내부망 주소는 미리보기를 지원하지 않습니다.
-[20260628-06:21:29][BE] [link-preview-image] 내부망 주소는 미리보기를 지원하지 않습니다.
-[20260628-06:28:04][BE] [link-preview-image] 내부망 주소는 미리보기를 지원하지 않습니다.
-[20260628-06:30:32][BE] [ATTACH-REF] sync ownerType=post ownerId=f534349c-46d9-484a-b8b0-7bddf35eefc0 actorUserId=1 prev=0 next=0 add=0 remove=0
-[20260628-06:30:32][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
-[20260628-06:30:32][BE] /home/freegear/EasyDocStation/server/rag_train.py:112: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
-[20260628-06:30:32][BE]   from langchain_community.document_loaders import Docx2txtLoader
-[20260628-06:30:35][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table' already exists
-[20260628-06:30:35][BE] [RAG] post=f534349c-46d9-484a-b8b0-7bddf35eefc0 text → 1청크
-[20260628-06:30:35][BE] [RAG] 학습 진행률: 50% (게시글 본문)
-[20260628-06:30:35][BE] [RAG] 저장 완료 — 1청크 / 1개 게시글 / 0개 댓글
-[20260628-06:30:35][BE] [RAG] 학습 진행률: 100% (저장)
-[20260628-06:30:36][BE] [RAG] 학습 완료
-[20260628-06:30:55][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
-[20260628-06:31:58][BE] [ATTACH-REF] sync ownerType=comment ownerId=c-c2133248-7e90-4286-a863-c82928b6d361 actorUserId=1 prev=0 next=0 add=0 remove=0
-[20260628-06:31:58][BE] [RAG] 학습 제외 (댓글): c-c2133248-7e90-4286-a863-c82928b6d361 — 첨부파일 없음, 87자
-[20260628-06:31:58][BE] [RAG] 학습 제외 후 학습할 댓글이 없습니다.
-[20260628-06:40:55][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
-[20260628-06:46:47][BE] [ATTACH-REF] sync ownerType=comment ownerId=c-1227898f-aefa-4d83-8f4d-94a81cdc7230 actorUserId=1 prev=0 next=0 add=0 remove=0
-[20260628-06:46:47][BE] [RAG] 댓글 학습 시작 — 1개 댓글 (제외: 0개)
-[20260628-06:46:47][BE] /home/freegear/EasyDocStation/server/rag_train.py:112: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
-[20260628-06:46:47][BE]   from langchain_community.document_loaders import Docx2txtLoader
-[20260628-06:46:50][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table' already exists
-[20260628-06:46:50][BE] [RAG] comment=c-1227898f-aefa-4d83-8f4d-94a81cdc7230 post=f534349c-46d9-484a-b8b0-7bddf35eefc0 text → 5청크
-[20260628-06:46:50][BE] [RAG] 학습 진행률: 50% (댓글 본문)
-[20260628-06:46:50][BE] [RAG] 저장 완료 — 5청크 / 0개 게시글 / 1개 댓글
-[20260628-06:46:50][BE] [RAG] 학습 진행률: 100% (저장)
-[20260628-06:46:51][BE] [RAG] 댓글 학습 완료 — 1개 댓글 (4.0s)
-[20260628-06:47:53][BE] [ATTACH-REF] sync ownerType=comment ownerId=c-705c210e-daf7-4369-8fd6-d9a70b0d2a04 actorUserId=1 prev=0 next=0 add=0 remove=0
-[20260628-06:47:53][BE] [RAG] 댓글 학습 시작 — 1개 댓글 (제외: 0개)
-[20260628-06:47:53][BE] /home/freegear/EasyDocStation/server/rag_train.py:112: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
-[20260628-06:47:53][BE]   from langchain_community.document_loaders import Docx2txtLoader
-[20260628-06:47:56][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table' already exists
-[20260628-06:47:56][BE] [RAG] comment=c-705c210e-daf7-4369-8fd6-d9a70b0d2a04 post=f534349c-46d9-484a-b8b0-7bddf35eefc0 text → 2청크
-[20260628-06:47:56][BE] [RAG] 학습 진행률: 50% (댓글 본문)
-[20260628-06:47:56][BE] [RAG] 저장 완료 — 2청크 / 0개 게시글 / 1개 댓글
-[20260628-06:47:56][BE] [RAG] 학습 진행률: 100% (저장)
-[20260628-06:47:57][BE] [RAG] 댓글 학습 완료 — 1개 댓글 (3.9s)
-[20260628-06:49:28][BE] [ATTACH-REF] sync ownerType=comment ownerId=c-e671ec86-f1b0-4e06-9e0e-857d147e45a5 actorUserId=1 prev=0 next=0 add=0 remove=0
-[20260628-06:49:28][BE] [RAG] 댓글 학습 시작 — 1개 댓글 (제외: 0개)
-[20260628-06:49:28][BE] /home/freegear/EasyDocStation/server/rag_train.py:112: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
-[20260628-06:49:28][BE]   from langchain_community.document_loaders import Docx2txtLoader
-[20260628-06:49:32][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table' already exists
-[20260628-06:49:32][BE] [RAG] comment=c-e671ec86-f1b0-4e06-9e0e-857d147e45a5 post=f534349c-46d9-484a-b8b0-7bddf35eefc0 text → 1청크
-[20260628-06:49:32][BE] [RAG] 학습 진행률: 50% (댓글 본문)
-[20260628-06:49:32][BE] [RAG] 저장 완료 — 1청크 / 0개 게시글 / 1개 댓글
-[20260628-06:49:32][BE] [RAG] 학습 진행률: 100% (저장)
-[20260628-06:49:32][BE] [RAG] 댓글 학습 완료 — 1개 댓글 (3.9s)
-[20260628-06:50:55][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
-[20260628-07:00:55][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
-[20260628-07:01:25][BE] [STT] speaker mapping list requested | actorUserId=1 channelId=ch-1776440801214
-[20260628-07:01:25][BE] [STT] speaker mapping list failed | actorUserId=1 error=column m.channel_id does not exist
-[20260628-07:01:25][BE] error: column m.channel_id does not exist
-[20260628-07:01:25][BE]     at /home/freegear/EasyDocStation/server/node_modules/pg-pool/index.js:45:11
-[20260628-07:01:25][BE]     at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
-[20260628-07:01:25][BE]     at async /home/freegear/EasyDocStation/server/routes/stt.js:1133:18 {
-[20260628-07:01:25][BE]   length: 109,
-[20260628-07:01:25][BE]   severity: 'ERROR',
-[20260628-07:01:25][BE]   code: '42703',
-[20260628-07:01:25][BE]   detail: undefined,
-[20260628-07:01:25][BE]   hint: undefined,
-[20260628-07:01:25][BE]   position: '8',
-[20260628-07:01:25][BE]   internalPosition: undefined,
-[20260628-07:01:25][BE]   internalQuery: undefined,
-[20260628-07:01:25][BE]   where: undefined,
-[20260628-07:01:25][BE]   schema: undefined,
-[20260628-07:01:25][BE]   table: undefined,
-[20260628-07:01:25][BE]   column: undefined,
-[20260628-07:01:25][BE]   dataType: undefined,
-[20260628-07:01:25][BE]   constraint: undefined,
-[20260628-07:01:25][BE]   file: 'parse_relation.c',
-[20260628-07:01:25][BE]   line: '3722',
-[20260628-07:01:25][BE]   routine: 'errorMissingColumn'
-[20260628-07:01:25][BE] }
-[20260628-07:10:55][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
-[20260628-07:15:03][BE] [ATTACH-REF] sync ownerType=post ownerId=25b92cd8-b9f6-4922-a59a-f5454c57f463 actorUserId=1 prev=0 next=0 add=0 remove=0
-[20260628-07:15:03][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
-[20260628-07:15:03][BE] /home/freegear/EasyDocStation/server/rag_train.py:112: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
-[20260628-07:15:03][BE]   from langchain_community.document_loaders import Docx2txtLoader
-[20260628-07:15:06][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table' already exists
-[20260628-07:15:06][BE] [RAG] post=25b92cd8-b9f6-4922-a59a-f5454c57f463 text → 3청크
-[20260628-07:15:06][BE] [RAG] 학습 진행률: 50% (게시글 본문)
-[20260628-07:15:06][BE] [RAG] 저장 완료 — 3청크 / 1개 게시글 / 0개 댓글
-[20260628-07:15:06][BE] [RAG] 학습 진행률: 100% (저장)
-[20260628-07:15:07][BE] [RAG] 학습 완료
-[20260628-07:17:54][BE] [ATTACH-REF] sync ownerType=comment ownerId=c-2bc4ad95-e292-42e6-93ea-cc3a5fdc2901 actorUserId=1 prev=0 next=0 add=0 remove=0
-[20260628-07:17:54][BE] [RAG] 댓글 학습 시작 — 1개 댓글 (제외: 0개)
-[20260628-07:17:54][BE] /home/freegear/EasyDocStation/server/rag_train.py:112: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
-[20260628-07:17:54][BE]   from langchain_community.document_loaders import Docx2txtLoader
-[20260628-07:17:57][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table' already exists
-[20260628-07:17:57][BE] [RAG] comment=c-2bc4ad95-e292-42e6-93ea-cc3a5fdc2901 post=f534349c-46d9-484a-b8b0-7bddf35eefc0 text → 2청크
-[20260628-07:17:57][BE] [RAG] 학습 진행률: 50% (댓글 본문)
-[20260628-07:17:57][BE] [RAG] 저장 완료 — 2청크 / 0개 게시글 / 1개 댓글
-[20260628-07:17:57][BE] [RAG] 학습 진행률: 100% (저장)
-[20260628-07:17:58][BE] [RAG] 댓글 학습 완료 — 1개 댓글 (3.9s)
-[20260628-07:20:55][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
-[20260628-07:30:48][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
-[20260628-07:34:20][BE] [ATTACH-REF] sync ownerType=comment ownerId=c-f45ad7de-5af8-4b6e-bac0-34a2d73adf35 actorUserId=1 prev=0 next=0 add=0 remove=0
-[20260628-07:34:20][BE] [RAG] 댓글 학습 시작 — 1개 댓글 (제외: 0개)
-[20260628-07:34:20][BE] /home/freegear/EasyDocStation/server/rag_train.py:112: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
-[20260628-07:34:20][BE]   from langchain_community.document_loaders import Docx2txtLoader
-[20260628-07:34:23][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table' already exists
-[20260628-07:34:23][BE] [RAG] comment=c-f45ad7de-5af8-4b6e-bac0-34a2d73adf35 post=f534349c-46d9-484a-b8b0-7bddf35eefc0 text → 2청크
-[20260628-07:34:23][BE] [RAG] 학습 진행률: 50% (댓글 본문)
-[20260628-07:34:23][BE] [RAG] 저장 완료 — 2청크 / 0개 게시글 / 1개 댓글
-[20260628-07:34:23][BE] [RAG] 학습 진행률: 100% (저장)
-[20260628-07:34:24][BE] [RAG] 댓글 학습 완료 — 1개 댓글 (3.8s)
-[20260628-07:37:01][BE] [ATTACH-REF] sync ownerType=comment ownerId=c-c3cdb5be-0d57-4f5d-b076-a9c57cbca6e5 actorUserId=1 prev=0 next=0 add=0 remove=0
-[20260628-07:37:01][BE] [RAG] 댓글 학습 시작 — 1개 댓글 (제외: 0개)
-[20260628-07:37:01][BE] /home/freegear/EasyDocStation/server/rag_train.py:112: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
-[20260628-07:37:01][BE]   from langchain_community.document_loaders import Docx2txtLoader
-[20260628-07:37:04][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table' already exists
-[20260628-07:37:04][BE] [RAG] comment=c-c3cdb5be-0d57-4f5d-b076-a9c57cbca6e5 post=f534349c-46d9-484a-b8b0-7bddf35eefc0 text → 3청크
-[20260628-07:37:04][BE] [RAG] 학습 진행률: 50% (댓글 본문)
-[20260628-07:37:04][BE] [RAG] 저장 완료 — 3청크 / 0개 게시글 / 1개 댓글
-[20260628-07:37:04][BE] [RAG] 학습 진행률: 100% (저장)
-[20260628-07:37:05][BE] [RAG] 댓글 학습 완료 — 1개 댓글 (3.9s)
-[20260628-07:40:55][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
-[20260628-07:43:29][BE] [ATTACH-REF] sync ownerType=comment ownerId=c-ffed11f5-f3f3-446f-9a68-31247b34b81d actorUserId=1 prev=0 next=0 add=0 remove=0
-[20260628-07:43:29][BE] [RAG] 댓글 학습 시작 — 1개 댓글 (제외: 0개)
-[20260628-07:43:29][BE] /home/freegear/EasyDocStation/server/rag_train.py:112: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
-[20260628-07:43:29][BE]   from langchain_community.document_loaders import Docx2txtLoader
-[20260628-07:43:32][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table' already exists
-[20260628-07:43:32][BE] [RAG] comment=c-ffed11f5-f3f3-446f-9a68-31247b34b81d post=f534349c-46d9-484a-b8b0-7bddf35eefc0 text → 1청크
-[20260628-07:43:32][BE] [RAG] 학습 진행률: 50% (댓글 본문)
-[20260628-07:43:32][BE] [RAG] 저장 완료 — 1청크 / 0개 게시글 / 1개 댓글
-[20260628-07:43:32][BE] [RAG] 학습 진행률: 100% (저장)
-[20260628-07:43:33][BE] [RAG] 댓글 학습 완료 — 1개 댓글 (3.8s)
-[20260628-07:46:38][BE] [ATTACH-REF] sync ownerType=comment ownerId=c-353f90fe-2526-46ae-ab43-7b882445ab60 actorUserId=1 prev=0 next=0 add=0 remove=0
-[20260628-07:46:38][BE] [RAG] 댓글 학습 시작 — 1개 댓글 (제외: 0개)
-[20260628-07:46:39][BE] /home/freegear/EasyDocStation/server/rag_train.py:112: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
-[20260628-07:46:39][BE]   from langchain_community.document_loaders import Docx2txtLoader
-[20260628-07:46:42][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table' already exists
-[20260628-07:46:42][BE] [RAG] comment=c-353f90fe-2526-46ae-ab43-7b882445ab60 post=f534349c-46d9-484a-b8b0-7bddf35eefc0 text → 4청크
-[20260628-07:46:42][BE] [RAG] 학습 진행률: 50% (댓글 본문)
-[20260628-07:46:42][BE] [RAG] 저장 완료 — 4청크 / 0개 게시글 / 1개 댓글
-[20260628-07:46:42][BE] [RAG] 학습 진행률: 100% (저장)
-[20260628-07:46:42][BE] [RAG] 댓글 학습 완료 — 1개 댓글 (3.9s)
-AM 7:48:52 [vite] hmr update /src/components/SiteAdminPage.jsx, /src/index.css
-AM 7:49:22 [vite] hmr update /src/components/SiteAdminPage.jsx, /src/index.css
-[20260628-07:50:09][BE] [ATTACH-REF] sync ownerType=post ownerId=c71a9665-8f52-40da-9265-edebfc6f5452 actorUserId=1 prev=0 next=0 add=0 remove=0
-[20260628-07:50:09][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
-[20260628-07:50:09][BE] /home/freegear/EasyDocStation/server/rag_train.py:112: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
-[20260628-07:50:09][BE]   from langchain_community.document_loaders import Docx2txtLoader
-[20260628-07:50:13][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table' already exists
-[20260628-07:50:13][BE] [RAG] post=c71a9665-8f52-40da-9265-edebfc6f5452 text → 1청크
-[20260628-07:50:13][BE] [RAG] 학습 진행률: 50% (게시글 본문)
-[20260628-07:50:13][BE] [RAG] 저장 완료 — 1청크 / 1개 게시글 / 0개 댓글
-[20260628-07:50:13][BE] [RAG] 학습 진행률: 100% (저장)
-[20260628-07:50:13][BE] [RAG] 학습 완료
-[20260628-07:50:49][BE] [ATTACH-REF] sync ownerType=comment ownerId=c-75f92569-bd7d-43bc-a901-7bbe3e89445b actorUserId=1 prev=0 next=0 add=0 remove=0
-[20260628-07:50:49][BE] [RAG] 댓글 학습 시작 — 1개 댓글 (제외: 0개)
-[20260628-07:50:49][BE] /home/freegear/EasyDocStation/server/rag_train.py:112: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
-[20260628-07:50:49][BE]   from langchain_community.document_loaders import Docx2txtLoader
-[20260628-07:50:52][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table' already exists
-[20260628-07:50:52][BE] [RAG] comment=c-75f92569-bd7d-43bc-a901-7bbe3e89445b post=f534349c-46d9-484a-b8b0-7bddf35eefc0 text → 2청크
-[20260628-07:50:52][BE] [RAG] 학습 진행률: 50% (댓글 본문)
-[20260628-07:50:52][BE] [RAG] 저장 완료 — 2청크 / 0개 게시글 / 1개 댓글
-[20260628-07:50:52][BE] [RAG] 학습 진행률: 100% (저장)
-[20260628-07:50:53][BE] [RAG] 댓글 학습 완료 — 1개 댓글 (3.9s)
-[20260628-07:50:55][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+[20260629-03:15:53][BE] [RAG] 초기화 — 학습 방식: immediate
+[20260629-03:15:53][BE] [RAG] 초기화 — PDF 파싱 모드: FAST
+[20260629-03:15:53][BE] [Mail sync] 자동 동기화 스케줄러 시작: interval=600s
+[20260629-03:15:53][BE] ✅ EasyDocStation server running on http://localhost:3001
+[20260629-03:15:53][BE] ✅ [CONFIG] HF_TOKEN 확인됨 (hf_u****butv, 길이 37)
+[20260629-03:15:53][BE] ✅ Cassandra connected
+[20260629-03:15:53][BE] ✅ Cassandra schema initialized
+[20260629-03:15:53][BE] ✅ Database migration complete.
+[20260629-03:15:56][BE] [RAG Server] [RAG Server] 임베딩 모델 로드 중 (device=cuda)...
+[20260629-03:15:56][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260629-03:15:57][BE] [link-preview-image] 내부망 주소는 미리보기를 지원하지 않습니다.
+[20260629-03:16:11][BE] [RAG Server] [RAG Server] 임베딩 모델 로드 완료
+[20260629-03:16:11][BE] [RAG Server] [RAG Server] 포트 5001 에서 시작됨
+[20260629-03:16:31][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+[20260629-03:16:50][BE] [QuestionLocate] search_documents lookup failed: excludedKeys is not defined
+[20260629-03:17:17][BE] [link-preview-image] 내부망 주소는 미리보기를 지원하지 않습니다.
+[20260629-03:21:30][BE] [link-preview-image] 내부망 주소는 미리보기를 지원하지 않습니다.
+[20260629-03:21:37][BE] [ATTACH-REF] sync ownerType=comment ownerId=c-a3ddfc5e-090a-4214-ab54-0f956072ee61 actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260629-03:21:37][BE] [RAG] 댓글 학습 시작 — 1개 댓글 (제외: 0개)
+[20260629-03:21:37][BE] /home/freegear/EasyDocStation/server/rag_train.py:120: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260629-03:21:37][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260629-03:21:40][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v2' already exists
+[20260629-03:21:40][BE] [RAG] comment=c-a3ddfc5e-090a-4214-ab54-0f956072ee61 post=ee4cceb0-dbf2-4680-93a2-19553d4c8620 text → 2청크
+[20260629-03:21:40][BE] [RAG] 학습 진행률: 50% (댓글 본문)
+[20260629-03:21:40][BE] [RAG] 저장 완료 — 2청크 / 0개 게시글 / 1개 댓글
+[20260629-03:21:40][BE] [RAG] 학습 진행률: 100% (저장)
+[20260629-03:21:41][BE] [RAG] 댓글 학습 완료 — 1개 댓글 (4.2s)
+[20260629-03:21:47][BE] [ATTACH-REF] sync ownerType=comment ownerId=c-0e3aa481-0ba1-4f0d-bd8c-15d775fe3d2e actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260629-03:21:47][BE] [RAG] 댓글 학습 시작 — 1개 댓글 (제외: 0개)
+[20260629-03:21:47][BE] /home/freegear/EasyDocStation/server/rag_train.py:120: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260629-03:21:47][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260629-03:21:50][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v2' already exists
+[20260629-03:21:50][BE] [RAG] comment=c-0e3aa481-0ba1-4f0d-bd8c-15d775fe3d2e post=ee4cceb0-dbf2-4680-93a2-19553d4c8620 text → 1청크
+[20260629-03:21:50][BE] [RAG] 학습 진행률: 50% (댓글 본문)
+[20260629-03:21:50][BE] [RAG] 저장 완료 — 1청크 / 0개 게시글 / 1개 댓글
+[20260629-03:21:50][BE] [RAG] 학습 진행률: 100% (저장)
+[20260629-03:21:51][BE] [RAG] 댓글 학습 완료 — 1개 댓글 (3.9s)
+[20260629-03:24:06][BE] [ATTACH-REF] sync ownerType=comment ownerId=c-34e36c24-43e0-4fe8-be96-0ee1f5d688ac actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260629-03:24:06][BE] [RAG] 댓글 학습 시작 — 1개 댓글 (제외: 0개)
+[20260629-03:24:06][BE] /home/freegear/EasyDocStation/server/rag_train.py:120: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260629-03:24:06][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260629-03:24:10][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v2' already exists
+[20260629-03:24:10][BE] [RAG] comment=c-34e36c24-43e0-4fe8-be96-0ee1f5d688ac post=ee4cceb0-dbf2-4680-93a2-19553d4c8620 text → 1청크
+[20260629-03:24:10][BE] [RAG] 학습 진행률: 50% (댓글 본문)
+[20260629-03:24:10][BE] [RAG] 저장 완료 — 1청크 / 0개 게시글 / 1개 댓글
+[20260629-03:24:10][BE] [RAG] 학습 진행률: 100% (저장)
+[20260629-03:24:10][BE] [RAG] 댓글 학습 완료 — 1개 댓글 (3.9s)
 종료됨
-[20260628-07:53:20][BE] process exited with code 143. restarting in 2s...
+[20260629-03:24:12][BE] process exited with code 143. restarting in 2s...
 종료됨
-[20260628-07:53:20][BE] 
-[20260628-07:53:20][BE] > easydocstation-server@1.0.0 start
-[20260628-07:53:20][BE] > node index.js
-[20260628-07:53:20][BE] 
-[20260628-07:53:21][BE] [RAG] 초기화 — 학습 방식: immediate
-[20260628-07:53:21][BE] [RAG] 초기화 — PDF 파싱 모드: FAST
-[20260628-07:53:21][BE] [Mail sync] 자동 동기화 스케줄러 시작: interval=600s
-[20260628-07:53:21][BE] ✅ EasyDocStation server running on http://localhost:3001
-[20260628-07:53:21][BE] ✅ [CONFIG] HF_TOKEN 확인됨 (hf_u****butv, 길이 37)
-[20260628-07:53:21][BE] ✅ Cassandra connected
-[20260628-07:53:21][BE] ✅ Cassandra schema initialized
-[20260628-07:53:21][BE] ✅ Database migration complete.
-[20260628-07:53:21][BE] Terminated
+[20260629-03:24:13][BE] 
+[20260629-03:24:13][BE] > easydocstation-server@1.0.0 start
+[20260629-03:24:13][BE] > node index.js
+[20260629-03:24:13][BE] 
+[20260629-03:24:13][BE] [RAG] 초기화 — 학습 방식: immediate
+[20260629-03:24:13][BE] [RAG] 초기화 — PDF 파싱 모드: FAST
+[20260629-03:24:13][BE] [Mail sync] 자동 동기화 스케줄러 시작: interval=600s
+[20260629-03:24:13][BE] ✅ EasyDocStation server running on http://localhost:3001
+[20260629-03:24:13][BE] ✅ [CONFIG] HF_TOKEN 확인됨 (hf_u****butv, 길이 37)
+[20260629-03:24:13][BE] ✅ Cassandra connected
+[20260629-03:24:13][BE] ✅ Cassandra schema initialized
+[20260629-03:24:13][BE] ✅ Database migration complete.
+[20260629-03:24:13][BE] Terminated
+
+> easydocstation@1.0.0 ollama:serve
+> node scripts/ollama-serve-safe.mjs
+
+
+> easydocstation@1.0.0 dev:frontend
+> vite
+
+[Ollama] already running on 127.0.0.1:11434, skipping duplicate serve.
+[20260629-03:24:15][BE] 
+[20260629-03:24:15][BE] > easydocstation-server@1.0.0 start
+[20260629-03:24:15][BE] > node index.js
+[20260629-03:24:15][BE] 
+
+  VITE v5.4.21  ready in 88 ms
+
+  ➜  Local:   http://localhost:5173/
+  ➜  Network: http://10.0.0.194:5173/
+[20260629-03:24:15][BE] [RAG] 초기화 — 학습 방식: immediate
+[20260629-03:24:15][BE] [RAG] 초기화 — PDF 파싱 모드: FAST
+[20260629-03:24:15][BE] [Mail sync] 자동 동기화 스케줄러 시작: interval=600s
+[20260629-03:24:15][BE] ✅ EasyDocStation server running on http://localhost:3001
+[20260629-03:24:15][BE] ✅ [CONFIG] HF_TOKEN 확인됨 (hf_u****butv, 길이 37)
+[20260629-03:24:15][BE] ✅ Cassandra connected
+[20260629-03:24:15][BE] ✅ Cassandra schema initialized
+[20260629-03:24:15][BE] ✅ Database migration complete.
+[20260629-03:24:19][BE] [RAG Server] [RAG Server] 임베딩 모델 로드 중 (device=cuda)...
+[20260629-03:24:19][BE] [link-preview-image] 내부망 주소는 미리보기를 지원하지 않습니다.
+[20260629-03:24:33][BE] [RAG Server] [RAG Server] 임베딩 모델 로드 완료
+[20260629-03:24:33][BE] [RAG Server] [RAG Server] 포트 5001 에서 시작됨
+[20260629-03:24:53][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+[20260629-03:25:49][BE] [link-preview-image] 내부망 주소는 미리보기를 지원하지 않습니다.
+AM 3:25:52 [vite] hmr update /src/components/GroqPanel.jsx, /src/index.css
+AM 3:26:07 [vite] hmr update /src/components/GroqPanel.jsx, /src/index.css
+AM 3:26:18 [vite] hmr update /src/components/GroqPanel.jsx, /src/index.css
+[20260629-03:26:52][BE] [link-preview-image] 내부망 주소는 미리보기를 지원하지 않습니다.
+[20260629-03:27:11][BE] [link-preview-image] meta image failed, fallback screenshot: meta page fetch failed (403)
+AM 3:27:11 [vite] hmr update /src/components/GroqPanel.jsx, /src/index.css
+[20260629-03:27:12][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260629-03:27:12][BE] [link-preview-image] meta image failed, fallback screenshot: fetch failed
+[20260629-03:27:19][BE] [link-preview-image] meta image failed, fallback screenshot: This operation was aborted
+[20260629-03:27:31][BE] [link-preview-image] local render failed, try remote fallback: page.goto: Timeout 12000ms exceeded.
+[20260629-03:27:31][BE] Call log:
+[20260629-03:27:31][BE] [2m  - navigating to "http://114.207.245.216/", waiting until "domcontentloaded"[22m
+[20260629-03:27:31][BE] 
+[20260629-03:27:32][BE] [link-preview-image] remote fallback failed, placeholder: fallback preview fetch failed (404)
+[20260629-03:28:10][BE] [link-preview-image] 내부망 주소는 미리보기를 지원하지 않습니다.
+[20260629-03:34:23][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+[20260629-03:44:23][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+[20260629-03:54:23][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+[20260629-04:04:23][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+[20260629-04:14:23][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+종료됨
+[20260629-04:23:53][BE] process exited with code 143. restarting in 2s...
+종료됨
+[20260629-04:23:53][BE] 
+[20260629-04:23:53][BE] > easydocstation-server@1.0.0 start
+[20260629-04:23:53][BE] > node index.js
+[20260629-04:23:53][BE] 
+[20260629-04:23:53][BE] [RAG] 초기화 — 학습 방식: immediate
+[20260629-04:23:53][BE] [RAG] 초기화 — PDF 파싱 모드: FAST
+[20260629-04:23:53][BE] [Mail sync] 자동 동기화 스케줄러 시작: interval=600s
+[20260629-04:23:53][BE] ✅ EasyDocStation server running on http://localhost:3001
+[20260629-04:23:53][BE] ✅ [CONFIG] HF_TOKEN 확인됨 (hf_u****butv, 길이 37)
+[20260629-04:23:53][BE] ✅ Cassandra connected
+[20260629-04:23:53][BE] ✅ Cassandra schema initialized
+[20260629-04:23:53][BE] ✅ Database migration complete.
+[20260629-04:23:53][BE] Terminated
 
 > easydocstation@1.0.0 dev:frontend
 > vite
@@ -507,135 +559,670 @@ AM 7:49:22 [vite] hmr update /src/components/SiteAdminPage.jsx, /src/index.css
 > node scripts/ollama-serve-safe.mjs
 
 [Ollama] already running on 127.0.0.1:11434, skipping duplicate serve.
-[20260628-07:53:23][BE] 
-[20260628-07:53:23][BE] > easydocstation-server@1.0.0 start
-[20260628-07:53:23][BE] > node index.js
-[20260628-07:53:23][BE] 
+[20260629-04:23:56][BE] 
+[20260629-04:23:56][BE] > easydocstation-server@1.0.0 start
+[20260629-04:23:56][BE] > node index.js
+[20260629-04:23:56][BE] 
 
   VITE v5.4.21  ready in 100 ms
 
   ➜  Local:   http://localhost:5173/
   ➜  Network: http://10.0.0.194:5173/
-[20260628-07:53:23][BE] [RAG] 초기화 — 학습 방식: immediate
-[20260628-07:53:23][BE] [RAG] 초기화 — PDF 파싱 모드: FAST
-[20260628-07:53:23][BE] [Mail sync] 자동 동기화 스케줄러 시작: interval=600s
-[20260628-07:53:23][BE] ✅ EasyDocStation server running on http://localhost:3001
-[20260628-07:53:23][BE] ✅ [CONFIG] HF_TOKEN 확인됨 (hf_u****butv, 길이 37)
-[20260628-07:53:23][BE] ✅ Cassandra connected
-[20260628-07:53:23][BE] ✅ Cassandra schema initialized
-[20260628-07:53:23][BE] ✅ Database migration complete.
-[20260628-07:53:26][BE] [RAG Server] [RAG Server] 임베딩 모델 로드 중 (device=cuda)...
-[20260628-07:53:30][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
-[20260628-07:53:31][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
-[20260628-07:53:31][BE] [link-preview-image] 내부망 주소는 미리보기를 지원하지 않습니다.
-[20260628-07:53:42][BE] [RAG Server] [RAG Server] 임베딩 모델 로드 완료
-[20260628-07:53:42][BE] [RAG Server] 포트 5001 에서 시작됨
-[20260628-07:54:01][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
-[20260628-08:03:30][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
-[20260628-08:05:08][BE] [link-preview-image] 내부망 주소는 미리보기를 지원하지 않습니다.
-[20260628-08:06:50][BE] /home/freegear/EasyDocStation/server/rag_train.py:112: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
-[20260628-08:06:50][BE]   from langchain_community.document_loaders import Docx2txtLoader
-[20260628-08:06:53][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table' already exists
-[20260628-08:06:53][BE] [RAG] 기존 청크 삭제 완료: post_id=rag-1782601562030-ple4dh
-[20260628-08:06:54][BE] [RAG] post=rag-1782601562030-ple4dh text → 1청크
-[20260628-08:06:54][BE] [RAG] 학습 진행률: 50% (게시글 본문)
-[20260628-08:06:54][BE] [RAG] 저장 완료 — 1청크 / 1개 게시글 / 0개 댓글
-[20260628-08:06:54][BE] [RAG] 학습 진행률: 100% (저장)
-[20260628-08:06:54][BE] /home/freegear/EasyDocStation/server/rag_train.py:112: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
-[20260628-08:06:54][BE]   from langchain_community.document_loaders import Docx2txtLoader
-[20260628-08:06:57][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table' already exists
-[20260628-08:06:58][BE] [RAG] 기존 청크 삭제 완료: post_id=rag-1782601590395-vmsi0h
-[20260628-08:06:58][BE] [RAG] post=rag-1782601590395-vmsi0h text → 1청크
-[20260628-08:06:58][BE] [RAG] 학습 진행률: 50% (게시글 본문)
-[20260628-08:06:58][BE] [RAG] 저장 완료 — 1청크 / 1개 게시글 / 0개 댓글
-[20260628-08:06:58][BE] [RAG] 학습 진행률: 100% (저장)
-[20260628-08:06:58][BE] /home/freegear/EasyDocStation/server/rag_train.py:112: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
-[20260628-08:06:58][BE]   from langchain_community.document_loaders import Docx2txtLoader
-[20260628-08:07:01][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table' already exists
-[20260628-08:07:01][BE] [RAG] 기존 청크 삭제 완료: post_id=rag-1782601607139-cepn6m
-[20260628-08:07:01][BE] [RAG] post=rag-1782601607139-cepn6m text → 1청크
-[20260628-08:07:01][BE] [RAG] 학습 진행률: 50% (게시글 본문)
-[20260628-08:07:01][BE] [RAG] 저장 완료 — 1청크 / 1개 게시글 / 0개 댓글
-[20260628-08:07:01][BE] [RAG] 학습 진행률: 100% (저장)
-[20260628-08:13:31][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
-[20260628-08:23:31][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
-[20260628-08:33:31][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
-[20260628-08:43:31][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
-[20260628-08:53:32][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
-[20260628-08:58:06][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
-[20260628-08:58:06][BE] [link-preview-image] 내부망 주소는 미리보기를 지원하지 않습니다.
-[20260628-08:58:06][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
-[20260628-08:58:35][BE] [link-preview-image] 내부망 주소는 미리보기를 지원하지 않습니다.
-[20260628-09:03:31][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
-[20260628-09:04:04][BE] [ATTACH-REF] sync ownerType=post ownerId=6c9b815b-80c5-42e0-880a-53413b7b172f actorUserId=1 prev=0 next=4 add=4 remove=0
-[20260628-09:04:04][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
-[20260628-09:04:04][BE] /home/freegear/EasyDocStation/server/rag_train.py:120: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
-[20260628-09:04:04][BE]   from langchain_community.document_loaders import Docx2txtLoader
-[20260628-09:04:07][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table' already exists
-[20260628-09:04:07][BE] [RAG] post=6c9b815b-80c5-42e0-880a-53413b7b172f text → 1청크
-[20260628-09:04:07][BE] [RAG] 학습 진행률: 10% (게시글 본문)
-[20260628-09:04:07][BE] [RAG] PDF 학습 시작: 2. 신청서식.pdf
-[20260628-09:04:07][BE] [RAG] PDF 파싱 시작 (Unstructured fast): 2. 신청서식.pdf
-[20260628-09:04:09][BE] [RAG] PDF 파싱 완료 (Unstructured fast): 2. 신청서식.pdf / elements=426 / 1.7s
-[20260628-09:04:10][BE] [RAG] PDF 학습 완료: 2. 신청서식.pdf (20청크)
-[20260628-09:04:10][BE] [RAG] 분리 저장 완료: /home/freegear/EasyDocStation/Database/ObjectFile/FileTrainingData/6c9b815b-80c5-42e0-880a-53413b7b172f/no_comment/62e08339-1695-4915-a070-a0c22c947220/2._신청서식.pdf
-[20260628-09:04:10][BE] [RAG] 학습 진행률: 30% (게시글 PDF)
-[20260628-09:04:10][BE] [RAG] PDF 학습 시작: 1. 공고문.pdf
-[20260628-09:04:10][BE] [RAG] PDF 파싱 시작 (Unstructured fast): 1. 공고문.pdf
-[20260628-09:04:19][BE] [RAG] PDF 학습 완료: 1. 공고문.pdf (77청크)
-[20260628-09:04:19][BE] [RAG] 분리 저장 완료: /home/freegear/EasyDocStation/Database/ObjectFile/FileTrainingData/6c9b815b-80c5-42e0-880a-53413b7b172f/no_comment/0ba11abf-cd04-4c12-a908-8a67b5c3f0bd/1._공고문.pdf
-[20260628-09:04:19][BE] [RAG] 학습 진행률: 50% (게시글 PDF)
-[20260628-09:04:19][BE] [RAG] PDF 학습 시작: 3. 질의응답.pdf
-[20260628-09:04:19][BE] [RAG] PDF 파싱 시작 (Unstructured fast): 3. 질의응답.pdf
-[20260628-09:04:20][BE] [RAG] PDF 파싱 완료 (Unstructured fast): 3. 질의응답.pdf / elements=229 / 0.8s
-[20260628-09:04:21][BE] [RAG] PDF 학습 완료: 3. 질의응답.pdf (15청크)
-[20260628-09:04:21][BE] [RAG] 분리 저장 완료: /home/freegear/EasyDocStation/Database/ObjectFile/FileTrainingData/6c9b815b-80c5-42e0-880a-53413b7b172f/no_comment/0c3528bb-8b19-4cb6-a301-1134f3667030/3._질의응답.pdf
-[20260628-09:04:21][BE] [RAG] 학습 진행률: 60% (게시글 PDF)
-[20260628-09:04:21][BE] [RAG] PDF 학습 시작: 4_2026년 혁신 소상공인 AI 활용지원 사업 소상공인 사업신청 가이드.pdf
-[20260628-09:04:21][BE] [RAG] PDF 파싱 시작 (Unstructured fast): 4_2026년 혁신 소상공인 AI 활용지원 사업 소상공인 사업신청 가이드.pdf
-[20260628-09:04:24][BE] [RAG] Tesseract OCR fallback 시작: lang=kor+eng, pages=12
-[20260628-09:04:24][BE] [RAG] Tesseract OCR 진행: 1/12
-[20260628-09:04:30][BE] [RAG] Tesseract OCR 진행: 5/12
-[20260628-09:04:37][BE] [RAG] Tesseract OCR 진행: 10/12
-[20260628-09:04:41][BE] [RAG] Tesseract OCR 진행: 12/12
-[20260628-09:04:43][BE] [RAG] Tesseract OCR fallback 완료: 추출 페이지 12/12
-[20260628-09:04:43][BE] [RAG] PDF 학습 완료: 4_2026년 혁신 소상공인 AI 활용지원 사업 소상공인 사업신청 가이드.pdf (13청크)
-[20260628-09:04:43][BE] [RAG] 분리 저장 완료: /home/freegear/EasyDocStation/Database/ObjectFile/FileTrainingData/6c9b815b-80c5-42e0-880a-53413b7b172f/no_comment/e3b25e53-a3b1-4b20-bfaf-f756ced5e938/4_2026년_혁신_소상공인_AI_활용지원_사업_소상공인_사업신청_가이드.pdf
-[20260628-09:04:43][BE] [RAG] 학습 진행률: 80% (게시글 PDF)
-[20260628-09:04:43][BE] [RAG] 저장 완료 — 126청크 / 1개 게시글 / 0개 댓글
-[20260628-09:04:43][BE] [RAG] 학습 진행률: 100% (저장)
-[20260628-09:04:48][BE] [RAG] 학습 완료
-[20260628-09:11:29][BE] [link-preview-image] 내부망 주소는 미리보기를 지원하지 않습니다.
-[20260628-09:11:34][BE] [ATTACH-REF] sync ownerType=comment ownerId=c-0d9f0a08-e233-4e48-ac83-1bd75df9fc01 actorUserId=1 prev=0 next=0 add=0 remove=0
-[20260628-09:11:34][BE] [RAG] 댓글 학습 시작 — 1개 댓글 (제외: 0개)
-[20260628-09:11:34][BE] /home/freegear/EasyDocStation/server/rag_train.py:120: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
-[20260628-09:11:34][BE]   from langchain_community.document_loaders import Docx2txtLoader
-[20260628-09:11:39][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table' already exists
-[20260628-09:11:39][BE] [RAG] comment=c-0d9f0a08-e233-4e48-ac83-1bd75df9fc01 post=25b92cd8-b9f6-4922-a59a-f5454c57f463 text → 3청크
-[20260628-09:11:39][BE] [RAG] 학습 진행률: 50% (댓글 본문)
-[20260628-09:11:39][BE] [RAG] 저장 완료 — 3청크 / 0개 게시글 / 1개 댓글
-[20260628-09:11:39][BE] [RAG] 학습 진행률: 100% (저장)
-[20260628-09:11:42][BE] [RAG] 댓글 학습 완료 — 1개 댓글 (7.6s)
-[20260628-09:12:00][BE] [ATTACH-REF] sync ownerType=comment ownerId=c-0a15ea2b-81b0-4532-8eb1-495605446bbe actorUserId=1 prev=0 next=0 add=0 remove=0
-[20260628-09:12:00][BE] [RAG] 댓글 학습 시작 — 1개 댓글 (제외: 0개)
-[20260628-09:12:00][BE] /home/freegear/EasyDocStation/server/rag_train.py:120: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
-[20260628-09:12:00][BE]   from langchain_community.document_loaders import Docx2txtLoader
-[20260628-09:12:05][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table' already exists
-[20260628-09:12:06][BE] [RAG] comment=c-0a15ea2b-81b0-4532-8eb1-495605446bbe post=25b92cd8-b9f6-4922-a59a-f5454c57f463 text → 3청크
-[20260628-09:12:06][BE] [RAG] 학습 진행률: 50% (댓글 본문)
-[20260628-09:12:06][BE] [RAG] 저장 완료 — 3청크 / 0개 게시글 / 1개 댓글
-[20260628-09:12:06][BE] [RAG] 학습 진행률: 100% (저장)
-[20260628-09:12:08][BE] [RAG] 댓글 학습 완료 — 1개 댓글 (7.8s)
-[20260628-09:12:53][BE] [ATTACH-REF] sync ownerType=comment ownerId=c-0d9f0a08-e233-4e48-ac83-1bd75df9fc01 actorUserId=1 prev=0 next=0 add=0 remove=0
-[20260628-09:12:53][BE] [휴지통] 1건 영구 삭제 완료
-[20260628-09:13:31][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
-[20260628-09:14:45][BE] [ATTACH-REF] sync ownerType=comment ownerId=c-2d8a8504-907e-4611-842c-404dec5bb1ba actorUserId=1 prev=0 next=0 add=0 remove=0
-[20260628-09:14:45][BE] [RAG] 댓글 학습 시작 — 1개 댓글 (제외: 0개)
-[20260628-09:14:45][BE] /home/freegear/EasyDocStation/server/rag_train.py:120: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
-[20260628-09:14:45][BE]   from langchain_community.document_loaders import Docx2txtLoader
-[20260628-09:14:50][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table' already exists
-[20260628-09:14:51][BE] [RAG] comment=c-2d8a8504-907e-4611-842c-404dec5bb1ba post=25b92cd8-b9f6-4922-a59a-f5454c57f463 text → 4청크
-[20260628-09:14:51][BE] [RAG] 학습 진행률: 50% (댓글 본문)
-[20260628-09:14:51][BE] [RAG] 저장 완료 — 4청크 / 0개 게시글 / 1개 댓글
-[20260628-09:14:51][BE] [RAG] 학습 진행률: 100% (저장)
-[20260628-09:14:53][BE] [RAG] 댓글 학습 완료 — 1개 댓글 (7.8s)
+[20260629-04:23:56][BE] [RAG] 초기화 — 학습 방식: immediate
+[20260629-04:23:56][BE] [RAG] 초기화 — PDF 파싱 모드: FAST
+[20260629-04:23:56][BE] [Mail sync] 자동 동기화 스케줄러 시작: interval=600s
+[20260629-04:23:56][BE] ✅ EasyDocStation server running on http://localhost:3001
+[20260629-04:23:56][BE] ✅ [CONFIG] HF_TOKEN 확인됨 (hf_u****butv, 길이 37)
+[20260629-04:23:56][BE] ✅ Cassandra connected
+[20260629-04:23:56][BE] ✅ Cassandra schema initialized
+[20260629-04:23:56][BE] ✅ Database migration complete.
+[20260629-04:23:59][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260629-04:23:59][BE] [RAG Server] [RAG Server] 임베딩 모델 로드 중 (device=cuda)...
+[20260629-04:24:00][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260629-04:24:00][BE] [link-preview-image] 내부망 주소는 미리보기를 지원하지 않습니다.
+[20260629-04:24:14][BE] [RAG Server] [RAG Server] 임베딩 모델 로드 완료
+[20260629-04:24:14][BE] [RAG Server] 포트 5001 에서 시작됨
+[20260629-04:24:33][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+[20260629-04:33:56][BE] [link-preview-image] 내부망 주소는 미리보기를 지원하지 않습니다.
+[20260629-04:34:03][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+[20260629-04:34:05][BE] [link-preview-image] 내부망 주소는 미리보기를 지원하지 않습니다.
+[20260629-04:34:08][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260629-04:34:09][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260629-04:34:52][BE] [ATTACH-REF] sync ownerType=post ownerId=70e2bd62-ec09-4477-b209-db9bfb6f4830 actorUserId=1 prev=1 next=1 add=0 remove=0
+[20260629-04:34:52][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
+[20260629-04:34:52][BE] /home/freegear/EasyDocStation/server/rag_train.py:120: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260629-04:34:52][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260629-04:34:55][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v2' already exists
+[20260629-04:34:55][BE] [RAG] 기존 청크 삭제 완료: post_id=70e2bd62-ec09-4477-b209-db9bfb6f4830
+[20260629-04:34:55][BE] [RAG] post=70e2bd62-ec09-4477-b209-db9bfb6f4830 text → 1청크
+[20260629-04:34:55][BE] [RAG] 학습 진행률: 10% (게시글 본문)
+[20260629-04:34:55][BE] [RAG] 이미지 학습 시작: Gemini_Generated_Image_x6m0xtx6m0xtx6m0.png
+[20260629-04:35:28][BE] [ATTACH-REF] sync ownerType=comment ownerId=c-e34b72ff-3d8f-4f5b-a3ad-8d8b550958d8 actorUserId=1 prev=1 next=1 add=0 remove=0
+[20260629-04:35:28][BE] [SearchIndex] 이미지 첨부 인덱싱 완료: 311cde04-6873-4acf-a540-05fdfe12f8f3 Gemini_Generated_Image_9b4hq39b4hq39b4h.png
+[20260629-04:35:28][BE] [RAG] 댓글 학습 시작 — 1개 댓글 (제외: 0개)
+[20260629-04:35:28][BE] /home/freegear/EasyDocStation/server/rag_train.py:120: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260629-04:35:28][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260629-04:35:33][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v2' already exists
+[20260629-04:35:33][BE] [RAG] 기존 청크 삭제 완료: comment_id=c-e34b72ff-3d8f-4f5b-a3ad-8d8b550958d8
+[20260629-04:35:33][BE] [RAG] comment=c-e34b72ff-3d8f-4f5b-a3ad-8d8b550958d8 post=70e2bd62-ec09-4477-b209-db9bfb6f4830 text → 1청크
+[20260629-04:35:33][BE] [RAG] 학습 진행률: 30% (댓글 본문)
+[20260629-04:35:33][BE] [RAG] 이미지 학습 시작: Gemini_Generated_Image_9b4hq39b4hq39b4h.png
+[20260629-04:35:43][BE] [RAG] Gemma 이미지 설명 완료 (page=1, 47.8s): 3220자
+[20260629-04:35:43][BE] [RAG] 이미지 학습 완료: Gemini_Generated_Image_x6m0xtx6m0xtx6m0.png (5청크)
+[20260629-04:35:43][BE] [RAG] 학습 진행률: 20% (게시글 이미지)
+[20260629-04:35:43][BE] [RAG] 이미지 학습 시작: KakaoTalk_Photo_2026-05-20-10-39-21.jpeg
+[20260629-04:36:29][BE] [RAG] Gemma 이미지 설명 완료 (page=1, 56.0s): 3515자
+[20260629-04:36:29][BE] [RAG] 이미지 학습 완료: Gemini_Generated_Image_9b4hq39b4hq39b4h.png (6청크)
+[20260629-04:36:29][BE] [RAG] 학습 진행률: 60% (댓글 이미지)
+[20260629-04:36:29][BE] [RAG] 저장 완료 — 7청크 / 0개 게시글 / 1개 댓글
+[20260629-04:36:29][BE] [RAG] 학습 진행률: 100% (저장)
+[20260629-04:36:32][BE] [RAG] 댓글 학습 완료 — 1개 댓글 (63.6s)
+[20260629-04:37:12][BE] [RAG] Gemma 이미지 설명 완료 (page=1, 88.4s): 3358자
+[20260629-04:37:12][BE] [RAG] 이미지 학습 완료: KakaoTalk_Photo_2026-05-20-10-39-21.jpeg (5청크)
+[20260629-04:37:12][BE] [RAG] 학습 진행률: 30% (게시글 이미지)
+[20260629-04:37:12][BE] [RAG] 이미지 학습 시작: Gemini_Generated_Image_ludcjiludcjiludc.png
+[20260629-04:38:01][BE] [RAG] Gemma 이미지 설명 완료 (page=1, 48.9s): 3930자
+[20260629-04:38:01][BE] [RAG] 이미지 학습 완료: Gemini_Generated_Image_ludcjiludcjiludc.png (7청크)
+[20260629-04:38:01][BE] [RAG] 학습 진행률: 40% (게시글 이미지)
+[20260629-04:38:01][BE] [RAG] 이미지 학습 시작: Gemini_Generated_Image_9b4hq39b4hq39b4h.png
+[20260629-04:38:47][BE] [RAG] Gemma 이미지 설명 완료 (page=1, 46.3s): 3515자
+[20260629-04:38:48][BE] [RAG] 이미지 학습 완료: Gemini_Generated_Image_9b4hq39b4hq39b4h.png (6청크)
+[20260629-04:38:48][BE] [RAG] 학습 진행률: 50% (게시글 이미지)
+[20260629-04:38:48][BE] [RAG] 이미지 학습 시작: Gemini_Generated_Image_4yq20s4yq20s4yq2.png
+[20260629-04:39:40][BE] [RAG] Gemma 이미지 설명 완료 (page=1, 52.4s): 3965자
+[20260629-04:39:40][BE] [RAG] 이미지 학습 완료: Gemini_Generated_Image_4yq20s4yq20s4yq2.png (6청크)
+[20260629-04:39:40][BE] [RAG] 학습 진행률: 60% (게시글 이미지)
+[20260629-04:39:40][BE] [RAG] 이미지 학습 시작: Gemini_Generated_Image_eeig9seeig9seeig.png
+[20260629-04:40:30][BE] [RAG] Gemma 이미지 설명 완료 (page=1, 49.4s): 3880자
+[20260629-04:40:30][BE] [RAG] 이미지 학습 완료: Gemini_Generated_Image_eeig9seeig9seeig.png (6청크)
+[20260629-04:40:30][BE] [RAG] 학습 진행률: 70% (게시글 이미지)
+[20260629-04:40:30][BE] [RAG] 이미지 학습 시작: IMG_0426.JPG
+[20260629-04:40:58][BE] [link-preview-image] 내부망 주소는 미리보기를 지원하지 않습니다.
+[20260629-04:41:04][BE] [ATTACH-REF] sync ownerType=post ownerId=4d6dae08-f0c8-46b9-ae1d-fe7ddb9ac9aa actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260629-04:41:04][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
+[20260629-04:41:04][BE] /home/freegear/EasyDocStation/server/rag_train.py:120: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260629-04:41:04][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260629-04:41:09][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v2' already exists
+[20260629-04:41:09][BE] [RAG] post=4d6dae08-f0c8-46b9-ae1d-fe7ddb9ac9aa text → 5청크
+[20260629-04:41:09][BE] [RAG] 학습 진행률: 50% (게시글 본문)
+[20260629-04:41:09][BE] [RAG] 저장 완료 — 5청크 / 1개 게시글 / 0개 댓글
+[20260629-04:41:09][BE] [RAG] 학습 진행률: 100% (저장)
+[20260629-04:41:12][BE] [RAG] 학습 완료
+[20260629-04:41:13][BE] [RAG] Gemma 이미지 설명 완료 (page=1, 42.8s): 3300자
+[20260629-04:41:13][BE] [RAG] 이미지 학습 완료: IMG_0426.JPG (6청크)
+[20260629-04:41:13][BE] [RAG] 학습 진행률: 80% (게시글 이미지)
+[20260629-04:41:13][BE] [RAG] 이미지 학습 시작: Gemini_Generated_Image_cewwk3cewwk3ceww.png
+[20260629-04:42:05][BE] [RAG] Gemma 이미지 설명 완료 (page=1, 52.4s): 4094자
+[20260629-04:42:05][BE] [RAG] 이미지 학습 완료: Gemini_Generated_Image_cewwk3cewwk3ceww.png (6청크)
+[20260629-04:42:05][BE] [RAG] 학습 진행률: 90% (게시글 이미지)
+[20260629-04:42:05][BE] [RAG] 저장 완료 — 48청크 / 1개 게시글 / 0개 댓글
+[20260629-04:42:05][BE] [RAG] 학습 진행률: 100% (저장)
+[20260629-04:42:06][BE] [RAG] 학습 완료
+[20260629-04:42:39][BE] [ATTACH-REF] sync ownerType=comment ownerId=c-8c2cc8d9-a806-4234-b89e-109e379ed4e7 actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260629-04:42:39][BE] [RAG] 댓글 학습 시작 — 1개 댓글 (제외: 0개)
+[20260629-04:42:39][BE] /home/freegear/EasyDocStation/server/rag_train.py:120: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260629-04:42:39][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260629-04:42:42][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v2' already exists
+[20260629-04:42:42][BE] [RAG] comment=c-8c2cc8d9-a806-4234-b89e-109e379ed4e7 post=4d6dae08-f0c8-46b9-ae1d-fe7ddb9ac9aa text → 3청크
+[20260629-04:42:42][BE] [RAG] 학습 진행률: 50% (댓글 본문)
+[20260629-04:42:42][BE] [RAG] 저장 완료 — 3청크 / 0개 게시글 / 1개 댓글
+[20260629-04:42:42][BE] [RAG] 학습 진행률: 100% (저장)
+[20260629-04:42:43][BE] [RAG] 댓글 학습 완료 — 1개 댓글 (4.0s)
+[20260629-04:44:03][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+[20260629-04:44:37][BE] [ATTACH-REF] sync ownerType=comment ownerId=c-6cd9ff59-ee41-428b-bbd0-cda3478d7dbe actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260629-04:44:37][BE] [RAG] 댓글 학습 시작 — 1개 댓글 (제외: 0개)
+[20260629-04:44:37][BE] /home/freegear/EasyDocStation/server/rag_train.py:120: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260629-04:44:37][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260629-04:44:40][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v2' already exists
+[20260629-04:44:41][BE] [RAG] comment=c-6cd9ff59-ee41-428b-bbd0-cda3478d7dbe post=4d6dae08-f0c8-46b9-ae1d-fe7ddb9ac9aa text → 6청크
+[20260629-04:44:41][BE] [RAG] 학습 진행률: 50% (댓글 본문)
+[20260629-04:44:41][BE] [RAG] 저장 완료 — 6청크 / 0개 게시글 / 1개 댓글
+[20260629-04:44:41][BE] [RAG] 학습 진행률: 100% (저장)
+[20260629-04:44:41][BE] [RAG] 댓글 학습 완료 — 1개 댓글 (4.0s)
+[20260629-04:50:54][BE] [link-preview-image] 내부망 주소는 미리보기를 지원하지 않습니다.
+[20260629-04:50:57][BE] [ATTACH-REF] sync ownerType=comment ownerId=c-96589bd1-699b-44f6-91cc-42ee35b178b8 actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260629-04:50:57][BE] [RAG] 댓글 학습 시작 — 1개 댓글 (제외: 0개)
+[20260629-04:50:57][BE] /home/freegear/EasyDocStation/server/rag_train.py:120: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260629-04:50:57][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260629-04:51:00][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v2' already exists
+[20260629-04:51:00][BE] [RAG] comment=c-96589bd1-699b-44f6-91cc-42ee35b178b8 post=4d6dae08-f0c8-46b9-ae1d-fe7ddb9ac9aa text → 3청크
+[20260629-04:51:00][BE] [RAG] 학습 진행률: 50% (댓글 본문)
+[20260629-04:51:00][BE] [RAG] 저장 완료 — 3청크 / 0개 게시글 / 1개 댓글
+[20260629-04:51:00][BE] [RAG] 학습 진행률: 100% (저장)
+[20260629-04:51:01][BE] [RAG] 댓글 학습 완료 — 1개 댓글 (3.9s)
+[20260629-04:54:03][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+[20260629-04:54:28][BE] [ATTACH-REF] sync ownerType=post ownerId=615ce679-f561-4ca2-a601-fa57fc4306a3 actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260629-04:54:28][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
+[20260629-04:54:29][BE] /home/freegear/EasyDocStation/server/rag_train.py:120: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260629-04:54:29][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260629-04:54:32][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v2' already exists
+[20260629-04:54:32][BE] [RAG] post=615ce679-f561-4ca2-a601-fa57fc4306a3 text → 2청크
+[20260629-04:54:32][BE] [RAG] 학습 진행률: 50% (게시글 본문)
+[20260629-04:54:32][BE] [RAG] 저장 완료 — 2청크 / 1개 게시글 / 0개 댓글
+[20260629-04:54:32][BE] [RAG] 학습 진행률: 100% (저장)
+[20260629-04:54:32][BE] [RAG] 학습 완료
+[20260629-04:55:50][BE] [ATTACH-REF] sync ownerType=comment ownerId=c-95667a36-5b3e-4216-8f42-2548e2789228 actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260629-04:55:50][BE] [RAG] 댓글 학습 시작 — 1개 댓글 (제외: 0개)
+[20260629-04:55:50][BE] /home/freegear/EasyDocStation/server/rag_train.py:120: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260629-04:55:50][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260629-04:55:53][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v2' already exists
+[20260629-04:55:53][BE] [RAG] comment=c-95667a36-5b3e-4216-8f42-2548e2789228 post=615ce679-f561-4ca2-a601-fa57fc4306a3 text → 3청크
+[20260629-04:55:53][BE] [RAG] 학습 진행률: 50% (댓글 본문)
+[20260629-04:55:53][BE] [RAG] 저장 완료 — 3청크 / 0개 게시글 / 1개 댓글
+[20260629-04:55:53][BE] [RAG] 학습 진행률: 100% (저장)
+[20260629-04:55:54][BE] [RAG] 댓글 학습 완료 — 1개 댓글 (3.9s)
+[20260629-04:56:58][BE] [ATTACH-REF] sync ownerType=comment ownerId=c-1475b8ec-75c6-40a5-8898-f1133ef6252d actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260629-04:56:58][BE] [RAG] 댓글 학습 시작 — 1개 댓글 (제외: 0개)
+[20260629-04:56:58][BE] /home/freegear/EasyDocStation/server/rag_train.py:120: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260629-04:56:58][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260629-04:57:01][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v2' already exists
+[20260629-04:57:01][BE] [RAG] comment=c-1475b8ec-75c6-40a5-8898-f1133ef6252d post=615ce679-f561-4ca2-a601-fa57fc4306a3 text → 6청크
+[20260629-04:57:01][BE] [RAG] 학습 진행률: 50% (댓글 본문)
+[20260629-04:57:01][BE] [RAG] 저장 완료 — 6청크 / 0개 게시글 / 1개 댓글
+[20260629-04:57:01][BE] [RAG] 학습 진행률: 100% (저장)
+[20260629-04:57:02][BE] [RAG] 댓글 학습 완료 — 1개 댓글 (4.1s)
+AM 4:59:08 [vite] hmr update /src/components/GroqPanel.jsx, /src/index.css
+[20260629-05:00:24][BE] [ATTACH-REF] sync ownerType=comment ownerId=c-7d34e020-5022-48b7-8e73-30968fcde44a actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260629-05:00:24][BE] [RAG] 댓글 학습 시작 — 1개 댓글 (제외: 0개)
+[20260629-05:00:25][BE] /home/freegear/EasyDocStation/server/rag_train.py:120: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260629-05:00:25][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260629-05:00:28][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v2' already exists
+[20260629-05:00:28][BE] [RAG] comment=c-7d34e020-5022-48b7-8e73-30968fcde44a post=615ce679-f561-4ca2-a601-fa57fc4306a3 text → 2청크
+[20260629-05:00:28][BE] [RAG] 학습 진행률: 50% (댓글 본문)
+[20260629-05:00:28][BE] [RAG] 저장 완료 — 2청크 / 0개 게시글 / 1개 댓글
+[20260629-05:00:28][BE] [RAG] 학습 진행률: 100% (저장)
+[20260629-05:00:28][BE] [RAG] 댓글 학습 완료 — 1개 댓글 (3.9s)
+종료됨
+[20260629-05:01:38][BE] process exited with code 143. restarting in 2s...
+종료됨
+[20260629-05:01:39][BE] 
+[20260629-05:01:39][BE] > easydocstation-server@1.0.0 start
+[20260629-05:01:39][BE] > node index.js
+[20260629-05:01:39][BE] 
+[20260629-05:01:39][BE] [RAG] 초기화 — 학습 방식: immediate
+[20260629-05:01:39][BE] [RAG] 초기화 — PDF 파싱 모드: FAST
+[20260629-05:01:39][BE] [Mail sync] 자동 동기화 스케줄러 시작: interval=600s
+[20260629-05:01:39][BE] ✅ EasyDocStation server running on http://localhost:3001
+[20260629-05:01:39][BE] ✅ [CONFIG] HF_TOKEN 확인됨 (hf_u****butv, 길이 37)
+[20260629-05:01:39][BE] ✅ Cassandra connected
+[20260629-05:01:39][BE] ✅ Cassandra schema initialized
+[20260629-05:01:39][BE] ✅ Database migration complete.
+[20260629-05:01:39][BE] Terminated
+
+> easydocstation@1.0.0 ollama:serve
+> node scripts/ollama-serve-safe.mjs
+
+
+> easydocstation@1.0.0 dev:frontend
+> vite
+
+[Ollama] already running on 127.0.0.1:11434, skipping duplicate serve.
+[20260629-05:01:41][BE] 
+[20260629-05:01:41][BE] > easydocstation-server@1.0.0 start
+[20260629-05:01:41][BE] > node index.js
+[20260629-05:01:41][BE] 
+
+  VITE v5.4.21  ready in 94 ms
+
+  ➜  Local:   http://localhost:5173/
+  ➜  Network: http://10.0.0.194:5173/
+[20260629-05:01:42][BE] [RAG] 초기화 — 학습 방식: immediate
+[20260629-05:01:42][BE] [RAG] 초기화 — PDF 파싱 모드: FAST
+[20260629-05:01:42][BE] [Mail sync] 자동 동기화 스케줄러 시작: interval=600s
+[20260629-05:01:42][BE] ✅ EasyDocStation server running on http://localhost:3001
+[20260629-05:01:42][BE] ✅ [CONFIG] HF_TOKEN 확인됨 (hf_u****butv, 길이 37)
+[20260629-05:01:42][BE] ✅ Cassandra connected
+[20260629-05:01:42][BE] ✅ Cassandra schema initialized
+[20260629-05:01:42][BE] ✅ Database migration complete.
+[20260629-05:01:45][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260629-05:01:45][BE] [RAG Server] [RAG Server] 임베딩 모델 로드 중 (device=cuda)...
+[20260629-05:01:45][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260629-05:01:45][BE] [link-preview-image] 내부망 주소는 미리보기를 지원하지 않습니다.
+[20260629-05:01:59][BE] [RAG Server] [RAG Server] 임베딩 모델 로드 완료
+[20260629-05:01:59][BE] [RAG Server] 포트 5001 에서 시작됨
+[20260629-05:02:19][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+[20260629-05:02:46][BE] [link-preview-image] meta image failed, fallback screenshot: meta page fetch failed (403)
+[20260629-05:02:46][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260629-05:02:47][BE] [link-preview-image] meta image failed, fallback screenshot: fetch failed
+[20260629-05:02:48][BE] [link-preview-image] meta image failed, fallback screenshot: meta image fetch failed (404)
+[20260629-05:02:48][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260629-05:02:54][BE] [link-preview-image] meta image failed, fallback screenshot: This operation was aborted
+[20260629-05:02:55][BE] [link-preview-image] 내부망 주소는 미리보기를 지원하지 않습니다.
+[20260629-05:02:57][BE] [link-preview-image] 내부망 주소는 미리보기를 지원하지 않습니다.
+[20260629-05:03:06][BE] [link-preview-image] local render failed, try remote fallback: page.goto: Timeout 12000ms exceeded.
+[20260629-05:03:06][BE] Call log:
+[20260629-05:03:06][BE] [2m  - navigating to "http://114.207.245.216/", waiting until "domcontentloaded"[22m
+[20260629-05:03:06][BE] 
+[20260629-05:03:06][BE] [link-preview-image] remote fallback failed, placeholder: fallback preview fetch failed (404)
+AM 5:10:14 [vite] hmr update /src/components/SiteAdminPage.jsx, /src/index.css
+AM 5:10:23 [vite] hmr update /src/components/SiteAdminPage.jsx, /src/index.css
+AM 5:10:47 [vite] hmr update /src/components/GroqPanel.jsx, /src/index.css
+AM 5:11:00 [vite] hmr update /src/components/GroqPanel.jsx, /src/index.css
+[20260629-05:11:49][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+[20260629-05:14:25][BE] [ATTACH-REF] sync ownerType=post ownerId=c26b4b3e-7cb2-4d69-b353-321c928ad7bc actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260629-05:14:25][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
+[20260629-05:14:25][BE] /home/freegear/EasyDocStation/server/rag_train.py:120: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260629-05:14:25][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260629-05:14:25][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260629-05:14:28][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v2' already exists
+[20260629-05:14:28][BE] [RAG] post=c26b4b3e-7cb2-4d69-b353-321c928ad7bc text → 2청크
+[20260629-05:14:28][BE] [RAG] 학습 진행률: 50% (게시글 본문)
+[20260629-05:14:28][BE] [RAG] 저장 완료 — 2청크 / 1개 게시글 / 0개 댓글
+[20260629-05:14:28][BE] [RAG] 학습 진행률: 100% (저장)
+[20260629-05:14:29][BE] [RAG] 학습 완료
+[20260629-05:15:47][BE] [ATTACH-REF] sync ownerType=comment ownerId=c-cbd1a022-11ae-475a-a0f1-a35e3804452c actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260629-05:15:47][BE] [RAG] 댓글 학습 시작 — 1개 댓글 (제외: 0개)
+[20260629-05:15:47][BE] /home/freegear/EasyDocStation/server/rag_train.py:120: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260629-05:15:47][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260629-05:15:47][BE] [link-preview-image] meta image failed, fallback screenshot: fetch failed
+[20260629-05:15:48][BE] [link-preview-image] local render failed, try remote fallback: page.goto: net::ERR_NAME_NOT_RESOLVED at http://.../?channelId=...&postId=
+[20260629-05:15:48][BE] Call log:
+[20260629-05:15:48][BE] [2m  - navigating to "http://.../?channelId=...&postId=", waiting until "domcontentloaded"[22m
+[20260629-05:15:48][BE] 
+[20260629-05:15:50][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v2' already exists
+[20260629-05:15:50][BE] [RAG] comment=c-cbd1a022-11ae-475a-a0f1-a35e3804452c post=c26b4b3e-7cb2-4d69-b353-321c928ad7bc text → 7청크
+[20260629-05:15:50][BE] [RAG] 학습 진행률: 50% (댓글 본문)
+[20260629-05:15:50][BE] [RAG] 저장 완료 — 7청크 / 0개 게시글 / 1개 댓글
+[20260629-05:15:50][BE] [RAG] 학습 진행률: 100% (저장)
+[20260629-05:15:50][BE] [RAG] 댓글 학습 완료 — 1개 댓글 (4.0s)
+AM 5:16:21 [vite] hmr update /src/components/GroqPanel.jsx, /src/index.css
+AM 5:16:31 [vite] hmr update /src/components/GroqPanel.jsx, /src/index.css
+AM 5:16:42 [vite] hmr update /src/components/GroqPanel.jsx, /src/index.css
+AM 5:16:51 [vite] hmr update /src/components/GroqPanel.jsx, /src/index.css
+[20260629-05:17:51][BE] [ATTACH-REF] sync ownerType=comment ownerId=c-e7637dec-eb28-4310-8441-2b35f5504471 actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260629-05:17:51][BE] [RAG] 댓글 학습 시작 — 1개 댓글 (제외: 0개)
+[20260629-05:17:51][BE] /home/freegear/EasyDocStation/server/rag_train.py:120: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260629-05:17:51][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260629-05:17:54][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v2' already exists
+[20260629-05:17:54][BE] [RAG] comment=c-e7637dec-eb28-4310-8441-2b35f5504471 post=c26b4b3e-7cb2-4d69-b353-321c928ad7bc text → 2청크
+[20260629-05:17:54][BE] [RAG] 학습 진행률: 50% (댓글 본문)
+[20260629-05:17:54][BE] [RAG] 저장 완료 — 2청크 / 0개 게시글 / 1개 댓글
+[20260629-05:17:54][BE] [RAG] 학습 진행률: 100% (저장)
+[20260629-05:17:55][BE] [RAG] 댓글 학습 완료 — 1개 댓글 (3.9s)
+종료됨
+[20260629-05:17:56][BE] process exited with code 143. restarting in 2s...
+종료됨
+[20260629-05:17:57][BE] 
+[20260629-05:17:57][BE] > easydocstation-server@1.0.0 start
+[20260629-05:17:57][BE] > node index.js
+[20260629-05:17:57][BE] 
+[20260629-05:17:57][BE] [RAG] 초기화 — 학습 방식: immediate
+[20260629-05:17:57][BE] [RAG] 초기화 — PDF 파싱 모드: FAST
+[20260629-05:17:57][BE] [Mail sync] 자동 동기화 스케줄러 시작: interval=600s
+[20260629-05:17:57][BE] ✅ EasyDocStation server running on http://localhost:3001
+[20260629-05:17:57][BE] ✅ [CONFIG] HF_TOKEN 확인됨 (hf_u****butv, 길이 37)
+[20260629-05:17:57][BE] ✅ Cassandra connected
+[20260629-05:17:57][BE] ✅ Cassandra schema initialized
+[20260629-05:17:57][BE] ✅ Database migration complete.
+[20260629-05:17:57][BE] Terminated
+
+> easydocstation@1.0.0 dev:frontend
+> vite
+
+
+> easydocstation@1.0.0 ollama:serve
+> node scripts/ollama-serve-safe.mjs
+
+[Ollama] already running on 127.0.0.1:11434, skipping duplicate serve.
+
+  VITE v5.4.21  ready in 91 ms
+
+  ➜  Local:   http://localhost:5173/
+  ➜  Network: http://10.0.0.194:5173/
+[20260629-05:17:59][BE] 
+[20260629-05:17:59][BE] > easydocstation-server@1.0.0 start
+[20260629-05:17:59][BE] > node index.js
+[20260629-05:17:59][BE] 
+[20260629-05:17:59][BE] [RAG] 초기화 — 학습 방식: immediate
+[20260629-05:17:59][BE] [RAG] 초기화 — PDF 파싱 모드: FAST
+[20260629-05:17:59][BE] [Mail sync] 자동 동기화 스케줄러 시작: interval=600s
+[20260629-05:17:59][BE] ✅ EasyDocStation server running on http://localhost:3001
+[20260629-05:17:59][BE] ✅ [CONFIG] HF_TOKEN 확인됨 (hf_u****butv, 길이 37)
+[20260629-05:17:59][BE] ✅ Cassandra connected
+[20260629-05:18:00][BE] ✅ Cassandra schema initialized
+[20260629-05:18:00][BE] ✅ Database migration complete.
+[20260629-05:18:03][BE] [RAG Server] [RAG Server] 임베딩 모델 로드 중 (device=cuda)...
+[20260629-05:18:03][BE] [link-preview-image] 내부망 주소는 미리보기를 지원하지 않습니다.
+[20260629-05:18:17][BE] [RAG Server] [RAG Server] 임베딩 모델 로드 완료
+[20260629-05:18:17][BE] [RAG Server] [RAG Server] 포트 5001 에서 시작됨
+[20260629-05:18:37][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+[20260629-05:24:10][BE] [link-preview-image] 내부망 주소는 미리보기를 지원하지 않습니다.
+[20260629-05:24:14][BE] [ATTACH-REF] sync ownerType=comment ownerId=c-0d36b5bd-1863-4b9c-b4fd-5c411a52d837 actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260629-05:24:14][BE] [RAG] 댓글 학습 시작 — 1개 댓글 (제외: 0개)
+[20260629-05:24:14][BE] /home/freegear/EasyDocStation/server/rag_train.py:120: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260629-05:24:14][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260629-05:24:17][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v2' already exists
+[20260629-05:24:17][BE] [RAG] comment=c-0d36b5bd-1863-4b9c-b4fd-5c411a52d837 post=c26b4b3e-7cb2-4d69-b353-321c928ad7bc text → 2청크
+[20260629-05:24:17][BE] [RAG] 학습 진행률: 50% (댓글 본문)
+[20260629-05:24:17][BE] [RAG] 저장 완료 — 2청크 / 0개 게시글 / 1개 댓글
+[20260629-05:24:17][BE] [RAG] 학습 진행률: 100% (저장)
+[20260629-05:24:18][BE] [RAG] 댓글 학습 완료 — 1개 댓글 (4.2s)
+[20260629-05:27:12][BE] [ATTACH-REF] sync ownerType=comment ownerId=c-ce32f32d-805c-4cb7-9201-df9768823986 actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260629-05:27:12][BE] [RAG] 댓글 학습 시작 — 1개 댓글 (제외: 0개)
+[20260629-05:27:12][BE] /home/freegear/EasyDocStation/server/rag_train.py:120: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260629-05:27:12][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260629-05:27:15][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v2' already exists
+[20260629-05:27:15][BE] [RAG] comment=c-ce32f32d-805c-4cb7-9201-df9768823986 post=c26b4b3e-7cb2-4d69-b353-321c928ad7bc text → 6청크
+[20260629-05:27:15][BE] [RAG] 학습 진행률: 50% (댓글 본문)
+[20260629-05:27:15][BE] [RAG] 저장 완료 — 6청크 / 0개 게시글 / 1개 댓글
+[20260629-05:27:15][BE] [RAG] 학습 진행률: 100% (저장)
+[20260629-05:27:16][BE] [RAG] 댓글 학습 완료 — 1개 댓글 (4.0s)
+[20260629-05:28:07][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+종료됨
+[20260629-05:34:40][BE] process exited with code 143. restarting in 2s...
+종료됨
+[20260629-05:34:41][BE] 
+[20260629-05:34:41][BE] > easydocstation-server@1.0.0 start
+[20260629-05:34:41][BE] > node index.js
+[20260629-05:34:41][BE] 
+[20260629-05:34:41][BE] [RAG] 초기화 — 학습 방식: immediate
+[20260629-05:34:41][BE] [RAG] 초기화 — PDF 파싱 모드: FAST
+[20260629-05:34:41][BE] [Mail sync] 자동 동기화 스케줄러 시작: interval=600s
+[20260629-05:34:41][BE] ✅ EasyDocStation server running on http://localhost:3001
+[20260629-05:34:41][BE] ✅ [CONFIG] HF_TOKEN 확인됨 (hf_u****butv, 길이 37)
+[20260629-05:34:41][BE] ✅ Cassandra connected
+[20260629-05:34:41][BE] ✅ Cassandra schema initialized
+[20260629-05:34:41][BE] ✅ Database migration complete.
+[20260629-05:34:41][BE] Terminated
+
+> easydocstation@1.0.0 ollama:serve
+> node scripts/ollama-serve-safe.mjs
+
+
+> easydocstation@1.0.0 dev:frontend
+> vite
+
+[Ollama] already running on 127.0.0.1:11434, skipping duplicate serve.
+
+  VITE v5.4.21  ready in 93 ms
+
+  ➜  Local:   http://localhost:5173/
+  ➜  Network: http://10.0.0.194:5173/
+[20260629-05:34:44][BE] 
+[20260629-05:34:44][BE] > easydocstation-server@1.0.0 start
+[20260629-05:34:44][BE] > node index.js
+[20260629-05:34:44][BE] 
+[20260629-05:34:44][BE] [RAG] 초기화 — 학습 방식: immediate
+[20260629-05:34:44][BE] [RAG] 초기화 — PDF 파싱 모드: FAST
+[20260629-05:34:44][BE] [Mail sync] 자동 동기화 스케줄러 시작: interval=600s
+[20260629-05:34:44][BE] ✅ EasyDocStation server running on http://localhost:3001
+[20260629-05:34:44][BE] ✅ [CONFIG] HF_TOKEN 확인됨 (hf_u****butv, 길이 37)
+[20260629-05:34:44][BE] ✅ Cassandra connected
+[20260629-05:34:44][BE] ✅ Cassandra schema initialized
+[20260629-05:34:44][BE] ✅ Database migration complete.
+[20260629-05:34:47][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260629-05:34:47][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260629-05:34:47][BE] [RAG Server] [RAG Server] 임베딩 모델 로드 중 (device=cuda)...
+[20260629-05:34:47][BE] [link-preview-image] 내부망 주소는 미리보기를 지원하지 않습니다.
+[20260629-05:35:02][BE] [RAG Server] [RAG Server] 임베딩 모델 로드 완료
+[20260629-05:35:02][BE] [RAG Server] 포트 5001 에서 시작됨
+[20260629-05:35:22][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+[20260629-05:35:23][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260629-05:35:24][BE] [link-preview-image] meta image failed, fallback screenshot: meta image fetch failed (404)
+[20260629-05:35:25][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260629-05:35:27][BE] [link-preview-image] meta image failed, fallback screenshot: fetch failed
+[20260629-05:35:27][BE] [link-preview-image] meta image failed, fallback screenshot: meta page fetch failed (403)
+[20260629-05:35:33][BE] [link-preview-image] meta image failed, fallback screenshot: This operation was aborted
+[20260629-05:35:45][BE] [link-preview-image] local render failed, try remote fallback: page.goto: Timeout 12000ms exceeded.
+[20260629-05:35:45][BE] Call log:
+[20260629-05:35:45][BE] [2m  - navigating to "http://114.207.245.216/", waiting until "domcontentloaded"[22m
+[20260629-05:35:45][BE] 
+[20260629-05:35:45][BE] [link-preview-image] remote fallback failed, placeholder: fallback preview fetch failed (404)
+[20260629-05:37:07][BE] [link-preview-image] 내부망 주소는 미리보기를 지원하지 않습니다.
+[20260629-05:44:52][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+[20260629-05:54:52][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+AM 5:55:17 [vite] hmr update /src/components/GroqPanel.jsx, /src/index.css
+종료됨
+[20260629-05:58:24][BE] process exited with code 143. restarting in 2s...
+종료됨
+[20260629-05:58:25][BE] 
+[20260629-05:58:25][BE] > easydocstation-server@1.0.0 start
+[20260629-05:58:25][BE] > node index.js
+[20260629-05:58:25][BE] 
+[20260629-05:58:25][BE] [RAG] 초기화 — 학습 방식: immediate
+[20260629-05:58:25][BE] [RAG] 초기화 — PDF 파싱 모드: FAST
+[20260629-05:58:25][BE] [Mail sync] 자동 동기화 스케줄러 시작: interval=600s
+[20260629-05:58:25][BE] ✅ EasyDocStation server running on http://localhost:3001
+[20260629-05:58:25][BE] ✅ [CONFIG] HF_TOKEN 확인됨 (hf_u****butv, 길이 37)
+[20260629-05:58:25][BE] ✅ Cassandra connected
+[20260629-05:58:25][BE] ✅ Cassandra schema initialized
+[20260629-05:58:25][BE] ✅ Database migration complete.
+[20260629-05:58:25][BE] Terminated
+
+> easydocstation@1.0.0 ollama:serve
+> node scripts/ollama-serve-safe.mjs
+
+
+> easydocstation@1.0.0 dev:frontend
+> vite
+
+[Ollama] already running on 127.0.0.1:11434, skipping duplicate serve.
+[20260629-05:58:27][BE] 
+[20260629-05:58:27][BE] > easydocstation-server@1.0.0 start
+[20260629-05:58:27][BE] > node index.js
+[20260629-05:58:27][BE] 
+
+  VITE v5.4.21  ready in 102 ms
+
+  ➜  Local:   http://localhost:5173/
+  ➜  Network: http://10.0.0.194:5173/
+[20260629-05:58:27][BE] [RAG] 초기화 — 학습 방식: immediate
+[20260629-05:58:27][BE] [RAG] 초기화 — PDF 파싱 모드: FAST
+[20260629-05:58:27][BE] [Mail sync] 자동 동기화 스케줄러 시작: interval=600s
+[20260629-05:58:27][BE] ✅ EasyDocStation server running on http://localhost:3001
+[20260629-05:58:27][BE] ✅ [CONFIG] HF_TOKEN 확인됨 (hf_u****butv, 길이 37)
+[20260629-05:58:27][BE] ✅ Cassandra connected
+[20260629-05:58:27][BE] ✅ Cassandra schema initialized
+[20260629-05:58:27][BE] ✅ Database migration complete.
+[20260629-05:58:31][BE] [RAG Server] [RAG Server] 임베딩 모델 로드 중 (device=cuda)...
+[20260629-05:58:31][BE] [link-preview-image] 내부망 주소는 미리보기를 지원하지 않습니다.
+[20260629-05:58:31][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260629-05:58:46][BE] [RAG Server] [RAG Server] 임베딩 모델 로드 완료
+[20260629-05:58:46][BE] [RAG Server] [RAG Server] 포트 5001 에서 시작됨
+[20260629-05:58:46][BE] [RAG] active table fallback: my_rag_table_v2 -> my_rag_table (server_unavailable)
+[20260629-05:59:05][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+[20260629-06:00:31][BE] [ATTACH-REF] sync ownerType=comment ownerId=c-abecce03-7aa2-4531-9f55-1c30eb8c25cc actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260629-06:00:31][BE] [RAG] 댓글 학습 시작 — 1개 댓글 (제외: 0개)
+[20260629-06:00:31][BE] /home/freegear/EasyDocStation/server/rag_train.py:120: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260629-06:00:31][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260629-06:00:32][BE] [link-preview-image] meta image failed, fallback screenshot: fetch failed
+[20260629-06:00:32][BE] [link-preview-image] local render failed, try remote fallback: page.goto: net::ERR_NAME_NOT_RESOLVED at http://.../?channelId=...&postId=
+[20260629-06:00:32][BE] Call log:
+[20260629-06:00:32][BE] [2m  - navigating to "http://.../?channelId=...&postId=", waiting until "domcontentloaded"[22m
+[20260629-06:00:32][BE] 
+[20260629-06:00:33][BE] [link-preview-image] remote fallback failed, placeholder: fallback preview fetch failed (404)
+[20260629-06:00:34][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v2' already exists
+[20260629-06:00:34][BE] [RAG] comment=c-abecce03-7aa2-4531-9f55-1c30eb8c25cc post=c26b4b3e-7cb2-4d69-b353-321c928ad7bc text → 2청크
+[20260629-06:00:34][BE] [RAG] 학습 진행률: 50% (댓글 본문)
+[20260629-06:00:34][BE] [RAG] 저장 완료 — 2청크 / 0개 게시글 / 1개 댓글
+[20260629-06:00:34][BE] [RAG] 학습 진행률: 100% (저장)
+[20260629-06:00:35][BE] [RAG] 댓글 학습 완료 — 1개 댓글 (3.9s)
+[20260629-06:08:35][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+[20260629-06:18:35][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+[20260629-06:28:35][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+[20260629-06:38:36][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+AM 6:46:44 [vite] hmr update /src/components/GroqPanel.jsx, /src/index.css
+AM 6:46:57 [vite] hmr update /src/components/GroqPanel.jsx, /src/index.css
+[20260629-06:47:33][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260629-06:47:34][BE] [link-preview-image] 내부망 주소는 미리보기를 지원하지 않습니다.
+[20260629-06:47:34][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260629-06:47:34][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260629-06:48:35][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+AM 6:51:18 [vite] hmr update /src/components/GroqPanel.jsx, /src/index.css
+[20260629-06:52:09][BE] [link-preview-image] 내부망 주소는 미리보기를 지원하지 않습니다.
+AM 6:53:49 [vite] hmr update /src/components/GroqPanel.jsx, /src/index.css
+AM 6:53:57 [vite] hmr update /src/components/GroqPanel.jsx, /src/index.css
+[20260629-06:54:48][BE] [link-preview-image] 내부망 주소는 미리보기를 지원하지 않습니다.
+[20260629-06:58:35][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+[20260629-07:02:16][BE] Error: Command failed
+[20260629-07:02:16][BE]     at ImapFlow.reader (/home/freegear/EasyDocStation/server/node_modules/imapflow/lib/imap-flow.js:805:35)
+[20260629-07:02:16][BE]     at process.processTicksAndRejections (node:internal/process/task_queues:103:5) {
+[20260629-07:02:16][BE]   response: "7 NO [NONEXISTENT] Mailbox doesn't exist: USER/001-NWC",
+[20260629-07:02:16][BE]   responseStatus: 'NO',
+[20260629-07:02:16][BE]   executedCommand: '7 SELECT USER/001-NWC',
+[20260629-07:02:16][BE]   responseText: "Mailbox doesn't exist: USER/001-NWC",
+[20260629-07:02:16][BE]   serverResponseCode: 'NONEXISTENT',
+[20260629-07:02:16][BE]   mailboxMissing: true
+[20260629-07:02:16][BE] }
+[20260629-07:02:19][BE] Error: Command failed
+[20260629-07:02:19][BE]     at ImapFlow.reader (/home/freegear/EasyDocStation/server/node_modules/imapflow/lib/imap-flow.js:805:35)
+[20260629-07:02:19][BE]     at process.processTicksAndRejections (node:internal/process/task_queues:103:5) {
+[20260629-07:02:19][BE]   response: "7 NO [NONEXISTENT] Mailbox doesn't exist: USER/001-NWC",
+[20260629-07:02:19][BE]   responseStatus: 'NO',
+[20260629-07:02:19][BE]   executedCommand: '7 SELECT USER/001-NWC',
+[20260629-07:02:19][BE]   responseText: "Mailbox doesn't exist: USER/001-NWC",
+[20260629-07:02:19][BE]   serverResponseCode: 'NONEXISTENT',
+[20260629-07:02:19][BE]   mailboxMissing: true
+[20260629-07:02:19][BE] }
+[20260629-07:02:48][BE] Error: Command failed
+[20260629-07:02:48][BE]     at ImapFlow.reader (/home/freegear/EasyDocStation/server/node_modules/imapflow/lib/imap-flow.js:805:35)
+[20260629-07:02:48][BE]     at process.processTicksAndRejections (node:internal/process/task_queues:103:5) {
+[20260629-07:02:48][BE]   response: "7 NO [NONEXISTENT] Mailbox doesn't exist: USER/001-NWC",
+[20260629-07:02:48][BE]   responseStatus: 'NO',
+[20260629-07:02:48][BE]   executedCommand: '7 SELECT USER/001-NWC',
+[20260629-07:02:48][BE]   responseText: "Mailbox doesn't exist: USER/001-NWC",
+[20260629-07:02:48][BE]   serverResponseCode: 'NONEXISTENT',
+[20260629-07:02:48][BE]   mailboxMissing: true
+[20260629-07:02:48][BE] }
+[20260629-07:08:35][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+[20260629-07:18:35][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+AM 7:21:44 [vite] hmr update /src/features/mail/MailPage.jsx, /src/index.css
+AM 7:21:55 [vite] hmr update /src/features/mail/MailPage.jsx, /src/index.css
+AM 7:23:34 [vite] hmr update /src/features/mail/MailPage.jsx, /src/index.css
+AM 7:24:32 [vite] hmr update /src/features/mail/MailPage.jsx, /src/index.css
+종료됨
+[20260629-07:27:17][BE] process exited with code 143. restarting in 2s...
+종료됨
+[20260629-07:27:17][BE] 
+[20260629-07:27:17][BE] > easydocstation-server@1.0.0 start
+[20260629-07:27:17][BE] > node index.js
+[20260629-07:27:17][BE] 
+[20260629-07:27:18][BE] [RAG] 초기화 — 학습 방식: immediate
+[20260629-07:27:18][BE] [RAG] 초기화 — PDF 파싱 모드: FAST
+[20260629-07:27:18][BE] [Mail sync] 자동 동기화 스케줄러 시작: interval=600s
+[20260629-07:27:18][BE] ✅ EasyDocStation server running on http://localhost:3001
+[20260629-07:27:18][BE] ✅ [CONFIG] HF_TOKEN 확인됨 (hf_u****butv, 길이 37)
+[20260629-07:27:18][BE] ✅ Cassandra connected
+[20260629-07:27:18][BE] ✅ Cassandra schema initialized
+[20260629-07:27:18][BE] ✅ Database migration complete.
+[20260629-07:27:18][BE] Terminated
+
+> easydocstation@1.0.0 ollama:serve
+> node scripts/ollama-serve-safe.mjs
+
+
+> easydocstation@1.0.0 dev:frontend
+> vite
+
+[Ollama] already running on 127.0.0.1:11434, skipping duplicate serve.
+[20260629-07:27:20][BE] 
+[20260629-07:27:20][BE] > easydocstation-server@1.0.0 start
+[20260629-07:27:20][BE] > node index.js
+[20260629-07:27:20][BE] 
+
+  VITE v5.4.21  ready in 92 ms
+
+  ➜  Local:   http://localhost:5173/
+  ➜  Network: http://10.0.0.194:5173/
+[20260629-07:27:20][BE] [RAG] 초기화 — 학습 방식: immediate
+[20260629-07:27:20][BE] [RAG] 초기화 — PDF 파싱 모드: FAST
+[20260629-07:27:20][BE] [Mail sync] 자동 동기화 스케줄러 시작: interval=600s
+[20260629-07:27:20][BE] ✅ EasyDocStation server running on http://localhost:3001
+[20260629-07:27:20][BE] ✅ [CONFIG] HF_TOKEN 확인됨 (hf_u****butv, 길이 37)
+[20260629-07:27:20][BE] ✅ Cassandra connected
+[20260629-07:27:20][BE] ✅ Cassandra schema initialized
+[20260629-07:27:20][BE] ✅ Database migration complete.
+[20260629-07:27:23][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260629-07:27:24][BE] [RAG Server] [RAG Server] 임베딩 모델 로드 중 (device=cuda)...
+[20260629-07:27:24][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260629-07:27:24][BE] [link-preview-image] 내부망 주소는 미리보기를 지원하지 않습니다.
+[20260629-07:27:24][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260629-07:27:38][BE] [RAG Server] [RAG Server] 임베딩 모델 로드 완료
+[20260629-07:27:38][BE] [RAG Server] 포트 5001 에서 시작됨
+[20260629-07:27:59][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+[20260629-07:29:36][BE] [imapSync] jylim3@naver.com 프로모션: 누락분이 많아 이번엔 50건만 가져왔습니다(나머지는 다음 새로고침에서).
+[20260629-07:37:30][BE] [imapSync] jylim3@naver.com INBOX: 누락분이 많아 이번엔 50건만 가져왔습니다(나머지는 다음 새로고침에서).
+[20260629-07:37:31][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=50
+AM 7:43:02 [vite] hmr update /src/features/mail/MailPage.jsx, /src/index.css
+AM 7:43:10 [vite] hmr update /src/features/mail/MailPage.jsx, /src/index.css
+AM 7:43:29 [vite] hmr update /src/features/mail/MailPage.jsx, /src/index.css
+AM 7:43:55 [vite] hmr update /src/features/mail/MailPage.jsx, /src/index.css
+[20260629-07:45:32][BE] [link-preview-image] 내부망 주소는 미리보기를 지원하지 않습니다.
+[20260629-07:47:30][BE] [imapSync] jylim3@naver.com INBOX: 누락분이 많아 이번엔 50건만 가져왔습니다(나머지는 다음 새로고침에서).
+[20260629-07:47:31][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=50
+AM 7:49:15 [vite] hmr update /src/features/mail/MailPage.jsx, /src/index.css
+AM 7:49:23 [vite] hmr update /src/features/mail/MailPage.jsx, /src/index.css
+AM 7:49:32 [vite] hmr update /src/features/mail/MailPage.jsx, /src/index.css
+[20260629-07:51:23][BE] [link-preview-image] 내부망 주소는 미리보기를 지원하지 않습니다.
+[20260629-07:57:29][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=13
+[20260629-08:07:29][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+[20260629-08:12:37][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260629-08:12:38][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260629-08:12:38][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260629-08:12:38][BE] [link-preview-image] 내부망 주소는 미리보기를 지원하지 않습니다.
+[20260629-08:17:29][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+[20260629-08:17:47][BE] [link-preview-image] 내부망 주소는 미리보기를 지원하지 않습니다.
+[20260629-08:18:16][BE] [link-preview-image] 내부망 주소는 미리보기를 지원하지 않습니다.
+AM 8:20:15 [vite] hmr update /src/features/mail/MailPage.jsx, /src/index.css
+[20260629-08:20:45][BE] [link-preview-image] 내부망 주소는 미리보기를 지원하지 않습니다.
+[20260629-08:22:18][BE] [imapSync] jylim3@naver.com 프로모션: 누락분이 많아 이번엔 50건만 가져왔습니다(나머지는 다음 새로고침에서).
+[20260629-08:22:36][BE] [ATTACH-REF] sync ownerType=post ownerId=b664c902-960f-4b29-afbf-3f352eeecaae actorUserId=199 prev=0 next=1 add=1 remove=0
+[20260629-08:22:36][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
+[20260629-08:22:36][BE] /home/freegear/EasyDocStation/server/rag_train.py:120: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260629-08:22:36][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260629-08:22:39][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v2' already exists
+[20260629-08:22:39][BE] [RAG] post=b664c902-960f-4b29-afbf-3f352eeecaae text → 1청크
+[20260629-08:22:39][BE] [RAG] 학습 진행률: 30% (게시글 본문)
+[20260629-08:22:39][BE] [RAG] 이미지 학습 시작: Screenshot 2026-06-28 at 4.15.13 PM (2).png
+[20260629-08:23:00][BE] [SearchIndex] 이미지 첨부 인덱싱 완료: 90fbb8a6-905e-425f-9404-a34129e5b139 Screenshot 2026-06-28 at 4.15.13 PM (2).png
+[20260629-08:23:40][BE] [RAG] Gemma 이미지 설명 완료 (page=1, 61.3s): 3077자
+[20260629-08:23:41][BE] [RAG] 이미지 학습 완료: Screenshot 2026-06-28 at 4.15.13 PM (2).png (6청크)
+[20260629-08:23:41][BE] [RAG] 학습 진행률: 60% (게시글 이미지)
+[20260629-08:23:41][BE] [RAG] 저장 완료 — 7청크 / 1개 게시글 / 0개 댓글
+[20260629-08:23:41][BE] [RAG] 학습 진행률: 100% (저장)
+[20260629-08:23:41][BE] [RAG] 학습 완료
+[20260629-08:24:20][BE] [link-preview-image] 내부망 주소는 미리보기를 지원하지 않습니다.
+[20260629-08:24:40][BE] [link-preview-image] 내부망 주소는 미리보기를 지원하지 않습니다.
+[20260629-08:25:40][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260629-08:25:41][BE] [link-preview-image] meta image failed, fallback screenshot: meta page fetch failed (403)
+[20260629-08:25:41][BE] [link-preview-image] meta image failed, fallback screenshot: meta image fetch failed (404)
+[20260629-08:25:42][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260629-08:25:45][BE] [link-preview-image] meta image failed, fallback screenshot: fetch failed
+[20260629-08:25:50][BE] [link-preview-image] meta image failed, fallback screenshot: This operation was aborted
+[20260629-08:25:54][BE] [link-preview-image] 내부망 주소는 미리보기를 지원하지 않습니다.
+[20260629-08:26:02][BE] [link-preview-image] local render failed, try remote fallback: page.goto: Timeout 12000ms exceeded.
+[20260629-08:26:02][BE] Call log:
+[20260629-08:26:02][BE] [2m  - navigating to "http://114.207.245.216/", waiting until "domcontentloaded"[22m
+[20260629-08:26:02][BE] 
+[20260629-08:26:03][BE] [link-preview-image] remote fallback failed, placeholder: fallback preview fetch failed (404)
+[20260629-08:26:46][BE] [link-preview-image] 내부망 주소는 미리보기를 지원하지 않습니다.
+[20260629-08:26:58][BE] [ATTACH-REF] sync ownerType=post ownerId=68f48f3e-f127-4173-9b6a-5502fbafc61e actorUserId=1 prev=1 next=1 add=0 remove=0
+[20260629-08:26:58][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
+[20260629-08:26:58][BE] /home/freegear/EasyDocStation/server/rag_train.py:120: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260629-08:26:58][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260629-08:27:02][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v2' already exists
+[20260629-08:27:02][BE] [RAG] 기존 청크 삭제 완료: post_id=68f48f3e-f127-4173-9b6a-5502fbafc61e
+[20260629-08:27:02][BE] [RAG] post=68f48f3e-f127-4173-9b6a-5502fbafc61e text → 1청크
+[20260629-08:27:02][BE] [RAG] 학습 진행률: 30% (게시글 본문)
+[20260629-08:27:02][BE] [RAG] 이미지 학습 시작: Screenshot 2026-06-28 at 4.15.13 PM (1).png
+[20260629-08:27:29][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+[20260629-08:27:42][BE] [RAG] Gemma 이미지 설명 완료 (page=1, 39.8s): 3058자
+[20260629-08:27:42][BE] [RAG] 이미지 학습 완료: Screenshot 2026-06-28 at 4.15.13 PM (1).png (5청크)
+[20260629-08:27:42][BE] [RAG] 학습 진행률: 60% (게시글 이미지)
+[20260629-08:27:42][BE] [RAG] 저장 완료 — 6청크 / 1개 게시글 / 0개 댓글
+[20260629-08:27:42][BE] [RAG] 학습 진행률: 100% (저장)
+[20260629-08:27:42][BE] [RAG] 학습 완료
+[20260629-08:35:19][BE] [link-preview-image] 내부망 주소는 미리보기를 지원하지 않습니다.
+[20260629-08:36:07][BE] [link-preview-image] 내부망 주소는 미리보기를 지원하지 않습니다.
+[20260629-08:37:29][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+[20260629-08:37:48][BE] [link-preview-image] 내부망 주소는 미리보기를 지원하지 않습니다.
+[20260629-08:38:51][BE] [link-preview-image] 내부망 주소는 미리보기를 지원하지 않습니다.
+AM 8:44:42 [vite] hmr update /src/components/DirectMessageView.jsx, /src/index.css
+AM 8:44:57 [vite] hmr update /src/components/DirectMessageView.jsx, /src/index.css
+AM 8:45:11 [vite] hmr update /src/components/DirectMessageView.jsx, /src/index.css
+[20260629-08:45:17][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260629-08:45:18][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260629-08:45:18][BE] [link-preview-image] 내부망 주소는 미리보기를 지원하지 않습니다.
+[20260629-08:45:18][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260629-08:47:29][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+AM 8:48:57 [vite] hmr update /src/components/DirectMessageView.jsx, /src/index.css

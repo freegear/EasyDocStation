@@ -22,6 +22,10 @@ INSTALL_CASSANDRA="${INSTALL_CASSANDRA:-0}"
 INSTALL_OLLAMA="${INSTALL_OLLAMA:-0}"
 OLLAMA_MODEL="${OLLAMA_MODEL:-gemma4:e4b}"
 INSTALL_HIRES_DEPS="${INSTALL_HIRES_DEPS:-0}"
+INSTALL_REDIS="${INSTALL_REDIS:-1}"
+REDIS_PORT="${REDIS_PORT:-6379}"
+REDIS_MAXMEMORY="${REDIS_MAXMEMORY:-4gb}"
+REDIS_MAXMEMORY_POLICY="${REDIS_MAXMEMORY_POLICY:-allkeys-lru}"
 
 echo "[1/8] Ubuntu 패키지 설치"
 sudo apt-get update -y
@@ -161,6 +165,25 @@ else
   echo "[5/8] Ollama 설치는 건너뜀 (INSTALL_OLLAMA=1 로 활성화 가능)"
 fi
 
+if [[ "$INSTALL_REDIS" == "1" ]]; then
+  echo "[5-3/8] Redis 설치/기동"
+  sudo DEBIAN_FRONTEND=noninteractive apt-get install -y redis-server redis-tools
+  sudo sed -i "s/^# *maxmemory .*/maxmemory ${REDIS_MAXMEMORY}/; s/^# *maxmemory-policy .*/maxmemory-policy ${REDIS_MAXMEMORY_POLICY}/" /etc/redis/redis.conf || true
+  sudo systemctl enable redis-server
+  sudo systemctl start redis-server
+  if ! redis-cli -p "${REDIS_PORT}" ping >/dev/null 2>&1; then
+    sudo systemctl restart redis-server
+  fi
+  if redis-cli -p "${REDIS_PORT}" ping >/dev/null 2>&1; then
+    echo "[INFO] Redis PING OK"
+  else
+    echo "[ERROR] Redis PING 실패. Redis 설치/서비스 상태를 확인하세요."
+    exit 1
+  fi
+else
+  echo "[5-3/8] Redis 설치는 건너뜀 (INSTALL_REDIS=0)"
+fi
+
 echo "[6/8] Node 패키지 설치"
 # stale lock file이 peer dependency 버전 충돌을 일으킬 수 있으므로 삭제 후 설치
 rm -f package-lock.json
@@ -175,7 +198,7 @@ npm install \
   @lexical/list \
   @lexical/link
 npm install --prefix server
-npm install jose nodemailer --prefix server
+npm install jose nodemailer redis --prefix server
 sudo npx playwright install-deps
 npx playwright install
 
@@ -196,6 +219,7 @@ if [[ "$INSTALL_HIRES_DEPS" != "1" ]]; then
   python -m pip uninstall -y torchvision timm >/dev/null 2>&1 || true
 fi
 python -m pip install -r "$ROOT_DIR/server/requirements.txt"
+python -m pip install redis
 python - <<'PY'
 import torch
 from packaging.version import Version
@@ -248,11 +272,42 @@ cfg.Cassandra = cfg.Cassandra || {}
 cfg.Cassandra.contactPoints = cfg.Cassandra.contactPoints || ['127.0.0.1']
 cfg.Cassandra.localDataCenter = cfg.Cassandra.localDataCenter || 'datacenter1'
 cfg.Cassandra.keyspace = cfg.Cassandra.keyspace || 'easydocstation'
+cfg.redis_ai = cfg.redis_ai || {}
+cfg.redis_ai.redis_enabled = process.env.INSTALL_REDIS === '1'
+cfg.redis_ai.redis_url = cfg.redis_ai.redis_url || `redis://127.0.0.1:${process.env.REDIS_PORT || '6379'}`
+cfg.redis_ai.cache_enabled = cfg.redis_ai.redis_enabled
+cfg.redis_ai.queue_enabled = false
+cfg.redis_ai.vector_cache_enabled = false
+cfg.redis_ai.dynamic_batching_enabled = false
+cfg.redis_ai.load_aware_routing_enabled = false
+cfg.redis_ai.default_ttl_sec = cfg.redis_ai.default_ttl_sec || 3600
+cfg.redis_ai.payload_ttl_sec = cfg.redis_ai.payload_ttl_sec || 300
+cfg.redis_ai.result_ttl_sec = cfg.redis_ai.result_ttl_sec || 3600
 fs.writeFileSync(configPath, JSON.stringify(cfg, null, 2))
 NODE
 
 if [[ -f "$ROOT_DIR/server/.env" ]]; then
   echo "[INFO] server/.env 이미 존재 — 덮어쓰지 않고 유지합니다."
+  node <<'NODE'
+const fs = require('fs')
+const path = require('path')
+const envPath = path.join(process.cwd(), 'server/.env')
+let text = fs.readFileSync(envPath, 'utf8')
+function upsert(key, value) {
+  const re = new RegExp(`^${key}=.*$`, 'm')
+  const line = `${key}=${value}`
+  text = re.test(text) ? text.replace(re, line) : text + (text.endsWith('\n') ? '' : '\n') + line + '\n'
+}
+upsert('REDIS_URL', `redis://127.0.0.1:${process.env.REDIS_PORT || '6379'}`)
+upsert('REDIS_AI_CACHE_ENABLED', process.env.INSTALL_REDIS === '1' ? 'true' : 'false')
+upsert('REDIS_AI_QUEUE_ENABLED', 'false')
+upsert('REDIS_AI_VECTOR_CACHE_ENABLED', 'false')
+upsert('REDIS_AI_DEFAULT_TTL_SEC', '3600')
+upsert('REDIS_AI_PAYLOAD_TTL_SEC', '300')
+upsert('REDIS_AI_RESULT_TTL_SEC', '3600')
+fs.writeFileSync(envPath, text)
+NODE
+  echo "[INFO] server/.env Redis 설정 동기화 완료"
 else
   JWT_SECRET_VALUE="$(openssl rand -hex 24)"
   cat > "$ROOT_DIR/server/.env" <<EOF
@@ -260,6 +315,13 @@ DATABASE_URL=postgresql://${DB_USER}:${DB_PASS}@localhost:5432/${DB_NAME}
 JWT_SECRET=${JWT_SECRET_VALUE}
 PORT=3001
 CLIENT_ORIGIN=${CLIENT_ORIGIN}
+REDIS_URL=redis://127.0.0.1:${REDIS_PORT}
+REDIS_AI_CACHE_ENABLED=$([[ "$INSTALL_REDIS" == "1" ]] && echo true || echo false)
+REDIS_AI_QUEUE_ENABLED=false
+REDIS_AI_VECTOR_CACHE_ENABLED=false
+REDIS_AI_DEFAULT_TTL_SEC=3600
+REDIS_AI_PAYLOAD_TTL_SEC=300
+REDIS_AI_RESULT_TTL_SEC=3600
 EOF
   echo "[INFO] server/.env 생성 완료"
 fi

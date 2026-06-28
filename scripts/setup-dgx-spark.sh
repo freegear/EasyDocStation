@@ -21,7 +21,7 @@ install_frontend_dependencies() {
     @lexical/history \
     @lexical/list \
     @lexical/link
-  npm install jose nodemailer --prefix server
+  npm install jose nodemailer redis --prefix server
 
   echo "  Playwright 시스템 의존성/브라우저 설치"
   sudo npx playwright install-deps
@@ -51,6 +51,8 @@ fi
 echo "[1/3] Ubuntu 기본 설치 스크립트 실행"
 # DGX 전용 설치에서는 Cassandra를 기본 활성화한다.
 INSTALL_CASSANDRA="${INSTALL_CASSANDRA:-1}" \
+INSTALL_REDIS="${INSTALL_REDIS:-1}" \
+REDIS_MAXMEMORY="${REDIS_MAXMEMORY:-16gb}" \
 INSTALL_HIRES_DEPS=1 \
 bash "$ROOT_DIR/scripts/setup-ubuntu.sh"
 
@@ -90,6 +92,7 @@ fi
 
 echo "[2-2/3] Python 패키지 설치 (server/requirements.txt)"
 python -m pip install -r "$ROOT_DIR/server/requirements.txt" --extra-index-url https://pypi.org/simple
+python -m pip install redis --extra-index-url https://pypi.org/simple
 
 echo "[3/3] CUDA 동작 검증"
 python - <<'PY'

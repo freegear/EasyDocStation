@@ -1,3 +1,4 @@
+const { randomUUID } = require('crypto')
 const cm = require('./connectionManager')
 const { encryptSecret } = require('../lib/secrets')
 const { DEFAULT_SCOPES } = require('./gmailOAuth')
@@ -515,6 +516,8 @@ const ACCOUNT_FOLDERS_SUBQUERY = `
       'type', mf.type,
       'parent_folder_id', mf.parent_folder_id,
       'color_key', mf.color_key,
+      'is_local', mf.is_local,
+      'sync_status', mf.sync_status,
       'message_count', COALESCE((
         SELECT COUNT(*)
         FROM mail_messages mm
@@ -749,11 +752,13 @@ async function upsertFolders({ tenantId, account, folders }) {
     for (const f of folders) {
       if (!f || !f.providerFolderId || !f.name) continue
       await client.query(
-        `INSERT INTO mail_folders (tenant_id, user_id, account_id, provider_folder_id, name, type)
-         VALUES ($1, $2, $3, $4, $5, $6)
+        `INSERT INTO mail_folders (tenant_id, user_id, account_id, provider_folder_id, name, type, is_local)
+         VALUES ($1, $2, $3, $4, $5, $6, FALSE)
          ON CONFLICT (account_id, provider_folder_id)
          DO UPDATE SET name = EXCLUDED.name,
                        type = CASE WHEN mail_folders.type = 'custom' THEN EXCLUDED.type ELSE mail_folders.type END,
+                       is_local = FALSE,
+                       sync_status = NULL,
                        updated_at = NOW()`,
         [tenantId, account.user_id, account.id, f.providerFolderId, f.name, f.type || 'custom'],
       )
@@ -767,7 +772,7 @@ async function upsertFolders({ tenantId, account, folders }) {
 async function getFolderById({ tenantId, accountId, folderId }) {
   const { rows } = await tenantQuery(
     tenantId,
-    `SELECT id, account_id, provider_folder_id, name, type, parent_folder_id, color_key
+    `SELECT id, account_id, provider_folder_id, name, type, parent_folder_id, color_key, is_local, sync_status
      FROM mail_folders
      WHERE id = $1 AND account_id = $2
      LIMIT 1`,
@@ -776,7 +781,11 @@ async function getFolderById({ tenantId, accountId, folderId }) {
   return rows[0] || null
 }
 
-async function createFolder({ tenantId, account, name, parentFolderId }) {
+// 앱에서 만드는 폴더는 기본적으로 로컬 전용(is_local=true)이다.
+// 서버(IMAP)에 실제 메일박스를 만들지 않으므로 동기화 대상이 아니며,
+// provider_folder_id는 충돌·동기화와 무관한 합성 키('local:<uuid>')를 쓴다.
+// 거울 폴더는 서버에서 발견될 때 upsertFolders로만 생성된다.
+async function createFolder({ tenantId, account, name, parentFolderId, isLocal = true }) {
   const cleanName = String(name || '').trim()
   if (!cleanName) throw new Error('폴더 이름이 필요합니다.')
   return withTenantTx(tenantId, async (client) => {
@@ -792,21 +801,32 @@ async function createFolder({ tenantId, account, name, parentFolderId }) {
       parent = parentResult.rows[0] || null
       if (!parent) throw new Error('상위 폴더를 찾을 수 없습니다.')
     }
-    const providerFolderId = parent
-      ? `${parent.provider_folder_id}/${cleanName}`
-      : `USER/${cleanName}`
+    const providerFolderId = isLocal
+      ? `local:${randomUUID()}`
+      : (parent ? `${parent.provider_folder_id}/${cleanName}` : `USER/${cleanName}`)
     const { rows } = await client.query(
-      `INSERT INTO mail_folders (tenant_id, user_id, account_id, provider_folder_id, name, type, parent_folder_id)
-       VALUES ($1, $2, $3, $4, $5, 'custom', $6)
+      `INSERT INTO mail_folders (tenant_id, user_id, account_id, provider_folder_id, name, type, parent_folder_id, is_local)
+       VALUES ($1, $2, $3, $4, $5, 'custom', $6, $7)
        ON CONFLICT (account_id, provider_folder_id)
        DO UPDATE SET name = EXCLUDED.name,
                      parent_folder_id = EXCLUDED.parent_folder_id,
                      updated_at = NOW()
-       RETURNING id, account_id, provider_folder_id, name, type, parent_folder_id, color_key`,
-      [tenantId, account.user_id, account.id, providerFolderId, cleanName, parent?.id || null],
+       RETURNING id, account_id, provider_folder_id, name, type, parent_folder_id, color_key, is_local, sync_status`,
+      [tenantId, account.user_id, account.id, providerFolderId, cleanName, parent?.id || null, !!isLocal],
     )
     return rows[0]
   })
+}
+
+// 거울 폴더의 동기화 상태 갱신. 'missing' = 서버에 메일박스 없음(자동 동기화 중단), null = 정상.
+async function setFolderSyncStatus({ tenantId, accountId, folderId, syncStatus }) {
+  await tenantQuery(
+    tenantId,
+    `UPDATE mail_folders
+     SET sync_status = NULLIF($1, ''), updated_at = NOW()
+     WHERE id = $2 AND account_id = $3`,
+    [String(syncStatus || ''), folderId, accountId],
+  )
 }
 
 async function updateFolderColor({ tenantId, accountId, folderId, colorKey, userId, isSiteAdmin }) {
@@ -818,7 +838,7 @@ async function updateFolderColor({ tenantId, accountId, folderId, colorKey, user
      WHERE mf.id = $2
        AND mf.account_id = $3
        AND ($4::boolean = true OR mf.user_id = $5)
-     RETURNING id, account_id, provider_folder_id, name, type, parent_folder_id, color_key`,
+     RETURNING id, account_id, provider_folder_id, name, type, parent_folder_id, color_key, is_local, sync_status`,
     [String(colorKey || '').trim(), folderId, accountId, !!isSiteAdmin, userId],
   )
   return rows[0] || null
@@ -1065,14 +1085,15 @@ async function saveSyncedMessage({ tenantId, account, parsed, folderId, objectKe
   return withTenantTx(tenantId, async (client) => {
     const msgResult = await client.query(
       `INSERT INTO mail_messages (
-         tenant_id, user_id, account_id, provider_message_id, internet_message_id, folder_id,
+         tenant_id, user_id, account_id, provider_message_id, internet_message_id, provider_thread_id, folder_id,
          subject, from_email, from_name, to_json, cc_json, bcc_json, snippet,
          received_at, sent_at, is_read, is_starred, has_attachments, size_bytes,
          raw_object_key, body_text_object_key, body_html_object_key, updated_at
        )
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10::jsonb,$11::jsonb,$12::jsonb,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22, NOW())
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11::jsonb,$12::jsonb,$13::jsonb,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23, NOW())
        ON CONFLICT (account_id, provider_message_id) DO UPDATE SET
          internet_message_id = COALESCE(EXCLUDED.internet_message_id, mail_messages.internet_message_id),
+         provider_thread_id = COALESCE(EXCLUDED.provider_thread_id, mail_messages.provider_thread_id),
          folder_id = EXCLUDED.folder_id,
          subject = EXCLUDED.subject,
          from_email = EXCLUDED.from_email,
@@ -1093,7 +1114,7 @@ async function saveSyncedMessage({ tenantId, account, parsed, folderId, objectKe
          updated_at = NOW()
        RETURNING id`,
       [
-        tenantId, account.user_id, account.id, parsed.providerMessageId, parsed.internetMessageId || null, folderId || null,
+        tenantId, account.user_id, account.id, parsed.providerMessageId, parsed.internetMessageId || null, parsed.threadId || parsed.providerThreadId || null, folderId || null,
         parsed.subject, parsed.fromEmail, parsed.fromName,
         JSON.stringify(parsed.to), JSON.stringify(parsed.cc), JSON.stringify(parsed.bcc),
         parsed.snippet, parsed.receivedAt, parsed.sentAt,
@@ -1258,6 +1279,65 @@ async function recomputeUsage({ tenantId, accountId, userId }) {
   )
 }
 
+async function getAccountById({ tenantId, accountId, userId, isSiteAdmin }) {
+  const { rows } = await tenantQuery(
+    tenantId,
+    `SELECT id, tenant_id, user_id, provider, email_address, display_name, status
+     FROM mail_accounts
+     WHERE tenant_id = $1
+       AND id = $2
+       AND ($3::boolean = true OR user_id = $4)
+     LIMIT 1`,
+    [tenantId, accountId, !!isSiteAdmin, userId],
+  )
+  return rows[0] || null
+}
+
+async function getMessageForAgentic({ tenantId, messageId }) {
+  const { rows } = await tenantQuery(
+    tenantId,
+    `SELECT mm.id,
+            mm.tenant_id,
+            mm.user_id,
+            mm.account_id,
+            ma.email_address AS account_email,
+            mm.provider_message_id,
+            mm.provider_thread_id,
+            mm.internet_message_id,
+            mm.subject,
+            mm.from_email,
+            mm.from_name,
+            mm.to_json,
+            mm.cc_json,
+            mm.bcc_json,
+            mm.snippet,
+            mm.received_at,
+            mm.sent_at,
+            mm.has_attachments,
+            mm.body_text_object_key,
+            mm.body_html_object_key,
+            mm.created_at
+     FROM mail_messages mm
+     JOIN mail_accounts ma ON ma.id = mm.account_id
+     WHERE mm.tenant_id = $1 AND mm.id = $2
+     LIMIT 1`,
+    [tenantId, messageId],
+  )
+  return rows[0] || null
+}
+
+async function listMessageAttachments({ tenantId, messageId }) {
+  const { rows } = await tenantQuery(
+    tenantId,
+    `SELECT id, provider_attachment_id, filename, content_type, size_bytes, object_key
+     FROM mail_attachments
+     WHERE tenant_id = $1 AND message_id = $2
+     ORDER BY created_at ASC, id ASC`,
+    [tenantId, messageId],
+  )
+  return rows
+}
+
 module.exports = {
   // tenants
   ensurePersonalTenant,
@@ -1291,6 +1371,7 @@ module.exports = {
   upsertFolders,
   getFolderById,
   createFolder,
+  setFolderSyncStatus,
   updateFolderColor,
   deleteFolder,
   listMessages,
@@ -1304,4 +1385,7 @@ module.exports = {
   saveDraftMessage,
   updateSyncState,
   recomputeUsage,
+  getAccountById,
+  getMessageForAgentic,
+  listMessageAttachments,
 }

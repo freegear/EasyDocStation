@@ -32,6 +32,20 @@ function HeartIcon({ filled = false }) {
     </svg>
   )
 }
+function TrashIcon() {
+  return (
+    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M9 7V4h6v3m-8 0h10" />
+    </svg>
+  )
+}
+function PencilIcon() {
+  return (
+    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
+    </svg>
+  )
+}
 function PlusUserIcon() {
   return (
     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -87,6 +101,9 @@ function isMessageEditable(createdAtIso, nowMs = Date.now()) {
 }
 
 const MESSAGE_SYNC_INTERVAL_MS = 1500
+const COMPOSER_MIN_HEIGHT = 72
+const COMPOSER_DEFAULT_HEIGHT = 88
+const COMPOSER_MAX_HEIGHT_RATIO = 0.55
 const DEFAULT_DISPLAY_CONFIG = {
   imagePreview: { width: 512, height: 512 },
   pdfPreview: { width: 480, height: 270 },
@@ -504,7 +521,24 @@ function MessageBubble({
   const [editContent, setEditContent] = useState(msg.content)
   const [nowMs, setNowMs] = useState(() => Date.now())
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [showActionPopup, setShowActionPopup] = useState(false)
   const [pendingBatchDownload, setPendingBatchDownload] = useState(null)
+  const [previewAtt, setPreviewAtt] = useState(null) // 이미지 미리보기(라이트박스) 대상
+  const popupRef = useRef(null)
+
+  useEffect(() => {
+    if (!previewAtt) return undefined
+    // 미리보기가 열려 있을 때 ESC는 미리보기만 닫고, DM 창 닫기 핸들러까지 전파되지 않게 한다.
+    // (캡처 단계에서 먼저 가로채 stopImmediatePropagation으로 다른 keydown 리스너를 차단)
+    const onKey = (e) => {
+      if (e.key !== 'Escape') return
+      e.stopPropagation()
+      e.stopImmediatePropagation()
+      setPreviewAtt(null)
+    }
+    window.addEventListener('keydown', onKey, true)
+    return () => window.removeEventListener('keydown', onKey, true)
+  }, [previewAtt])
   const canEdit = isMine && isMessageEditable(msg.created_at, nowMs)
   const readByOthers = (msg.read_by || []).filter(id => id !== msg.sender_id)
   const readStatusText = readByOthers.length === 0
@@ -518,6 +552,7 @@ function MessageBubble({
     : null
   const likeCount = Number(msg.likeCount || msg.like_count || 0)
   const likedByMe = Boolean(msg.likedByMe || msg.liked_by_me)
+  const canShowEditAction = canEdit && readByOthers.length === 0
 
   useEffect(() => {
     const createdAtMs = new Date(msg.created_at).getTime()
@@ -528,6 +563,23 @@ function MessageBubble({
     const timer = setTimeout(() => setNowMs(Date.now()), waitMs + 50)
     return () => clearTimeout(timer)
   }, [msg.created_at, nowMs])
+
+  useEffect(() => {
+    if (!showActionPopup) return undefined
+    function onMouseDown(e) {
+      if (popupRef.current?.contains(e.target)) return
+      setShowActionPopup(false)
+    }
+    function onKeyDown(e) {
+      if (e.key === 'Escape') setShowActionPopup(false)
+    }
+    window.addEventListener('mousedown', onMouseDown)
+    window.addEventListener('keydown', onKeyDown)
+    return () => {
+      window.removeEventListener('mousedown', onMouseDown)
+      window.removeEventListener('keydown', onKeyDown)
+    }
+  }, [showActionPopup])
 
   async function submitEdit() {
     if (!editContent.trim() && msg.attachments?.length === 0) return
@@ -551,6 +603,12 @@ function MessageBubble({
       return
     }
     downloadFile(att)
+  }
+
+  function handleBubbleClick(e) {
+    if (!isMine || msg.is_deleted || editMode) return
+    if (e.target.closest('a, button, textarea, input, select, iframe, video')) return
+    setShowActionPopup(prev => !prev)
   }
 
   const senderName = msg.sender?.display_name || msg.sender?.username || '?'
@@ -578,11 +636,15 @@ function MessageBubble({
               )}
             </div>
           )}
-          <div className={`rounded-2xl px-4 py-2.5 text-sm shadow-sm ${
-            isMine
-              ? 'bg-indigo-600 text-white rounded-tr-sm'
-              : 'bg-white text-gray-800 border border-gray-100 rounded-tl-sm'
-          }`}>
+          <div className="relative">
+            <div
+              onClick={handleBubbleClick}
+              className={`rounded-2xl px-4 py-2.5 text-sm shadow-sm ${
+                isMine
+                  ? 'bg-indigo-600 text-white rounded-tr-sm cursor-pointer'
+                  : 'bg-white text-gray-800 border border-gray-100 rounded-tl-sm'
+              }`}
+            >
             {editMode ? (
               <div className="flex flex-col gap-2">
                 <textarea
@@ -635,8 +697,8 @@ function MessageBubble({
                         return (
                           <div
                             key={i}
-                            onDoubleClick={() => handleAttachmentDoubleClick(att, msg.attachments)}
-                            title="더블클릭하여 다운로드"
+                            onDoubleClick={kind === 'image' ? undefined : () => handleAttachmentDoubleClick(att, msg.attachments)}
+                            title={kind === 'image' ? '클릭하여 미리보기' : '더블클릭하여 다운로드'}
                             className={`rounded-lg overflow-hidden border text-xs ${
                               isMine ? 'border-white/25 bg-white/10' : 'border-gray-200 bg-white'
                             }`}
@@ -646,6 +708,8 @@ function MessageBubble({
                               <img
                                 src={url}
                                 alt={att.filename}
+                                onClick={(e) => { e.stopPropagation(); setPreviewAtt(att) }}
+                                className="cursor-zoom-in"
                                 style={{ width, height, maxWidth: '100%', objectFit: 'cover' }}
                               />
                             )}
@@ -678,6 +742,41 @@ function MessageBubble({
                 )}
               </>
             )}
+            </div>
+            {showActionPopup && isMine && !msg.is_deleted && (
+              <div
+                ref={popupRef}
+                className={`absolute z-30 top-full mt-2 w-40 rounded-lg border border-gray-200 bg-white py-1.5 shadow-xl ${
+                  isMine ? 'right-0' : 'left-0'
+                }`}
+              >
+                {canShowEditAction && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowActionPopup(false)
+                      setEditContent(msg.content)
+                      setEditMode(true)
+                    }}
+                    className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs font-semibold text-gray-700 hover:bg-indigo-50 hover:text-indigo-700"
+                  >
+                    <PencilIcon />
+                    <span>메시지 편집</span>
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowActionPopup(false)
+                    setShowDeleteConfirm(true)
+                  }}
+                  className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs font-semibold text-red-600 hover:bg-red-50"
+                >
+                  <TrashIcon />
+                  <span>메시지 삭제</span>
+                </button>
+              </div>
+            )}
           </div>
           {!msg.is_deleted && (
             <button
@@ -697,20 +796,6 @@ function MessageBubble({
           )}
         </div>
 
-        {isMine && !editMode && !msg.is_deleted && (
-          <div className="flex items-center gap-2 mt-1">
-            {canEdit && (
-              <button
-                onClick={() => { setEditContent(msg.content); setEditMode(true) }}
-                className="text-[10px] text-gray-300 hover:text-indigo-500 px-1 transition-colors"
-              >수정</button>
-            )}
-            <button
-              onClick={() => setShowDeleteConfirm(true)}
-              className="text-[10px] text-gray-300 hover:text-red-500 px-1 transition-colors"
-            >삭제</button>
-          </div>
-        )}
         {showDeleteConfirm && (
           <ConfirmDialog
             title="메시지 삭제"
@@ -741,6 +826,43 @@ function MessageBubble({
             }}
           />
         )}
+        {previewAtt && (
+          <div
+            className="fixed inset-0 z-[200] flex items-center justify-center bg-black/85 backdrop-blur-sm"
+            onClick={() => setPreviewAtt(null)}
+          >
+            <div
+              className="relative max-w-[90vw] max-h-[90vh] flex flex-col items-center"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <img
+                src={dmAttachmentUrl(previewAtt)}
+                alt={previewAtt.filename}
+                className="max-w-[90vw] max-h-[80vh] rounded-2xl object-contain shadow-2xl"
+              />
+              <div className="mt-3 flex items-center gap-3">
+                <span className="text-gray-300 text-xs">{previewAtt.filename}</span>
+                <button
+                  type="button"
+                  onClick={() => downloadFile(previewAtt)}
+                  className="px-3 py-1.5 rounded-lg bg-indigo-600/40 hover:bg-indigo-600/60 text-white text-xs font-semibold border border-indigo-300/40 transition-colors"
+                >
+                  다운로드
+                </button>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setPreviewAtt(null)}
+              aria-label="닫기"
+              className="absolute top-4 right-4 w-9 h-9 rounded-full bg-gray-200 hover:bg-gray-300 flex items-center justify-center text-gray-900 transition-colors"
+            >
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        )}
       </div>
     </div>
   )
@@ -761,7 +883,10 @@ export default function DirectMessageView({ conversation, onClose, onConversatio
   const [showAddParticipant, setShowAddParticipant] = useState(false)
   const [removingParticipant, setRemovingParticipant] = useState(null) // participant object
   const [isDragging, setIsDragging] = useState(false)
+  const [isResizingComposer, setIsResizingComposer] = useState(false)
+  const [composerHeight, setComposerHeight] = useState(COMPOSER_DEFAULT_HEIGHT)
   const dragCounterRef = useRef(0)
+  const rootRef = useRef(null)
   const messagesEndRef = useRef(null)
   const fileInputRef = useRef(null)
 
@@ -801,6 +926,42 @@ export default function DirectMessageView({ conversation, onClose, onConversatio
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
+
+  useEffect(() => {
+    if (!isResizingComposer) return undefined
+
+    function getNextHeight(clientY) {
+      const rect = rootRef.current?.getBoundingClientRect()
+      if (!rect) return COMPOSER_DEFAULT_HEIGHT
+      const maxHeight = Math.max(
+        COMPOSER_MIN_HEIGHT,
+        Math.round(rect.height * COMPOSER_MAX_HEIGHT_RATIO),
+      )
+      return Math.min(maxHeight, Math.max(COMPOSER_MIN_HEIGHT, rect.bottom - clientY))
+    }
+
+    function onPointerMove(e) {
+      e.preventDefault()
+      setComposerHeight(getNextHeight(e.clientY))
+    }
+
+    function onPointerUp() {
+      setIsResizingComposer(false)
+    }
+
+    document.body.style.cursor = 'row-resize'
+    document.body.style.userSelect = 'none'
+    window.addEventListener('pointermove', onPointerMove)
+    window.addEventListener('pointerup', onPointerUp)
+    window.addEventListener('pointercancel', onPointerUp)
+    return () => {
+      document.body.style.cursor = ''
+      document.body.style.userSelect = ''
+      window.removeEventListener('pointermove', onPointerMove)
+      window.removeEventListener('pointerup', onPointerUp)
+      window.removeEventListener('pointercancel', onPointerUp)
+    }
+  }, [isResizingComposer])
 
   // ESC to close
   useEffect(() => {
@@ -1049,6 +1210,11 @@ export default function DirectMessageView({ conversation, onClose, onConversatio
     })
   }
 
+  function startComposerResize(e) {
+    e.preventDefault()
+    setIsResizingComposer(true)
+  }
+
   const participants = conversation?.participant_details || []
   const participantIds = conversation?.participants || []
   const participantNameById = Object.fromEntries(
@@ -1065,7 +1231,7 @@ export default function DirectMessageView({ conversation, onClose, onConversatio
   const isOwner = currentUser?.id === conversation?.created_by
 
   return (
-    <div className="flex flex-col flex-1 min-h-0 bg-gray-50">
+    <div ref={rootRef} className="flex flex-col flex-1 min-h-0 bg-gray-50">
       {/* ── Header: 창 이름 / 참여자 / 닫기 ── */}
       <div className="flex items-center gap-3 px-5 py-3 bg-white border-b border-gray-100 shadow-sm flex-shrink-0">
 
@@ -1193,12 +1359,29 @@ export default function DirectMessageView({ conversation, onClose, onConversatio
 
       {/* Input area */}
       <div
-        className={`flex-shrink-0 bg-white border-t border-gray-100 px-4 py-3 relative transition-colors ${isDragging ? 'bg-indigo-50 border-indigo-300' : ''}`}
+        className={`flex flex-col flex-shrink-0 bg-white border-t border-gray-100 px-4 py-3 relative transition-colors ${
+          isDragging ? 'bg-indigo-50 border-indigo-300' : ''
+        } ${isResizingComposer ? 'select-none' : ''}`}
+        style={{ height: composerHeight }}
         onDragEnter={handleDragEnter}
         onDragLeave={handleDragLeave}
         onDragOver={handleDragOver}
         onDrop={handleDrop}
       >
+        <div
+          role="separator"
+          aria-orientation="horizontal"
+          aria-label="메시지 입력 창 크기 조절"
+          title="드래그하여 입력 창 크기 조절"
+          onPointerDown={startComposerResize}
+          className={`absolute left-0 right-0 top-0 h-3 -translate-y-1.5 cursor-row-resize ${
+            isResizingComposer ? 'bg-indigo-100/70' : 'hover:bg-indigo-50/80'
+          }`}
+        >
+          <div className={`mx-auto mt-1 h-1 w-16 rounded-full ${
+            isResizingComposer ? 'bg-indigo-400' : 'bg-gray-200'
+          }`} />
+        </div>
         {isDragging && (
           <div className="absolute inset-0 flex items-center justify-center rounded-t-xl border-2 border-dashed border-indigo-400 bg-indigo-50/90 z-10 pointer-events-none">
             <p className="text-indigo-500 font-semibold text-sm">파일을 놓으면 첨부됩니다</p>
@@ -1215,10 +1398,10 @@ export default function DirectMessageView({ conversation, onClose, onConversatio
             ))}
           </div>
         )}
-        <div className="flex items-end gap-2">
+        <div className="flex flex-1 min-h-0 items-stretch gap-2">
           <button
             onClick={() => fileInputRef.current?.click()}
-            className="p-2 rounded-xl text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors flex-shrink-0"
+            className="self-end p-2 rounded-xl text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors flex-shrink-0"
             title="파일 첨부"
           >
             <ClipIcon />
@@ -1232,13 +1415,12 @@ export default function DirectMessageView({ conversation, onClose, onConversatio
             }}
             placeholder="메시지 입력... (Enter 전송, Shift+Enter 줄바꿈)"
             rows={1}
-            className="flex-1 bg-gray-100 rounded-xl px-4 py-2.5 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-indigo-400/40 max-h-32"
-            style={{ minHeight: '40px' }}
+            className="flex-1 min-h-10 h-full bg-gray-100 rounded-xl px-4 py-2.5 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-indigo-400/40"
           />
           <button
             onClick={handleSend}
             disabled={sending || (!input.trim() && pendingFiles.length === 0)}
-            className="p-2.5 rounded-xl bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-40 transition-colors flex-shrink-0"
+            className="self-end p-2.5 rounded-xl bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-40 transition-colors flex-shrink-0"
           >
             <SendIcon />
           </button>

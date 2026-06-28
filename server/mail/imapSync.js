@@ -6,6 +6,7 @@ const { decryptSecret } = require('../lib/secrets')
 const { buildSnippet } = require('./textPreview')
 const { decodeHeaderText, getRawHeader, detectFallbackCharset } = require('./mimeHeaderDecode')
 const { parseAddressList, normalizeInternetMessageId } = require('./messageParser')
+const { enqueueMessageSynced } = require('./agentic/worker')
 
 function asAddressList(addressObject) {
   return (addressObject?.value || [])
@@ -93,7 +94,20 @@ async function listImapFolders(account) {
 }
 
 // 특정 폴더 1개의 메시지를 on-demand로 동기화한다.
+// IMAP SELECT 시 "메일박스 없음" 응답(NONEXISTENT)을 식별한다. (ImapFlow 에러 객체 기준)
+function isMailboxMissingError(err) {
+  if (!err) return false
+  if (err.mailboxMissing === true) return true
+  const text = `${err.responseText || ''} ${err.response || ''} ${err.message || ''}`
+  return /NONEXISTENT|mailbox doesn'?t exist|no such mailbox/i.test(text)
+}
+
 async function syncImapFolder({ tenantId, account, folder, limit = 50, full = false }) {
+  // 로컬 전용 폴더는 서버에 메일박스가 없으므로 동기화하지 않는다.
+  if (folder.is_local) {
+    return { listed: 0, new: 0, saved: 0, failed: 0, errors: [], skipped: true, reason: 'local_folder' }
+  }
+
   const password = decryptSecret(account.password_encrypted)
   if (!password) throw new Error('메일 계정 암호가 저장되어 있지 않습니다.')
   const client = buildImapClient(account, password)
@@ -107,10 +121,28 @@ async function syncImapFolder({ tenantId, account, folder, limit = 50, full = fa
     else if (folder.type === 'drafts') mailboxPath = pickDraftsMailbox(await client.list()) || folder.provider_folder_id
     else if (folder.type === 'trash') mailboxPath = pickTrashMailbox(await client.list()) || folder.provider_folder_id
 
-    const result = await syncMailbox({
-      client, tenantId, account, storage, folderMap,
-      mailboxPath, providerFolderId: folder.provider_folder_id, limit, full,
-    })
+    let result
+    try {
+      result = await syncMailbox({
+        client, tenantId, account, storage, folderMap,
+        mailboxPath, providerFolderId: folder.provider_folder_id, limit, full,
+      })
+    } catch (err) {
+      // 서버에서 폴더가 사라진(이름변경/삭제) 거울 폴더: 에러로 터뜨리지 않고 'missing'으로 표시하고
+      // 자동 동기화를 멈춘다. (시스템 폴더 INBOX/SENT 등은 표시하지 않는다.)
+      if (isMailboxMissingError(err)) {
+        if (folder.type === 'custom') {
+          await repo.setFolderSyncStatus({ tenantId, accountId: account.id, folderId: folder.id, syncStatus: 'missing' }).catch(() => {})
+        }
+        return { listed: 0, new: 0, saved: 0, failed: 0, errors: [], mailboxMissing: true }
+      }
+      throw err
+    }
+
+    // 동기화 성공 → 이전에 missing이었다면 정상으로 복구.
+    if (folder.sync_status) {
+      await repo.setFolderSyncStatus({ tenantId, accountId: account.id, folderId: folder.id, syncStatus: null }).catch(() => {})
+    }
     await repo.recomputeUsage({ tenantId, accountId: account.id, userId: account.user_id })
     return result
   } finally {
@@ -264,13 +296,16 @@ async function saveImapMessage({ tenantId, account, storage, folderMap, provider
 
   const { attachments: _ignoredAttachments, bodyText: _bodyText, bodyHtml: _bodyHtml, ...dbMessage } = parsedMessage
   const folderId = folderMap[providerFolderId] || null
-  await repo.saveSyncedMessage({
+  const messageId = await repo.saveSyncedMessage({
     tenantId,
     account,
     parsed: dbMessage,
     folderId,
     objectKeys,
     attachments,
+  })
+  await enqueueMessageSynced({ tenantId, messageId, direction: providerFolderId === 'SENT' ? 'outbound' : 'inbound' }).catch(err => {
+    console.warn('[AgenticAI Mail] IMAP sync event enqueue failed:', err.message)
   })
 }
 

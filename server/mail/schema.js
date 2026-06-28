@@ -200,6 +200,7 @@ async function ensureMailDataSchema(client, { standalone = false } = {}) {
       cc_json               JSONB NOT NULL DEFAULT '[]',
       bcc_json              JSONB NOT NULL DEFAULT '[]',
       snippet               TEXT NOT NULL DEFAULT '',
+      provider_thread_id    TEXT,
       received_at           TIMESTAMPTZ,
       sent_at               TIMESTAMPTZ,
       is_read               BOOLEAN NOT NULL DEFAULT false,
@@ -243,11 +244,26 @@ async function ensureMailDataSchema(client, { standalone = false } = {}) {
       ADD COLUMN IF NOT EXISTS color_key TEXT;
   `)
 
+  // 거울/로컬 폴더 분리:
+  //  - is_local=true  : 로컬 전용 폴더(앱에서 만든 분류용). IMAP 메일박스가 없으며 동기화하지 않는다.
+  //  - is_local=false : 거울 폴더(서버에서 발견된 실제 메일박스). 서버가 정본이며 동기화한다.
+  //  - sync_status='missing' : 거울 폴더인데 서버에 메일박스가 사라진 상태(stale). 자동 동기화 중단.
+  await run(client, 'mail folder local/sync columns', `
+    ALTER TABLE mail_folders
+      ADD COLUMN IF NOT EXISTS is_local BOOLEAN NOT NULL DEFAULT FALSE;
+    ALTER TABLE mail_folders
+      ADD COLUMN IF NOT EXISTS sync_status TEXT;
+  `)
+
   await run(client, 'mail message internet id column', `
     ALTER TABLE mail_messages
       ADD COLUMN IF NOT EXISTS internet_message_id TEXT;
+    ALTER TABLE mail_messages
+      ADD COLUMN IF NOT EXISTS provider_thread_id TEXT;
     CREATE INDEX IF NOT EXISTS idx_mail_messages_account_internet_id
       ON mail_messages(account_id, internet_message_id);
+    CREATE INDEX IF NOT EXISTS idx_mail_messages_account_thread
+      ON mail_messages(account_id, provider_thread_id);
   `)
 
   await run(client, 'create mail sync and usage', `
@@ -277,6 +293,127 @@ async function ensureMailDataSchema(client, { standalone = false } = {}) {
     );
 
     CREATE INDEX IF NOT EXISTS idx_mail_usage_tenant ON mail_usage(tenant_id);
+  `)
+
+  const ownerFk = controlFk('REFERENCES users(id) ON DELETE CASCADE', standalone)
+  await run(client, 'create mail agentic tables', `
+    CREATE TABLE IF NOT EXISTS mail_agentic_watch_targets (
+      id                  TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      tenant_id           TEXT NOT NULL ${tenantFk},
+      owner_user_id        INTEGER NOT NULL ${ownerFk},
+      target_type          TEXT NOT NULL,
+      account_id           TEXT,
+      email_address        TEXT,
+      account_conditions   JSONB NOT NULL DEFAULT '[]',
+      keyword_conditions   JSONB NOT NULL DEFAULT '[]',
+      subject_conditions   JSONB NOT NULL DEFAULT '[]',
+      condition_match_type TEXT NOT NULL DEFAULT 'contains',
+      subject_match_type   TEXT,
+      subject_pattern      TEXT,
+      sender_pattern       TEXT,
+      enabled              BOOLEAN NOT NULL DEFAULT true,
+      notify_telegram      BOOLEAN NOT NULL DEFAULT true,
+      auto_create_todos    BOOLEAN NOT NULL DEFAULT true,
+      rag_enabled          BOOLEAN NOT NULL DEFAULT true,
+      analysis_enabled     BOOLEAN NOT NULL DEFAULT true,
+      created_at           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at           TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+
+    CREATE TABLE IF NOT EXISTS mail_agentic_threads (
+      id                     TEXT PRIMARY KEY,
+      tenant_id              TEXT NOT NULL ${tenantFk},
+      watch_target_id         TEXT NOT NULL REFERENCES mail_agentic_watch_targets(id) ON DELETE CASCADE,
+      account_id              TEXT,
+      provider_thread_id      TEXT,
+      normalized_subject      TEXT NOT NULL,
+      participant_fingerprint TEXT,
+      first_message_at        TIMESTAMPTZ,
+      last_message_at         TIMESTAMPTZ,
+      last_message_id         TEXT,
+      status                  TEXT NOT NULL DEFAULT 'active',
+      last_rag_trained_at     TIMESTAMPTZ,
+      last_analyzed_at        TIMESTAMPTZ,
+      last_notified_at        TIMESTAMPTZ,
+      created_at              TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at              TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+
+    CREATE TABLE IF NOT EXISTS mail_agentic_thread_messages (
+      thread_id       TEXT NOT NULL REFERENCES mail_agentic_threads(id) ON DELETE CASCADE,
+      message_id      TEXT NOT NULL,
+      tenant_id       TEXT NOT NULL,
+      account_id      TEXT,
+      direction       TEXT,
+      rag_status      TEXT NOT NULL DEFAULT 'pending',
+      content_hash    TEXT,
+      attachment_hash TEXT,
+      rag_trained_at  TIMESTAMPTZ,
+      analyzed        BOOLEAN NOT NULL DEFAULT false,
+      created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      PRIMARY KEY (thread_id, message_id)
+    );
+
+    CREATE TABLE IF NOT EXISTS mail_agentic_thread_reports (
+      thread_id             TEXT PRIMARY KEY REFERENCES mail_agentic_threads(id) ON DELETE CASCADE,
+      tenant_id             TEXT NOT NULL,
+      summary               TEXT NOT NULL DEFAULT '',
+      important_issues      JSONB NOT NULL DEFAULT '[]',
+      progress_summary      JSONB NOT NULL DEFAULT '[]',
+      action_items          JSONB NOT NULL DEFAULT '[]',
+      todo_items            JSONB NOT NULL DEFAULT '[]',
+      decisions             JSONB NOT NULL DEFAULT '[]',
+      risks                 JSONB NOT NULL DEFAULT '[]',
+      open_questions        JSONB NOT NULL DEFAULT '[]',
+      last_message_id       TEXT,
+      learned_message_count INTEGER NOT NULL DEFAULT 0,
+      source_message_ids    JSONB NOT NULL DEFAULT '[]',
+      analysis_version      INTEGER NOT NULL DEFAULT 1,
+      updated_at            TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+
+    CREATE TABLE IF NOT EXISTS mail_agentic_todos (
+      id                TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      tenant_id         TEXT NOT NULL,
+      thread_id         TEXT NOT NULL REFERENCES mail_agentic_threads(id) ON DELETE CASCADE,
+      action_item_id    TEXT,
+      owner_user_id     INTEGER,
+      title             TEXT NOT NULL,
+      description       TEXT,
+      due_at            TIMESTAMPTZ,
+      priority          TEXT NOT NULL DEFAULT 'normal',
+      status            TEXT NOT NULL DEFAULT 'open',
+      source_message_id TEXT,
+      created_at        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at        TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+
+    CREATE TABLE IF NOT EXISTS mail_agentic_events (
+      id            TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      tenant_id     TEXT NOT NULL,
+      thread_id     TEXT,
+      message_id    TEXT,
+      event_type    TEXT NOT NULL,
+      status        TEXT NOT NULL DEFAULT 'pending',
+      payload       JSONB NOT NULL DEFAULT '{}',
+      error_message TEXT,
+      retry_count   INTEGER NOT NULL DEFAULT 0,
+      created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_mail_agentic_watch_targets_tenant
+      ON mail_agentic_watch_targets(tenant_id, enabled);
+    CREATE INDEX IF NOT EXISTS idx_mail_agentic_threads_target
+      ON mail_agentic_threads(watch_target_id, last_message_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_mail_agentic_thread_messages_status
+      ON mail_agentic_thread_messages(tenant_id, rag_status);
+    CREATE INDEX IF NOT EXISTS idx_mail_agentic_events_pending
+      ON mail_agentic_events(tenant_id, status, created_at);
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_mail_agentic_todos_dedupe
+      ON mail_agentic_todos(thread_id, action_item_id)
+      WHERE action_item_id IS NOT NULL;
   `)
 }
 
