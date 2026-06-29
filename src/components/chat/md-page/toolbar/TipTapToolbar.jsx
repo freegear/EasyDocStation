@@ -1,0 +1,51 @@
+import TextColorControl from './TextColorControl'
+
+export default function TipTapToolbar({ editor, t, onInsertImage, onInsertToc, isUploadingImage = false }) {
+  if (!editor) return null
+  const mdT = t?.mdPage || {}
+
+  const btn = (active, onClick, label, title) => (
+    <button
+      key={label}
+      onMouseDown={e => { e.preventDefault(); onClick() }}
+      title={title}
+      className={`px-2 py-1 rounded text-sm transition-colors ${
+        active
+          ? 'bg-indigo-100 text-indigo-700 font-semibold'
+          : 'text-gray-500 hover:bg-gray-100 hover:text-gray-800'
+      }`}
+    >
+      {label}
+    </button>
+  )
+
+  const sep = (key) => <div key={key} className="w-px h-5 bg-gray-200 mx-0.5" />
+
+  return (
+    <div className="flex items-center gap-0.5 px-4 py-1.5 border-b border-gray-100 bg-gray-50 flex-wrap flex-shrink-0">
+      {btn(editor.isActive('bold'), () => editor.chain().focus().toggleBold().run(), 'B', mdT.toolbarBold || 'Bold (Ctrl+B)')}
+      {btn(editor.isActive('italic'), () => editor.chain().focus().toggleItalic().run(), 'I', mdT.toolbarItalic || 'Italic (Ctrl+I)')}
+      {btn(editor.isActive('strike'), () => editor.chain().focus().toggleStrike().run(), 'S̶', mdT.toolbarStrike || 'Strikethrough')}
+      {btn(editor.isActive('code'), () => editor.chain().focus().toggleCode().run(), '<>', mdT.toolbarInlineCode || 'Inline code')}
+      {sep('s1')}
+      {btn(editor.isActive('heading', { level: 1 }), () => editor.chain().focus().toggleHeading({ level: 1 }).run(), 'H1', mdT.toolbarHeading1 || 'Heading 1')}
+      {btn(editor.isActive('heading', { level: 2 }), () => editor.chain().focus().toggleHeading({ level: 2 }).run(), 'H2', mdT.toolbarHeading2 || 'Heading 2')}
+      {btn(editor.isActive('heading', { level: 3 }), () => editor.chain().focus().toggleHeading({ level: 3 }).run(), 'H3', mdT.toolbarHeading3 || 'Heading 3')}
+      {sep('s2')}
+      {btn(editor.isActive('bulletList'), () => editor.chain().focus().toggleBulletList().run(), mdT.toolbarBulletList || '• List', mdT.toolbarBulletListTitle || 'Bulleted list')}
+      {btn(editor.isActive('orderedList'), () => editor.chain().focus().toggleOrderedList().run(), mdT.toolbarOrderedList || '1. List', mdT.toolbarOrderedListTitle || 'Numbered list')}
+      {btn(editor.isActive('taskList'), () => editor.chain().focus().toggleTaskList().run(), mdT.toolbarTaskList || '[ ] List', mdT.toolbarTaskListTitle || 'Checklist')}
+      {sep('s3')}
+      {btn(false, onInsertToc, mdT.toolbarInsertToc || 'Insert TOC', mdT.toolbarInsertTocTitle || 'Insert table of contents')}
+      {btn(editor.isActive('blockquote'), () => editor.chain().focus().toggleBlockquote().run(), mdT.toolbarQuote || '" Quote', mdT.toolbarQuoteTitle || 'Quote')}
+      {btn(editor.isActive('codeBlock'), () => editor.chain().focus().toggleCodeBlock().run(), mdT.toolbarCodeBlock || 'Code block', mdT.toolbarCodeBlockTitle || 'Code block')}
+      {btn(editor.isActive('table'), () => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run(), mdT.toolbarInsertTable || 'Insert table', mdT.toolbarInsertTableTitle || 'Insert 3x3 table')}
+      <TextColorControl editor={editor} t={t} />
+      {btn(false, () => editor.chain().focus().setHorizontalRule().run(), '──', mdT.toolbarHorizontalRule || 'Horizontal rule')}
+      {btn(false, onInsertImage, isUploadingImage ? (mdT.toolbarUploading || 'Uploading...') : '🖼', mdT.toolbarInsertImageTitle || 'Upload and insert image')}
+      {sep('s4')}
+      {btn(false, () => editor.chain().focus().undo().run(), '↩', mdT.toolbarUndo || 'Undo (Ctrl+Z)')}
+      {btn(false, () => editor.chain().focus().redo().run(), '↪', mdT.toolbarRedo || 'Redo (Ctrl+Y)')}
+    </div>
+  )
+}

@@ -5,6 +5,26 @@ import { useToast } from './ToastContext'
 
 const ChatContext = createContext(null)
 const EMPTY_SELECTED_TEAM = { id: null, channels: [], directMessages: [], admin_ids: [] }
+const INITIAL_POST_LIMIT = 10
+const INITIAL_BUFFER_LIMIT = 90
+const OLDER_POST_BATCH_LIMIT = 100
+
+function asList(value) {
+  return Array.isArray(value) ? value : []
+}
+
+function postsFromResponse(value) {
+  if (Array.isArray(value)) return value
+  if (Array.isArray(value?.posts)) return value.posts
+  return []
+}
+
+function postPageFromResponse(value) {
+  return {
+    hasMore: Boolean(value?.hasMore),
+    nextCursor: value?.nextCursor || null,
+  }
+}
 
 export function ChatProvider({ children }) {
   const { currentUser, loading: authLoading } = useAuth()
@@ -13,6 +33,7 @@ export function ChatProvider({ children }) {
   const [selectedTeam, setSelectedTeam] = useState(EMPTY_SELECTED_TEAM)
   const [selectedChannel, setSelectedChannel] = useState(null)
   const [posts, setPosts] = useState({})
+  const [postPageMeta, setPostPageMeta] = useState({})
   const [pendingOpenPostId, setPendingOpenPostId] = useState(null)
   const [pendingOpenCommentId, setPendingOpenCommentId] = useState(null)
   const [pendingOpenAttachmentId, setPendingOpenAttachmentId] = useState(null)
@@ -23,12 +44,22 @@ export function ChatProvider({ children }) {
   const [searchResults, setSearchResults] = useState([])
   const [isSearching, setIsSearching] = useState(false)
   const selectedChannelRef = useRef(selectedChannel)
+  const postPageMetaRef = useRef(postPageMeta)
+  const loadingOlderChannelsRef = useRef(new Set())
+  const prefetchingChannelsRef = useRef(new Set())
+  const loadingCommentsRef = useRef(new Set())
   const lastUserIdRef = useRef(null)
   const accessRecoveryRef = useRef(false)
+  // 낙관적 삭제 복구용 스냅샷 (postId/commentId -> 원본 객체)
+  const deletedSnapshotsRef = useRef({ posts: new Map(), comments: new Map() })
 
   useEffect(() => {
     selectedChannelRef.current = selectedChannel
   }, [selectedChannel])
+
+  useEffect(() => {
+    postPageMetaRef.current = postPageMeta
+  }, [postPageMeta])
 
   useEffect(() => {
     if (authLoading) return
@@ -56,9 +87,9 @@ export function ChatProvider({ children }) {
 
     async function refreshChannelPosts() {
       try {
-        const data = await apiFetch(`/posts?channelId=${channelId}`)
+        const data = await apiFetch(`/posts?channelId=${channelId}&limit=${INITIAL_POST_LIMIT}`)
         if (cancelled) return
-        mergeChannelPosts(channelId, data, { preserveUnread: true })
+        mergeChannelPosts(channelId, postsFromResponse(data), { preserveUnread: true, mode: 'append' })
       } catch (err) {
         if (err?.status === 403) {
           window.dispatchEvent(new CustomEvent('channel-access-denied'))
@@ -114,7 +145,14 @@ export function ChatProvider({ children }) {
   function clearTransientNavigationState({ clearPosts = true } = {}) {
     clearSelectedChannel()
     setSelectedTeam(EMPTY_SELECTED_TEAM)
-    if (clearPosts) setPosts({})
+    if (clearPosts) {
+      setPosts({})
+      setPostPageMeta({})
+      postPageMetaRef.current = {}
+      loadingOlderChannelsRef.current.clear()
+      prefetchingChannelsRef.current.clear()
+      loadingCommentsRef.current.clear()
+    }
     setPendingOpenPostId(null)
     setPendingOpenCommentId(null)
     setPendingOpenAttachmentId(null)
@@ -158,13 +196,15 @@ export function ChatProvider({ children }) {
     })
   }
 
-  function mergeChannelPosts(channelId, nextPosts = [], { preserveUnread = false } = {}) {
+  function mergeChannelPosts(channelId, nextPosts = [], { preserveUnread = false, mode = 'replace' } = {}) {
     setPosts(prev => {
-      const previousById = new Map((prev[channelId] || []).map(post => [String(post.id), post]))
+      const previousPosts = asList(prev[channelId])
+      const previousById = new Map(previousPosts.map(post => [String(post.id), post]))
+      const incomingPosts = asList(nextPosts)
       const mergedPosts = preserveUnread
-        ? nextPosts.map(post => {
+        ? incomingPosts.map(post => {
             const previous = previousById.get(String(post.id))
-            if (!previous?.isUnread || post.isUnread) return post
+            if (!previous?.isUnread || post.isUnread === true || post.isUnread === false) return post
             return {
               ...post,
               isUnread: true,
@@ -173,9 +213,160 @@ export function ChatProvider({ children }) {
               unreadActivityAt: previous.unreadActivityAt || post.unreadActivityAt || post.createdAt,
             }
           })
-        : nextPosts
-      return { ...prev, [channelId]: mergedPosts }
+        : incomingPosts
+      const combinedPosts = mode === 'replace'
+        ? mergedPosts
+        : mode === 'prepend'
+          ? [...mergedPosts, ...previousPosts]
+          : [...previousPosts, ...mergedPosts]
+      const uniqueById = new Map()
+      combinedPosts.forEach(post => {
+        if (post?.id == null) return
+        uniqueById.set(String(post.id), post)
+      })
+      return { ...prev, [channelId]: sortByCreatedAt([...uniqueById.values()]) }
     })
+  }
+
+  function setChannelPostPageMeta(channelId, patch) {
+    if (!channelId) return
+    setPostPageMeta(prev => {
+      const nextMeta = {
+        ...prev,
+        [channelId]: {
+          ...(prev[channelId] || {}),
+          ...(typeof patch === 'function' ? patch(prev[channelId] || {}) : patch),
+        },
+      }
+      postPageMetaRef.current = nextMeta
+      return nextMeta
+    })
+  }
+
+  async function prefetchInitialPostBuffer(channelId, cursor) {
+    if (!channelId || !cursor || prefetchingChannelsRef.current.has(channelId)) return
+    prefetchingChannelsRef.current.add(channelId)
+    setChannelPostPageMeta(channelId, { prefetching: true })
+    try {
+      const data = await apiFetch(`/posts?channelId=${channelId}&limit=${INITIAL_BUFFER_LIMIT}&before=${encodeURIComponent(cursor)}`)
+      mergeChannelPosts(channelId, postsFromResponse(data), { mode: 'prepend' })
+      setChannelPostPageMeta(channelId, {
+        ...postPageFromResponse(data),
+        prefetching: false,
+      })
+    } catch (err) {
+      console.error('Failed to prefetch posts:', err)
+      setChannelPostPageMeta(channelId, { prefetching: false })
+    } finally {
+      prefetchingChannelsRef.current.delete(channelId)
+    }
+  }
+
+  async function loadOlderPosts(channelId = selectedChannelRef.current?.id) {
+    if (!channelId) return false
+    const meta = postPageMetaRef.current[channelId] || {}
+    if (!meta.hasMore || !meta.nextCursor) return false
+    if (loadingOlderChannelsRef.current.has(channelId) || prefetchingChannelsRef.current.has(channelId)) return false
+
+    loadingOlderChannelsRef.current.add(channelId)
+    setChannelPostPageMeta(channelId, { loadingOlder: true })
+    try {
+      const data = await apiFetch(`/posts?channelId=${channelId}&limit=${OLDER_POST_BATCH_LIMIT}&before=${encodeURIComponent(meta.nextCursor)}`)
+      mergeChannelPosts(channelId, postsFromResponse(data), { mode: 'prepend' })
+      setChannelPostPageMeta(channelId, {
+        ...postPageFromResponse(data),
+        loadingOlder: false,
+      })
+      return true
+    } catch (err) {
+      console.error('Failed to load older posts:', err)
+      setChannelPostPageMeta(channelId, { loadingOlder: false })
+      return false
+    } finally {
+      loadingOlderChannelsRef.current.delete(channelId)
+    }
+  }
+
+  // createdAt 오름차순 정렬 (글/댓글 공용)
+  function sortByCreatedAt(list = []) {
+    return [...list].sort((a, b) => (
+      new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime()
+    ))
+  }
+
+  // 특정 게시글 1건만 갱신 (전체 채널 재조회 회피)
+  function updatePostInChannel(channelId, postId, updater) {
+    setPosts(prev => ({
+      ...prev,
+      [channelId]: asList(prev[channelId]).map(p => (
+        String(p.id) === String(postId) ? updater(p) : p
+      )),
+    }))
+  }
+
+  async function loadPostComments(channelId, postId, { force = false } = {}) {
+    if (!channelId || !postId) return []
+    const key = `${channelId}:${postId}`
+    if (loadingCommentsRef.current.has(key)) return []
+    if (!force) {
+      const existingPost = asList(posts[channelId]).find(p => String(p.id) === String(postId))
+      if (existingPost?.commentsLoaded) return asList(existingPost.comments)
+    }
+
+    loadingCommentsRef.current.add(key)
+    try {
+      const comments = asList(await apiFetch(`/posts/${postId}/comments`))
+      updatePostInChannel(channelId, postId, p => ({
+        ...p,
+        comments,
+        commentsLoaded: true,
+        comment_count: comments.length,
+        last_comment_at: comments.length
+          ? (comments[comments.length - 1].createdAt || comments[comments.length - 1].created_at || p.last_comment_at || null)
+          : null,
+      }))
+      return comments
+    } finally {
+      loadingCommentsRef.current.delete(key)
+    }
+  }
+
+  // 작성 직후 즉시 표시할 낙관적 게시글 (첨부/학습상태는 5초 폴링이 보정)
+  function buildOptimisticPost(channelId, created = {}, { content = '', security_level = 0 } = {}) {
+    const author = currentUser || {}
+    const avatar = String(author.name || '').split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+    return {
+      id: String(created?.id ?? `tmp-${Date.now()}`),
+      channel_id: channelId,
+      content: created?.content ?? content ?? '',
+      title: '',
+      attachments: [],
+      author: {
+        id: author.id ?? null,
+        name: author.name ?? '나',
+        username: author.username ?? '',
+        avatar,
+        image_url: author.image_url ?? null,
+      },
+      createdAt: created?.authoredAt || new Date().toISOString(),
+      comments: [],
+      likeCount: 0,
+      likedByMe: false,
+      security_level: security_level ?? 0,
+      can_edit: true,
+      tags: [],
+      pinned: false,
+      pinned_at: null,
+      pinned_by: null,
+      views: 0,
+      isUnread: false,
+      unreadPost: false,
+      unreadCommentCount: 0,
+      unreadActivityAt: null,
+      comment_count: 0,
+      last_comment_at: null,
+      commentsLoaded: false,
+    }
   }
 
   async function refreshTeams(options = {}) {
@@ -255,8 +446,15 @@ export function ChatProvider({ children }) {
     closeSearch()
 
     try {
-      const data = await apiFetch(`/posts?channelId=${channel.id}`)
-      mergeChannelPosts(channel.id, data)
+      const data = await apiFetch(`/posts?channelId=${channel.id}&limit=${INITIAL_POST_LIMIT}`)
+      mergeChannelPosts(channel.id, postsFromResponse(data))
+      const pageMeta = postPageFromResponse(data)
+      setChannelPostPageMeta(channel.id, {
+        ...pageMeta,
+        loadingOlder: false,
+        prefetching: false,
+      })
+      prefetchInitialPostBuffer(channel.id, pageMeta.nextCursor)
       if (markRead) {
         // 목록 표시용 unread 스냅샷을 받은 뒤 채널 배지는 읽음 처리한다.
         apiFetch(`/channels/${channel.id}/read`, { method: 'POST' }).catch(() => {})
@@ -276,6 +474,12 @@ export function ChatProvider({ children }) {
       }
       console.error('Failed to fetch posts:', err)
       setPosts(prev => ({ ...prev, [channel.id]: [] }))
+      setChannelPostPageMeta(channel.id, {
+        hasMore: false,
+        nextCursor: null,
+        loadingOlder: false,
+        prefetching: false,
+      })
       return false
     }
   }
@@ -284,7 +488,7 @@ export function ChatProvider({ children }) {
     if (!channelId || !postId) return
     setPosts(prev => ({
       ...prev,
-      [channelId]: (prev[channelId] || []).map(post => (
+      [channelId]: asList(prev[channelId]).map(post => (
         String(post.id) === String(postId)
           ? {
               ...post,
@@ -322,12 +526,19 @@ export function ChatProvider({ children }) {
         err.accessHandled = true
         throw err
       }
-      await apiFetch('/posts', {
+      const created = await apiFetch('/posts', {
         method: 'POST',
         body: JSON.stringify({ channelId, content, attachmentIds, security_level }),
       })
-      const data = await apiFetch(`/posts?channelId=${channelId}`)
-      setPosts(prev => ({ ...prev, [channelId]: data }))
+      // 부분 갱신: 작성 결과를 즉시 목록에 삽입(첨부/학습상태는 5초 폴링이 보정)
+      const optimisticPost = buildOptimisticPost(channelId, created, { content, security_level })
+      setPosts(prev => ({
+        ...prev,
+        [channelId]: sortByCreatedAt([
+          ...asList(prev[channelId]).filter(p => String(p.id) !== String(optimisticPost.id)),
+          optimisticPost,
+        ]),
+      }))
     } catch (err) {
       if (err?.status === 403) {
         if (!err.accessHandled) await handleSaveAccessDenied()
@@ -350,12 +561,22 @@ export function ChatProvider({ children }) {
         err.accessHandled = true
         throw err
       }
-      await apiFetch(`/posts/${postId}/comments`, {
+      const newComment = await apiFetch(`/posts/${postId}/comments`, {
         method: 'POST',
         body: JSON.stringify({ channelId, content: text, attachmentIds, security_level }),
       })
-      const data = await apiFetch(`/posts?channelId=${channelId}`)
-      setPosts(prev => ({ ...prev, [channelId]: data }))
+      // 부분 갱신: 해당 게시글의 댓글 목록에만 새 댓글을 덧붙인다(전체 재조회 X)
+      if (newComment?.id) {
+        updatePostInChannel(channelId, postId, p => ({
+          ...p,
+          comment_count: Number(p.comment_count || 0) + 1,
+          last_comment_at: newComment.createdAt || newComment.created_at || new Date().toISOString(),
+          comments: sortByCreatedAt([
+            ...(p.comments || []).filter(c => String(c.id) !== String(newComment.id)),
+            newComment,
+          ]),
+        }))
+      }
     } catch (err) {
       if (err?.status === 403 && !err.accessHandled) {
         await handleSaveAccessDenied()
@@ -367,17 +588,22 @@ export function ChatProvider({ children }) {
   function incrementViews(channelId, postId) {
     setPosts(prev => ({
       ...prev,
-      [channelId]: (prev[channelId] || []).map(p =>
+      [channelId]: asList(prev[channelId]).map(p =>
         p.id === postId ? { ...p, views: (p.views || 0) + 1 } : p
       ),
     }))
   }
 
   async function deletePost(channelId, postId) {
+    // 낙관적 삭제: 화면에서 먼저 제거하고 원본은 복구용으로 보관
+    const snapshot = asList(posts[channelId]).find(p => String(p.id) === String(postId))
+    if (snapshot) deletedSnapshotsRef.current.posts.set(String(postId), snapshot)
+    setPosts(prev => ({
+      ...prev,
+      [channelId]: asList(prev[channelId]).filter(p => String(p.id) !== String(postId)),
+    }))
     try {
       await apiFetch(`/posts/${postId}`, { method: 'DELETE' })
-      const data = await apiFetch(`/posts?channelId=${channelId}`)
-      setPosts(prev => ({ ...prev, [channelId]: data }))
       showToast({
         message: '게시글을 삭제했습니다.',
         actionLabel: '복구',
@@ -389,6 +615,18 @@ export function ChatProvider({ children }) {
         },
       })
     } catch (err) {
+      // 실패 시 롤백: 보관한 스냅샷을 되돌린다
+      const rollback = deletedSnapshotsRef.current.posts.get(String(postId))
+      if (rollback) {
+        deletedSnapshotsRef.current.posts.delete(String(postId))
+        setPosts(prev => ({
+          ...prev,
+          [channelId]: sortByCreatedAt([
+            ...asList(prev[channelId]).filter(p => String(p.id) !== String(postId)),
+            rollback,
+          ]),
+        }))
+      }
       console.error('delete post error:', err)
       throw err
     }
@@ -397,15 +635,37 @@ export function ChatProvider({ children }) {
   // ─── 삭제한 게시글 복구 (1분 이내) ──────────────────────────
   async function restorePost(channelId, postId) {
     await apiFetch(`/posts/${postId}/restore`, { method: 'POST' })
-    const data = await apiFetch(`/posts?channelId=${channelId}`)
-    setPosts(prev => ({ ...prev, [channelId]: data }))
+    // 부분 갱신: 보관 스냅샷을 다시 삽입(없으면 5초 폴링이 복원)
+    const snapshot = deletedSnapshotsRef.current.posts.get(String(postId))
+    if (snapshot) {
+      deletedSnapshotsRef.current.posts.delete(String(postId))
+      setPosts(prev => ({
+        ...prev,
+        [channelId]: sortByCreatedAt([
+          ...asList(prev[channelId]).filter(p => String(p.id) !== String(postId)),
+          snapshot,
+        ]),
+      }))
+    }
   }
 
   // ─── 삭제한 댓글 복구 (1분 이내) ────────────────────────────
   async function restoreComment(channelId, postId, commentId) {
     await apiFetch(`/posts/${postId}/comments/${commentId}/restore`, { method: 'POST' })
-    const data = await apiFetch(`/posts?channelId=${channelId}`)
-    setPosts(prev => ({ ...prev, [channelId]: data }))
+    // 부분 갱신: 보관 스냅샷을 해당 게시글의 댓글 목록에 다시 삽입
+    const snapshot = deletedSnapshotsRef.current.comments.get(String(commentId))
+    if (snapshot) {
+      deletedSnapshotsRef.current.comments.delete(String(commentId))
+      updatePostInChannel(channelId, postId, p => ({
+        ...p,
+        comment_count: Number(p.comment_count || 0) + 1,
+        last_comment_at: snapshot.createdAt || snapshot.created_at || p.last_comment_at || null,
+        comments: sortByCreatedAt([
+          ...(p.comments || []).filter(c => String(c.id) !== String(commentId)),
+          snapshot,
+        ]),
+      }))
+    }
   }
 
   // ─── 최근 삭제됨(1분 내 복구 가능) 목록 조회 ────────────────
@@ -428,7 +688,7 @@ export function ChatProvider({ children }) {
       })
       setPosts(prev => ({
         ...prev,
-        [channelId]: (prev[channelId] || []).map(p =>
+        [channelId]: asList(prev[channelId]).map(p =>
           p.id === postId ? { ...p, content, attachments, security_level, updatedAt: new Date().toISOString() } : p
         ),
       }))
@@ -444,10 +704,10 @@ export function ChatProvider({ children }) {
 
   async function togglePostPin(channelId, postId, pinned) {
     const nextPinned = Boolean(pinned)
-    const prevChannelPosts = posts[channelId] || []
+    const prevChannelPosts = asList(posts[channelId])
     setPosts(prev => ({
       ...prev,
-      [channelId]: (prev[channelId] || []).map(p => (
+      [channelId]: asList(prev[channelId]).map(p => (
         p.id === postId
           ? {
             ...p,
@@ -463,8 +723,7 @@ export function ChatProvider({ children }) {
         method: 'PUT',
         body: JSON.stringify({ pinned: nextPinned }),
       })
-      const data = await apiFetch(`/posts?channelId=${channelId}`)
-      setPosts(prev => ({ ...prev, [channelId]: data }))
+      // 낙관적 업데이트로 이미 반영됨 — 전체 재조회 불필요
       return true
     } catch (err) {
       setPosts(prev => ({ ...prev, [channelId]: prevChannelPosts }))
@@ -473,13 +732,13 @@ export function ChatProvider({ children }) {
   }
 
   async function togglePostLike(channelId, postId) {
-    const prevChannelPosts = posts[channelId] || []
+    const prevChannelPosts = asList(posts[channelId])
     const target = prevChannelPosts.find(p => String(p.id) === String(postId))
     const nextLiked = target?.likedByMe !== true
     const nextCount = Math.max(0, Number(target?.likeCount || 0) + (nextLiked ? 1 : -1))
     setPosts(prev => ({
       ...prev,
-      [channelId]: (prev[channelId] || []).map(p => (
+      [channelId]: asList(prev[channelId]).map(p => (
         String(p.id) === String(postId)
           ? { ...p, likedByMe: nextLiked, likeCount: nextCount }
           : p
@@ -489,7 +748,7 @@ export function ChatProvider({ children }) {
       const result = await apiFetch(`/posts/${postId}/like`, { method: 'POST' })
       setPosts(prev => ({
         ...prev,
-        [channelId]: (prev[channelId] || []).map(p => (
+        [channelId]: asList(prev[channelId]).map(p => (
           String(p.id) === String(postId)
             ? { ...p, likedByMe: Boolean(result.liked), likeCount: Number(result.likeCount || 0) }
             : p
@@ -503,7 +762,7 @@ export function ChatProvider({ children }) {
   }
 
   async function toggleCommentLike(channelId, postId, commentId) {
-    const prevChannelPosts = posts[channelId] || []
+    const prevChannelPosts = asList(posts[channelId])
     let targetComment = null
     for (const p of prevChannelPosts) {
       if (String(p.id) !== String(postId)) continue
@@ -514,7 +773,7 @@ export function ChatProvider({ children }) {
     const nextCount = Math.max(0, Number(targetComment?.likeCount || 0) + (nextLiked ? 1 : -1))
     setPosts(prev => ({
       ...prev,
-      [channelId]: (prev[channelId] || []).map(p => (
+      [channelId]: asList(prev[channelId]).map(p => (
         String(p.id) === String(postId)
           ? {
               ...p,
@@ -531,7 +790,7 @@ export function ChatProvider({ children }) {
       const result = await apiFetch(`/posts/${postId}/comments/${commentId}/like`, { method: 'POST' })
       setPosts(prev => ({
         ...prev,
-        [channelId]: (prev[channelId] || []).map(p => (
+        [channelId]: asList(prev[channelId]).map(p => (
           String(p.id) === String(postId)
             ? {
                 ...p,
@@ -553,10 +812,18 @@ export function ChatProvider({ children }) {
 
   // ─── 댓글 삭제 — DB에서 삭제 후 state 반영 ──────────────────
   async function deleteComment(channelId, postId, commentId) {
+    // 낙관적 삭제: 해당 댓글만 화면에서 제거하고 원본은 복구용으로 보관
+    const snapshot = asList(posts[channelId])
+      .find(p => String(p.id) === String(postId))
+      ?.comments?.find(c => String(c.id) === String(commentId))
+    if (snapshot) deletedSnapshotsRef.current.comments.set(String(commentId), snapshot)
+    updatePostInChannel(channelId, postId, p => ({
+      ...p,
+      comment_count: Math.max(0, Number(p.comment_count || 0) - 1),
+      comments: (p.comments || []).filter(c => String(c.id) !== String(commentId)),
+    }))
     try {
       await apiFetch(`/posts/${postId}/comments/${commentId}`, { method: 'DELETE' })
-      const data = await apiFetch(`/posts?channelId=${channelId}`)
-      setPosts(prev => ({ ...prev, [channelId]: data }))
       showToast({
         message: '댓글을 삭제했습니다.',
         actionLabel: '복구',
@@ -568,6 +835,20 @@ export function ChatProvider({ children }) {
         },
       })
     } catch (err) {
+      // 실패 시 롤백: 보관한 댓글을 되돌린다
+      const rollback = deletedSnapshotsRef.current.comments.get(String(commentId))
+      if (rollback) {
+        deletedSnapshotsRef.current.comments.delete(String(commentId))
+        updatePostInChannel(channelId, postId, p => ({
+          ...p,
+          comment_count: Number(p.comment_count || 0) + 1,
+          last_comment_at: rollback.createdAt || rollback.created_at || p.last_comment_at || null,
+          comments: sortByCreatedAt([
+            ...(p.comments || []).filter(c => String(c.id) !== String(commentId)),
+            rollback,
+          ]),
+        }))
+      }
       console.error('delete comment error:', err)
       throw err
     }
@@ -590,8 +871,15 @@ export function ChatProvider({ children }) {
         method: 'PUT',
         body: JSON.stringify({ content: text, attachments: attachmentIds, security_level }),
       })
-      const data = await apiFetch(`/posts?channelId=${channelId}`)
-      setPosts(prev => ({ ...prev, [channelId]: data }))
+      // 부분 갱신: 해당 댓글 내용만 즉시 반영(첨부 상세는 5초 폴링이 보정)
+      updatePostInChannel(channelId, postId, p => ({
+        ...p,
+        comments: (p.comments || []).map(c => (
+          String(c.id) === String(commentId)
+            ? { ...c, content: text, text, security_level, updatedAt: new Date().toISOString() }
+            : c
+        )),
+      }))
     } catch (err) {
       if (err?.status === 403 && !err.accessHandled) {
         await handleSaveAccessDenied()
@@ -738,8 +1026,11 @@ export function ChatProvider({ children }) {
       selectedTeam,
       selectedChannel,
       posts,
+      postPageMeta,
       selectTeam,
       selectChannel,
+      loadOlderPosts,
+      loadPostComments,
       markPostRead,
       addPost,
       addComment,

@@ -6,6 +6,7 @@
     "dev": "nodemon index.js",
     "start": "node index.js",
     "seed": "node seed.js",
+    "init:channel-mapping-index": "node scripts/init-channel-mapping-index.js",
     "reset-db": "node -e \"const { initCassandra, client } = require('./cassandra'); (async () => { await initCassandra(); await client.execute('DROP TABLE IF EXISTS posts'); await client.execute('DROP TABLE IF EXISTS attachments'); console.log('Tables dropped'); process.exit(0); })()\"",
     "migrate:encrypt-sns-secrets": "node scripts/migrate-encrypt-sns-secrets.js"
   },

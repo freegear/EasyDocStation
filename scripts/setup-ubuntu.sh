@@ -329,6 +329,9 @@ fi
 echo "[8-1/8] 기본 사용자 시드 적용"
 npm run seed --prefix "$ROOT_DIR/server" >/dev/null || true
 
+echo "[8-2/8] 채널 매핑 인덱스 초기화"
+npm run init:channel-mapping-index --prefix "$ROOT_DIR/server" >/dev/null || true
+
 echo
 echo "완료되었습니다."
 echo "STT/Gemma 4 E4B + diarization(pyannote) 사용 시 server/.env 또는 실행 환경에 HF_TOKEN 설정을 권장합니다."

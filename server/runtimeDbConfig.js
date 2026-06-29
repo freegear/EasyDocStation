@@ -21,9 +21,30 @@ function normalizeContactPoints(value) {
   return []
 }
 
+// 커넥션 풀 튜닝 (config.json 의 postgresql.* 또는 환경변수로 override).
+// max 미설정 시 pg 기본값은 10이라, N+1/동시요청 시 풀이 쉽게 고갈된다.
+function getPostgresPoolTuning(pg = {}) {
+  const toPositiveInt = (value, fallback) => {
+    const parsed = Number.parseInt(value, 10)
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback
+  }
+  return {
+    max: toPositiveInt(process.env.PGPOOL_MAX ?? pg.poolMax ?? pg.max, 20),
+    idleTimeoutMillis: toPositiveInt(
+      process.env.PGPOOL_IDLE_TIMEOUT ?? pg.idleTimeoutMillis,
+      30000,
+    ),
+    connectionTimeoutMillis: toPositiveInt(
+      process.env.PGPOOL_CONNECTION_TIMEOUT ?? pg.connectionTimeoutMillis,
+      10000,
+    ),
+  }
+}
+
 function getPostgresPoolOptions() {
   const cfg = readConfig()
   const pg = cfg.postgresql || cfg.PostgreSQL || {}
+  const tuning = getPostgresPoolTuning(pg)
 
   const connectionString = process.env.DATABASE_URL
     || process.env.POSTGRESQL_URL
@@ -36,6 +57,7 @@ function getPostgresPoolOptions() {
       const protocol = parsed.protocol.replace(':', '')
       if (protocol.startsWith('postgres')) {
         const options = {
+          ...tuning,
           host: parsed.hostname || process.env.PGHOST || pg.host || 'localhost',
           port: Number(parsed.port || process.env.PGPORT || pg.port || 5432),
           database: (parsed.pathname || '').replace(/^\//, '') || process.env.PGDATABASE || pg.database || 'easydocstation',
@@ -53,10 +75,11 @@ function getPostgresPoolOptions() {
         return options
       }
     } catch (_) {}
-    return { connectionString }
+    return { connectionString, ...tuning }
   }
 
   const options = {
+    ...tuning,
     host: process.env.PGHOST || pg.host || 'localhost',
     port: Number(process.env.PGPORT || pg.port || 5432),
     database: process.env.PGDATABASE || pg.database || 'easydocstation',

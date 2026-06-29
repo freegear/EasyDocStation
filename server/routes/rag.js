@@ -10,6 +10,7 @@ const requireAuth = require('../middleware/auth')
 const { getDatabasePath } = require('../databasePaths')
 const { getPythonExecutable } = require('../pythonRuntime')
 const { getAccessibleChannelIds } = require('../lib/channelAccess')
+const { resolveQueryChannelScope } = require('../lib/channelMappingIndex')
 const { getCachedJson, setCachedJson, hashPayload } = require('../aiCache')
 const aiMetrics = require('../aiMetrics')
 
@@ -1918,6 +1919,36 @@ router.post('/search', requireAuth, async (req, res) => {
     const clientLimit = Math.max(1, Number(limit) || 3)
     const retrievalOptions = parseRetrievalOptions(retrievalRaw, clientLimit)
     const ragScope = normalizeRagScope(req.body?.rag_scope || retrievalRaw?.scope || retrievalRaw?.rag_scope)
+    const channelSearchMode = String(
+      req.body?.channel_search_mode || retrievalRaw?.channel_search_mode || retrievalRaw?.channelSearchMode || '',
+    ).trim().toLowerCase()
+    const filteredChannelId = String(retrievalOptions?.filter?.channel_id || '').trim()
+    const channelScope = filteredChannelId
+      ? {
+          channelIds: allowedChannelIds.includes(filteredChannelId) ? [filteredChannelId] : [],
+          matchedChannelIds: [],
+          matches: [],
+          mode: 'explicit_filter',
+        }
+      : channelSearchMode === 'accessible_channels'
+      ? {
+          channelIds: allowedChannelIds,
+          matchedChannelIds: [],
+          matches: [],
+          mode: 'accessible_channels',
+        }
+      : await resolveQueryChannelScope(db, {
+          query,
+          allowedChannelIds,
+          currentChannelId: req.body?.current_channel_id || req.body?.currentChannelId || '',
+          explicitScope: ragScope,
+        })
+    const searchChannelIds = filteredChannelId
+      ? channelScope.channelIds
+      : (channelScope.channelIds.length > 0 ? channelScope.channelIds : allowedChannelIds)
+    if (searchChannelIds.length === 0) {
+      return res.json({ context: '', references: [] })
+    }
     const requestedLimit = Math.max(clientLimit, retrievalOptions.k)
     const effectiveRequestedLimit = commandQuery
       ? Math.max(requestedLimit, 8)
@@ -1949,7 +1980,7 @@ router.post('/search', requireAuth, async (req, res) => {
       },
       query,
       limit: firstPassLimit,
-      allowed_channel_ids: allowedChannelIds,
+      allowed_channel_ids: searchChannelIds,
     }
 
     const cachePayload = {
@@ -1961,8 +1992,15 @@ router.post('/search', requireAuth, async (req, res) => {
       schema_version: Number(ragCfg.schema_version || 1),
       vector_size: ragCfg.vectorSize ?? 1024,
       allowed_channel_ids_fingerprint: hashPayload([...allowedChannelIds].sort()),
+      search_channel_ids_fingerprint: hashPayload([...searchChannelIds].sort()),
       priority_context: priorityContext,
       rag_scope: ragScope,
+      channel_search_mode: channelSearchMode || 'auto',
+      channel_scope: {
+        mode: channelScope.mode,
+        matchedChannelIds: channelScope.matchedChannelIds,
+        matches: channelScope.matches,
+      },
       query_flags: { amountQuery, commandQuery, temporalQuery, enumerationQuery },
       source_hints: sourceHints,
     }
@@ -2052,9 +2090,9 @@ router.post('/search', requireAuth, async (req, res) => {
 
     // init 레코드 제외
     let validResults = mergeUniqueResults(results.filter(r => r.text !== '__init__'))
-    validResults = applyChannelAccessFilter(validResults, allowedChannelIds)
+    validResults = applyChannelAccessFilter(validResults, searchChannelIds)
     validResults = applyMetadataFilter(validResults, retrievalOptions.filter)
-    validResults = applyChannelAccessFilter(validResults, allowedChannelIds)
+    validResults = applyChannelAccessFilter(validResults, searchChannelIds)
     validResults = applySimilarityScoreThreshold(validResults, retrievalOptions.searchType === 'similarity_score_threshold' ? retrievalOptions.scoreThreshold : 0)
     if (validResults.length === 0) {
       if (isEvidenceGatedScope(ragScope)) {
@@ -2113,7 +2151,7 @@ router.post('/search', requireAuth, async (req, res) => {
 
     // 벡터 검색 결과에서 누락된 같은 페이지 내용을 text.json으로 보강 (재학습 없이 즉시 효과)
     finalResults = mergeUniqueResults(expandPageContextFromTrainingData(finalResults))
-    finalResults = applyChannelAccessFilter(finalResults, allowedChannelIds)
+    finalResults = applyChannelAccessFilter(finalResults, searchChannelIds)
     if (isEvidenceGatedScope(ragScope)) {
       finalResults = applyMetadataFilter(finalResults, retrievalOptions.filter)
     }
@@ -2186,6 +2224,12 @@ router.post('/search', requireAuth, async (req, res) => {
         fallback_table: initialSearch.fallback_table || '',
       } : { used: false },
       rag_cache: { hit: false },
+      channel_scope: {
+        mode: channelScope.mode,
+        searched_channel_ids: searchChannelIds,
+        matched_channel_ids: channelScope.matchedChannelIds,
+        matches: channelScope.matches,
+      },
     }
     await setCachedJson('rag_search', cachePayload, responsePayload, { ttlSec: 600 })
     aiMetrics.recordRequest('rag_search', Date.now() - requestStartedAt)

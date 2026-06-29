@@ -195,6 +195,7 @@ async function initSchema() {
   const migrations = [
     `ALTER TABLE ${keyspace}.posts ADD security_level int`,
     `ALTER TABLE ${keyspace}.comments ADD security_level int`,
+    `ALTER TABLE ${keyspace}.comments ADD channel_id text`,
     `ALTER TABLE ${keyspace}.expense_posts ADD form_data text`,
     `ALTER TABLE ${keyspace}.expense_posts ADD department text`,
   ]

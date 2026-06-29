@@ -106,6 +106,62 @@ async function canMutateCommentRow(user = {}, row = {}) {
   })
 }
 
+// ── 채널 단위 배치 권한/작성자 캐시 ───────────────────────────────
+// 한 채널을 열 때 글·댓글마다 작성자/멤버십을 개별 조회하면 N+1 쿼리가
+// 폭발한다. 요청 1회 동안 작성자 레코드를 캐시하고(중복 조회 제거),
+// 멤버십은 채널당 1회만 계산해 메모리에서 권한을 판정한다.
+function makeUserCache() {
+  const cache = new Map()
+  return {
+    // 같은 author_id 동시 조회를 막기 위해 Promise 자체를 캐시한다.
+    get(userId) {
+      if (userId == null) return Promise.resolve(null)
+      const key = String(userId)
+      if (cache.has(key)) return cache.get(key)
+      const promise = db
+        .query(
+          'SELECT id, name, username, image_url, role, security_level FROM users WHERE id = $1 LIMIT 1',
+          [userId],
+        )
+        .then((r) => r.rows?.[0] || null)
+        .catch(() => null)
+      cache.set(key, promise)
+      return promise
+    },
+    // 이미 조회된 행(JOIN 결과 등)을 캐시에 주입해 중복 쿼리를 막는다.
+    prime(userId, record) {
+      if (userId == null || !record) return
+      cache.set(String(userId), Promise.resolve(record))
+    },
+  }
+}
+
+function compactListImageUrl(imageUrl) {
+  const value = String(imageUrl || '')
+  if (!value) return null
+  return value.startsWith('data:') ? null : value
+}
+
+async function buildChannelPermissionContext(user, channelId) {
+  const membership = channelId
+    ? await getChannelMembershipForUser(user?.id, channelId)
+    : { isTeamMember: false, isChannelMember: false }
+  return { user: user || {}, userLevel: securityLevelOf(user || {}), membership }
+}
+
+// canMutatePostRow 와 동일한 판정을 사전 계산된 컨텍스트로 수행한다.
+// authorRecord 는 role/security_level 을 포함한 작성자 행이어야 한다.
+function canMutateWithContext(ctx, authorRecord) {
+  const user = ctx?.user || {}
+  if (!user?.id || !authorRecord?.id) return false
+  if (user.role === 'site_admin') return true
+  const authorLevel = securityLevelOf(authorRecord)
+  if (ctx.userLevel < authorLevel) return false
+  if (!ctx.membership.isTeamMember) return false
+  if (ctx.userLevel >= 3) return true
+  return ctx.membership.isChannelMember
+}
+
 function toAttachmentIdArray(raw) {
   if (!Array.isArray(raw)) return []
   return raw
@@ -1079,10 +1135,23 @@ async function linkAttachments(postId, ids) {
 }
 
 // ─── Helper: fetch comments for a post ───────────────────────
-async function fetchComments(postId, userContext = null) {
+async function fetchComments(postId, userContext = null, opts = {}) {
   const userId = typeof userContext === 'object' ? userContext?.id : userContext
   const currentUser = typeof userContext === 'object' ? userContext : null
   const deletedCommentIds = await getDeletedItemIdSet('comment', { postId })
+  // 채널 단위 배치 컨텍스트(작성자 캐시 + 멤버십)를 상위에서 받거나 직접 생성한다.
+  // 한 글의 댓글은 모두 같은 채널이므로 멤버십은 글당 1회만 계산하면 된다.
+  const userCache = opts.userCache || makeUserCache()
+  let permissionCtx = opts.permissionCtx || null
+  // 한 글의 댓글은 모두 같은 채널이므로 멤버십은 글당 1회만 계산한다.
+  // 댓글 행에 channel_id 가 있으면 그것을 쓰고, 없을 때만(레거시) 글에서 1회 보강한다.
+  const ensurePermissionCtx = async (rows = []) => {
+    if (permissionCtx || !currentUser) return permissionCtx
+    const channelId = rows.find(r => r.channel_id)?.channel_id
+      || await resolveChannelIdForPost(postId?.toString?.() || postId)
+    permissionCtx = await buildChannelPermissionContext(currentUser, channelId)
+    return permissionCtx
+  }
   // ── Cassandra path ──────────────────────────────────────────
   if (isConnected()) {
     try {
@@ -1093,24 +1162,14 @@ async function fetchComments(postId, userContext = null) {
 
       const visibleRows = (result.rows || []).filter(row => !deletedCommentIds.has(String(row.id)))
       const commentLikeMap = await getCommentLikeMap(visibleRows.map(row => row.id), userId)
+      await ensurePermissionCtx(visibleRows)
       return Promise.all(visibleRows.map(async row => {
-        const authorRes = await db.query(
-          'SELECT id, name, username, image_url FROM users WHERE id = $1',
-          [row.author_id]
-        )
-        const author = authorRes.rows[0] || { id: null, name: '알 수 없음', username: 'unknown', image_url: null }
+        const author = (await userCache.get(row.author_id))
+          || { id: null, name: '알 수 없음', username: 'unknown', image_url: null }
         const avatarLetters = author.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
         const attachments = await enrichAttachments(row.attachments || [])
-        
+
         const likeInfo = commentLikeMap.get(String(row.id)) || { likeCount: 0, likedByMe: false }
-        const commentRowForPermission = {
-          author_id: row.author_id,
-          channel_id: row.channel_id || '',
-        }
-        if (!commentRowForPermission.channel_id) {
-          const postChannel = await resolveChannelIdForPost(row.post_id?.toString?.() || row.post_id)
-          commentRowForPermission.channel_id = postChannel || ''
-        }
         return {
           id: row.id,
           post_id: row.post_id.toString(),
@@ -1122,13 +1181,13 @@ async function fetchComments(postId, userContext = null) {
             name: author.name,
             username: author.username,
             avatar: avatarLetters,
-            image_url: author.image_url,
+            image_url: compactListImageUrl(author.image_url),
           },
           createdAt: row.created_at,
           updatedAt: row.created_at, // Cassandra comments table doesn't have updated_at yet
           likeCount: likeInfo.likeCount || 0,
           likedByMe: Boolean(likeInfo.likedByMe),
-          can_edit: currentUser ? await canMutateCommentRow(currentUser, commentRowForPermission) : false,
+          can_edit: currentUser ? canMutateWithContext(permissionCtx, author) : false,
           ...getTrainingStatus('comment', row.id),
         }
       }))
@@ -1140,7 +1199,8 @@ async function fetchComments(postId, userContext = null) {
 
   // ── PostgreSQL fallback ─────────────────────────────────────
   const result = await db.query(`
-    SELECT c.*, u.name AS author_name, u.username, u.image_url
+    SELECT c.*, u.name AS author_name, u.username, u.image_url,
+           u.role AS author_role, u.security_level AS author_security_level
     FROM comments c
     JOIN users u ON c.author_id = u.id
     WHERE c.post_id = $1
@@ -1149,10 +1209,16 @@ async function fetchComments(postId, userContext = null) {
 
   const visibleRows = (result.rows || []).filter(row => !deletedCommentIds.has(String(row.id)))
   const commentLikeMap = await getCommentLikeMap(visibleRows.map(row => row.id), userId)
+  await ensurePermissionCtx(visibleRows)
   return Promise.all(visibleRows.map(async row => {
     const avatarLetters = row.author_name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
     const attachments = await enrichAttachments(row.attachments || [])
     const likeInfo = commentLikeMap.get(String(row.id)) || { likeCount: 0, likedByMe: false }
+    const authorRecord = {
+      id: row.author_id,
+      role: row.author_role,
+      security_level: row.author_security_level,
+    }
     return {
       id: row.id,
       post_id: row.post_id,
@@ -1170,7 +1236,7 @@ async function fetchComments(postId, userContext = null) {
       updatedAt: row.updated_at,
       likeCount: likeInfo.likeCount || 0,
       likedByMe: Boolean(likeInfo.likedByMe),
-      can_edit: currentUser ? await canMutateCommentRow(currentUser, row) : false,
+      can_edit: currentUser ? canMutateWithContext(permissionCtx, authorRecord) : false,
       ...getTrainingStatus('comment', row.id),
     }
   }))
@@ -1667,12 +1733,105 @@ router.post('/search-index/rebuild-images', requireAuth, async (req, res, next) 
 })
 
 // ─── GET /api/posts ───────────────────────────────────────────
+// 댓글 본문 없이 목록을 빠르게 만들기 위한 댓글 메타(개수 + 최신 작성시각/작성자) 일괄 조회.
+// PostgreSQL 미러에서 1쿼리로 가져오고, 소프트삭제된 댓글은 제외한다.
+async function getCommentMetaMap(channelId, postIds = [], { userId = null, lastReadAt = null } = {}) {
+  const ids = postIds.map(String).filter(Boolean)
+  if (ids.length === 0) return new Map()
+  const deleted = await getDeletedItemIdSet('comment', { channelId })
+  let rows = []
+  try {
+    const r = await db.query(
+      'SELECT post_id, id, author_id, created_at FROM comments WHERE post_id = ANY($1)',
+      [ids],
+    )
+    rows = r.rows || []
+  } catch (_) { rows = [] }
+  const map = new Map()
+  for (const row of rows) {
+    if (deleted.has(String(row.id))) continue
+    const key = String(row.post_id)
+    const cur = map.get(key) || {
+      count: 0,
+      lastCommentAt: null,
+      lastCommentAuthorId: null,
+      lastUnreadCommentAt: null,
+    }
+    cur.count += 1
+    if (!cur.lastCommentAt || new Date(row.created_at).getTime() > new Date(cur.lastCommentAt).getTime()) {
+      cur.lastCommentAt = row.created_at
+      cur.lastCommentAuthorId = row.author_id
+    }
+    if (
+      String(row.author_id) !== String(userId)
+      && isAfterLastRead(row.created_at, lastReadAt)
+      && (!cur.lastUnreadCommentAt || new Date(row.created_at).getTime() > new Date(cur.lastUnreadCommentAt).getTime())
+    ) {
+      cur.lastUnreadCommentAt = row.created_at
+    }
+    map.set(key, cur)
+  }
+  return map
+}
+
+// 댓글을 로딩하지 않은 상태의 unread 메타 (게시글 시각 + 마지막 댓글 시각/작성자 기준).
+// 정확한 안읽은 댓글 수는 게시글을 열 때(댓글 로딩) 보정된다.
+function buildUnreadMetaLight({
+  postCreatedAt,
+  postAuthorId,
+  userId,
+  lastReadAt,
+  lastCommentAt,
+  lastCommentAuthorId,
+  lastUnreadCommentAt,
+}) {
+  const isOwnPost = String(postAuthorId) === String(userId)
+  const unreadPost = !isOwnPost && isAfterLastRead(postCreatedAt, lastReadAt)
+  const hasUnreadComment = Boolean(lastUnreadCommentAt) || (Boolean(lastCommentAt)
+    && String(lastCommentAuthorId) !== String(userId)
+    && isAfterLastRead(lastCommentAt, lastReadAt))
+  const unreadTimes = [
+    unreadPost ? postCreatedAt : null,
+    hasUnreadComment ? (lastUnreadCommentAt || lastCommentAt) : null,
+  ].filter(Boolean)
+  const unreadActivityAt = unreadTimes.length > 0
+    ? new Date(Math.max(...unreadTimes.map(v => new Date(v).getTime()))).toISOString()
+    : null
+  return {
+    isUnread: unreadPost || hasUnreadComment,
+    unreadPost,
+    unreadCommentCount: 0,
+    unreadActivityAt,
+  }
+}
+
+async function fetchCassandraPostRowById(postId) {
+  const loc = await findPostLocator(postId)
+  if (!loc?.channel_id || loc.created_at == null) return null
+  const r = await client.execute(
+    'SELECT * FROM posts WHERE channel_id = ? AND created_at = ?',
+    [loc.channel_id, loc.created_at], { prepare: true },
+  )
+  return r.rows?.[0] || null
+}
+
+// GET /api/posts?channelId=&limit=&before=
+//  · limit(기본 30): 최신순으로 그만큼만 (clustering DESC라 효율적)
+//  · before(ISO): 해당 시각보다 오래된 글 (무한 스크롤 커서)
+//  · 댓글은 포함하지 않음(comments:[], comment_count/last_comment_at만). 클릭 시 별도 로딩.
+//  · 첫 페이지(before 없음)에는 고정(pinned) 글을 병합한다.
+//  · 응답: { posts, hasMore, nextCursor }
 router.get('/', requireAuth, async (req, res, next) => {
   try {
     const { channelId } = req.query
     if (!channelId) return res.status(400).json({ error: 'channelId is required' })
     const allowed = await canAccessChannel(db, req.user, channelId)
     if (!allowed) return res.status(403).json({ error: ACCESS_DENIED_MESSAGE })
+
+    const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 30, 1), 100)
+    const before = req.query.before ? new Date(req.query.before) : null
+    const includePinned = !before
+
     const lastReadRes = await db.query(
       'SELECT last_read_at FROM channel_last_read WHERE user_id = $1 AND channel_id = $2',
       [req.user.id, channelId],
@@ -1682,38 +1841,65 @@ router.get('/', requireAuth, async (req, res, next) => {
     // ── Cassandra path ────────────────────────────────────────
     if (isConnected()) {
       const pinnedMap = await getPinnedMapByChannel(channelId)
-      const result = await client.execute(
-        'SELECT * FROM posts WHERE channel_id = ? ORDER BY created_at ASC',
-        [channelId], { prepare: true }
-      )
       const deletedPostIds = await getDeletedItemIdSet('post', { channelId })
-      const postRows = result.rows.filter(row => row.id != null && !deletedPostIds.has(String(row.id)))
-      const postLikeMap = await getPostLikeMap(postRows.map(row => row.id), req.user.id)
 
-      const posts = await Promise.all(postRows.map(async row => {
-        const authorRes = await db.query(
-          'SELECT id, name, username, image_url FROM users WHERE id = $1',
-          [row.author_id]
-        )
-        const author = authorRes.rows[0] || { id: null, name: '알 수 없음', username: 'unknown', image_url: null }
+      // 최신순(clustering DESC)으로 limit+1건 — 다음 페이지 존재 여부 판단
+      const cql = before
+        ? 'SELECT * FROM posts WHERE channel_id = ? AND created_at < ? LIMIT ?'
+        : 'SELECT * FROM posts WHERE channel_id = ? LIMIT ?'
+      const params = before ? [channelId, before, limit + 1] : [channelId, limit + 1]
+      const result = await client.execute(cql, params, { prepare: true })
+
+      let newestFirst = result.rows.filter(row => row.id != null && !deletedPostIds.has(String(row.id)))
+      const hasMore = newestFirst.length > limit
+      if (hasMore) newestFirst = newestFirst.slice(0, limit)
+      // 다음(더 오래된) 페이지 커서 = 현재 로딩분 중 가장 오래된 글의 시각
+      const oldest = newestFirst.length ? newestFirst[newestFirst.length - 1].created_at : null
+      const rows = newestFirst.slice().reverse() // 프론트 호환: created_at ASC
+
+      // 첫 페이지: 창에 없는 고정 글 병합
+      if (includePinned) {
+        const pageIds = new Set(rows.map(r => String(r.id)))
+        const missingPinned = [...pinnedMap.entries()]
+          .filter(([id, info]) => info?.pinned && !pageIds.has(String(id)) && !deletedPostIds.has(String(id)))
+          .map(([id]) => id)
+        for (const pid of missingPinned) {
+          const prow = await fetchCassandraPostRowById(pid).catch(() => null)
+          if (prow?.id != null) rows.unshift(prow)
+        }
+      }
+
+      const allIds = rows.map(r => r.id.toString())
+      const postLikeMap = await getPostLikeMap(rows.map(r => r.id), req.user.id)
+      const commentMeta = await getCommentMetaMap(channelId, allIds, { userId: req.user.id, lastReadAt })
+      const userCache = makeUserCache()
+      const permissionCtx = await buildChannelPermissionContext(req.user, channelId)
+
+      const posts = await Promise.all(rows.map(async row => {
+        const author = (await userCache.get(row.author_id))
+          || { id: null, name: '알 수 없음', username: 'unknown', image_url: null }
         const avatarLetters = author.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
-        
-        // Extract IDs from 10 columns
         const attachmentIds = [
           row.attachments_1, row.attachments_2, row.attachments_3, row.attachments_4, row.attachments_5,
           row.attachments_6, row.attachments_7, row.attachments_8, row.attachments_9, row.attachments_10
         ].filter(Boolean)
-        
         const attachments = await enrichAttachments(attachmentIds)
-        const comments = await fetchComments(row.id.toString(), req.user)
         const pinInfo = pinnedMap.get(String(row.id)) || null
         const likeInfo = postLikeMap.get(String(row.id)) || { likeCount: 0, likedByMe: false }
-        const unreadMeta = buildUnreadMeta({
+        const meta = commentMeta.get(String(row.id)) || {
+          count: 0,
+          lastCommentAt: null,
+          lastCommentAuthorId: null,
+          lastUnreadCommentAt: null,
+        }
+        const unreadMeta = buildUnreadMetaLight({
           postCreatedAt: row.created_at,
           postAuthorId: row.author_id,
-          comments,
           userId: req.user.id,
           lastReadAt,
+          lastCommentAt: meta.lastCommentAt,
+          lastCommentAuthorId: meta.lastCommentAuthorId,
+          lastUnreadCommentAt: meta.lastUnreadCommentAt,
         })
         return {
           id: row.id.toString(),
@@ -1725,15 +1911,19 @@ router.get('/', requireAuth, async (req, res, next) => {
             name: author.name,
             username: author.username,
             avatar: avatarLetters,
-            image_url: author.image_url,
+            image_url: compactListImageUrl(author.image_url),
           },
           createdAt: row.created_at,
-          comments,
+          comments: [],
+          commentsLoaded: false,
+          comment_count: meta.count,
+          last_comment_at: meta.lastCommentAt,
+          last_comment_author_id: meta.lastCommentAuthorId,
           ...getTrainingStatus('post', row.id.toString()),
           likeCount: likeInfo.likeCount || 0,
           likedByMe: Boolean(likeInfo.likedByMe),
           security_level: row.security_level || 0,
-          can_edit: await canMutatePostRow(req.user, row),
+          can_edit: canMutateWithContext(permissionCtx, author),
           tags: [],
           pinned: Boolean(pinInfo?.pinned),
           pinned_at: pinInfo?.pinned_at || null,
@@ -1743,23 +1933,57 @@ router.get('/', requireAuth, async (req, res, next) => {
         }
       }))
 
-      return res.json(posts)
+      return res.json({
+        posts,
+        hasMore,
+        nextCursor: oldest ? new Date(oldest).toISOString() : null,
+      })
     }
 
     // ── PostgreSQL fallback ───────────────────────────────────
     const pinnedMap = await getPinnedMapByChannel(channelId)
-    const result = await db.query(`
-      SELECT p.*, u.id AS u_id, u.name AS author_name, u.username, u.image_url
-      FROM posts p
-      JOIN users u ON p.author_id = u.id
-      WHERE p.channel_id = $1
-      ORDER BY p.created_at ASC
-    `, [channelId])
+    const sql = before
+      ? `SELECT p.*, u.id AS u_id, u.name AS author_name, u.username, u.image_url,
+                u.role AS author_role, u.security_level AS author_security_level
+         FROM posts p JOIN users u ON p.author_id = u.id
+         WHERE p.channel_id = $1 AND p.created_at < $2
+         ORDER BY p.created_at DESC LIMIT $3`
+      : `SELECT p.*, u.id AS u_id, u.name AS author_name, u.username, u.image_url,
+                u.role AS author_role, u.security_level AS author_security_level
+         FROM posts p JOIN users u ON p.author_id = u.id
+         WHERE p.channel_id = $1
+         ORDER BY p.created_at DESC LIMIT $2`
+    const sqlParams = before ? [channelId, before, limit + 1] : [channelId, limit + 1]
+    const result = await db.query(sql, sqlParams)
     const deletedPostIdsPg = await getDeletedItemIdSet('post', { channelId })
-    const visiblePostRows = result.rows.filter(row => !deletedPostIdsPg.has(String(row.id)))
-    const postLikeMap = await getPostLikeMap(visiblePostRows.map(row => row.id), req.user.id)
+    let newestFirstPg = result.rows.filter(row => !deletedPostIdsPg.has(String(row.id)))
+    const hasMorePg = newestFirstPg.length > limit
+    if (hasMorePg) newestFirstPg = newestFirstPg.slice(0, limit)
+    const oldestPg = newestFirstPg.length ? newestFirstPg[newestFirstPg.length - 1].created_at : null
+    const rowsPg = newestFirstPg.slice().reverse()
 
-    const posts = await Promise.all(visiblePostRows.map(async row => {
+    if (includePinned) {
+      const pageIds = new Set(rowsPg.map(r => String(r.id)))
+      const missingPinned = [...pinnedMap.entries()]
+        .filter(([id, info]) => info?.pinned && !pageIds.has(String(id)) && !deletedPostIdsPg.has(String(id)))
+        .map(([id]) => id)
+      for (const pid of missingPinned) {
+        const pr = await db.query(
+          `SELECT p.*, u.id AS u_id, u.name AS author_name, u.username, u.image_url,
+                  u.role AS author_role, u.security_level AS author_security_level
+           FROM posts p JOIN users u ON p.author_id = u.id WHERE p.id = $1`,
+          [pid],
+        ).catch(() => ({ rows: [] }))
+        if (pr.rows?.[0]) rowsPg.unshift(pr.rows[0])
+      }
+    }
+
+    const postLikeMap = await getPostLikeMap(rowsPg.map(row => row.id), req.user.id)
+    const commentMetaPg = await getCommentMetaMap(channelId, rowsPg.map(r => String(r.id)), { userId: req.user.id, lastReadAt })
+    const userCachePg = makeUserCache()
+    const permissionCtxPg = await buildChannelPermissionContext(req.user, channelId)
+
+    const posts = await Promise.all(rowsPg.map(async row => {
       const attachmentIds = [
         row.attachments_1, row.attachments_2, row.attachments_3, row.attachments_4, row.attachments_5,
         row.attachments_6, row.attachments_7, row.attachments_8, row.attachments_9, row.attachments_10
@@ -1781,15 +2005,31 @@ router.get('/', requireAuth, async (req, res, next) => {
       }
 
       const avatarLetters = row.author_name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
-      const comments = await fetchComments(row.id, req.user)
+      const authorRecord = {
+        id: row.author_id,
+        name: row.author_name,
+        username: row.username,
+        image_url: row.image_url,
+        role: row.author_role,
+        security_level: row.author_security_level,
+      }
+      userCachePg.prime(row.author_id, authorRecord)
       const pinInfo = pinnedMap.get(String(row.id)) || null
       const likeInfo = postLikeMap.get(String(row.id)) || { likeCount: 0, likedByMe: false }
-      const unreadMeta = buildUnreadMeta({
+      const meta = commentMetaPg.get(String(row.id)) || {
+        count: 0,
+        lastCommentAt: null,
+        lastCommentAuthorId: null,
+        lastUnreadCommentAt: null,
+      }
+      const unreadMeta = buildUnreadMetaLight({
         postCreatedAt: row.created_at,
         postAuthorId: row.author_id,
-        comments,
         userId: req.user.id,
         lastReadAt,
+        lastCommentAt: meta.lastCommentAt,
+        lastCommentAuthorId: meta.lastCommentAuthorId,
+        lastUnreadCommentAt: meta.lastUnreadCommentAt,
       })
       return {
         id: row.id,
@@ -1802,15 +2042,19 @@ router.get('/', requireAuth, async (req, res, next) => {
           name: row.author_name,
           username: row.username,
           avatar: avatarLetters,
-          image_url: row.image_url,
+          image_url: compactListImageUrl(row.image_url),
         },
         createdAt: row.created_at,
-        comments,
+        comments: [],
+        commentsLoaded: false,
+        comment_count: meta.count,
+        last_comment_at: meta.lastCommentAt,
+        last_comment_author_id: meta.lastCommentAuthorId,
         ...getTrainingStatus('post', row.id),
         likeCount: likeInfo.likeCount || 0,
         likedByMe: Boolean(likeInfo.likedByMe),
         security_level: row.security_level || 0,
-        can_edit: await canMutatePostRow(req.user, row),
+        can_edit: canMutateWithContext(permissionCtxPg, authorRecord),
         tags: [],
         pinned: Boolean(pinInfo?.pinned),
         pinned_at: pinInfo?.pinned_at || null,
@@ -1820,7 +2064,11 @@ router.get('/', requireAuth, async (req, res, next) => {
       }
     }))
 
-    res.json(posts)
+    res.json({
+      posts,
+      hasMore: hasMorePg,
+      nextCursor: oldestPg ? new Date(oldestPg).toISOString() : null,
+    })
   } catch (err) {
     next(err)
   }
@@ -2652,9 +2900,9 @@ router.post('/:id/comments', requireAuth, async (req, res, next) => {
     // ── Cassandra write ───────────────────────────────────────
     if (!isConnected()) return res.status(503).json({ error: 'Cassandra 연결이 필요합니다.' })
     await client.execute(
-      `INSERT INTO comments (post_id, id, author_id, content, attachments, security_level, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [postId, commentId, req.user.id, safeContent, safeAttachmentIds, safeCommentLevel, createdAt],
+      `INSERT INTO comments (post_id, id, channel_id, author_id, content, attachments, security_level, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [postId, commentId, resolvedChannelId, req.user.id, safeContent, safeAttachmentIds, safeCommentLevel, createdAt],
       { prepare: true }
     )
     await db.query(

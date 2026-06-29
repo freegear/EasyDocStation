@@ -4,6 +4,7 @@ const path = require('path')
 const bcrypt = require('bcryptjs')
 const { getPostgresPoolOptions } = require('./runtimeDbConfig')
 const { ensureMailSchema } = require('./mail/schema')
+const { ensureChannelMappingIndexSchema } = require('./lib/channelMappingIndex')
 
 const pool = new Pool(getPostgresPoolOptions())
 
@@ -329,6 +330,7 @@ async function initDb() {
         CREATE INDEX IF NOT EXISTS idx_comment_likes_comment_id ON comment_likes(comment_id);
       `)
       await ensureSearchSchema(client)
+      await ensureChannelMappingIndexSchema(client)
       // dm_conversations 테이블 생성 (21. Direct Message)
       await runMigrationStep(client, 'create dm_conversations', `
         CREATE TABLE IF NOT EXISTS dm_conversations (

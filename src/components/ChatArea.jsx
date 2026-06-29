@@ -2766,7 +2766,7 @@ function ComposeBar({ onSubmit, isArchived, teamId, contentFontScale = 100 }) {
           <div className="flex items-stretch gap-3 px-4 pt-3 pb-2 flex-1 min-h-0">
             {currentUser && (
               <div className="flex-shrink-0 self-start">
-                <Avatar letters={currentUser.avatar} size="sm" />
+                <Avatar letters={currentUser.avatar} imageUrl={currentUser.image_url} size="sm" />
               </div>
             )}
             <div ref={composeWrapRef} className="flex-1 relative min-h-0 h-full">
@@ -2911,40 +2911,125 @@ function ComposeBar({ onSubmit, isArchived, teamId, contentFontScale = 100 }) {
 
 function PostList({ posts, onSelect, onSubmit, selectedPostId, onOpenDocumentList, contentFontScale = 100 }) {
   const t = useT()
-  const { selectedChannel, selectedTeam, refreshTeams, markPostRead, fetchDeletedItems, restorePost, restoreComment } = useChat()
+  const {
+    selectedChannel,
+    selectedTeam,
+    refreshTeams,
+    markPostRead,
+    fetchDeletedItems,
+    restorePost,
+    restoreComment,
+    postPageMeta,
+    loadOlderPosts,
+  } = useChat()
   const pinnedPosts = posts
-    .filter(p => p.pinned && !p.isUnread)
+    .filter(p => p.pinned)
     .sort((a, b) => {
       const ta = new Date(a.pinned_at || a.createdAt || 0).getTime()
       const tb = new Date(b.pinned_at || b.createdAt || 0).getTime()
       return tb - ta
     })
-  const unreadPosts = posts.filter(p => p.isUnread)
-  const readPosts = posts.filter(p => !p.pinned && !p.isUnread)
-  const unreadRows = buildDateSeparatedRows(
-    unreadPosts,
-    (p) => p.unreadActivityAt || p.createdAt,
-    (p) => `unread-${p.id}`,
-  )
-  const readRows = buildDateSeparatedRows(
-    readPosts,
+  const normalPosts = posts.filter(p => !p.pinned)
+  const normalRows = buildDateSeparatedRows(
+    normalPosts,
     (p) => p.createdAt,
-    (p) => `read-${p.id}`,
+    (p) => `post-${p.id}`,
   )
-  const topRef = useRef(null)
+  const feedRef = useRef(null)
   const bottomRef = useRef(null)
+  const initialScrollChannelRef = useRef(null)
+  const pendingScrollRestoreRef = useRef(null)
+  const scrollMetricsRef = useRef({ channelId: null, postsLength: 0, scrollHeight: 0, scrollTop: 0 })
+  const prependInProgressRef = useRef(false)
   const [showManageModal, setShowManageModal] = useState(false)
   const [showDeletedModal, setShowDeletedModal] = useState(false)
   const { currentUser } = useAuth()
   const isAdmin = ['Admin', 'site_admin', 'channel_admin', 'team_admin'].includes(currentUser?.role)
+  const pageState = postPageMeta?.[selectedChannel?.id] || {}
+
+  useLayoutEffect(() => {
+    const channelId = selectedChannel?.id
+    if (!channelId || posts.length === 0 || initialScrollChannelRef.current === channelId) return
+    bottomRef.current?.scrollIntoView({ behavior: 'auto' })
+    initialScrollChannelRef.current = channelId
+  }, [posts.length, selectedChannel?.id])
+
+  useLayoutEffect(() => {
+    const pending = pendingScrollRestoreRef.current
+    const feed = feedRef.current
+    if (!feed) return
+    const previous = scrollMetricsRef.current
+
+    if (pending && posts.length > pending.postsLength) {
+      feed.scrollTop = feed.scrollHeight - pending.scrollHeight + pending.scrollTop
+      pendingScrollRestoreRef.current = null
+      prependInProgressRef.current = false
+    } else if (
+      prependInProgressRef.current &&
+      previous.channelId === selectedChannel?.id &&
+      posts.length > previous.postsLength &&
+      previous.scrollHeight > 0
+    ) {
+      feed.scrollTop = previous.scrollTop + (feed.scrollHeight - previous.scrollHeight)
+      prependInProgressRef.current = false
+    }
+
+    scrollMetricsRef.current = {
+      channelId: selectedChannel?.id || null,
+      postsLength: posts.length,
+      scrollHeight: feed.scrollHeight,
+      scrollTop: feed.scrollTop,
+    }
+  }, [posts.length, selectedChannel?.id])
 
   useEffect(() => {
-    if (unreadPosts.length > 0) {
-      topRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-      return
+    if (pageState.loadingOlder || pageState.prefetching) {
+      prependInProgressRef.current = true
     }
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [posts.length, selectedChannel?.id, unreadPosts.length])
+  }, [pageState.loadingOlder, pageState.prefetching])
+
+  useEffect(() => {
+    const feed = feedRef.current
+    if (!feed) return
+    scrollMetricsRef.current = {
+      channelId: selectedChannel?.id || null,
+      postsLength: posts.length,
+      scrollHeight: feed.scrollHeight,
+      scrollTop: feed.scrollTop,
+    }
+  }, [posts.length, selectedChannel?.id])
+
+  useEffect(() => {
+    pendingScrollRestoreRef.current = null
+  }, [selectedChannel?.id])
+
+  const handleFeedScroll = useCallback((event) => {
+    const feed = event.currentTarget
+    if (selectedChannel?.id) {
+      scrollMetricsRef.current = {
+        channelId: selectedChannel.id,
+        postsLength: posts.length,
+        scrollHeight: feed.scrollHeight,
+        scrollTop: feed.scrollTop,
+      }
+    }
+    if (!selectedChannel?.id || !pageState.hasMore || pageState.loadingOlder || pageState.prefetching) return
+    const nearOlderEdge = feed.scrollTop <= Math.max(160, feed.scrollHeight * 0.2)
+    if (!nearOlderEdge) return
+    pendingScrollRestoreRef.current = {
+      scrollHeight: feed.scrollHeight,
+      scrollTop: feed.scrollTop,
+      postsLength: posts.length,
+    }
+    loadOlderPosts(selectedChannel.id)
+  }, [
+    loadOlderPosts,
+    pageState.hasMore,
+    pageState.loadingOlder,
+    pageState.prefetching,
+    posts.length,
+    selectedChannel?.id,
+  ])
 
   function handleSelectPost(post) {
     if (selectedPostId && String(selectedPostId) !== String(post.id)) {
@@ -3055,7 +3140,11 @@ function PostList({ posts, onSelect, onSubmit, selectedPostId, onOpenDocumentLis
       >
         <Panel defaultSize={72} minSize={25} className="overflow-hidden">
           {/* Feed */}
-          <div className="h-full overflow-y-auto px-6 pt-1 pb-4">
+          <div
+            ref={feedRef}
+            onScroll={handleFeedScroll}
+            className="h-full overflow-y-auto px-6 pt-1 pb-4"
+          >
             {posts.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full text-center py-16">
                 <div className="w-16 h-16 rounded-2xl bg-indigo-50 border border-indigo-200 flex items-center justify-center text-3xl mb-4">📄</div>
@@ -3063,16 +3152,11 @@ function PostList({ posts, onSelect, onSubmit, selectedPostId, onOpenDocumentLis
                 <p className="text-gray-400 text-sm">{t.chat.noPostsDesc}</p>
               </div>
             ) : (
-              <div ref={topRef} className="flex flex-col gap-3">
-                {unreadRows.length > 0 && (
-                  <div className="flex items-center gap-2 text-xs font-semibold text-red-500 uppercase tracking-widest">
-                    <span className="w-2 h-2 rounded-full bg-red-500" />
-                    <span>읽지 않은 글</span>
+              <div className="flex flex-col gap-3">
+                {pageState.loadingOlder && (
+                  <div className="py-2 text-center text-xs font-semibold text-gray-400">
+                    이전 글을 불러오는 중...
                   </div>
-                )}
-                {renderPostRows(unreadRows)}
-                {unreadRows.length > 0 && (pinnedPosts.length > 0 || readRows.length > 0) && (
-                  <div className="border-t border-gray-100 my-1" />
                 )}
                 {pinnedPosts.length > 0 && (
                   <div className="sticky top-0 z-20 -mx-2 px-2 py-2 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80 border-b border-amber-100 rounded-xl">
@@ -3084,15 +3168,10 @@ function PostList({ posts, onSelect, onSubmit, selectedPostId, onOpenDocumentLis
                     </div>
                   </div>
                 )}
-                {pinnedPosts.length > 0 && readRows.length > 0 && (
+                {pinnedPosts.length > 0 && normalRows.length > 0 && (
                   <div className="border-t border-gray-100 my-1" />
                 )}
-                {readRows.length > 0 && unreadRows.length > 0 && (
-                  <div className="flex items-center gap-2 text-xs font-semibold text-gray-400 uppercase tracking-widest">
-                    <span>읽은 글</span>
-                  </div>
-                )}
-                {renderPostRows(readRows)}
+                {renderPostRows(normalRows)}
                 <div ref={bottomRef} />
               </div>
             )}
@@ -3479,7 +3558,10 @@ function PostCard({ post, onSelect, pinned, isSelected, contentFontScale = 100 }
     ? ''
     : plain.slice(1).join('\n')
   const attachCount = post.attachments?.length || 0
-  const commentCount = post.comments?.length || 0
+  const metadataCommentCount = Number(post.comment_count)
+  const commentCount = Number.isFinite(metadataCommentCount)
+    ? metadataCommentCount
+    : (post.comments?.length || 0)
   const trainingStatus = post.training_status || null
   const [copyToast, setCopyToast] = useState(null)
   const {
@@ -3656,7 +3738,7 @@ export default function ChatArea({ autoOpenPostId, isMobile = false, onExitChann
   // 검색 결과로 선택된 게시글 자동 오픈
   useEffect(() => {
     if (!autoOpenPostId) return
-    const channelPosts = posts[selectedChannel?.id] || []
+    const channelPosts = Array.isArray(posts[selectedChannel?.id]) ? posts[selectedChannel?.id] : []
     const target = channelPosts.find(p => String(p.id) === String(autoOpenPostId))
     if (target) setSelectedPost(target)
   }, [autoOpenPostId, selectedChannel?.id, posts])
@@ -3664,7 +3746,7 @@ export default function ChatArea({ autoOpenPostId, isMobile = false, onExitChann
   // RAG 참고 문서 클릭으로 이동된 게시글 자동 오픈
   useEffect(() => {
     if (!pendingOpenPostId) return
-    const channelPosts = posts[selectedChannel?.id] || []
+    const channelPosts = Array.isArray(posts[selectedChannel?.id]) ? posts[selectedChannel?.id] : []
     const target = channelPosts.find(p => String(p.id) === String(pendingOpenPostId))
     if (target) {
       setSelectedPost(target)
@@ -3709,7 +3791,7 @@ export default function ChatArea({ autoOpenPostId, isMobile = false, onExitChann
     }
   }, [resizing, onMouseMove, stopResizing])
 
-  const channelPosts = posts[selectedChannel?.id] || []
+  const channelPosts = Array.isArray(posts[selectedChannel?.id]) ? posts[selectedChannel?.id] : []
   const postDetailHelpers = {
     Avatar,
     PinIcon,

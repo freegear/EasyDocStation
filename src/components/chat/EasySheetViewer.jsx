@@ -54,7 +54,8 @@ export default function EasySheetViewer({ post, channelId, onClose }) {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
 
   // 최신 게시글(목록에서 갱신될 수 있음) 기준 권한 계산
-  const freshPost = posts[channelId]?.find((p) => p.id === post.id) || post
+  const channelPosts = Array.isArray(posts[channelId]) ? posts[channelId] : []
+  const freshPost = channelPosts.find((p) => p.id === post.id) || post
   const isAuthor = String(freshPost.author?.id ?? '') === String(currentUser?.id ?? '')
   const canEdit = freshPost.can_edit != null ? Boolean(freshPost.can_edit) : isAuthor
   const canEditRef = useRef(canEdit)

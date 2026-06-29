@@ -210,6 +210,26 @@ CREATE INDEX IF NOT EXISTS idx_channel_members_ch   ON channel_members(channel_i
 CREATE INDEX IF NOT EXISTS idx_posts_channel        ON posts(channel_id);
 CREATE INDEX IF NOT EXISTS idx_attachments_post     ON attachments(post_id);
 
+-- ─── Auto-generated channel mapping index ───────────────────
+-- 질문에 포함된 채널명/별칭/프로젝트명 후보를 권한 내 RAG 검색 범위로 연결한다.
+-- 새 사이트 설치 시에는 이 테이블이 빈 상태로 생성되고, 설치 스크립트의 초기화 명령이
+-- 현재 데이터 기준으로 다시 빌드한다.
+CREATE TABLE IF NOT EXISTS channel_mapping_index (
+  id          BIGSERIAL PRIMARY KEY,
+  channel_id  VARCHAR(50) NOT NULL REFERENCES channels(id) ON DELETE CASCADE,
+  term        TEXT        NOT NULL,
+  term_norm   TEXT        NOT NULL,
+  source      TEXT        NOT NULL DEFAULT 'auto',
+  confidence  NUMERIC(5,4) NOT NULL DEFAULT 0.5,
+  hit_count   INTEGER     NOT NULL DEFAULT 1,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE (channel_id, term_norm, source)
+);
+
+CREATE INDEX IF NOT EXISTS idx_channel_mapping_norm ON channel_mapping_index(term_norm);
+CREATE INDEX IF NOT EXISTS idx_channel_mapping_channel ON channel_mapping_index(channel_id);
+
 -- ─── Likes ───────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS post_likes (
   post_id    TEXT        NOT NULL,

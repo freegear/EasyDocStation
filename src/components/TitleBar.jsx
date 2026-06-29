@@ -1,7 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { useChat } from '../contexts/ChatContext'
-import { apiFetch } from '../lib/api'
 import { ROLE_BADGE } from '../constants/roles'
 import { useT } from '../i18n/useT'
 import { useOutsideMouseDown } from '../hooks/useOutsideMouseDown'
@@ -34,6 +33,42 @@ function AgenticAICharacter({ active = true }) {
   )
 }
 
+function SidePanelToggleIcon({ open }) {
+  const panelFill = open ? '#ffffff' : '#4f46e5'
+  const panelStroke = open ? '#ffffff' : '#4f46e5'
+
+  return (
+    <span
+      className={`inline-flex h-10 w-10 items-center justify-center rounded-xl transition-all ${
+        open
+          ? 'bg-indigo-600 shadow-sm shadow-indigo-300'
+          : 'bg-white shadow-sm ring-1 ring-gray-200'
+      }`}
+      aria-hidden="true"
+    >
+      <svg className="h-6 w-6" viewBox="0 0 32 32" fill="none">
+        <rect
+          x="6.2"
+          y="6"
+          width="6.4"
+          height="20"
+          rx="1.7"
+          fill={panelFill}
+        />
+        <rect
+          x="15.2"
+          y="8.1"
+          width="11"
+          height="15.8"
+          rx="1.4"
+          stroke={panelStroke}
+          strokeWidth="2.5"
+        />
+      </svg>
+    </span>
+  )
+}
+
 function sanitizePostPreviewText(text = '') {
   return String(text || '')
     .replace(/<!--[\s\S]*?-->/g, ' ')
@@ -44,7 +79,7 @@ function sanitizePostPreviewText(text = '') {
 
 // ─── Search Bar ───────────────────────────────────────────────
 function SearchBar({ onSelectResult }) {
-  const { teams, posts, selectTeam, selectChannel, performSearch, toggleSearchResults, searchTerm, searchResults, isSearchMode } = useChat()
+  const { teams, posts, performSearch, toggleSearchResults, searchTerm, searchResults, isSearchMode } = useChat()
   const { selectTeam: ctxSelectTeam, selectChannel: ctxSelectChannel } = useChat()
   const t = useT()
   const [query, setQuery] = useState('')
@@ -71,7 +106,7 @@ function SearchBar({ onSelectResult }) {
       const matched = []
       for (const team of teams) {
         for (const ch of (team.channels || [])) {
-          const channelPosts = posts[ch.id] || []
+          const channelPosts = Array.isArray(posts[ch.id]) ? posts[ch.id] : []
           for (const post of channelPosts) {
             const inContent = post.content?.toLowerCase().includes(q.toLowerCase())
             const inComments = (post.comments || []).some(c =>
@@ -245,7 +280,6 @@ export default function TitleBar({
   const isSiteAdmin = currentUser?.role === 'site_admin'
   const roleBadge = ROLE_BADGE[currentUser?.role] ?? ROLE_BADGE.user
   const roleLabel = t.roles?.[currentUser?.role] ?? currentUser?.role ?? ''
-  const langLabel = LANGUAGES.find(l => l.code === language)?.label ?? '한국어'
 
   function formatLoginTime(iso) {
     if (!iso) return '-'
@@ -287,18 +321,11 @@ export default function TitleBar({
               type="button"
               onClick={onToggleSidebar}
               aria-pressed={showSidebar}
+              aria-label={showSidebar ? t.titlebar.sidebarHide : t.titlebar.sidebarShow}
               title={showSidebar ? t.titlebar.sidebarHide : t.titlebar.sidebarShow}
-              className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-semibold transition-colors ${
-                showSidebar
-                  ? 'bg-blue-600 border-blue-600 text-white hover:bg-blue-700'
-                  : 'bg-gray-200 border-gray-300 text-gray-600 hover:bg-gray-300'
-              }`}
+              className="inline-flex h-10 w-10 items-center justify-center rounded-xl transition-transform hover:scale-[1.03] focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
             >
-              <svg className="w-3.5 h-3.5" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
-                <rect x="2.5" y="3" width="15" height="14" rx="2" />
-                <line x1="8.5" y1="3" x2="8.5" y2="17" />
-              </svg>
-              <span className="hidden xl:inline">{t.titlebar.sidebarPanelLabel}</span>
+              <SidePanelToggleIcon open={showSidebar} />
             </button>
 
             {/* AgenticAI panel split toggle (between search and language) */}

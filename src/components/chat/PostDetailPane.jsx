@@ -151,7 +151,7 @@ function PostDetailPane({
   contentFontScale = 100,
 }) {
   const t = useT()
-  const { addComment, incrementViews, deletePost, updatePost, togglePostPin, togglePostLike, toggleCommentLike, deleteComment, updateComment, posts, selectedChannel, selectedTeam, openInAgenticAI } = useChat()
+  const { addComment, incrementViews, deletePost, updatePost, togglePostPin, togglePostLike, toggleCommentLike, deleteComment, updateComment, loadPostComments, posts, selectedChannel, selectedTeam, openInAgenticAI } = useChat()
   const { currentUser, maxAttachmentFileSize } = useAuth()
   const {
     Avatar,
@@ -190,6 +190,8 @@ function PostDetailPane({
 
   const [commentSecurityLevel, setCommentSecurityLevel] = useState(Math.min(1, currentUser?.security_level ?? 0))
   const [commentErrorDialog, setCommentErrorDialog] = useState(null)
+  const [commentsLoading, setCommentsLoading] = useState(false)
+  const [commentsLoadError, setCommentsLoadError] = useState('')
   const [dmNoticeDialog, setDmNoticeDialog] = useState(null)
   const [duplicateFileDialog, setDuplicateFileDialog] = useState(null)
   const [copiedKey, setCopiedKey] = useState('')
@@ -296,9 +298,17 @@ function PostDetailPane({
     incrementViews(channelId, post.id)
   }, [channelId, incrementViews, post.id])
 
-  const freshPost = posts[channelId]?.find(p => p.id === post.id) || post
+  const channelPosts = Array.isArray(posts[channelId]) ? posts[channelId] : []
+  const freshPost = channelPosts.find(p => p.id === post.id) || post
+  const visibleComments = Array.isArray(freshPost.comments) ? freshPost.comments : []
+  const metadataCommentCount = Number(freshPost.comment_count)
+  const detailCommentCount = freshPost.commentsLoaded
+    ? visibleComments.length
+    : Number.isFinite(metadataCommentCount)
+      ? metadataCommentCount
+      : visibleComments.length
   const commentRows = buildDateSeparatedRows(
-    freshPost.comments || [],
+    visibleComments,
     (c) => c.createdAt,
     (c) => c.id,
   )
@@ -306,7 +316,7 @@ function PostDetailPane({
     ? selectedTarget
     : { type: 'post', postId: post.id, id: post.id }
   const selectedComment = normalizedSelectedTarget.type === 'comment'
-    ? (freshPost.comments || []).find(c => String(c.id) === String(normalizedSelectedTarget.id))
+    ? visibleComments.find(c => String(c.id) === String(normalizedSelectedTarget.id))
     : null
   const activeTargetType = selectedComment ? 'comment' : 'post'
   const isSiteAdmin = currentUser?.role === 'site_admin'
@@ -347,8 +357,25 @@ function PostDetailPane({
   const commentTextStyle = contentFontStyle
 
   useEffect(() => {
+    if (!channelId || !post.id || freshPost.commentsLoaded) return undefined
+    let cancelled = false
+    setCommentsLoading(true)
+    setCommentsLoadError('')
+    loadPostComments(channelId, post.id)
+      .catch((err) => {
+        if (!cancelled) setCommentsLoadError(err?.message || '댓글을 불러오지 못했습니다.')
+      })
+      .finally(() => {
+        if (!cancelled) setCommentsLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [channelId, freshPost.commentsLoaded, loadPostComments, post.id])
+
+  useEffect(() => {
     if (!pendingOpenCommentId) return
-    const exists = (freshPost.comments || []).some(c => String(c.id) === String(pendingOpenCommentId))
+    const exists = visibleComments.some(c => String(c.id) === String(pendingOpenCommentId))
     if (!exists) return
 
     const timer = setTimeout(() => {
@@ -363,7 +390,7 @@ function PostDetailPane({
     }, 120)
 
     return () => clearTimeout(timer)
-  }, [pendingOpenCommentId, pendingOpenAttachmentId, freshPost.comments, onConsumePendingOpen, post.id])
+  }, [pendingOpenCommentId, pendingOpenAttachmentId, visibleComments, onConsumePendingOpen, post.id])
 
   function selectPostTarget(e) {
     if (postBodySelectionGuard.shouldBlockClick(e)) return
@@ -1154,8 +1181,12 @@ function PostDetailPane({
         {/* Comments list — 스크롤 영역 안 */}
         {!isEditingPost && (
         <div className="border-t border-gray-200 pt-6 mt-6 pb-4">
-          <h3 className="text-gray-900 font-semibold text-sm mb-4">{t.chat.commentCount((freshPost.comments || []).length)}</h3>
-          {(freshPost.comments || []).length === 0 ? (
+          <h3 className="text-gray-900 font-semibold text-sm mb-4">{t.chat.commentCount(detailCommentCount)}</h3>
+          {commentsLoading ? (
+            <p className="text-gray-400 text-sm">댓글을 불러오는 중...</p>
+          ) : commentsLoadError ? (
+            <p className="text-red-500 text-sm">{commentsLoadError}</p>
+          ) : visibleComments.length === 0 ? (
             <p className="text-gray-400 text-sm">{t.chat.noComments}</p>
           ) : (
             <div className="flex flex-col gap-4 min-w-0">

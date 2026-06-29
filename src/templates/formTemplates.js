@@ -1290,7 +1290,7 @@ h1 { text-align: center; font-size: 28px; letter-spacing: 12px; margin-bottom: 2
     id: 'md-page',
     label: 'MD 페이지',
     icon: '📝',
-    content: '<!--md-page-->\n# 새 Markdown 페이지\n\n이 곳에 내용을 입력하세요.\n',
+    content: '<!--md-page-->\n# EasyPage\n\n이 곳에 내용을 입력하세요.\n',
   },
   {
     id: 'easy-sheet',
