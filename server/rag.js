@@ -14,6 +14,7 @@ const db                    = require('./db')
 const { client, isConnected } = require('./cassandra')
 const { getDatabasePath }   = require('./databasePaths')
 const { getPythonExecutable } = require('./pythonRuntime')
+const { isEasySheet, extractEasySheetText } = require('./lib/easySheet')
 
 const CONFIG_PATH = path.resolve(__dirname, '../config.json')
 
