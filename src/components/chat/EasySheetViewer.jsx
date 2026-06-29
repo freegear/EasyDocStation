@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
+import * as XLSX from 'xlsx'
 import { createUniver, defaultTheme, LocaleType, merge } from '@univerjs/presets'
 import { CommandType } from '@univerjs/core'
 import { UniverSheetsCorePreset } from '@univerjs/preset-sheets-core'
@@ -24,12 +25,22 @@ const LOCALE_MAP = {
   ja: LocaleType.JA_JP,
 }
 
+// SheetJS 셀 값 → Univer CellValue(string|number|boolean|null). 날짜는 로컬 문자열로.
+function normalizeImportedCell(v) {
+  if (v == null) return null
+  if (v instanceof Date) return v.toLocaleString()
+  const tp = typeof v
+  if (tp === 'number' || tp === 'boolean' || tp === 'string') return v
+  return String(v)
+}
+
 export default function EasySheetViewer({ post, channelId, onClose }) {
   const { updatePost, deletePost, posts } = useChat()
   const { currentUser, language } = useAuth()
   const t = useT()
 
   const containerRef = useRef(null)
+  const fileInputRef = useRef(null)    // 엑셀 가져오기 file input
   const univerRef = useRef(null)       // { univer, univerAPI }
   const disposeFnRef = useRef(null)    // onCommandExecuted 구독 해제
   const readyRef = useRef(false)       // 초기 로드 완료 후에만 dirty 추적
@@ -37,6 +48,7 @@ export default function EasySheetViewer({ post, channelId, onClose }) {
 
   const [isChanged, setIsChanged] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [importing, setImporting] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [showSaveDialog, setShowSaveDialog] = useState(false)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
@@ -158,6 +170,73 @@ export default function EasySheetViewer({ post, channelId, onClose }) {
     }
   }, [channelId, post.id, updatePost, t])
 
+  // ── 엑셀(.xlsx/.xls) 가져오기: 각 시트를 새 시트로 추가(다중 시트 보존) ──
+  const handleImportExcel = useCallback(async (e) => {
+    const file = e.target?.files?.[0]
+    if (e.target) e.target.value = '' // 같은 파일 재선택 가능하도록 초기화
+    if (!file) return
+    const instance = univerRef.current
+    if (!instance || !canEditRef.current) return
+
+    setImporting(true)
+    try {
+      const buf = await file.arrayBuffer()
+      const wb = XLSX.read(buf, { type: 'array', cellDates: true })
+      const fWorkbook = instance.univerAPI.getActiveWorkbook()
+      if (!fWorkbook) throw new Error('활성 워크북 없음')
+
+      // 기존 시트명과 충돌하지 않도록 고유 이름 부여
+      const usedNames = new Set(fWorkbook.getSheets().map((s) => s.getSheetName()))
+      const uniqueName = (base) => {
+        let name = String(base || 'Sheet').slice(0, 31) || 'Sheet'
+        let candidate = name
+        let i = 1
+        while (usedNames.has(candidate)) candidate = `${name} (${i++})`
+        usedNames.add(candidate)
+        return candidate
+      }
+
+      let firstCreated = null
+      let importedCount = 0
+      for (const sheetName of wb.SheetNames) {
+        const ws = wb.Sheets[sheetName]
+        if (!ws) continue
+        const aoa = XLSX.utils.sheet_to_json(ws, { header: 1, raw: true, defval: null, blankrows: false })
+        const numRows = aoa.length
+        let numCols = 0
+        for (const row of aoa) numCols = Math.max(numCols, Array.isArray(row) ? row.length : 0)
+
+        const fSheet = fWorkbook.create(uniqueName(sheetName), Math.max(numRows, 1), Math.max(numCols, 1))
+        if (!firstCreated) firstCreated = fSheet
+
+        if (numRows > 0 && numCols > 0) {
+          const values = aoa.map((row) => {
+            const arr = Array.isArray(row) ? row : []
+            const out = new Array(numCols)
+            for (let c = 0; c < numCols; c++) out[c] = normalizeImportedCell(arr[c])
+            return out
+          })
+          fSheet.getRange(0, 0, numRows, numCols).setValues(values)
+        }
+        importedCount++
+      }
+
+      if (firstCreated) {
+        try { fWorkbook.setActiveSheet(firstCreated) } catch { /* noop */ }
+      }
+      if (importedCount === 0) {
+        alert(t.easySheet?.importEmpty || '가져올 시트가 없습니다.')
+      } else {
+        setIsChanged(true) // 저장 버튼 노출(명시적 저장 유도)
+      }
+    } catch (err) {
+      console.error('[EasySheet] 엑셀 가져오기 실패:', err)
+      alert(t.easySheet?.importFailed || '엑셀 가져오기에 실패했습니다.')
+    } finally {
+      setImporting(false)
+    }
+  }, [t])
+
   const handleDelete = useCallback(async () => {
     setDeleting(true)
     try {
@@ -204,14 +283,37 @@ export default function EasySheetViewer({ post, channelId, onClose }) {
         </button>
 
         <div className="w-px h-5 bg-gray-200 flex-shrink-0" />
-        <span className="text-sm text-gray-700 font-medium flex-1 truncate min-w-0">
+        <span className="text-sm text-gray-700 font-medium truncate min-w-0 max-w-[40%] flex-shrink-0">
           📊 {pageTitle}
+        </span>
+        <span className="text-xs text-gray-400 flex-1 truncate min-w-0 hidden sm:inline">
+          : {t.easySheet?.titleHint || 'A1 셀에 있는 값이 제목입니다.'}
         </span>
 
         {!canEdit && (
           <span className="text-xs text-gray-400 flex-shrink-0">
             {t.easySheet?.readOnly || '읽기 전용'}
           </span>
+        )}
+
+        {canEdit && (
+          <>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
+              className="hidden"
+              onChange={handleImportExcel}
+            />
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={importing}
+              title={t.easySheet?.importExcel || '엑셀 가져오기'}
+              className="px-3 py-1.5 rounded-lg border border-gray-200 text-xs text-gray-500 hover:bg-gray-50 hover:text-gray-700 disabled:opacity-60 transition-colors flex-shrink-0"
+            >
+              {importing ? (t.easySheet?.importing || '가져오는 중…') : `📥 ${t.easySheet?.importExcel || '엑셀 가져오기'}`}
+            </button>
+          </>
         )}
 
         {canEdit && isChanged && (
