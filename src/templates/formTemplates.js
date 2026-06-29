@@ -16,6 +16,29 @@ export const EASY_CODE_GENERATION_TEMPLATE = {
   content: easyCodeGenerationTemplate,
 }
 
+// ─── EasySheet (Univer 스프레드시트 게시글) ───
+// EasyPage(md-page)와 동일한 "마커 + 전용 뷰어" 패턴. 본문은 마커 + IWorkbookData 스냅샷(JSON).
+export const EASY_SHEET_MARKER = '<!--easy-sheet-->'
+
+// 빈 초기 워크북 스냅샷(시트 1개). Univer createWorkbook(IWorkbookData)에 주입 가능한 최소 구조.
+export const EMPTY_SHEET_SNAPSHOT = {
+  id: 'easy-sheet-workbook',
+  name: 'EasySheet',
+  appVersion: '0.25.1',
+  locale: 'koKR',
+  sheetOrder: ['sheet-01'],
+  styles: {},
+  sheets: {
+    'sheet-01': {
+      id: 'sheet-01',
+      name: 'Sheet1',
+      rowCount: 100,
+      columnCount: 26,
+      cellData: {},
+    },
+  },
+}
+
 export const FORM_TEMPLATES = [
   {
     id: 'quotation',
@@ -1269,6 +1292,12 @@ h1 { text-align: center; font-size: 28px; letter-spacing: 12px; margin-bottom: 2
     icon: '📝',
     content: '<!--md-page-->\n# 새 Markdown 페이지\n\n이 곳에 내용을 입력하세요.\n',
   },
+  {
+    id: 'easy-sheet',
+    label: 'EasySheet',
+    icon: '📊',
+    content: EASY_SHEET_MARKER + '\n' + JSON.stringify(EMPTY_SHEET_SNAPSHOT),
+  },
 ]
 
 export function isTemplateContent(content) {
@@ -1300,4 +1329,49 @@ export function getMdPageTitle(content, fallback = 'MD 페이지') {
   const chars = Array.from(plain)
   if (chars.length <= MAX_TITLE_LENGTH) return plain
   return chars.slice(0, MAX_TITLE_LENGTH).join('')
+}
+
+// ─── EasySheet 헬퍼 (md-page 헬퍼와 1:1 대응) ───
+
+// 본문이 EasySheet 게시글인지(마커로 시작) 판별.
+export function isEasySheet(content) {
+  return typeof content === 'string' && content.trimStart().startsWith(EASY_SHEET_MARKER)
+}
+
+// 마커 제거 후 JSON 파싱하여 IWorkbookData 스냅샷 반환. 파싱 실패 시 빈 워크북으로 폴백(방어).
+export function getEasySheetData(content) {
+  if (typeof content !== 'string') return EMPTY_SHEET_SNAPSHOT
+  const json = content
+    .trimStart()
+    .replace(/^<!--easy-sheet-->\n?/, '')
+    .trim()
+  if (!json) return EMPTY_SHEET_SNAPSHOT
+  try {
+    const parsed = JSON.parse(json)
+    if (parsed && typeof parsed === 'object') return parsed
+    return EMPTY_SHEET_SNAPSHOT
+  } catch {
+    return EMPTY_SHEET_SNAPSHOT
+  }
+}
+
+// 스냅샷에서 제목 추출: 첫 시트의 A1 셀 값 → 시트명 → 워크북명 → fallback 순.
+export function getEasySheetTitle(content, fallback = 'EasySheet') {
+  const MAX_TITLE_LENGTH = 80
+  const data = getEasySheetData(content)
+  const order = Array.isArray(data?.sheetOrder) ? data.sheetOrder : []
+  const firstSheetId = order[0] || Object.keys(data?.sheets || {})[0]
+  const firstSheet = firstSheetId ? data?.sheets?.[firstSheetId] : null
+
+  // A1 셀 값 우선
+  const a1 = firstSheet?.cellData?.[0]?.[0]?.v
+  const candidates = [a1, firstSheet?.name, data?.name]
+  for (const raw of candidates) {
+    if (raw == null) continue
+    const plain = String(raw).replace(/<[^>]*>/g, '').trim()
+    if (!plain) continue
+    const chars = Array.from(plain)
+    return chars.length <= MAX_TITLE_LENGTH ? plain : chars.slice(0, MAX_TITLE_LENGTH).join('')
+  }
+  return fallback
 }

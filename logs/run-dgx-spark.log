@@ -1226,3 +1226,377 @@ AM 8:45:11 [vite] hmr update /src/components/DirectMessageView.jsx, /src/index.c
 [20260629-08:45:18][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
 [20260629-08:47:29][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
 AM 8:48:57 [vite] hmr update /src/components/DirectMessageView.jsx, /src/index.css
+[20260629-08:52:01][BE] [link-preview-image] 내부망 주소는 미리보기를 지원하지 않습니다.
+[20260629-08:52:39][BE] [ATTACH-REF] sync ownerType=post ownerId=fe5db5a3-ea99-46d3-b49e-72cfcc733010 actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260629-08:52:39][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
+[20260629-08:52:39][BE] /home/freegear/EasyDocStation/server/rag_train.py:120: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260629-08:52:39][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260629-08:52:42][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v2' already exists
+[20260629-08:52:42][BE] [RAG] 기존 청크 삭제 완료: post_id=fe5db5a3-ea99-46d3-b49e-72cfcc733010
+[20260629-08:52:45][BE] [RAG] post=fe5db5a3-ea99-46d3-b49e-72cfcc733010 text → 4청크
+[20260629-08:52:45][BE] [RAG] 학습 진행률: 30% (게시글 본문)
+[20260629-08:52:45][BE] [RAG] 이미지 학습 시작: 스크린샷 2026-06-18 오전 11.35.21.png
+[20260629-08:53:23][BE] [RAG] Gemma 이미지 설명 완료 (page=1, 38.0s): 2391자
+[20260629-08:53:23][BE] [RAG] 이미지 학습 완료: 스크린샷 2026-06-18 오전 11.35.21.png (5청크)
+[20260629-08:53:23][BE] [RAG] 학습 진행률: 60% (게시글 이미지)
+[20260629-08:53:23][BE] [RAG] 저장 완료 — 9청크 / 1개 게시글 / 0개 댓글
+[20260629-08:53:23][BE] [RAG] 학습 진행률: 100% (저장)
+[20260629-08:53:24][BE] [RAG] 학습 완료
+[20260629-08:57:29][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+[20260629-08:58:51][BE] [link-preview-image] 내부망 주소는 미리보기를 지원하지 않습니다.
+[20260629-09:05:25][BE] [link-preview-image] 내부망 주소는 미리보기를 지원하지 않습니다.
+[20260629-09:06:03][BE] [link-preview-image] 내부망 주소는 미리보기를 지원하지 않습니다.
+[20260629-09:07:29][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+[20260629-09:17:29][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+[20260629-09:27:29][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+[20260629-09:37:29][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+[20260629-09:47:30][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+[20260629-09:57:29][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+[20260629-10:07:30][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+[20260629-10:17:29][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+[20260629-10:27:29][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+[20260629-10:37:29][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+[20260629-10:47:29][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+[20260629-10:57:29][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+[20260629-11:07:29][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+[20260629-11:11:29][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260629-11:11:30][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260629-11:11:30][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260629-11:17:09][BE] [link-preview-image] 내부망 주소는 미리보기를 지원하지 않습니다.
+[20260629-11:17:29][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+[20260629-11:17:49][BE] [ATTACH-REF] sync ownerType=post ownerId=fe5db5a3-ea99-46d3-b49e-72cfcc733010 actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260629-11:17:49][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
+[20260629-11:17:49][BE] /home/freegear/EasyDocStation/server/rag_train.py:120: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260629-11:17:49][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260629-11:17:52][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v2' already exists
+[20260629-11:17:52][BE] [RAG] 기존 청크 삭제 완료: post_id=fe5db5a3-ea99-46d3-b49e-72cfcc733010
+[20260629-11:17:54][BE] [RAG] post=fe5db5a3-ea99-46d3-b49e-72cfcc733010 text → 4청크
+[20260629-11:17:54][BE] [RAG] 학습 진행률: 30% (게시글 본문)
+[20260629-11:17:54][BE] [RAG] 이미지 학습 시작: 스크린샷 2026-06-18 오전 11.35.21.png
+[20260629-11:18:33][BE] [RAG] Gemma 이미지 설명 완료 (page=1, 38.2s): 2391자
+[20260629-11:18:33][BE] [RAG] 이미지 학습 완료: 스크린샷 2026-06-18 오전 11.35.21.png (5청크)
+[20260629-11:18:33][BE] [RAG] 학습 진행률: 60% (게시글 이미지)
+[20260629-11:18:33][BE] [RAG] 저장 완료 — 9청크 / 1개 게시글 / 0개 댓글
+[20260629-11:18:33][BE] [RAG] 학습 진행률: 100% (저장)
+[20260629-11:18:34][BE] [RAG] 학습 완료
+[20260629-11:19:02][BE] [link-preview-image] 내부망 주소는 미리보기를 지원하지 않습니다.
+[20260629-11:19:16][BE] [link-preview-image] 내부망 주소는 미리보기를 지원하지 않습니다.
+[20260629-11:21:55][BE] [ATTACH-REF] sync ownerType=post ownerId=6adb8278-548b-4d38-9d4d-f0dd1fbd7d26 actorUserId=1 prev=0 next=1 add=1 remove=0
+[20260629-11:21:55][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
+[20260629-11:21:55][BE] /home/freegear/EasyDocStation/server/rag_train.py:120: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260629-11:21:55][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260629-11:21:58][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v2' already exists
+[20260629-11:21:58][BE] [RAG] post=6adb8278-548b-4d38-9d4d-f0dd1fbd7d26 text → 1청크
+[20260629-11:21:58][BE] [RAG] 학습 진행률: 30% (게시글 본문)
+[20260629-11:21:58][BE] [RAG] 이미지 학습 시작: KakaoTalk_Photo_2026-06-29-11-21-40 001.jpeg
+[20260629-11:22:05][BE] [ATTACH-REF] sync ownerType=post ownerId=4e67997b-f67e-40e6-a9ed-5e163e4f0a00 actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260629-11:22:05][BE] [RAG] 학습 제외 (게시글): 4e67997b-f67e-40e6-a9ed-5e163e4f0a00 — 첨부파일 없음, 27자
+[20260629-11:22:05][BE] [RAG] 학습 제외 후 학습할 게시글이 없습니다.
+[20260629-11:22:42][BE] [ATTACH-REF] sync ownerType=post ownerId=6adb8278-548b-4d38-9d4d-f0dd1fbd7d26 actorUserId=1 prev=1 next=1 add=0 remove=0
+[20260629-11:22:42][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
+[20260629-11:22:42][BE] /home/freegear/EasyDocStation/server/rag_train.py:120: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260629-11:22:42][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260629-11:22:47][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v2' already exists
+[20260629-11:22:47][BE] [RAG] 기존 청크 삭제 완료: post_id=6adb8278-548b-4d38-9d4d-f0dd1fbd7d26
+[20260629-11:22:47][BE] [RAG] post=6adb8278-548b-4d38-9d4d-f0dd1fbd7d26 text → 1청크
+[20260629-11:22:47][BE] [RAG] 학습 진행률: 30% (게시글 본문)
+[20260629-11:22:47][BE] [RAG] 이미지 학습 시작: KakaoTalk_Photo_2026-06-29-11-21-40 001.jpeg
+[20260629-11:23:26][BE] [RAG] Gemma 이미지 설명 완료 (page=1, 88.2s): 4169자
+[20260629-11:23:26][BE] [RAG] 이미지 학습 완료: KakaoTalk_Photo_2026-06-29-11-21-40 001.jpeg (6청크)
+[20260629-11:23:26][BE] [RAG] 학습 진행률: 60% (게시글 이미지)
+[20260629-11:23:26][BE] [RAG] 저장 완료 — 7청크 / 1개 게시글 / 0개 댓글
+[20260629-11:23:26][BE] [RAG] 학습 진행률: 100% (저장)
+[20260629-11:23:29][BE] [RAG] 학습 완료
+[20260629-11:23:30][BE] [SearchIndex] 이미지 Vision 분석 실패, OCR만 사용: This operation was aborted
+[20260629-11:23:30][BE] [SearchIndex] 이미지 첨부 인덱싱 완료: 0b2d6d8e-4c55-4ab9-a0be-b9cf37611e4b KakaoTalk_Photo_2026-06-29-11-21-40 001.jpeg
+[20260629-11:25:04][BE] [RAG] Gemma 이미지 설명 완료 (page=1, 136.3s): 2449자
+[20260629-11:25:04][BE] [RAG] 이미지 학습 완료: KakaoTalk_Photo_2026-06-29-11-21-40 001.jpeg (4청크)
+[20260629-11:25:04][BE] [RAG] 학습 진행률: 60% (게시글 이미지)
+[20260629-11:25:04][BE] [RAG] 저장 완료 — 5청크 / 1개 게시글 / 0개 댓글
+[20260629-11:25:04][BE] [RAG] 학습 진행률: 100% (저장)
+[20260629-11:25:05][BE] [RAG] 학습 완료
+[20260629-11:26:31][BE] [ATTACH-REF] sync ownerType=post ownerId=6adb8278-548b-4d38-9d4d-f0dd1fbd7d26 actorUserId=1 prev=1 next=1 add=0 remove=0
+[20260629-11:26:31][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
+[20260629-11:26:31][BE] /home/freegear/EasyDocStation/server/rag_train.py:120: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260629-11:26:31][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260629-11:26:34][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v2' already exists
+[20260629-11:26:34][BE] [RAG] 기존 청크 삭제 완료: post_id=6adb8278-548b-4d38-9d4d-f0dd1fbd7d26
+[20260629-11:26:34][BE] [RAG] post=6adb8278-548b-4d38-9d4d-f0dd1fbd7d26 text → 1청크
+[20260629-11:26:34][BE] [RAG] 학습 진행률: 30% (게시글 본문)
+[20260629-11:26:34][BE] [RAG] 이미지 학습 시작: KakaoTalk_Photo_2026-06-29-11-21-40 001.jpeg
+[20260629-11:27:29][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+[20260629-11:27:57][BE] [RAG] Gemma 이미지 설명 완료 (page=1, 82.6s): 3502자
+[20260629-11:27:57][BE] [RAG] 이미지 학습 완료: KakaoTalk_Photo_2026-06-29-11-21-40 001.jpeg (7청크)
+[20260629-11:27:57][BE] [RAG] 학습 진행률: 60% (게시글 이미지)
+[20260629-11:27:57][BE] [RAG] 저장 완료 — 8청크 / 1개 게시글 / 0개 댓글
+[20260629-11:27:57][BE] [RAG] 학습 진행률: 100% (저장)
+[20260629-11:27:58][BE] [RAG] 학습 완료
+[20260629-11:28:22][BE] [link-preview-image] 내부망 주소는 미리보기를 지원하지 않습니다.
+[20260629-11:30:05][BE] [ATTACH-REF] sync ownerType=comment ownerId=c-e1f57beb-a033-46c4-b32a-5e763933a57c actorUserId=1 prev=0 next=1 add=1 remove=0
+[20260629-11:30:05][BE] [RAG] 댓글 학습 시작 — 1개 댓글 (제외: 0개)
+[20260629-11:30:05][BE] /home/freegear/EasyDocStation/server/rag_train.py:120: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260629-11:30:05][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260629-11:30:08][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v2' already exists
+[20260629-11:30:08][BE] [RAG] comment=c-e1f57beb-a033-46c4-b32a-5e763933a57c post=6adb8278-548b-4d38-9d4d-f0dd1fbd7d26 text → 1청크
+[20260629-11:30:08][BE] [RAG] 학습 진행률: 30% (댓글 본문)
+[20260629-11:30:08][BE] [RAG] 이미지 학습 시작: KakaoTalk_Photo_2026-06-29-11-29-43 003.jpeg
+[20260629-11:30:42][BE] [RAG] Gemma 이미지 설명 완료 (page=1, 33.7s): 1870자
+[20260629-11:30:42][BE] [RAG] 이미지 학습 완료: KakaoTalk_Photo_2026-06-29-11-29-43 003.jpeg (3청크)
+[20260629-11:30:42][BE] [RAG] 학습 진행률: 60% (댓글 이미지)
+[20260629-11:30:42][BE] [RAG] 저장 완료 — 4청크 / 0개 게시글 / 1개 댓글
+[20260629-11:30:42][BE] [RAG] 학습 진행률: 100% (저장)
+[20260629-11:30:44][BE] [RAG] 댓글 학습 완료 — 1개 댓글 (39.4s)
+[20260629-11:30:56][BE] [SearchIndex] 이미지 첨부 인덱싱 완료: d0f42cb3-e076-4726-a5b3-b984f263e117 KakaoTalk_Photo_2026-06-29-11-29-43 003.jpeg
+[20260629-11:37:29][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+[20260629-11:41:30][BE] [ATTACH-REF] sync ownerType=comment ownerId=c-227ebc69-cb2e-4de9-9bbe-e714ccee90ea actorUserId=1 prev=0 next=1 add=1 remove=0
+[20260629-11:41:30][BE] [RAG] 댓글 학습 시작 — 1개 댓글 (제외: 0개)
+[20260629-11:41:30][BE] /home/freegear/EasyDocStation/server/rag_train.py:120: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260629-11:41:30][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260629-11:41:34][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v2' already exists
+[20260629-11:41:34][BE] [RAG] comment=c-227ebc69-cb2e-4de9-9bbe-e714ccee90ea post=6adb8278-548b-4d38-9d4d-f0dd1fbd7d26 text → 1청크
+[20260629-11:41:34][BE] [RAG] 학습 진행률: 30% (댓글 본문)
+[20260629-11:41:34][BE] [RAG] 이미지 학습 시작: KakaoTalk_Photo_2026-06-29-11-41-23.jpeg
+[20260629-11:42:10][BE] [RAG] Gemma 이미지 설명 완료 (page=1, 36.7s): 1850자
+[20260629-11:42:10][BE] [RAG] 이미지 학습 완료: KakaoTalk_Photo_2026-06-29-11-41-23.jpeg (3청크)
+[20260629-11:42:10][BE] [RAG] 학습 진행률: 60% (댓글 이미지)
+[20260629-11:42:10][BE] [RAG] 저장 완료 — 4청크 / 0개 게시글 / 1개 댓글
+[20260629-11:42:10][BE] [RAG] 학습 진행률: 100% (저장)
+[20260629-11:42:13][BE] [RAG] 댓글 학습 완료 — 1개 댓글 (42.3s)
+[20260629-11:42:29][BE] [SearchIndex] 이미지 첨부 인덱싱 완료: 13068bd4-61a0-4176-a352-781db6de3859 KakaoTalk_Photo_2026-06-29-11-41-23.jpeg
+[20260629-11:42:46][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260629-11:42:47][BE] [link-preview-image] 내부망 주소는 미리보기를 지원하지 않습니다.
+[20260629-11:42:47][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260629-11:42:51][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260629-11:43:33][BE] [link-preview-image] 내부망 주소는 미리보기를 지원하지 않습니다.
+[20260629-11:43:35][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260629-11:43:40][BE] [link-preview-image] meta image failed, fallback screenshot: meta image fetch failed (404)
+[20260629-11:43:41][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260629-11:43:43][BE] [link-preview-image] meta image failed, fallback screenshot: This operation was aborted
+[20260629-11:43:43][BE] [link-preview-image] meta image failed, fallback screenshot: fetch failed
+[20260629-11:43:44][BE] [link-preview-image] meta image failed, fallback screenshot: meta page fetch failed (403)
+[20260629-11:43:48][BE] [link-preview-image] meta image failed, fallback screenshot: fetch failed
+[20260629-11:43:48][BE] [link-preview-image] local render failed, try remote fallback: page.goto: net::ERR_CERT_AUTHORITY_INVALID at https://www.gtsystem.co.kr/?utm_source=chatgpt.com
+[20260629-11:43:48][BE] Call log:
+[20260629-11:43:48][BE] [2m  - navigating to "https://www.gtsystem.co.kr/?utm_source=chatgpt.com", waiting until "domcontentloaded"[22m
+[20260629-11:43:48][BE] 
+[20260629-11:43:49][BE] [link-preview-image] 내부망 주소는 미리보기를 지원하지 않습니다.
+[20260629-11:43:55][BE] [link-preview-image] local render failed, try remote fallback: page.goto: Timeout 12000ms exceeded.
+[20260629-11:43:55][BE] Call log:
+[20260629-11:43:55][BE] [2m  - navigating to "http://114.207.245.216/", waiting until "domcontentloaded"[22m
+[20260629-11:43:55][BE] 
+[20260629-11:43:56][BE] [link-preview-image] remote fallback failed, placeholder: fallback preview fetch failed (404)
+[20260629-11:47:29][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+[20260629-11:57:29][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+[20260629-11:58:57][BE] [link-preview-image] 내부망 주소는 미리보기를 지원하지 않습니다.
+[20260629-12:07:29][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+[20260629-12:17:29][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+[20260629-12:27:29][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+[20260629-12:37:29][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+[20260629-12:42:06][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260629-12:42:07][BE] [link-preview-image] 내부망 주소는 미리보기를 지원하지 않습니다.
+[20260629-12:42:08][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260629-12:47:29][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+[20260629-12:57:29][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+[20260629-13:07:29][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+[20260629-13:17:29][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+[20260629-13:27:29][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+[20260629-13:37:29][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+[20260629-13:47:29][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+[20260629-13:57:29][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+[20260629-14:07:29][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+[20260629-14:12:50][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260629-14:12:51][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260629-14:12:51][BE] [link-preview-image] 내부망 주소는 미리보기를 지원하지 않습니다.
+[20260629-14:12:52][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260629-14:17:30][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+[20260629-14:23:21][BE] [link-preview-image] 내부망 주소는 미리보기를 지원하지 않습니다.
+[20260629-14:23:27][BE] [ATTACH-REF] sync ownerType=post ownerId=4573053e-4f91-46b2-aae6-f914268bf64d actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260629-14:23:27][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
+[20260629-14:23:27][BE] /home/freegear/EasyDocStation/server/rag_train.py:120: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260629-14:23:27][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260629-14:23:30][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v2' already exists
+[20260629-14:23:30][BE] [RAG] post=4573053e-4f91-46b2-aae6-f914268bf64d text → 4청크
+[20260629-14:23:30][BE] [RAG] 학습 진행률: 50% (게시글 본문)
+[20260629-14:23:30][BE] [RAG] 저장 완료 — 4청크 / 1개 게시글 / 0개 댓글
+[20260629-14:23:30][BE] [RAG] 학습 진행률: 100% (저장)
+[20260629-14:23:31][BE] [RAG] 학습 완료
+PM 2:24:29 [vite] page reload .univer-spike/index.html
+PM 2:25:17 [vite] page reload .univer-spike/dist/index.html
+PM 2:25:57 [vite] page reload .univer-spike/dist/index.html
+PM 2:25:57 [vite] page reload .univer-spike/index.html
+PM 2:27:20 [vite] hmr update /src/index.css, /src/components/Sidebar.jsx, /src/components/ChatArea.jsx, /src/components/chat/PostDetailPane.jsx, /src/components/chat/MDPageViewer.jsx
+[20260629-14:27:29][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+PM 2:27:34 [vite] hmr update /src/index.css, /src/components/Sidebar.jsx, /src/components/ChatArea.jsx, /src/components/chat/PostDetailPane.jsx, /src/components/chat/MDPageViewer.jsx
+[20260629-14:27:48][BE] [link-preview-image] 내부망 주소는 미리보기를 지원하지 않습니다.
+PM 2:27:50 [vite] hmr update /src/index.css, /src/components/Sidebar.jsx, /src/components/ChatArea.jsx, /src/components/chat/PostDetailPane.jsx, /src/components/chat/MDPageViewer.jsx
+[20260629-14:28:18][BE] [ATTACH-REF] sync ownerType=post ownerId=94ab1fcb-8add-4433-938c-db3cdd748e14 actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260629-14:28:18][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
+[20260629-14:28:18][BE] /home/freegear/EasyDocStation/server/rag_train.py:120: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260629-14:28:18][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260629-14:28:21][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v2' already exists
+[20260629-14:28:21][BE] [RAG] post=94ab1fcb-8add-4433-938c-db3cdd748e14 text → 1청크
+[20260629-14:28:21][BE] [RAG] 학습 진행률: 50% (게시글 본문)
+[20260629-14:28:21][BE] [RAG] 저장 완료 — 1청크 / 1개 게시글 / 0개 댓글
+[20260629-14:28:21][BE] [RAG] 학습 진행률: 100% (저장)
+[20260629-14:28:21][BE] [RAG] 학습 완료
+[20260629-14:30:10][BE] [link-preview-image] 내부망 주소는 미리보기를 지원하지 않습니다.
+[20260629-14:30:15][BE] [ATTACH-REF] sync ownerType=post ownerId=de7f8b0c-1d09-463e-a629-2f477dc03afa actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260629-14:30:15][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
+[20260629-14:30:15][BE] /home/freegear/EasyDocStation/server/rag_train.py:120: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260629-14:30:15][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260629-14:30:18][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v2' already exists
+[20260629-14:30:18][BE] [RAG] post=de7f8b0c-1d09-463e-a629-2f477dc03afa text → 1청크
+[20260629-14:30:18][BE] [RAG] 학습 진행률: 50% (게시글 본문)
+[20260629-14:30:18][BE] [RAG] 저장 완료 — 1청크 / 1개 게시글 / 0개 댓글
+[20260629-14:30:18][BE] [RAG] 학습 진행률: 100% (저장)
+[20260629-14:30:19][BE] [RAG] 학습 완료
+[20260629-14:31:51][BE] [ATTACH-REF] sync ownerType=post ownerId=de7f8b0c-1d09-463e-a629-2f477dc03afa actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260629-14:31:51][BE] [휴지통] 1건 영구 삭제 완료
+[20260629-14:37:29][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+[20260629-14:44:09][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260629-14:47:29][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+[20260629-14:57:29][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+[20260629-15:03:59][BE] [link-preview-image] 내부망 주소는 미리보기를 지원하지 않습니다.
+[20260629-15:03:59][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260629-15:04:00][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260629-15:06:41][BE] [imapSync] jylim3@naver.com 프로모션: 누락분이 많아 이번엔 50건만 가져왔습니다(나머지는 다음 새로고침에서).
+[20260629-15:07:29][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+[20260629-15:11:43][BE] [link-preview-image] 내부망 주소는 미리보기를 지원하지 않습니다.
+[20260629-15:14:25][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260629-15:14:25][BE] [link-preview-image] 내부망 주소는 미리보기를 지원하지 않습니다.
+[20260629-15:17:30][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+[20260629-15:17:57][BE] [link-preview-image] 내부망 주소는 미리보기를 지원하지 않습니다.
+[20260629-15:18:41][BE] [link-preview-image] 내부망 주소는 미리보기를 지원하지 않습니다.
+[20260629-15:20:31][BE] [link-preview-image] meta image failed, fallback screenshot: meta page fetch failed (403)
+[20260629-15:20:31][BE] [link-preview-image] meta image failed, fallback screenshot: meta page fetch failed (403)
+[20260629-15:20:31][BE] [link-preview-image] meta image failed, fallback screenshot: meta page fetch failed (403)
+[20260629-15:20:31][BE] [link-preview-image] meta image failed, fallback screenshot: meta page fetch failed (403)
+[20260629-15:22:15][BE] [link-preview-image] 내부망 주소는 미리보기를 지원하지 않습니다.
+[20260629-15:22:50][BE] [link-preview-image] 내부망 주소는 미리보기를 지원하지 않습니다.
+[20260629-15:23:06][BE] [link-preview-image] 내부망 주소는 미리보기를 지원하지 않습니다.
+[20260629-15:24:10][BE] [ATTACH-REF] sync ownerType=comment ownerId=c-54a6682f-ca53-4b51-9e9f-55bcd566dcaa actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260629-15:24:10][BE] [RAG] 학습 제외 (댓글): c-54a6682f-ca53-4b51-9e9f-55bcd566dcaa — 첨부파일 없음, 18자
+[20260629-15:24:10][BE] [RAG] 학습 제외 후 학습할 댓글이 없습니다.
+[20260629-15:24:29][BE] [link-preview-image] 내부망 주소는 미리보기를 지원하지 않습니다.
+[20260629-15:24:38][BE] [ATTACH-REF] sync ownerType=post ownerId=63b9d5de-a029-4ec8-9cc5-3e2c51da0c14 actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260629-15:24:38][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
+[20260629-15:24:38][BE] /home/freegear/EasyDocStation/server/rag_train.py:120: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260629-15:24:38][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260629-15:24:41][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v2' already exists
+[20260629-15:24:41][BE] [RAG] post=63b9d5de-a029-4ec8-9cc5-3e2c51da0c14 text → 1청크
+[20260629-15:24:41][BE] [RAG] 학습 진행률: 50% (게시글 본문)
+[20260629-15:24:41][BE] [RAG] 저장 완료 — 1청크 / 1개 게시글 / 0개 댓글
+[20260629-15:24:41][BE] [RAG] 학습 진행률: 100% (저장)
+[20260629-15:24:42][BE] [RAG] 학습 완료
+[20260629-15:25:51][BE] [ATTACH-REF] sync ownerType=comment ownerId=c-54a6682f-ca53-4b51-9e9f-55bcd566dcaa actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260629-15:25:51][BE] [ATTACH-REF] sync ownerType=post ownerId=63b9d5de-a029-4ec8-9cc5-3e2c51da0c14 actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260629-15:25:51][BE] [휴지통] 2건 영구 삭제 완료
+[20260629-15:27:20][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+[20260629-15:37:30][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+[20260629-15:47:29][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+[20260629-15:57:29][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+[20260629-16:07:29][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+[20260629-16:17:29][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+[20260629-16:27:29][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+[20260629-16:37:28][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+[20260629-16:47:29][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+[20260629-16:57:29][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+[20260629-17:07:29][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+[20260629-17:17:29][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+[20260629-17:23:08][BE] [link-preview-image] 내부망 주소는 미리보기를 지원하지 않습니다.
+[20260629-17:25:24][BE] [link-preview-image] 내부망 주소는 미리보기를 지원하지 않습니다.
+[20260629-17:27:29][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+[20260629-17:29:29][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260629-17:29:30][BE] [link-preview-image] 내부망 주소는 미리보기를 지원하지 않습니다.
+[20260629-17:29:30][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260629-17:29:30][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260629-17:30:28][BE] [link-preview-image] 내부망 주소는 미리보기를 지원하지 않습니다.
+[20260629-17:31:20][BE] [link-preview-image] 내부망 주소는 미리보기를 지원하지 않습니다.
+[20260629-17:32:16][BE] [link-preview-image] 내부망 주소는 미리보기를 지원하지 않습니다.
+[20260629-17:32:37][BE] [link-preview-image] meta image failed, fallback screenshot: fetch failed
+[20260629-17:32:37][BE] [link-preview-image] local render failed, try remote fallback: page.goto: net::ERR_CERT_AUTHORITY_INVALID at https://www.gtsystem.co.kr/?utm_source=chatgpt.com
+[20260629-17:32:37][BE] Call log:
+[20260629-17:32:37][BE] [2m  - navigating to "https://www.gtsystem.co.kr/?utm_source=chatgpt.com", waiting until "domcontentloaded"[22m
+[20260629-17:32:37][BE] 
+[20260629-17:32:40][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260629-17:32:43][BE] [link-preview-image] meta image failed, fallback screenshot: meta page fetch failed (403)
+[20260629-17:32:43][BE] [link-preview-image] meta image failed, fallback screenshot: meta page fetch failed (403)
+[20260629-17:32:43][BE] [link-preview-image] meta image failed, fallback screenshot: meta page fetch failed (403)
+[20260629-17:32:43][BE] [link-preview-image] meta image failed, fallback screenshot: meta page fetch failed (403)
+[20260629-17:32:44][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260629-17:32:45][BE] [link-preview-image] meta image failed, fallback screenshot: fetch failed
+[20260629-17:32:45][BE] [link-preview-image] local render failed, try remote fallback: page.goto: net::ERR_NAME_NOT_RESOLVED at http://naver-login-agent:3010/login
+[20260629-17:32:45][BE] Call log:
+[20260629-17:32:45][BE] [2m  - navigating to "http://naver-login-agent:3010/login", waiting until "domcontentloaded"[22m
+[20260629-17:32:45][BE] 
+[20260629-17:32:45][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260629-17:32:45][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260629-17:32:45][BE] [link-preview-image] remote fallback failed, placeholder: fallback preview fetch failed (404)
+[20260629-17:32:46][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260629-17:32:59][BE] [link-preview-image] 내부망 주소는 미리보기를 지원하지 않습니다.
+[20260629-17:33:17][BE] [link-preview-image] 내부망 주소는 미리보기를 지원하지 않습니다.
+[20260629-17:35:00][BE] [link-preview-image] 내부망 주소는 미리보기를 지원하지 않습니다.
+[20260629-17:36:06][BE] [link-preview-image] 내부망 주소는 미리보기를 지원하지 않습니다.
+[20260629-17:36:34][BE] [link-preview-image] 내부망 주소는 미리보기를 지원하지 않습니다.
+[20260629-17:37:30][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+[20260629-17:41:24][BE] [link-preview-image] 내부망 주소는 미리보기를 지원하지 않습니다.
+[20260629-17:43:19][BE] [link-preview-image] 내부망 주소는 미리보기를 지원하지 않습니다.
+[20260629-17:46:26][BE] [link-preview-image] 내부망 주소는 미리보기를 지원하지 않습니다.
+[20260629-17:47:29][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+[20260629-17:48:40][BE] [link-preview-image] 내부망 주소는 미리보기를 지원하지 않습니다.
+[20260629-17:54:25][BE] [STT] speaker mapping list requested | actorUserId=201 channelId=ch-1776440801214
+[20260629-17:54:25][BE] [STT] speaker mapping list failed | actorUserId=201 error=column m.channel_id does not exist
+[20260629-17:54:25][BE] error: column m.channel_id does not exist
+[20260629-17:54:25][BE]     at /home/freegear/EasyDocStation/server/node_modules/pg-pool/index.js:45:11
+[20260629-17:54:25][BE]     at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+[20260629-17:54:25][BE]     at async /home/freegear/EasyDocStation/server/routes/stt.js:1133:18 {
+[20260629-17:54:25][BE]   length: 109,
+[20260629-17:54:25][BE]   severity: 'ERROR',
+[20260629-17:54:25][BE]   code: '42703',
+[20260629-17:54:25][BE]   detail: undefined,
+[20260629-17:54:25][BE]   hint: undefined,
+[20260629-17:54:25][BE]   position: '8',
+[20260629-17:54:25][BE]   internalPosition: undefined,
+[20260629-17:54:25][BE]   internalQuery: undefined,
+[20260629-17:54:25][BE]   where: undefined,
+[20260629-17:54:25][BE]   schema: undefined,
+[20260629-17:54:25][BE]   table: undefined,
+[20260629-17:54:25][BE]   column: undefined,
+[20260629-17:54:25][BE]   dataType: undefined,
+[20260629-17:54:25][BE]   constraint: undefined,
+[20260629-17:54:25][BE]   file: 'parse_relation.c',
+[20260629-17:54:25][BE]   line: '3722',
+[20260629-17:54:25][BE]   routine: 'errorMissingColumn'
+[20260629-17:54:25][BE] }
+[20260629-17:57:30][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+[20260629-18:07:30][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+[20260629-18:17:29][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+[20260629-18:27:29][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+[20260629-18:37:29][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+[20260629-18:47:29][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+[20260629-18:57:30][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+[20260629-19:07:29][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+[20260629-19:17:29][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+[20260629-19:27:29][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+[20260629-19:37:29][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+[20260629-19:47:29][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+[20260629-19:57:29][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+[20260629-20:07:29][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+[20260629-20:17:29][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+[20260629-20:27:29][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+[20260629-20:37:28][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+[20260629-20:47:29][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+[20260629-20:57:29][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+[20260629-21:07:29][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+PM 9:17:05 [vite] hmr update /src/components/ChatArea.jsx, /src/index.css
+PM 9:17:12 [vite] hmr update /src/components/ChatArea.jsx, /src/index.css
+PM 9:17:22 [vite] hmr update /src/components/ChatArea.jsx, /src/index.css
+[20260629-21:17:29][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0
+PM 9:17:30 [vite] hmr update /src/components/ChatArea.jsx, /src/index.css
+PM 9:17:38 [vite] hmr update /src/components/ChatArea.jsx, /src/index.css
+PM 9:18:16 [vite] hmr update /src/components/ChatArea.jsx, /src/index.css
+PM 9:18:29 [vite] hmr update /src/components/ChatArea.jsx, /src/index.css
+PM 9:19:34 [vite] hmr update /src/index.css, /src/components/Sidebar.jsx, /src/components/LoginScreen.jsx, /src/components/TitleBar.jsx, /src/components/SearchResultsArea.jsx, /src/components/UserProfileModal.jsx, /src/components/DirectMessageView.jsx, /src/components/GroqPanel.jsx, /src/components/ChatArea.jsx, /src/components/TeamManageModal.jsx, /src/components/ChannelManageModal.jsx, /src/components/SiteAdminPage.jsx, /src/components/EventAddModal.jsx, /src/components/chat/PostDetailPane.jsx, /src/components/chat/MDPageViewer.jsx
+PM 9:20:47 [vite] hmr update /src/index.css, /src/components/Sidebar.jsx, /src/components/LoginScreen.jsx, /src/components/TitleBar.jsx, /src/components/SearchResultsArea.jsx, /src/components/UserProfileModal.jsx, /src/components/DirectMessageView.jsx, /src/components/GroqPanel.jsx, /src/components/ChatArea.jsx, /src/components/TeamManageModal.jsx, /src/components/ChannelManageModal.jsx, /src/components/SiteAdminPage.jsx, /src/components/EventAddModal.jsx, /src/components/chat/PostDetailPane.jsx, /src/components/chat/MDPageViewer.jsx
+PM 9:20:54 [vite] hmr update /src/index.css, /src/components/Sidebar.jsx, /src/components/LoginScreen.jsx, /src/components/TitleBar.jsx, /src/components/SearchResultsArea.jsx, /src/components/UserProfileModal.jsx, /src/components/DirectMessageView.jsx, /src/components/GroqPanel.jsx, /src/components/ChatArea.jsx, /src/components/TeamManageModal.jsx, /src/components/ChannelManageModal.jsx, /src/components/SiteAdminPage.jsx, /src/components/EventAddModal.jsx, /src/components/chat/PostDetailPane.jsx, /src/components/chat/MDPageViewer.jsx
+[20260629-21:27:29][BE] [Mail sync] 자동 동기화 완료: accounts=1, saved=0

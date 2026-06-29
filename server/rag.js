@@ -326,7 +326,8 @@ async function runTraining(posts, options = {}) {
       return {
         id:         post.id,
         channel_id: post.channel_id || '',
-        content:    post.content || '',
+        // EasySheet는 본문이 IWorkbookData JSON이므로 셀 텍스트만 추출해 학습한다.
+        content:    isEasySheet(post.content) ? extractEasySheetText(post.content) : (post.content || ''),
         source:     'post',
         pdfs,
         words,

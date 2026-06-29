@@ -12,6 +12,7 @@ const { getDatabasePath } = require('../databasePaths')
 const requireAuth = require('../middleware/auth')
 const { trainPostImmediate, retrainPostImmediate, trainCommentImmediate, retrainCommentImmediate } = require('../rag')
 const PostSearchService = require('../search/PostSearchService')
+const { isEasySheet, extractEasySheetText } = require('../lib/easySheet')
 const {
   markTrainingStarted,
   markTrainingCompleted,
@@ -172,6 +173,10 @@ function isImageSearchAttachment(row = {}) {
 }
 
 function normalizeSearchContent(content = '') {
+  // EasySheet 게시글은 본문이 IWorkbookData JSON이므로 셀 텍스트만 추출해 인덱싱한다.
+  if (isEasySheet(content)) {
+    return extractEasySheetText(content)
+  }
   return String(content || '')
     .replace(/<!--\s*md-doc-meta:[\s\S]*?-->/gi, ' ')
     .replace(/<!--\s*md-image-meta:[\s\S]*?-->/gi, ' ')

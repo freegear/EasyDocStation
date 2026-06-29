@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback, useLayoutEffect, useMemo } from 'react'
+import { useState, useRef, useEffect, useCallback, useLayoutEffect, useMemo, lazy, Suspense } from 'react'
 import useMentionAutocomplete, { MENTION_SEPARATOR } from '../hooks/useMentionAutocomplete'
 import MentionDropdown from './MentionDropdown'
 import { useChat } from '../contexts/ChatContext'
@@ -19,7 +19,9 @@ import SpeakerRegistrationModal from './SpeakerRegistrationModal'
 import PostDetailPane from './chat/PostDetailPane'
 import MDPageViewer from './chat/MDPageViewer'
 import { useT } from '../i18n/useT'
-import { isTemplateContent, isMdPage, getMdPageContent, getMdPageTitle, FORM_TEMPLATES } from '../templates/formTemplates'
+import { isTemplateContent, isMdPage, getMdPageContent, getMdPageTitle, isEasySheet, getEasySheetTitle, FORM_TEMPLATES } from '../templates/formTemplates'
+// Univer 번들(~5.6MB)은 무거우므로 EasySheet 뷰어를 지연 로딩한다.
+const EasySheetViewer = lazy(() => import('./chat/EasySheetViewer'))
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels'
 
 // ─── Helpers ──────────────────────────────────────────────────
@@ -3180,6 +3182,7 @@ function ChannelDocumentListPage({ posts, onBack, onOpenPost }) {
     const items = []
     const isTemplate = isTemplateContent(post.content)
     const isMd = isMdPage(post.content)
+    const isSheet = isEasySheet(post.content)
     const templateMeta = isTemplate
       ? FORM_TEMPLATES.find(f => post.content.includes(`<title>${f.label}`))
       : null
@@ -3198,6 +3201,14 @@ function ChannelDocumentListPage({ posts, onBack, onOpenPost }) {
         kind: 'template',
         icon: '📝',
         title: getMdPageTitle(post.content, t.mdPage.title).slice(0, 100),
+        post,
+      })
+    } else if (isSheet) {
+      items.push({
+        key: `${post.id}-sheet`,
+        kind: 'template',
+        icon: '📊',
+        title: getEasySheetTitle(post.content, t.easySheet?.title || 'EasySheet').slice(0, 100),
         post,
       })
     }
@@ -3418,11 +3429,12 @@ function PostCard({ post, onSelect, pinned, isSelected, contentFontScale = 100 }
   const t = useT()
   const isTemplate = isTemplateContent(post.content)
   const isMd = isMdPage(post.content)
+  const isSheet = isEasySheet(post.content)
   const templateMeta = isTemplate
     ? FORM_TEMPLATES.find(f => post.content.includes(`<title>${f.label}`))
     : null
-  // MD 페이지는 마커를 제거한 뒤 파싱
-  const rawForParsing = isMd ? getMdPageContent(post.content) : (post.content || '')
+  // MD 페이지는 마커를 제거한 뒤 파싱. EasySheet는 본문이 JSON이라 미리보기 텍스트를 만들지 않는다.
+  const rawForParsing = isMd ? getMdPageContent(post.content) : (isSheet ? '' : (post.content || ''))
   const sanitizedRawForParsing = sanitizePostPreviewTextKeepLines(rawForParsing)
   const plain = isTemplate ? [] : sanitizedRawForParsing
     .replace(/#{1,3} /g, '').replace(/\*\*/g, '').replace(/`/g, '')
@@ -3458,9 +3470,11 @@ function PostCard({ post, onSelect, pinned, isSelected, contentFontScale = 100 }
         : '📄 양식 템플릿')
     : isMd
       ? `📝 ${getMdPageTitle(post.content, t.mdPage.title).slice(0, 100)}`
-      : (String(post.content || '').includes('<!--ai-meeting-note-->') && post.title)
-        ? `📋 ${post.title}`
-        : (plain[0] || '')
+      : isSheet
+        ? `📊 ${getEasySheetTitle(post.content, t.easySheet?.title || 'EasySheet').slice(0, 100)}`
+        : (String(post.content || '').includes('<!--ai-meeting-note-->') && post.title)
+          ? `📋 ${post.title}`
+          : (plain[0] || '')
   const bodyPreview = isTemplate
     ? ''
     : plain.slice(1).join('\n')
@@ -3755,6 +3769,7 @@ export default function ChatArea({ autoOpenPostId, isMobile = false, onExitChann
 
   // MD 페이지 선택 여부
   const isMdPageSelected = selectedPost && isMdPage(selectedPost.content)
+  const isEasySheetSelected = selectedPost && isEasySheet(selectedPost.content)
 
   // ─── 모바일: 단일 컬럼 드릴다운 (목록 ↔ 상세를 한 번에 하나만 표시) ───
   if (isMobile) {
@@ -3766,6 +3781,17 @@ export default function ChatArea({ autoOpenPostId, isMobile = false, onExitChann
           channelId={selectedChannel.id}
           onClose={() => setSelectedPost(null)}
         />
+      )
+    }
+    if (isEasySheetSelected) {
+      return (
+        <Suspense fallback={<div className="flex-1 flex items-center justify-center text-gray-400 text-sm">EasySheet 로딩 중…</div>}>
+          <EasySheetViewer
+            post={selectedPost}
+            channelId={selectedChannel.id}
+            onClose={() => setSelectedPost(null)}
+          />
+        </Suspense>
       )
     }
     if (showDocumentList) {
@@ -3848,6 +3874,15 @@ export default function ChatArea({ autoOpenPostId, isMobile = false, onExitChann
           channelId={selectedChannel.id}
           onClose={() => setSelectedPost(null)}
         />
+      ) : isEasySheetSelected ? (
+        /* EasySheet — 전체 영역을 Univer 편집기로 대체 (지연 로딩) */
+        <Suspense fallback={<div className="flex-1 flex items-center justify-center text-gray-400 text-sm">EasySheet 로딩 중…</div>}>
+          <EasySheetViewer
+            post={selectedPost}
+            channelId={selectedChannel.id}
+            onClose={() => setSelectedPost(null)}
+          />
+        </Suspense>
       ) : (
         <>
       {/* Left panel — post list (narrows when detail is open) */}

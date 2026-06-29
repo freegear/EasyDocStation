@@ -45,6 +45,8 @@
     "@tiptap/extension-text-style": "3.22.5",
     "@tiptap/react": "3.22.5",
     "@tiptap/starter-kit": "3.22.5",
+    "@univerjs/preset-sheets-core": "^0.25.1",
+    "@univerjs/presets": "^0.25.1",
     "echarts": "^6.0.0",
     "html2canvas": "^1.4.1",
     "jspdf": "^4.2.1",
