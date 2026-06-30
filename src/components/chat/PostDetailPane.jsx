@@ -11,6 +11,8 @@ import useMentionAutocomplete from '../../hooks/useMentionAutocomplete'
 import MentionDropdown from '../MentionDropdown'
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels'
 
+const EMPTY_COMMENTS = []
+
 function toKstDateKey(iso) {
   const d = new Date(iso)
   if (Number.isNaN(d.getTime())) return 'unknown-date'
@@ -151,7 +153,7 @@ function PostDetailPane({
   contentFontScale = 100,
 }) {
   const t = useT()
-  const { addComment, incrementViews, deletePost, updatePost, togglePostPin, togglePostLike, toggleCommentLike, deleteComment, updateComment, loadPostComments, posts, selectedChannel, selectedTeam, openInAgenticAI } = useChat()
+  const { addComment, incrementViews, deletePost, updatePost, togglePostPin, togglePostLike, toggleCommentLike, deleteComment, updateComment, loadPostComments, posts, postDetails, selectedChannel, selectedTeam, openInAgenticAI } = useChat()
   const { currentUser, maxAttachmentFileSize } = useAuth()
   const {
     Avatar,
@@ -299,10 +301,17 @@ function PostDetailPane({
   }, [channelId, incrementViews, post.id])
 
   const channelPosts = Array.isArray(posts[channelId]) ? posts[channelId] : []
-  const freshPost = channelPosts.find(p => p.id === post.id) || post
-  const visibleComments = Array.isArray(freshPost.comments) ? freshPost.comments : []
+  const listPost = channelPosts.find(p => String(p.id) === String(post.id)) || null
+  const detailPost = postDetails?.[`${channelId}:${post.id}`] || null
+  const freshPost = {
+    ...post,
+    ...(detailPost || {}),
+    ...(listPost || {}),
+  }
+  const visibleComments = Array.isArray(detailPost?.comments) ? detailPost.comments : EMPTY_COMMENTS
   const metadataCommentCount = Number(freshPost.comment_count)
-  const detailCommentCount = freshPost.commentsLoaded
+  const commentsLoaded = Boolean(detailPost?.commentsLoaded)
+  const detailCommentCount = commentsLoaded
     ? visibleComments.length
     : Number.isFinite(metadataCommentCount)
       ? metadataCommentCount
@@ -357,7 +366,7 @@ function PostDetailPane({
   const commentTextStyle = contentFontStyle
 
   useEffect(() => {
-    if (!channelId || !post.id || freshPost.commentsLoaded) return undefined
+    if (!channelId || !post.id || commentsLoaded) return undefined
     let cancelled = false
     setCommentsLoading(true)
     setCommentsLoadError('')
@@ -371,7 +380,14 @@ function PostDetailPane({
     return () => {
       cancelled = true
     }
-  }, [channelId, freshPost.commentsLoaded, loadPostComments, post.id])
+  }, [channelId, commentsLoaded, loadPostComments, post.id])
+
+  useEffect(() => {
+    if (!channelId || !post.id || !commentsLoaded) return
+    if (!Number.isFinite(metadataCommentCount)) return
+    if (metadataCommentCount === visibleComments.length) return
+    loadPostComments(channelId, post.id, { force: true }).catch(() => {})
+  }, [channelId, commentsLoaded, loadPostComments, metadataCommentCount, post.id, visibleComments.length])
 
   useEffect(() => {
     if (!pendingOpenCommentId) return

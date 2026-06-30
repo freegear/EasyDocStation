@@ -33,6 +33,7 @@ export function ChatProvider({ children }) {
   const [selectedTeam, setSelectedTeam] = useState(EMPTY_SELECTED_TEAM)
   const [selectedChannel, setSelectedChannel] = useState(null)
   const [posts, setPosts] = useState({})
+  const [postDetails, setPostDetails] = useState({})
   const [postPageMeta, setPostPageMeta] = useState({})
   const [pendingOpenPostId, setPendingOpenPostId] = useState(null)
   const [pendingOpenCommentId, setPendingOpenCommentId] = useState(null)
@@ -147,6 +148,7 @@ export function ChatProvider({ children }) {
     setSelectedTeam(EMPTY_SELECTED_TEAM)
     if (clearPosts) {
       setPosts({})
+      setPostDetails({})
       setPostPageMeta({})
       postPageMetaRef.current = {}
       loadingOlderChannelsRef.current.clear()
@@ -304,22 +306,58 @@ export function ChatProvider({ children }) {
     }))
   }
 
+  function detailKey(channelId, postId) {
+    return `${channelId || ''}:${postId || ''}`
+  }
+
+  function updatePostDetail(channelId, postId, updater) {
+    if (!channelId || !postId) return
+    const key = detailKey(channelId, postId)
+    setPostDetails(prev => {
+      const current = prev[key] || {}
+      const next = typeof updater === 'function' ? updater(current) : updater
+      return { ...prev, [key]: next }
+    })
+  }
+
+  function removePostDetail(channelId, postId) {
+    if (!channelId || !postId) return
+    const key = detailKey(channelId, postId)
+    setPostDetails(prev => {
+      if (!Object.prototype.hasOwnProperty.call(prev, key)) return prev
+      const next = { ...prev }
+      delete next[key]
+      return next
+    })
+  }
+
   async function loadPostComments(channelId, postId, { force = false } = {}) {
     if (!channelId || !postId) return []
     const key = `${channelId}:${postId}`
     if (loadingCommentsRef.current.has(key)) return []
     if (!force) {
-      const existingPost = asList(posts[channelId]).find(p => String(p.id) === String(postId))
-      if (existingPost?.commentsLoaded) return asList(existingPost.comments)
+      const existingDetail = postDetails[key]
+      if (existingDetail?.commentsLoaded) return asList(existingDetail.comments)
     }
 
     loadingCommentsRef.current.add(key)
     try {
       const comments = asList(await apiFetch(`/posts/${postId}/comments`))
-      updatePostInChannel(channelId, postId, p => ({
-        ...p,
+      const listPost = asList(posts[channelId]).find(p => String(p.id) === String(postId)) || {}
+      updatePostDetail(channelId, postId, detail => ({
+        ...listPost,
+        ...detail,
+        id: String(postId),
+        channel_id: channelId,
         comments,
         commentsLoaded: true,
+        comment_count: comments.length,
+        last_comment_at: comments.length
+          ? (comments[comments.length - 1].createdAt || comments[comments.length - 1].created_at || detail.last_comment_at || listPost.last_comment_at || null)
+          : null,
+      }))
+      updatePostInChannel(channelId, postId, p => ({
+        ...p,
         comment_count: comments.length,
         last_comment_at: comments.length
           ? (comments[comments.length - 1].createdAt || comments[comments.length - 1].created_at || p.last_comment_at || null)
@@ -571,10 +609,16 @@ export function ChatProvider({ children }) {
           ...p,
           comment_count: Number(p.comment_count || 0) + 1,
           last_comment_at: newComment.createdAt || newComment.created_at || new Date().toISOString(),
+        }))
+        updatePostDetail(channelId, postId, detail => ({
+          ...detail,
+          comment_count: Number(detail.comment_count || 0) + 1,
+          last_comment_at: newComment.createdAt || newComment.created_at || new Date().toISOString(),
           comments: sortByCreatedAt([
-            ...(p.comments || []).filter(c => String(c.id) !== String(newComment.id)),
+            ...(detail.comments || []).filter(c => String(c.id) !== String(newComment.id)),
             newComment,
           ]),
+          commentsLoaded: true,
         }))
       }
     } catch (err) {
@@ -602,6 +646,7 @@ export function ChatProvider({ children }) {
       ...prev,
       [channelId]: asList(prev[channelId]).filter(p => String(p.id) !== String(postId)),
     }))
+    removePostDetail(channelId, postId)
     try {
       await apiFetch(`/posts/${postId}`, { method: 'DELETE' })
       showToast({
@@ -626,6 +671,7 @@ export function ChatProvider({ children }) {
             rollback,
           ]),
         }))
+        updatePostDetail(channelId, postId, detail => ({ ...rollback, ...detail }))
       }
       console.error('delete post error:', err)
       throw err
@@ -646,6 +692,7 @@ export function ChatProvider({ children }) {
           snapshot,
         ]),
       }))
+      updatePostDetail(channelId, postId, detail => ({ ...snapshot, ...detail }))
     }
   }
 
@@ -660,10 +707,16 @@ export function ChatProvider({ children }) {
         ...p,
         comment_count: Number(p.comment_count || 0) + 1,
         last_comment_at: snapshot.createdAt || snapshot.created_at || p.last_comment_at || null,
+      }))
+      updatePostDetail(channelId, postId, detail => ({
+        ...detail,
+        comment_count: Number(detail.comment_count || 0) + 1,
+        last_comment_at: snapshot.createdAt || snapshot.created_at || detail.last_comment_at || null,
         comments: sortByCreatedAt([
-          ...(p.comments || []).filter(c => String(c.id) !== String(commentId)),
+          ...(detail.comments || []).filter(c => String(c.id) !== String(commentId)),
           snapshot,
         ]),
+        commentsLoaded: true,
       }))
     }
   }
@@ -692,6 +745,13 @@ export function ChatProvider({ children }) {
           p.id === postId ? { ...p, content, attachments, security_level, updatedAt: new Date().toISOString() } : p
         ),
       }))
+      updatePostDetail(channelId, postId, detail => ({
+        ...detail,
+        content,
+        attachments,
+        security_level,
+        updatedAt: new Date().toISOString(),
+      }))
       return true
     } catch (err) {
       if (err?.status === 403 && !err.accessHandled) {
@@ -705,6 +765,8 @@ export function ChatProvider({ children }) {
   async function togglePostPin(channelId, postId, pinned) {
     const nextPinned = Boolean(pinned)
     const prevChannelPosts = asList(posts[channelId])
+    const key = detailKey(channelId, postId)
+    const prevPostDetail = postDetails[key]
     setPosts(prev => ({
       ...prev,
       [channelId]: asList(prev[channelId]).map(p => (
@@ -718,6 +780,12 @@ export function ChatProvider({ children }) {
           : p
       )),
     }))
+    updatePostDetail(channelId, postId, detail => ({
+      ...detail,
+      pinned: nextPinned,
+      pinned_at: nextPinned ? new Date().toISOString() : null,
+      pinned_by: nextPinned ? 'me' : null,
+    }))
     try {
       await apiFetch(`/posts/${postId}/pin`, {
         method: 'PUT',
@@ -727,12 +795,15 @@ export function ChatProvider({ children }) {
       return true
     } catch (err) {
       setPosts(prev => ({ ...prev, [channelId]: prevChannelPosts }))
+      setPostDetails(prev => ({ ...prev, [key]: prevPostDetail }))
       throw err
     }
   }
 
   async function togglePostLike(channelId, postId) {
     const prevChannelPosts = asList(posts[channelId])
+    const key = detailKey(channelId, postId)
+    const prevPostDetail = postDetails[key]
     const target = prevChannelPosts.find(p => String(p.id) === String(postId))
     const nextLiked = target?.likedByMe !== true
     const nextCount = Math.max(0, Number(target?.likeCount || 0) + (nextLiked ? 1 : -1))
@@ -744,6 +815,11 @@ export function ChatProvider({ children }) {
           : p
       )),
     }))
+    updatePostDetail(channelId, postId, detail => ({
+      ...detail,
+      likedByMe: nextLiked,
+      likeCount: nextCount,
+    }))
     try {
       const result = await apiFetch(`/posts/${postId}/like`, { method: 'POST' })
       setPosts(prev => ({
@@ -751,61 +827,52 @@ export function ChatProvider({ children }) {
         [channelId]: asList(prev[channelId]).map(p => (
           String(p.id) === String(postId)
             ? { ...p, likedByMe: Boolean(result.liked), likeCount: Number(result.likeCount || 0) }
-            : p
-        )),
+          : p
+      )),
+    }))
+      updatePostDetail(channelId, postId, detail => ({
+        ...detail,
+        likedByMe: Boolean(result.liked),
+        likeCount: Number(result.likeCount || 0),
       }))
       return result
     } catch (err) {
       setPosts(prev => ({ ...prev, [channelId]: prevChannelPosts }))
+      setPostDetails(prev => ({ ...prev, [key]: prevPostDetail }))
       throw err
     }
   }
 
   async function toggleCommentLike(channelId, postId, commentId) {
     const prevChannelPosts = asList(posts[channelId])
+    const key = detailKey(channelId, postId)
+    const prevPostDetail = postDetails[key]
     let targetComment = null
-    for (const p of prevChannelPosts) {
-      if (String(p.id) !== String(postId)) continue
-      targetComment = (p.comments || []).find(c => String(c.id) === String(commentId))
-      break
-    }
+    targetComment = (prevPostDetail?.comments || []).find(c => String(c.id) === String(commentId))
     const nextLiked = targetComment?.likedByMe !== true
     const nextCount = Math.max(0, Number(targetComment?.likeCount || 0) + (nextLiked ? 1 : -1))
-    setPosts(prev => ({
-      ...prev,
-      [channelId]: asList(prev[channelId]).map(p => (
-        String(p.id) === String(postId)
-          ? {
-              ...p,
-              comments: (p.comments || []).map(c => (
-                String(c.id) === String(commentId)
-                  ? { ...c, likedByMe: nextLiked, likeCount: nextCount }
-                  : c
-              )),
-            }
-          : p
+    updatePostDetail(channelId, postId, detail => ({
+      ...detail,
+      comments: (detail.comments || []).map(c => (
+        String(c.id) === String(commentId)
+          ? { ...c, likedByMe: nextLiked, likeCount: nextCount }
+          : c
       )),
     }))
     try {
       const result = await apiFetch(`/posts/${postId}/comments/${commentId}/like`, { method: 'POST' })
-      setPosts(prev => ({
-        ...prev,
-        [channelId]: asList(prev[channelId]).map(p => (
-          String(p.id) === String(postId)
-            ? {
-                ...p,
-                comments: (p.comments || []).map(c => (
-                  String(c.id) === String(commentId)
-                    ? { ...c, likedByMe: Boolean(result.liked), likeCount: Number(result.likeCount || 0) }
-                    : c
-                )),
-              }
-            : p
+      updatePostDetail(channelId, postId, detail => ({
+        ...detail,
+        comments: (detail.comments || []).map(c => (
+          String(c.id) === String(commentId)
+            ? { ...c, likedByMe: Boolean(result.liked), likeCount: Number(result.likeCount || 0) }
+            : c
         )),
       }))
       return result
     } catch (err) {
       setPosts(prev => ({ ...prev, [channelId]: prevChannelPosts }))
+      setPostDetails(prev => ({ ...prev, [key]: prevPostDetail }))
       throw err
     }
   }
@@ -813,14 +880,17 @@ export function ChatProvider({ children }) {
   // ─── 댓글 삭제 — DB에서 삭제 후 state 반영 ──────────────────
   async function deleteComment(channelId, postId, commentId) {
     // 낙관적 삭제: 해당 댓글만 화면에서 제거하고 원본은 복구용으로 보관
-    const snapshot = asList(posts[channelId])
-      .find(p => String(p.id) === String(postId))
-      ?.comments?.find(c => String(c.id) === String(commentId))
+    const snapshot = postDetails[detailKey(channelId, postId)]?.comments
+      ?.find(c => String(c.id) === String(commentId))
     if (snapshot) deletedSnapshotsRef.current.comments.set(String(commentId), snapshot)
     updatePostInChannel(channelId, postId, p => ({
       ...p,
       comment_count: Math.max(0, Number(p.comment_count || 0) - 1),
-      comments: (p.comments || []).filter(c => String(c.id) !== String(commentId)),
+    }))
+    updatePostDetail(channelId, postId, detail => ({
+      ...detail,
+      comment_count: Math.max(0, Number(detail.comment_count || 0) - 1),
+      comments: (detail.comments || []).filter(c => String(c.id) !== String(commentId)),
     }))
     try {
       await apiFetch(`/posts/${postId}/comments/${commentId}`, { method: 'DELETE' })
@@ -843,10 +913,16 @@ export function ChatProvider({ children }) {
           ...p,
           comment_count: Number(p.comment_count || 0) + 1,
           last_comment_at: rollback.createdAt || rollback.created_at || p.last_comment_at || null,
+        }))
+        updatePostDetail(channelId, postId, detail => ({
+          ...detail,
+          comment_count: Number(detail.comment_count || 0) + 1,
+          last_comment_at: rollback.createdAt || rollback.created_at || detail.last_comment_at || null,
           comments: sortByCreatedAt([
-            ...(p.comments || []).filter(c => String(c.id) !== String(commentId)),
+            ...(detail.comments || []).filter(c => String(c.id) !== String(commentId)),
             rollback,
           ]),
+          commentsLoaded: true,
         }))
       }
       console.error('delete comment error:', err)
@@ -872,9 +948,9 @@ export function ChatProvider({ children }) {
         body: JSON.stringify({ content: text, attachments: attachmentIds, security_level }),
       })
       // 부분 갱신: 해당 댓글 내용만 즉시 반영(첨부 상세는 5초 폴링이 보정)
-      updatePostInChannel(channelId, postId, p => ({
-        ...p,
-        comments: (p.comments || []).map(c => (
+      updatePostDetail(channelId, postId, detail => ({
+        ...detail,
+        comments: (detail.comments || []).map(c => (
           String(c.id) === String(commentId)
             ? { ...c, content: text, text, security_level, updatedAt: new Date().toISOString() }
             : c
@@ -1026,6 +1102,7 @@ export function ChatProvider({ children }) {
       selectedTeam,
       selectedChannel,
       posts,
+      postDetails,
       postPageMeta,
       selectTeam,
       selectChannel,
