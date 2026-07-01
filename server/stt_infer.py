@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 import json
+import multiprocessing as mp
 import os
+import signal
 import sys
 import tempfile
 import importlib.util
@@ -19,6 +21,82 @@ except Exception as e:
 
 def emit_event(payload: Dict):
     print(json.dumps(payload, ensure_ascii=False), flush=True)
+
+
+class DiarizationTimeout(RuntimeError):
+    pass
+
+
+_DIARIZATION_EXTERNAL_TIMED_OUT = False
+
+
+def _external_diarization_child(
+    script_path: str,
+    audio_path: str,
+    hf_token: str,
+    output_rttm_path: str,
+    uri: str,
+    dump_log_path: str,
+    result_queue,
+):
+    try:
+        spec = importlib.util.spec_from_file_location("external_diarization_module", script_path)
+        if spec is None or spec.loader is None:
+            result_queue.put({"ok": False, "error": "module spec load failed"})
+            return
+
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        diar_fn = getattr(module, "generate_diarization_rttm", None)
+        if not callable(diar_fn):
+            result_queue.put({"ok": False, "error": "generate_diarization_rttm not found"})
+            return
+
+        with open(dump_log_path, "a", encoding="utf-8") as dump_fp:
+            dump_fp.write(f"\n===== diarization call start: {audio_path} =====\n")
+            dump_fp.flush()
+            with contextlib.redirect_stdout(dump_fp), contextlib.redirect_stderr(dump_fp):
+                diar_fn(
+                    audio_path=audio_path,
+                    hf_token=hf_token,
+                    output_rttm_path=output_rttm_path,
+                    uri=uri,
+                    debug=True,
+                )
+            dump_fp.write("===== diarization call end =====\n")
+            dump_fp.flush()
+        result_queue.put({"ok": True})
+    except BaseException as e:
+        try:
+            with open(dump_log_path, "a", encoding="utf-8") as dump_fp:
+                dump_fp.write(f"\n===== diarization child exception: {str(e)[:500]} =====\n")
+                dump_fp.flush()
+        except Exception:
+            pass
+        try:
+            result_queue.put({"ok": False, "error": str(e)[:500]})
+        except Exception:
+            pass
+
+
+@contextlib.contextmanager
+def diarization_timeout(seconds: int):
+    if seconds <= 0 or not hasattr(signal, "SIGALRM"):
+        yield
+        return
+
+    def _handle_timeout(signum, frame):
+        raise DiarizationTimeout(f"diarization timed out after {seconds}s")
+
+    previous_handler = signal.signal(signal.SIGALRM, _handle_timeout)
+    previous_alarm = signal.alarm(seconds)
+    try:
+        yield
+    finally:
+        signal.alarm(0)
+        signal.signal(signal.SIGALRM, previous_handler)
+        if previous_alarm:
+            signal.alarm(previous_alarm)
 
 
 @dataclass
@@ -69,6 +147,9 @@ def _load_rttm_segments(rttm_path: str) -> List[Segment]:
 
 
 def run_external_diarization(audio_path: str, hf_token: Optional[str]) -> Optional[List[Segment]]:
+    global _DIARIZATION_EXTERNAL_TIMED_OUT
+    _DIARIZATION_EXTERNAL_TIMED_OUT = False
+
     default_script_path = os.path.abspath(
         os.path.join(os.path.dirname(__file__), "..", "src", "python", "Diarization.py")
     )
@@ -78,22 +159,6 @@ def run_external_diarization(audio_path: str, hf_token: Optional[str]) -> Option
 
     emit_event({"event": "progress", "progress": 2, "stage": "diarization_external_start"})
     try:
-        spec = importlib.util.spec_from_file_location("external_diarization_module", script_path)
-        if spec is None or spec.loader is None:
-            emit_event({"event": "log", "stage": "diarization_external_failed", "error": "module spec load failed"})
-            return None
-        module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(module)
-
-        diar_fn = getattr(module, "generate_diarization_rttm", None)
-        if not callable(diar_fn):
-            emit_event({
-                "event": "log",
-                "stage": "diarization_external_failed",
-                "error": "generate_diarization_rttm not found",
-            })
-            return None
-
         hf_token_safe = str(hf_token or "").strip()
         if not hf_token_safe:
             emit_event({
@@ -120,17 +185,39 @@ def run_external_diarization(audio_path: str, hf_token: Optional[str]) -> Option
             diar_audio_path = audio_path
 
         try:
-            with open(dump_log_path, "a", encoding="utf-8") as dump_fp:
-                dump_fp.write(f"\n===== diarization call start: {audio_path} =====\n")
-                with contextlib.redirect_stdout(dump_fp), contextlib.redirect_stderr(dump_fp):
-                    diar_fn(
-                        audio_path=diar_audio_path,
-                        hf_token=hf_token_safe,
-                        output_rttm_path=rttm_path,
-                        uri=stem,
-                        debug=True,
-                    )
-                dump_fp.write("===== diarization call end =====\n")
+            timeout_sec = int(os.getenv("STT_DIARIZATION_TIMEOUT_SEC", "60"))
+            emit_event({
+                "event": "log",
+                "stage": "diarization_external_call",
+                "timeout_sec": timeout_sec,
+            })
+            ctx = mp.get_context(os.getenv("STT_DIARIZATION_MP_CONTEXT", "spawn"))
+            result_queue = ctx.Queue()
+            proc = ctx.Process(
+                target=_external_diarization_child,
+                args=(script_path, diar_audio_path, hf_token_safe, rttm_path, stem, dump_log_path, result_queue),
+            )
+            proc.start()
+            proc.join(timeout_sec)
+            if proc.is_alive():
+                proc.terminate()
+                proc.join(5)
+                if proc.is_alive() and hasattr(proc, "kill"):
+                    proc.kill()
+                    proc.join(5)
+                raise DiarizationTimeout(f"diarization timed out after {timeout_sec}s")
+            result = {}
+            try:
+                result = result_queue.get_nowait()
+            except Exception:
+                result = {"ok": proc.exitcode == 0}
+            if not result.get("ok"):
+                emit_event({
+                    "event": "log",
+                    "stage": "diarization_external_failed",
+                    "error": str(result.get("error") or f"exitcode={proc.exitcode}")[:500],
+                })
+                return None
         finally:
             if diar_audio_path != audio_path and os.path.lexists(diar_audio_path):
                 try:
@@ -152,6 +239,14 @@ def run_external_diarization(audio_path: str, hf_token: Optional[str]) -> Option
             "segment_count": len(diar),
         })
         return postprocess_diarization(diar)
+    except DiarizationTimeout as e:
+        _DIARIZATION_EXTERNAL_TIMED_OUT = True
+        emit_event({
+            "event": "log",
+            "stage": "diarization_external_timeout",
+            "error": str(e)[:500],
+        })
+        return None
     except Exception as e:
         emit_event({
             "event": "log",
@@ -167,6 +262,9 @@ def run_diarization(audio_path: str, hf_token: Optional[str]) -> Optional[List[S
         external = run_external_diarization(audio_path, hf_token)
         if external:
             return external
+        use_builtin_fallback = os.getenv("USE_BUILTIN_DIARIZATION_FALLBACK", "0").strip().lower() in ("1", "true", "yes")
+        if _DIARIZATION_EXTERNAL_TIMED_OUT or not use_builtin_fallback:
+            return None
 
     if not hf_token:
         return None

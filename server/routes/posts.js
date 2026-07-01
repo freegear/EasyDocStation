@@ -20,6 +20,7 @@ const {
   getTrainingStatus,
 } = require('../trainingStatus')
 const { ACCESS_DENIED_MESSAGE, canAccessChannel, getAccessibleChannelIds } = require('../lib/channelAccess')
+const { cancelSttJobsForPost } = require('./stt')
 const STORAGE_BASE = getDatabasePath(config, 'ObjectFile Path')
 const STORAGE_BASE_ABS = path.resolve(STORAGE_BASE)
 const postSearchService = new PostSearchService()
@@ -2295,6 +2296,10 @@ router.post('/', requireAuth, async (req, res, next) => {
 
 // 게시글 영구 삭제(하드삭제). 소프트삭제 후 1분이 지난 항목을 purge 작업이 호출한다.
 async function purgePostHard(id, actorUserId = null) {
+  await cancelSttJobsForPost(id, { reason: 'post hard deleted', actorUserId }).catch((e) => {
+    console.error('[STT] 게시글 영구삭제 중 STT 작업 취소 실패:', id, e?.message || e)
+  })
+
   const row = isConnected() ? await findPostLocator(id) : null
 
   // Cassandra 행이 이미 없으면 PG mirror/검색만 정리하고 종료.
@@ -2502,6 +2507,10 @@ router.delete('/:id', requireAuth, async (req, res, next) => {
       [row.channel_id, row.created_at], { prepare: true },
     )
     const preview = buildPreview(postRowRes.rows?.[0]?.content || '')
+
+    await cancelSttJobsForPost(id, { reason: 'post soft deleted', actorUserId: req.user.id }).catch((e) => {
+      console.error('[STT] 게시글 삭제 중 STT 작업 취소 실패:', id, e?.message || e)
+    })
 
     await db.query(
       `INSERT INTO deleted_items (item_type, item_id, channel_id, post_id, author_id, deleted_by, preview, deleted_at)

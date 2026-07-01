@@ -299,14 +299,32 @@ router.get('/messages', async (req, res, next) => {
     const tenantId = String(req.query.tenantId || '').trim()
     const accountId = String(req.query.accountId || '').trim()
     const folderId = String(req.query.folderId || '').trim()
+    const scope = String(req.query.scope || '').trim()
+    const unifiedKey = String(req.query.unifiedKey || '').trim()
+    const folderType = String(req.query.folderType || '').trim()
+    const folderName = String(req.query.folderName || '').trim()
     const limit = Math.min(200, Math.max(1, parseInt(req.query.limit || '50', 10) || 50))
     const offset = Math.max(0, parseInt(req.query.offset || '0', 10) || 0)
 
-    if (!tenantId || !accountId) return res.status(400).json({ error: 'tenantId와 accountId가 필요합니다.' })
+    if (!tenantId) return res.status(400).json({ error: 'tenantId가 필요합니다.' })
     if (!(await repo.canAccessTenant({ userId: req.user.id, tenantId, isSiteAdmin: isSiteAdmin(req) }))) {
       return res.status(403).json({ error: '메일 tenant 접근 권한이 없습니다.' })
     }
 
+    if (scope === 'unified') {
+      return res.json(await repo.listUnifiedMessages({
+        tenantId,
+        userId: req.user.id,
+        isSiteAdmin: isSiteAdmin(req),
+        key: unifiedKey,
+        folderType,
+        folderName,
+        limit,
+        offset,
+      }))
+    }
+
+    if (!accountId) return res.status(400).json({ error: 'accountId가 필요합니다.' })
     res.json(await repo.listMessages({
       tenantId,
       accountId,
@@ -712,6 +730,28 @@ router.put('/accounts/:id/imap', async (req, res, next) => {
     })
     if (!updated) return res.status(404).json({ error: '메일 계정을 찾을 수 없습니다.' })
     res.json({ ok: true, account: updated })
+  } catch (err) {
+    next(err)
+  }
+})
+
+// 계정 연결 해제(삭제): 소유자(또는 site_admin)만. mail_accounts row + 동기화 데이터 + 디스크 객체 제거.
+router.delete('/accounts/:id', async (req, res, next) => {
+  try {
+    const accountId = String(req.params.id || '').trim()
+    const tenantId = String(req.query.tenantId || req.body?.tenantId || '').trim()
+    if (!accountId || !tenantId) return res.status(400).json({ error: 'accountId와 tenantId가 필요합니다.' })
+    if (!(await repo.canAccessTenant({ userId: req.user.id, tenantId, isSiteAdmin: isSiteAdmin(req) }))) {
+      return res.status(403).json({ error: '메일 tenant 접근 권한이 없습니다.' })
+    }
+    const result = await repo.deleteAccount({
+      tenantId,
+      accountId,
+      userId: req.user.id,
+      isSiteAdmin: isSiteAdmin(req),
+    })
+    if (!result) return res.status(404).json({ error: '메일 계정을 찾을 수 없습니다.' })
+    res.json({ ok: true, deleted: result })
   } catch (err) {
     next(err)
   }

@@ -31,6 +31,9 @@ function recoverAddresses(source, headerName, fallbackList, fallbackCs) {
 // full(전체 증분) 동기화 시 한 번에 가져올 안전 상한과 본문 fetch 배치 크기
 const FULL_MAX = 2000
 const FETCH_BATCH = 100
+// 증분 동기화: 매 폴링마다 메일함 전체(1:*)를 스캔하지 않고 최근 UID 윈도우만 본다.
+// 새 메일은 항상 가장 높은 UID로 들어오므로 (uidNext-WINDOW):* 범위면 충분히 잡힌다.
+const INCREMENTAL_WINDOW = 500
 
 function buildImapClient(account, password) {
   return new ImapFlow({
@@ -317,9 +320,20 @@ async function syncMailbox({ client, tenantId, account, storage, folderMap, mail
     const exists = Number(mailbox.exists || 0)
     if (exists <= 0) return { listed: 0, new: 0, saved: 0, failed: 0, errors: [] }
 
-    // 1) 전체 UID와 Message-ID만 가볍게 수집 → 무엇이 누락됐는지 판단
+    // 1) 동기화 대상 UID 수집.
+    //    큰 메일함에서 매 폴링마다 전체(1:*)를 스캔하면 느리므로, 첫 동기화(저장된 게 없음)나
+    //    full 요청이 아니면 최근 UID 윈도우(uidNext-WINDOW:*)만 가볍게 조회한다.
+    //    UID 범위로 조회하기 위해 fetch 3번째 인자에 { uid: true }를 준다.
+    const uidNext = Number(mailbox.uidNext || 0)
+    const prior = await repo.countSyncedImapMessages({ tenantId, accountId: account.id, providerFolderId })
+    const doFull = full || prior === 0
+    let range = '1:*'
+    if (!doFull && uidNext > 1) {
+      range = `${Math.max(1, uidNext - INCREMENTAL_WINDOW)}:*`
+    }
+
     const allMessages = []
-    for await (const m of client.fetch('1:*', { uid: true, envelope: true })) {
+    for await (const m of client.fetch(range, { uid: true, envelope: true }, { uid: true })) {
       if (m?.uid) {
         allMessages.push({
           uid: m.uid,
@@ -339,8 +353,8 @@ async function syncMailbox({ client, tenantId, account, storage, folderMap, mail
       .filter(msg => !msg.internetMessageId || !existingInternetIds.has(msg.internetMessageId))
       .map(msg => msg.uid)
 
-    // full이면 누락분 전부(안전 상한까지), 아니면 최신 limit개만
-    const cap = full ? FULL_MAX : limit
+    // 첫 동기화/full이면 누락분 전부(안전 상한까지), 아니면 최신 limit개만
+    const cap = doFull ? FULL_MAX : limit
     let truncated = false
     if (targetUids.length > cap) {
       targetUids = targetUids.slice(0, cap)

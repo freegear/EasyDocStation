@@ -76,7 +76,18 @@ function ToolbarButton({ icon, label, primary = false, onClick, disabled = false
 }
 
 const MAIL_PAGE_SIZE = 100
-const FOLDER_SYNC_COOLDOWN_MS = 5 * 60 * 1000
+const FOLDER_SYNC_COOLDOWN_MS = 30 * 1000
+const UNIFIED_KEY_PREFIX = 'unified:'
+const UNIFIED_FOLDER_COLOR_STORAGE_KEY = 'mail-unified-folder-colors-v1'
+const UNIFIED_SYSTEM_FOLDERS = [
+  { key: 'all', label: '모든 편지함', icon: 'all' },
+  { key: 'inbox', label: '받은 편지함', icon: 'inbox', type: 'inbox' },
+  { key: 'starred', label: '별표됨', icon: 'star' },
+  { key: 'drafts', label: '임시 보관함', icon: 'draft', type: 'drafts' },
+  { key: 'search', label: '검색', icon: 'search' },
+  { key: 'sent', label: '보낸 메일', icon: 'sent', type: 'sent' },
+  { key: 'trash', label: '휴지통', icon: 'trash', type: 'trash' },
+]
 
 function EmptyMailList({ label }) {
   return (
@@ -154,6 +165,11 @@ function MailMessageList({ messages, loading, error, label, selectedId, selected
               {message.snippet && (
                 <div className={`mt-1 line-clamp-2 text-xs leading-5 ${unread ? 'text-gray-500' : 'text-gray-400'}`}>
                   {message.snippet}
+                </div>
+              )}
+              {message.account_email && (
+                <div className="mt-1 truncate text-[11px] font-bold text-gray-400">
+                  {message.account_email}
                 </div>
               )}
             </span>
@@ -1211,6 +1227,10 @@ function isSystemMailFolder(folder) {
   return ['inbox', 'sent', 'drafts', 'trash', 'archive', 'spam'].includes(folder?.type)
 }
 
+function normalizeFolderName(name) {
+  return String(name || '').trim().replace(/\s+/g, ' ').toLowerCase()
+}
+
 function MailMenuButton({ active, icon, label, count, unreadCount, iconColor, onClick, onContextMenu, depth = 0, title }) {
   return (
     <button
@@ -1320,8 +1340,101 @@ function FolderContextMenu({ menu, onClose, onCreateFolder, onCreateSubFolder, o
   )
 }
 
-function ProviderLogo({ provider }) {
-  if (provider === 'gmail') {
+function UnifiedFolderContextMenu({ menu, onClose, onRefresh, onSetFolderColor }) {
+  if (!menu?.folder) return null
+  const label = String(menu.folder.label || '').trim()
+  const disabledTitle = '통합 폴더는 실제 계정 폴더가 아니라서 이 작업을 직접 적용할 수 없습니다.'
+  return (
+    <div
+      className="fixed z-50 min-w-[210px] rounded-lg border border-gray-200 bg-white py-1 text-sm font-bold text-gray-700 shadow-xl shadow-gray-900/10"
+      style={{ left: menu.x, top: menu.y }}
+      onClick={event => event.stopPropagation()}
+    >
+      <button
+        type="button"
+        onClick={() => {
+          onRefresh()
+          onClose()
+        }}
+        className="flex w-full items-center gap-2 px-3 py-2 text-left hover:bg-gray-50"
+      >
+        <MenuIcon type="refresh" />
+        <span>새로 고침</span>
+      </button>
+      <button
+        type="button"
+        onClick={() => {
+          if (label) navigator.clipboard?.writeText(label).catch(() => {})
+          onClose()
+        }}
+        className="flex w-full items-center gap-2 px-3 py-2 text-left hover:bg-gray-50"
+      >
+        <span className="w-4 text-center text-gray-400">⧉</span>
+        <span>폴더 이름 복사</span>
+      </button>
+      <div className="my-1 border-t border-gray-100" />
+      <button
+        type="button"
+        disabled
+        title={disabledTitle}
+        className="flex w-full cursor-not-allowed items-center gap-2 px-3 py-2 text-left text-gray-300"
+      >
+        <span className="w-4 text-center">+</span>
+        <span>폴더 추가</span>
+      </button>
+      <button
+        type="button"
+        disabled
+        title={disabledTitle}
+        className="flex w-full cursor-not-allowed items-center gap-2 px-3 py-2 text-left text-gray-300"
+      >
+        <span className="w-4 text-center">↳</span>
+        <span>서브 폴더 추가</span>
+      </button>
+      <button
+        type="button"
+        disabled
+        title={disabledTitle}
+        className="flex w-full cursor-not-allowed items-center gap-2 px-3 py-2 text-left text-gray-300"
+      >
+        <MenuIcon type="trash" />
+        <span>폴더 삭제</span>
+      </button>
+      <div className="my-1 border-t border-gray-100" />
+      <div className="px-3 py-2 text-xs font-extrabold text-gray-400">폴더 색상 설정</div>
+      {FOLDER_COLOR_OPTIONS.map(option => (
+        <button
+          key={option.key || 'default'}
+          type="button"
+          onClick={() => {
+            onSetFolderColor(menu, option.key)
+            onClose()
+          }}
+          className="flex w-full items-center gap-3 px-3 py-1.5 text-left hover:bg-gray-50"
+        >
+          <span
+            className="h-4 w-4 rounded-full border border-gray-200"
+            style={{ backgroundColor: option.value || '#e5e7eb' }}
+          />
+          <span>{option.label}</span>
+        </button>
+      ))}
+    </div>
+  )
+}
+
+function resolveMailBrand(provider, host = '') {
+  if (provider === 'gmail' || provider === 'naver' || provider === 'apple') return provider
+  const h = String(host || '').toLowerCase()
+  if (h.includes('gmail') || h.includes('googlemail')) return 'gmail'
+  if (h.includes('icloud') || h.includes('me.com')) return 'apple'
+  if (h.includes('naver')) return 'naver'
+  return 'other'
+}
+
+function ProviderLogo({ provider, host }) {
+  const brand = resolveMailBrand(provider, host)
+  if (brand === 'gmail') {
     return (
       <span className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-white shadow-sm ring-1 ring-gray-200">
         <svg className="h-6 w-7" viewBox="0 0 28 22" aria-hidden="true">
@@ -1334,14 +1447,14 @@ function ProviderLogo({ provider }) {
       </span>
     )
   }
-  if (provider === 'naver') {
+  if (brand === 'naver') {
     return (
       <span className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-[#03C75A] text-lg font-black text-white shadow-sm">
         N
       </span>
     )
   }
-  if (provider === 'apple') {
+  if (brand === 'apple') {
     return (
       <span className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-gray-950 text-white shadow-sm">
         <svg className="h-6 w-6" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
@@ -1369,6 +1482,95 @@ const NAVER_MAIL_DEFAULTS = {
   smtp_host: 'smtp.naver.com',
   smtp_port: '465',
   smtp_security: 'ssl',
+}
+
+// Gmail/iCloud는 OAuth 대신 기존 IMAP+앱비밀번호 경로(네이버와 동일)로 연결한다.
+// provider는 백엔드 동기화 라우팅상 절대 'gmail'을 쓰면 안 됨(=OAuth로 잘못 라우팅).
+// Gmail은 'other', iCloud는 'apple'(이미 IMAP provider로 허용됨)로 저장한다.
+const GMAIL_IMAP_DEFAULTS = {
+  provider: 'other',
+  email_address: '',
+  display_name: '',
+  username: '',
+  password: '',
+  imap_host: 'imap.gmail.com',
+  imap_port: '993',
+  imap_security: 'ssl',
+  smtp_host: 'smtp.gmail.com',
+  smtp_port: '465',
+  smtp_security: 'ssl',
+}
+
+const ICLOUD_MAIL_DEFAULTS = {
+  provider: 'apple',
+  email_address: '',
+  display_name: '',
+  username: '',
+  password: '',
+  imap_host: 'imap.mail.me.com',
+  imap_port: '993',
+  imap_security: 'ssl',
+  smtp_host: 'smtp.mail.me.com',
+  smtp_port: '587',
+  smtp_security: 'starttls',
+}
+
+const OTHER_MAIL_DEFAULTS = {
+  provider: 'imap',
+  email_address: '',
+  display_name: '',
+  username: '',
+  password: '',
+  imap_host: '',
+  imap_port: '993',
+  imap_security: 'ssl',
+  smtp_host: '',
+  smtp_port: '587',
+  smtp_security: 'starttls',
+}
+
+const MAIL_PRESETS = {
+  naver: NAVER_MAIL_DEFAULTS,
+  gmail: GMAIL_IMAP_DEFAULTS,
+  apple: ICLOUD_MAIL_DEFAULTS,
+  other: OTHER_MAIL_DEFAULTS,
+}
+
+const MAIL_PRESET_META = {
+  naver: {
+    title: '네이버 메일 클라이언트 설정',
+    emailPlaceholder: 'name@naver.com',
+    appPwLabel: '',
+    appPwUrl: '',
+    help: '네이버 메일 환경설정에서 IMAP/SMTP 사용을 켜고 앱 비밀번호를 입력하세요.',
+  },
+  gmail: {
+    title: 'Gmail IMAP/SMTP 설정',
+    emailPlaceholder: 'name@gmail.com',
+    appPwLabel: 'Google 앱 비밀번호 발급',
+    appPwUrl: 'https://myaccount.google.com/apppasswords',
+    help: '2단계 인증을 켠 뒤 16자리 앱 비밀번호를 발급해 입력하세요. (계정 로그인 비밀번호가 아닙니다)',
+  },
+  apple: {
+    title: 'iCloud 메일 설정',
+    emailPlaceholder: 'name@icloud.com',
+    appPwLabel: 'Apple 앱 암호 발급',
+    appPwUrl: 'https://account.apple.com',
+    help: 'account.apple.com → 로그인 및 보안 → 앱 암호에서 발급해 입력하세요.',
+  },
+  other: {
+    title: 'IMAP/SMTP 직접 설정',
+    emailPlaceholder: 'name@example.com',
+    appPwLabel: '',
+    appPwUrl: '',
+    help: '메일 제공자의 IMAP/SMTP 서버 정보와 (필요 시) 앱 비밀번호를 입력하세요.',
+  },
+}
+
+const IMAP_PROVIDER_KEYS = ['naver', 'apple', 'imap', 'other']
+
+function isImapAccount(account) {
+  return IMAP_PROVIDER_KEYS.includes(account?.provider)
 }
 
 function Field({ label, children }) {
@@ -1434,15 +1636,31 @@ function MailAccountManageModal({ accounts, tenants = [], onClose, onAccountAdde
   const [accountError, setAccountError] = useState('')
   const [gmailAuthLoading, setGmailAuthLoading] = useState(false)
   const [gmailAuthError, setGmailAuthError] = useState('')
+  // naverForm/imapBrand는 네이버 전용이 아니라 공용 IMAP 폼 상태로 재사용한다.
   const [naverForm, setNaverForm] = useState(NAVER_MAIL_DEFAULTS)
+  const [imapBrand, setImapBrand] = useState('naver')
+  const [showAdvanced, setShowAdvanced] = useState(false)
   const [naverSaving, setNaverSaving] = useState(false)
   const [naverError, setNaverError] = useState('')
   const providers = [
-    { key: 'gmail', label: 'Gmail 계정 추가', hint: 'Google OAuth 연결로 진행합니다.' },
+    { key: 'gmail', label: 'Gmail 계정 추가', hint: 'IMAP + 앱 비밀번호로 연결합니다.' },
     { key: 'naver', label: '네이버 계정 추가', hint: '네이버 메일 IMAP/SMTP 설정으로 진행합니다.' },
-    { key: 'apple', label: 'Apple 메일 계정 추가', hint: 'iCloud 앱 암호 기반 설정으로 진행합니다.' },
+    { key: 'apple', label: 'Apple iCloud 계정 추가', hint: 'iCloud 앱 암호 + IMAP으로 연결합니다.' },
     { key: 'other', label: '기타 계정 추가', hint: 'IMAP/SMTP 서버 정보를 직접 입력합니다.' },
   ]
+
+  function openImapPreset(key) {
+    const presetKey = MAIL_PRESETS[key] ? key : 'other'
+    setImapBrand(presetKey)
+    setNaverForm({ ...MAIL_PRESETS[presetKey] })
+    setNaverError('')
+    setShowAdvanced(false)
+    setView('imap')
+  }
+
+  // Gmail/iCloud/네이버는 서버값이 프리셋으로 채워져 있어 기본 화면에서 숨긴다(고급 설정에서만 노출).
+  // 기타(other)는 서버를 직접 입력해야 하므로 항상 노출한다.
+  const hasPresetServers = imapBrand !== 'other' && Boolean(naverForm.imap_host && naverForm.smtp_host)
 
   async function startGmailAuth() {
     setGmailAuthLoading(true)
@@ -1500,10 +1718,15 @@ function MailAccountManageModal({ accounts, tenants = [], onClose, onAccountAdde
     setAccountSaving(true)
     setAccountError('')
     try {
+      // Gmail/iCloud(호스트로 판별)는 인증 username을 항상 이메일로 강제. 앱비번 공백 제거.
+      const editHost = String(accountEditForm.imap_host || '').toLowerCase()
+      const forceEmailUser = editHost.includes('gmail') || editHost.includes('icloud') || editHost.includes('me.com')
       const data = await apiFetch(`/mail/accounts/${selectedAccount.id}/imap`, {
         method: 'PUT',
         body: JSON.stringify({
           ...accountEditForm,
+          username: forceEmailUser ? accountEditForm.email_address : accountEditForm.username,
+          password: (accountEditForm.password || '').replace(/\s+/g, ''),
           tenantId: selectedAccount.tenant_id,
           imap_port: Number(accountEditForm.imap_port),
           smtp_port: Number(accountEditForm.smtp_port),
@@ -1530,10 +1753,18 @@ function MailAccountManageModal({ accounts, tenants = [], onClose, onAccountAdde
     setNaverSaving(true)
     setNaverError('')
     try {
+      // Gmail/iCloud는 IMAP 인증 username이 반드시 전체 이메일이어야 한다.
+      // 사용자가 입력하는 이름은 표시용(display_name, 왼쪽 탭 라벨)일 뿐 인증에는 쓰지 않는다.
+      // 앱 비밀번호는 표시 포맷의 공백을 제거해 보낸다.
+      const usernameForAuth = (imapBrand === 'gmail' || imapBrand === 'apple')
+        ? naverForm.email_address
+        : naverForm.username
       await apiFetch('/mail/accounts/imap', {
         method: 'POST',
         body: JSON.stringify({
           ...naverForm,
+          username: usernameForAuth,
+          password: (naverForm.password || '').replace(/\s+/g, ''),
           tenantId: naverForm.tenantId || undefined,
           imap_port: Number(naverForm.imap_port),
           smtp_port: Number(naverForm.smtp_port),
@@ -1548,6 +1779,26 @@ function MailAccountManageModal({ accounts, tenants = [], onClose, onAccountAdde
     }
   }
 
+  async function deleteAccount() {
+    if (!selectedAccount) return
+    const label = getAccountLabel(selectedAccount) || selectedAccount.email_address
+    const ok = window.confirm(`'${label}' 계정 연동을 해제할까요?\n동기화된 받은메일·보낸메일·첨부 등 이 계정의 모든 데이터가 삭제됩니다.`)
+    if (!ok) return
+    setAccountSaving(true)
+    setAccountError('')
+    try {
+      const params = new URLSearchParams({ tenantId: selectedAccount.tenant_id })
+      await apiFetch(`/mail/accounts/${selectedAccount.id}?${params.toString()}`, { method: 'DELETE' })
+      if (onAccountAdded) await onAccountAdded()
+      setSelectedAccount(null)
+      setView('manage')
+    } catch (err) {
+      setAccountError(err.message || '계정 연동 해제에 실패했습니다.')
+    } finally {
+      setAccountSaving(false)
+    }
+  }
+
   return (
     <div className="fixed inset-0 z-[10020] flex items-center justify-center bg-black/40 px-4">
       <div className="w-full max-w-lg overflow-hidden rounded-lg bg-white shadow-2xl">
@@ -1555,7 +1806,7 @@ function MailAccountManageModal({ accounts, tenants = [], onClose, onAccountAdde
           <div>
             <h2 className="text-lg font-extrabold text-gray-900">메일 계정 관리</h2>
             <p className="mt-0.5 text-sm text-gray-400">
-              {view === 'gmail' ? 'Google 계정 인증을 진행합니다.' : view === 'naver' ? '네이버 메일 클라이언트 정보를 입력하세요.' : view === 'accountDetail' ? '메일 계정 설정 정보를 확인하세요.' : view === 'add' ? '추가할 메일 서비스를 선택하세요.' : view === 'manage' ? '관리할 계정을 선택하세요.' : '계정 추가 또는 관리 작업을 선택하세요.'}
+              {view === 'imap' ? '메일 클라이언트(IMAP/SMTP) 정보를 입력하세요.' : view === 'accountDetail' ? '메일 계정 설정 정보를 확인하세요.' : view === 'add' ? '추가할 메일 서비스를 선택하세요.' : view === 'manage' ? '관리할 계정을 선택하세요.' : '계정 추가 또는 관리 작업을 선택하세요.'}
             </p>
           </div>
           <button
@@ -1602,10 +1853,7 @@ function MailAccountManageModal({ accounts, tenants = [], onClose, onAccountAdde
                 <button
                   key={provider.key}
                   type="button"
-                  onClick={() => {
-                    if (provider.key === 'gmail') setView('gmail')
-                    if (provider.key === 'naver') setView('naver')
-                  }}
+                  onClick={() => openImapPreset(provider.key)}
                   className="flex items-center gap-3 rounded-lg border border-gray-200 px-4 py-3 text-left transition hover:border-indigo-200 hover:bg-indigo-50"
                 >
                   <ProviderLogo provider={provider.key} />
@@ -1618,13 +1866,13 @@ function MailAccountManageModal({ accounts, tenants = [], onClose, onAccountAdde
             </div>
           )}
 
-          {view === 'naver' && (
+          {view === 'imap' && (
             <form onSubmit={saveNaverAccount} className="grid gap-4">
-              <div className="flex items-center gap-3 rounded-lg border border-[#03C75A]/20 bg-[#03C75A]/5 px-4 py-3">
-                <ProviderLogo provider="naver" />
+              <div className="flex items-center gap-3 rounded-lg border border-indigo-200 bg-indigo-50 px-4 py-3">
+                <ProviderLogo provider={imapBrand} />
                 <div className="min-w-0">
-                  <h3 className="text-sm font-extrabold text-gray-900">네이버 메일 클라이언트 설정</h3>
-                  <p className="mt-0.5 text-xs text-gray-500">IMAP/SMTP 서버 값이 기본으로 입력되어 있습니다.</p>
+                  <h3 className="text-sm font-extrabold text-gray-900">{MAIL_PRESET_META[imapBrand]?.title || 'IMAP/SMTP 설정'}</h3>
+                  <p className="mt-0.5 text-xs text-gray-500">{MAIL_PRESET_META[imapBrand]?.help || 'IMAP/SMTP 서버 값을 입력하세요.'}</p>
                 </div>
               </div>
 
@@ -1635,7 +1883,7 @@ function MailAccountManageModal({ accounts, tenants = [], onClose, onAccountAdde
                     required
                     value={naverForm.email_address}
                     onChange={event => updateNaverField('email_address', event.target.value)}
-                    placeholder="name@naver.com"
+                    placeholder={MAIL_PRESET_META[imapBrand]?.emailPlaceholder || 'name@example.com'}
                   />
                 </Field>
                 <Field label="표시 이름">
@@ -1648,25 +1896,49 @@ function MailAccountManageModal({ accounts, tenants = [], onClose, onAccountAdde
               </div>
 
               <div className="grid gap-3 sm:grid-cols-2">
-                <Field label="사용자 이름">
-                  <MailInput
-                    required
-                    value={naverForm.username}
-                    onChange={event => updateNaverField('username', event.target.value)}
-                    placeholder="name@naver.com"
-                  />
-                </Field>
+                {(imapBrand === 'naver' || imapBrand === 'other') && (
+                  <Field label="사용자 이름">
+                    <MailInput
+                      required
+                      value={naverForm.username}
+                      onChange={event => updateNaverField('username', event.target.value)}
+                      placeholder={MAIL_PRESET_META[imapBrand]?.emailPlaceholder || 'name@example.com'}
+                    />
+                  </Field>
+                )}
                 <Field label="앱 비밀번호">
                   <MailInput
                     type="password"
                     required
                     value={naverForm.password}
                     onChange={event => updateNaverField('password', event.target.value)}
-                    placeholder="네이버 앱 비밀번호"
+                    placeholder="앱 비밀번호"
                   />
                 </Field>
               </div>
 
+              {MAIL_PRESET_META[imapBrand]?.appPwUrl && (
+                <a
+                  href={MAIL_PRESET_META[imapBrand].appPwUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="-mt-1 inline-flex w-fit text-xs font-bold text-indigo-600 hover:underline"
+                >
+                  {MAIL_PRESET_META[imapBrand].appPwLabel} →
+                </a>
+              )}
+
+              {hasPresetServers && (
+                <button
+                  type="button"
+                  onClick={() => setShowAdvanced(v => !v)}
+                  className="inline-flex w-fit text-xs font-bold text-gray-400 hover:text-gray-700"
+                >
+                  {showAdvanced ? '▾ 고급 설정(IMAP/SMTP 서버) 숨기기' : '▸ 고급 설정(IMAP/SMTP 서버)'}
+                </button>
+              )}
+
+              {(!hasPresetServers || showAdvanced) && (
               <div className="grid gap-3 rounded-lg border border-gray-200 bg-gray-50 p-3">
                 <div className="grid gap-3 sm:grid-cols-[1fr_90px_120px]">
                   <Field label="IMAP 서버">
@@ -1726,6 +1998,7 @@ function MailAccountManageModal({ accounts, tenants = [], onClose, onAccountAdde
                   </Field>
                 </div>
               </div>
+              )}
 
               {naverError && (
                 <p className="rounded-lg bg-red-50 px-3 py-2 text-sm font-bold text-red-600">
@@ -1737,7 +2010,7 @@ function MailAccountManageModal({ accounts, tenants = [], onClose, onAccountAdde
                 <button
                   type="submit"
                   disabled={naverSaving}
-                  className="rounded-lg bg-[#03C75A] px-5 py-2 text-sm font-extrabold text-white shadow-lg shadow-green-100 hover:bg-[#02b351] disabled:opacity-60"
+                  className="rounded-lg bg-indigo-600 px-5 py-2 text-sm font-extrabold text-white shadow-lg shadow-indigo-200 hover:bg-indigo-500 disabled:opacity-60"
                 >
                   {naverSaving ? '저장 중...' : '저장'}
                 </button>
@@ -1788,7 +2061,7 @@ function MailAccountManageModal({ accounts, tenants = [], onClose, onAccountAdde
                     onClick={() => openAccountDetail(account)}
                     className="flex items-center gap-3 rounded-lg border border-gray-200 px-4 py-3 text-left transition hover:border-indigo-200 hover:bg-indigo-50"
                   >
-                    <ProviderLogo provider={account.provider} />
+                    <ProviderLogo provider={account.provider} host={account.imap_host} />
                     <span className="min-w-0">
                       <span className="block truncate text-sm font-extrabold text-gray-900">{getAccountLabel(account)}</span>
                       <span className="mt-0.5 block truncate text-xs text-gray-500">{account.tenant_name || account.tenant_id}</span>
@@ -1807,16 +2080,14 @@ function MailAccountManageModal({ accounts, tenants = [], onClose, onAccountAdde
           {view === 'accountDetail' && selectedAccount && (
             <div className="grid gap-4">
               <div className="flex items-center justify-between gap-3 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3">
-                <ProviderLogo provider={selectedAccount.provider} />
+                <ProviderLogo provider={selectedAccount.provider} host={selectedAccount.imap_host} />
                 <div className="min-w-0 flex-1">
                   <span className="block truncate text-sm font-extrabold text-gray-900">
-                    {selectedAccount.provider === 'naver'
-                      ? accountEditMode ? '네이버 메일 계정 편집' : '네이버 메일 계정 관리'
-                      : '메일 계정 관리'}
+                    {accountEditMode ? '메일 계정 편집' : '메일 계정 관리'}
                   </span>
                   <span className="mt-0.5 block truncate text-xs text-gray-500">{selectedAccount.email_address}</span>
                 </div>
-                {selectedAccount.provider === 'naver' && !accountEditMode && (
+                {isImapAccount(selectedAccount) && !accountEditMode && (
                   <button
                     type="button"
                     onClick={() => {
@@ -1824,14 +2095,14 @@ function MailAccountManageModal({ accounts, tenants = [], onClose, onAccountAdde
                       setAccountEditMode(true)
                       setAccountError('')
                     }}
-                    className="rounded-lg bg-[#03C75A] px-3 py-1.5 text-xs font-extrabold text-white hover:bg-[#02b351]"
+                    className="rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-extrabold text-white hover:bg-indigo-500"
                   >
                     편집
                   </button>
                 )}
               </div>
 
-              {selectedAccount.provider === 'naver' && accountEditMode && accountEditForm ? (
+              {isImapAccount(selectedAccount) && accountEditMode && accountEditForm ? (
                 <form onSubmit={saveAccountEdit} className="grid gap-4">
                   <div className="grid gap-3 sm:grid-cols-2">
                     <Field label="이메일">
@@ -1857,8 +2128,8 @@ function MailAccountManageModal({ accounts, tenants = [], onClose, onAccountAdde
                     </Field>
                   </div>
 
-                  <div className="grid gap-3 rounded-lg border border-[#03C75A]/20 bg-[#03C75A]/5 p-3">
-                    <h3 className="text-sm font-extrabold text-gray-900">네이버 메일 클라이언트 설정</h3>
+                  <div className="grid gap-3 rounded-lg border border-gray-200 bg-gray-50 p-3">
+                    <h3 className="text-sm font-extrabold text-gray-900">IMAP/SMTP 설정</h3>
                     <div className="grid gap-3 sm:grid-cols-[1fr_90px_120px]">
                       <Field label="IMAP 서버">
                         <MailInput
@@ -1948,7 +2219,7 @@ function MailAccountManageModal({ accounts, tenants = [], onClose, onAccountAdde
                     <button
                       type="submit"
                       disabled={accountSaving}
-                      className="rounded-lg bg-[#03C75A] px-5 py-2 text-sm font-extrabold text-white shadow-lg shadow-green-100 hover:bg-[#02b351] disabled:opacity-60"
+                      className="rounded-lg bg-indigo-600 px-5 py-2 text-sm font-extrabold text-white shadow-lg shadow-indigo-200 hover:bg-indigo-500 disabled:opacity-60"
                     >
                       {accountSaving ? '저장 중...' : '저장'}
                     </button>
@@ -1962,9 +2233,9 @@ function MailAccountManageModal({ accounts, tenants = [], onClose, onAccountAdde
                     <DetailValue label="사용자 이름" value={selectedAccount.username || selectedAccount.email_address} />
                   </div>
 
-                  {selectedAccount.provider === 'naver' && (
-                    <div className="grid gap-3 rounded-lg border border-[#03C75A]/20 bg-[#03C75A]/5 p-3">
-                      <h3 className="text-sm font-extrabold text-gray-900">네이버 메일 클라이언트 설정</h3>
+                  {isImapAccount(selectedAccount) && (
+                    <div className="grid gap-3 rounded-lg border border-gray-200 bg-gray-50 p-3">
+                      <h3 className="text-sm font-extrabold text-gray-900">IMAP/SMTP 설정</h3>
                       <div className="grid gap-3 sm:grid-cols-3">
                         <DetailValue label="IMAP 서버" value={selectedAccount.imap_host} />
                         <DetailValue label="IMAP 포트" value={selectedAccount.imap_port} />
@@ -1979,9 +2250,23 @@ function MailAccountManageModal({ accounts, tenants = [], onClose, onAccountAdde
                 </>
               )}
 
-              {selectedAccount.provider !== 'naver' && (
+              {!isImapAccount(selectedAccount) && (
                 <div className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-6 text-center">
                   <p className="text-sm font-bold text-gray-700">이 계정의 상세 설정 화면은 준비 중입니다.</p>
+                </div>
+              )}
+
+              {!accountEditMode && (
+                <div className="flex items-center justify-between border-t border-gray-100 pt-4">
+                  <span className="text-xs text-gray-400">연동을 해제하면 이 계정의 동기화 데이터가 모두 삭제됩니다.</span>
+                  <button
+                    type="button"
+                    onClick={deleteAccount}
+                    disabled={accountSaving}
+                    className="rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm font-extrabold text-red-600 hover:bg-red-100 disabled:opacity-60"
+                  >
+                    {accountSaving ? '처리 중...' : '연동 해제(삭제)'}
+                  </button>
                 </div>
               )}
             </div>
@@ -1999,7 +2284,7 @@ function MailAccountManageModal({ accounts, tenants = [], onClose, onAccountAdde
                   setSelectedAccount(null)
                   setView('manage')
                 } else {
-                  setView(view === 'gmail' || view === 'naver' ? 'add' : 'main')
+                  setView(view === 'gmail' || view === 'imap' ? 'add' : 'main')
                 }
               }}
               className="text-sm font-bold text-gray-500 hover:text-gray-900"
@@ -2025,7 +2310,16 @@ export default function MailPage({ onBackToMain }) {
   const [accounts, setAccounts] = useState([])
   const [mailMetaLoading, setMailMetaLoading] = useState(false)
   const [mailMetaError, setMailMetaError] = useState('')
-  const [activeKey, setActiveKey] = useState('all')
+  const [activeKey, setActiveKey] = useState(`${UNIFIED_KEY_PREFIX}all`)
+  const [unifiedFolderColors, setUnifiedFolderColors] = useState(() => {
+    try {
+      if (typeof window === 'undefined') return {}
+      const rows = JSON.parse(window.localStorage.getItem(UNIFIED_FOLDER_COLOR_STORAGE_KEY) || '{}')
+      return rows && typeof rows === 'object' && !Array.isArray(rows) ? rows : {}
+    } catch {
+      return {}
+    }
+  })
   const [mailSearchQuery, setMailSearchQuery] = useState('')
   const [collapsedAccountIds, setCollapsedAccountIds] = useState(() => new Set())
   const [showAccountModal, setShowAccountModal] = useState(false)
@@ -2034,7 +2328,7 @@ export default function MailPage({ onBackToMain }) {
   const [messagesError, setMessagesError] = useState('')
   const [hasMoreMessages, setHasMoreMessages] = useState(false)
   const [loadingMore, setLoadingMore] = useState(false)
-  const [syncLoading, setSyncLoading] = useState(false)
+  const [refreshLoading, setRefreshLoading] = useState(false)
   const [composeMode, setComposeMode] = useState(false)
   const [composeDraft, setComposeDraft] = useState(null)
   const [selectedMessage, setSelectedMessage] = useState(null)
@@ -2042,6 +2336,7 @@ export default function MailPage({ onBackToMain }) {
   const [lastSelectedIndex, setLastSelectedIndex] = useState(null)
   const [messageMenu, setMessageMenu] = useState(null)
   const [folderMenu, setFolderMenu] = useState(null)
+  const [unifiedFolderMenu, setUnifiedFolderMenu] = useState(null)
   const [pendingEmptyTrash, setPendingEmptyTrash] = useState(null)
   const [messageDetailLoading, setMessageDetailLoading] = useState(false)
   const [messageDetailError, setMessageDetailError] = useState('')
@@ -2062,6 +2357,67 @@ export default function MailPage({ onBackToMain }) {
       return haystack.includes(query)
     })
   }, [mailSearchQuery, messages])
+
+  const currentTenantId = accounts.find(account => account.tenant_id)?.tenant_id
+    || tenants.find(item => item.type === 'personal')?.id
+    || tenants[0]?.id
+    || ''
+  const unifiedMenus = useMemo(() => {
+    const totalsByType = new Map()
+    const customByName = new Map()
+    const allTotals = { message_count: 0, unread_count: 0 }
+
+    for (const account of accounts) {
+      if (currentTenantId && account.tenant_id !== currentTenantId) continue
+      for (const folder of account.folders || []) {
+        const messageCount = Number(folder.message_count || 0)
+        const unreadCount = Number(folder.unread_count || 0)
+        allTotals.message_count += messageCount
+        allTotals.unread_count += unreadCount
+
+        const type = String(folder.type || '').trim()
+        if (type) {
+          const prev = totalsByType.get(type) || { message_count: 0, unread_count: 0 }
+          prev.message_count += messageCount
+          prev.unread_count += unreadCount
+          totalsByType.set(type, prev)
+        }
+
+        if (!isSystemMailFolder(folder)) {
+          const normalized = normalizeFolderName(folder.name)
+          if (!normalized) continue
+          const prev = customByName.get(normalized) || {
+            key: `name:${encodeURIComponent(normalized)}`,
+            label: getMailFolderLabel(folder),
+            icon: 'folder',
+            folderName: folder.name,
+            message_count: 0,
+            unread_count: 0,
+          }
+          prev.message_count += messageCount
+          prev.unread_count += unreadCount
+          customByName.set(normalized, prev)
+        }
+      }
+    }
+
+    const systemMenus = UNIFIED_SYSTEM_FOLDERS.map(item => {
+      const counts = item.key === 'all'
+        ? allTotals
+        : item.type
+          ? (totalsByType.get(item.type) || { message_count: 0, unread_count: 0 })
+          : { message_count: 0, unread_count: 0 }
+      return { ...item, ...counts }
+    })
+
+    return [
+      ...systemMenus,
+      ...Array.from(customByName.values()).sort((a, b) => a.label.localeCompare(b.label)),
+    ].map(item => ({
+      ...item,
+      color_key: unifiedFolderColors[`${currentTenantId}:${item.key}`] || '',
+    }))
+  }, [accounts, currentTenantId, unifiedFolderColors])
 
   // lg(≥1024px) 이상에서만 목록↔본문을 드래그로 리사이즈한다. 그 미만은 기존 세로 스택 유지.
   const [isDesktopSplit, setIsDesktopSplit] = useState(() =>
@@ -2174,11 +2530,18 @@ export default function MailPage({ onBackToMain }) {
 
   function resolveActiveFolder(sourceAccounts = accounts) {
     if (!activeKey.includes(':')) return null
+    if (activeKey.startsWith(UNIFIED_KEY_PREFIX)) return null
     const [accountId, folderKey] = activeKey.split(':')
     const account = sourceAccounts.find(item => item.id === accountId)
     const folder = (account?.folders || []).find(item => String(item.id || item.name) === folderKey)
     if (!account || !folder) return null
     return { account, folder }
+  }
+
+  function resolveActiveUnified(sourceMenus = unifiedMenus) {
+    if (!activeKey.startsWith(UNIFIED_KEY_PREFIX)) return null
+    const key = activeKey.slice(UNIFIED_KEY_PREFIX.length)
+    return sourceMenus.find(item => item.key === key) || null
   }
 
   function markMessageReadInState(message) {
@@ -2252,6 +2615,16 @@ export default function MailPage({ onBackToMain }) {
       x: Math.min(event.clientX, window.innerWidth - 190),
       y: Math.min(event.clientY, window.innerHeight - 360),
       account,
+      folder,
+    })
+  }
+
+  function openUnifiedFolderMenu(event, folder) {
+    event.preventDefault()
+    event.stopPropagation()
+    setUnifiedFolderMenu({
+      x: Math.min(event.clientX, window.innerWidth - 220),
+      y: Math.min(event.clientY, window.innerHeight - 420),
       folder,
     })
   }
@@ -2350,7 +2723,7 @@ export default function MailPage({ onBackToMain }) {
       )))
       const active = resolveActiveFolder()
       if (active?.folder?.id === folder.id) {
-        setActiveKey('inbox')
+        setActiveKey(`${UNIFIED_KEY_PREFIX}inbox`)
         setMessages([])
         clearMailSelection()
       }
@@ -2385,12 +2758,30 @@ export default function MailPage({ onBackToMain }) {
     }
   }
 
+  function setUnifiedFolderColor(menu, colorKey) {
+    const folder = menu?.folder
+    if (!folder?.key || !currentTenantId) return
+    const storageKey = `${currentTenantId}:${folder.key}`
+    setUnifiedFolderColors(prev => {
+      const next = { ...prev }
+      if (colorKey) next[storageKey] = colorKey
+      else delete next[storageKey]
+      try {
+        window.localStorage.setItem(UNIFIED_FOLDER_COLOR_STORAGE_KEY, JSON.stringify(next))
+      } catch {
+        // localStorage가 막힌 환경에서는 현재 화면 상태만 유지한다.
+      }
+      return next
+    })
+  }
+
   async function markMessageUnread(target) {
     const active = resolveActiveFolder()
     const targets = getActionMessages(target)
-    if (!active || targets.length === 0) return
+    const tenantId = targets[0]?.tenant_id || active?.account?.tenant_id || currentTenantId
+    if (!tenantId || targets.length === 0) return
     try {
-      const params = new URLSearchParams({ tenantId: active.account.tenant_id })
+      const params = new URLSearchParams({ tenantId })
       await apiFetch(`/mail/messages/bulk?${params.toString()}`, {
         method: 'PATCH',
         body: JSON.stringify({ action: 'mark_unread', messageIds: targets.map(item => item.id) }),
@@ -2415,9 +2806,10 @@ export default function MailPage({ onBackToMain }) {
   async function deleteMessage(target) {
     const active = resolveActiveFolder()
     const targets = getActionMessages(target)
-    if (!active || targets.length === 0) return
+    const tenantId = targets[0]?.tenant_id || active?.account?.tenant_id || currentTenantId
+    if (!tenantId || targets.length === 0) return
     try {
-      const params = new URLSearchParams({ tenantId: active.account.tenant_id })
+      const params = new URLSearchParams({ tenantId })
       const result = await apiFetch(`/mail/messages/bulk?${params.toString()}`, {
         method: 'PATCH',
         body: JSON.stringify({ action: 'delete', messageIds: targets.map(item => item.id) }),
@@ -2453,9 +2845,10 @@ export default function MailPage({ onBackToMain }) {
   async function moveMessage(target, folder) {
     const active = resolveActiveFolder()
     const targets = getActionMessages(target).filter(item => item.folder_id !== folder?.id)
-    if (!active || targets.length === 0 || !folder?.id) return
+    const tenantId = targets[0]?.tenant_id || active?.account?.tenant_id || currentTenantId
+    if (!tenantId || targets.length === 0 || !folder?.id) return
     try {
-      const params = new URLSearchParams({ tenantId: active.account.tenant_id })
+      const params = new URLSearchParams({ tenantId })
       await apiFetch(`/mail/messages/bulk?${params.toString()}`, {
         method: 'PATCH',
         body: JSON.stringify({ action: 'move', targetFolderId: folder.id, messageIds: targets.map(item => item.id) }),
@@ -2513,7 +2906,8 @@ export default function MailPage({ onBackToMain }) {
     setComposeMode(false)
     const { silent = false, resetSelection = true } = options
     const active = resolveActiveFolder(sourceAccounts)
-    if (!active) {
+    const unified = resolveActiveUnified()
+    if (!active && !unified) {
       setMessages([])
       setMessagesError('')
       setSelectedMessage(null)
@@ -2526,13 +2920,24 @@ export default function MailPage({ onBackToMain }) {
     if (!silent) setMessagesLoading(true)
     setMessagesError('')
     try {
-      const params = new URLSearchParams({
-        tenantId: active.account.tenant_id,
-        accountId: active.account.id,
-        folderId: active.folder.id,
-        limit: String(MAIL_PAGE_SIZE),
-        offset: '0',
-      })
+      const tenantId = currentTenantId || sourceAccounts[0]?.tenant_id
+      const params = active
+        ? new URLSearchParams({
+            tenantId: active.account.tenant_id,
+            accountId: active.account.id,
+            folderId: active.folder.id,
+            limit: String(MAIL_PAGE_SIZE),
+            offset: '0',
+          })
+        : new URLSearchParams({
+            tenantId,
+            scope: 'unified',
+            unifiedKey: unified.key,
+            folderType: unified.type || '',
+            folderName: unified.folderName || '',
+            limit: String(MAIL_PAGE_SIZE),
+            offset: '0',
+          })
       const rows = await apiFetch(`/mail/messages?${params.toString()}`)
       const list = Array.isArray(rows) ? rows : []
       setMessages(list)
@@ -2553,21 +2958,32 @@ export default function MailPage({ onBackToMain }) {
   // 무한 스크롤: 다음 페이지를 이어서 불러온다.
   async function loadMoreMessages() {
     const active = resolveActiveFolder()
-    if (!active || loadingMore || messagesLoading || !hasMoreMessages) return
+    const unified = resolveActiveUnified()
+    if ((!active && !unified) || loadingMore || messagesLoading || !hasMoreMessages) return
     setLoadingMore(true)
     try {
-      const params = new URLSearchParams({
-        tenantId: active.account.tenant_id,
-        accountId: active.account.id,
-        folderId: active.folder.id,
-        limit: String(MAIL_PAGE_SIZE),
-        offset: String(messages.length),
-      })
+      const params = active
+        ? new URLSearchParams({
+            tenantId: active.account.tenant_id,
+            accountId: active.account.id,
+            folderId: active.folder.id,
+            limit: String(MAIL_PAGE_SIZE),
+            offset: String(messages.length),
+          })
+        : new URLSearchParams({
+            tenantId: currentTenantId,
+            scope: 'unified',
+            unifiedKey: unified.key,
+            folderType: unified.type || '',
+            folderName: unified.folderName || '',
+            limit: String(MAIL_PAGE_SIZE),
+            offset: String(messages.length),
+          })
       const rows = await apiFetch(`/mail/messages?${params.toString()}`)
       const list = Array.isArray(rows) ? rows : []
       setMessages(prev => [...prev, ...list])
       setHasMoreMessages(list.length === MAIL_PAGE_SIZE)
-    } catch (err) {
+    } catch {
       // 추가 로드 실패는 다음 스크롤에서 재시도
     } finally {
       setLoadingMore(false)
@@ -2582,7 +2998,7 @@ export default function MailPage({ onBackToMain }) {
   }
 
   async function refreshMail() {
-    setSyncLoading(true)
+    setRefreshLoading(true)
     setMessagesError('')
     try {
       await apiFetch('/mail/sync-all', {
@@ -2594,13 +3010,14 @@ export default function MailPage({ onBackToMain }) {
     } catch (err) {
       setMessagesError(err.message || '메일 새로고침에 실패했습니다.')
     } finally {
-      setSyncLoading(false)
+      setRefreshLoading(false)
     }
   }
 
   async function selectMessage(message, index, event) {
     const active = resolveActiveFolder()
-    if (!active || !message?.id) return
+    const tenantId = message?.tenant_id || active?.account?.tenant_id || currentTenantId
+    if (!tenantId || !message?.id) return
     setComposeMode(false)
     if (event?.shiftKey && lastSelectedIndex != null) {
       const start = Math.min(lastSelectedIndex, index)
@@ -2613,7 +3030,7 @@ export default function MailPage({ onBackToMain }) {
     setMessageDetailLoading(true)
     setMessageDetailError('')
     try {
-      const params = new URLSearchParams({ tenantId: active.account.tenant_id })
+      const params = new URLSearchParams({ tenantId })
       const detail = await apiFetch(`/mail/messages/${message.id}?${params.toString()}`)
       if (detail?.read_status_changed) {
         markMessageReadInState(message)
@@ -2628,7 +3045,9 @@ export default function MailPage({ onBackToMain }) {
 
   async function openDraftForEditing(message, index, event) {
     const active = resolveActiveFolder()
-    if (!active || active.folder.type !== 'drafts' || !message?.id) return
+    const unified = resolveActiveUnified()
+    const isDraftContext = active?.folder?.type === 'drafts' || unified?.type === 'drafts'
+    if (!isDraftContext || !message?.id) return
     event?.stopPropagation?.()
     setSelectedMessageIds([message.id])
     setLastSelectedIndex(index)
@@ -2636,9 +3055,9 @@ export default function MailPage({ onBackToMain }) {
     setMessageDetailError('')
     setMessagesError('')
     try {
-      const params = new URLSearchParams({ tenantId: active.account.tenant_id })
+      const params = new URLSearchParams({ tenantId: message.tenant_id || active?.account?.tenant_id || currentTenantId })
       const detail = await apiFetch(`/mail/messages/${message.id}?${params.toString()}`)
-      setComposeDraft(getDraftComposeData(detail, active.account.id))
+      setComposeDraft(getDraftComposeData(detail, message.account_id || active?.account?.id))
       setSelectedMessage(null)
       setMessageMenu(null)
       setComposeMode(true)
@@ -2681,7 +3100,6 @@ export default function MailPage({ onBackToMain }) {
       const lastSyncedAt = folderSyncTimesRef.current.get(syncKey) || 0
       if (Date.now() - lastSyncedAt < FOLDER_SYNC_COOLDOWN_MS) return
       folderSyncTimesRef.current.set(syncKey, Date.now())
-      setSyncLoading(true)
       try {
         const params = new URLSearchParams({ tenantId: active.account.tenant_id })
         await apiFetch(`/mail/accounts/${active.account.id}/folders/${active.folder.id}/sync?${params.toString()}`, {
@@ -2702,8 +3120,6 @@ export default function MailPage({ onBackToMain }) {
         } else {
           console.warn('[Mail] 폴더 백그라운드 동기화 실패:', err.message)
         }
-      } finally {
-        if (!cancelled) setSyncLoading(false)
       }
     })()
     return () => { cancelled = true }
@@ -2747,6 +3163,24 @@ export default function MailPage({ onBackToMain }) {
   }, [folderMenu])
 
   useEffect(() => {
+    if (!unifiedFolderMenu) return undefined
+    function closeMenu() {
+      setUnifiedFolderMenu(null)
+    }
+    function closeOnEscape(event) {
+      if (event.key === 'Escape') closeMenu()
+    }
+    window.addEventListener('click', closeMenu)
+    window.addEventListener('contextmenu', closeMenu)
+    window.addEventListener('keydown', closeOnEscape)
+    return () => {
+      window.removeEventListener('click', closeMenu)
+      window.removeEventListener('contextmenu', closeMenu)
+      window.removeEventListener('keydown', closeOnEscape)
+    }
+  }, [unifiedFolderMenu])
+
+  useEffect(() => {
     function clearOnEscape(event) {
       if (event.key === 'Escape' && (selectedMessage || selectedMessageIds.length > 0)) {
         clearMailSelection()
@@ -2757,17 +3191,8 @@ export default function MailPage({ onBackToMain }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedMessage, selectedMessageIds.length])
 
-  const mainMenus = [
-    { key: 'all', label: '모든 편지함', icon: 'all' },
-    { key: 'inbox', label: '받은 편지함', icon: 'inbox' },
-    { key: 'starred', label: '별표됨', icon: 'star' },
-    { key: 'drafts', label: '임시 보관함', icon: 'draft' },
-    { key: 'search', label: '검색', icon: 'search' },
-    { key: 'sent', label: '보낸 메일', icon: 'sent' },
-    { key: 'trash', label: '휴지통', icon: 'trash' },
-  ]
-
-  const activeLabel = mainMenus.find(item => item.key === activeKey)?.label
+  const activeUnified = resolveActiveUnified()
+  const activeLabel = activeUnified?.label
     || accounts.flatMap(account => (account.folders || []).map(folder => ({
       key: `${account.id}:${folder.id || folder.name}`,
       label: `${getAccountLabel(account)} / ${getMailFolderLabel(folder)}`,
@@ -2775,7 +3200,7 @@ export default function MailPage({ onBackToMain }) {
     || '메일'
   const activeFolder = resolveActiveFolder()
   const activeAccountId = activeFolder?.account?.id || accounts[0]?.id || ''
-  const isActiveDraftFolder = activeFolder?.folder?.type === 'drafts'
+  const isActiveDraftFolder = activeFolder?.folder?.type === 'drafts' || activeUnified?.type === 'drafts'
   const contextMenuFolders = (accounts.find(account => account.id === messageMenu?.message?.account_id)?.folders || [])
   const selectedMessageIdSet = new Set(selectedMessageIds)
 
@@ -2896,22 +3321,29 @@ export default function MailPage({ onBackToMain }) {
             <button
               type="button"
               onClick={refreshMail}
-              disabled={syncLoading}
+              disabled={refreshLoading}
               className="mb-3 flex w-full items-center gap-2.5 rounded-lg border border-gray-300 bg-gray-100 px-4 py-2.5 text-left text-sm font-bold text-gray-600 transition-all hover:bg-white hover:text-gray-900 disabled:cursor-not-allowed disabled:opacity-60"
             >
               <MenuIcon type="refresh" />
-              <span>{syncLoading ? '동기화 중' : '새로 고침'}</span>
+              <span>{refreshLoading ? '동기화 중' : '새로 고침'}</span>
             </button>
             <div className="flex flex-col gap-1 mt-1">
-              {mainMenus.map(item => (
+              {unifiedMenus.map(item => {
+                const key = `${UNIFIED_KEY_PREFIX}${item.key}`
+                return (
                 <MailMenuButton
                   key={item.key}
-                  active={!composeMode && activeKey === item.key}
+                  active={!composeMode && activeKey === key}
                   icon={item.icon}
                   label={item.label}
-                  onClick={() => activateMailKey(item.key)}
+                  count={item.message_count}
+                  unreadCount={item.unread_count}
+                  iconColor={FOLDER_COLOR_MAP[item.color_key] || ''}
+                  onClick={() => activateMailKey(key)}
+                  onContextMenu={(event) => openUnifiedFolderMenu(event, item)}
                 />
-              ))}
+                )
+              })}
             </div>
           </div>
 
@@ -3066,6 +3498,12 @@ export default function MailPage({ onBackToMain }) {
         onDeleteFolder={deleteMailFolder}
         onSetFolderColor={setMailFolderColor}
         onEmptyTrash={setPendingEmptyTrash}
+      />
+      <UnifiedFolderContextMenu
+        menu={unifiedFolderMenu}
+        onClose={() => setUnifiedFolderMenu(null)}
+        onRefresh={refreshMail}
+        onSetFolderColor={setUnifiedFolderColor}
       />
       {pendingEmptyTrash && (
         <ConfirmDialog

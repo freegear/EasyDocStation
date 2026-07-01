@@ -2054,6 +2054,15 @@ function ContentRenderer({ text = '', sttPostId = '', sttChannelId = '', content
     stopSttPolling()
     const postKey = String(sttPostId || '')
     activeSttPostIdRef.current = postKey
+    const inferred = inferSttStateFromText(text)
+    if (inferred && (inferred.type === 'done' || inferred.type === 'failed')) {
+      updateSttUiState(postKey, {
+        status: inferred.status,
+        statusType: inferred.type,
+        errorReason: inferred.type === 'failed' ? sttErrorReason : '',
+      })
+      return
+    }
     const cached = postKey ? STT_UI_STATE_CACHE.get(postKey) : null
     if (cached) {
       sttJobIdRef.current = String(cached.jobId || '')
@@ -2065,7 +2074,6 @@ function ContentRenderer({ text = '', sttPostId = '', sttChannelId = '', content
       }
       return
     }
-    const inferred = inferSttStateFromText(text)
     if (inferred) {
       updateSttUiState(postKey, {
         status: inferred.status,

@@ -33,6 +33,10 @@ async function getUsersOutsideTeam(teamId, userIds) {
       SELECT 1 FROM team_admins ta
       WHERE ta.team_id = $1 AND ta.user_id = wanted.user_id
     )
+    AND NOT EXISTS (
+      SELECT 1 FROM users u
+      WHERE u.id = wanted.user_id AND u.role = 'site_admin'
+    )
   `, [teamId, ids])
 
   return result.rows.map(row => row.user_id)
@@ -290,6 +294,7 @@ router.get('/:id/admins', requireAuth, async (req, res, next) => {
         AND (
           EXISTS (SELECT 1 FROM team_members tm WHERE tm.team_id = c.team_id AND tm.user_id = u.id)
           OR EXISTS (SELECT 1 FROM team_admins ta WHERE ta.team_id = c.team_id AND ta.user_id = u.id)
+          OR u.role = 'site_admin'
         )
     `, [id])
     res.json(result.rows)
@@ -313,6 +318,7 @@ router.get('/:id/members', requireAuth, async (req, res, next) => {
         AND (
           EXISTS (SELECT 1 FROM team_members tm WHERE tm.team_id = c.team_id AND tm.user_id = u.id)
           OR EXISTS (SELECT 1 FROM team_admins ta WHERE ta.team_id = c.team_id AND ta.user_id = u.id)
+          OR u.role = 'site_admin'
         )
     `, [id])
     res.json(result.rows)

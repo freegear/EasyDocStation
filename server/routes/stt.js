@@ -22,6 +22,8 @@ const MAX_AUTORETRY = 2
 let tablesReadyPromise = null
 let workerTicking = false
 let sttActorUserId = ''
+const activeSttProcesses = new Map()
+const canceledSttJobs = new Set()
 
 const configPath = path.join(__dirname, '../../config.json')
 let config = {}
@@ -78,8 +80,107 @@ function mapErrorMessage(code, detail = '') {
     SUMMARY_FAILED: '요약 생성에 실패했습니다.',
     POST_UPDATE_FAILED: '게시글 반영 중 충돌이 발생했습니다.',
     ATTACHMENT_NOT_READY: '첨부파일 업로드가 완료되지 않았습니다.',
+    POST_DELETED: '게시글 삭제로 STT 작업이 취소되었습니다.',
   }
   return map[code] || detail || 'STT 처리 중 오류가 발생했습니다.'
+}
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+function signalProcessGroup(pid, signal) {
+  if (!pid) return false
+  try {
+    process.kill(-Number(pid), signal)
+    return true
+  } catch (_) {
+    try {
+      process.kill(Number(pid), signal)
+      return true
+    } catch (_) {
+      return false
+    }
+  }
+}
+
+async function terminateSttProcess(jobId, reason = 'canceled') {
+  const key = String(jobId || '')
+  const active = activeSttProcesses.get(key)
+  canceledSttJobs.add(key)
+  if (!active?.child?.pid) return false
+
+  sttLog('python worker terminate requested', {
+    jobId: key,
+    postId: active.postId,
+    pid: active.child.pid,
+    reason,
+  })
+  signalProcessGroup(active.child.pid, 'SIGTERM')
+  await sleep(1500)
+  if (activeSttProcesses.has(key)) {
+    signalProcessGroup(active.child.pid, 'SIGKILL')
+  }
+  return true
+}
+
+async function cancelSttJobsForPost(postId, options = {}) {
+  const targetPostId = String(postId || '')
+  if (!targetPostId) return { canceled: 0, terminated: 0 }
+
+  await ensureTables()
+  const jobs = await db.query(
+    `SELECT id, status, process_pid
+     FROM stt_jobs
+     WHERE post_id = $1
+       AND status IN ('queued', 'processing')`,
+    [targetPostId],
+  )
+
+  let terminated = 0
+  for (const job of jobs.rows || []) {
+    const jobId = String(job.id)
+    canceledSttJobs.add(jobId)
+    if (await terminateSttProcess(jobId, options.reason || 'post deleted')) {
+      terminated += 1
+    } else if (job.process_pid) {
+      sttLog('python worker terminate requested by db pid', {
+        jobId,
+        postId: targetPostId,
+        pid: job.process_pid,
+        reason: options.reason || 'post deleted',
+      })
+      if (signalProcessGroup(job.process_pid, 'SIGTERM')) {
+        terminated += 1
+        await sleep(1500)
+        signalProcessGroup(job.process_pid, 'SIGKILL')
+      }
+    }
+  }
+
+  const updated = await db.query(
+    `UPDATE stt_jobs
+     SET status = 'canceled',
+         progress = 0,
+         error_code = 'POST_DELETED',
+         error_message = $2,
+         process_pid = NULL,
+         completed_at = NOW(),
+         updated_at = NOW()
+     WHERE post_id = $1
+       AND status IN ('queued', 'processing')
+     RETURNING id`,
+    [targetPostId, mapErrorMessage('POST_DELETED')],
+  )
+
+  sttLog('post stt jobs canceled', {
+    postId: targetPostId,
+    canceled: updated.rowCount || 0,
+    terminated,
+    reason: options.reason || 'post deleted',
+  })
+
+  return { canceled: updated.rowCount || 0, terminated }
 }
 
 async function ensureTables() {
@@ -101,6 +202,7 @@ async function ensureTables() {
           error_message TEXT,
           retry_count INTEGER NOT NULL DEFAULT 0,
           patch_committed BOOLEAN NOT NULL DEFAULT false,
+          process_pid INTEGER,
           created_by INTEGER NOT NULL,
           created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
           updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -153,7 +255,20 @@ async function ensureTables() {
         )
       `)
       // Schema migrations: add new columns if not yet present
+      await db.query(`ALTER TABLE stt_speaker_mappings ADD COLUMN IF NOT EXISTS channel_id VARCHAR(50)`)
+      await db.query(`ALTER TABLE stt_speaker_mappings ADD COLUMN IF NOT EXISTS speaker_label TEXT`)
+      await db.query(`ALTER TABLE stt_speaker_mappings ADD COLUMN IF NOT EXISTS user_id INTEGER REFERENCES users(id) ON DELETE SET NULL`)
+      await db.query(`ALTER TABLE stt_speaker_mappings ADD COLUMN IF NOT EXISTS display_name TEXT`)
+      await db.query(`ALTER TABLE stt_speaker_mappings ADD COLUMN IF NOT EXISTS confidence NUMERIC(5,4) NOT NULL DEFAULT 0`)
+      await db.query(`ALTER TABLE stt_speaker_mappings ADD COLUMN IF NOT EXISTS created_by INTEGER`)
+      await db.query(`ALTER TABLE stt_speaker_mappings ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()`)
+      await db.query(`ALTER TABLE stt_speaker_mappings ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()`)
       await db.query(`ALTER TABLE stt_speaker_mappings ADD COLUMN IF NOT EXISTS voice_embedding_json TEXT`)
+      await db.query(`ALTER TABLE stt_jobs ADD COLUMN IF NOT EXISTS process_pid INTEGER`)
+      await db.query(`
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_stt_speaker_mappings_channel_label
+        ON stt_speaker_mappings(channel_id, speaker_label)
+      `)
       await db.query(`ALTER TABLE stt_summaries ADD COLUMN IF NOT EXISTS speaker_embeddings_json TEXT`)
       await db.query(`
         CREATE TABLE IF NOT EXISTS stt_job_speakers (
@@ -385,8 +500,10 @@ async function updateJob(id, patch = {}) {
   await db.query(`UPDATE stt_jobs SET ${sets.join(', ')} WHERE id = $${idx}`, values)
 }
 
-function runPythonStt(audioPath, options = {}, onProgress = null) {
+function runPythonStt(audioPath, options = {}, onProgress = null, context = {}) {
   return new Promise((resolve, reject) => {
+    const jobId = String(context.jobId || '')
+    const postId = String(context.postId || '')
     const payload = {
       audioPath,
       language: options.language || 'ko',
@@ -412,7 +529,20 @@ function runPythonStt(audioPath, options = {}, onProgress = null) {
     sttLog('python executable selected', { python: py })
     const child = spawn(py, [STT_SCRIPT, payloadPath], {
       stdio: ['ignore', 'pipe', 'pipe'],
+      detached: true,
     })
+    if (jobId) {
+      activeSttProcesses.set(jobId, {
+        child,
+        postId,
+        payloadPath,
+        startedAt: Date.now(),
+      })
+      sttLog('python worker registered', { jobId, postId, pid: child.pid })
+      db.query('UPDATE stt_jobs SET process_pid = $1, updated_at = NOW() WHERE id = $2', [child.pid, jobId]).catch((e) => {
+        sttError('python worker pid persist failed', { jobId, pid: child.pid, error: e?.message || e })
+      })
+    }
 
     let stdoutBuf = ''
     let stderrBuf = ''
@@ -429,6 +559,16 @@ function runPythonStt(audioPath, options = {}, onProgress = null) {
       }
       if (obj?.event === 'progress') {
         if (typeof onProgress === 'function') onProgress(obj)
+        return
+      }
+      if (obj?.event === 'log') {
+        sttLog('python worker log', {
+          stage: obj.stage,
+          message: obj.message,
+          error: obj.error,
+          timeoutSec: obj.timeout_sec,
+          logPath: obj.log_path,
+        })
         return
       }
       if (Object.prototype.hasOwnProperty.call(obj || {}, 'ok')) {
@@ -448,13 +588,27 @@ function runPythonStt(audioPath, options = {}, onProgress = null) {
 
     child.on('error', (err) => {
       try { fs.unlinkSync(payloadPath) } catch (_) {}
+      if (jobId) activeSttProcesses.delete(jobId)
+      if (jobId) {
+        db.query('UPDATE stt_jobs SET process_pid = NULL, updated_at = NOW() WHERE id = $1', [jobId]).catch(() => {})
+      }
       sttError('python worker spawn failed', { error: err.message })
       reject({ code: 'TRANSCRIPTION_FAILED', message: err.message || 'python worker spawn failed' })
     })
 
     child.on('close', (code, signal) => {
       try { fs.unlinkSync(payloadPath) } catch (_) {}
+      if (jobId) activeSttProcesses.delete(jobId)
+      if (jobId) {
+        db.query('UPDATE stt_jobs SET process_pid = NULL, updated_at = NOW() WHERE id = $1', [jobId]).catch(() => {})
+      }
       if (stdoutBuf.trim()) consumeLine(stdoutBuf.trim())
+
+      if (jobId && canceledSttJobs.has(jobId)) {
+        sttLog('python worker closed after cancellation', { jobId, postId, code, signal })
+        reject({ code: 'POST_DELETED', message: mapErrorMessage('POST_DELETED') })
+        return
+      }
 
       if (Number(code) !== 0) {
         const detail = String(stderrBuf || `python exit code ${code}, signal ${signal || 'none'}`).slice(0, 1000)
@@ -836,6 +990,33 @@ async function queueWorkerTick() {
       channelId: job.channel_id,
       retryCount: job.retry_count,
     })
+
+    const completedWhileQueued = await db.query(
+      `SELECT id, updated_at
+       FROM stt_jobs
+       WHERE post_id = $1
+         AND id <> $2
+         AND status = 'done'
+         AND updated_at >= $3
+       ORDER BY updated_at DESC
+       LIMIT 1`,
+      [job.post_id, job.id, job.created_at],
+    )
+    if (completedWhileQueued.rowCount > 0) {
+      await updateJob(job.id, {
+        status: 'canceled',
+        progress: 0,
+        error_code: 'STALE_SUPERSEDED',
+        error_message: '같은 게시글의 최신 STT 작업이 이미 완료되었습니다.',
+        completed_at: new Date(),
+      })
+      sttLog('queued job canceled as stale', {
+        jobId: job.id,
+        completedJobId: completedWhileQueued.rows[0].id,
+      })
+      return
+    }
+
     sttLog('feature flags', {
       USE_SPEAKER_REGISTRATION: flags.USE_SPEAKER_REGISTRATION,
       USE_VOICE_EMBEDDING: flags.USE_VOICE_EMBEDDING,
@@ -912,16 +1093,30 @@ async function queueWorkerTick() {
         })
         await updateJob(job.id, { progress: mappedProgress })
         await applyScopedPatch(job, { status: 'processing', progress: mappedProgress })
-      })
+      }, { jobId: job.id, postId: job.post_id })
     } catch (e) {
       const code = e?.code || 'TRANSCRIPTION_FAILED'
       const message = mapErrorMessage(code, e?.message)
+      if (code === 'POST_DELETED' || canceledSttJobs.has(String(job.id))) {
+        sttLog('state transition', { jobId: job.id, from: 'processing', to: 'canceled', code, message })
+        await updateJob(job.id, {
+          status: 'canceled',
+          progress: 0,
+          error_code: 'POST_DELETED',
+          error_message: message,
+          process_pid: null,
+          completed_at: new Date(),
+        })
+        canceledSttJobs.delete(String(job.id))
+        return
+      }
       sttError('state transition', { jobId: job.id, from: 'processing', to: 'failed', code, message })
       await updateJob(job.id, {
         status: 'failed',
         progress: 0,
         error_code: code,
         error_message: message,
+        process_pid: null,
         completed_at: new Date(),
       })
       await applyScopedPatch(job, { status: 'failed', error: message })
@@ -1002,6 +1197,7 @@ async function queueWorkerTick() {
         progress: 0,
         error_code: 'POST_UPDATE_FAILED',
         error_message: mapErrorMessage('POST_UPDATE_FAILED'),
+        process_pid: null,
         completed_at: new Date(),
       })
       return
@@ -1011,6 +1207,7 @@ async function queueWorkerTick() {
       status: 'done',
       progress: 100,
       patch_committed: true,
+      process_pid: null,
       completed_at: new Date(),
     })
     sttLog('state transition', { jobId: job.id, from: 'processing', to: 'done', progress: 100, patchCommitted: true })
@@ -1292,6 +1489,28 @@ router.post('/jobs', requireAuth, async (req, res, next) => {
       optionsHash,
     })
 
+    const activeForPost = await db.query(
+      `SELECT id, status, progress, attachment_id, created_at
+       FROM stt_jobs
+       WHERE post_id = $1
+         AND status IN ('queued', 'processing')
+       ORDER BY created_at ASC
+       LIMIT 1`,
+      [String(postId)],
+    )
+    if (activeForPost.rowCount > 0) {
+      const active = activeForPost.rows[0]
+      sttLog('job create joined active post job', {
+        existingJobId: active.id,
+        status: active.status,
+        progress: active.progress,
+        existingAttachmentId: active.attachment_id,
+        requestedAttachmentId: attachmentId,
+      })
+      if (String(active.status) === 'queued') queueWorkerTick().catch(() => {})
+      return res.json({ jobId: active.id, status: active.status, progress: active.progress, joinedActive: true })
+    }
+
     const exists = await db.query(
       `SELECT id, status FROM stt_jobs WHERE idempotency_key = $1 LIMIT 1`,
       [idempotencyKey],
@@ -1301,6 +1520,7 @@ router.post('/jobs', requireAuth, async (req, res, next) => {
       const existing = exists.rows[0]
       if (['queued', 'processing', 'done'].includes(String(existing.status))) {
         sttLog('job create deduplicated', { existingJobId: existing.id, status: existing.status, idempotencyKey })
+        if (String(existing.status) === 'queued') queueWorkerTick().catch(() => {})
         return res.json({ jobId: existing.id, status: existing.status, deduplicated: true })
       }
     }
@@ -1354,6 +1574,44 @@ router.get('/jobs/:id', requireAuth, async (req, res, next) => {
 
     const allowed = await canAccessChannel(db, req.user, String(job.channel_id || ''))
     if (!allowed) return res.status(403).json({ error: ACCESS_DENIED_MESSAGE })
+
+    if (String(job.status) === 'queued' && Number(job.progress || 0) === 0) {
+      const related = await db.query(
+        `SELECT *
+         FROM stt_jobs
+         WHERE post_id = $1
+           AND id <> $2
+           AND status IN ('processing', 'done')
+           AND created_at <= $3
+         ORDER BY
+           CASE status WHEN 'processing' THEN 0 WHEN 'done' THEN 1 ELSE 2 END,
+           updated_at DESC
+         LIMIT 1`,
+        [job.post_id, job.id, job.created_at],
+      )
+      if (related.rowCount > 0) {
+        const active = related.rows[0]
+        sttLog('job status shadowed by active post job', {
+          requestedJobId: job.id,
+          activeJobId: active.id,
+          activeStatus: active.status,
+          activeProgress: active.progress,
+        })
+        return res.json({
+          id: active.id,
+          postId: active.post_id,
+          attachmentId: active.attachment_id,
+          status: active.status,
+          progress: active.progress,
+          error: active.error_message ? { code: active.error_code, message: active.error_message } : null,
+          retryCount: active.retry_count,
+          createdAt: active.created_at,
+          updatedAt: active.updated_at,
+          completedAt: active.completed_at,
+          shadowedJobId: job.id,
+        })
+      }
+    }
 
     return res.json({
       id: job.id,
@@ -1417,3 +1675,5 @@ router.post('/jobs/:id/retry', requireAuth, async (req, res, next) => {
 })
 
 module.exports = router
+module.exports.cancelSttJobsForPost = cancelSttJobsForPost
+module.exports.terminateSttProcess = terminateSttProcess

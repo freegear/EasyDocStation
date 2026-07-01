@@ -55,14 +55,16 @@ router.get('/search', async (req, res) => {
   if (!q) return res.json([])
 
   try {
-    const params = [`${q}%`]
+    const term = String(q || '').trim()
+    const params = [`%${term}%`, `${term}%`]
     let teamFilter = ''
     if (teamId) {
       params.push(teamId)
       teamFilter = `
         AND (
-          EXISTS (SELECT 1 FROM team_members tm WHERE tm.team_id = $2 AND tm.user_id = users.id)
-          OR EXISTS (SELECT 1 FROM team_admins ta WHERE ta.team_id = $2 AND ta.user_id = users.id)
+          EXISTS (SELECT 1 FROM team_members tm WHERE tm.team_id = $3 AND tm.user_id = users.id)
+          OR EXISTS (SELECT 1 FROM team_admins ta WHERE ta.team_id = $3 AND ta.user_id = users.id)
+          OR users.role = 'site_admin'
         )`
     }
 
@@ -71,7 +73,14 @@ router.get('/search', async (req, res) => {
        WHERE (username ILIKE $1 OR name ILIKE $1 OR display_name ILIKE $1)
        AND is_active = true
        ${teamFilter}
-       ORDER BY username
+       ORDER BY
+         CASE
+           WHEN username ILIKE $2 THEN 0
+           WHEN name ILIKE $2 THEN 1
+           WHEN display_name ILIKE $2 THEN 2
+           ELSE 3
+         END,
+         username
        LIMIT 10`,
       params
     )

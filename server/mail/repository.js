@@ -1,7 +1,10 @@
+const fs = require('fs')
+const path = require('path')
 const { randomUUID } = require('crypto')
 const cm = require('./connectionManager')
 const { encryptSecret } = require('../lib/secrets')
 const { DEFAULT_SCOPES } = require('./gmailOAuth')
+const { getMailStorageBasePath } = require('./storage')
 
 // ---------------------------------------------------------------------------
 // mailRepository
@@ -451,7 +454,7 @@ async function upsertImapAccount({ tenantId, userId, fields }) {
   }
 }
 
-async function updateImapAccount({ tenantId, accountId, userId, isSiteAdmin, fields }) {
+async function updateImapAccount({ tenantId, accountId, userId, fields }) {
   const passwordSet = typeof fields.password === 'string' && fields.password.length > 0
   const params = [
     fields.emailAddress,
@@ -465,7 +468,6 @@ async function updateImapAccount({ tenantId, accountId, userId, isSiteAdmin, fie
     fields.smtpSecurity,
     tenantId,
     accountId,
-    !!isSiteAdmin,
     userId,
   ]
   let passwordSql = ''
@@ -494,7 +496,7 @@ async function updateImapAccount({ tenantId, accountId, userId, isSiteAdmin, fie
      WHERE tenant_id = $10
        AND id = $11
        AND provider IN ('naver', 'apple', 'imap', 'other')
-       AND ($12::boolean = true OR user_id = $13)
+       AND user_id = $12
      RETURNING id, tenant_id, user_id, provider, provider_account_id,
                email_address, display_name, username,
                imap_host, imap_port, imap_security,
@@ -558,9 +560,9 @@ async function listAccounts({ userId, isSiteAdmin, tenantId }) {
                 ${ACCOUNT_FOLDERS_SUBQUERY}
          FROM mail_accounts ma
          WHERE ma.tenant_id = $1
-           AND ($2::boolean = true OR ma.user_id = $3)
+           AND ma.user_id = $2
          ORDER BY ma.email_address ASC`,
-        [tenantId, isSiteAdmin, userId],
+        [tenantId, userId],
       )
       return rows.map(r => ({ ...r, tenant_name: routing.name }))
     }
@@ -603,7 +605,7 @@ async function listAccounts({ userId, isSiteAdmin, tenantId }) {
      LEFT JOIN mail_tenant_members mtm
        ON mtm.tenant_id = ma.tenant_id AND mtm.user_id = $1
      WHERE ($2::boolean = true OR mtm.user_id = $1)
-       AND ($2::boolean = true OR ma.user_id = $1)
+       AND ma.user_id = $1
        ${tenantFilter}
      ORDER BY mt.name ASC, ma.email_address ASC`,
     params,
@@ -670,7 +672,7 @@ async function withTenantTx(tenantId, fn) {
 }
 
 // 동기화에 필요한 계정 정보(암호화된 토큰 포함) + tenant storage_prefix를 반환한다.
-async function getAccountForSync({ tenantId, accountId, userId, isSiteAdmin }) {
+async function getAccountForSync({ tenantId, accountId, userId }) {
   const routing = await cm.getTenantRouting(tenantId)
   if (!routing) return null
 
@@ -681,13 +683,38 @@ async function getAccountForSync({ tenantId, accountId, userId, isSiteAdmin }) {
             smtp_host, smtp_port, smtp_security,
             access_token_encrypted, refresh_token_encrypted, token_expires_at, status
      FROM mail_accounts
-     WHERE id = $1 AND tenant_id = $2 AND ($3::boolean = true OR user_id = $4)
+     WHERE id = $1 AND tenant_id = $2 AND user_id = $3
      LIMIT 1`,
-    [accountId, tenantId, !!isSiteAdmin, userId],
+    [accountId, tenantId, userId],
   )
   const account = rows[0]
   if (!account) return null
   return { ...account, storage_prefix: routing.storage_prefix }
+}
+
+// 계정 연결 해제(삭제). 계정 소유자 user_id 스코프로 확인한 뒤
+// mail_accounts row를 지운다. FK ON DELETE CASCADE로 folders/messages/attachments/sync_state/usage가
+// 자동 삭제되며, 디스크의 메일 객체(raw/본문/첨부) 파일도 함께 제거한다.
+async function deleteAccount({ tenantId, accountId, userId }) {
+  const account = await getAccountForSync({ tenantId, accountId, userId })
+  if (!account) return null
+
+  await tenantQuery(
+    tenantId,
+    `DELETE FROM mail_accounts
+     WHERE id = $1 AND tenant_id = $2 AND user_id = $3`,
+    [accountId, tenantId, userId],
+  )
+
+  try {
+    const prefix = account.storage_prefix || `tenants/${tenantId}`
+    const dir = path.join(getMailStorageBasePath(), prefix, 'users', String(account.user_id), 'mail', String(accountId))
+    if (fs.existsSync(dir)) fs.rmSync(dir, { recursive: true, force: true })
+  } catch (err) {
+    console.warn('[Mail] 계정 삭제 - 저장소 파일 정리 실패:', err.message)
+  }
+
+  return { id: accountId, email_address: account.email_address }
 }
 
 async function updateAccountTokens({ tenantId, accountId, accessTokenEnc, expiresAt }) {
@@ -742,6 +769,18 @@ async function getExistingInternetMessageIds({ tenantId, accountId, ids }) {
     [accountId, cleanIds],
   )
   return new Set(rows.map(r => r.internet_message_id).filter(Boolean))
+}
+
+// IMAP 폴더에 이미 저장된 메시지 수(provider_message_id = imap:<folder>:<uid>).
+// 증분 동기화에서 "첫 동기화 여부"를 판단해 전체 스캔/윈도우 스캔을 고른다.
+async function countSyncedImapMessages({ tenantId, accountId, providerFolderId }) {
+  const { rows } = await tenantQuery(
+    tenantId,
+    `SELECT COUNT(*)::int AS n FROM mail_messages
+     WHERE account_id = $1 AND provider_message_id LIKE $2`,
+    [accountId, `imap:${providerFolderId}:%`],
+  )
+  return rows[0]?.n || 0
 }
 
 // 발견한 폴더 목록을 mail_folders에 일괄 upsert한다. (provider_folder_id 기준)
@@ -829,7 +868,7 @@ async function setFolderSyncStatus({ tenantId, accountId, folderId, syncStatus }
   )
 }
 
-async function updateFolderColor({ tenantId, accountId, folderId, colorKey, userId, isSiteAdmin }) {
+async function updateFolderColor({ tenantId, accountId, folderId, colorKey, userId }) {
   const { rows } = await tenantQuery(
     tenantId,
     `UPDATE mail_folders mf
@@ -837,23 +876,23 @@ async function updateFolderColor({ tenantId, accountId, folderId, colorKey, user
          updated_at = NOW()
      WHERE mf.id = $2
        AND mf.account_id = $3
-       AND ($4::boolean = true OR mf.user_id = $5)
+       AND mf.user_id = $4
      RETURNING id, account_id, provider_folder_id, name, type, parent_folder_id, color_key, is_local, sync_status`,
-    [String(colorKey || '').trim(), folderId, accountId, !!isSiteAdmin, userId],
+    [String(colorKey || '').trim(), folderId, accountId, userId],
   )
   return rows[0] || null
 }
 
-async function deleteFolder({ tenantId, accountId, folderId, userId, isSiteAdmin }) {
+async function deleteFolder({ tenantId, accountId, folderId, userId }) {
   const { rows } = await tenantQuery(
     tenantId,
     `DELETE FROM mail_folders mf
      WHERE mf.id = $1
        AND mf.account_id = $2
        AND mf.type = 'custom'
-       AND ($3::boolean = true OR mf.user_id = $4)
+       AND mf.user_id = $3
      RETURNING id`,
-    [folderId, accountId, !!isSiteAdmin, userId],
+    [folderId, accountId, userId],
   )
   return rows[0] || null
 }
@@ -870,7 +909,7 @@ async function getFolderMap({ tenantId, accountId }) {
   return map
 }
 
-async function listMessages({ tenantId, accountId, folderId, userId, isSiteAdmin, limit = 50, offset = 0 }) {
+async function listMessages({ tenantId, accountId, folderId, userId, limit = 50, offset = 0 }) {
   const safeLimit = Math.min(200, Math.max(1, Number(limit) || 50))
   const safeOffset = Math.max(0, Number(offset) || 0)
   const { rows } = await tenantQuery(
@@ -901,15 +940,77 @@ async function listMessages({ tenantId, accountId, folderId, userId, isSiteAdmin
      WHERE mm.tenant_id = $1
        AND mm.account_id = $2
        AND ($3::text = '' OR mm.folder_id = $3)
-       AND ($4::boolean = true OR mm.user_id = $5)
+       AND mm.user_id = $4
      ORDER BY COALESCE(mm.received_at, mm.sent_at, mm.created_at) DESC
      LIMIT ${safeLimit} OFFSET ${safeOffset}`,
-    [tenantId, accountId, folderId || '', !!isSiteAdmin, userId],
+    [tenantId, accountId, folderId || '', userId],
   )
   return rows
 }
 
-async function getMessage({ tenantId, messageId, userId, isSiteAdmin }) {
+async function listUnifiedMessages({ tenantId, userId, key, folderType, folderName, limit = 50, offset = 0 }) {
+  const safeLimit = Math.min(200, Math.max(1, Number(limit) || 50))
+  const safeOffset = Math.max(0, Number(offset) || 0)
+  const cleanKey = String(key || '').trim()
+  const cleanType = String(folderType || '').trim()
+  const cleanName = String(folderName || '').trim()
+  const params = [tenantId, userId]
+  const filters = [
+    'mm.tenant_id = $1',
+    'mm.user_id = $2',
+    'mm.deleted_at IS NULL',
+  ]
+
+  if (cleanKey === 'starred') {
+    filters.push('mm.is_starred = true')
+  } else if (cleanType) {
+    params.push(cleanType)
+    filters.push(`mf.type = $${params.length}`)
+  } else if (cleanName) {
+    params.push(cleanName.toLowerCase())
+    filters.push(`LOWER(TRIM(mf.name)) = $${params.length}`)
+  }
+
+  const { rows } = await tenantQuery(
+    tenantId,
+    `SELECT mm.id,
+            mm.tenant_id,
+            mm.user_id,
+            mm.account_id,
+            ma.provider,
+            ma.email_address AS account_email,
+            ma.display_name AS account_display_name,
+            mm.provider_message_id,
+            mm.folder_id,
+            mf.name AS folder_name,
+            mf.type AS folder_type,
+            mm.subject,
+            mm.from_email,
+            mm.from_name,
+            mm.to_json,
+            mm.cc_json,
+            mm.bcc_json,
+            mm.snippet,
+            mm.received_at,
+            mm.sent_at,
+            mm.is_read,
+            mm.is_starred,
+            mm.has_attachments,
+            mm.size_bytes,
+            mm.created_at,
+            mm.updated_at
+     FROM mail_messages mm
+     JOIN mail_accounts ma ON ma.id = mm.account_id
+     LEFT JOIN mail_folders mf ON mf.id = mm.folder_id
+     WHERE ${filters.join('\n       AND ')}
+     ORDER BY COALESCE(mm.received_at, mm.sent_at, mm.created_at) DESC
+     LIMIT ${safeLimit} OFFSET ${safeOffset}`,
+    params,
+  )
+  return rows
+}
+
+async function getMessage({ tenantId, messageId, userId }) {
   const { rows } = await tenantQuery(
     tenantId,
     `SELECT mm.id,
@@ -939,14 +1040,14 @@ async function getMessage({ tenantId, messageId, userId, isSiteAdmin }) {
      FROM mail_messages mm
      WHERE mm.tenant_id = $1
        AND mm.id = $2
-       AND ($3::boolean = true OR mm.user_id = $4)
+       AND mm.user_id = $3
      LIMIT 1`,
-    [tenantId, messageId, !!isSiteAdmin, userId],
+    [tenantId, messageId, userId],
   )
   return rows[0] || null
 }
 
-async function markMessageRead({ tenantId, messageId, userId, isSiteAdmin }) {
+async function markMessageRead({ tenantId, messageId, userId }) {
   const { rows } = await tenantQuery(
     tenantId,
     `UPDATE mail_messages
@@ -955,35 +1056,35 @@ async function markMessageRead({ tenantId, messageId, userId, isSiteAdmin }) {
      WHERE tenant_id = $1
        AND id = $2
        AND is_read = false
-       AND ($3::boolean = true OR user_id = $4)
+       AND user_id = $3
      RETURNING id`,
-    [tenantId, messageId, !!isSiteAdmin, userId],
+    [tenantId, messageId, userId],
   )
   return rows[0] || null
 }
 
-async function updateMessageReadState({ tenantId, messageId, userId, isSiteAdmin, isRead }) {
+async function updateMessageReadState({ tenantId, messageId, userId, isRead }) {
   const { rows } = await tenantQuery(
     tenantId,
     `UPDATE mail_messages
-     SET is_read = $5,
+     SET is_read = $4,
          updated_at = NOW()
      WHERE tenant_id = $1
        AND id = $2
-       AND ($3::boolean = true OR user_id = $4)
+       AND user_id = $3
      RETURNING id, account_id, folder_id, is_read`,
-    [tenantId, messageId, !!isSiteAdmin, userId, !!isRead],
+    [tenantId, messageId, userId, !!isRead],
   )
   return rows[0] || null
 }
 
-async function moveMessageToFolder({ tenantId, messageId, targetFolderId, userId, isSiteAdmin }) {
+async function moveMessageToFolder({ tenantId, messageId, targetFolderId, userId }) {
   const { rows } = await tenantQuery(
     tenantId,
     `WITH target AS (
        SELECT id, account_id
        FROM mail_folders
-       WHERE id = $3
+       WHERE id = $3 AND user_id = $4
        LIMIT 1
      )
      UPDATE mail_messages mm
@@ -993,14 +1094,14 @@ async function moveMessageToFolder({ tenantId, messageId, targetFolderId, userId
      WHERE mm.tenant_id = $1
        AND mm.id = $2
        AND mm.account_id = target.account_id
-       AND ($4::boolean = true OR mm.user_id = $5)
+       AND mm.user_id = $4
      RETURNING mm.id, mm.account_id, mm.folder_id, mm.is_read`,
-    [tenantId, messageId, targetFolderId, !!isSiteAdmin, userId],
+    [tenantId, messageId, targetFolderId, userId],
   )
   return rows[0] || null
 }
 
-async function deleteMessage({ tenantId, messageId, userId, isSiteAdmin }) {
+async function deleteMessage({ tenantId, messageId, userId }) {
   const { rows } = await tenantQuery(
     tenantId,
     `WITH msg AS (
@@ -1008,7 +1109,7 @@ async function deleteMessage({ tenantId, messageId, userId, isSiteAdmin }) {
        FROM mail_messages
        WHERE tenant_id = $1
          AND id = $2
-         AND ($3::boolean = true OR user_id = $4)
+         AND user_id = $3
        LIMIT 1
      ),
      trash AS (
@@ -1042,12 +1143,12 @@ async function deleteMessage({ tenantId, messageId, userId, isSiteAdmin }) {
                mm.is_read,
                (SELECT id FROM trash) AS trash_folder_id,
                mm.deleted_at IS NOT NULL AS soft_deleted`,
-    [tenantId, messageId, !!isSiteAdmin, userId],
+    [tenantId, messageId, userId],
   )
   return rows[0] || null
 }
 
-async function purgeTrashFolder({ tenantId, accountId, folderId, userId, isSiteAdmin }) {
+async function purgeTrashFolder({ tenantId, accountId, folderId, userId }) {
   return withTenantTx(tenantId, async (client) => {
     const { rows: folderRows } = await client.query(
       `SELECT id, account_id, name, type
@@ -1067,9 +1168,9 @@ async function purgeTrashFolder({ tenantId, accountId, folderId, userId, isSiteA
        WHERE mm.tenant_id = $1
          AND mm.account_id = $2
          AND mm.folder_id = $3
-         AND ($4::boolean = true OR mm.user_id = $5)
+         AND mm.user_id = $4
        RETURNING mm.id, mm.is_read`,
-      [tenantId, accountId, folderId, !!isSiteAdmin, userId],
+      [tenantId, accountId, folderId, userId],
     )
 
     return {
@@ -1279,16 +1380,16 @@ async function recomputeUsage({ tenantId, accountId, userId }) {
   )
 }
 
-async function getAccountById({ tenantId, accountId, userId, isSiteAdmin }) {
+async function getAccountById({ tenantId, accountId, userId }) {
   const { rows } = await tenantQuery(
     tenantId,
     `SELECT id, tenant_id, user_id, provider, email_address, display_name, status
      FROM mail_accounts
      WHERE tenant_id = $1
        AND id = $2
-       AND ($3::boolean = true OR user_id = $4)
+       AND user_id = $3
      LIMIT 1`,
-    [tenantId, accountId, !!isSiteAdmin, userId],
+    [tenantId, accountId, userId],
   )
   return rows[0] || null
 }
@@ -1363,10 +1464,12 @@ module.exports = {
   tenantQuery,
   withTenantTx,
   getAccountForSync,
+  deleteAccount,
   updateAccountTokens,
   setAccountSyncStatus,
   getExistingProviderMessageIds,
   getExistingInternetMessageIds,
+  countSyncedImapMessages,
   getFolderMap,
   upsertFolders,
   getFolderById,
@@ -1375,6 +1478,7 @@ module.exports = {
   updateFolderColor,
   deleteFolder,
   listMessages,
+  listUnifiedMessages,
   getMessage,
   markMessageRead,
   updateMessageReadState,
