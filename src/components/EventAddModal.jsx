@@ -75,6 +75,40 @@ function cloneRule(rule) {
   return JSON.parse(JSON.stringify(rule))
 }
 
+function extractOriginalMailLink(memo) {
+  const text = String(memo || '')
+  const match = text.match(/(?:^|\n)원본 메일 링크:\s*\n(https?:\/\/[^\s]+)/)
+  return match?.[1] || ''
+}
+
+function stripOriginalMailLinkBlock(memo) {
+  return String(memo || '')
+    .replace(/\n?\s*원본 메일 링크:\s*\nhttps?:\/\/[^\s]+/g, '')
+    .trimEnd()
+}
+
+function mergeMemoWithOriginalMailLink(displayMemo, originalMailLink) {
+  const text = String(displayMemo || '').trimEnd()
+  if (!originalMailLink) return text
+  const linkBlock = `원본 메일 링크:\n${originalMailLink}`
+  return text ? `${text}\n\n${linkBlock}` : linkBlock
+}
+
+function openOriginalMailLinkInApp(event, originalMailLink) {
+  if (typeof window === 'undefined' || !originalMailLink) return
+  let url
+  try {
+    url = new URL(originalMailLink, window.location.origin)
+  } catch {
+    return
+  }
+  if (url.origin !== window.location.origin || !url.searchParams.get('mailMessageId')) return
+  event.preventDefault()
+  window.dispatchEvent(new CustomEvent('easy-mail-open-link', {
+    detail: { href: url.toString() },
+  }))
+}
+
 function getReminderSelection(remindDt, allDay) {
   const options = allDay ? ALL_DAY_REMINDER_OPTIONS : TIMED_REMINDER_OPTIONS
   if (isDateTimeLike(remindDt)) return 'custom'
@@ -170,6 +204,8 @@ export default function EventAddModal({ onClose, onAdd, onSave, onDelete, event:
   const suggestBoxRef = useRef(null)
   const [memo, setMemo] = useState(editEvent?.memo ?? '')
   const [securityLevel, setSecurityLevel] = useState(editEvent?.securityLevel ?? Math.min(1, maxLevel))
+  const originalMailLink = extractOriginalMailLink(memo)
+  const displayMemo = originalMailLink ? stripOriginalMailLinkBlock(memo) : memo
 
   // 미리 알림 탭 상태
   const initialReminderDt = editEvent?.remindDt ?? null
@@ -384,7 +420,7 @@ export default function EventAddModal({ onClose, onAdd, onSave, onDelete, event:
           </div>
         </div>
       )}
-      <div className="bg-white rounded-2xl shadow-2xl w-[520px] max-h-[90vh] flex flex-col overflow-hidden">
+      <div className="bg-white rounded-2xl shadow-2xl w-[min(780px,calc(100vw-32px))] max-h-[90vh] flex flex-col overflow-hidden">
 
         {/* Header tabs */}
         <div className="flex border-b border-gray-200 px-5 pt-4 gap-0 items-center">
@@ -583,13 +619,22 @@ export default function EventAddModal({ onClose, onAdd, onSave, onDelete, event:
               <div>
                 <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 block">메모</label>
                 <textarea
-                  value={memo}
-                  onChange={canMutate ? e => setMemo(e.target.value) : undefined}
+                  value={displayMemo}
+                  onChange={canMutate ? e => setMemo(mergeMemoWithOriginalMailLink(e.target.value, originalMailLink)) : undefined}
                   rows={3}
                   placeholder="이벤트 메모를 입력하세요..."
                   readOnly={!canMutate}
                   className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 resize-none placeholder-gray-300"
                 />
+                {originalMailLink && (
+                  <a
+                    href={originalMailLink}
+                    onClick={e => openOriginalMailLinkInApp(e, originalMailLink)}
+                    className="mt-2 inline-flex text-sm font-semibold text-indigo-600 underline decoration-indigo-300 underline-offset-4 hover:text-indigo-700"
+                  >
+                    원본으로 이동
+                  </a>
+                )}
               </div>
 
               {/* 8. 보안 등급 */}

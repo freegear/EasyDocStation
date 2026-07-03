@@ -2,7 +2,7 @@ const DEFAULT_SCOPES = [
   'openid',
   'email',
   'profile',
-  'https://www.googleapis.com/auth/gmail.readonly',
+  'https://www.googleapis.com/auth/gmail.modify',
 ]
 
 const { getGoogleOAuthConfig } = require('./settings')
@@ -114,6 +114,44 @@ async function gmailListLabels(accessToken) {
   return fetchJson(`${GMAIL_API_BASE}/labels`, { headers: authHeader(accessToken) })
 }
 
+// 라벨 이름 변경(patch). 라벨 id는 불변, name만 바뀐다. 시스템 라벨은 서버가 거부한다.
+// 반환: { id, name, type, ... }
+async function gmailPatchLabel(accessToken, labelId, { name } = {}) {
+  const url = `${GMAIL_API_BASE}/labels/${encodeURIComponent(labelId)}`
+  return fetchJson(url, {
+    method: 'PATCH',
+    headers: { ...authHeader(accessToken), 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name }),
+  })
+}
+
+// 라벨 삭제. 라벨만 제거되고 메일은 삭제되지 않는다(전체보관함에 남음). 성공 시 204(빈 응답).
+// 시스템 라벨은 서버가 거부한다.
+async function gmailDeleteLabel(accessToken, labelId) {
+  const url = `${GMAIL_API_BASE}/labels/${encodeURIComponent(labelId)}`
+  return fetchJson(url, {
+    method: 'DELETE',
+    headers: authHeader(accessToken),
+  })
+}
+
+async function gmailModifyMessage(accessToken, id, { addLabelIds = [], removeLabelIds = [] } = {}) {
+  const url = `${GMAIL_API_BASE}/messages/${encodeURIComponent(id)}/modify`
+  return fetchJson(url, {
+    method: 'POST',
+    headers: { ...authHeader(accessToken), 'Content-Type': 'application/json' },
+    body: JSON.stringify({ addLabelIds, removeLabelIds }),
+  })
+}
+
+async function gmailTrashMessage(accessToken, id) {
+  const url = `${GMAIL_API_BASE}/messages/${encodeURIComponent(id)}/trash`
+  return fetchJson(url, {
+    method: 'POST',
+    headers: { ...authHeader(accessToken), 'Content-Type': 'application/json' },
+  })
+}
+
 async function getGoogleUserInfo(accessToken) {
   return fetchJson('https://www.googleapis.com/oauth2/v2/userinfo', {
     headers: { Authorization: `Bearer ${accessToken}` },
@@ -137,4 +175,8 @@ module.exports = {
   gmailGetMessage,
   gmailGetAttachment,
   gmailListLabels,
+  gmailPatchLabel,
+  gmailDeleteLabel,
+  gmailModifyMessage,
+  gmailTrashMessage,
 }

@@ -255,6 +255,15 @@ async function initDb() {
         ALTER TABLE calendar_events ADD COLUMN IF NOT EXISTS series_id VARCHAR(36);
         CREATE INDEX IF NOT EXISTS idx_calendar_events_series ON calendar_events(series_id);
       `)
+      await runMigrationStep(client, 'calendar_events add mail summary source columns', `
+        ALTER TABLE calendar_events ADD COLUMN IF NOT EXISTS source_type TEXT NOT NULL DEFAULT '';
+        ALTER TABLE calendar_events ADD COLUMN IF NOT EXISTS source_message_id TEXT NOT NULL DEFAULT '';
+        ALTER TABLE calendar_events ADD COLUMN IF NOT EXISTS source_summary_id TEXT NOT NULL DEFAULT '';
+        ALTER TABLE calendar_events ADD COLUMN IF NOT EXISTS source_action_index INTEGER;
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_calendar_events_mail_action_unique
+          ON calendar_events(owner_id, source_type, source_message_id, source_summary_id, source_action_index)
+          WHERE source_type = 'mail_summary_action_item';
+      `)
       // calendar_events.id: SERIAL → TEXT(UUID) 마이그레이션
       await runMigrationStep(client, 'calendar_events id type migration', `
         DO $$

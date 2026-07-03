@@ -4,6 +4,13 @@ const ToastContext = createContext(null)
 
 let _toastSeq = 0
 
+const TOAST_TONE_STYLES = {
+  default: 'bg-gray-900 border-white/10',
+  success: 'bg-blue-600 border-blue-400/30',
+  error: 'bg-red-600 border-red-400/30',
+  warning: 'bg-amber-500 border-amber-300/30',
+}
+
 export function ToastProvider({ children }) {
   const [toasts, setToasts] = useState([])
   const timersRef = useRef(new Map())
@@ -36,7 +43,7 @@ export function ToastProvider({ children }) {
         {toasts.map((t) => (
           <div
             key={t.id}
-            className="pointer-events-auto flex items-center gap-3 max-w-[92vw] rounded-2xl bg-gray-900 text-white shadow-2xl border border-white/10 pl-4 pr-2 py-2.5"
+            className={`pointer-events-auto flex items-center gap-3 max-w-[92vw] rounded-2xl text-white shadow-2xl border pl-4 pr-2 py-2.5 ${TOAST_TONE_STYLES[t.tone] || TOAST_TONE_STYLES.default}`}
           >
             <span className="text-sm leading-snug whitespace-pre-wrap break-words">{t.message}</span>
             {t.actionLabel && (

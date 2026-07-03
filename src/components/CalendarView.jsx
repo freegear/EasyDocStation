@@ -708,7 +708,7 @@ function YearView({ date, events = [], onMonthClick, onCellDoubleClick }) {
 
 // ─── Main CalendarView ────────────────────────────────────────
 
-export default function CalendarView({ onClose }) {
+export default function CalendarView({ onClose, focusEvent = null }) {
   const { currentUser } = useAuth()
   const [viewType, setViewType] = useState('month')
   const [currentDate, setCurrentDate] = useState(new Date())
@@ -721,6 +721,7 @@ export default function CalendarView({ onClose }) {
   const [errorDialog, setErrorDialog] = useState(null) // { title, message }
   // { id, mode: 'move' | 'resize-start' | 'resize-end' }
   const draggingRef = useRef(null)
+  const handledFocusEventRef = useRef('')
 
   function canEditEvent(ev) {
     if (!ev) return false
@@ -753,6 +754,27 @@ export default function CalendarView({ onClose }) {
       .catch(() => {})
       .finally(() => setLoading(false))
   }, [])
+
+  useEffect(() => {
+    const eventId = String(focusEvent?.eventId || '').trim()
+    if (!eventId || loading) return undefined
+    const signature = `${eventId}:${focusEvent?.openedAt || ''}`
+    if (handledFocusEventRef.current === signature) return undefined
+    const event = events.find(item => String(item.id) === eventId)
+    if (!event) return undefined
+    handledFocusEventRef.current = signature
+    const timer = window.setTimeout(() => {
+      const start = event.startDt || {}
+      if (Number.isInteger(start.year) && Number.isInteger(start.month) && Number.isInteger(start.day)) {
+        setCurrentDate(new Date(start.year, start.month - 1, start.day))
+      }
+      setViewType('day')
+      setEditingEvent(event)
+      setPresetDts(null)
+      setShowEventModal(true)
+    }, 0)
+    return () => window.clearTimeout(timer)
+  }, [focusEvent?.eventId, focusEvent?.openedAt, events, loading])
 
   // 캘린더 전용 인쇄 CSS 스코프 활성화
   useEffect(() => {

@@ -109,6 +109,20 @@ async function ensureMailControlSchema(client) {
     CREATE INDEX IF NOT EXISTS idx_mail_oauth_states_user ON mail_oauth_states(user_id);
     CREATE INDEX IF NOT EXISTS idx_mail_oauth_states_expires ON mail_oauth_states(expires_at);
   `)
+
+  // 발신 도메인별 파비콘 캐시(전역). tenant와 무관하게 도메인 단위로 1회만 받아 재사용한다.
+  //   status='ok'   : image/content_type 유효
+  //   status='failed': 받아오기 실패(재시도 폭주 방지용 음성 캐시)
+  await run(client, 'create mail domain favicons', `
+    CREATE TABLE IF NOT EXISTS mail_domain_favicons (
+      domain       TEXT PRIMARY KEY,
+      content_type TEXT,
+      image        BYTEA,
+      status       TEXT NOT NULL DEFAULT 'ok' CHECK (status IN ('ok', 'failed')),
+      fetched_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+  `)
 }
 
 // data plane: shared_db tenant는 메인 DB(standalone=false), dedicated_db 전용 DB는 standalone=true.
@@ -237,6 +251,67 @@ async function ensureMailDataSchema(client, { standalone = false } = {}) {
     CREATE INDEX IF NOT EXISTS idx_mail_attachments_message ON mail_attachments(message_id);
   `)
 
+  // 메일 요약 결과 캐시(메일 상세 재진입 시 즉시 표시). 원본 메일과 분리된 AI 메타데이터다.
+  await run(client, 'create mail message summaries', `
+    CREATE TABLE IF NOT EXISTS mail_message_summaries (
+      id                  TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      tenant_id           TEXT NOT NULL ${tenantFk},
+      user_id             INTEGER NOT NULL ${userFk},
+      account_id          TEXT NOT NULL REFERENCES mail_accounts(id) ON DELETE CASCADE,
+      message_id          TEXT NOT NULL REFERENCES mail_messages(id) ON DELETE CASCADE,
+      provider_message_id TEXT,
+      summary_json        JSONB NOT NULL,
+      raw_text            TEXT NOT NULL DEFAULT '',
+      model               TEXT NOT NULL DEFAULT '',
+      prompt_version      TEXT NOT NULL DEFAULT 'mail-summary-json-v1',
+      target_language     TEXT NOT NULL DEFAULT 'ko',
+      source_language     TEXT NOT NULL DEFAULT 'unknown',
+      translated          BOOLEAN NOT NULL DEFAULT false,
+      translated_text     TEXT NOT NULL DEFAULT '',
+      clean_body_text     TEXT NOT NULL DEFAULT '',
+      fact_list_json      JSONB NOT NULL DEFAULT '[]',
+      pipeline_version    TEXT NOT NULL DEFAULT 'mail-summary-pipeline-v2',
+      fallback_used       BOOLEAN NOT NULL DEFAULT false,
+      quality_flags       JSONB NOT NULL DEFAULT '[]',
+      summary_version     INTEGER NOT NULL DEFAULT 1,
+      generated_at        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      UNIQUE (tenant_id, user_id, message_id, target_language)
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_mail_message_summaries_message
+      ON mail_message_summaries(tenant_id, user_id, message_id);
+    CREATE INDEX IF NOT EXISTS idx_mail_message_summaries_account
+      ON mail_message_summaries(tenant_id, user_id, account_id);
+  `)
+
+  await run(client, 'mail message summary language columns', `
+    ALTER TABLE mail_message_summaries
+      ADD COLUMN IF NOT EXISTS target_language TEXT NOT NULL DEFAULT 'ko';
+    ALTER TABLE mail_message_summaries
+      ADD COLUMN IF NOT EXISTS source_language TEXT NOT NULL DEFAULT 'unknown';
+    ALTER TABLE mail_message_summaries
+      ADD COLUMN IF NOT EXISTS translated BOOLEAN NOT NULL DEFAULT false;
+    ALTER TABLE mail_message_summaries
+      ADD COLUMN IF NOT EXISTS translated_text TEXT NOT NULL DEFAULT '';
+    ALTER TABLE mail_message_summaries
+      ADD COLUMN IF NOT EXISTS clean_body_text TEXT NOT NULL DEFAULT '';
+    ALTER TABLE mail_message_summaries
+      ADD COLUMN IF NOT EXISTS fact_list_json JSONB NOT NULL DEFAULT '[]';
+    ALTER TABLE mail_message_summaries
+      ADD COLUMN IF NOT EXISTS pipeline_version TEXT NOT NULL DEFAULT 'mail-summary-pipeline-v2';
+    ALTER TABLE mail_message_summaries
+      ADD COLUMN IF NOT EXISTS fallback_used BOOLEAN NOT NULL DEFAULT false;
+    ALTER TABLE mail_message_summaries
+      ADD COLUMN IF NOT EXISTS quality_flags JSONB NOT NULL DEFAULT '[]';
+
+    ALTER TABLE mail_message_summaries
+      DROP CONSTRAINT IF EXISTS mail_message_summaries_tenant_id_user_id_message_id_key;
+
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_mail_message_summaries_lang_unique
+      ON mail_message_summaries(tenant_id, user_id, message_id, target_language);
+  `)
+
   await run(client, 'mail folder metadata columns', `
     ALTER TABLE mail_folders
       ADD COLUMN IF NOT EXISTS parent_folder_id TEXT REFERENCES mail_folders(id) ON DELETE CASCADE;
@@ -296,6 +371,87 @@ async function ensureMailDataSchema(client, { standalone = false } = {}) {
   `)
 
   const ownerFk = controlFk('REFERENCES users(id) ON DELETE CASCADE', standalone)
+  await run(client, 'create mailclaw tables', `
+    CREATE TABLE IF NOT EXISTS mailclaw_rules (
+      id                    TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      tenant_id             TEXT NOT NULL ${tenantFk},
+      owner_user_id          INTEGER NOT NULL ${ownerFk},
+      name                  TEXT NOT NULL,
+      enabled               BOOLEAN NOT NULL DEFAULT true,
+      sender_check_enabled  BOOLEAN NOT NULL DEFAULT false,
+      sender_conditions     JSONB NOT NULL DEFAULT '[]',
+      cc_check_enabled      BOOLEAN NOT NULL DEFAULT false,
+      cc_conditions         JSONB NOT NULL DEFAULT '[]',
+      keyword_check_enabled BOOLEAN NOT NULL DEFAULT false,
+      keyword_conditions    JSONB NOT NULL DEFAULT '[]',
+      ai_analysis_enabled   BOOLEAN NOT NULL DEFAULT false,
+      forward_enabled       BOOLEAN NOT NULL DEFAULT false,
+      forward_addresses     JSONB NOT NULL DEFAULT '[]',
+      move_folder_enabled   BOOLEAN NOT NULL DEFAULT false,
+      target_folder_id      TEXT,
+      created_at            TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at            TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+
+    CREATE TABLE IF NOT EXISTS mailclaw_execution_logs (
+      id            TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      tenant_id     TEXT NOT NULL ${tenantFk},
+      rule_id       TEXT NOT NULL REFERENCES mailclaw_rules(id) ON DELETE CASCADE,
+      message_id    TEXT NOT NULL REFERENCES mail_messages(id) ON DELETE CASCADE,
+      status        TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'completed', 'partial_failed', 'failed', 'skipped')),
+      matched       BOOLEAN NOT NULL DEFAULT false,
+      action_results JSONB NOT NULL DEFAULT '[]',
+      error_message TEXT,
+      created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      UNIQUE (rule_id, message_id)
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_mailclaw_rules_tenant_owner ON mailclaw_rules(tenant_id, owner_user_id);
+    CREATE INDEX IF NOT EXISTS idx_mailclaw_rules_enabled ON mailclaw_rules(tenant_id, enabled);
+    CREATE INDEX IF NOT EXISTS idx_mailclaw_logs_rule ON mailclaw_execution_logs(rule_id, created_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_mailclaw_logs_message ON mailclaw_execution_logs(message_id);
+  `)
+
+  // MailClaw 규칙에 "스마트 폴더 태그 부여" 액션(+각 계정 내 아카이브 옵션)을 추가한다. (MailService.md 13.6)
+  await run(client, 'mailclaw smart folder tag action columns', `
+    ALTER TABLE mailclaw_rules
+      ADD COLUMN IF NOT EXISTS tag_smart_folder_enabled BOOLEAN NOT NULL DEFAULT false;
+    ALTER TABLE mailclaw_rules
+      ADD COLUMN IF NOT EXISTS tag_smart_folder_id TEXT;
+    ALTER TABLE mailclaw_rules
+      ADD COLUMN IF NOT EXISTS tag_archive_enabled BOOLEAN NOT NULL DEFAULT false;
+  `)
+
+  // 통합 메일함 태그 기반 스마트 폴더 (MailService.md 13)
+  //  - mail_smart_folders  : (tenant, user) 스코프의 태그 정의. 특정 account/folder에 묶이지 않는다.
+  //  - mail_message_tags   : 메일 ↔ 스마트 폴더 다대다. 로컬 전용 메타데이터(동기화가 건드리지 않음).
+  await run(client, 'create mail smart folders', `
+    CREATE TABLE IF NOT EXISTS mail_smart_folders (
+      id         TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      tenant_id  TEXT NOT NULL ${tenantFk},
+      user_id    INTEGER NOT NULL ${userFk},
+      name       TEXT NOT NULL,
+      color_key  TEXT,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      UNIQUE (tenant_id, user_id, name)
+    );
+
+    CREATE TABLE IF NOT EXISTS mail_message_tags (
+      tenant_id       TEXT NOT NULL ${tenantFk},
+      user_id         INTEGER NOT NULL ${userFk},
+      smart_folder_id TEXT NOT NULL REFERENCES mail_smart_folders(id) ON DELETE CASCADE,
+      message_id      TEXT NOT NULL REFERENCES mail_messages(id) ON DELETE CASCADE,
+      created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      PRIMARY KEY (tenant_id, smart_folder_id, message_id)
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_mail_smart_folders_tenant_user ON mail_smart_folders(tenant_id, user_id);
+    CREATE INDEX IF NOT EXISTS idx_mail_message_tags_folder ON mail_message_tags(tenant_id, smart_folder_id);
+    CREATE INDEX IF NOT EXISTS idx_mail_message_tags_message ON mail_message_tags(tenant_id, message_id);
+  `)
+
   await run(client, 'create mail agentic tables', `
     CREATE TABLE IF NOT EXISTS mail_agentic_watch_targets (
       id                  TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,

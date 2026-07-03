@@ -58,6 +58,9 @@ function classifyMailbox(box) {
   if (su === '\\archive') return 'archive'
   if (path === 'inbox') return 'inbox'
   if (label.some(value => ['draft', 'drafts', '임시보관함', '임시 보관함'].includes(value))) return 'drafts'
+  // special-use(\Trash)를 안 주는 서버(iCloud 등)를 위해 이름으로도 휴지통을 판정한다.
+  // 후보는 providerMove.resolveMailboxPath의 휴지통 후보와 일관되게 유지한다. (MailService.md 15)
+  if (label.some(value => ['trash', 'deleted messages', 'deleted items', 'deleted', '휴지통', '지운 편지함'].includes(value))) return 'trash'
   return 'custom'
 }
 

@@ -4,7 +4,7 @@ const { randomUUID } = require('crypto')
 const cm = require('./connectionManager')
 const { encryptSecret } = require('../lib/secrets')
 const { DEFAULT_SCOPES } = require('./gmailOAuth')
-const { getMailStorageBasePath } = require('./storage')
+const { getMailStorage, getMailStorageBasePath } = require('./storage')
 
 // ---------------------------------------------------------------------------
 // mailRepository
@@ -532,6 +532,21 @@ const ACCOUNT_FOLDERS_SUBQUERY = `
         WHERE mm.folder_id = mf.id
           AND mm.deleted_at IS NULL
           AND mm.is_read = false
+      ), 0),
+      'starred_count', COALESCE((
+        SELECT COUNT(*)
+        FROM mail_messages mm
+        WHERE mm.folder_id = mf.id
+          AND mm.deleted_at IS NULL
+          AND mm.is_starred = true
+      ), 0),
+      'starred_unread_count', COALESCE((
+        SELECT COUNT(*)
+        FROM mail_messages mm
+        WHERE mm.folder_id = mf.id
+          AND mm.deleted_at IS NULL
+          AND mm.is_starred = true
+          AND mm.is_read = false
       ), 0)
     ) ORDER BY
       CASE
@@ -699,6 +714,8 @@ async function deleteAccount({ tenantId, accountId, userId }) {
   const account = await getAccountForSync({ tenantId, accountId, userId })
   if (!account) return null
 
+  await deleteMessageSummariesForAccount({ tenantId, accountId, userId }).catch(() => 0)
+
   await tenantQuery(
     tenantId,
     `DELETE FROM mail_accounts
@@ -820,6 +837,64 @@ async function getFolderById({ tenantId, accountId, folderId }) {
   return rows[0] || null
 }
 
+async function getFolderByIdForUser({ tenantId, folderId, userId }) {
+  const { rows } = await tenantQuery(
+    tenantId,
+    `SELECT id, account_id, provider_folder_id, name, type, parent_folder_id, color_key, is_local, sync_status
+     FROM mail_folders
+     WHERE id = $1 AND user_id = $2
+     LIMIT 1`,
+    [folderId, userId],
+  )
+  return rows[0] || null
+}
+
+async function getFolderByTypeForAccount({ tenantId, accountId, type }) {
+  const { rows } = await tenantQuery(
+    tenantId,
+    `SELECT id, account_id, provider_folder_id, name, type, parent_folder_id, color_key, is_local, sync_status
+     FROM mail_folders
+     WHERE account_id = $1 AND type = $2
+     ORDER BY CASE WHEN provider_folder_id = 'TRASH' THEN 0 ELSE 1 END, name ASC
+     LIMIT 1`,
+    [accountId, type],
+  )
+  return rows[0] || null
+}
+
+async function resolveFolderForAccount({ tenantId, accountId, folderId }) {
+  const direct = await getFolderById({ tenantId, accountId, folderId })
+  if (direct) return direct
+
+  const { rows } = await tenantQuery(
+    tenantId,
+    `WITH configured AS (
+       SELECT provider_folder_id, name, type, is_local
+       FROM mail_folders
+       WHERE id = $2
+       LIMIT 1
+     )
+     SELECT f.id, f.account_id, f.provider_folder_id, f.name, f.type, f.parent_folder_id, f.color_key, f.is_local, f.sync_status
+     FROM mail_folders f
+     CROSS JOIN configured c
+     WHERE f.account_id = $1
+       AND (
+         f.provider_folder_id = c.provider_folder_id
+         OR (c.type <> 'custom' AND f.type = c.type)
+         OR (c.is_local = true AND f.is_local = true AND f.name = c.name)
+       )
+     ORDER BY
+       CASE
+         WHEN f.provider_folder_id = c.provider_folder_id THEN 0
+         WHEN c.type <> 'custom' AND f.type = c.type THEN 1
+         ELSE 2
+       END
+     LIMIT 1`,
+    [accountId, folderId],
+  )
+  return rows[0] || null
+}
+
 // 앱에서 만드는 폴더는 기본적으로 로컬 전용(is_local=true)이다.
 // 서버(IMAP)에 실제 메일박스를 만들지 않으므로 동기화 대상이 아니며,
 // provider_folder_id는 충돌·동기화와 무관한 합성 키('local:<uuid>')를 쓴다.
@@ -883,18 +958,74 @@ async function updateFolderColor({ tenantId, accountId, folderId, colorKey, user
   return rows[0] || null
 }
 
-async function deleteFolder({ tenantId, accountId, folderId, userId }) {
+// 폴더 이름 변경 — 사용자 폴더(type='custom')만. IMAP처럼 프로바이더 경로가 곧
+// 식별자인 경우 providerFolderId도 함께 갱신한다(Gmail은 라벨 id 불변이라 생략).
+// tenant/account/user 스코프 필수(5원칙). (MailService.md 16.7)
+async function renameFolder({ tenantId, accountId, folderId, name, providerFolderId, userId }) {
+  const cleanName = String(name || '').trim()
   const { rows } = await tenantQuery(
     tenantId,
-    `DELETE FROM mail_folders mf
-     WHERE mf.id = $1
-       AND mf.account_id = $2
+    `UPDATE mail_folders mf
+     SET name = $1,
+         provider_folder_id = COALESCE(NULLIF($2, ''), mf.provider_folder_id),
+         updated_at = NOW()
+     WHERE mf.id = $3
+       AND mf.account_id = $4
+       AND mf.user_id = $5
        AND mf.type = 'custom'
-       AND mf.user_id = $3
-     RETURNING id`,
-    [folderId, accountId, userId],
+     RETURNING id, account_id, provider_folder_id, name, type, parent_folder_id, color_key, is_local, sync_status`,
+    [cleanName, String(providerFolderId || '').trim(), folderId, accountId, userId],
   )
   return rows[0] || null
+}
+
+// 같은 계정 내 형제 폴더 중 대소문자 무시 동일 이름이 있는지(자신 제외) 확인. (중복 가드)
+async function folderNameExists({ tenantId, accountId, name, excludeFolderId }) {
+  const { rows } = await tenantQuery(
+    tenantId,
+    `SELECT 1
+     FROM mail_folders mf
+     WHERE mf.account_id = $1
+       AND LOWER(TRIM(mf.name)) = LOWER(TRIM($2))
+       AND mf.id <> $3
+     LIMIT 1`,
+    [accountId, String(name || ''), String(excludeFolderId || '')],
+  )
+  return rows.length > 0
+}
+
+// 사용자 폴더(type='custom') 삭제. purgeMessages=true면 그 폴더의 메일 행도 함께 지운다.
+//   - Gmail(라벨 삭제, 비파괴): purgeMessages=false → 메일 보존(folder_id는 FK로 NULL, 다음 동기화에서 재배치).
+//   - IMAP(메일함 삭제, 파괴적): purgeMessages=true → 서버에서 이미 사라진 메일 행을 로컬에서도 삭제.
+// (MailService.md 16.11)
+async function deleteFolder({ tenantId, accountId, folderId, userId, purgeMessages = false }) {
+  return withTenantTx(tenantId, async (client) => {
+    const { rows: folderRows } = await client.query(
+      `SELECT id, name, type FROM mail_folders
+       WHERE id = $1 AND account_id = $2 AND type = 'custom' AND user_id = $3
+       LIMIT 1`,
+      [folderId, accountId, userId],
+    )
+    const folder = folderRows[0] || null
+    if (!folder) return null
+
+    let purgedCount = 0
+    if (purgeMessages) {
+      const { rows: msgRows } = await client.query(
+        `DELETE FROM mail_messages
+         WHERE tenant_id = $1 AND account_id = $2 AND folder_id = $3 AND user_id = $4
+         RETURNING id`,
+        [tenantId, accountId, folderId, userId],
+      )
+      purgedCount = msgRows.length
+    }
+
+    await client.query(
+      `DELETE FROM mail_folders WHERE id = $1 AND account_id = $2 AND type = 'custom' AND user_id = $3`,
+      [folderId, accountId, userId],
+    )
+    return { id: folder.id, name: folder.name, type: folder.type, purgedCount }
+  })
 }
 
 // account의 provider_folder_id → folder.id 매핑
@@ -908,6 +1039,17 @@ async function getFolderMap({ tenantId, accountId }) {
   for (const r of rows) map[r.provider_folder_id] = r.id
   return map
 }
+
+// 각 메일에 부여된 스마트 폴더(태그) 배열을 JSON으로 붙이는 SELECT 조각. 리스트 카드 칩용(MailService.md 18.3).
+// 세 목록 쿼리(listMessages/listUnifiedMessages/listSmartFolderMessages)가 공유한다. tenant/user 스코프 유지(5원칙).
+const MESSAGE_TAGS_AGG = `COALESCE((
+       SELECT json_agg(json_build_object('id', tsf.id, 'name', tsf.name, 'color_key', tsf.color_key) ORDER BY tsf.name ASC)
+       FROM mail_message_tags tmt
+       JOIN mail_smart_folders tsf ON tsf.id = tmt.smart_folder_id
+       WHERE tmt.message_id = mm.id
+         AND tmt.tenant_id  = mm.tenant_id
+         AND tsf.user_id    = mm.user_id
+     ), '[]'::json)`
 
 async function listMessages({ tenantId, accountId, folderId, userId, limit = 50, offset = 0 }) {
   const safeLimit = Math.min(200, Math.max(1, Number(limit) || 50))
@@ -934,7 +1076,8 @@ async function listMessages({ tenantId, accountId, folderId, userId, limit = 50,
             mm.has_attachments,
             mm.size_bytes,
             mm.created_at,
-            mm.updated_at
+            mm.updated_at,
+            ${MESSAGE_TAGS_AGG} AS tags
      FROM mail_messages mm
      JOIN mail_accounts ma ON ma.id = mm.account_id
      WHERE mm.tenant_id = $1
@@ -961,7 +1104,13 @@ async function listUnifiedMessages({ tenantId, userId, key, folderType, folderNa
     'mm.deleted_at IS NULL',
   ]
 
-  if (cleanKey === 'starred') {
+  if (cleanKey === 'all') {
+    filters.push(`NOT (
+      mf.type = 'trash'
+      OR UPPER(COALESCE(mf.provider_folder_id, '')) = 'TRASH'
+      OR LOWER(TRIM(COALESCE(mf.name, ''))) = '휴지통'
+    )`)
+  } else if (cleanKey === 'starred') {
     filters.push('mm.is_starred = true')
   } else if (cleanType) {
     params.push(cleanType)
@@ -998,7 +1147,8 @@ async function listUnifiedMessages({ tenantId, userId, key, folderType, folderNa
             mm.has_attachments,
             mm.size_bytes,
             mm.created_at,
-            mm.updated_at
+            mm.updated_at,
+            ${MESSAGE_TAGS_AGG} AS tags
      FROM mail_messages mm
      JOIN mail_accounts ma ON ma.id = mm.account_id
      LEFT JOIN mail_folders mf ON mf.id = mm.folder_id
@@ -1008,6 +1158,347 @@ async function listUnifiedMessages({ tenantId, userId, key, folderType, folderNa
     params,
   )
   return rows
+}
+
+// ===== data plane: 스마트 폴더(태그 기반 통합) — MailService.md 13 ===========
+
+// 스마트 폴더 목록 + 카운트. 카운트/열람은 휴지통·스팸·삭제 메일을 제외해 뷰와 일치시킨다(13.7).
+async function listSmartFolders({ tenantId, userId }) {
+  const { rows } = await tenantQuery(
+    tenantId,
+    `SELECT sf.id,
+            sf.tenant_id,
+            sf.name,
+            sf.color_key,
+            sf.created_at,
+            sf.updated_at,
+            COALESCE(cnt.message_count, 0) AS message_count,
+            COALESCE(cnt.unread_count, 0) AS unread_count
+     FROM mail_smart_folders sf
+     LEFT JOIN LATERAL (
+       SELECT COUNT(*) AS message_count,
+              COUNT(*) FILTER (WHERE mm.is_read = false) AS unread_count
+       FROM mail_message_tags mt
+       JOIN mail_messages mm ON mm.id = mt.message_id
+       LEFT JOIN mail_folders mf ON mf.id = mm.folder_id
+       WHERE mt.smart_folder_id = sf.id
+         AND mm.deleted_at IS NULL
+         AND COALESCE(mf.type, '') NOT IN ('trash', 'spam')
+     ) cnt ON true
+     WHERE sf.tenant_id = $1
+       AND sf.user_id = $2
+     ORDER BY sf.name ASC`,
+    [tenantId, userId],
+  )
+  return rows
+}
+
+async function createSmartFolder({ tenantId, userId, name, colorKey = null }) {
+  const cleanName = String(name || '').trim()
+  if (!cleanName) throw new Error('스마트 폴더 이름이 필요합니다.')
+  const { rows } = await tenantQuery(
+    tenantId,
+    `INSERT INTO mail_smart_folders (tenant_id, user_id, name, color_key)
+     VALUES ($1, $2, $3, $4)
+     ON CONFLICT (tenant_id, user_id, name) DO UPDATE
+       SET updated_at = NOW()
+     RETURNING id, tenant_id, name, color_key, created_at, updated_at`,
+    [tenantId, userId, cleanName, String(colorKey || '').trim() || null],
+  )
+  return rows[0] || null
+}
+
+async function updateSmartFolder({ tenantId, userId, id, name, colorKey }) {
+  const sets = []
+  const params = [tenantId, userId, id]
+  if (name !== undefined) {
+    const cleanName = String(name || '').trim()
+    if (!cleanName) throw new Error('스마트 폴더 이름이 필요합니다.')
+    params.push(cleanName)
+    sets.push(`name = $${params.length}`)
+  }
+  if (colorKey !== undefined) {
+    params.push(String(colorKey || '').trim() || null)
+    sets.push(`color_key = $${params.length}`)
+  }
+  if (sets.length === 0) return null
+  const { rows } = await tenantQuery(
+    tenantId,
+    `UPDATE mail_smart_folders
+     SET ${sets.join(', ')}, updated_at = NOW()
+     WHERE tenant_id = $1 AND user_id = $2 AND id = $3
+     RETURNING id, tenant_id, name, color_key, created_at, updated_at`,
+    params,
+  )
+  return rows[0] || null
+}
+
+async function deleteSmartFolder({ tenantId, userId, id }) {
+  const { rows } = await tenantQuery(
+    tenantId,
+    `DELETE FROM mail_smart_folders
+     WHERE tenant_id = $1 AND user_id = $2 AND id = $3
+     RETURNING id`,
+    [tenantId, userId, id],
+  )
+  return rows[0] || null
+}
+
+// 태그 부여(멱등). 대상 메일이 이 tenant/user 소유인지 확인 후, 소유 메일만 태그한다.
+async function tagMessagesToSmartFolder({ tenantId, userId, smartFolderId, messageIds }) {
+  const ids = [...new Set((messageIds || []).map(id => String(id || '').trim()).filter(Boolean))]
+  if (ids.length === 0) return { tagged: [] }
+  // 스마트 폴더 소유 확인
+  const folder = await tenantQuery(
+    tenantId,
+    `SELECT id FROM mail_smart_folders WHERE tenant_id = $1 AND user_id = $2 AND id = $3 LIMIT 1`,
+    [tenantId, userId, smartFolderId],
+  )
+  if (!folder.rows[0]) return { tagged: [] }
+  const { rows } = await tenantQuery(
+    tenantId,
+    `INSERT INTO mail_message_tags (tenant_id, user_id, smart_folder_id, message_id)
+     SELECT mm.tenant_id, mm.user_id, $3, mm.id
+     FROM mail_messages mm
+     WHERE mm.tenant_id = $1
+       AND mm.user_id = $2
+       AND mm.id = ANY($4::text[])
+     ON CONFLICT (tenant_id, smart_folder_id, message_id) DO NOTHING
+     RETURNING message_id`,
+    [tenantId, userId, smartFolderId, ids],
+  )
+  return { tagged: rows.map(r => r.message_id) }
+}
+
+async function untagMessagesFromSmartFolder({ tenantId, userId, smartFolderId, messageIds }) {
+  const ids = [...new Set((messageIds || []).map(id => String(id || '').trim()).filter(Boolean))]
+  if (ids.length === 0) return { untagged: [] }
+  const { rows } = await tenantQuery(
+    tenantId,
+    `DELETE FROM mail_message_tags mt
+     USING mail_smart_folders sf
+     WHERE mt.smart_folder_id = sf.id
+       AND sf.tenant_id = $1 AND sf.user_id = $2 AND sf.id = $3
+       AND mt.message_id = ANY($4::text[])
+     RETURNING mt.message_id`,
+    [tenantId, userId, smartFolderId, ids],
+  )
+  return { untagged: rows.map(r => r.message_id) }
+}
+
+// 스마트 폴더 열람: 태그된 메일을 여러 계정에 걸쳐 조회. 휴지통·스팸·삭제 제외(13.7).
+async function listSmartFolderMessages({ tenantId, userId, smartFolderId, limit = 50, offset = 0 }) {
+  const safeLimit = Math.min(200, Math.max(1, Number(limit) || 50))
+  const safeOffset = Math.max(0, Number(offset) || 0)
+  const { rows } = await tenantQuery(
+    tenantId,
+    `SELECT mm.id,
+            mm.tenant_id,
+            mm.user_id,
+            mm.account_id,
+            ma.provider,
+            ma.email_address AS account_email,
+            ma.display_name AS account_display_name,
+            mm.provider_message_id,
+            mm.folder_id,
+            mf.name AS folder_name,
+            mf.type AS folder_type,
+            mm.subject,
+            mm.from_email,
+            mm.from_name,
+            mm.to_json,
+            mm.cc_json,
+            mm.bcc_json,
+            mm.snippet,
+            mm.received_at,
+            mm.sent_at,
+            mm.is_read,
+            mm.is_starred,
+            mm.has_attachments,
+            mm.size_bytes,
+            mm.created_at,
+            mm.updated_at,
+            ${MESSAGE_TAGS_AGG} AS tags
+     FROM mail_message_tags mt
+     JOIN mail_smart_folders sf ON sf.id = mt.smart_folder_id
+     JOIN mail_messages mm ON mm.id = mt.message_id
+     JOIN mail_accounts ma ON ma.id = mm.account_id
+     LEFT JOIN mail_folders mf ON mf.id = mm.folder_id
+     WHERE sf.tenant_id = $1
+       AND sf.user_id = $2
+       AND sf.id = $3
+       AND mm.deleted_at IS NULL
+       AND COALESCE(mf.type, '') NOT IN ('trash', 'spam')
+     ORDER BY COALESCE(mm.received_at, mm.sent_at, mm.created_at) DESC
+     LIMIT ${safeLimit} OFFSET ${safeOffset}`,
+    [tenantId, userId, smartFolderId],
+  )
+  return rows
+}
+
+// 특정 메일이 속한 스마트 폴더(태그) 목록. 메일 상세 배지용.
+async function listSmartFoldersForMessage({ tenantId, userId, messageId }) {
+  const { rows } = await tenantQuery(
+    tenantId,
+    `SELECT sf.id, sf.name, sf.color_key
+     FROM mail_message_tags mt
+     JOIN mail_smart_folders sf ON sf.id = mt.smart_folder_id
+     WHERE sf.tenant_id = $1 AND sf.user_id = $2 AND mt.message_id = $3
+     ORDER BY sf.name ASC`,
+    [tenantId, userId, messageId],
+  )
+  return rows
+}
+
+// 시드 마이그레이션(1회, 멱등): 계정들의 커스텀 폴더 이름 → 동명 스마트 폴더 생성 + 그 폴더 메일 태그 일괄 부여.
+//   - 시스템 폴더(type in inbox/sent/drafts/trash/archive/spam)는 제외.
+//   - 이름은 normalize(소문자·공백 정규화)로 묶되, 표시명은 첫 등장 원본을 쓴다.
+async function seedSmartFoldersFromCustomFolders({ tenantId, userId }) {
+  return withTenantTx(tenantId, async (client) => {
+    // 1) 커스텀 폴더 이름 집합(대표 표시명 = 최소 name) 수집
+    const { rows: names } = await client.query(
+      `SELECT MIN(mf.name) AS display_name,
+              LOWER(TRIM(mf.name)) AS norm
+       FROM mail_folders mf
+       JOIN mail_accounts ma ON ma.id = mf.account_id
+       WHERE mf.tenant_id = $1
+         AND ma.user_id = $2
+         AND mf.type = 'custom'
+         AND TRIM(COALESCE(mf.name, '')) <> ''
+       GROUP BY LOWER(TRIM(mf.name))`,
+      [tenantId, userId],
+    )
+    let createdFolders = 0
+    let taggedMessages = 0
+    for (const row of names) {
+      const displayName = String(row.display_name || '').trim()
+      if (!displayName) continue
+      // 2) 동명 스마트 폴더 생성(멱등)
+      const { rows: sf } = await client.query(
+        `INSERT INTO mail_smart_folders (tenant_id, user_id, name)
+         VALUES ($1, $2, $3)
+         ON CONFLICT (tenant_id, user_id, name) DO UPDATE SET updated_at = NOW()
+         RETURNING id, (xmax = 0) AS inserted`,
+        [tenantId, userId, displayName],
+      )
+      const smartFolderId = sf[0].id
+      if (sf[0].inserted) createdFolders += 1
+      // 3) 같은 정규화 이름을 가진 커스텀 폴더의 메일을 태그(멱등)
+      const { rows: tagged } = await client.query(
+        `INSERT INTO mail_message_tags (tenant_id, user_id, smart_folder_id, message_id)
+         SELECT mm.tenant_id, mm.user_id, $3, mm.id
+         FROM mail_messages mm
+         JOIN mail_folders mf ON mf.id = mm.folder_id
+         WHERE mm.tenant_id = $1
+           AND mm.user_id = $2
+           AND mf.type = 'custom'
+           AND LOWER(TRIM(mf.name)) = $4
+           AND mm.deleted_at IS NULL
+         ON CONFLICT (tenant_id, smart_folder_id, message_id) DO NOTHING
+         RETURNING message_id`,
+        [tenantId, userId, smartFolderId, row.norm],
+      )
+      taggedMessages += tagged.length
+    }
+    return { createdFolders, taggedMessages, folderNames: names.length }
+  })
+}
+
+// 이중 휴지통 정리(1회, 멱등): iCloud처럼 실제 휴지통이 type='custom'으로 남은 잔재를
+// 정규 휴지통(type='trash')으로 병합한다. 정규 휴지통이 없으면 잔재를 승격한다.
+// 재동기화 전에 실행해야 provider_message_id 프리픽스(imap:<path>:<uid>) 변화로 인한 중복을 막는다.
+// (MailService.md 17)
+async function reconcileTrashFolders({ tenantId, userId }) {
+  return withTenantTx(tenantId, async (client) => {
+    // 1) 잔재 트래시 폴더 식별: 사용자 계정의 트래시-동치(provider_folder_id='TRASH' 또는 이름)이면서 type='custom'
+    const { rows: residuals } = await client.query(
+      `SELECT mf.id, mf.account_id, mf.provider_folder_id, mf.name
+       FROM mail_folders mf
+       JOIN mail_accounts ma ON ma.id = mf.account_id
+       WHERE mf.tenant_id = $1
+         AND ma.user_id = $2
+         AND mf.type = 'custom'
+         AND (
+           UPPER(COALESCE(mf.provider_folder_id, '')) = 'TRASH'
+           OR LOWER(TRIM(COALESCE(mf.name, ''))) IN ('휴지통', 'trash', 'deleted messages', 'deleted items', 'deleted', '지운 편지함')
+         )`,
+      [tenantId, userId],
+    )
+
+    let promoted = 0
+    let movedMessages = 0
+    let dedupedMessages = 0
+    let removedResiduals = 0
+
+    for (const res of residuals) {
+      // 2) 같은 계정의 정규 휴지통(또는 TRASH 키 보유 폴더) 확보 — 잔재 자신은 제외, type='trash' 우선
+      const { rows: canonRows } = await client.query(
+        `SELECT id FROM mail_folders
+         WHERE account_id = $1
+           AND id <> $2
+           AND (type = 'trash' OR UPPER(COALESCE(provider_folder_id, '')) = 'TRASH')
+         ORDER BY (type = 'trash') DESC
+         LIMIT 1`,
+        [res.account_id, res.id],
+      )
+      const canonId = canonRows[0]?.id || null
+
+      if (!canonId) {
+        // 정규 없음 → 잔재를 승격. 메일 provider_message_id 프리픽스를 TRASH로 재작성.
+        await client.query(
+          `UPDATE mail_messages
+           SET provider_message_id = 'imap:TRASH:' || substring(provider_message_id from '[^:]+$'),
+               updated_at = NOW()
+           WHERE account_id = $1 AND folder_id = $2 AND provider_message_id LIKE 'imap:%'`,
+          [res.account_id, res.id],
+        )
+        await client.query(
+          `UPDATE mail_folders
+           SET type = 'trash', provider_folder_id = 'TRASH', name = '휴지통', updated_at = NOW()
+           WHERE id = $1`,
+          [res.id],
+        )
+        promoted += 1
+        continue
+      }
+
+      // 3a) 충돌 사전 정리: 재작성했을 때 정규 폴더에 이미 같은 uid가 있으면 잔재 메일을 삭제
+      //     (UNIQUE(account_id, provider_message_id) 위반 방지)
+      const dup = await client.query(
+        `DELETE FROM mail_messages resm
+         WHERE resm.account_id = $1 AND resm.folder_id = $2 AND resm.provider_message_id LIKE 'imap:%'
+           AND EXISTS (
+             SELECT 1 FROM mail_messages canm
+             WHERE canm.account_id = $1 AND canm.folder_id = $3
+               AND canm.provider_message_id = 'imap:TRASH:' || substring(resm.provider_message_id from '[^:]+$')
+           )
+         RETURNING resm.id`,
+        [res.account_id, res.id, canonId],
+      )
+      dedupedMessages += dup.rows.length
+
+      // 3b) 나머지 메일을 정규 폴더로 이동 + provider_message_id 재작성
+      const mv = await client.query(
+        `UPDATE mail_messages
+         SET folder_id = $3,
+             provider_message_id = CASE
+               WHEN provider_message_id LIKE 'imap:%'
+               THEN 'imap:TRASH:' || substring(provider_message_id from '[^:]+$')
+               ELSE provider_message_id END,
+             updated_at = NOW()
+         WHERE account_id = $1 AND folder_id = $2
+         RETURNING id`,
+        [res.account_id, res.id, canonId],
+      )
+      movedMessages += mv.rows.length
+
+      // 4) 빈 잔재 폴더 삭제
+      await client.query(`DELETE FROM mail_folders WHERE id = $1`, [res.id])
+      removedResiduals += 1
+    }
+
+    return { residuals: residuals.length, promoted, movedMessages, dedupedMessages, removedResiduals }
+  })
 }
 
 async function getMessage({ tenantId, messageId, userId }) {
@@ -1047,6 +1538,219 @@ async function getMessage({ tenantId, messageId, userId }) {
   return rows[0] || null
 }
 
+async function getMessageSummary({ tenantId, userId, messageId, targetLanguage = 'ko' }) {
+  const { rows } = await tenantQuery(
+    tenantId,
+    `SELECT id,
+            tenant_id,
+            user_id,
+            account_id,
+            message_id,
+            provider_message_id,
+            summary_json,
+            raw_text,
+            model,
+            prompt_version,
+            target_language,
+            source_language,
+            translated,
+            translated_text,
+            clean_body_text,
+            fact_list_json,
+            pipeline_version,
+            fallback_used,
+            quality_flags,
+            summary_version,
+            generated_at,
+            updated_at
+     FROM mail_message_summaries
+     WHERE tenant_id = $1
+       AND user_id = $2
+       AND message_id = $3
+       AND target_language = $4
+     LIMIT 1`,
+    [tenantId, userId, messageId, String(targetLanguage || 'ko')],
+  )
+  return rows[0] || null
+}
+
+async function upsertMessageSummary({
+  tenantId,
+  userId,
+  accountId,
+  messageId,
+  providerMessageId = null,
+  summary,
+  rawText = '',
+  model = '',
+  promptVersion = 'mail-summary-json-v1',
+  targetLanguage = 'ko',
+  sourceLanguage = 'unknown',
+  translated = false,
+  translatedText = '',
+  cleanBodyText = '',
+  factList = [],
+  pipelineVersion = 'mail-summary-pipeline-v2',
+  fallbackUsed = false,
+  qualityFlags = [],
+}) {
+  const { rows } = await tenantQuery(
+    tenantId,
+    `INSERT INTO mail_message_summaries (
+       id, tenant_id, user_id, account_id, message_id, provider_message_id,
+       summary_json, raw_text, model, prompt_version,
+       target_language, source_language, translated, translated_text,
+       clean_body_text, fact_list_json, pipeline_version, fallback_used, quality_flags,
+       summary_version,
+       generated_at, updated_at
+     )
+     VALUES (
+       $1, $2, $3, $4, $5, $6,
+       $7::jsonb, $8, $9, $10,
+       $11, $12, $13, $14,
+       $15, $16::jsonb, $17, $18, $19::jsonb,
+       1,
+       NOW(), NOW()
+     )
+     ON CONFLICT (tenant_id, user_id, message_id, target_language) DO UPDATE
+       SET account_id = EXCLUDED.account_id,
+           provider_message_id = EXCLUDED.provider_message_id,
+           summary_json = EXCLUDED.summary_json,
+           raw_text = EXCLUDED.raw_text,
+           model = EXCLUDED.model,
+           prompt_version = EXCLUDED.prompt_version,
+           source_language = EXCLUDED.source_language,
+           translated = EXCLUDED.translated,
+           translated_text = EXCLUDED.translated_text,
+           clean_body_text = EXCLUDED.clean_body_text,
+           fact_list_json = EXCLUDED.fact_list_json,
+           pipeline_version = EXCLUDED.pipeline_version,
+           fallback_used = EXCLUDED.fallback_used,
+           quality_flags = EXCLUDED.quality_flags,
+           summary_version = mail_message_summaries.summary_version + 1,
+           updated_at = NOW()
+     RETURNING id,
+               tenant_id,
+               user_id,
+               account_id,
+               message_id,
+               provider_message_id,
+               summary_json,
+               raw_text,
+               model,
+               prompt_version,
+               target_language,
+               source_language,
+               translated,
+               translated_text,
+               clean_body_text,
+               fact_list_json,
+               pipeline_version,
+               fallback_used,
+               quality_flags,
+               summary_version,
+               generated_at,
+               updated_at`,
+    [
+      randomUUID(),
+      tenantId,
+      userId,
+      accountId,
+      messageId,
+      providerMessageId || null,
+      JSON.stringify(summary || {}),
+      String(rawText || ''),
+      String(model || ''),
+      String(promptVersion || 'mail-summary-json-v1'),
+      String(targetLanguage || 'ko'),
+      String(sourceLanguage || 'unknown'),
+      !!translated,
+      String(translatedText || ''),
+      String(cleanBodyText || ''),
+      JSON.stringify(Array.isArray(factList) ? factList : []),
+      String(pipelineVersion || 'mail-summary-pipeline-v2'),
+      !!fallbackUsed,
+      JSON.stringify(Array.isArray(qualityFlags) ? qualityFlags : []),
+    ],
+  )
+  return rows[0] || null
+}
+
+async function updateMessageSummaryJson({
+  tenantId,
+  userId,
+  messageId,
+  targetLanguage = 'ko',
+  summary,
+}) {
+  const { rows } = await tenantQuery(
+    tenantId,
+    `UPDATE mail_message_summaries
+     SET summary_json = $5::jsonb,
+         summary_version = summary_version + 1,
+         updated_at = NOW()
+     WHERE tenant_id = $1
+       AND user_id = $2
+       AND message_id = $3
+       AND target_language = $4
+     RETURNING id,
+               tenant_id,
+               user_id,
+               account_id,
+               message_id,
+               provider_message_id,
+               summary_json,
+               raw_text,
+               model,
+               prompt_version,
+               target_language,
+               source_language,
+               translated,
+               translated_text,
+               clean_body_text,
+               fact_list_json,
+               pipeline_version,
+               fallback_used,
+               quality_flags,
+               summary_version,
+               generated_at,
+               updated_at`,
+    [
+      tenantId,
+      userId,
+      messageId,
+      String(targetLanguage || 'ko'),
+      JSON.stringify(summary || {}),
+    ],
+  )
+  return rows[0] || null
+}
+
+async function deleteMessageSummary({ tenantId, userId, messageId }) {
+  const { rows } = await tenantQuery(
+    tenantId,
+    `DELETE FROM mail_message_summaries
+     WHERE tenant_id = $1
+       AND user_id = $2
+       AND message_id = $3
+     RETURNING id`,
+    [tenantId, userId, messageId],
+  )
+  return rows[0] || null
+}
+
+async function deleteMessageSummariesForAccount({ tenantId, userId, accountId }) {
+  const { rowCount } = await tenantQuery(
+    tenantId,
+    `DELETE FROM mail_message_summaries
+     WHERE tenant_id = $1
+       AND user_id = $2
+       AND account_id = $3`,
+    [tenantId, userId, accountId],
+  )
+  return rowCount
+}
+
 async function markMessageRead({ tenantId, messageId, userId }) {
   const { rows } = await tenantQuery(
     tenantId,
@@ -1078,7 +1782,25 @@ async function updateMessageReadState({ tenantId, messageId, userId, isRead }) {
   return rows[0] || null
 }
 
-async function moveMessageToFolder({ tenantId, messageId, targetFolderId, userId }) {
+// 중요(별표) 토글 — is_starred 일괄 설정. (MailService.md 14.5)
+async function setMessagesStarred({ tenantId, userId, messageIds, starred }) {
+  const ids = [...new Set((messageIds || []).map(id => String(id || '').trim()).filter(Boolean))]
+  if (ids.length === 0) return []
+  const { rows } = await tenantQuery(
+    tenantId,
+    `UPDATE mail_messages
+     SET is_starred = $3,
+         updated_at = NOW()
+     WHERE tenant_id = $1
+       AND user_id = $2
+       AND id = ANY($4::text[])
+     RETURNING id, is_starred`,
+    [tenantId, userId, !!starred, ids],
+  )
+  return rows
+}
+
+async function moveMessageToFolder({ tenantId, messageId, targetFolderId, userId, providerMessageId }) {
   const { rows } = await tenantQuery(
     tenantId,
     `WITH target AS (
@@ -1089,6 +1811,7 @@ async function moveMessageToFolder({ tenantId, messageId, targetFolderId, userId
      )
      UPDATE mail_messages mm
      SET folder_id = target.id,
+         provider_message_id = COALESCE($5, mm.provider_message_id),
          updated_at = NOW()
      FROM target
      WHERE mm.tenant_id = $1
@@ -1096,7 +1819,44 @@ async function moveMessageToFolder({ tenantId, messageId, targetFolderId, userId
        AND mm.account_id = target.account_id
        AND mm.user_id = $4
      RETURNING mm.id, mm.account_id, mm.folder_id, mm.is_read`,
-    [tenantId, messageId, targetFolderId, userId],
+    [tenantId, messageId, targetFolderId, userId, String(providerMessageId || '').trim() || null],
+  )
+  return rows[0] || null
+}
+
+async function moveMessageToAccountFolder({ tenantId, messageId, targetAccountId, targetFolderId, userId, providerMessageId }) {
+  const { rows } = await tenantQuery(
+    tenantId,
+    `WITH target AS (
+       SELECT id, account_id
+       FROM mail_folders
+       WHERE id = $4
+         AND account_id = $3
+         AND user_id = $5
+       LIMIT 1
+     ),
+     moved AS (
+       UPDATE mail_messages mm
+       SET account_id = target.account_id,
+           folder_id = target.id,
+           provider_message_id = COALESCE($6, mm.provider_message_id),
+           updated_at = NOW()
+       FROM target
+       WHERE mm.tenant_id = $1
+         AND mm.id = $2
+         AND mm.user_id = $5
+       RETURNING mm.id, mm.account_id, mm.folder_id, mm.is_read
+     ),
+     moved_attachments AS (
+       UPDATE mail_attachments ma
+       SET account_id = $3
+       WHERE ma.tenant_id = $1
+         AND ma.message_id = $2
+         AND ma.user_id = $5
+       RETURNING ma.id
+     )
+     SELECT * FROM moved`,
+    [tenantId, messageId, targetAccountId, targetFolderId, userId, String(providerMessageId || '').trim() || null],
   )
   return rows[0] || null
 }
@@ -1149,19 +1909,39 @@ async function deleteMessage({ tenantId, messageId, userId }) {
 }
 
 async function purgeTrashFolder({ tenantId, accountId, folderId, userId }) {
-  return withTenantTx(tenantId, async (client) => {
+  const result = await withTenantTx(tenantId, async (client) => {
+    // 휴지통 판정을 프론트 isMailTrashFolder와 맞춘다. iCloud처럼 실제 휴지통이
+    // type='custom'(provider_folder_id='Trash')으로 분류된 계정도 비울 수 있게 한다.
+    // 라우트가 특정 folderId로 좁혀 호출하므로 이 완화는 그 폴더 1개에만 적용된다. (MailService.md 15)
     const { rows: folderRows } = await client.query(
       `SELECT id, account_id, name, type
        FROM mail_folders
        WHERE tenant_id = $1
          AND account_id = $2
          AND id = $3
-         AND type = 'trash'
+         AND (
+           type = 'trash'
+           OR UPPER(COALESCE(provider_folder_id, '')) = 'TRASH'
+           OR LOWER(TRIM(COALESCE(name, ''))) = '휴지통'
+         )
        LIMIT 1`,
       [tenantId, accountId, folderId],
     )
     const folder = folderRows[0] || null
     if (!folder) return null
+
+    // 하드 삭제 전, 스토리지 blob 정리를 위해 첨부의 object_key를 먼저 수집한다.
+    // (mail_attachments는 message_id ON DELETE CASCADE로 아래 DELETE 시 함께 지워지므로, 삭제 전에 조회해야 한다.)
+    const { rows: attachmentRows } = await client.query(
+      `SELECT ma.object_key
+       FROM mail_attachments ma
+       JOIN mail_messages mm ON mm.id = ma.message_id
+       WHERE ma.tenant_id = $1
+         AND ma.account_id = $2
+         AND mm.folder_id = $3
+         AND ma.user_id = $4`,
+      [tenantId, accountId, folderId, userId],
+    )
 
     const { rows } = await client.query(
       `DELETE FROM mail_messages mm
@@ -1169,16 +1949,49 @@ async function purgeTrashFolder({ tenantId, accountId, folderId, userId }) {
          AND mm.account_id = $2
          AND mm.folder_id = $3
          AND mm.user_id = $4
-       RETURNING mm.id, mm.is_read`,
+       RETURNING mm.id, mm.is_read, mm.raw_object_key, mm.body_text_object_key, mm.body_html_object_key`,
       [tenantId, accountId, folderId, userId],
     )
+
+    const objectKeys = []
+    for (const row of rows) {
+      if (row.raw_object_key) objectKeys.push(row.raw_object_key)
+      if (row.body_text_object_key) objectKeys.push(row.body_text_object_key)
+      if (row.body_html_object_key) objectKeys.push(row.body_html_object_key)
+    }
+    for (const att of attachmentRows) {
+      if (att.object_key) objectKeys.push(att.object_key)
+    }
 
     return {
       folder,
       count: rows.length,
       unread_count: rows.filter(row => row.is_read === false).length,
+      objectKeys,
     }
   })
+
+  if (!result) return null
+
+  // DB 커밋 후 스토리지 blob을 정리한다(고아 객체 방지). 개별 삭제 실패는 무시(베스트 에포트) —
+  // DB 행은 이미 지워졌으므로 스토리지 실패로 전체를 되돌리지 않는다.
+  const storage = getMailStorage()
+  let purgedObjects = 0
+  for (const key of result.objectKeys) {
+    try {
+      await storage.deleteObject(key)
+      purgedObjects += 1
+    } catch (err) {
+      console.error(`[Mail purgeTrash] 스토리지 객체 삭제 실패 key=${key}: ${err.message}`)
+    }
+  }
+
+  return {
+    folder: result.folder,
+    count: result.count,
+    unread_count: result.unread_count,
+    purged_objects: purgedObjects,
+  }
 }
 
 // 파싱된 메시지 1건 + 첨부를 트랜잭션으로 저장한다. (object_key는 이미 스토리지에 기록된 상태)
@@ -1402,6 +2215,9 @@ async function getMessageForAgentic({ tenantId, messageId }) {
             mm.user_id,
             mm.account_id,
             ma.email_address AS account_email,
+            mm.folder_id,
+            mf.provider_folder_id AS folder_provider_id,
+            mf.type AS folder_type,
             mm.provider_message_id,
             mm.provider_thread_id,
             mm.internet_message_id,
@@ -1414,15 +2230,96 @@ async function getMessageForAgentic({ tenantId, messageId }) {
             mm.snippet,
             mm.received_at,
             mm.sent_at,
+            mm.is_read,
             mm.has_attachments,
+            mm.raw_object_key,
             mm.body_text_object_key,
             mm.body_html_object_key,
             mm.created_at
      FROM mail_messages mm
      JOIN mail_accounts ma ON ma.id = mm.account_id
+     LEFT JOIN mail_folders mf ON mf.id = mm.folder_id
      WHERE mm.tenant_id = $1 AND mm.id = $2
      LIMIT 1`,
     [tenantId, messageId],
+  )
+  return rows[0] || null
+}
+
+async function getMessagesForAgenticBatch({ tenantId, messageIds }) {
+  const ids = Array.from(new Set((messageIds || []).map(id => String(id || '').trim()).filter(Boolean)))
+  if (!tenantId || ids.length === 0) return []
+  const out = []
+  const chunkSize = 1000
+  for (let i = 0; i < ids.length; i += chunkSize) {
+    const chunk = ids.slice(i, i + chunkSize)
+    const { rows } = await tenantQuery(
+      tenantId,
+      `SELECT mm.id,
+              mm.tenant_id,
+              mm.user_id,
+              mm.account_id,
+              ma.email_address AS account_email,
+              mm.folder_id,
+              mf.provider_folder_id AS folder_provider_id,
+              mf.type AS folder_type,
+              mm.provider_message_id,
+              mm.provider_thread_id,
+              mm.internet_message_id,
+              mm.subject,
+              mm.from_email,
+              mm.from_name,
+              mm.to_json,
+              mm.cc_json,
+              mm.bcc_json,
+              mm.snippet,
+              mm.received_at,
+              mm.sent_at,
+              mm.is_read,
+              mm.has_attachments,
+              mm.raw_object_key,
+              mm.body_text_object_key,
+              mm.body_html_object_key,
+              mm.created_at
+       FROM mail_messages mm
+       JOIN mail_accounts ma ON ma.id = mm.account_id
+       LEFT JOIN mail_folders mf ON mf.id = mm.folder_id
+       WHERE mm.tenant_id = $1 AND mm.id = ANY($2::text[])`,
+      [tenantId, chunk],
+    )
+    out.push(...rows)
+  }
+  return out
+}
+
+// ===== 발신 도메인 파비콘 캐시(전역, control 풀) ==========================
+async function getDomainFavicon(domain) {
+  const key = String(domain || '').trim().toLowerCase()
+  if (!key) return null
+  const { rows } = await cm.getControlPool().query(
+    `SELECT domain, content_type, image, status, fetched_at
+     FROM mail_domain_favicons
+     WHERE domain = $1
+     LIMIT 1`,
+    [key],
+  )
+  return rows[0] || null
+}
+
+async function upsertDomainFavicon({ domain, contentType = null, image = null, status = 'ok' }) {
+  const key = String(domain || '').trim().toLowerCase()
+  if (!key) return null
+  const { rows } = await cm.getControlPool().query(
+    `INSERT INTO mail_domain_favicons (domain, content_type, image, status, fetched_at, updated_at)
+     VALUES ($1, $2, $3, $4, NOW(), NOW())
+     ON CONFLICT (domain) DO UPDATE
+       SET content_type = EXCLUDED.content_type,
+           image        = EXCLUDED.image,
+           status       = EXCLUDED.status,
+           fetched_at   = NOW(),
+           updated_at   = NOW()
+     RETURNING domain, content_type, image, status, fetched_at`,
+    [key, contentType, image, status],
   )
   return rows[0] || null
 }
@@ -1435,6 +2332,464 @@ async function listMessageAttachments({ tenantId, messageId }) {
      WHERE tenant_id = $1 AND message_id = $2
      ORDER BY created_at ASC, id ASC`,
     [tenantId, messageId],
+  )
+  return rows
+}
+
+// 단건 첨부 조회(다운로드용). 비관리자는 본인 소유 첨부만 접근 가능.
+async function getMessageAttachment({ tenantId, messageId, attachmentId, userId, isSiteAdmin }) {
+  const params = [tenantId, messageId, attachmentId]
+  let userFilter = ''
+  if (!isSiteAdmin) {
+    params.push(userId)
+    userFilter = `AND user_id = $4`
+  }
+  const { rows } = await tenantQuery(
+    tenantId,
+    `SELECT id, message_id, filename, content_type, size_bytes, object_key
+     FROM mail_attachments
+     WHERE tenant_id = $1 AND message_id = $2 AND id = $3 ${userFilter}
+     LIMIT 1`,
+    params,
+  )
+  return rows[0] || null
+}
+
+function normalizeStringArray(value) {
+  if (!Array.isArray(value)) return []
+  return value.map(item => String(item || '').trim()).filter(Boolean)
+}
+
+function normalizeMailClawFields(fields = {}) {
+  return {
+    name: String(fields.name || '').trim() || 'MailClaw',
+    enabled: fields.enabled !== false,
+    sender_check_enabled: !!fields.sender_check_enabled,
+    sender_conditions: normalizeStringArray(fields.sender_conditions),
+    cc_check_enabled: !!fields.cc_check_enabled,
+    cc_conditions: normalizeStringArray(fields.cc_conditions),
+    keyword_check_enabled: !!fields.keyword_check_enabled,
+    keyword_conditions: normalizeStringArray(fields.keyword_conditions),
+    ai_analysis_enabled: !!fields.ai_analysis_enabled,
+    forward_enabled: !!fields.forward_enabled,
+    forward_addresses: normalizeStringArray(fields.forward_addresses),
+    move_folder_enabled: !!fields.move_folder_enabled,
+    target_folder_id: String(fields.target_folder_id || '').trim() || null,
+    tag_smart_folder_enabled: !!fields.tag_smart_folder_enabled,
+    tag_smart_folder_id: String(fields.tag_smart_folder_id || '').trim() || null,
+    tag_archive_enabled: !!fields.tag_archive_enabled,
+  }
+}
+
+const DEFAULT_MAILCLAW_TRASH_RULE_NAME = 'MailClaw 휴지통 이동'
+const LEGACY_MAILCLAW_TRASH_RULE_NAME = 'MailClaw #5 휴지통 이동'
+
+async function findDefaultTrashFolderForUser(client, { tenantId, userId }) {
+  const { rows } = await client.query(
+    `SELECT mf.id
+     FROM mail_folders mf
+     JOIN mail_accounts ma ON ma.id = mf.account_id
+     WHERE mf.tenant_id = $1
+       AND mf.user_id = $2
+       AND (
+         mf.type = 'trash'
+         OR mf.provider_folder_id = 'TRASH'
+         OR TRIM(mf.name) = '휴지통'
+       )
+     ORDER BY ma.created_at ASC NULLS LAST, mf.created_at ASC NULLS LAST, mf.name ASC
+     LIMIT 1`,
+    [tenantId, userId],
+  )
+  return rows[0]?.id || null
+}
+
+async function ensureDefaultMailClawTrashRule({ tenantId, userId }) {
+  if (!tenantId || !userId) return null
+  return withTenantTx(tenantId, async (client) => {
+    const targetFolderId = await findDefaultTrashFolderForUser(client, { tenantId, userId })
+    if (!targetFolderId) return null
+
+    const exact = await client.query(
+      `SELECT *
+       FROM mailclaw_rules
+       WHERE tenant_id = $1
+         AND owner_user_id = $2
+         AND name = $3
+       ORDER BY updated_at DESC, created_at DESC
+       LIMIT 1`,
+      [tenantId, userId, DEFAULT_MAILCLAW_TRASH_RULE_NAME],
+    )
+    if (exact.rows[0]) return exact.rows[0]
+
+    const legacy = await client.query(
+      `UPDATE mailclaw_rules
+       SET name = $4,
+           move_folder_enabled = true,
+           target_folder_id = COALESCE(target_folder_id, $3),
+           updated_at = NOW()
+       WHERE id = (
+         SELECT id
+         FROM mailclaw_rules
+         WHERE tenant_id = $1
+           AND owner_user_id = $2
+           AND name = $5
+         ORDER BY updated_at DESC, created_at DESC
+         LIMIT 1
+       )
+       RETURNING *`,
+      [tenantId, userId, targetFolderId, DEFAULT_MAILCLAW_TRASH_RULE_NAME, LEGACY_MAILCLAW_TRASH_RULE_NAME],
+    )
+    if (legacy.rows[0]) return legacy.rows[0]
+
+    const inserted = await client.query(
+      `INSERT INTO mailclaw_rules (
+         tenant_id, owner_user_id, name, enabled,
+         sender_check_enabled, sender_conditions,
+         cc_check_enabled, cc_conditions,
+         keyword_check_enabled, keyword_conditions,
+         ai_analysis_enabled, forward_enabled, forward_addresses,
+         move_folder_enabled, target_folder_id
+       )
+       VALUES ($1,$2,$3,true,false,'[]'::jsonb,false,'[]'::jsonb,false,'[]'::jsonb,false,false,'[]'::jsonb,true,$4)
+       RETURNING *`,
+      [tenantId, userId, DEFAULT_MAILCLAW_TRASH_RULE_NAME, targetFolderId],
+    )
+    return inserted.rows[0] || null
+  })
+}
+
+async function registerSenderToDefaultMailClawTrashRule({ tenantId, userId, senderEmail }) {
+  const normalizedSender = String(senderEmail || '').trim().toLowerCase()
+  if (!tenantId || !userId || !normalizedSender) return null
+
+  const ensured = await ensureDefaultMailClawTrashRule({ tenantId, userId })
+  if (!ensured) return null
+
+  return withTenantTx(tenantId, async (client) => {
+    const targetFolderId = ensured.target_folder_id || await findDefaultTrashFolderForUser(client, { tenantId, userId })
+    if (!targetFolderId) return null
+    const current = await client.query(
+      `SELECT sender_conditions
+       FROM mailclaw_rules
+       WHERE tenant_id = $1
+         AND owner_user_id = $2
+         AND id = $3
+       LIMIT 1`,
+      [tenantId, userId, ensured.id],
+    )
+    const existing = normalizeStringArray(current.rows[0]?.sender_conditions)
+    const nextByEmail = new Map(existing.map(item => [item.toLowerCase(), item]))
+    nextByEmail.set(normalizedSender, normalizedSender)
+    const senderConditions = Array.from(nextByEmail.values())
+    const { rows } = await client.query(
+      `UPDATE mailclaw_rules
+       SET name = $4,
+           enabled = true,
+           sender_check_enabled = true,
+           sender_conditions = $5::jsonb,
+           move_folder_enabled = true,
+           target_folder_id = COALESCE(target_folder_id, $6),
+           updated_at = NOW()
+       WHERE tenant_id = $1
+         AND owner_user_id = $2
+         AND id = $3
+       RETURNING *`,
+      [
+        tenantId,
+        userId,
+        ensured.id,
+        DEFAULT_MAILCLAW_TRASH_RULE_NAME,
+        JSON.stringify(senderConditions),
+        targetFolderId,
+      ],
+    )
+    return rows[0] || null
+  })
+}
+
+async function listMailClawRules({ tenantId, userId, isSiteAdmin }) {
+  await ensureDefaultMailClawTrashRule({ tenantId, userId })
+  const params = [tenantId, userId, !!isSiteAdmin]
+  const { rows } = await tenantQuery(
+    tenantId,
+    `SELECT mcr.id,
+            mcr.tenant_id,
+            mcr.owner_user_id,
+            mcr.name,
+            mcr.enabled,
+            mcr.sender_check_enabled,
+            mcr.sender_conditions,
+            mcr.cc_check_enabled,
+            mcr.cc_conditions,
+            mcr.keyword_check_enabled,
+            mcr.keyword_conditions,
+            mcr.ai_analysis_enabled,
+            mcr.forward_enabled,
+            mcr.forward_addresses,
+            mcr.move_folder_enabled,
+            mcr.target_folder_id,
+            mf.name AS target_folder_name,
+            mcr.tag_smart_folder_enabled,
+            mcr.tag_smart_folder_id,
+            msf.name AS tag_smart_folder_name,
+            mcr.tag_archive_enabled,
+            mcr.created_at,
+            mcr.updated_at
+     FROM mailclaw_rules mcr
+     LEFT JOIN mail_folders mf ON mf.id = mcr.target_folder_id
+     LEFT JOIN mail_smart_folders msf ON msf.id = mcr.tag_smart_folder_id
+     WHERE mcr.tenant_id = $1
+       AND ($3::boolean = true OR mcr.owner_user_id = $2)
+     ORDER BY mcr.updated_at DESC, mcr.created_at DESC`,
+    params,
+  )
+  return rows
+}
+
+async function listEnabledMailClawRules({ tenantId }) {
+  const { rows } = await tenantQuery(
+    tenantId,
+    `SELECT id,
+            tenant_id,
+            owner_user_id,
+            name,
+            enabled,
+            sender_check_enabled,
+            sender_conditions,
+            cc_check_enabled,
+            cc_conditions,
+            keyword_check_enabled,
+            keyword_conditions,
+            ai_analysis_enabled,
+            forward_enabled,
+            forward_addresses,
+            move_folder_enabled,
+            target_folder_id,
+            tag_smart_folder_enabled,
+            tag_smart_folder_id,
+            tag_archive_enabled
+     FROM mailclaw_rules
+     WHERE tenant_id = $1
+       AND enabled = true
+     ORDER BY created_at ASC`,
+    [tenantId],
+  )
+  return rows
+}
+
+async function getMailClawRule({ tenantId, id, userId, isSiteAdmin }) {
+  const { rows } = await tenantQuery(
+    tenantId,
+    `SELECT id,
+            tenant_id,
+            owner_user_id,
+            name,
+            enabled,
+            sender_check_enabled,
+            sender_conditions,
+            cc_check_enabled,
+            cc_conditions,
+            keyword_check_enabled,
+            keyword_conditions,
+            ai_analysis_enabled,
+            forward_enabled,
+            forward_addresses,
+            move_folder_enabled,
+            target_folder_id,
+            tag_smart_folder_enabled,
+            tag_smart_folder_id,
+            tag_archive_enabled
+     FROM mailclaw_rules
+     WHERE tenant_id = $1
+       AND id = $2
+       AND ($4::boolean = true OR owner_user_id = $3)
+     LIMIT 1`,
+    [tenantId, id, userId, !!isSiteAdmin],
+  )
+  return rows[0] || null
+}
+
+async function createMailClawRule({ tenantId, ownerUserId, fields }) {
+  const f = normalizeMailClawFields(fields)
+  const { rows } = await tenantQuery(
+    tenantId,
+    `INSERT INTO mailclaw_rules (
+       tenant_id, owner_user_id, name, enabled,
+       sender_check_enabled, sender_conditions,
+       cc_check_enabled, cc_conditions,
+       keyword_check_enabled, keyword_conditions,
+       ai_analysis_enabled, forward_enabled, forward_addresses,
+       move_folder_enabled, target_folder_id,
+       tag_smart_folder_enabled, tag_smart_folder_id, tag_archive_enabled
+     )
+     VALUES ($1,$2,$3,$4,$5,$6::jsonb,$7,$8::jsonb,$9,$10::jsonb,$11,$12,$13::jsonb,$14,$15,$16,$17,$18)
+     RETURNING *`,
+    [
+      tenantId,
+      ownerUserId,
+      f.name,
+      f.enabled,
+      f.sender_check_enabled,
+      JSON.stringify(f.sender_conditions),
+      f.cc_check_enabled,
+      JSON.stringify(f.cc_conditions),
+      f.keyword_check_enabled,
+      JSON.stringify(f.keyword_conditions),
+      f.ai_analysis_enabled,
+      f.forward_enabled,
+      JSON.stringify(f.forward_addresses),
+      f.move_folder_enabled,
+      f.target_folder_id,
+      f.tag_smart_folder_enabled,
+      f.tag_smart_folder_id,
+      f.tag_archive_enabled,
+    ],
+  )
+  return rows[0]
+}
+
+async function updateMailClawRule({ tenantId, id, ownerUserId, isSiteAdmin, fields }) {
+  const f = normalizeMailClawFields(fields)
+  const { rows } = await tenantQuery(
+    tenantId,
+    `UPDATE mailclaw_rules
+     SET name = $4,
+         enabled = $5,
+         sender_check_enabled = $6,
+         sender_conditions = $7::jsonb,
+         cc_check_enabled = $8,
+         cc_conditions = $9::jsonb,
+         keyword_check_enabled = $10,
+         keyword_conditions = $11::jsonb,
+         ai_analysis_enabled = $12,
+         forward_enabled = $13,
+         forward_addresses = $14::jsonb,
+         move_folder_enabled = $15,
+         target_folder_id = $16,
+         tag_smart_folder_enabled = $18,
+         tag_smart_folder_id = $19,
+         tag_archive_enabled = $20,
+         updated_at = NOW()
+     WHERE tenant_id = $1
+       AND id = $2
+       AND ($3::boolean = true OR owner_user_id = $17)
+     RETURNING *`,
+    [
+      tenantId,
+      id,
+      !!isSiteAdmin,
+      f.name,
+      f.enabled,
+      f.sender_check_enabled,
+      JSON.stringify(f.sender_conditions),
+      f.cc_check_enabled,
+      JSON.stringify(f.cc_conditions),
+      f.keyword_check_enabled,
+      JSON.stringify(f.keyword_conditions),
+      f.ai_analysis_enabled,
+      f.forward_enabled,
+      JSON.stringify(f.forward_addresses),
+      f.move_folder_enabled,
+      f.target_folder_id,
+      ownerUserId,
+      f.tag_smart_folder_enabled,
+      f.tag_smart_folder_id,
+      f.tag_archive_enabled,
+    ],
+  )
+  return rows[0] || null
+}
+
+async function deleteMailClawRule({ tenantId, id, ownerUserId, isSiteAdmin }) {
+  const { rows } = await tenantQuery(
+    tenantId,
+    `DELETE FROM mailclaw_rules
+     WHERE tenant_id = $1
+       AND id = $2
+       AND ($3::boolean = true OR owner_user_id = $4)
+       AND name <> $5
+     RETURNING id`,
+    [tenantId, id, !!isSiteAdmin, ownerUserId, DEFAULT_MAILCLAW_TRASH_RULE_NAME],
+  )
+  return rows[0] || null
+}
+
+async function tryCreateMailClawExecutionLog({ tenantId, ruleId, messageId, matched = true, force = false }) {
+  if (force) {
+    const { rows } = await tenantQuery(
+      tenantId,
+      `INSERT INTO mailclaw_execution_logs (tenant_id, rule_id, message_id, matched, status, action_results, error_message)
+       VALUES ($1, $2, $3, $4, 'pending', '[]'::jsonb, NULL)
+       ON CONFLICT (rule_id, message_id) DO UPDATE
+       SET matched = EXCLUDED.matched,
+           status = 'pending',
+           action_results = '[]'::jsonb,
+           error_message = NULL,
+           created_at = NOW(),
+           updated_at = NOW()
+       RETURNING id`,
+      [tenantId, ruleId, messageId, !!matched],
+    )
+    return rows[0] || null
+  }
+  const { rows } = await tenantQuery(
+    tenantId,
+    `INSERT INTO mailclaw_execution_logs (tenant_id, rule_id, message_id, matched, status)
+     VALUES ($1, $2, $3, $4, 'pending')
+     ON CONFLICT (rule_id, message_id) DO NOTHING
+     RETURNING id`,
+    [tenantId, ruleId, messageId, !!matched],
+  )
+  return rows[0] || null
+}
+
+async function finishMailClawExecutionLog({ tenantId, id, status, actionResults = [], errorMessage = null }) {
+  const { rows } = await tenantQuery(
+    tenantId,
+    `UPDATE mailclaw_execution_logs
+     SET status = $3,
+         action_results = $4::jsonb,
+         error_message = $5,
+         updated_at = NOW()
+     WHERE tenant_id = $1 AND id = $2
+     RETURNING *`,
+    [tenantId, id, status, JSON.stringify(actionResults || []), errorMessage || null],
+  )
+  return rows[0] || null
+}
+
+async function listMailClawExecutionLogs({ tenantId, ruleId, userId, isSiteAdmin, limit = 50 }) {
+  const safeLimit = Math.min(200, Math.max(1, Number(limit) || 50))
+  const params = [tenantId, userId, !!isSiteAdmin]
+  let ruleFilter = ''
+  if (ruleId) {
+    params.push(ruleId)
+    ruleFilter = `AND mcl.rule_id = $${params.length}`
+  }
+  const { rows } = await tenantQuery(
+    tenantId,
+    `SELECT mcl.id,
+            mcl.tenant_id,
+            mcl.rule_id,
+            mcr.name AS rule_name,
+            mcl.message_id,
+            mm.subject,
+            mm.from_email,
+            mcl.status,
+            mcl.matched,
+            mcl.action_results,
+            mcl.error_message,
+            mcl.created_at,
+            mcl.updated_at
+     FROM mailclaw_execution_logs mcl
+     JOIN mailclaw_rules mcr ON mcr.id = mcl.rule_id
+     LEFT JOIN mail_messages mm ON mm.id = mcl.message_id
+     WHERE mcl.tenant_id = $1
+       AND ($3::boolean = true OR mcr.owner_user_id = $2)
+       ${ruleFilter}
+     ORDER BY mcl.created_at DESC
+     LIMIT ${safeLimit}`,
+    params,
   )
   return rows
 }
@@ -1473,16 +2828,39 @@ module.exports = {
   getFolderMap,
   upsertFolders,
   getFolderById,
+  getFolderByIdForUser,
+  getFolderByTypeForAccount,
+  resolveFolderForAccount,
   createFolder,
   setFolderSyncStatus,
   updateFolderColor,
+  renameFolder,
+  folderNameExists,
   deleteFolder,
   listMessages,
   listUnifiedMessages,
+  // smart folders (태그 기반 통합 — MailService.md 13)
+  listSmartFolders,
+  createSmartFolder,
+  updateSmartFolder,
+  deleteSmartFolder,
+  tagMessagesToSmartFolder,
+  untagMessagesFromSmartFolder,
+  listSmartFolderMessages,
+  listSmartFoldersForMessage,
+  seedSmartFoldersFromCustomFolders,
+  reconcileTrashFolders,
   getMessage,
+  getMessageSummary,
+  upsertMessageSummary,
+  updateMessageSummaryJson,
+  deleteMessageSummary,
+  deleteMessageSummariesForAccount,
   markMessageRead,
   updateMessageReadState,
+  setMessagesStarred,
   moveMessageToFolder,
+  moveMessageToAccountFolder,
   deleteMessage,
   purgeTrashFolder,
   saveSyncedMessage,
@@ -1491,5 +2869,21 @@ module.exports = {
   recomputeUsage,
   getAccountById,
   getMessageForAgentic,
+  getMessagesForAgenticBatch,
+  getDomainFavicon,
+  upsertDomainFavicon,
   listMessageAttachments,
+  getMessageAttachment,
+  // MailClaw
+  listMailClawRules,
+  ensureDefaultMailClawTrashRule,
+  registerSenderToDefaultMailClawTrashRule,
+  listEnabledMailClawRules,
+  getMailClawRule,
+  createMailClawRule,
+  updateMailClawRule,
+  deleteMailClawRule,
+  tryCreateMailClawExecutionLog,
+  finishMailClawExecutionLog,
+  listMailClawExecutionLogs,
 }

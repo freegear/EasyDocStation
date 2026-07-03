@@ -1,0 +1,8 @@
+[RAG] 초기화 — 학습 방식: immediate
+[RAG] 초기화 — PDF 파싱 모드: FAST
+[Mail sync] 자동 동기화 스케줄러 시작: interval=60s
+✅ EasyDocStation server running on http://localhost:3001
+✅ [CONFIG] HF_TOKEN 확인됨 (hf_u****butv, 길이 37)
+✅ Cassandra connected
+✅ Cassandra schema initialized
+✅ Database migration complete.

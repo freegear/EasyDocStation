@@ -13,6 +13,7 @@ const { trainMessageIncremental } = require('./ragTrainer')
 const { analyzeThread } = require('./analyzer')
 const { syncTodosFromReport } = require('./todoService')
 const { notifyThreadUpdate } = require('./telegramNotifier')
+const { executeMailClawForMessage } = require('../mailClaw')
 
 let timer = null
 let running = false
@@ -41,6 +42,9 @@ async function handleMessageEvent(event) {
   if (!messageId) return { matched: 0 }
   const message = await repo.getMessageForAgentic({ tenantId: event.tenant_id, messageId })
   if (!message) return { matched: 0, missing: true }
+  const mailClaw = event.event_type === 'mail_message_synced'
+    ? await executeMailClawForMessage({ tenantId: event.tenant_id, messageId }).catch(err => ({ error: err.message }))
+    : { skipped: true, reason: 'outbound_event' }
   const bodyText = await loadMessageBody(message)
   const targets = await threadRepo.listEnabledWatchTargets({ tenantId: event.tenant_id })
   let matched = 0
@@ -69,7 +73,7 @@ async function handleMessageEvent(event) {
     })
     matched += 1
   }
-  return { matched }
+  return { matched, mailClaw }
 }
 
 async function handleAnalysisRequested(event) {

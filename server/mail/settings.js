@@ -30,6 +30,44 @@ const SETTING_KEYS = {
   googleClientId: 'google_client_id',
   googleClientSecret: 'google_client_secret',
   googleRedirectUri: 'google_redirect_uri',
+  // 첨부파일 정책 (전역, 사이트 관리자 편집 / 인증 사용자 조회) — MailService.md 10.8
+  attachMaxFileMb: 'attach_max_file_mb',
+  attachMaxTotalMb: 'attach_max_total_mb',
+  attachMaxFiles: 'attach_max_files',
+  attachBlockedExtensions: 'attach_blocked_extensions',
+}
+
+// 하드코딩 상수를 대체하는 기본 정책 (설정이 없을 때 사용)
+// 합계 20MB: Gmail 등의 25MB 한도에 base64 오버헤드(약 +37%)를 감안한 안전선 (MailService.md 10.9)
+const DEFAULT_ATTACHMENT_POLICY = {
+  maxFileMb: 20,
+  maxTotalMb: 20,
+  maxFiles: 20,
+  blockedExtensions: ['exe', 'bat', 'cmd', 'com', 'scr', 'pif', 'js', 'vbs', 'jar', 'msi', 'cpl', 'dll'],
+}
+
+// 잘못된 값이 저장되어도 서비스가 깨지지 않도록 합리적 범위로 clamp 한다.
+const ATTACHMENT_POLICY_LIMITS = {
+  maxFileMb: { min: 1, max: 200 },
+  maxTotalMb: { min: 1, max: 200 },
+  maxFiles: { min: 1, max: 100 },
+}
+
+function clampInt(value, { min, max }, fallback) {
+  const n = Math.floor(Number(value))
+  if (!Number.isFinite(n)) return fallback
+  return Math.min(max, Math.max(min, n))
+}
+
+// 확장자 목록 정규화: 콤마/공백/줄바꿈 구분 → 소문자, 앞 '.' 제거, 중복 제거.
+function normalizeBlockedExtensions(input) {
+  const raw = Array.isArray(input) ? input : String(input || '').split(/[,\s]+/)
+  const seen = new Set()
+  for (const item of raw) {
+    const ext = String(item || '').trim().toLowerCase().replace(/^\.+/, '')
+    if (ext) seen.add(ext)
+  }
+  return [...seen]
 }
 
 async function getMailSetting(key) {
@@ -78,6 +116,58 @@ async function getPublicMailSettings() {
   }
 }
 
+// 저장된 첨부 정책을 읽어 기본값과 병합해 반환한다. (모든 값 정규화 완료 상태)
+async function getAttachmentPolicy() {
+  const [fileMb, totalMb, files, blocked] = await Promise.all([
+    getMailSetting(SETTING_KEYS.attachMaxFileMb),
+    getMailSetting(SETTING_KEYS.attachMaxTotalMb),
+    getMailSetting(SETTING_KEYS.attachMaxFiles),
+    getMailSetting(SETTING_KEYS.attachBlockedExtensions),
+  ])
+  const maxFileMb = fileMb ? clampInt(fileMb, ATTACHMENT_POLICY_LIMITS.maxFileMb, DEFAULT_ATTACHMENT_POLICY.maxFileMb) : DEFAULT_ATTACHMENT_POLICY.maxFileMb
+  const maxTotalMb = totalMb ? clampInt(totalMb, ATTACHMENT_POLICY_LIMITS.maxTotalMb, DEFAULT_ATTACHMENT_POLICY.maxTotalMb) : DEFAULT_ATTACHMENT_POLICY.maxTotalMb
+  const maxFiles = files ? clampInt(files, ATTACHMENT_POLICY_LIMITS.maxFiles, DEFAULT_ATTACHMENT_POLICY.maxFiles) : DEFAULT_ATTACHMENT_POLICY.maxFiles
+  const blockedExtensions = blocked ? normalizeBlockedExtensions(blocked) : [...DEFAULT_ATTACHMENT_POLICY.blockedExtensions]
+  return {
+    maxFileMb,
+    maxTotalMb,
+    maxFiles,
+    blockedExtensions,
+    // 파생값(바이트)도 함께 제공해 라우트에서 재계산할 필요가 없게 한다.
+    maxFileBytes: maxFileMb * 1024 * 1024,
+    maxTotalBytes: maxTotalMb * 1024 * 1024,
+  }
+}
+
+// 프론트/응답용 직렬화 형태(snake_case).
+function serializeAttachmentPolicy(policy) {
+  return {
+    max_file_mb: policy.maxFileMb,
+    max_total_mb: policy.maxTotalMb,
+    max_files: policy.maxFiles,
+    blocked_extensions: policy.blockedExtensions,
+  }
+}
+
+// 관리 화면에서 넘어온 값을 정규화해 저장한다. 부분 업데이트 허용(넘어온 필드만 저장).
+async function updateAttachmentPolicy({ fields = {}, updatedBy = null } = {}) {
+  const tasks = []
+  if (fields.max_file_mb != null) {
+    tasks.push(upsertMailSetting({ key: SETTING_KEYS.attachMaxFileMb, value: String(clampInt(fields.max_file_mb, ATTACHMENT_POLICY_LIMITS.maxFileMb, DEFAULT_ATTACHMENT_POLICY.maxFileMb)), updatedBy }))
+  }
+  if (fields.max_total_mb != null) {
+    tasks.push(upsertMailSetting({ key: SETTING_KEYS.attachMaxTotalMb, value: String(clampInt(fields.max_total_mb, ATTACHMENT_POLICY_LIMITS.maxTotalMb, DEFAULT_ATTACHMENT_POLICY.maxTotalMb)), updatedBy }))
+  }
+  if (fields.max_files != null) {
+    tasks.push(upsertMailSetting({ key: SETTING_KEYS.attachMaxFiles, value: String(clampInt(fields.max_files, ATTACHMENT_POLICY_LIMITS.maxFiles, DEFAULT_ATTACHMENT_POLICY.maxFiles)), updatedBy }))
+  }
+  if (fields.blocked_extensions != null) {
+    tasks.push(upsertMailSetting({ key: SETTING_KEYS.attachBlockedExtensions, value: normalizeBlockedExtensions(fields.blocked_extensions).join(','), updatedBy }))
+  }
+  await Promise.all(tasks)
+  return getAttachmentPolicy()
+}
+
 async function getGoogleOAuthConfigFromDb() {
   const clientId = await getMailSetting(SETTING_KEYS.googleClientId)
   const clientSecret = await getMailSetting(SETTING_KEYS.googleClientSecret)
@@ -108,4 +198,8 @@ module.exports = {
   getGoogleOAuthConfig,
   getPublicMailSettings,
   upsertMailSetting,
+  DEFAULT_ATTACHMENT_POLICY,
+  getAttachmentPolicy,
+  serializeAttachmentPolicy,
+  updateAttachmentPolicy,
 }

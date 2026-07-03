@@ -84,7 +84,9 @@ function MainLayout() {
   const [siteAdminInitialTab, setSiteAdminInitialTab] = useState('users')
   const [searchSelectedPost, setSearchSelectedPost] = useState(null)
   const [showCalendar, setShowCalendar] = useState(false)
+  const [calendarFocusEvent, setCalendarFocusEvent] = useState(null)
   const [showMail, setShowMail] = useState(false)
+  const [mailDeepLink, setMailDeepLink] = useState(null)
   const [showDM, setShowDM] = useState(false)
   const [activeDMConv, setActiveDMConv] = useState(null)
   const [showNewDM, setShowNewDM] = useState(false)
@@ -120,6 +122,39 @@ function MainLayout() {
     url.searchParams.delete('attachmentId')
     const next = `${url.pathname}${url.search}${url.hash}`
     window.history.replaceState({}, '', next)
+  }, [])
+
+  const openMailDeepLinkFromUrl = useCallback((href, { replaceUrl = true } = {}) => {
+    if (typeof window === 'undefined') return false
+    let url
+    try {
+      url = new URL(href || window.location.href, window.location.origin)
+    } catch {
+      return false
+    }
+    const messageId = url.searchParams.get('mailMessageId')
+    const tenantId = url.searchParams.get('mailTenantId')
+    if (!messageId || !tenantId) return false
+
+    setMailDeepLink({
+      messageId,
+      tenantId,
+      targetLanguage: url.searchParams.get('mailTargetLanguage') || '',
+      openedAt: Date.now(),
+    })
+    setShowMail(true)
+    setShowCalendar(false)
+    setShowDM(false)
+    setActiveDMConv(null)
+
+    if (replaceUrl && url.origin === window.location.origin) {
+      url.searchParams.delete('mailMessageId')
+      url.searchParams.delete('mailTenantId')
+      url.searchParams.delete('mailTargetLanguage')
+      const next = `${url.pathname}${url.search}${url.hash}`
+      window.history.replaceState({}, '', next)
+    }
+    return true
   }, [])
 
   const startGroqResize = useCallback((e) => {
@@ -170,7 +205,9 @@ function MainLayout() {
     lastUserIdRef.current = userId
     setSearchSelectedPost(null)
     setShowCalendar(false)
+    setCalendarFocusEvent(null)
     setShowMail(false)
+    setMailDeepLink(null)
     setShowDM(false)
     setActiveDMConv(null)
     setShowNewDM(false)
@@ -178,6 +215,20 @@ function MainLayout() {
     setFullscreenService(null)
     deepLinkHandledRef.current = false
   }, [currentUser?.id])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const timer = window.setTimeout(() => openMailDeepLinkFromUrl(window.location.href), 0)
+    return () => window.clearTimeout(timer)
+  }, [openMailDeepLinkFromUrl])
+
+  useEffect(() => {
+    function handleMailOpenLink(event) {
+      openMailDeepLinkFromUrl(event.detail?.href || window.location.href)
+    }
+    window.addEventListener('easy-mail-open-link', handleMailOpenLink)
+    return () => window.removeEventListener('easy-mail-open-link', handleMailOpenLink)
+  }, [openMailDeepLinkFromUrl])
 
   useEffect(() => {
     if (!Array.isArray(teams) || teams.length === 0) return
@@ -285,7 +336,17 @@ function MainLayout() {
           <>
             {showMail ? (
               <>
-                <MailPage onBackToMain={() => setShowMail(false)} />
+                <MailPage
+                  onBackToMain={() => setShowMail(false)}
+                  initialMailLink={mailDeepLink}
+                  onOpenCalendarEvent={(eventId) => {
+                    setCalendarFocusEvent({ eventId, openedAt: Date.now() })
+                    setShowCalendar(true)
+                    setShowMail(false)
+                    setShowDM(false)
+                    setActiveDMConv(null)
+                  }}
+                />
                 {showAgenticPanel && (
                   <>
                     <div
@@ -312,6 +373,7 @@ function MainLayout() {
                     onOpenServicePage={setFullscreenService}
                     onOpenMail={() => {
                       setShowMail(true)
+                      setMailDeepLink(null)
                       setShowCalendar(false)
                       setShowDM(false)
                       setActiveDMConv(null)
@@ -322,7 +384,7 @@ function MainLayout() {
                 )}
 
                 {showCalendar ? (
-                  <CalendarView onClose={() => setShowCalendar(false)} />
+                  <CalendarView onClose={() => setShowCalendar(false)} focusEvent={calendarFocusEvent} />
                 ) : showDM && activeDMConv ? (
                   <DirectMessageView
                     conversation={activeDMConv}

@@ -15,7 +15,17 @@
       "Bash(node -e \"require\\('/Users/kevinim/Desktop/EasyDocStation/server/routes/sns.js'\\); console.log\\('OK'\\)\")",
       "Bash(node --check /Users/kevinim/Desktop/EasyDocStation/server/routes/posts.js)",
       "Bash(node --check /Users/kevinim/Desktop/EasyDocStation/src/hooks/useMentionAutocomplete.js)",
-      "Bash(node -e ' *)"
+      "Bash(node -e ' *)",
+      "Bash(node -e \"let d='';process.stdin.on\\('data',c=>d+=c\\).on\\('end',\\(\\)=>{const m=JSON.parse\\(d\\)[0].messages.filter\\(x=>x.severity===2\\);console.log\\('total',m.length\\);m.forEach\\(x=>console.log\\(x.line, x.ruleId, '|', \\(x.message||''\\).slice\\(0,40\\)\\)\\)}\\)\")",
+      "Bash(node -e \"const fs=require\\('fs'\\);const p='src/features/mail/MailPage.jsx';const s=fs.readFileSync\\(p,'utf8'\\);fs.writeFileSync\\('/tmp/claude-1001/-home-freegear-EasyDocStation/4a85ff7a-9bc7-438d-a710-837d12f08f62/scratchpad/shifted.jsx','\\\\n'.repeat\\(140\\)+s\\)\")",
+      "Bash(node -e \"let d='';process.stdin.on\\('data',c=>d+=c\\).on\\('end',\\(\\)=>{console.log\\(JSON.parse\\(d\\)[0].errorCount\\)}\\)\")",
+      "Bash(git checkout *)",
+      "Bash(node -e \"let d='';process.stdin.on\\('data',c=>d+=c\\).on\\('end',\\(\\)=>{const m=JSON.parse\\(d\\)[0].messages.filter\\(x=>x.fatal\\);console.log\\('fatal parse errors:',m.length\\)}\\)\")",
+      "Bash(node -e \"let d='';process.stdin.on\\('data',c=>d+=c\\).on\\('end',\\(\\)=>{const m=JSON.parse\\(d\\)[0].messages.filter\\(x=>x.severity===2 && \\(\\(x.line>=222&&x.line<=380\\)\\)\\);console.log\\('errors in chip/list region:',m.length\\)}\\)\")",
+      "Bash(export PGPASSWORD=easydocstation1234)",
+      "Bash(psql -h localhost -p 5432 -U easydocstation -d easydocstation -v ON_ERROR_STOP=1 -c ' *)",
+      "Bash(sed -n '/function SmartFolderTagChip/,/^}/p' src/features/mail/MailPage.jsx)",
+      "Bash(sed -n '/const FOLDER_COLOR_OPTIONS = \\\\[/,/\\\\]/p' src/features/mail/MailPage.jsx)"
     ]
   }
 }
