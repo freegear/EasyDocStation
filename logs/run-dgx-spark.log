@@ -1394,3 +1394,1333 @@ AM 6:51:58 [vite] hmr update /src/features/mail/MailPage.jsx, /src/index.css
 [20260704-06:53:52][BE] [RAG] 저장 완료 — 1청크 / 1개 게시글 / 0개 댓글
 [20260704-06:53:52][BE] [RAG] 학습 진행률: 100% (저장)
 [20260704-06:53:53][BE] [RAG] 캘린더 이벤트 재학습 완료 — id=a9063cf6-e256-4d62-8d53-a5640dcf5705
+[20260704-06:54:32][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-06:55:31][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-06:56:34][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-06:57:34][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-06:58:34][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-06:59:32][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-07:00:35][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-07:01:34][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-07:02:33][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-07:03:35][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-07:04:34][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-07:05:34][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-07:06:34][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-07:07:34][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-07:08:36][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-07:09:35][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-07:10:36][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=1
+[20260704-07:11:35][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-07:12:37][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-07:13:34][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-07:14:34][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-07:15:34][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-07:16:33][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-07:17:34][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-07:18:35][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-07:19:33][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-07:20:32][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-07:21:32][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-07:22:32][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-07:23:32][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-07:24:34][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-07:25:35][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-07:26:33][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-07:27:34][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-07:28:35][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-07:29:34][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-07:30:33][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-07:31:33][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-07:32:33][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-07:33:33][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-07:34:33][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-07:35:37][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-07:36:34][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-07:37:34][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-07:38:33][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-07:39:33][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-07:40:34][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-07:41:34][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-07:42:34][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-07:43:34][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-07:44:35][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=1
+[20260704-07:45:34][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-07:46:35][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-07:47:35][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-07:48:33][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-07:49:33][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-07:49:58][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260704-07:50:34][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=1
+[20260704-07:51:33][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-07:52:35][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-07:53:35][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-07:54:34][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-07:55:34][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-07:56:32][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-07:57:33][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-07:58:33][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-07:59:33][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-08:00:33][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-08:01:32][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-08:02:32][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-08:03:32][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-08:04:32][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-08:05:33][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-08:06:32][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-08:07:34][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-08:08:34][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-08:09:34][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-08:10:34][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-08:11:33][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-08:12:34][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-08:13:35][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-08:14:32][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-08:15:32][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-08:16:32][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-08:17:32][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-08:18:32][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-08:19:34][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-08:20:34][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-08:21:34][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-08:22:32][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-08:23:31][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-08:24:31][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-08:25:34][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-08:26:34][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-08:27:32][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-08:28:35][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-08:29:32][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-08:30:33][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-08:31:34][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-08:32:32][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-08:33:32][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-08:34:35][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-08:35:35][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-08:36:34][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-08:37:34][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-08:38:32][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-08:39:32][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-08:40:32][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-08:41:33][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-08:42:32][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-08:43:13][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260704-08:43:16][BE] Error: 메일 tenant를 찾을 수 없습니다: undefined
+[20260704-08:43:16][BE]     at Object.resolveTenant (/home/freegear/EasyDocStation/server/mail/connectionManager.js:118:23)
+[20260704-08:43:16][BE]     at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+[20260704-08:43:16][BE]     at async tenantQuery (/home/freegear/EasyDocStation/server/mail/repository.js:668:20)
+[20260704-08:43:16][BE]     at async Object.listUnifiedMessages (/home/freegear/EasyDocStation/server/mail/repository.js:1123:20)
+[20260704-08:43:16][BE]     at async /home/freegear/EasyDocStation/server/routes/mail.js:783:23
+[20260704-08:43:16][BE] Error: 메일 tenant를 찾을 수 없습니다: undefined
+[20260704-08:43:16][BE]     at Object.resolveTenant (/home/freegear/EasyDocStation/server/mail/connectionManager.js:118:23)
+[20260704-08:43:16][BE]     at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+[20260704-08:43:16][BE]     at async tenantQuery (/home/freegear/EasyDocStation/server/mail/repository.js:668:20)
+[20260704-08:43:16][BE]     at async Object.listUnifiedMessages (/home/freegear/EasyDocStation/server/mail/repository.js:1123:20)
+[20260704-08:43:16][BE]     at async /home/freegear/EasyDocStation/server/routes/mail.js:783:23
+[20260704-08:43:34][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-08:44:37][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-08:45:34][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-08:46:35][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-08:47:30][BE] Error: 메일 tenant를 찾을 수 없습니다: undefined
+[20260704-08:47:30][BE]     at Object.resolveTenant (/home/freegear/EasyDocStation/server/mail/connectionManager.js:118:23)
+[20260704-08:47:30][BE]     at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+[20260704-08:47:30][BE]     at async tenantQuery (/home/freegear/EasyDocStation/server/mail/repository.js:668:20)
+[20260704-08:47:30][BE]     at async Object.listUnifiedMessages (/home/freegear/EasyDocStation/server/mail/repository.js:1123:20)
+[20260704-08:47:30][BE]     at async /home/freegear/EasyDocStation/server/routes/mail.js:783:23
+[20260704-08:47:30][BE] Error: 메일 tenant를 찾을 수 없습니다: undefined
+[20260704-08:47:30][BE]     at Object.resolveTenant (/home/freegear/EasyDocStation/server/mail/connectionManager.js:118:23)
+[20260704-08:47:30][BE]     at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+[20260704-08:47:30][BE]     at async tenantQuery (/home/freegear/EasyDocStation/server/mail/repository.js:668:20)
+[20260704-08:47:30][BE]     at async Object.listUnifiedMessages (/home/freegear/EasyDocStation/server/mail/repository.js:1123:20)
+[20260704-08:47:30][BE]     at async /home/freegear/EasyDocStation/server/routes/mail.js:783:23
+[20260704-08:47:34][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-08:48:37][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-08:49:18][BE] Error: Command failed
+[20260704-08:49:18][BE]     at ImapFlow.reader (/home/freegear/EasyDocStation/server/node_modules/imapflow/lib/imap-flow.js:805:35)
+[20260704-08:49:18][BE]     at process.processTicksAndRejections (node:internal/process/task_queues:103:5) {
+[20260704-08:49:18][BE]   response: '7 NO Cannot delete this mailbox.',
+[20260704-08:49:18][BE]   responseStatus: 'NO',
+[20260704-08:49:18][BE]   executedCommand: '7 DELETE Quotaviolate',
+[20260704-08:49:18][BE]   responseText: 'Cannot delete this mailbox.'
+[20260704-08:49:18][BE] }
+[20260704-08:49:22][BE] Error: Command failed
+[20260704-08:49:22][BE]     at ImapFlow.reader (/home/freegear/EasyDocStation/server/node_modules/imapflow/lib/imap-flow.js:805:35)
+[20260704-08:49:22][BE]     at process.processTicksAndRejections (node:internal/process/task_queues:103:5) {
+[20260704-08:49:22][BE]   response: '7 NO Cannot delete this mailbox.',
+[20260704-08:49:22][BE]   responseStatus: 'NO',
+[20260704-08:49:22][BE]   executedCommand: '7 DELETE Reserved',
+[20260704-08:49:22][BE]   responseText: 'Cannot delete this mailbox.'
+[20260704-08:49:22][BE] }
+[20260704-08:49:27][BE] Error: Command failed
+[20260704-08:49:27][BE]     at ImapFlow.reader (/home/freegear/EasyDocStation/server/node_modules/imapflow/lib/imap-flow.js:805:35)
+[20260704-08:49:27][BE]     at process.processTicksAndRejections (node:internal/process/task_queues:103:5) {
+[20260704-08:49:27][BE]   response: '7 NO Cannot delete this mailbox.',
+[20260704-08:49:27][BE]   responseStatus: 'NO',
+[20260704-08:49:27][BE]   executedCommand: '7 DELETE Quotaviolate',
+[20260704-08:49:27][BE]   responseText: 'Cannot delete this mailbox.'
+[20260704-08:49:27][BE] }
+[20260704-08:49:34][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-08:50:35][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-08:51:34][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-08:52:34][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-08:53:33][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-08:54:35][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-08:55:34][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-08:56:36][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=1
+[20260704-08:57:34][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-08:58:34][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-08:59:35][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+종료됨
+[20260704-08:59:52][BE] process exited with code 143. restarting in 2s...
+종료됨
+[20260704-08:59:52][BE] 
+[20260704-08:59:52][BE] > easydocstation-server@1.0.0 start
+[20260704-08:59:52][BE] > node index.js
+[20260704-08:59:52][BE] 
+[20260704-08:59:53][BE] [RAG] 초기화 — 학습 방식: immediate
+[20260704-08:59:53][BE] [RAG] 초기화 — PDF 파싱 모드: FAST
+[20260704-08:59:53][BE] [Mail sync] 자동 동기화 스케줄러 시작: interval=60s
+[20260704-08:59:53][BE] ✅ EasyDocStation server running on http://localhost:3001
+[20260704-08:59:53][BE] ✅ [CONFIG] HF_TOKEN 확인됨 (hf_u****butv, 길이 37)
+[20260704-08:59:53][BE] ✅ Cassandra connected
+[20260704-08:59:53][BE] ✅ Cassandra schema initialized
+[20260704-08:59:53][BE] ✅ Database migration complete.
+[20260704-08:59:53][BE] Terminated
+
+> easydocstation@1.0.0 ollama:serve
+> node scripts/ollama-serve-safe.mjs
+
+
+> easydocstation@1.0.0 dev:frontend
+> vite
+
+[Ollama] already running on 127.0.0.1:11434, skipping duplicate serve.
+[20260704-08:59:55][BE] 
+[20260704-08:59:55][BE] > easydocstation-server@1.0.0 start
+[20260704-08:59:55][BE] > node index.js
+[20260704-08:59:55][BE] 
+
+  VITE v5.4.21  ready in 96 ms
+
+  ➜  Local:   http://localhost:5173/
+  ➜  Network: http://10.0.0.194:5173/
+[20260704-08:59:55][BE] [RAG] 초기화 — 학습 방식: immediate
+[20260704-08:59:55][BE] [RAG] 초기화 — PDF 파싱 모드: FAST
+[20260704-08:59:55][BE] [Mail sync] 자동 동기화 스케줄러 시작: interval=60s
+[20260704-08:59:55][BE] ✅ EasyDocStation server running on http://localhost:3001
+[20260704-08:59:55][BE] ✅ [CONFIG] HF_TOKEN 확인됨 (hf_u****butv, 길이 37)
+[20260704-08:59:55][BE] ✅ Cassandra connected
+[20260704-08:59:55][BE] ✅ Cassandra schema initialized
+[20260704-08:59:55][BE] ✅ Database migration complete.
+[20260704-08:59:59][BE] [RAG Server] [RAG Server] 임베딩 모델 로드 중 (device=cuda)...
+[20260704-09:00:06][BE] Error: 메일 tenant를 찾을 수 없습니다: undefined
+[20260704-09:00:06][BE]     at Object.resolveTenant (/home/freegear/EasyDocStation/server/mail/connectionManager.js:118:23)
+[20260704-09:00:06][BE]     at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+[20260704-09:00:06][BE]     at async tenantQuery (/home/freegear/EasyDocStation/server/mail/repository.js:668:20)
+[20260704-09:00:06][BE]     at async Object.listUnifiedMessages (/home/freegear/EasyDocStation/server/mail/repository.js:1123:20)
+[20260704-09:00:06][BE]     at async /home/freegear/EasyDocStation/server/routes/mail.js:783:23
+[20260704-09:00:06][BE] Error: 메일 tenant를 찾을 수 없습니다: undefined
+[20260704-09:00:06][BE]     at Object.resolveTenant (/home/freegear/EasyDocStation/server/mail/connectionManager.js:118:23)
+[20260704-09:00:06][BE]     at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+[20260704-09:00:06][BE]     at async tenantQuery (/home/freegear/EasyDocStation/server/mail/repository.js:668:20)
+[20260704-09:00:06][BE]     at async Object.listUnifiedMessages (/home/freegear/EasyDocStation/server/mail/repository.js:1123:20)
+[20260704-09:00:06][BE]     at async /home/freegear/EasyDocStation/server/routes/mail.js:783:23
+[20260704-09:00:14][BE] [RAG Server] [RAG Server] 임베딩 모델 로드 완료
+[20260704-09:00:14][BE] [RAG Server] [RAG Server] 포트 5001 에서 시작됨
+[20260704-09:00:39][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-09:01:08][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-09:02:09][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-09:03:08][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-09:04:09][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-09:05:08][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-09:06:09][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-09:07:09][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-09:08:10][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-09:08:36][BE] [imapSync] freegear@me.com 2020-OldMail: 누락분이 많아 이번엔 2000건만 가져왔습니다(나머지는 다음 새로고침에서).
+[20260704-09:09:09][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-09:10:09][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-09:11:11][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-09:12:09][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-09:13:09][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-09:14:09][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+AM 9:14:43 [vite] hmr update /src/features/mail/MailPage.jsx, /src/index.css
+AM 9:14:51 [vite] hmr update /src/features/mail/MailPage.jsx, /src/index.css
+[20260704-09:15:08][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+AM 9:15:12 [vite] hmr update /src/features/mail/MailPage.jsx, /src/index.css
+[20260704-09:16:07][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+종료됨
+[20260704-09:17:00][BE] process exited with code 143. restarting in 2s...
+종료됨
+[20260704-09:17:01][BE] 
+[20260704-09:17:01][BE] > easydocstation-server@1.0.0 start
+[20260704-09:17:01][BE] > node index.js
+[20260704-09:17:01][BE] 
+[20260704-09:17:01][BE] [RAG] 초기화 — 학습 방식: immediate
+[20260704-09:17:01][BE] [RAG] 초기화 — PDF 파싱 모드: FAST
+[20260704-09:17:01][BE] [Mail sync] 자동 동기화 스케줄러 시작: interval=60s
+[20260704-09:17:01][BE] ✅ EasyDocStation server running on http://localhost:3001
+[20260704-09:17:01][BE] ✅ [CONFIG] HF_TOKEN 확인됨 (hf_u****butv, 길이 37)
+[20260704-09:17:01][BE] ✅ Cassandra connected
+[20260704-09:17:01][BE] ✅ Cassandra schema initialized
+[20260704-09:17:01][BE] ✅ Database migration complete.
+[20260704-09:17:01][BE] Terminated
+
+> easydocstation@1.0.0 ollama:serve
+> node scripts/ollama-serve-safe.mjs
+
+
+> easydocstation@1.0.0 dev:frontend
+> vite
+
+[Ollama] already running on 127.0.0.1:11434, skipping duplicate serve.
+[20260704-09:17:03][BE] 
+[20260704-09:17:03][BE] > easydocstation-server@1.0.0 start
+[20260704-09:17:03][BE] > node index.js
+
+  VITE v5.4.21  ready in 90 ms
+
+  ➜  Local:   http://localhost:5173/
+  ➜  Network: http://10.0.0.194:5173/
+[20260704-09:17:03][BE] 
+[20260704-09:17:04][BE] [RAG] 초기화 — 학습 방식: immediate
+[20260704-09:17:04][BE] [RAG] 초기화 — PDF 파싱 모드: FAST
+[20260704-09:17:04][BE] [Mail sync] 자동 동기화 스케줄러 시작: interval=60s
+[20260704-09:17:04][BE] ✅ EasyDocStation server running on http://localhost:3001
+[20260704-09:17:04][BE] ✅ [CONFIG] HF_TOKEN 확인됨 (hf_u****butv, 길이 37)
+[20260704-09:17:04][BE] ✅ Cassandra connected
+[20260704-09:17:04][BE] ✅ Cassandra schema initialized
+[20260704-09:17:04][BE] ✅ Database migration complete.
+[20260704-09:17:07][BE] [RAG Server] [RAG Server] 임베딩 모델 로드 중 (device=cuda)...
+[20260704-09:17:21][BE] [RAG Server] [RAG Server] 임베딩 모델 로드 완료
+[20260704-09:17:21][BE] [RAG Server] 포트 5001 에서 시작됨
+[20260704-09:17:46][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260704-09:17:47][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-09:17:52][BE] Error: 메일 tenant를 찾을 수 없습니다: undefined
+[20260704-09:17:52][BE]     at Object.resolveTenant (/home/freegear/EasyDocStation/server/mail/connectionManager.js:118:23)
+[20260704-09:17:52][BE]     at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+[20260704-09:17:52][BE]     at async tenantQuery (/home/freegear/EasyDocStation/server/mail/repository.js:669:20)
+[20260704-09:17:52][BE]     at async Object.listUnifiedMessages (/home/freegear/EasyDocStation/server/mail/repository.js:1136:20)
+[20260704-09:17:52][BE]     at async /home/freegear/EasyDocStation/server/routes/mail.js:783:23
+[20260704-09:17:52][BE] Error: 메일 tenant를 찾을 수 없습니다: undefined
+[20260704-09:17:52][BE]     at Object.resolveTenant (/home/freegear/EasyDocStation/server/mail/connectionManager.js:118:23)
+[20260704-09:17:52][BE]     at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+[20260704-09:17:52][BE]     at async tenantQuery (/home/freegear/EasyDocStation/server/mail/repository.js:669:20)
+[20260704-09:17:52][BE]     at async Object.listUnifiedMessages (/home/freegear/EasyDocStation/server/mail/repository.js:1136:20)
+[20260704-09:17:52][BE]     at async /home/freegear/EasyDocStation/server/routes/mail.js:783:23
+[20260704-09:18:19][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-09:19:15][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-09:20:15][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-09:21:16][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+AM 9:21:28 [vite] hmr update /src/features/mail/MailPage.jsx, /src/index.css
+AM 9:21:37 [vite] hmr update /src/features/mail/MailPage.jsx, /src/index.css
+AM 9:21:46 [vite] hmr update /src/features/mail/MailPage.jsx, /src/index.css
+[20260704-09:22:18][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-09:22:36][BE] Error: 메일 tenant를 찾을 수 없습니다: undefined
+[20260704-09:22:36][BE]     at Object.resolveTenant (/home/freegear/EasyDocStation/server/mail/connectionManager.js:118:23)
+[20260704-09:22:36][BE]     at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+[20260704-09:22:36][BE]     at async tenantQuery (/home/freegear/EasyDocStation/server/mail/repository.js:669:20)
+[20260704-09:22:36][BE]     at async Object.listUnifiedMessages (/home/freegear/EasyDocStation/server/mail/repository.js:1136:20)
+[20260704-09:22:36][BE]     at async /home/freegear/EasyDocStation/server/routes/mail.js:783:23
+[20260704-09:23:15][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-09:24:15][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-09:25:17][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-09:26:17][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-09:27:15][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-09:28:18][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-09:29:17][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-09:30:18][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-09:31:17][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-09:32:16][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=2
+AM 9:33:02 [vite] hmr update /src/features/mail/MailPage.jsx, /src/index.css
+[20260704-09:33:15][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+AM 9:33:20 [vite] hmr update /src/features/mail/MailPage.jsx, /src/index.css
+AM 9:33:50 [vite] hmr update /src/features/mail/MailPage.jsx, /src/index.css
+AM 9:33:56 [vite] hmr update /src/features/mail/MailPage.jsx, /src/index.css
+AM 9:34:05 [vite] hmr update /src/features/mail/MailPage.jsx, /src/index.css
+AM 9:34:13 [vite] hmr update /src/features/mail/MailPage.jsx, /src/index.css
+[20260704-09:34:15][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+AM 9:34:21 [vite] hmr update /src/features/mail/MailPage.jsx, /src/index.css
+AM 9:34:32 [vite] hmr update /src/features/mail/MailPage.jsx, /src/index.css
+AM 9:34:48 [vite] hmr update /src/features/mail/MailPage.jsx, /src/index.css
+AM 9:35:02 [vite] hmr update /src/features/mail/MailPage.jsx, /src/index.css
+AM 9:35:11 [vite] hmr update /src/features/mail/MailPage.jsx, /src/index.css
+[20260704-09:35:15][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+AM 9:35:16 [vite] hmr update /src/features/mail/MailPage.jsx, /src/index.css
+AM 9:35:25 [vite] hmr update /src/features/mail/MailPage.jsx, /src/index.css
+[20260704-09:36:06][BE] Error: 메일 tenant를 찾을 수 없습니다: undefined
+[20260704-09:36:06][BE]     at Object.resolveTenant (/home/freegear/EasyDocStation/server/mail/connectionManager.js:118:23)
+[20260704-09:36:06][BE]     at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+[20260704-09:36:06][BE]     at async tenantQuery (/home/freegear/EasyDocStation/server/mail/repository.js:669:20)
+[20260704-09:36:06][BE]     at async Object.listUnifiedMessages (/home/freegear/EasyDocStation/server/mail/repository.js:1136:20)
+[20260704-09:36:06][BE]     at async /home/freegear/EasyDocStation/server/routes/mail.js:783:23
+[20260704-09:36:06][BE] Error: 메일 tenant를 찾을 수 없습니다: undefined
+[20260704-09:36:06][BE]     at Object.resolveTenant (/home/freegear/EasyDocStation/server/mail/connectionManager.js:118:23)
+[20260704-09:36:06][BE]     at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+[20260704-09:36:06][BE]     at async tenantQuery (/home/freegear/EasyDocStation/server/mail/repository.js:669:20)
+[20260704-09:36:06][BE]     at async Object.listUnifiedMessages (/home/freegear/EasyDocStation/server/mail/repository.js:1136:20)
+[20260704-09:36:06][BE]     at async /home/freegear/EasyDocStation/server/routes/mail.js:783:23
+[20260704-09:36:17][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-09:37:16][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-09:38:17][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-09:38:21][BE] [ATTACH-REF] sync ownerType=post ownerId=361a671c-eb51-4c71-9038-a174a2aa0134 actorUserId=1 prev=0 next=1 add=1 remove=0
+[20260704-09:38:21][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
+[20260704-09:38:21][BE] /home/freegear/EasyDocStation/server/rag_train.py:120: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260704-09:38:21][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260704-09:38:24][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v2' already exists
+[20260704-09:38:24][BE] [RAG] post=361a671c-eb51-4c71-9038-a174a2aa0134 text → 1청크
+[20260704-09:38:24][BE] [RAG] 학습 진행률: 30% (게시글 본문)
+[20260704-09:38:24][BE] [RAG] PDF 학습 시작: 수요기업 과제 소개서.pdf
+[20260704-09:38:25][BE] [RAG] PDF 파싱 시작 (Unstructured fast): 수요기업 과제 소개서.pdf
+[20260704-09:38:50][BE] [RAG] PDF 학습 완료: 수요기업 과제 소개서.pdf (257청크)
+[20260704-09:38:50][BE] [RAG] 분리 저장 완료: /home/freegear/EasyDocStation/Database/ObjectFile/FileTrainingData/361a671c-eb51-4c71-9038-a174a2aa0134/no_comment/f96eb9a3-7ed7-440f-808d-3c429f3cc4d0/수요기업_과제_소개서.pdf
+[20260704-09:38:50][BE] [RAG] 학습 진행률: 60% (게시글 PDF)
+[20260704-09:38:50][BE] [RAG] 저장 완료 — 258청크 / 1개 게시글 / 0개 댓글
+[20260704-09:38:50][BE] [RAG] 학습 진행률: 100% (저장)
+[20260704-09:38:51][BE] [RAG] 학습 완료
+[20260704-09:39:05][BE] [ATTACH-REF] sync ownerType=comment ownerId=c-76e19bde-b794-4f42-bbf7-46000e9c0bf6 actorUserId=1 prev=0 next=2 add=2 remove=0
+[20260704-09:39:05][BE] [RAG] 댓글 학습 시작 — 1개 댓글 (제외: 0개)
+[20260704-09:39:05][BE] /home/freegear/EasyDocStation/server/rag_train.py:120: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260704-09:39:05][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260704-09:39:08][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v2' already exists
+[20260704-09:39:08][BE] [RAG] comment=c-76e19bde-b794-4f42-bbf7-46000e9c0bf6 post=361a671c-eb51-4c71-9038-a174a2aa0134 text → 1청크
+[20260704-09:39:08][BE] [RAG] 학습 진행률: 20% (댓글 본문)
+[20260704-09:39:08][BE] [RAG] 이미지 학습 시작: 스크린샷 2026-07-04 오전 9.37.30.png
+[20260704-09:39:17][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-09:39:47][BE] [RAG] Gemma 이미지 설명 완료 (page=1, 38.6s): 2491자
+[20260704-09:39:47][BE] [RAG] 이미지 학습 완료: 스크린샷 2026-07-04 오전 9.37.30.png (5청크)
+[20260704-09:39:47][BE] [RAG] 학습 진행률: 50% (댓글 이미지)
+[20260704-09:39:47][BE] [RAG] 이미지 학습 시작: 스크린샷 2026-07-04 오전 9.37.36.png
+[20260704-09:40:09][BE] [SearchIndex] 이미지 첨부 인덱싱 완료: c8c92e68-51bf-4768-bae1-c1ce7d14305e 스크린샷 2026-07-04 오전 9.37.30.png
+[20260704-09:40:18][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-09:40:42][BE] [RAG] Gemma 이미지 설명 완료 (page=1, 55.0s): 2206자
+[20260704-09:40:42][BE] [RAG] 이미지 학습 완료: 스크린샷 2026-07-04 오전 9.37.36.png (4청크)
+[20260704-09:40:42][BE] [RAG] 학습 진행률: 70% (댓글 이미지)
+[20260704-09:40:42][BE] [RAG] 저장 완료 — 10청크 / 0개 게시글 / 1개 댓글
+[20260704-09:40:42][BE] [RAG] 학습 진행률: 100% (저장)
+[20260704-09:40:45][BE] [RAG] 댓글 학습 완료 — 1개 댓글 (99.5s)
+[20260704-09:40:58][BE] [SearchIndex] 이미지 첨부 인덱싱 완료: badf020e-112c-4873-8640-44d780c266df 스크린샷 2026-07-04 오전 9.37.36.png
+[20260704-09:41:17][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-09:42:15][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-09:43:14][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-09:44:15][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-09:45:14][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-09:46:16][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-09:47:15][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-09:48:16][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-09:49:15][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-09:50:15][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-09:51:16][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-09:51:41][BE] [ATTACH-REF] sync ownerType=post ownerId=d30626bf-6337-4b00-b1ec-bc22448d89c3 actorUserId=1 prev=0 next=1 add=1 remove=0
+[20260704-09:51:41][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
+[20260704-09:51:41][BE] /home/freegear/EasyDocStation/server/rag_train.py:120: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260704-09:51:41][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260704-09:51:44][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v2' already exists
+[20260704-09:51:44][BE] [RAG] post=d30626bf-6337-4b00-b1ec-bc22448d89c3 text → 1청크
+[20260704-09:51:44][BE] [RAG] 학습 진행률: 30% (게시글 본문)
+[20260704-09:51:44][BE] [RAG] 이미지 학습 시작: Gemini_Generated_Image_pacsimpacsimpacs.png
+[20260704-09:52:15][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-09:52:34][BE] [RAG] Gemma 이미지 설명 완료 (page=1, 50.0s): 3004자
+[20260704-09:52:35][BE] [RAG] 이미지 학습 완료: Gemini_Generated_Image_pacsimpacsimpacs.png (5청크)
+[20260704-09:52:35][BE] [RAG] 학습 진행률: 60% (게시글 이미지)
+[20260704-09:52:35][BE] [RAG] 저장 완료 — 6청크 / 1개 게시글 / 0개 댓글
+[20260704-09:52:35][BE] [RAG] 학습 진행률: 100% (저장)
+[20260704-09:52:37][BE] [RAG] 학습 완료
+[20260704-09:53:10][BE] [SearchIndex] 이미지 첨부 인덱싱 완료: 29d6c9bf-dd5e-4c3b-bc69-bdd380226478 Gemini_Generated_Image_pacsimpacsimpacs.png
+[20260704-09:53:16][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-09:54:17][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-09:55:16][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-09:56:17][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-09:56:26][BE] [ATTACH-REF] sync ownerType=comment ownerId=c-f02b55f6-5ee9-4485-a571-459d0cf56c54 actorUserId=1 prev=0 next=1 add=1 remove=0
+[20260704-09:56:26][BE] [RAG] 댓글 학습 시작 — 1개 댓글 (제외: 0개)
+[20260704-09:56:27][BE] /home/freegear/EasyDocStation/server/rag_train.py:120: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260704-09:56:27][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260704-09:56:30][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v2' already exists
+[20260704-09:56:30][BE] [RAG] comment=c-f02b55f6-5ee9-4485-a571-459d0cf56c54 post=d30626bf-6337-4b00-b1ec-bc22448d89c3 text → 1청크
+[20260704-09:56:30][BE] [RAG] 학습 진행률: 30% (댓글 본문)
+[20260704-09:56:30][BE] [RAG] MarkItDown 학습 시작: EasyStation_dashboard.html (html)
+[20260704-09:56:30][BE] [RAG] MarkItDown 학습 완료: EasyStation_dashboard.html (1청크, 0.3s)
+[20260704-09:56:30][BE] [RAG] 학습 진행률: 60% (댓글 MarkItDown)
+[20260704-09:56:30][BE] [RAG] 저장 완료 — 2청크 / 0개 게시글 / 1개 댓글
+[20260704-09:56:30][BE] [RAG] 학습 진행률: 100% (저장)
+[20260704-09:56:31][BE] [RAG] 댓글 학습 완료 — 1개 댓글 (4.3s)
+[20260704-09:56:35][BE] [ATTACH-REF] sync ownerType=comment ownerId=c-4743986b-ac14-4423-a0d5-d6b92ca66a87 actorUserId=1 prev=0 next=1 add=1 remove=0
+[20260704-09:56:35][BE] [RAG] 댓글 학습 시작 — 1개 댓글 (제외: 0개)
+[20260704-09:56:35][BE] /home/freegear/EasyDocStation/server/rag_train.py:120: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260704-09:56:35][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260704-09:56:39][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v2' already exists
+[20260704-09:56:39][BE] [RAG] comment=c-4743986b-ac14-4423-a0d5-d6b92ca66a87 post=d30626bf-6337-4b00-b1ec-bc22448d89c3 text → 1청크
+[20260704-09:56:39][BE] [RAG] 학습 진행률: 30% (댓글 본문)
+[20260704-09:56:39][BE] [RAG] 이미지 학습 시작: 스크린샷 2026-07-04 오전 9.56.16.png
+[20260704-09:57:12][BE] [SearchIndex] 이미지 첨부 인덱싱 완료: 2be6a8b6-7ab2-4071-b997-9aac78ad23ac 스크린샷 2026-07-04 오전 9.56.16.png
+[20260704-09:57:16][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-09:58:00][BE] [RAG] Gemma 이미지 설명 완료 (page=1, 80.9s): 2395자
+[20260704-09:58:00][BE] [RAG] 이미지 학습 완료: 스크린샷 2026-07-04 오전 9.56.16.png (4청크)
+[20260704-09:58:00][BE] [RAG] 학습 진행률: 60% (댓글 이미지)
+[20260704-09:58:00][BE] [RAG] 저장 완료 — 5청크 / 0개 게시글 / 1개 댓글
+[20260704-09:58:00][BE] [RAG] 학습 진행률: 100% (저장)
+[20260704-09:58:00][BE] [RAG] 댓글 학습 완료 — 1개 댓글 (85.7s)
+[20260704-09:58:18][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-09:59:17][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-10:00:20][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-10:00:58][BE] [ATTACH-REF] sync ownerType=comment ownerId=c-3647b36d-9983-4d4d-9f3b-a91fec8ec3ee actorUserId=1 prev=0 next=1 add=1 remove=0
+[20260704-10:00:58][BE] [RAG] 댓글 학습 시작 — 1개 댓글 (제외: 0개)
+[20260704-10:00:58][BE] /home/freegear/EasyDocStation/server/rag_train.py:120: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260704-10:00:58][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260704-10:01:01][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v2' already exists
+[20260704-10:01:01][BE] [RAG] comment=c-3647b36d-9983-4d4d-9f3b-a91fec8ec3ee post=d30626bf-6337-4b00-b1ec-bc22448d89c3 text → 1청크
+[20260704-10:01:01][BE] [RAG] 학습 진행률: 30% (댓글 본문)
+[20260704-10:01:01][BE] [RAG] MarkItDown 학습 시작: EasyStation_dashboard (1).html (html)
+[20260704-10:01:02][BE] [RAG] MarkItDown 학습 완료: EasyStation_dashboard (1).html (1청크, 0.3s)
+[20260704-10:01:02][BE] [RAG] 학습 진행률: 60% (댓글 MarkItDown)
+[20260704-10:01:02][BE] [RAG] 저장 완료 — 2청크 / 0개 게시글 / 1개 댓글
+[20260704-10:01:02][BE] [RAG] 학습 진행률: 100% (저장)
+[20260704-10:01:02][BE] [RAG] 댓글 학습 완료 — 1개 댓글 (4.2s)
+[20260704-10:01:15][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-10:01:25][BE] [ATTACH-REF] sync ownerType=comment ownerId=c-c9067fce-937a-481b-a73d-4c4c3777768a actorUserId=1 prev=0 next=1 add=1 remove=0
+[20260704-10:01:25][BE] [RAG] 댓글 학습 시작 — 1개 댓글 (제외: 0개)
+[20260704-10:01:25][BE] /home/freegear/EasyDocStation/server/rag_train.py:120: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260704-10:01:25][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260704-10:01:28][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v2' already exists
+[20260704-10:01:28][BE] [RAG] comment=c-c9067fce-937a-481b-a73d-4c4c3777768a post=d30626bf-6337-4b00-b1ec-bc22448d89c3 text → 1청크
+[20260704-10:01:28][BE] [RAG] 학습 진행률: 30% (댓글 본문)
+[20260704-10:01:28][BE] [RAG] 이미지 학습 시작: 스크린샷 2026-07-04 오전 10.01.08.png
+[20260704-10:01:58][BE] [SearchIndex] 이미지 첨부 인덱싱 완료: 08506860-a100-404c-a34a-4f1d208378f6 스크린샷 2026-07-04 오전 10.01.08.png
+[20260704-10:02:15][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-10:02:44][BE] [RAG] Gemma 이미지 설명 완료 (page=1, 75.4s): 2619자
+[20260704-10:02:44][BE] [RAG] 이미지 학습 완료: 스크린샷 2026-07-04 오전 10.01.08.png (5청크)
+[20260704-10:02:44][BE] [RAG] 학습 진행률: 60% (댓글 이미지)
+[20260704-10:02:44][BE] [RAG] 저장 완료 — 6청크 / 0개 게시글 / 1개 댓글
+[20260704-10:02:44][BE] [RAG] 학습 진행률: 100% (저장)
+[20260704-10:02:45][BE] [RAG] 댓글 학습 완료 — 1개 댓글 (79.6s)
+[20260704-10:03:17][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-10:04:16][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-10:05:16][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-10:06:17][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-10:07:16][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-10:07:34][BE] Error: 메일 tenant를 찾을 수 없습니다: undefined
+[20260704-10:07:34][BE]     at Object.resolveTenant (/home/freegear/EasyDocStation/server/mail/connectionManager.js:118:23)
+[20260704-10:07:34][BE]     at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+[20260704-10:07:34][BE]     at async tenantQuery (/home/freegear/EasyDocStation/server/mail/repository.js:669:20)
+[20260704-10:07:34][BE]     at async Object.listUnifiedMessages (/home/freegear/EasyDocStation/server/mail/repository.js:1136:20)
+[20260704-10:07:34][BE]     at async /home/freegear/EasyDocStation/server/routes/mail.js:783:23
+[20260704-10:07:34][BE] Error: 메일 tenant를 찾을 수 없습니다: undefined
+[20260704-10:07:34][BE]     at Object.resolveTenant (/home/freegear/EasyDocStation/server/mail/connectionManager.js:118:23)
+[20260704-10:07:34][BE]     at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+[20260704-10:07:34][BE]     at async tenantQuery (/home/freegear/EasyDocStation/server/mail/repository.js:669:20)
+[20260704-10:07:34][BE]     at async Object.listUnifiedMessages (/home/freegear/EasyDocStation/server/mail/repository.js:1136:20)
+[20260704-10:07:34][BE]     at async /home/freegear/EasyDocStation/server/routes/mail.js:783:23
+[20260704-10:08:15][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-10:09:15][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-10:10:16][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=1
+[20260704-10:11:08][BE] [imapSync] freegear@siliconcube.co.kr INBOX: 누락분이 많아 이번엔 2000건만 가져왔습니다(나머지는 다음 새로고침에서).
+[20260704-10:11:17][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-10:12:16][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-10:13:18][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-10:14:17][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-10:15:17][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-10:16:15][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+AM 10:17:07 [vite] hmr update /src/features/mail/MailPage.jsx, /src/index.css
+[20260704-10:17:07][BE] Error: 메일 tenant를 찾을 수 없습니다: undefined
+[20260704-10:17:07][BE]     at Object.resolveTenant (/home/freegear/EasyDocStation/server/mail/connectionManager.js:118:23)
+[20260704-10:17:07][BE]     at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+[20260704-10:17:07][BE]     at async tenantQuery (/home/freegear/EasyDocStation/server/mail/repository.js:669:20)
+[20260704-10:17:07][BE]     at async Object.listUnifiedMessages (/home/freegear/EasyDocStation/server/mail/repository.js:1136:20)
+[20260704-10:17:07][BE]     at async /home/freegear/EasyDocStation/server/routes/mail.js:783:23
+[20260704-10:17:19][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+AM 10:17:23 [vite] hmr update /src/features/mail/MailPage.jsx, /src/index.css
+AM 10:17:46 [vite] hmr update /src/features/mail/MailPage.jsx, /src/index.css
+AM 10:17:59 [vite] hmr update /src/features/mail/MailPage.jsx, /src/index.css
+AM 10:18:14 [vite] hmr update /src/features/mail/MailPage.jsx, /src/index.css
+[20260704-10:18:18][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=1
+AM 10:18:32 [vite] hmr update /src/features/mail/MailPage.jsx, /src/index.css
+AM 10:18:40 [vite] hmr update /src/features/mail/MailPage.jsx, /src/index.css
+AM 10:18:48 [vite] hmr update /src/features/mail/MailPage.jsx, /src/index.css
+[20260704-10:19:15][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+AM 10:19:57 [vite] hmr update /src/features/mail/MailPage.jsx, /src/index.css
+[20260704-10:20:17][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+AM 10:20:29 [vite] hmr update /src/features/mail/MailPage.jsx, /src/index.css
+AM 10:20:36 [vite] hmr update /src/features/mail/MailPage.jsx, /src/index.css
+[20260704-10:21:07][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260704-10:21:17][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-10:22:18][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=6
+[20260704-10:23:17][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-10:24:16][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-10:25:16][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-10:26:16][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-10:27:15][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-10:28:15][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-10:29:15][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-10:30:17][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-10:31:18][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-10:32:20][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-10:33:17][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-10:34:17][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-10:35:16][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-10:35:22][BE] [link-preview-image] meta image failed, fallback screenshot: fetch failed
+[20260704-10:35:22][BE] [link-preview-image] local render failed, try remote fallback: page.goto: net::ERR_CERT_AUTHORITY_INVALID at https://www.gtsystem.co.kr/?utm_source=chatgpt.com
+[20260704-10:35:22][BE] Call log:
+[20260704-10:35:22][BE] [2m  - navigating to "https://www.gtsystem.co.kr/?utm_source=chatgpt.com", waiting until "domcontentloaded"[22m
+[20260704-10:35:22][BE] 
+[20260704-10:35:38][BE] [ATTACH-REF] sync ownerType=comment ownerId=c-19f26c4a-aa4d-4f2c-be7b-dfa6064e3fa8 actorUserId=1 prev=0 next=1 add=1 remove=0
+[20260704-10:35:38][BE] [RAG] 댓글 학습 시작 — 1개 댓글 (제외: 0개)
+[20260704-10:35:38][BE] /home/freegear/EasyDocStation/server/rag_train.py:120: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260704-10:35:38][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260704-10:35:41][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v2' already exists
+[20260704-10:35:41][BE] [RAG] comment=c-19f26c4a-aa4d-4f2c-be7b-dfa6064e3fa8 post=51fd65e0-b398-48d3-af12-03c45e08bec3 text → 1청크
+[20260704-10:35:41][BE] [RAG] 학습 진행률: 30% (댓글 본문)
+[20260704-10:35:41][BE] [RAG] Word 학습 시작: 실리콘큐브_대리점계약서_GTSystem_20260702.docx
+[20260704-10:35:41][BE] [RAG] Word 학습 완료: 실리콘큐브_대리점계약서_GTSystem_20260702.docx (6청크)
+[20260704-10:35:41][BE] [RAG] 학습 진행률: 60% (댓글 Word)
+[20260704-10:35:41][BE] [RAG] 저장 완료 — 7청크 / 0개 게시글 / 1개 댓글
+[20260704-10:35:41][BE] [RAG] 학습 진행률: 100% (저장)
+[20260704-10:35:42][BE] [RAG] 댓글 학습 완료 — 1개 댓글 (4.1s)
+[20260704-10:36:15][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-10:37:15][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-10:37:58][BE] [Mail send] 시작 account=freegear@siliconcube.co.kr to=1 첨부=0개 본문=110B 첨부합계=0B 예상전송크기≈151B
+[20260704-10:38:13][BE] [Mail send] 실패 account=freegear@siliconcube.co.kr 15049ms code=ETIMEDOUT responseCode=-: Greeting never received
+[20260704-10:38:16][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-10:38:19][BE] [Mail send] 시작 account=freegear@siliconcube.co.kr to=1 첨부=0개 본문=110B 첨부합계=0B 예상전송크기≈151B
+[20260704-10:38:34][BE] [Mail send] 실패 account=freegear@siliconcube.co.kr 15036ms code=ETIMEDOUT responseCode=-: Greeting never received
+[20260704-10:39:14][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-10:39:20][BE] [Mail send] 시작 account=freegear@siliconcube.co.kr to=1 첨부=0개 본문=110B 첨부합계=0B 예상전송크기≈151B
+[20260704-10:39:35][BE] [Mail send] 실패 account=freegear@siliconcube.co.kr 15038ms code=ETIMEDOUT responseCode=-: Greeting never received
+[20260704-10:40:15][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-10:41:17][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+AM 10:41:42 [vite] hmr update /src/features/mail/MailPage.jsx, /src/index.css
+[20260704-10:42:17][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-10:43:19][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-10:43:37][BE] [Mail send] 시작 account=freegear@siliconcube.co.kr to=1 첨부=0개 본문=110B 첨부합계=0B 예상전송크기≈151B
+[20260704-10:44:19][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-10:44:22][BE] [Mail send] 실패 account=freegear@siliconcube.co.kr 45049ms code=ETIMEDOUT responseCode=-: Connection timeout
+[20260704-10:44:41][BE] [Mail send] 시작 account=freegear@siliconcube.co.kr to=1 첨부=0개 본문=17.6KB 첨부합계=0B 예상전송크기≈24.2KB
+[20260704-10:45:15][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-10:45:26][BE] [Mail send] 실패 account=freegear@siliconcube.co.kr 45001ms code=ETIMEDOUT responseCode=-: Connection timeout
+[20260704-10:46:15][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-10:47:15][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-10:48:17][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-10:48:46][BE] [Mail send] 시작 account=freegear@siliconcube.co.kr to=1 첨부=0개 본문=17.6KB 첨부합계=0B 예상전송크기≈24.2KB
+[20260704-10:49:17][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-10:49:31][BE] [Mail send] 실패 account=freegear@siliconcube.co.kr 45013ms code=ETIMEDOUT responseCode=-: Connection timeout
+[20260704-10:50:03][BE] [Mail send] 시작 account=freegear@siliconcube.co.kr to=1 첨부=0개 본문=17.6KB 첨부합계=0B 예상전송크기≈24.2KB
+[20260704-10:50:17][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-10:50:48][BE] [Mail send] 실패 account=freegear@siliconcube.co.kr 45003ms code=ETIMEDOUT responseCode=-: Connection timeout
+[20260704-10:51:19][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-10:51:29][BE] [Mail send] 시작 account=freegear@siliconcube.co.kr to=1 첨부=0개 본문=17.6KB 첨부합계=0B 예상전송크기≈24.2KB
+[20260704-10:52:14][BE] [Mail send] 실패 account=freegear@siliconcube.co.kr 45003ms code=ETIMEDOUT responseCode=-: Connection timeout
+[20260704-10:52:17][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-10:53:16][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-10:54:16][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-10:55:15][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-10:56:15][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-10:57:15][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-10:58:16][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-10:59:16][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-11:00:18][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-11:01:15][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-11:02:17][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-11:03:17][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-11:04:18][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-11:05:17][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-11:06:16][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-11:07:16][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-11:08:16][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-11:09:15][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-11:10:15][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-11:11:19][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-11:12:20][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=1
+[20260704-11:13:17][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-11:14:16][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-11:15:16][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-11:16:16][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-11:17:15][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-11:18:17][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-11:19:17][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-11:20:17][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-11:21:17][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-11:22:15][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-11:23:15][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-11:24:16][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-11:25:16][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-11:26:17][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-11:27:16][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-11:28:15][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-11:29:15][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-11:30:15][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-11:31:18][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-11:32:17][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-11:33:19][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=1
+[20260704-11:34:17][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-11:35:16][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-11:36:16][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-11:37:16][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-11:38:16][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-11:39:15][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-11:40:15][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-11:41:15][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-11:42:16][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-11:43:17][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-11:44:17][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-11:45:17][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-11:46:16][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-11:47:15][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-11:48:15][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-11:49:16][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-11:50:15][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-11:51:15][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-11:52:17][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-11:53:17][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-11:54:15][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-11:55:18][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-11:56:15][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-11:57:16][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-11:58:16][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-11:59:17][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-12:00:18][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-12:01:17][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-12:02:16][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-12:03:15][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-12:04:15][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-12:05:17][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-12:06:17][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-12:07:17][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-12:08:17][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-12:09:17][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-12:10:17][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-12:11:15][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-12:12:17][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-12:13:17][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-12:14:18][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-12:15:17][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-12:16:15][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-12:17:15][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-12:18:15][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-12:19:21][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-12:20:17][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-12:21:16][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-12:22:17][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-12:23:17][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-12:24:15][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-12:25:16][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-12:26:17][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-12:27:15][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-12:28:15][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-12:29:17][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-12:30:15][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-12:31:20][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-12:32:17][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-12:33:18][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-12:34:17][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-12:35:18][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-12:36:17][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-12:37:17][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-12:38:18][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-12:39:17][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-12:40:17][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-12:41:17][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-12:42:17][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-12:43:16][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-12:44:17][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-12:45:18][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-12:46:18][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-12:47:16][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-12:48:18][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-12:49:16][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-12:50:16][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-12:51:18][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-12:52:17][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260704-12:52:18][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-12:53:17][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-12:54:17][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-12:55:16][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-12:56:16][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-12:57:16][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-12:58:17][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-12:59:16][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-13:00:16][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-13:01:23][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-13:02:16][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-13:03:16][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-13:04:17][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-13:05:17][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-13:06:17][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-13:07:17][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-13:08:17][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-13:09:15][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-13:10:15][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-13:11:18][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-13:12:15][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-13:13:15][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-13:14:15][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-13:15:17][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-13:16:17][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=1
+[20260704-13:17:17][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-13:18:17][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-13:19:17][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-13:20:17][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-13:21:17][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-13:22:16][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-13:23:20][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-13:24:15][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-13:25:15][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-13:26:15][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-13:27:16][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-13:28:15][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-13:29:20][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-13:30:17][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-13:31:18][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+PM 1:31:53 [vite] hmr update /src/components/SiteAdminPage.jsx, /src/index.css
+[20260704-13:32:18][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+PM 1:32:22 [vite] hmr update /src/components/SiteAdminPage.jsx, /src/index.css
+[20260704-13:33:18][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-13:33:32][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260704-13:34:15][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+종료됨
+[20260704-13:35:06][BE] process exited with code 143. restarting in 2s...
+종료됨
+[20260704-13:35:06][BE] 
+[20260704-13:35:06][BE] > easydocstation-server@1.0.0 start
+[20260704-13:35:06][BE] > node index.js
+[20260704-13:35:06][BE] 
+[20260704-13:35:06][BE] [RAG] 초기화 — 학습 방식: immediate
+[20260704-13:35:06][BE] [RAG] 초기화 — PDF 파싱 모드: FAST
+[20260704-13:35:06][BE] [Mail sync] 자동 동기화 스케줄러 시작: interval=60s
+[20260704-13:35:06][BE] ✅ EasyDocStation server running on http://localhost:3001
+[20260704-13:35:06][BE] ✅ [CONFIG] HF_TOKEN 확인됨 (hf_u****butv, 길이 37)
+[20260704-13:35:06][BE] ✅ Cassandra connected
+[20260704-13:35:06][BE] ✅ Cassandra schema initialized
+[20260704-13:35:06][BE] ✅ Database migration complete.
+[20260704-13:35:06][BE] Terminated
+
+> easydocstation@1.0.0 ollama:serve
+> node scripts/ollama-serve-safe.mjs
+
+
+> easydocstation@1.0.0 dev:frontend
+> vite
+
+[Ollama] already running on 127.0.0.1:11434, skipping duplicate serve.
+[20260704-13:35:09][BE] 
+[20260704-13:35:09][BE] > easydocstation-server@1.0.0 start
+[20260704-13:35:09][BE] > node index.js
+[20260704-13:35:09][BE] 
+
+  VITE v5.4.21  ready in 98 ms
+
+  ➜  Local:   http://localhost:5173/
+  ➜  Network: http://10.0.0.194:5173/
+[20260704-13:35:09][BE] [RAG] 초기화 — 학습 방식: immediate
+[20260704-13:35:09][BE] [RAG] 초기화 — PDF 파싱 모드: FAST
+[20260704-13:35:09][BE] [Mail sync] 자동 동기화 스케줄러 시작: interval=60s
+[20260704-13:35:09][BE] ✅ EasyDocStation server running on http://localhost:3001
+[20260704-13:35:09][BE] ✅ [CONFIG] HF_TOKEN 확인됨 (hf_u****butv, 길이 37)
+[20260704-13:35:09][BE] ✅ Cassandra connected
+[20260704-13:35:09][BE] ✅ Cassandra schema initialized
+[20260704-13:35:09][BE] ✅ Database migration complete.
+[20260704-13:35:13][BE] [RAG Server] [RAG Server] 임베딩 모델 로드 중 (device=cuda)...
+[20260704-13:35:28][BE] [RAG Server] [RAG Server] 임베딩 모델 로드 완료
+[20260704-13:35:28][BE] [RAG Server] 포트 5001 에서 시작됨
+[20260704-13:35:56][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-13:36:22][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-13:37:23][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-13:38:22][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-13:39:22][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-13:40:23][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-13:41:23][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-13:42:20][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-13:43:23][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+PM 1:43:39 [vite] hmr update /src/components/SiteAdminPage.jsx, /src/index.css
+PM 1:43:46 [vite] hmr update /src/components/SiteAdminPage.jsx, /src/index.css
+PM 1:43:49 [vite] hmr update /src/index.css, /src/contexts/AuthContext.jsx, /src/contexts/ChatContext.jsx, /src/components/Sidebar.jsx, /src/components/GroqPanel.jsx, /src/components/MobileLayout.jsx, /src/components/CalendarView.jsx, /src/components/DirectMessageView.jsx, /src/components/ChatArea.jsx, /src/components/chat/PostDetailPane.jsx, /src/components/SiteAdminPage.jsx, /src/components/ChannelManageModal.jsx, /src/components/TeamManageModal.jsx, /src/features/mail/MailPage.jsx, /src/components/EventAddModal.jsx, /src/components/SpeakerRegistrationModal.jsx, /src/components/chat/MDPageViewer.jsx, /src/components/chat/md-page/toolbar/InternalLinkAutocomplete.jsx
+PM 1:43:50 [vite] hmr invalidate /src/contexts/AuthContext.jsx Could not Fast Refresh ("useAuth" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+PM 1:43:50 [vite] hmr update /src/App.jsx, /src/index.css, /src/components/TitleBar.jsx, /src/contexts/ChatContext.jsx, /src/components/Sidebar.jsx, /src/components/GroqPanel.jsx, /src/components/LoginScreen.jsx, /src/components/UserProfileModal.jsx, /src/components/SearchResultsArea.jsx, /src/components/DirectMessageView.jsx, /src/components/ChatArea.jsx, /src/components/SiteAdminPage.jsx, /src/components/ChannelManageModal.jsx, /src/components/TeamManageModal.jsx, /src/components/EventAddModal.jsx, /src/components/chat/PostDetailPane.jsx, /src/components/chat/MDPageViewer.jsx, /src/components/CalendarView.jsx, /src/features/mail/MailPage.jsx
+PM 1:43:50 [vite] hmr invalidate /src/contexts/ChatContext.jsx Could not Fast Refresh ("useChat" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+PM 1:43:50 [vite] hmr update /src/App.jsx, /src/index.css, /src/components/TitleBar.jsx, /src/components/Sidebar.jsx, /src/components/GroqPanel.jsx, /src/components/MobileLayout.jsx, /src/components/UserProfileModal.jsx, /src/components/SearchResultsArea.jsx, /src/components/ChatArea.jsx, /src/components/ChannelManageModal.jsx, /src/components/chat/PostDetailPane.jsx, /src/components/chat/MDPageViewer.jsx
+PM 1:44:09 [vite] hmr update /src/components/SiteAdminPage.jsx, /src/index.css
+[20260704-13:44:21][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=1
+종료됨
+[20260704-13:45:09][BE] process exited with code 143. restarting in 2s...
+종료됨
+[20260704-13:45:09][BE] 
+[20260704-13:45:09][BE] > easydocstation-server@1.0.0 start
+[20260704-13:45:09][BE] > node index.js
+[20260704-13:45:09][BE] 
+[20260704-13:45:09][BE] [RAG] 초기화 — 학습 방식: immediate
+[20260704-13:45:09][BE] [RAG] 초기화 — PDF 파싱 모드: FAST
+[20260704-13:45:09][BE] [Mail sync] 자동 동기화 스케줄러 시작: interval=60s
+[20260704-13:45:09][BE] ✅ EasyDocStation server running on http://localhost:3001
+[20260704-13:45:09][BE] ✅ [CONFIG] HF_TOKEN 확인됨 (hf_u****butv, 길이 37)
+[20260704-13:45:10][BE] ✅ Cassandra connected
+[20260704-13:45:10][BE] ✅ Cassandra schema initialized
+[20260704-13:45:10][BE] ✅ Database migration complete.
+[20260704-13:45:10][BE] Terminated
+
+> easydocstation@1.0.0 ollama:serve
+> node scripts/ollama-serve-safe.mjs
+
+
+> easydocstation@1.0.0 dev:frontend
+> vite
+
+[Ollama] already running on 127.0.0.1:11434, skipping duplicate serve.
+
+  VITE v5.4.21  ready in 103 ms
+
+  ➜  Local:   http://localhost:5173/
+  ➜  Network: http://10.0.0.194:5173/
+[20260704-13:45:12][BE] 
+[20260704-13:45:12][BE] > easydocstation-server@1.0.0 start
+[20260704-13:45:12][BE] > node index.js
+[20260704-13:45:12][BE] 
+PM 1:45:12 [vite] http proxy error: /api/dm/conversations
+Error: connect ECONNREFUSED 127.0.0.1:3001
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+PM 1:45:12 [vite] http proxy error: /api/posts?channelId=ch-1776440801214&limit=10
+Error: connect ECONNREFUSED 127.0.0.1:3001
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+[20260704-13:45:12][BE] [RAG] 초기화 — 학습 방식: immediate
+[20260704-13:45:12][BE] [RAG] 초기화 — PDF 파싱 모드: FAST
+[20260704-13:45:12][BE] [Mail sync] 자동 동기화 스케줄러 시작: interval=60s
+[20260704-13:45:12][BE] ✅ EasyDocStation server running on http://localhost:3001
+[20260704-13:45:12][BE] ✅ [CONFIG] HF_TOKEN 확인됨 (hf_u****butv, 길이 37)
+[20260704-13:45:12][BE] ✅ Cassandra connected
+[20260704-13:45:12][BE] ✅ Cassandra schema initialized
+[20260704-13:45:12][BE] ✅ Database migration complete.
+[20260704-13:45:16][BE] [RAG Server] [RAG Server] 임베딩 모델 로드 중 (device=cuda)...
+[20260704-13:45:31][BE] [RAG Server] [RAG Server] 임베딩 모델 로드 완료
+[20260704-13:45:31][BE] [RAG Server] [RAG Server] 포트 5001 에서 시작됨
+[20260704-13:45:54][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-13:46:24][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-13:47:25][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-13:48:26][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-13:49:27][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-13:50:26][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-13:51:26][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-13:52:26][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-13:53:24][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+종료됨
+[20260704-13:54:18][BE] process exited with code 143. restarting in 2s...
+종료됨
+[20260704-13:54:18][BE] 
+[20260704-13:54:18][BE] > easydocstation-server@1.0.0 start
+[20260704-13:54:18][BE] > node index.js
+[20260704-13:54:18][BE] 
+[20260704-13:54:18][BE] [RAG] 초기화 — 학습 방식: immediate
+[20260704-13:54:18][BE] [RAG] 초기화 — PDF 파싱 모드: FAST
+[20260704-13:54:18][BE] [Mail sync] 자동 동기화 스케줄러 시작: interval=60s
+[20260704-13:54:18][BE] ✅ EasyDocStation server running on http://localhost:3001
+[20260704-13:54:18][BE] ✅ [CONFIG] HF_TOKEN 확인됨 (hf_u****butv, 길이 37)
+[20260704-13:54:18][BE] ✅ Cassandra connected
+[20260704-13:54:18][BE] ✅ Cassandra schema initialized
+[20260704-13:54:18][BE] ✅ Database migration complete.
+[20260704-13:54:18][BE] Terminated
+
+> easydocstation@1.0.0 dev:frontend
+> vite
+
+
+> easydocstation@1.0.0 ollama:serve
+> node scripts/ollama-serve-safe.mjs
+
+[Ollama] already running on 127.0.0.1:11434, skipping duplicate serve.
+[20260704-13:54:21][BE] 
+[20260704-13:54:21][BE] > easydocstation-server@1.0.0 start
+[20260704-13:54:21][BE] > node index.js
+[20260704-13:54:21][BE] 
+
+  VITE v5.4.21  ready in 91 ms
+
+  ➜  Local:   http://localhost:5173/
+  ➜  Network: http://10.0.0.194:5173/
+PM 1:54:21 [vite] http proxy error: /api/auth/me
+Error: connect ECONNREFUSED 127.0.0.1:3001
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+[20260704-13:54:21][BE] [RAG] 초기화 — 학습 방식: immediate
+[20260704-13:54:21][BE] [RAG] 초기화 — PDF 파싱 모드: FAST
+[20260704-13:54:21][BE] [Mail sync] 자동 동기화 스케줄러 시작: interval=60s
+[20260704-13:54:21][BE] ✅ EasyDocStation server running on http://localhost:3001
+[20260704-13:54:21][BE] ✅ [CONFIG] HF_TOKEN 확인됨 (hf_u****butv, 길이 37)
+[20260704-13:54:21][BE] ✅ Cassandra connected
+[20260704-13:54:21][BE] ✅ Cassandra schema initialized
+[20260704-13:54:21][BE] ✅ Database migration complete.
+[20260704-13:54:24][BE] [RAG Server] [RAG Server] 임베딩 모델 로드 중 (device=cuda)...
+[20260704-13:54:39][BE] [RAG Server] [RAG Server] 임베딩 모델 로드 완료
+[20260704-13:54:39][BE] [RAG Server] 포트 5001 에서 시작됨
+[20260704-13:55:04][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-13:55:34][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-13:56:34][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-13:57:34][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-13:58:35][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-13:59:34][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-14:00:35][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-14:01:34][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-14:02:34][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-14:03:34][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-14:04:37][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-14:05:34][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-14:06:33][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=1
+[20260704-14:07:34][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-14:08:33][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-14:09:34][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-14:10:35][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-14:11:34][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-14:12:34][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-14:13:35][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-14:14:34][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-14:15:33][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-14:16:34][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-14:17:34][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-14:18:33][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-14:19:33][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-14:20:31][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-14:21:31][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-14:22:34][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-14:23:32][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-14:24:34][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-14:25:33][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-14:26:34][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+종료됨
+[20260704-14:27:02][BE] process exited with code 143. restarting in 2s...
+종료됨
+[20260704-14:27:03][BE] 
+[20260704-14:27:03][BE] > easydocstation-server@1.0.0 start
+[20260704-14:27:03][BE] > node index.js
+[20260704-14:27:03][BE] 
+[20260704-14:27:03][BE] [RAG] 초기화 — 학습 방식: immediate
+[20260704-14:27:03][BE] [RAG] 초기화 — PDF 파싱 모드: FAST
+[20260704-14:27:03][BE] [Mail sync] 자동 동기화 스케줄러 시작: interval=60s
+[20260704-14:27:03][BE] ✅ EasyDocStation server running on http://localhost:3001
+[20260704-14:27:03][BE] ✅ [CONFIG] HF_TOKEN 확인됨 (hf_u****butv, 길이 37)
+[20260704-14:27:03][BE] ✅ Cassandra connected
+[20260704-14:27:03][BE] ✅ Cassandra schema initialized
+[20260704-14:27:03][BE] ✅ Database migration complete.
+[20260704-14:27:03][BE] Terminated
+
+> easydocstation@1.0.0 ollama:serve
+> node scripts/ollama-serve-safe.mjs
+
+[Ollama] already running on 127.0.0.1:11434, skipping duplicate serve.
+
+> easydocstation@1.0.0 dev:frontend
+> vite
+
+[20260704-14:27:06][BE] 
+[20260704-14:27:06][BE] > easydocstation-server@1.0.0 start
+[20260704-14:27:06][BE] > node index.js
+[20260704-14:27:06][BE] 
+
+  VITE v5.4.21  ready in 91 ms
+
+  ➜  Local:   http://localhost:5173/
+  ➜  Network: http://10.0.0.194:5173/
+[20260704-14:27:06][BE] [RAG] 초기화 — 학습 방식: immediate
+[20260704-14:27:06][BE] [RAG] 초기화 — PDF 파싱 모드: FAST
+[20260704-14:27:06][BE] [Mail sync] 자동 동기화 스케줄러 시작: interval=60s
+[20260704-14:27:06][BE] ✅ EasyDocStation server running on http://localhost:3001
+[20260704-14:27:06][BE] ✅ [CONFIG] HF_TOKEN 확인됨 (hf_u****butv, 길이 37)
+[20260704-14:27:06][BE] ✅ Cassandra connected
+[20260704-14:27:06][BE] ✅ Cassandra schema initialized
+[20260704-14:27:06][BE] ✅ Database migration complete.
+[20260704-14:27:09][BE] [RAG Server] [RAG Server] 임베딩 모델 로드 중 (device=cuda)...
+[20260704-14:27:24][BE] [RAG Server] [RAG Server] 임베딩 모델 로드 완료
+[20260704-14:27:24][BE] [RAG Server] 포트 5001 에서 시작됨
+[20260704-14:27:50][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-14:28:17][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260704-14:28:18][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-14:29:24][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-14:30:16][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-14:31:16][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-14:32:17][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-14:33:22][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-14:34:19][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-14:35:19][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-14:36:18][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-14:37:16][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-14:38:16][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+종료됨
+[20260704-14:39:04][BE] process exited with code 143. restarting in 2s...
+종료됨
+[20260704-14:39:05][BE] 
+[20260704-14:39:05][BE] > easydocstation-server@1.0.0 start
+[20260704-14:39:05][BE] > node index.js
+[20260704-14:39:05][BE] 
+[20260704-14:39:05][BE] [RAG] 초기화 — 학습 방식: immediate
+[20260704-14:39:05][BE] [RAG] 초기화 — PDF 파싱 모드: FAST
+[20260704-14:39:05][BE] [Mail sync] 자동 동기화 스케줄러 시작: interval=60s
+[20260704-14:39:05][BE] ✅ EasyDocStation server running on http://localhost:3001
+[20260704-14:39:05][BE] ✅ [CONFIG] HF_TOKEN 확인됨 (hf_u****butv, 길이 37)
+[20260704-14:39:05][BE] ✅ Cassandra connected
+[20260704-14:39:05][BE] ✅ Cassandra schema initialized
+[20260704-14:39:05][BE] ✅ Database migration complete.
+[20260704-14:39:05][BE] Terminated
+
+> easydocstation@1.0.0 ollama:serve
+> node scripts/ollama-serve-safe.mjs
+
+
+> easydocstation@1.0.0 dev:frontend
+> vite
+
+[Ollama] already running on 127.0.0.1:11434, skipping duplicate serve.
+[20260704-14:39:07][BE] 
+[20260704-14:39:07][BE] > easydocstation-server@1.0.0 start
+[20260704-14:39:07][BE] > node index.js
+[20260704-14:39:07][BE] 
+
+  VITE v5.4.21  ready in 95 ms
+
+  ➜  Local:   http://localhost:5173/
+  ➜  Network: http://10.0.0.194:5173/
+[20260704-14:39:08][BE] [RAG] 초기화 — 학습 방식: immediate
+[20260704-14:39:08][BE] [RAG] 초기화 — PDF 파싱 모드: FAST
+[20260704-14:39:08][BE] [Mail sync] 자동 동기화 스케줄러 시작: interval=60s
+[20260704-14:39:08][BE] ✅ EasyDocStation server running on http://localhost:3001
+[20260704-14:39:08][BE] ✅ [CONFIG] HF_TOKEN 확인됨 (hf_u****butv, 길이 37)
+[20260704-14:39:08][BE] ✅ Cassandra connected
+[20260704-14:39:08][BE] ✅ Cassandra schema initialized
+[20260704-14:39:08][BE] ✅ Database migration complete.
+[20260704-14:39:11][BE] [RAG Server] [RAG Server] 임베딩 모델 로드 중 (device=cuda)...
+[20260704-14:39:25][BE] [RAG Server] [RAG Server] 임베딩 모델 로드 완료
+[20260704-14:39:25][BE] [RAG Server] 포트 5001 에서 시작됨
+[20260704-14:39:50][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-14:40:20][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-14:41:20][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-14:42:20][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-14:43:22][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-14:44:20][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-14:45:20][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=1
+[20260704-14:46:20][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-14:47:19][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-14:48:18][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-14:49:19][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-14:50:19][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-14:51:19][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-14:52:18][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+PM 2:52:52 [vite] hmr update /src/features/mail/MailPage.jsx, /src/index.css
+[20260704-14:53:18][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-14:54:22][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+종료됨
+[20260704-14:54:55][BE] process exited with code 143. restarting in 2s...
+종료됨
+[20260704-14:54:55][BE] 
+[20260704-14:54:55][BE] > easydocstation-server@1.0.0 start
+[20260704-14:54:55][BE] > node index.js
+[20260704-14:54:55][BE] 
+[20260704-14:54:55][BE] [RAG] 초기화 — 학습 방식: immediate
+[20260704-14:54:55][BE] [RAG] 초기화 — PDF 파싱 모드: FAST
+[20260704-14:54:55][BE] [Mail sync] 자동 동기화 스케줄러 시작: interval=60s
+[20260704-14:54:55][BE] ✅ EasyDocStation server running on http://localhost:3001
+[20260704-14:54:55][BE] ✅ [CONFIG] HF_TOKEN 확인됨 (hf_u****butv, 길이 37)
+[20260704-14:54:55][BE] ✅ Cassandra connected
+[20260704-14:54:55][BE] ✅ Cassandra schema initialized
+[20260704-14:54:55][BE] ✅ Database migration complete.
+[20260704-14:54:55][BE] Terminated
+
+> easydocstation@1.0.0 ollama:serve
+> node scripts/ollama-serve-safe.mjs
+
+
+> easydocstation@1.0.0 dev:frontend
+> vite
+
+[Ollama] already running on 127.0.0.1:11434, skipping duplicate serve.
+[20260704-14:54:58][BE] 
+[20260704-14:54:58][BE] > easydocstation-server@1.0.0 start
+[20260704-14:54:58][BE] > node index.js
+[20260704-14:54:58][BE] 
+
+  VITE v5.4.21  ready in 90 ms
+
+  ➜  Local:   http://localhost:5173/
+  ➜  Network: http://10.0.0.194:5173/
+[20260704-14:54:58][BE] [RAG] 초기화 — 학습 방식: immediate
+[20260704-14:54:58][BE] [RAG] 초기화 — PDF 파싱 모드: FAST
+[20260704-14:54:58][BE] [Mail sync] 자동 동기화 스케줄러 시작: interval=60s
+[20260704-14:54:58][BE] ✅ EasyDocStation server running on http://localhost:3001
+[20260704-14:54:58][BE] ✅ [CONFIG] HF_TOKEN 확인됨 (hf_u****butv, 길이 37)
+[20260704-14:54:58][BE] ✅ Cassandra connected
+[20260704-14:54:58][BE] ✅ Cassandra schema initialized
+[20260704-14:54:58][BE] ✅ Database migration complete.
+[20260704-14:55:01][BE] [RAG Server] [RAG Server] 임베딩 모델 로드 중 (device=cuda)...
+[20260704-14:55:15][BE] [RAG Server] [RAG Server] 임베딩 모델 로드 완료
+[20260704-14:55:15][BE] [RAG Server] [RAG Server] 포트 5001 에서 시작됨
+[20260704-14:55:41][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-14:56:09][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-14:57:09][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-14:58:11][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-14:59:10][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-15:00:11][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-15:01:11][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-15:02:08][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-15:03:12][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=1
+[20260704-15:04:11][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-15:05:12][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+PM 3:05:57 [vite] hmr update /src/features/mail/MailPage.jsx, /src/index.css
+PM 3:06:10 [vite] hmr update /src/features/mail/MailPage.jsx, /src/index.css
+[20260704-15:06:11][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+PM 3:06:18 [vite] hmr update /src/features/mail/MailPage.jsx, /src/index.css
+PM 3:06:28 [vite] hmr update /src/features/mail/MailPage.jsx, /src/index.css
+종료됨
+[20260704-15:06:51][BE] process exited with code 143. restarting in 2s...
+종료됨
+[20260704-15:06:51][BE] 
+[20260704-15:06:51][BE] > easydocstation-server@1.0.0 start
+[20260704-15:06:51][BE] > node index.js
+[20260704-15:06:51][BE] 
+[20260704-15:06:51][BE] [RAG] 초기화 — 학습 방식: immediate
+[20260704-15:06:51][BE] [RAG] 초기화 — PDF 파싱 모드: FAST
+[20260704-15:06:51][BE] [Mail sync] 자동 동기화 스케줄러 시작: interval=60s
+[20260704-15:06:51][BE] ✅ EasyDocStation server running on http://localhost:3001
+[20260704-15:06:51][BE] ✅ [CONFIG] HF_TOKEN 확인됨 (hf_u****butv, 길이 37)
+[20260704-15:06:51][BE] ✅ Cassandra connected
+[20260704-15:06:52][BE] ✅ Cassandra schema initialized
+[20260704-15:06:52][BE] ✅ Database migration complete.
+[20260704-15:06:52][BE] Terminated
+
+> easydocstation@1.0.0 dev:frontend
+> vite
+
+
+> easydocstation@1.0.0 ollama:serve
+> node scripts/ollama-serve-safe.mjs
+
+[Ollama] already running on 127.0.0.1:11434, skipping duplicate serve.
+[20260704-15:06:54][BE] 
+[20260704-15:06:54][BE] > easydocstation-server@1.0.0 start
+[20260704-15:06:54][BE] > node index.js
+[20260704-15:06:54][BE] 
+
+  VITE v5.4.21  ready in 93 ms
+
+  ➜  Local:   http://localhost:5173/
+  ➜  Network: http://10.0.0.194:5173/
+PM 3:06:54 [vite] http proxy error: /api/dm/conversations
+Error: connect ECONNREFUSED 127.0.0.1:3001
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+PM 3:06:54 [vite] http proxy error: /api/posts?channelId=ch-1776440801214&limit=10
+Error: connect ECONNREFUSED 127.0.0.1:3001
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+PM 3:06:54 [vite] http proxy error: /api/channels/unread
+Error: connect ECONNREFUSED 127.0.0.1:3001
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+[20260704-15:06:54][BE] [RAG] 초기화 — 학습 방식: immediate
+[20260704-15:06:54][BE] [RAG] 초기화 — PDF 파싱 모드: FAST
+[20260704-15:06:54][BE] [Mail sync] 자동 동기화 스케줄러 시작: interval=60s
+[20260704-15:06:54][BE] ✅ EasyDocStation server running on http://localhost:3001
+[20260704-15:06:54][BE] ✅ [CONFIG] HF_TOKEN 확인됨 (hf_u****butv, 길이 37)
+[20260704-15:06:54][BE] ✅ Cassandra connected
+[20260704-15:06:54][BE] ✅ Cassandra schema initialized
+[20260704-15:06:54][BE] ✅ Database migration complete.
+[20260704-15:06:57][BE] [RAG Server] [RAG Server] 임베딩 모델 로드 중 (device=cuda)...
+[20260704-15:07:12][BE] [RAG Server] [RAG Server] 임베딩 모델 로드 완료
+[20260704-15:07:12][BE] [RAG Server] [RAG Server] 포트 5001 에서 시작됨
+[20260704-15:07:27][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260704-15:07:37][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-15:08:19][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-15:09:07][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-15:10:08][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-15:11:06][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-15:12:08][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-15:13:13][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-15:14:06][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-15:15:08][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-15:16:10][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-15:17:07][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-15:18:07][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-15:19:06][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-15:20:07][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-15:21:07][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-15:22:07][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-15:23:07][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-15:24:08][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-15:25:11][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-15:26:08][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+PM 3:27:03 [vite] hmr update /src/features/mail/MailPage.jsx, /src/index.css
+[20260704-15:27:08][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+PM 3:27:25 [vite] hmr update /src/features/mail/MailPage.jsx, /src/index.css
+[20260704-15:28:07][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+PM 3:28:13 [vite] hmr update /src/features/mail/MailPage.jsx, /src/index.css
+[20260704-15:29:06][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-15:30:07][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-15:31:14][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-15:32:08][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-15:33:07][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-15:34:06][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+PM 3:35:02 [vite] hmr update /src/index.css, /src/contexts/AuthContext.jsx, /src/components/Sidebar.jsx, /src/contexts/ChatContext.jsx, /src/components/MobileLayout.jsx, /src/components/GroqPanel.jsx, /src/components/CalendarView.jsx, /src/components/ChatArea.jsx, /src/components/chat/PostDetailPane.jsx, /src/components/SiteAdminPage.jsx, /src/components/DirectMessageView.jsx, /src/components/ChannelManageModal.jsx, /src/components/TeamManageModal.jsx, /src/features/mail/MailPage.jsx, /src/components/EventAddModal.jsx, /src/components/SpeakerRegistrationModal.jsx, /src/components/chat/MDPageViewer.jsx, /src/components/chat/md-page/toolbar/InternalLinkAutocomplete.jsx
+PM 3:35:03 [vite] hmr invalidate /src/contexts/AuthContext.jsx Could not Fast Refresh ("useAuth" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+PM 3:35:03 [vite] hmr update /src/App.jsx, /src/index.css, /src/components/TitleBar.jsx, /src/components/Sidebar.jsx, /src/components/LoginScreen.jsx, /src/components/SearchResultsArea.jsx, /src/components/UserProfileModal.jsx, /src/components/GroqPanel.jsx, /src/components/ChatArea.jsx, /src/components/SiteAdminPage.jsx, /src/components/DirectMessageView.jsx, /src/components/ChannelManageModal.jsx, /src/components/TeamManageModal.jsx, /src/components/EventAddModal.jsx, /src/components/chat/MDPageViewer.jsx, /src/components/chat/PostDetailPane.jsx, /src/contexts/ChatContext.jsx, /src/components/CalendarView.jsx, /src/features/mail/MailPage.jsx
+PM 3:35:03 [vite] hmr invalidate /src/contexts/ChatContext.jsx Could not Fast Refresh ("useChat" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+PM 3:35:03 [vite] hmr update /src/App.jsx, /src/index.css, /src/components/TitleBar.jsx, /src/components/Sidebar.jsx, /src/components/SearchResultsArea.jsx, /src/components/MobileLayout.jsx, /src/components/UserProfileModal.jsx, /src/components/GroqPanel.jsx, /src/components/ChatArea.jsx, /src/components/ChannelManageModal.jsx, /src/components/chat/MDPageViewer.jsx, /src/components/chat/PostDetailPane.jsx
+[20260704-15:35:07][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+PM 3:35:11 [vite] hmr update /src/features/mail/MailPage.jsx, /src/index.css
+[20260704-15:36:06][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+PM 3:36:55 [vite] hmr update /src/features/mail/MailPage.jsx, /src/index.css
+[20260704-15:37:05][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-15:38:06][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-15:39:08][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-15:40:05][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-15:41:07][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-15:42:07][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-15:43:07][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-15:44:08][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-15:45:07][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-15:46:09][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-15:46:50][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260704-15:47:09][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-15:47:29][BE] [ATTACH-REF] sync ownerType=post ownerId=52d5eb53-7ad3-4802-9f43-dedfe0eefd00 actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260704-15:47:29][BE] [RAG] 학습 제외 (게시글): 52d5eb53-7ad3-4802-9f43-dedfe0eefd00 — 첨부파일 없음, 43자
+[20260704-15:47:29][BE] [RAG] 학습 제외 후 학습할 게시글이 없습니다.
+[20260704-15:47:35][BE] [ATTACH-REF] sync ownerType=post ownerId=52d5eb53-7ad3-4802-9f43-dedfe0eefd00 actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260704-15:47:35][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
+[20260704-15:47:35][BE] /home/freegear/EasyDocStation/server/rag_train.py:120: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260704-15:47:35][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260704-15:47:38][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v2' already exists
+[20260704-15:47:38][BE] [RAG] 기존 청크 삭제 완료: post_id=52d5eb53-7ad3-4802-9f43-dedfe0eefd00
+[20260704-15:47:39][BE] [RAG] post=52d5eb53-7ad3-4802-9f43-dedfe0eefd00 text → 1청크
+[20260704-15:47:39][BE] [RAG] 학습 진행률: 50% (게시글 본문)
+[20260704-15:47:39][BE] [RAG] 저장 완료 — 1청크 / 1개 게시글 / 0개 댓글
+[20260704-15:47:39][BE] [RAG] 학습 진행률: 100% (저장)
+[20260704-15:47:39][BE] [RAG] 학습 완료
+[20260704-15:47:40][BE] [STT] post stt jobs canceled | postId=52d5eb53-7ad3-4802-9f43-dedfe0eefd00 canceled=0 terminated=0 reason=post soft deleted
+[20260704-15:47:54][BE] [ATTACH-REF] sync ownerType=post ownerId=a8fb6196-c601-41a5-b8a8-23231354c991 actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260704-15:47:54][BE] [RAG] 학습 제외 (게시글): a8fb6196-c601-41a5-b8a8-23231354c991 — 첨부파일 없음, 43자
+[20260704-15:47:54][BE] [RAG] 학습 제외 후 학습할 게시글이 없습니다.
+[20260704-15:48:19][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-15:49:06][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-15:49:24][BE] [STT] post stt jobs canceled | postId=52d5eb53-7ad3-4802-9f43-dedfe0eefd00 canceled=0 terminated=0 reason=post hard deleted
+[20260704-15:49:24][BE] [ATTACH-REF] sync ownerType=post ownerId=52d5eb53-7ad3-4802-9f43-dedfe0eefd00 actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260704-15:49:24][BE] [휴지통] 1건 영구 삭제 완료
+[20260704-15:50:06][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-15:50:43][BE] [ATTACH-REF] sync ownerType=post ownerId=a8fb6196-c601-41a5-b8a8-23231354c991 actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260704-15:50:43][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
+[20260704-15:50:43][BE] /home/freegear/EasyDocStation/server/rag_train.py:120: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260704-15:50:43][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260704-15:50:46][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v2' already exists
+[20260704-15:50:46][BE] [RAG] 기존 청크 삭제 완료: post_id=a8fb6196-c601-41a5-b8a8-23231354c991
+[20260704-15:50:46][BE] [RAG] post=a8fb6196-c601-41a5-b8a8-23231354c991 text → 1청크
+[20260704-15:50:46][BE] [RAG] 학습 진행률: 50% (게시글 본문)
+[20260704-15:50:46][BE] [RAG] 저장 완료 — 1청크 / 1개 게시글 / 0개 댓글
+[20260704-15:50:46][BE] [RAG] 학습 진행률: 100% (저장)
+[20260704-15:50:46][BE] [RAG] 학습 완료
+[20260704-15:51:06][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-15:52:09][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-15:53:07][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-15:54:07][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+PM 3:54:34 [vite] hmr update /src/components/ChatArea.jsx, /src/index.css
+PM 3:54:42 [vite] hmr update /src/components/ChatArea.jsx, /src/index.css
+PM 3:54:56 [vite] hmr update /src/components/ChatArea.jsx, /src/index.css
+PM 3:55:08 [vite] hmr update /src/components/ChatArea.jsx, /src/index.css
+[20260704-15:55:08][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-15:56:06][BE] [Mail sync] 자동 동기화 완료: accounts=5, saved=0
+[20260704-15:56:34][BE] [ATTACH-REF] sync ownerType=post ownerId=08ab871a-39ee-44e2-9f05-9dfd1c727355 actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260704-15:56:34][BE] [RAG] 학습 제외 (게시글): 08ab871a-39ee-44e2-9f05-9dfd1c727355 — 첨부파일 없음, 72자
+[20260704-15:56:34][BE] [RAG] 학습 제외 후 학습할 게시글이 없습니다.
+[20260704-15:56:36][BE] [ATTACH-REF] sync ownerType=post ownerId=1abbfac7-726f-4b86-84fb-d7c81cd5a0cb actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260704-15:56:36][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
+[20260704-15:56:36][BE] /home/freegear/EasyDocStation/server/rag_train.py:120: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260704-15:56:36][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260704-15:56:39][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v2' already exists
+[20260704-15:56:39][BE] [RAG] post=1abbfac7-726f-4b86-84fb-d7c81cd5a0cb text → 18청크
+[20260704-15:56:39][BE] [RAG] 학습 진행률: 50% (게시글 본문)
+[20260704-15:56:39][BE] [RAG] 저장 완료 — 18청크 / 1개 게시글 / 0개 댓글
+[20260704-15:56:39][BE] [RAG] 학습 진행률: 100% (저장)
+[20260704-15:56:40][BE] [RAG] 학습 완료

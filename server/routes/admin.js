@@ -16,6 +16,7 @@ const { getAiOptimizationConfig, saveAiOptimizationConfig } = require('../aiOpti
 const { pingRedis } = require('../redisClient')
 const aiMetrics = require('../aiMetrics')
 const { runQueueHealthcheck } = require('../aiQueue')
+const { requestGroq } = require('../llmClient')
 
 // ... (existing code helpers)
 
@@ -385,11 +386,20 @@ function normalizeSnsConfig(sns = {}) {
 
 function normalizeAgenticAiConfig(ai = {}) {
   const language = ['ko', 'ja', 'en', 'zh'].includes(ai?.language) ? ai.language : 'ko'
+  const groq = ai?.groq && typeof ai.groq === 'object' ? ai.groq : {}
   return {
     num_predict: Number.isFinite(Number(ai?.num_predict)) ? Number(ai.num_predict) : 4096,
     num_ctx: Number.isFinite(Number(ai?.num_ctx)) ? Number(ai.num_ctx) : 8192,
     history: Number.isFinite(Number(ai?.history)) ? Number(ai.history) : 6,
     language,
+    groq: {
+      enabled: Boolean(groq.enabled),
+      prefer_when_available: Boolean(groq.prefer_when_available),
+      api_key: typeof groq.api_key === 'string' ? groq.api_key : '',
+      model: typeof groq.model === 'string' && groq.model.trim() ? groq.model.trim() : 'llama-3.1-8b-instant',
+      base_url: typeof groq.base_url === 'string' && groq.base_url.trim() ? groq.base_url.trim() : 'https://api.groq.com/openai/v1',
+      use_for_mail_summary: Boolean(groq.use_for_mail_summary),
+    },
   }
 }
 
@@ -629,6 +639,54 @@ router.put('/stt/settings', requireSiteAdmin, async (req, res) => {
   } catch (err) {
     console.error('Save STT Settings Error:', err)
     res.status(500).json({ error: 'STT 설정을 저장하는 중 오류가 발생했습니다.' })
+  }
+})
+
+// POST /api/admin/groq/test — verify Groq Chat Completions connectivity
+router.post('/groq/test', requireSiteAdmin, async (req, res) => {
+  try {
+    const groq = req.body?.groq && typeof req.body.groq === 'object' ? req.body.groq : req.body || {}
+    const apiKey = String(groq.api_key || '').trim()
+    if (!apiKey) return res.status(400).json({ error: 'GROQ API_KEY를 입력해 주세요.' })
+
+    const startedAt = Date.now()
+    const result = await requestGroq({
+      model: String(groq.model || 'llama-3.1-8b-instant').trim() || 'llama-3.1-8b-instant',
+      stream: false,
+      messages: [
+        {
+          role: 'system',
+          content: 'You are a connectivity health check. Reply with exactly: GROQ_OK',
+        },
+        {
+          role: 'user',
+          content: 'Return GROQ_OK only.',
+        },
+      ],
+      options: {
+        temperature: 0,
+        num_predict: 16,
+      },
+    }, {
+      api_key: apiKey,
+      model: String(groq.model || 'llama-3.1-8b-instant').trim() || 'llama-3.1-8b-instant',
+      base_url: String(groq.base_url || 'https://api.groq.com/openai/v1').trim() || 'https://api.groq.com/openai/v1',
+    }, 30000)
+
+    res.json({
+      ok: true,
+      provider: result.provider,
+      model: result.model,
+      latencyMs: Date.now() - startedAt,
+      sample: String(result.content || '').slice(0, 120),
+    })
+  } catch (err) {
+    console.error('GROQ Test Error:', err)
+    res.status(502).json({
+      ok: false,
+      error: 'GROQ 연결 테스트에 실패했습니다.',
+      detail: err.message || 'GROQ_TEST_FAILED',
+    })
   }
 })
 

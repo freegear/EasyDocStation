@@ -520,6 +520,7 @@ const ACCOUNT_FOLDERS_SUBQUERY = `
       'color_key', mf.color_key,
       'is_local', mf.is_local,
       'sync_status', mf.sync_status,
+      'deletable', mf.deletable,
       'message_count', COALESCE((
         SELECT COUNT(*)
         FROM mail_messages mm
@@ -820,6 +821,38 @@ async function upsertFolders({ tenantId, account, folders }) {
       )
       count += 1
     }
+    // 부모 연결(두 번째 패스): 중첩 IMAP 메일함(예: Mailbox/2019)이 사이드바에 부모 아래로 보이도록
+    // 발견된 서버 폴더(is_local=FALSE)마다 parent_folder_id를 "원하는 값"으로 정합한다. (MailService.md 22.3.2)
+    //   - parentPath(=부모의 provider_folder_id)가 매칭되면 그 부모 id로 설정.
+    //   - parentPath가 null(최상위)이거나 매칭 부모가 없으면(부모가 \Noselect라 발견에서 빠짐, 혹은
+    //     서버에서 최상위로 이동) null로 비운다 → 오래된 부모 연결(stale)을 재발견 때 정리.
+    // 스칼라 서브쿼리로 set/clear를 한 문장에 처리하고, IS DISTINCT FROM 가드로 불필요한 갱신을 막는다.
+    // 로컬 서브 폴더(is_local=TRUE)는 발견 배치에 없으므로 이 패스가 건드리지 않는다.
+    for (const f of folders) {
+      if (!f || !f.providerFolderId) continue
+      await client.query(
+        `UPDATE mail_folders child
+            SET parent_folder_id = (
+                  SELECT parent.id FROM mail_folders parent
+                   WHERE parent.account_id = child.account_id
+                     AND parent.provider_folder_id = $3
+                     AND parent.id <> child.id
+                   LIMIT 1
+                ),
+                updated_at = NOW()
+          WHERE child.account_id = $1
+            AND child.provider_folder_id = $2
+            AND child.is_local = FALSE
+            AND child.parent_folder_id IS DISTINCT FROM (
+                  SELECT parent.id FROM mail_folders parent
+                   WHERE parent.account_id = child.account_id
+                     AND parent.provider_folder_id = $3
+                     AND parent.id <> child.id
+                   LIMIT 1
+                )`,
+        [account.id, f.providerFolderId, f.parentPath || null],
+      )
+    }
     return count
   })
 }
@@ -940,6 +973,18 @@ async function setFolderSyncStatus({ tenantId, accountId, folderId, syncStatus }
      SET sync_status = NULLIF($1, ''), updated_at = NOW()
      WHERE id = $2 AND account_id = $3`,
     [String(syncStatus || ''), folderId, accountId],
+  )
+}
+
+// 폴더 삭제 가능 여부 학습. 프로바이더가 삭제를 거부하면 deletable=false로 저장해
+// 이후 UI에서 삭제 메뉴를 비활성화한다. (folder_delete_error.md 2번)
+async function setFolderDeletable({ tenantId, accountId, folderId, deletable }) {
+  await tenantQuery(
+    tenantId,
+    `UPDATE mail_folders
+     SET deletable = $1, updated_at = NOW()
+     WHERE id = $2 AND account_id = $3`,
+    [!!deletable, folderId, accountId],
   )
 }
 
@@ -2833,6 +2878,7 @@ module.exports = {
   resolveFolderForAccount,
   createFolder,
   setFolderSyncStatus,
+  setFolderDeletable,
   updateFolderColor,
   renameFolder,
   folderNameExists,

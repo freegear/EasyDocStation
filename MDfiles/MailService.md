@@ -3761,4 +3761,1129 @@ PATCH /api/mail/messages/:id/summary/action-items/:actionIndex/time
 18. 이벤트를 수정 저장해도 원본 메일 링크 정보가 사라지지 않는다.
 
 
+## 19.55 메일 목록 컨텍스트 메뉴 위치 자동 조정 (화면 하단 잘림 방지)
 
+### 19.55.1 배경 / 문제
+
+메일 목록에서 메일을 우클릭하면 컨텍스트 메뉴(`MailMessageContextMenu`)가 뜬다.
+선택한 메일 row가 화면 하단부에 있을 경우, 메뉴가 커서 아래로 펼쳐지면서
+**뷰포트 하단을 벗어나 아래쪽 항목(예: `MailClaw에 등록`, 이동 폴더 목록)이 잘려서 보이지 않는다.**
+
+- 메뉴는 `position: fixed`이며 `style={{ left: menu.x, top: menu.y }}`로 배치된다.
+  (`src/features/mail/MailPage.jsx` — `MailMessageContextMenu`)
+- 좌표는 `openMessageMenu(event, message, index)`에서 계산한다.
+  현재 로직:
+  ```js
+  setMessageMenu({
+    x: Math.min(event.clientX, window.innerWidth - 220),
+    y: Math.min(event.clientY, window.innerHeight - 180),
+    ...
+  })
+  ```
+
+### 19.55.2 원인
+
+- `y` 클램프 기준값 `window.innerHeight - 180` 은 메뉴 높이를 **약 180px로 가정**한 상수다.
+  그러나 이 메뉴는 항목이 많고(메일 삭제 / 중요 표시 / 안읽음 / EasyAI 모니터링 / MailClaw 등록 / 휴지통 등록 /
+  이동 대상 폴더 목록 …) 다중 선택 시 헤더 행까지 붙어 **실제 높이가 300~450px 이상**으로 가변적이다.
+- 즉 하드코딩한 `-180`(가로 `-220`)이 실제 렌더 크기를 반영하지 못해, 커서가 화면 하단에 가까우면
+  클램프가 충분히 위로 올려주지 못하고 메뉴가 잘린다.
+- 다른 메뉴들도 제각각의 상수(`-360`, `-420` 등)를 쓰고 있어 일관성이 없고 같은 잘림 위험이 있다.
+
+### 19.55.3 구현 방안 (권장: 렌더 후 실측 기반 보정)
+
+메뉴 높이가 가변적이므로 **상수 추정이 아니라 실제 렌더 크기를 측정해 보정**한다.
+
+1. `openMessageMenu`에서는 커서 원좌표(`event.clientX`, `event.clientY`)를 **클램프 없이 그대로 저장**한다.
+2. 메뉴 컴포넌트에 `ref`를 달고, `useLayoutEffect`에서 `getBoundingClientRect()`로 실제 `width`/`height`를 측정한다.
+3. 측정값으로 최종 위치를 계산한다(여백 `margin` 예: 8px):
+   - 가로: `left = min(cursorX, innerWidth - menuWidth - margin)`, 그래도 음수면 `margin`으로.
+   - 세로:
+     - 아래 공간이 충분하면(`cursorY + menuHeight + margin <= innerHeight`) 커서 아래로 펼친다.
+     - 부족하면 **위로 펼친다**: `top = max(margin, cursorY - menuHeight)`
+       (또는 `top = innerHeight - menuHeight - margin` 으로 하단 정렬).
+4. 초기 렌더 시 잘못된 위치가 잠깐 보이는 깜빡임을 막기 위해, 측정 전에는 `visibility: hidden`(또는
+   `opacity: 0`)로 두고 위치 확정 후 노출하는 `ready` 플래그를 둔다.
+
+### 19.55.4 추가 고려
+
+- **가로 넘침**도 동일하게 실측 `width` 기준으로 클램프한다(현재 고정 `-220` 대체).
+- **뷰포트보다 메뉴가 더 큰 경우**(작은 창): `top`을 `margin`으로 고정하고 메뉴에
+  `max-height: calc(100vh - 2*margin)` + `overflow-y: auto`를 주어 스크롤로 전 항목 접근을 보장한다.
+- **재사용 헬퍼로 일원화**: `computeMenuPosition(cursorX, cursorY, menuEl, { margin })` 또는
+  `useAnchoredMenuPosition` 훅을 만들어, 폴더 메뉴(`FolderContextMenu`)·통합/스마트 폴더 메뉴 등
+  다른 컨텍스트 메뉴에도 동일 로직을 적용해 상수 추정(`-360`, `-420`)을 제거한다.
+
+### 19.55.5 대안 (간이) — 항목 수 기반 높이 추정
+
+측정 없이 `예상높이 = 기본항목수*행높이 + 이동폴더수*행높이 + (다중선택 헤더)` 로 계산해
+`y = min(cursorY, innerHeight - 예상높이 - margin)` 로 클램프하는 방법. 구현은 단순하나
+스타일/항목 변경에 취약하다(지금 잘리는 원인과 동일한 한계). **권장하지 않으며 19.55.3을 우선한다.**
+
+### 19.55.6 검증 기준
+
+1. 목록 최상단 메일 우클릭 → 메뉴가 커서 아래로 펼쳐지고 모든 항목이 보인다.
+2. 목록 **최하단 메일 우클릭 → 메뉴가 위로 펼쳐져 잘림 없이 전 항목이 보인다.**
+3. 우측 끝 근처에서 우클릭 → 메뉴가 화면 오른쪽으로 넘치지 않는다.
+4. 이동 폴더가 많아 메뉴가 매우 길어도(뷰포트보다 큼) 스크롤로 모든 항목에 접근된다.
+5. 다중 선택 상태에서 우클릭(헤더 행 포함)해도 잘리지 않는다.
+6. 메뉴가 뜨는 순간 잘못된 위치에서 올바른 위치로 튀는 깜빡임이 없다.
+
+### 19.55.7 구현 메모 ✅ 적용 완료 (2026-07-04)
+
+19.55.3 권장안(실측 기반 보정)으로 구현. (`src/features/mail/MailPage.jsx`)
+
+- **재사용 훅 `useAnchoredMenuPosition(x, y, { margin=8 })` 신설**:
+  커서 원좌표를 받아 `useRef` + `useLayoutEffect`에서 `getBoundingClientRect()`로 실측 →
+  가로 넘침 시 왼쪽 클램프, 세로는 아래 공간 부족 시 위로 펼침(뷰포트보다 크면 상단 정렬),
+  `maxHeight: calc(100vh - 2*margin)` + `overflow-y:auto`, 측정 전 `visibility:hidden`으로 깜빡임 방지.
+  Hook 규칙 준수를 위해 각 컴포넌트의 조건부 `return null` **이전**에 호출한다.
+- **적용 대상(5개 컨텍스트 메뉴 일원화, 19.55.4)**: `MailMessageContextMenu`(주 대상),
+  `MailAddressMenu`, `FolderContextMenu`, `UnifiedFolderContextMenu`, `SmartFolderContextMenu`.
+  각 메뉴의 `style={{ left: menu.x, top: menu.y }}` → `ref={ref} style={style}` 로 교체.
+- **open 핸들러 정리**: `openMessageMenu`/`openFolderMenu`/`openUnifiedFolderMenu`/`openSmartFolderMenu`
+  및 `MailAddressButton`에서 기존 매직넘버 클램프(`innerWidth-220`, `innerHeight-180/360/420/260` 등)를
+  제거하고 커서 원좌표(`event.clientX/clientY`)만 저장하도록 변경. 보정은 훅이 일괄 처리.
+- 검증: esbuild 통과, 신규 eslint 오류 없음. 프론트 변경이라 vite HMR로 즉시 반영.
+
+### 19.55.8 구현 메모 ✅ 서브메뉴 위치 보정 추가 (2026-07-04)
+
+컨텍스트 메뉴 위치 자동 보정 이후 `이동` 서브메뉴가 부모 메뉴의 스크롤 영역에 갇혀 가로/세로 스크롤이 생기고, 화면 오른쪽 영역으로 잘못 펼쳐지는 문제가 있었다.
+
+원인:
+
+- 상위 메뉴는 `useAnchoredMenuPosition()`에서 `maxHeight`와 `overflowY:auto`를 적용한다.
+- 기존 `이동` 서브메뉴는 상위 메뉴 내부에서 `absolute left-full`로 렌더링된다.
+- 따라서 서브메뉴가 상위 메뉴의 overflow 영역에 포함되어 잘리거나, 메뉴 내부 스크롤을 만들 수 있다.
+- 화면 오른쪽 공간이 부족해도 `left-full`만 사용하므로 반대 방향으로 열리지 않는다.
+
+반영:
+
+1. `이동` 서브메뉴를 부모 메뉴 내부 absolute가 아니라 `fixed` 위치 서브메뉴로 분리했다.
+2. `useAnchoredSubmenuPosition()`을 추가해 이동 버튼의 `getBoundingClientRect()` 기준으로 위치를 계산한다.
+3. 오른쪽 공간이 부족하면 서브메뉴를 왼쪽으로 열도록 보정한다.
+4. 세로 공간이 부족하면 viewport 안에 들어오도록 top을 보정한다.
+5. 서브메뉴 자체에만 `maxHeight`와 `overflowY:auto`를 적용해, 상위 메뉴에 불필요한 가로 스크롤이 생기지 않게 한다.
+6. 부모 항목에서 서브메뉴로 마우스를 이동할 때 닫히지 않도록 짧은 지연 닫힘을 적용했다.
+
+검증:
+
+```txt
+npm run build
+```
+
+위 검증을 통과해야 한다.
+
+
+## 19.56 메일 목록 로딩 경합 방지 (스마트 폴더 선택과 받은 편지함 목록 불일치)
+
+### 19.56.1 배경 / 증상
+
+스마트 폴더(예: `013-GT System`)를 보고 있는 중 메일이 한 번 리프레시되면,
+좌측 사이드바에서는 여전히 해당 스마트 폴더가 선택된 상태인데 가운데 메일 목록만 갑자기 `받은 편지함`처럼 바뀌는 현상이 있다.
+
+- 좌측 선택 표시는 `activeKey === smart:<id>`로 결정되므로 스마트 폴더가 계속 선택된 것처럼 보인다.
+- 가운데 목록은 별도 상태인 `messages`에 저장되며, 목록 API 응답이 도착할 때마다 `setMessages(...)`로 덮어쓴다.
+- 우측 상세 패널은 기존 `selectedMessage`가 유지될 수 있어, 결과적으로 **좌측은 GT System / 가운데는 받은 편지함 / 우측은 기존 GT System 메일**처럼 세 영역이 서로 다른 기준을 보게 된다.
+
+### 19.56.2 원인
+
+원인은 선택 UI 자체가 아니라 **비동기 메일 목록 조회의 race condition**이다.
+
+현재 `MailPage.jsx`의 목록 로딩 흐름은 대략 다음과 같다.
+
+1. `activeKey`로 현재 뷰를 해석한다.
+   - 실제 계정 폴더: `accountId:folderId`
+   - 통합 시스템 뷰: `unified:<key>`
+   - 스마트 폴더: `smart:<smartFolderId>`
+2. 해석 결과에 따라 `/mail/messages?...`를 호출한다.
+3. 응답이 오면 현재 선택 상태와 무관하게 `messages`를 갱신한다.
+
+문제는 3번에서 **"이 응답이 아직도 현재 `activeKey`에 대한 응답인가?"** 를 확인하지 않는다는 점이다.
+사용자가 스마트 폴더를 선택했거나, 리프레시/동기화/배지 갱신/기존 목록 조회가 겹치면 더 오래 걸린 이전 요청의 응답이 나중에 도착해 현재 목록을 덮어쓸 수 있다.
+
+특히 `refreshMail()`은 전체 동기화 후 `reloadMailAccounts()`와 `loadActiveMessages(..., { silent: true, resetSelection: false })`를 호출한다.
+이때 `resetSelection: false` 때문에 선택 메일 상세는 유지되지만, 목록만 늦게 도착한 응답으로 바뀌어 불일치가 더 두드러진다.
+
+### 19.56.3 구현 원칙
+
+메일 목록은 항상 **요청 당시의 뷰 식별자(view identity)** 와 **응답 적용 시점의 현재 뷰 식별자**가 같을 때만 반영한다.
+
+- `activeKey`만으로 부족하면 tenant까지 포함한다.
+  - 예: `${tenantId}|${activeKey}`
+- 실제 API 파라미터 기준으로 더 엄격하게 만들 수도 있다.
+  - 계정 폴더: `folder:${tenantId}:${accountId}:${folderId}`
+  - 통합 뷰: `unified:${tenantId}:${unifiedKey}:${folderType}:${folderName}`
+  - 스마트 폴더: `smart:${tenantId}:${smartFolderId}`
+- 오래된 응답은 오류가 아니므로 조용히 버린다.
+- 버린 응답은 `messages`, `hasMoreMessages`, `selectedMessage`, `selectedMessageIds`, `messagesError`를 변경하지 않는다.
+
+### 19.56.4 구현 방안 (권장)
+
+`MailPage.jsx`에 목록 요청 시퀀스와 요청 뷰 키를 도입한다.
+
+1. `useRef`로 최신 목록 요청 번호를 관리한다.
+   - 예: `messageLoadSeqRef`
+2. `loadActiveMessages()` 시작 시점에 다음 값을 스냅샷으로 잡는다.
+   - 요청 번호
+   - 요청 당시의 `activeKey`
+   - 요청 당시의 `tenantId`
+   - 실제 해석된 뷰 키(`folder/unified/smart`)
+3. API 응답 후 상태를 반영하기 직전에 다음을 검사한다.
+   - 이 요청 번호가 아직 최신 요청인가?
+   - 현재 `activeKey`가 요청 당시와 같은가?
+   - 현재 tenant/view key가 요청 당시와 같은가?
+4. 하나라도 다르면 응답을 폐기하고 `setMessages(...)`를 호출하지 않는다.
+5. `finally`에서 `messagesLoading`을 끌 때도 최신 요청인지 확인한다.
+   - 오래된 요청의 `finally`가 최신 요청의 로딩 표시를 꺼버리면 안 된다.
+
+`loadMoreMessages()`도 같은 원칙을 적용한다.
+
+- 다음 페이지 응답이 도착했을 때 현재 뷰가 바뀌었다면 append하지 않는다.
+- 요청 당시 offset과 현재 `messages.length`가 달라졌다면 중복 append를 피한다.
+
+### 19.56.5 AbortController 적용 여부
+
+가능하면 `AbortController`로 이전 fetch를 취소한다.
+다만 API 래퍼(`apiFetch`)의 signal 전달 구조에 따라 작업 범위가 커질 수 있으므로, 1차 방어는 **시퀀스/뷰 키 검증**으로 충분하다.
+
+- 시퀀스/뷰 키 검증: 필수
+- AbortController: 선택, 네트워크 낭비 감소용
+
+취소가 있더라도 서버 응답이 이미 도착했거나 브라우저가 취소를 보장하지 않는 경우가 있으므로,
+응답 적용 전 검증은 반드시 유지한다.
+
+### 19.56.6 스마트 폴더 갱신과의 정합
+
+`reloadSmartFolders()`는 스마트 폴더 목록과 카운트를 갱신한다.
+이 갱신으로 `smartFolders` 배열 객체가 새로 만들어져도, 현재 선택된 스마트 폴더 id가 여전히 존재한다면 목록 뷰는 유지되어야 한다.
+
+- `resolveActiveSmart()`가 일시적으로 `null`을 반환하는 타이밍을 줄인다.
+- `loadActiveMessages(sourceAccounts, options)`처럼 accounts를 인자로 받는 함수는 스마트 폴더도 필요하면 `sourceSmartFolders`를 인자로 받거나, 요청 뷰 키를 `activeKey`에서 직접 파싱해 안정화한다.
+- 스마트 폴더가 실제로 삭제된 경우에만 `unified:all` 또는 적절한 기본 뷰로 이동한다.
+
+### 19.56.7 검증 기준
+
+1. `013-GT System` 스마트 폴더를 선택한 상태에서 새로 고침을 눌러도 목록이 받은 편지함으로 바뀌지 않는다.
+2. 새로 고침 중 다른 폴더를 빠르게 클릭해도, 늦게 도착한 이전 폴더 응답이 현재 목록을 덮어쓰지 않는다.
+3. 스마트 폴더 선택 상태에서 배지 갱신(`reloadMailAccounts`, `reloadSmartFolders`)이 발생해도 `messages`는 현재 스마트 폴더 기준을 유지한다.
+4. 우측 상세 메일이 선택된 상태로 새로 고침해도 좌측 선택 / 가운데 목록 / 우측 상세가 서로 다른 뷰를 가리키지 않는다.
+5. 무한 스크롤 중 폴더를 바꾸면 이전 뷰의 다음 페이지가 새 뷰 목록 뒤에 append되지 않는다.
+6. 스마트 폴더가 실제로 삭제된 경우에만 기본 통합 뷰로 이동하고, 단순 리프레시나 카운트 갱신만으로는 이동하지 않는다.
+
+### 19.56.8 구현 메모
+
+이 항목은 프론트 상태 정합성 문제다. 서버의 스마트 폴더 조회 쿼리나 태그 데이터 모델을 바꾸는 문제가 아니다.
+
+핵심 수정 지점:
+
+- `src/features/mail/MailPage.jsx`
+  - `loadActiveMessages`
+  - `loadMoreMessages`
+  - `refreshMail`
+  - `activeKey` 변경 effect
+  - 필요 시 `reloadSmartFolders` 이후 활성 스마트 폴더 해석 로직
+
+서버/API는 기존 `/mail/messages`의 `scope=smart`, `scope=unified`, 계정 폴더 조회 파라미터를 그대로 사용한다.
+
+### 19.56.9 구현 메모 ✅ 적용 완료 (2026-07-04)
+
+19.56.4 권장안(요청 시퀀스 + 뷰 식별자 검증)으로 구현. (`src/features/mail/MailPage.jsx`)
+
+- `messageLoadSeqRef` / `loadMoreSeqRef`를 추가해 최신 목록 요청만 상태를 갱신하도록 했다.
+- `buildMessageViewKey()` / `buildActiveMessageRequest()`를 추가해 계정 폴더, 통합 뷰, 스마트 폴더를 각각 안정적인 view key로 식별한다.
+- 스마트 폴더 목록 배열이 갱신되는 순간에도 `activeKey = smart:<id>`에서 직접 `smartFolderId`를 파싱해 조회하므로, `resolveActiveSmart()`가 잠깐 `null`이 되는 타이밍에 목록을 비우지 않는다.
+- `loadActiveMessages()`는 응답 적용 직전 요청 당시 view key와 현재 view key를 비교하고, 다르면 `messages`/선택/오류 상태를 건드리지 않고 폐기한다.
+- `loadMoreMessages()`도 같은 view key와 요청 당시 offset을 확인해, 이전 뷰의 다음 페이지가 현재 목록 뒤에 append되지 않게 했다.
+- `activeKey` 변경은 `updateActiveKey()`로 일원화해 state 변경 전에 최신 ref를 먼저 갱신한다. 클릭 직후 오래된 응답이 아주 빠르게 도착하는 경우까지 방어한다.
+- 검증: `npm run build` 통과. `npm run lint`는 저장소 전체의 기존 lint 대상(`.venv`, `Database` 추출 파일, 기존 `MailPage.jsx`/`i18n` 이슈) 때문에 실패하나, 이번 ref 직접 갱신 오류는 제거했다.
+
+
+## 19.57 메일쓰기 첨부 영역 화면 내 배치
+
+### 19.57.1 배경 / 증상
+
+메일쓰기 화면에서 본문 편집 영역이 너무 크게 잡혀 첨부 영역이 첫 화면 아래로 밀려난다.
+사용자는 파일 첨부 버튼과 첨부 목록, 전송 오류 메시지를 보려면 페이지를 아래로 스크롤해야 한다.
+
+현재 화면 흐름:
+
+1. 상단 앱 헤더 / 메일 화면 헤더
+2. 보내는 계정, 받는 사람, 참조, 제목 입력 영역
+3. 본문 라벨 + 에디터 툴바 + 큰 본문 편집 영역
+4. 첨부 영역
+5. 전송 오류/상태 메시지
+
+문제는 3번 본문 편집 영역의 높이가 화면 남은 공간 대부분을 차지하면서 4번 첨부 영역이 화면 밖으로 밀리는 것이다.
+
+### 19.57.2 원인
+
+- `메일 쓰기` 화면 전체가 viewport 높이를 기준으로 내부 레이아웃을 나누지 않고, 일반 문서 흐름처럼 아래로 길어진다.
+- 본문 에디터가 고정 또는 과도한 최소 높이를 갖고 있어, 첨부 영역이 본문 아래에 있으면 자연스럽게 fold 아래로 밀린다.
+- 첨부 영역은 사용 빈도가 높은 조작 영역인데도, 현재는 본문 작성 후 부가 영역처럼 배치되어 접근성이 떨어진다.
+- 전송 실패 메시지도 첨부 영역 아래에 있어, 오류를 확인하려면 스크롤이 필요하다.
+
+### 19.57.3 목표
+
+메일쓰기의 주요 조작 요소가 **첫 화면 안에 모두 보이게** 한다.
+
+첫 화면에서 보여야 하는 요소:
+
+- 받는 사람 / 참조 / 제목
+- 본문 에디터 툴바
+- 본문 작성 영역
+- 첨부 버튼
+- 첨부 목록 또는 첨부 드롭 안내
+- 전송 오류/상태 메시지
+
+본문은 길게 작성할 수 있어야 하므로, 화면 전체가 길어지는 대신 **본문 에디터 내부가 스크롤**되도록 한다.
+
+### 19.57.4 구현 방안 (권장)
+
+`MailComposeView`를 viewport 기반 flex 레이아웃으로 바꾼다.
+
+1. 메일쓰기 카드/본문 컨테이너에 화면 높이 제한을 둔다.
+   - 예: `height: calc(100vh - 앱헤더 - 메일페이지 상하 여백)`
+   - 최소 높이가 필요한 경우 `min-height` 대신 `max-height`와 내부 flex를 우선한다.
+2. 메일쓰기 화면 내부를 세 구역으로 나눈다.
+   - 상단 고정 영역: 계정/수신자/참조/제목
+   - 중앙 가변 영역: 본문 에디터
+   - 하단 고정 영역: 첨부 버튼/첨부 목록/오류 메시지
+3. 중앙 본문 에디터는 `flex: 1; min-height: 0;` 구조로 만든다.
+   - 에디터 외곽은 남은 공간만 차지한다.
+   - 실제 본문 입력 영역은 내부에서 `overflow-y: auto`로 스크롤한다.
+4. 첨부 영역은 에디터 아래에 두되, 하단 고정 영역 안에 포함한다.
+   - 첨부 버튼과 첨부 목록이 항상 보이게 한다.
+   - 첨부 목록이 많아지면 첨부 목록 자체에 `max-height`와 `overflow-y: auto`를 준다.
+5. 전송 오류/상태 메시지도 하단 고정 영역에 포함한다.
+   - 사용자가 전송 실패 여부를 스크롤 없이 즉시 확인해야 한다.
+
+### 19.57.5 높이 배분 원칙
+
+권장 배분:
+
+- 상단 입력 영역: 내용 높이만큼 자동
+- 본문 에디터: 남은 공간을 차지하되 최소 높이를 작게 유지
+- 첨부 영역: 항상 보이는 고정/내용 기반 높이
+- 첨부 목록: 많아질 때만 내부 스크롤
+
+주의:
+
+- 본문 에디터에 큰 고정 높이(`h-[600px]`, `min-h-[600px]` 등)를 두지 않는다.
+- `min-height: 0`이 빠지면 flex 자식이 줄어들지 않아 첨부 영역이 다시 밀릴 수 있다.
+- 전체 페이지 스크롤이 아니라, 본문 또는 첨부 목록의 내부 스크롤로 긴 내용을 처리한다.
+
+### 19.57.6 첨부 영역 UI 조정
+
+첨부 영역은 한 줄로 압축하되 기능을 숨기지 않는다.
+
+- 라벨 `첨부`는 유지한다.
+- `파일 첨부` 버튼과 드롭 안내 문구는 같은 줄에 배치한다.
+- 첨부가 없을 때는 얇은 한 줄 영역으로 유지한다.
+- 첨부가 있을 때는 목록을 1~3줄 정도 보이고, 더 많으면 영역 내부 스크롤로 처리한다.
+- 전송 오류 메시지는 첨부 영역 바로 아래 또는 같은 하단 그룹 안에 둔다.
+
+### 19.57.7 반응형 기준
+
+데스크톱:
+
+- 메일쓰기 화면 전체가 브라우저 첫 화면 안에 들어오게 한다.
+- 본문 에디터가 남은 공간을 사용하고, 첨부 영역은 하단에 항상 노출한다.
+
+노트북/낮은 해상도:
+
+- 입력 필드 간 세로 여백을 줄인다.
+- 본문 에디터 최소 높이를 더 낮춘다.
+- 첨부 목록은 더 작은 `max-height`를 사용한다.
+
+모바일/좁은 화면:
+
+- 전체 화면을 한 번에 모두 담기 어려우므로, 최소한 `파일 첨부` 버튼과 전송 오류 메시지는 본문 아래 너무 멀리 밀리지 않게 한다.
+- 필요 시 모바일에서는 본문 에디터 높이를 더 작게 잡고 화면 전체 스크롤을 허용하되, 첨부 영역으로 이동하는 거리가 짧아야 한다.
+
+### 19.57.8 검증 기준
+
+1. 메일쓰기 화면 진입 직후, 별도 스크롤 없이 `파일 첨부` 버튼이 보인다.
+2. 첨부 파일을 추가해도 첨부 목록 첫 줄이 첫 화면 안에 보인다.
+3. 첨부 파일이 많아지면 페이지 전체가 길어지는 대신 첨부 목록 영역 안에서 스크롤된다.
+4. 본문을 길게 작성해도 페이지 전체가 끝없이 늘어나지 않고 본문 에디터 내부에서 스크롤된다.
+5. 전송 실패 메시지가 화면 아래 밖으로 밀리지 않고 즉시 보인다.
+6. 1366×768급 낮은 노트북 화면에서도 첨부 버튼이 첫 화면에 들어온다.
+
+### 19.57.9 구현 위치
+
+주요 변경 지점:
+
+- `src/features/mail/MailPage.jsx`
+  - `MailComposeView`
+  - 본문 에디터 wrapper
+  - 첨부 버튼/첨부 목록 렌더 영역
+  - 전송 오류 메시지 렌더 위치
+
+서버/API 변경은 필요 없다. 순수 프론트 레이아웃 조정이다.
+
+### 19.57.10 구현 메모 ✅ 적용 완료 (2026-07-04)
+
+19.57.4 권장안에 따라 `src/features/mail/MailPage.jsx`의 메일쓰기 레이아웃을 조정했다.
+
+- `MailComposeEditor`의 본문 편집 높이 `h-[1080px]`를 제거하고, 에디터 컨테이너를 `flex h-full min-h-0 flex-col` 구조로 변경했다.
+- 본문 입력 영역은 `min-h-[180px] flex-1 overflow-y-auto`로 바꿔, 본문이 길어질 때 페이지 전체가 아니라 에디터 내부에서 스크롤되게 했다.
+- `MailComposeView` 본문 영역을 `flex min-h-full flex-col`로 재구성하고, 본문 행은 `flex-1`, 첨부/상태 메시지는 `flex-shrink-0`로 분리했다.
+- 첨부 목록은 `max-h-32 overflow-y-auto`를 적용해 첨부가 많을 때 첨부 목록 내부에서만 스크롤되게 했다.
+- 검증: `npm run build` 통과. 기존 Rollup chunk size / Lexical 주석 경고 외 신규 빌드 오류 없음.
+
+
+## 19.58 메일 요약에서 발신자 이름 명시
+
+### 19.58.1 배경 / 문제
+
+메일 요약 기능은 메일 헤더와 본문을 모두 알고 있음에도, 요약 문장에서 발신자를 `발신자`, `상대방`, `일본 측`처럼 모호하게 표현하는 경우가 있다.
+
+예:
+
+```txt
+발신자가 자료 수신 및 Wi-Fi 메쉬 기기 제안에 대해 감사 인사를 전함.
+```
+
+하지만 메일 헤더에 아래처럼 발신자 정보가 이미 확인되어 있다면, 요약은 확인된 이름을 사용해야 한다.
+
+```txt
+보낸 사람: Keisuke Uchida <kuchida@inbis.jp>
+본문 서명: NWC 内田
+```
+
+이 경우 사용자는 발신자가 누구인지 이미 화면에서 확인할 수 있고, 시스템도 해당 메타데이터를 알고 있으므로 요약에서도 이름을 명확히 써야 한다.
+
+### 19.58.2 목표
+
+메일 요약 결과에서 확인된 발신자 이름을 명확히 표현한다.
+
+개선 전:
+
+```txt
+발신자가 자료 수신 및 Wi-Fi 메쉬 기기 제안에 대해 감사 인사를 전함.
+```
+
+개선 후:
+
+```txt
+Keisuke Uchida가 자료 수신 및 Wi-Fi 메쉬 기기 제안에 대해 감사 인사를 전함.
+```
+
+본문 서명과 회사명이 함께 확인되는 경우에는 회사/이름 조합도 사용할 수 있다.
+
+```txt
+네트워크 코퍼레이션의 내田惠介가 자료 수신 및 Wi-Fi 메쉬 기기 제안에 대해 감사 인사를 전함.
+```
+
+단, 회사명/역할/직책은 메일 본문, 서명, 헤더에서 확인된 경우에만 사용한다.
+
+### 19.58.3 적용 대상
+
+이 규칙은 메일 요약 결과의 모든 자연어 문장에 적용한다.
+
+- 일정 비고
+- 중요 포인트
+- 중요 내용 요약
+- 액션 아이템
+- 요약 복사 텍스트
+- 규칙 기반 fallback 요약
+
+### 19.58.4 작성 원칙
+
+1. 메일 헤더의 `from_name`이 있으면 발신자 이름으로 우선 사용한다.
+2. `from_name`이 없고 `from_email`만 있으면 이메일 로컬 파트를 보조 식별자로 사용할 수 있다.
+3. 본문 서명에 더 명확한 이름/회사명이 있으면 헤더 정보와 함께 사용할 수 있다.
+4. 이름을 알 수 있는 경우 `발신자`, `상대방`, `일본 측` 같은 일반 표현만 단독으로 사용하지 않는다.
+5. 이름이 불명확한 경우에만 `발신자` 또는 `상대방`을 사용한다.
+6. 이름, 회사명, 역할, 직책은 추측하지 않는다. 메일에 확인된 정보만 사용한다.
+
+### 19.58.5 Prompt 반영 기준
+
+메일 요약용 system prompt 또는 fact 추출 prompt에는 아래 지침을 포함한다.
+
+```txt
+메일 헤더 또는 본문 서명에서 발신자 이름이 확인되면, 요약 문장에 반드시 그 이름을 포함하세요.
+발신자를 알 수 있는데도 "발신자", "상대방", "일본 측"처럼 모호한 표현만 사용하지 마세요.
+단, 이름/회사명/역할은 메일에 확인된 정보만 사용하고 추측하지 마세요.
+```
+
+특히 아래 단계에 모두 반영한다.
+
+1. 메일 메타데이터 구성 단계
+2. 업무 사실 추출 단계
+3. JSON 요약 생성 단계
+4. 재시도 prompt
+5. 규칙 기반 fallback
+6. 최종 요약 후처리
+
+### 19.58.6 구현 기준
+
+`server/mail/mailSummary.js`의 메일 요약 파이프라인은 다음 기준을 따른다.
+
+1. `message.from_name`을 읽어 확인된 발신자 이름을 만든다.
+2. `from_name`이 없으면 `from_email`의 로컬 파트를 보조 식별자로 사용한다.
+3. 요약 입력의 `[메일 메타데이터]`에 `확인된 발신자 이름`을 포함한다.
+4. fact 추출 prompt에 확인된 발신자 이름 사용 규칙을 포함한다.
+5. JSON 요약 생성 prompt에 확인된 발신자 이름 사용 규칙을 포함한다.
+6. 규칙 기반 fallback 문장도 `발신자` 대신 확인된 이름을 우선 사용한다.
+7. 모델 응답에 `발신자가`, `발신자는`, `The sender`, `差出人は` 같은 일반 표현이 남으면 확인된 이름으로 후처리한다.
+
+### 19.58.7 기대 결과 예시
+
+입력 메일:
+
+- 제목: `Re: Re: THIRD社とのオンラインMTGについて_NWC内田`
+- 보낸 사람: `Keisuke Uchida <kuchida@inbis.jp>`
+- 받는 사람: `장지영 <jangiy@siliconcube.co.kr>`
+- 참조: `Koutetsu Boku <boku@inbis.jp>`, `임종윤/대표이사/(주)실리콘큐브 <freegear@siliconcube.co.kr>`
+- 본문 주요 내용:
+  - 장지영에게 인사
+  - 사전에 보낸 자료 수신에 대한 감사
+  - Wi-Fi 메쉬 기기 제안에 대한 감사
+  - 일본 측에서 필요한 사양과 예상 사용 사례를 내부 확인 후 방향성을 다시 연락하겠다고 안내
+
+중요 포인트 개선 전:
+
+```txt
+발신자가 자료 수신 및 Wi-Fi 메쉬 기기 제안에 대해 감사 인사를 전함.
+```
+
+중요 포인트 개선 후:
+
+```txt
+Keisuke Uchida가 자료 수신 및 Wi-Fi 메쉬 기기 제안에 대해 감사 인사를 전함.
+```
+
+중요 내용 요약 개선 후:
+
+```txt
+Keisuke Uchida는 사전에 전달받은 자료와 Wi-Fi 메쉬 기기 제안에 대해 감사 인사를 전했습니다. 일본 측에서 필요한 사양과 예상 사용 사례를 내부적으로 확인한 뒤, 프로젝트 방향성을 다시 연락하겠다고 안내했습니다.
+```
+
+### 19.58.8 검증 기준
+
+1. `from_name`이 있는 메일을 요약하면 중요 포인트와 중요 내용 요약에 해당 이름이 포함된다.
+2. `from_name`이 있는데도 `발신자가`, `발신자는`만 단독으로 남지 않는다.
+3. 영어 요약에서는 `The sender`가 확인된 이름으로 바뀐다.
+4. 일본어 요약에서는 `差出人は` 또는 `送信者は`가 확인된 이름으로 바뀐다.
+5. 이름이 없는 메일은 기존처럼 `발신자` 표현을 사용할 수 있다.
+6. 회사명/직책은 메일에 확인되지 않으면 새로 만들지 않는다.
+
+### 19.58.9 구현 메모 ✅ 적용 완료 (2026-07-04)
+
+19.58 기준을 `server/mail/mailSummary.js`에 반영했다.
+
+- `getSenderReference()`를 추가해 `from_name` 우선, `from_email` 보조 방식으로 발신자 식별자를 만든다.
+- `buildMailSummaryPrompt()`가 `[메일 메타데이터]`에 `확인된 발신자 이름`을 포함한다.
+- `extractMailFacts()` prompt에 확인된 발신자 이름 사용 규칙을 추가했다.
+- `buildStructuredSystemPrompt()` prompt에 확인된 발신자 이름 사용 규칙을 추가했다.
+- `localizedText()`와 규칙 기반 fallback 문장이 확인된 발신자 이름을 사용할 수 있게 했다.
+- `applySenderReferenceToSummary()`를 추가해 최종 요약 결과에 남은 일반 발신자 표현을 이름으로 후처리한다.
+- 검증: `node -c server/mail/mailSummary.js` 통과, `npm run build` 통과.
+
+
+## 19.59 메일 요약에 `<think>` 또는 reasoning 문구가 노출되는 문제
+
+### 19.59.1 증상
+
+메일 요약 결과의 `중요 포인트` 또는 `중요 내용 요약` 영역에 아래와 같은 내부 사고 과정 문구가 그대로 표시되는 문제가 발생할 수 있다.
+
+```txt
+<think>
+Here's a thinking process:
+**Analyze User Input:**
+```
+
+이 문구는 사용자에게 보여야 하는 메일 요약이 아니라, reasoning 계열 모델이 답변을 생성하기 전에 만든 내부 추론 흔적이다.
+
+### 19.59.2 원인 분석
+
+이 문제는 GROQ에서 reasoning 성향이 강한 모델, 특히 Qwen 계열 모델을 사용할 때 발생할 가능성이 높다.
+
+가능한 원인은 다음과 같다.
+
+1. 모델이 내부 사고 과정을 `<think>...</think>` 형식으로 출력하는 학습 패턴을 가지고 있다.
+2. 현재 메일 요약 prompt가 `JSON만 반환`을 요구하더라도, 모델이 reasoning trace를 JSON 필드 값 안에 섞어 넣을 수 있다.
+3. fact 추출 단계에서 reasoning 문구가 bullet 목록으로 섞이면, 이후 JSON 요약 단계가 이를 `[확인된 사실 목록]`으로 오인해 `keyPoints`에 반영할 수 있다.
+4. JSON parse가 성공하면 시스템은 구조가 맞다고 판단하지만, 문자열 값 내부의 `<think>` 오염까지는 별도로 제거하지 않으면 통과될 수 있다.
+5. GROQ 모델 변경 후 동일 prompt를 사용하면, Gemma에서는 드러나지 않던 모델별 출력 습관이 노출될 수 있다.
+
+즉, 이 문제는 메일 본문 분석 실패라기보다 **모델의 reasoning 출력이 업무 요약 데이터에 섞여 들어간 출력 정제 문제**다.
+
+### 19.59.3 영향 범위
+
+`<think>` 오염은 아래 영역에 나타날 수 있다.
+
+- 중요 포인트
+- 중요 내용 요약
+- 액션 아이템
+- fact 추출 결과
+- raw LLM 응답
+- 저장된 `summary_json`
+- 요약 복사 텍스트
+
+특히 저장 요약에 한 번 들어가면, 재조회 시에도 계속 표시되므로 생성 단계에서 차단해야 한다.
+
+### 19.59.4 해결 방향
+
+해결은 한 가지 방법만으로 처리하지 말고, prompt 제약과 후처리 검증을 함께 둔다.
+
+권장 순서:
+
+1. GROQ/Qwen용 prompt에 reasoning 출력 금지 규칙을 명시한다.
+2. fact 추출 결과에서 `<think>` 블록과 reasoning 문구를 제거한다.
+3. JSON 요약 결과의 모든 문자열 필드에서 `<think>` 블록과 reasoning 문구를 제거한다.
+4. 제거 후 핵심 정보가 비어 있으면 JSON 요약을 재시도한다.
+5. 재시도 후에도 reasoning 문구가 남으면 규칙 기반 fallback 요약을 사용한다.
+
+### 19.59.5 Prompt 반영 기준
+
+메일 요약 system prompt에는 아래 지침을 추가한다.
+
+```txt
+내부 사고 과정, reasoning, chain-of-thought, 분석 과정은 절대 출력하지 마세요.
+<think>, </think>, "Here's a thinking process", "Analyze User Input" 같은 문구를 출력하지 마세요.
+최종 사용자에게 보여줄 업무 요약 JSON만 반환하세요.
+JSON 문자열 값 안에도 reasoning 문구를 넣지 마세요.
+```
+
+fact 추출 prompt에도 아래 지침을 추가한다.
+
+```txt
+내부 분석 과정은 출력하지 말고, 메일에서 확인된 업무 사실만 bullet 목록으로 출력하세요.
+<think> 블록이나 reasoning 문구는 사실 목록에 포함하지 마세요.
+```
+
+### 19.59.6 후처리 기준
+
+LLM 응답을 저장하거나 화면에 표시하기 전에 다음 패턴을 제거한다.
+
+- `<think> ... </think>` 전체 블록
+- 닫히지 않은 `<think>` 이후의 reasoning 문구
+- `Here's a thinking process`
+- `Analyze User Input`
+- `We need answer`
+- `Let's think`
+- `Reasoning:`
+- `Thought:`
+
+단, 실제 메일 본문에 위 문자열이 업무상 의미 있는 텍스트로 포함된 특수 사례가 있을 수 있으므로, 제거 대상은 기본적으로 **LLM 응답 결과**에만 적용한다. 원본 메일 본문은 수정하지 않는다.
+
+### 19.59.7 품질 검증 기준
+
+1. 요약 결과의 `keyPoints`에 `<think>`가 표시되지 않는다.
+2. 요약 결과의 `summary`에 `Here's a thinking process`가 표시되지 않는다.
+3. 요약 결과의 `actionItems.task`에 reasoning 문구가 표시되지 않는다.
+4. raw 응답에 reasoning이 있더라도 저장되는 `summary_json`에는 들어가지 않는다.
+5. reasoning 문구 제거 후 정보가 부족하면 재시도 또는 fallback이 동작한다.
+6. 원본 메일 본문은 절대 수정하지 않는다.
+
+### 19.59.8 운영 판단
+
+Qwen 계열 모델은 reasoning 능력이 장점이지만, 업무 요약처럼 최종 결과만 필요한 UI에서는 내부 사고 과정이 노출되지 않도록 강한 출력 제약이 필요하다.
+
+따라서 GROQ/Qwen을 계속 사용할 경우 다음 운영 정책을 권장한다.
+
+- 메일 요약 prompt는 Gemma용과 GROQ/Qwen용을 분리한다.
+- GROQ/Qwen용 prompt에는 reasoning 출력 금지 규칙을 더 강하게 둔다.
+- `<think>` 오염이 발생하면 해당 요약은 품질 실패로 간주한다.
+- 품질 실패 시 Gemma 재요약 또는 규칙 기반 fallback으로 전환한다.
+- 중요한 고객 메일, 다국어 메일, 일정/액션 아이템이 포함된 메일은 Gemma를 우선 사용하는 정책도 고려한다.
+
+### 19.59.9 구현 메모 ✅ 적용 완료 (2026-07-04)
+
+19.59 기준을 `server/mail/mailSummary.js`에 반영했다.
+
+- fact 추출 prompt에 reasoning 출력 금지 지침을 추가했다.
+- JSON 요약 생성 system prompt에 reasoning 출력 금지 지침을 추가했다.
+- `stripReasoningTrace()`를 추가해 `<think>...</think>`, `Here's a thinking process`, `Analyze User Input`, `Reasoning:`, `Thought:` 계열 문구를 제거한다.
+- fact 추출 결과는 `parseFactLines()`에서 reasoning trace를 제거하고, reasoning 흔적이 남은 줄은 제외한다.
+- 번역 결과, raw JSON 응답, parsed summary 문자열 필드 전체에 reasoning trace 정제를 적용한다.
+- `stripReasoningTraceFromSummary()`를 추가해 `schedule`, `keyPoints`, `summary`, `actionItems`의 모든 문자열 필드를 정제한다.
+- reasoning trace가 감지되면 `quality_flags`에 `reasoning_trace_detected`, `reasoning_trace_removed`, `reasoning_trace_retry`를 기록한다.
+- 정제 후 품질이 부족하면 기존 재시도/fallback 흐름을 그대로 사용한다.
+- 검증: `node -c server/mail/mailSummary.js` 통과, `npm run build` 통과.
+
+권장 quality flag:
+
+```txt
+reasoning_trace_removed
+reasoning_trace_detected
+reasoning_trace_retry
+reasoning_trace_fallback
+```
+
+# 20. 메일 삭제 반응성 개선
+
+## 20.1 배경 / 문제
+
+메일함에서 메일을 삭제할 때 사용자가 느끼는 반응 속도가 느려졌다.
+
+삭제 자체가 느린 경우도 있지만, 실제 체감 지연은 삭제 후 처리에서 발생할 가능성이 높다.
+
+주요 가능성:
+
+1. 삭제 API 응답을 기다린 뒤에야 화면에서 메일을 제거한다.
+2. 삭제 후 현재 메일함 목록 전체를 다시 조회한다.
+3. 목록뿐 아니라 폴더 카운트, 스마트 폴더, 요약 정보, 본문 캐시까지 한 번에 갱신한다.
+4. 삭제 API가 필요한 것보다 많은 데이터를 응답한다.
+5. 여러 메일 삭제 시 개별 API를 반복 호출한다.
+6. DB 삭제 조건에 필요한 인덱스가 부족해 메일 수 증가에 따라 삭제가 느려진다.
+
+따라서 이 개선은 서버 삭제 속도만이 아니라 **사용자 화면에서 즉시 반응하는 구조**를 목표로 한다.
+
+## 20.2 목표
+
+메일 삭제 UX는 다음 기준을 만족해야 한다.
+
+1. 삭제 버튼을 누르면 메일 목록에서 해당 메일이 즉시 사라진다.
+2. 삭제 중에도 전체 메일함을 loading 상태로 바꾸지 않는다.
+3. 삭제 후 전체 목록을 재조회하지 않는다.
+4. 서버 삭제가 실패한 경우에만 삭제한 메일을 복구하거나 오류를 표시한다.
+5. 폴더 카운트와 스마트 폴더 카운트는 필요한 범위만 갱신한다.
+6. 캐시 정리, 요약 삭제, 첨부/blob 정리는 사용자 응답 경로와 분리할 수 있으면 분리한다.
+
+## 20.3 권장 UX 흐름
+
+권장 흐름은 낙관적 삭제 방식이다.
+
+```txt
+사용자가 삭제 클릭
+→ 현재 목록에서 메일을 즉시 제거
+→ 해당 메일 ID를 deleting/pending 상태로 기록
+→ 서버 삭제 API 호출
+→ 성공 시 pending 상태 제거
+→ 실패 시 메일을 원래 위치에 복구하고 오류 표시
+```
+
+이 방식은 서버 응답 시간과 무관하게 사용자가 보는 화면이 즉시 반응하므로 체감 속도 개선 효과가 가장 크다.
+
+## 20.4 프론트 구현 기준
+
+프론트에서는 다음 원칙을 적용한다.
+
+1. 삭제 요청 직후 현재 `messages` 상태에서 해당 메일을 제거한다.
+2. 삭제 중인 메일 ID를 별도 상태로 관리한다.
+3. 삭제 성공 후 `loadMessages()` 같은 전체 목록 재조회는 기본적으로 호출하지 않는다.
+4. 삭제 실패 시 이전 목록 스냅샷 또는 제거한 메일 데이터를 이용해 복구한다.
+5. 목록 전체 spinner 대신 해당 row 단위 상태만 사용한다.
+6. 현재 선택된 메일이 삭제 대상이면 상세 패널은 비우거나 다음 메일로 이동한다.
+7. 다중 선택 삭제는 개별 삭제 API 반복 호출보다 batch API 사용을 우선한다.
+
+## 20.5 서버/API 구현 기준
+
+삭제 API는 빠르고 작은 응답을 반환해야 한다.
+
+권장 응답:
+
+```json
+{
+  "success": true,
+  "deletedId": "message-id",
+  "folderDelta": {
+    "folderId": "folder-id",
+    "total": -1,
+    "unread": 0
+  }
+}
+```
+
+서버 구현 기준:
+
+1. 삭제 API는 삭제된 메일의 전체 본문, 첨부, 요약 데이터를 다시 반환하지 않는다.
+2. 응답에는 성공 여부, 삭제 ID, 필요한 카운트 변화량만 포함한다.
+3. 메일 요약 삭제, 첨부 메타데이터 삭제, 태그 삭제 등은 DB 제약 또는 짧은 트랜잭션으로 처리한다.
+4. 오브젝트 스토리지 blob 정리처럼 시간이 걸릴 수 있는 작업은 후속 GC 또는 백그라운드 작업으로 분리한다.
+5. 여러 메일 삭제를 위해 batch delete API를 제공한다.
+
+## 20.6 DB / 인덱스 점검 기준
+
+메일 삭제 성능은 삭제 대상 조회 조건에 인덱스가 없으면 메일 수가 늘어날수록 급격히 느려질 수 있다.
+
+점검 대상:
+
+1. `mail_messages.id`
+2. `mail_messages.tenant_id`
+3. `mail_messages.account_id`
+4. `mail_messages.folder_id`
+5. `mail_messages.provider_message_id`
+6. `mail_messages.uid` 또는 provider별 UID 컬럼
+7. `mail_summaries.message_id`
+8. `mail_attachments.message_id`
+9. `mail_message_tags.message_id`
+
+삭제 쿼리는 항상 tenant/account 범위를 포함해야 하며, 단일 message id만으로 다른 사용자의 메일을 삭제할 수 없어야 한다.
+
+## 20.7 카운트 갱신 정책
+
+삭제 후 폴더 목록 전체를 다시 불러오면 반응이 느려질 수 있다.
+
+권장 정책:
+
+1. 삭제 대상 메일이 읽지 않은 메일이면 현재 폴더 unread count를 `-1` 한다.
+2. 현재 폴더 total count를 `-1` 한다.
+3. 스마트 폴더 카운트는 해당 메일의 태그/조건에 관련된 항목만 갱신한다.
+4. 정확한 전체 카운트 재계산은 주기적 동기화 또는 백그라운드 갱신으로 미룬다.
+5. 서버 응답에 count delta가 있으면 이를 우선 사용한다.
+
+## 20.8 다중 삭제 정책
+
+여러 메일을 한 번에 삭제할 때는 다음 방식을 권장한다.
+
+```txt
+POST /api/mail/messages/delete-bulk
+{
+  "messageIds": ["id-1", "id-2", "id-3"]
+}
+```
+
+동작 기준:
+
+1. 프론트는 선택된 메일을 목록에서 즉시 제거한다.
+2. 서버는 가능한 한 하나의 트랜잭션에서 삭제 또는 휴지통 이동을 처리한다.
+3. 응답에는 성공한 ID와 실패한 ID를 구분해 반환한다.
+4. 일부 실패가 있으면 실패한 메일만 복구한다.
+5. 전체 목록 재조회는 하지 않는다.
+
+## 20.9 실패 처리
+
+낙관적 삭제는 실패 처리 기준이 반드시 필요하다.
+
+실패 시 동작:
+
+1. 삭제 실패한 메일을 원래 위치에 복구한다.
+2. 현재 정렬 기준을 유지해 적절한 위치에 다시 삽입한다.
+3. 사용자에게 오류 메시지를 표시한다.
+4. 권한 오류, 이미 삭제된 메일, 네트워크 오류를 구분한다.
+5. 이미 서버에서 삭제된 메일을 다시 삭제한 경우에는 성공으로 간주할 수 있다.
+
+## 20.10 검증 기준
+
+1. 메일 삭제 클릭 직후 화면에서 해당 메일이 즉시 사라진다.
+2. 삭제 중 전체 메일함 spinner가 표시되지 않는다.
+3. 삭제 성공 후 현재 메일함 목록 전체 재조회가 발생하지 않는다.
+4. 삭제 실패 시 메일이 복구되고 오류가 표시된다.
+5. 현재 선택된 메일 삭제 시 상세 화면이 깨지지 않는다.
+6. 여러 메일 삭제 시 API 호출이 메일 개수만큼 반복되지 않는다.
+7. 삭제 후 폴더 카운트가 즉시 조정된다.
+8. 휴지통 이동, 영구 삭제, 스마트 폴더 뷰에서 모두 동일한 UX 기준을 만족한다.
+
+## 20.11 구현 우선순위
+
+1. 단일 메일 삭제의 낙관적 UI 적용
+2. 삭제 후 전체 목록 재조회 제거
+3. 삭제 API 응답 최소화
+4. 폴더 카운트 delta 반영
+5. 다중 삭제 batch API 추가
+6. DB 인덱스 및 삭제 쿼리 점검
+7. 첨부/blob 정리 백그라운드화
+
+## 20.12 구현 메모
+
+### 20.12.1 구현 메모 ✅ 적용 완료 (2026-07-04)
+
+20장 기준 중 1차 개선 범위를 `src/features/mail/MailPage.jsx`에 반영했다.
+
+적용 내용:
+
+1. 삭제 클릭 직후 현재 메일 목록에서 대상 메일을 즉시 제거한다.
+2. 선택된 메일이 삭제 대상이면 상세 패널과 선택 상태를 즉시 정리한다.
+3. 삭제 요청 전 현재 메일 목록/선택 상태를 snapshot으로 보관한다.
+4. 서버 삭제가 성공하면 기존처럼 source 폴더 count를 줄이고, 휴지통 이동 결과가 있으면 target 휴지통 count를 늘린다.
+5. 일부 메일 삭제가 실패하면 실패한 메일만 snapshot 기준으로 목록에 복구한다.
+6. 전체 API 호출이 실패하면 삭제 전 목록/선택 상태와 폴더 count를 복구한다.
+7. 삭제 후 전체 메일 목록 재조회는 수행하지 않는다.
+8. 기존 bulk 삭제 API(`/mail/messages/bulk`, `action='delete'`)를 그대로 사용한다.
+
+이번 범위에서 서버 API는 새로 만들지 않았다. 이미 bulk 삭제 API가 존재하므로, 우선 체감 속도에 가장 큰 영향을 주는 프론트 낙관적 삭제 흐름을 먼저 적용했다.
+
+후속 검토:
+
+- 삭제 API 응답을 `deletedId`, `folderDelta` 중심으로 더 작게 줄이는 작업
+- 서버에서 성공/실패 ID와 count delta를 명확히 반환하는 작업
+- 스마트 폴더 count 갱신을 전체 reload가 아니라 delta 방식으로 바꾸는 작업
+- 삭제 관련 DB 인덱스 점검
+
+# 21. 메일 목록 범위 선택 안정화
+
+## 21.1 배경 / 문제
+
+메일 목록에서 여러 메일을 선택할 때, 중간 메일이 건너뛰어진 것처럼 선택되는 현상이 있다.
+
+특히 다음 상황에서 발생 가능성이 높다.
+
+1. 첫 번째 메일을 클릭한 뒤 Shift 클릭으로 범위 선택을 하는 경우
+2. 선택 중 메일 목록이 갱신되는 경우
+3. 삭제/이동/읽음 처리 후 다시 Shift 선택을 하는 경우
+4. 무한 스크롤로 다음 페이지가 append된 뒤 범위 선택을 하는 경우
+5. 검색어나 스마트 폴더 필터가 적용된 상태에서 선택하는 경우
+
+현재 방식은 선택 기준점을 `lastSelectedIndex`로 저장하고, Shift 선택 시 `displayedMessages.slice(start, end + 1)`로 범위를 계산한다.
+
+이 방식은 목록 배열이 변하지 않는 경우에는 단순하지만, 메일 목록은 동기화/삭제/이동/검색/무한 스크롤로 자주 바뀌기 때문에 index 기준이 쉽게 어긋난다.
+
+## 21.2 원인
+
+핵심 원인은 선택 기준점이 안정적인 메일 식별자가 아니라 **화면 배열의 index**라는 점이다.
+
+문제 흐름:
+
+```txt
+첫 클릭 시 index = 3 저장
+→ 목록 갱신 또는 일부 메일 제거/추가
+→ 화면에서 같은 메일의 위치가 index = 5로 변경
+→ Shift 클릭 시 여전히 index = 3을 기준으로 범위 계산
+→ 사용자가 기대한 범위와 다른 메일들이 선택됨
+```
+
+또한 `loadMoreMessages()`에서 다음 페이지를 append할 때 중복 ID가 들어오면, 같은 메일이 목록에 두 번 존재할 수 있다. 이 경우 index 기반 범위 선택은 더 불안정해진다.
+
+## 21.3 목표
+
+메일 범위 선택은 다음 기준을 만족해야 한다.
+
+1. Shift 선택 기준점은 index가 아니라 message id로 저장한다.
+2. Shift 클릭 시 현재 `displayedMessages`에서 기준 message id의 현재 index를 다시 찾는다.
+3. 기준 message id가 현재 화면에 없으면 Shift 범위 선택을 하지 않고 단일 선택으로 처리한다.
+4. 목록 변경, 검색어 변경, 폴더 변경, 삭제, 이동 후에는 선택 기준점을 초기화한다.
+5. 무한 스크롤 append 시 동일 message id가 중복으로 들어오지 않게 한다.
+6. 선택 결과는 화면에 보이는 `displayedMessages` 순서와 항상 일치해야 한다.
+
+## 21.4 구현 기준
+
+`src/features/mail/MailPage.jsx`에서 다음 기준으로 수정한다.
+
+### 21.4.1 선택 기준 상태 변경
+
+기존:
+
+```js
+const [lastSelectedIndex, setLastSelectedIndex] = useState(null)
+```
+
+변경:
+
+```js
+const [lastSelectedMessageId, setLastSelectedMessageId] = useState(null)
+```
+
+일반 클릭 시에는 클릭한 메일 id를 기준점으로 저장한다.
+
+```js
+setLastSelectedMessageId(message.id)
+```
+
+### 21.4.2 Shift 선택 계산 방식
+
+기존 방식:
+
+```js
+const start = Math.min(lastSelectedIndex, index)
+const end = Math.max(lastSelectedIndex, index)
+setSelectedMessageIds(displayedMessages.slice(start, end + 1).map(item => item.id))
+```
+
+변경 방식:
+
+```js
+const anchorIndex = displayedMessages.findIndex(item => item.id === lastSelectedMessageId)
+const currentIndex = displayedMessages.findIndex(item => item.id === message.id)
+
+if (event.shiftKey && anchorIndex >= 0 && currentIndex >= 0) {
+  const start = Math.min(anchorIndex, currentIndex)
+  const end = Math.max(anchorIndex, currentIndex)
+  setSelectedMessageIds(displayedMessages.slice(start, end + 1).map(item => item.id))
+} else {
+  setSelectedMessageIds([message.id])
+  setLastSelectedMessageId(message.id)
+}
+```
+
+이렇게 하면 목록이 중간에 바뀌어도 기준 메일의 현재 위치를 다시 계산하므로 선택 범위가 화면과 맞는다.
+
+## 21.5 선택 기준점 초기화 기준
+
+다음 상황에서는 `lastSelectedMessageId`를 `null`로 초기화한다.
+
+1. 폴더 또는 스마트 폴더 변경
+2. 검색어 변경
+3. 메일 목록 전체 재조회
+4. 삭제 성공 또는 실패 복구 후
+5. 이동 성공 후
+6. 휴지통 비우기 후
+7. 선택 해제 버튼 클릭
+8. Escape 키로 선택 해제
+9. 외부 링크로 특정 메일을 직접 여는 경우
+
+초기화하지 않으면 이전 폴더/이전 검색 결과의 기준 메일이 다음 범위 선택에 영향을 줄 수 있다.
+
+## 21.6 무한 스크롤 중복 제거
+
+`loadMoreMessages()`에서 다음 페이지를 append할 때 기존 목록에 이미 있는 message id는 추가하지 않는다.
+
+권장 방식:
+
+```js
+setMessages(prev => {
+  const existingIds = new Set(prev.map(item => item.id))
+  const uniqueRows = list.filter(item => !existingIds.has(item.id))
+  return [...prev, ...uniqueRows]
+})
+```
+
+중복 제거가 필요한 이유:
+
+1. 같은 메일이 두 번 보이면 선택 범위가 불안정해진다.
+2. `selectedMessageIds`는 id 기준이므로 화면에서는 두 줄이 선택된 것처럼 보일 수 있다.
+3. 삭제/이동 시 같은 id가 중복 처리될 가능성이 생긴다.
+
+## 21.7 삭제/이동과의 정합
+
+20장에서 적용한 낙관적 삭제 흐름과 함께 다음 기준을 둔다.
+
+1. 삭제 요청 직후 선택 기준점을 초기화한다.
+2. 일부 실패로 메일을 복구해도 이전 `lastSelectedMessageId`를 되살리지 않는다.
+3. 이동 성공 후에도 선택 기준점을 초기화한다.
+4. 삭제/이동 후 사용자가 다시 범위 선택을 시작하면 새로 클릭한 메일이 기준점이 된다.
+
+## 21.8 검증 기준
+
+1. 첫 메일 클릭 후 아래쪽 메일을 Shift 클릭하면 중간 메일이 빠지지 않고 연속 선택된다.
+2. 아래쪽 메일 클릭 후 위쪽 메일을 Shift 클릭해도 연속 선택된다.
+3. 삭제 후 다시 Shift 선택해도 이전 index 기준으로 건너뛰지 않는다.
+4. 이동 후 다시 Shift 선택해도 이전 index 기준으로 건너뛰지 않는다.
+5. 검색어 입력 후 Shift 선택 시 검색 결과 화면 기준으로만 연속 선택된다.
+6. 검색어를 지운 뒤 Shift 선택 시 이전 검색 결과의 기준점이 남지 않는다.
+7. 무한 스크롤 후 Shift 선택해도 중복 메일 때문에 선택이 흔들리지 않는다.
+8. 폴더를 바꾼 뒤 Shift 선택하면 이전 폴더의 기준점이 사용되지 않는다.
+
+## 21.9 구현 우선순위
+
+1. `lastSelectedIndex`를 `lastSelectedMessageId`로 변경
+2. Shift 선택 시 현재 `displayedMessages`에서 anchor/current index 재계산
+3. 폴더/검색/목록 변경/삭제/이동 시 선택 기준점 초기화
+4. `loadMoreMessages()` append 중복 제거
+5. 선택/삭제/이동 실패 복구 흐름과 재검증
+
+## 21.10 구현 메모
+
+### 21.10.1 구현 메모 ✅ 적용 완료 (2026-07-04)
+
+21장 기준을 `src/features/mail/MailPage.jsx`에 반영했다.
+
+적용 내용:
+
+1. `lastSelectedIndex` 상태를 제거하고 `lastSelectedMessageId` 상태로 변경했다.
+2. 일반 클릭 또는 우클릭 선택 시 클릭한 메일 id를 범위 선택 기준점으로 저장한다.
+3. Shift 선택 시 저장된 message id를 현재 `displayedMessages`에서 다시 찾아 현재 index를 계산한다.
+4. 기준 message id가 현재 화면 목록에 없으면 단일 선택으로 처리한다.
+5. 폴더/스마트 폴더 변경, 검색어 변경, 메일 목록 재조회, 삭제, 이동, 선택 해제, 외부 링크 진입 시 선택 기준점을 초기화한다.
+6. 삭제 실패 복구 시에도 이전 기준점을 되살리지 않고, 사용자가 다시 클릭한 메일을 새 기준점으로 사용한다.
+7. `loadMoreMessages()`에서 다음 페이지를 append할 때 기존 목록에 있는 message id는 제외해 중복 표시를 막는다.
+
+검증:
+
+```txt
+npm run build
+```
+
+위 검증을 통과해야 한다.
+
+# 22. "하위 폴더가 있어 삭제 불가"인데 UI엔 하위 폴더가 없는 문제
+
+## 22.1 증상
+
+IMAP 계정(예: `freegear@me.com`)에서 특정 폴더(예: `Mailbox`)를 삭제하면
+"하위 폴더가 있는 폴더는 아직 삭제할 수 없습니다." 라는 409 메시지가 뜬다.
+그러나 사이드바에는 그 폴더의 하위 폴더가 **하나도 보이지 않아** 사용자가 무엇을 정리해야
+할지 알 수 없는 막다른 상황이 된다.
+
+## 22.2 근본 원인 — 폴더 발견과 삭제 가드가 서로 다른 트리를 본다
+
+두 경로가 **하위 폴더를 서로 다른 기준으로 판정**하는 것이 원인이다.
+
+1. **폴더 발견(사이드바 표시)** — [listImapFolders](../server/mail/imapSync.js)는
+   `\Noselect`(선택 불가·컨테이너 전용) 메일함을 **건너뛴다**. 따라서 이런 컨테이너 폴더는
+   로컬 `mail_folders`에 저장되지 않고 사이드바에도 나타나지 않는다.
+2. **부모 연결 부재** — 기존 [upsertFolders](../server/mail/repository.js)는
+   `parent_folder_id`를 **전혀 설정하지 않았다.** 그래서 서버에 `Mailbox/2019` 같은 중첩
+   메일함이 있어도, 사이드바에는 부모와의 연결 없이 leaf 이름(`2019`)만 최상위처럼 뜨거나
+   발견에서 빠진다 → 사용자는 그것이 `Mailbox`의 하위 폴더임을 인지할 수 없다.
+3. **삭제 가드** — [deleteImapMailbox](../server/mail/providerRename.js)의 `hasChildren`는
+   실시간 `client.list()` **원본**(=`\Noselect` 포함, prefix `Mailbox/`로 시작하는 모든 경로)을
+   기준으로 자식 유무를 본다.
+
+즉 서버에는 `Mailbox/…` 자식이 있지만 그 자식이 (a) `\Noselect`라 발견에서 빠졌거나
+(b) 부모 연결이 없어 하위로 보이지 않아, **"안 보이는 하위 폴더" 때문에 삭제가 막힌다.**
+
+## 22.3 개선안 (적용)
+
+### 22.3.1 삭제 가드가 막는 하위 폴더 목록을 알려준다
+
+`deleteImapMailbox`가 자식 경로를 수집해 **상대 경로(부모 경로 제거) 이름**과 개수를
+메시지에 담아 반환한다. 또 모든 자식이 `\Noselect`인지(`allNoselect`) 판별해 안내를 분기한다.
+
+- 선택 가능한 자식이 있으면: `하위 폴더 N개가 있어 삭제할 수 없습니다: a, b, … 먼저 하위 폴더를 삭제한 뒤 다시 시도하세요.`
+- 자식이 전부 `\Noselect`면: `… (사이드바에 표시되지 않는 서버 전용/컨테이너 폴더입니다. 다른 메일 클라이언트에서 정리해야 할 수 있습니다.)`
+
+라우트(`DELETE /accounts/:id/folders/:folderId`)는 409 응답에 `reason`(`has_children`/`server_rejected`)과
+`children`을 함께 내린다.
+
+### 22.3.2 중첩 폴더가 사이드바에 보이도록 `parent_folder_id`를 채운다
+
+- 발견 시 각 메일함의 부모 경로를 산출한다(`mailboxParentPath`: `Mailbox/2019` → `Mailbox`).
+  시스템 폴더(INBOX/SENT/DRAFT/TRASH)는 `provider_folder_id`가 논리값으로 재매핑되어 실제
+  경로를 잃으므로 부모 연결 대상에서 제외한다(`parentPath: null`).
+- `upsertFolders`는 삽입 후 2차 패스로, **발견된 서버 폴더(`is_local=FALSE`)마다** `parentPath`와
+  같은 `provider_folder_id`를 가진 형제 폴더를 찾아 `parent_folder_id`를 **원하는 값으로 정합**한다.
+  이때 **설정(set)과 정리(clear)를 함께** 처리한다:
+  - `parentPath`가 매칭되면 그 부모의 id로 설정한다.
+  - `parentPath`가 `null`(최상위)이거나 매칭되는 부모가 없으면(예: 부모가 `\Noselect`라 발견에서
+    빠짐, 또는 서버에서 폴더가 최상위로 이동) `parent_folder_id`를 **`null`로 비운다.** 즉 이전에
+    남아 있던 **오래된 부모 연결(stale)이 재발견 때 정리**된다.
+  - 실제 값이 바뀔 때만 UPDATE하도록 `IS DISTINCT FROM` 가드를 둬 불필요한 `updated_at` 갱신을 막는다.
+- **정합 범위는 서버 발견 폴더(`is_local=FALSE`)로 한정**한다. 사용자가 앱에서 만든 로컬 서브
+  폴더(`is_local=TRUE`)는 발견 배치에 포함되지 않으므로 이 패스가 건드리지 않는다.
+- 이로써 선택 가능한 중첩 폴더는 사이드바에서 부모 아래로 보이며(프론트는 `parent_folder_id`
+  기반 `buildHierarchicalFolderList`로 들여쓰기 렌더), 사용자가 하위부터 삭제할 수 있다.
+
+**반영 트리거**: 부모 연결은 별도 마이그레이션 없이 **폴더 발견(`listImapFolders` → `upsertFolders`)이
+돌 때** 적용된다. `parent_folder_id` 컬럼은 이미 존재하므로 스키마 변경은 없다. 기존 계정도 폴더
+새로고침/재동기화가 한 번 실행되면 중첩 구조가 사이드바에 반영된다.
+
+### 22.3.3 프론트 409 처리 정합
+
+기존 프론트는 **모든 409**에서 폴더를 `deletable:false`로 표시했으나, 백엔드는
+`server_rejected`만 학습한다(=`has_children`은 하위 정리 후 삭제 가능). `err.reason`을
+전달받아 `has_children`이면 로컬 상태를 건드리지 않도록 바로잡았다.
+
+## 22.4 범위 밖 (후속 과제)
+
+- **`\Noselect` 전용 컨테이너 자식의 연쇄 삭제**: 자식이 전부 선택 불가 빈 컨테이너인 경우
+  깊이 우선으로 자식→부모를 IMAP `DELETE`하면 풀 수 있으나, 파괴적 연쇄이므로 별도 강한
+  확인 UX와 함께 후속으로 다룬다(16.11.6의 "하위 폴더 연쇄 삭제"와 동일 선상).
+- 발견에서 `\Noselect` 컨테이너를 "표시만 하고 선택 불가"로 사이드바에 노출할지 여부.
+
+## 22.5 변경 파일
+
+- [server/mail/providerRename.js](../server/mail/providerRename.js) — `deleteImapMailbox` 하위 폴더 목록/`allNoselect` 반환.
+- [server/routes/mail.js](../server/routes/mail.js) — 409에 `reason`·`children` 포함.
+- [server/mail/imapSync.js](../server/mail/imapSync.js) — `mailboxParentPath`, `normalizeFolderIdentity`에 `parentPath`.
+- [server/mail/repository.js](../server/mail/repository.js) — `upsertFolders` 부모 연결 2차 패스(설정+오래된 연결 정리, `is_local=FALSE` 한정).
+- [src/lib/api.js](../src/lib/api.js) — `apiFetch`가 `err.reason` 전달.
+- [src/features/mail/MailPage.jsx](../src/features/mail/MailPage.jsx) — `has_children` 409는 `deletable:false` 미적용.
+
+## 22.6 검증
+
+```txt
+npm run build
+```
+
+이후 실제 확인:
+
+1. 하위 폴더가 있는 IMAP 폴더 삭제 시 409 메시지에 **막는 하위 폴더 이름 목록**이 표시된다.
+2. 선택 가능한 중첩 폴더는 재동기화 후 사이드바에서 부모 아래로 들여쓰기되어 보인다.
+3. `has_children` 거부 후에도 삭제 메뉴가 로컬에서 비활성화되지 않는다(하위 정리 후 재시도 가능).
+4. 서버에서 폴더를 최상위로 옮긴 뒤 재발견하면 이전 부모 아래가 아니라 **최상위로 표시**된다
+   (오래된 `parent_folder_id`가 정리됨). 사용자가 만든 로컬 서브 폴더의 부모 관계는 유지된다.

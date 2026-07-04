@@ -818,7 +818,19 @@ export default function SiteAdminPage({ onClose, initialTab = 'users' }) {
   const [ragPptCompareResults, setRagPptCompareResults] = useState([])
   const [showRagResetConfirm, setShowRagResetConfirm] = useState(false)
   const [ragResetting, setRagResetting] = useState(false)
-  const [agenticaiForm, setAgenticaiForm] = useState({ num_predict: 4096, num_ctx: 8192, history: 6, language: 'ko', operation_mode: 'server' })
+  const [agenticaiForm, setAgenticaiForm] = useState({
+    num_predict: 4096,
+    num_ctx: 8192,
+    history: 6,
+    language: 'ko',
+    operation_mode: 'server',
+    groq_enabled: false,
+    groq_prefer_when_available: false,
+    groq_use_for_mail_summary: false,
+    groq_api_key: '',
+    groq_model: 'llama-3.1-8b-instant',
+    groq_base_url: 'https://api.groq.com/openai/v1',
+  })
   const [companyForm, setCompanyForm] = useState({ name: '', address: '', phone: '', homepage: '', fax: '', seal: '', logo: '' })
   const [siteUrl, setSiteUrl] = useState('')
   const [enableDataBackup, setEnableDataBackup] = useState(false)
@@ -858,6 +870,8 @@ export default function SiteAdminPage({ onClose, initialTab = 'users' }) {
   const [savingConfig, setSavingConfig] = useState(false)
   const [saveConfigDialogMessage, setSaveConfigDialogMessage] = useState('')
   const [saveConfigNeedsRestart, setSaveConfigNeedsRestart] = useState(false)
+  const [groqTestStatus, setGroqTestStatus] = useState(null) // null | 'testing' | 'ok' | 'error'
+  const [groqTestMessage, setGroqTestMessage] = useState('')
   const [restartingService, setRestartingService] = useState(false)
   const [trainingStatus, setTrainingStatus] = useState(null) // 'running', 'done', null
   const [showRagTrainingConfirm, setShowRagTrainingConfirm] = useState(false)
@@ -1168,12 +1182,19 @@ export default function SiteAdminPage({ onClose, initialTab = 'users' }) {
         setGpuMetrics(data.ai_metrics)
       }
       if (data.agenticai) {
+        const groq = data.agenticai.groq || {}
         setAgenticaiForm({
           num_predict: data.agenticai.num_predict || 4096,
           num_ctx: data.agenticai.num_ctx || 8192,
           history: data.agenticai.history ?? 6,
           language: ['ko', 'ja', 'en', 'zh'].includes(data.agenticai.language) ? data.agenticai.language : 'ko',
-          operation_mode: data.agenticai_operation_mode === 'local' ? 'local' : 'server'
+          operation_mode: data.agenticai_operation_mode === 'local' ? 'local' : 'server',
+          groq_enabled: !!groq.enabled,
+          groq_prefer_when_available: !!groq.prefer_when_available,
+          groq_use_for_mail_summary: !!groq.use_for_mail_summary,
+          groq_api_key: groq.api_key || '',
+          groq_model: groq.model || 'llama-3.1-8b-instant',
+          groq_base_url: groq.base_url || 'https://api.groq.com/openai/v1',
         })
       }
       if (data.maxAttachmentFileSize != null) {
@@ -1584,7 +1605,15 @@ export default function SiteAdminPage({ onClose, initialTab = 'users' }) {
           num_predict: parseInt(agenticaiForm.num_predict),
           num_ctx: parseInt(agenticaiForm.num_ctx),
           history: parseInt(agenticaiForm.history),
-          language: agenticaiForm.language || 'ko'
+          language: agenticaiForm.language || 'ko',
+          groq: {
+            enabled: !!agenticaiForm.groq_enabled,
+            prefer_when_available: !!agenticaiForm.groq_prefer_when_available,
+            use_for_mail_summary: !!agenticaiForm.groq_use_for_mail_summary,
+            api_key: agenticaiForm.groq_api_key || '',
+            model: agenticaiForm.groq_model || 'llama-3.1-8b-instant',
+            base_url: agenticaiForm.groq_base_url || 'https://api.groq.com/openai/v1',
+          }
         }
         configData.agenticai_operation_mode = agenticaiForm.operation_mode === 'local' ? 'local' : 'server'
       } else if (activeTab === 'company') {
@@ -1670,6 +1699,28 @@ export default function SiteAdminPage({ onClose, initialTab = 'users' }) {
       setSaveConfigDialogMessage(t.admin.settingsSaveFailed(err.message))
     } finally {
       setSavingConfig(false)
+    }
+  }
+
+  async function handleTestGroqConnection() {
+    setGroqTestStatus('testing')
+    setGroqTestMessage('')
+    try {
+      const result = await apiFetch('/admin/groq/test', {
+        method: 'POST',
+        body: JSON.stringify({
+          groq: {
+            api_key: agenticaiForm.groq_api_key || '',
+            model: agenticaiForm.groq_model || 'llama-3.1-8b-instant',
+            base_url: agenticaiForm.groq_base_url || 'https://api.groq.com/openai/v1',
+          },
+        }),
+      })
+      setGroqTestStatus('ok')
+      setGroqTestMessage(`연결 성공 (${result.model || 'GROQ'}, ${result.latencyMs || 0}ms)`)
+    } catch (err) {
+      setGroqTestStatus('error')
+      setGroqTestMessage(err.detail ? `${err.message}: ${err.detail}` : err.message)
     }
   }
 
@@ -3561,6 +3612,114 @@ export default function SiteAdminPage({ onClose, initialTab = 'users' }) {
                 </div>
                 <div className="mt-4 p-4 rounded-xl border border-gray-200 bg-gray-50 text-[11px] text-gray-600 whitespace-pre-line">
                   {'#31.1 운영 모드 1\n[Local@AgenticAI] -- [ Server ] -- [ WebPage ]\n\n#31.2 운영 모드 2\n[ Server ] -- [ WebPage ] / [Local@AgenticAI]\nLocal@AgenticAI가 Server의 RAG DB를 참조하고, LLM은 Local에서 실행'}
+                </div>
+              </div>
+
+              {/* GROQ settings */}
+              <div className="bg-gray-100 border border-gray-200 rounded-2xl p-8 shadow-xl">
+                <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-cyan-50 border border-cyan-200 flex items-center justify-center">
+                      <svg className="w-5 h-5 text-cyan-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h3 className="text-gray-900 font-bold text-base">GROQ 설정</h3>
+                      <p className="text-gray-400 text-xs mt-0.5">Groq Cloud LLM을 선택적으로 사용하여 메일 요약과 AI 호출 비용을 조정합니다.</p>
+                    </div>
+                  </div>
+                  <div className="flex flex-col items-stretch gap-2 md:items-end">
+                    <button
+                      type="button"
+                      onClick={handleTestGroqConnection}
+                      disabled={groqTestStatus === 'testing' || !agenticaiForm.groq_api_key}
+                      className="inline-flex items-center justify-center gap-2 rounded-xl bg-cyan-600 px-4 py-2 text-sm font-bold text-white shadow-sm shadow-cyan-100 transition hover:bg-cyan-500 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      <svg className={`h-4 w-4 ${groqTestStatus === 'testing' ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v6h6M20 20v-6h-6M5 19A9 9 0 0019 5m0 0h-5m5 0v5" />
+                      </svg>
+                      {groqTestStatus === 'testing' ? '테스트 중' : 'GROQ 연결 테스트'}
+                    </button>
+                    {groqTestMessage && (
+                      <p className={`text-xs font-bold ${groqTestStatus === 'ok' ? 'text-emerald-600' : 'text-red-600'}`}>
+                        {groqTestMessage}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6">
+                  {[
+                    {
+                      key: 'groq_enabled',
+                      title: 'Enable GROQ',
+                      desc: 'GROQ provider 사용',
+                    },
+                    {
+                      key: 'groq_prefer_when_available',
+                      title: '가능한 GROQ를 사용',
+                      desc: '사용 가능할 때 우선 호출',
+                    },
+                    {
+                      key: 'groq_use_for_mail_summary',
+                      title: '메일 요약에 GROQ 사용',
+                      desc: '메일 요약 LLM 호출 적용',
+                    },
+                  ].map(option => (
+                    <label
+                      key={option.key}
+                      className={`flex min-h-[88px] cursor-pointer items-center justify-between gap-3 rounded-xl border px-4 py-3 transition-all ${
+                        agenticaiForm[option.key]
+                          ? 'border-cyan-300 bg-cyan-50 text-cyan-800 shadow-sm'
+                          : 'border-gray-200 bg-gray-50 text-gray-500 hover:border-gray-300'
+                      }`}
+                    >
+                      <span>
+                        <span className="block text-sm font-bold">{option.title}</span>
+                        <span className="block text-xs font-semibold opacity-70">{option.desc}</span>
+                      </span>
+                      <input
+                        type="checkbox"
+                        checked={!!agenticaiForm[option.key]}
+                        onChange={e => setAgenticaiForm(p => ({ ...p, [option.key]: e.target.checked }))}
+                        className="h-5 w-5 rounded border-gray-300 text-cyan-600 focus:ring-cyan-500"
+                      />
+                    </label>
+                  ))}
+                </div>
+
+                <div className="grid grid-cols-1 gap-4">
+                  <label className="block">
+                    <span className="mb-1 block text-xs font-bold text-gray-600">GROQ API_KEY</span>
+                    <input
+                      type="password"
+                      value={agenticaiForm.groq_api_key}
+                      onChange={e => setAgenticaiForm(p => ({ ...p, groq_api_key: e.target.value }))}
+                      placeholder="gsk_..."
+                      className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-900 outline-none transition focus:border-cyan-400 focus:ring-2 focus:ring-cyan-100"
+                    />
+                  </label>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <label className="block">
+                      <span className="mb-1 block text-xs font-bold text-gray-600">GROQ Model</span>
+                      <input
+                        type="text"
+                        value={agenticaiForm.groq_model}
+                        onChange={e => setAgenticaiForm(p => ({ ...p, groq_model: e.target.value }))}
+                        className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-900 outline-none transition focus:border-cyan-400 focus:ring-2 focus:ring-cyan-100"
+                      />
+                    </label>
+                    <label className="block">
+                      <span className="mb-1 block text-xs font-bold text-gray-600">Base URL</span>
+                      <input
+                        type="url"
+                        value={agenticaiForm.groq_base_url}
+                        onChange={e => setAgenticaiForm(p => ({ ...p, groq_base_url: e.target.value }))}
+                        className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-900 outline-none transition focus:border-cyan-400 focus:ring-2 focus:ring-cyan-100"
+                      />
+                    </label>
+                  </div>
                 </div>
               </div>
 

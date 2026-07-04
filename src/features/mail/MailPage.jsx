@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels'
 import { $createParagraphNode, $getRoot, $getSelection, $isRangeSelection, FORMAT_ELEMENT_COMMAND, FORMAT_TEXT_COMMAND, REDO_COMMAND, UNDO_COMMAND } from 'lexical'
 import { $generateHtmlFromNodes, $generateNodesFromDOM } from '@lexical/html'
@@ -885,16 +885,94 @@ function MailMessageList({ messages, loading, error, label, selectedId, selected
   )
 }
 
+// 컨텍스트 메뉴 위치 자동 보정 훅. (MailService.md 19.55)
+// 커서 원좌표를 받아 렌더 후 실제 크기를 실측하고, 화면 하단/우측을 벗어나면 위/왼쪽으로 접어
+// 메뉴가 잘리지 않게 한다. 측정 전에는 visibility:hidden으로 깜빡임을 막는다.
+function useAnchoredMenuPosition(x, y, { margin = 8 } = {}) {
+  const ref = useRef(null)
+  const [pos, setPos] = useState(null)
+  useLayoutEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const rect = el.getBoundingClientRect()
+    const vw = window.innerWidth
+    const vh = window.innerHeight
+    // 가로: 오른쪽으로 넘치면 왼쪽으로 당기고, 그래도 음수면 여백으로.
+    let left = Math.min(x, vw - rect.width - margin)
+    if (left < margin) left = margin
+    // 세로: 아래 공간이 충분하면 커서 아래, 부족하면 위로 펼친다. 뷰포트보다 크면 상단 정렬.
+    let top = (y + rect.height + margin <= vh) ? y : Math.max(margin, y - rect.height)
+    if (top + rect.height + margin > vh) top = Math.max(margin, vh - rect.height - margin)
+    setPos({ left, top })
+  }, [x, y, margin])
+  const style = {
+    left: pos ? pos.left : x,
+    top: pos ? pos.top : y,
+    maxHeight: `calc(100vh - ${margin * 2}px)`,
+    overflowY: 'auto',
+    visibility: pos ? 'visible' : 'hidden',
+  }
+  return { ref, style }
+}
+
+function useAnchoredSubmenuPosition(anchorRect, { margin = 8, gap = 4 } = {}) {
+  const ref = useRef(null)
+  const [pos, setPos] = useState(null)
+  useLayoutEffect(() => {
+    const el = ref.current
+    if (!el || !anchorRect) {
+      setPos(null)
+      return
+    }
+    const rect = el.getBoundingClientRect()
+    const vw = window.innerWidth
+    const vh = window.innerHeight
+    const openRight = anchorRect.right + gap + rect.width + margin <= vw
+    let left = openRight ? anchorRect.right + gap : anchorRect.left - rect.width - gap
+    if (left < margin) left = margin
+    if (left + rect.width + margin > vw) left = Math.max(margin, vw - rect.width - margin)
+    let top = anchorRect.top
+    if (top + rect.height + margin > vh) top = Math.max(margin, vh - rect.height - margin)
+    setPos({ left, top })
+  }, [anchorRect, margin, gap])
+  const style = {
+    left: pos ? pos.left : anchorRect?.right ?? 0,
+    top: pos ? pos.top : anchorRect?.top ?? 0,
+    maxHeight: `calc(100vh - ${margin * 2}px)`,
+    overflowY: 'auto',
+    visibility: pos ? 'visible' : 'hidden',
+  }
+  return { ref, style }
+}
+
 function MailMessageContextMenu({ menu, folders, onClose, onDelete, onMarkUnread, onToggleStar, onMove, onAgenticWatch, onRegisterMailClaw, onRegisterMailClawTrash, mt = MAIL_TEXT.ko }) {
+  const { ref, style } = useAnchoredMenuPosition(menu?.x ?? 0, menu?.y ?? 0)
+  const [moveSubmenuAnchor, setMoveSubmenuAnchor] = useState(null)
+  const [moveSubmenuOpen, setMoveSubmenuOpen] = useState(false)
+  const moveSubmenuCloseTimerRef = useRef(null)
+  const { ref: moveSubmenuRef, style: moveSubmenuStyle } = useAnchoredSubmenuPosition(moveSubmenuAnchor)
+  useEffect(() => () => {
+    if (moveSubmenuCloseTimerRef.current) clearTimeout(moveSubmenuCloseTimerRef.current)
+  }, [])
   if (!menu?.message) return null
   const moveFolders = folders.filter(folder => folder.id && folder.id !== menu.message.folder_id)
   const count = Number(menu.targetIds?.length || 1)
   // 라벨/동작 방향은 우클릭한 메일의 현재 상태 기준(14.3). 표시됨이면 '해제', 아니면 '표시'.
   const isStarred = !!menu.message.is_starred
+  const openMoveSubmenu = (anchor) => {
+    if (moveSubmenuCloseTimerRef.current) clearTimeout(moveSubmenuCloseTimerRef.current)
+    setMoveSubmenuAnchor(anchor)
+    setMoveSubmenuOpen(true)
+  }
+  const scheduleMoveSubmenuClose = () => {
+    if (moveSubmenuCloseTimerRef.current) clearTimeout(moveSubmenuCloseTimerRef.current)
+    moveSubmenuCloseTimerRef.current = setTimeout(() => setMoveSubmenuOpen(false), 120)
+  }
   return (
     <div
+      ref={ref}
       className="fixed z-50 min-w-[300px] whitespace-nowrap rounded-lg border border-gray-200 bg-white py-1 text-sm font-bold text-gray-700 shadow-xl shadow-gray-900/10"
-      style={{ left: menu.x, top: menu.y }}
+      style={style}
       onClick={event => event.stopPropagation()}
     >
       {count > 1 && (
@@ -972,33 +1050,53 @@ function MailMessageContextMenu({ menu, folders, onClose, onDelete, onMarkUnread
         <MenuIcon type="ai" />
         <span>{mt.context.registerMailClawTrash}</span>
       </button>
-      <div className="group relative">
+      <div
+        className="relative"
+        onMouseLeave={scheduleMoveSubmenuClose}
+      >
         <button
           type="button"
+          onMouseEnter={(event) => {
+            openMoveSubmenu(event.currentTarget.getBoundingClientRect())
+          }}
+          onFocus={(event) => {
+            openMoveSubmenu(event.currentTarget.getBoundingClientRect())
+          }}
           className="flex w-full items-center gap-2 px-3 py-2 text-left hover:bg-gray-50"
         >
           <MenuIcon type="folder" />
           <span className="flex-1">{mt.context.move}</span>
           <MenuIcon type="chevronRight" />
         </button>
-        <div className="invisible absolute left-full top-0 ml-1 max-h-72 min-w-[190px] overflow-y-auto rounded-lg border border-gray-200 bg-white py-1 opacity-0 shadow-xl shadow-gray-900/10 transition group-hover:visible group-hover:opacity-100">
-          {moveFolders.length > 0 ? moveFolders.map(folder => (
-            <button
-              key={folder.id}
-              type="button"
-              onClick={() => {
-                onMove(menu, folder)
-                onClose()
-              }}
-              className="flex w-full items-center gap-2 px-3 py-2 text-left hover:bg-gray-50"
-            >
-              <MenuIcon type={folder.type === 'inbox' ? 'inbox' : folder.type === 'trash' ? 'trash' : 'folder'} />
-              <span className="truncate">{getMailFolderLabel(folder, mt)}</span>
-            </button>
-          )) : (
-            <div className="px-3 py-2 text-xs text-gray-400">{mt.context.noMoveFolders}</div>
-          )}
-        </div>
+        {moveSubmenuOpen && (
+          <div
+            ref={moveSubmenuRef}
+            className="fixed z-[60] min-w-[230px] max-w-[320px] rounded-lg border border-gray-200 bg-white py-1 text-sm font-bold text-gray-700 shadow-xl shadow-gray-900/10"
+            style={moveSubmenuStyle}
+            onMouseEnter={() => {
+              if (moveSubmenuCloseTimerRef.current) clearTimeout(moveSubmenuCloseTimerRef.current)
+              setMoveSubmenuOpen(true)
+            }}
+            onMouseLeave={scheduleMoveSubmenuClose}
+          >
+            {moveFolders.length > 0 ? moveFolders.map(folder => (
+              <button
+                key={folder.id}
+                type="button"
+                onClick={() => {
+                  onMove(menu, folder)
+                  onClose()
+                }}
+                className="flex w-full items-center gap-2 px-3 py-2 text-left hover:bg-gray-50"
+              >
+                <MenuIcon type={folder.type === 'inbox' ? 'inbox' : folder.type === 'trash' ? 'trash' : 'folder'} />
+                <span className="min-w-0 flex-1 truncate">{getMailFolderLabel(folder, mt)}</span>
+              </button>
+            )) : (
+              <div className="px-3 py-2 text-xs text-gray-400">{mt.context.noMoveFolders}</div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   )
@@ -1624,9 +1722,9 @@ function MailComposeEditor({ onChange, initialHtml = '', focusEmptyTop = false }
         },
       }}
     >
-      <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
+      <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-lg border border-gray-200 bg-white">
         <MailComposeToolbar />
-        <div className="relative h-[1080px] overflow-y-auto">
+        <div className="relative min-h-[180px] flex-1 overflow-y-auto">
           <RichTextPlugin
             contentEditable={
               <ContentEditable className="min-h-full px-4 py-4 text-sm leading-7 text-gray-800 outline-none" />
@@ -1864,12 +1962,12 @@ function MailComposeView({ accounts, defaultAccountId, initialDraft, onCancel, o
       </header>
 
       <div
-        className={`min-h-0 flex-1 overflow-y-auto px-6 py-5 ${dragOver ? 'bg-indigo-50/40 ring-2 ring-inset ring-indigo-400' : ''}`}
+        className={`min-h-0 flex-1 overflow-y-auto px-6 py-4 ${dragOver ? 'bg-indigo-50/40 ring-2 ring-inset ring-indigo-400' : ''}`}
         onDragOver={(event) => { event.preventDefault(); if (!dragOver) setDragOver(true) }}
         onDragLeave={(event) => { if (event.currentTarget === event.target) setDragOver(false) }}
         onDrop={handleDrop}
       >
-        <div className="grid gap-3">
+        <div className="flex min-h-full flex-col gap-2.5">
           <label className="grid gap-2 text-sm font-bold text-gray-600 md:grid-cols-[96px_1fr] md:items-center">
             <span>{cv.fromAccount}</span>
             <select
@@ -1928,7 +2026,7 @@ function MailComposeView({ accounts, defaultAccountId, initialDraft, onCancel, o
             />
           </label>
 
-          <div className="grid gap-2 text-sm font-bold text-gray-600 md:grid-cols-[96px_1fr]">
+          <div className="grid min-h-[220px] flex-1 gap-2 text-sm font-bold text-gray-600 md:grid-cols-[96px_minmax(0,1fr)]">
             <span className="pt-3">{cv.body}</span>
             <MailComposeEditor
               onChange={setBody}
@@ -1937,7 +2035,7 @@ function MailComposeView({ accounts, defaultAccountId, initialDraft, onCancel, o
             />
           </div>
 
-          <div className="grid gap-2 text-sm font-bold text-gray-600 md:grid-cols-[96px_1fr]">
+          <div className="grid flex-shrink-0 gap-2 text-sm font-bold text-gray-600 md:grid-cols-[96px_1fr]">
             <span className="pt-2">{cv.attachment}</span>
             <div>
               <input
@@ -1963,7 +2061,7 @@ function MailComposeView({ accounts, defaultAccountId, initialDraft, onCancel, o
               {attachments.length > 0 && (
                 <div className="mt-2">
                   <div className="mb-1 text-[11px] font-bold text-gray-500">{mt.attachmentCount(attachments.length)}</div>
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex max-h-32 flex-wrap gap-2 overflow-y-auto pr-1">
                     {attachments.map((file, index) => {
                       const previewUrl = attachmentPreviews.get(file)
                       return (
@@ -2006,7 +2104,7 @@ function MailComposeView({ accounts, defaultAccountId, initialDraft, onCancel, o
           </div>
 
           {(error || status) && (
-            <p className={`rounded-lg px-3 py-2 text-sm font-bold ${
+            <p className={`flex-shrink-0 rounded-lg px-3 py-2 text-sm font-bold ${
               error ? 'bg-red-50 text-red-600' : 'bg-emerald-50 text-emerald-700'
             }`}>
               {error || status}
@@ -2209,14 +2307,16 @@ async function copyAddressToClipboard(address) {
 }
 
 function MailAddressMenu({ menu, onClose, onSearch, mt = MAIL_TEXT.ko }) {
+  const { ref, style } = useAnchoredMenuPosition(menu?.x ?? 0, menu?.y ?? 0)
   if (!menu?.address?.email) return null
   const { address } = menu
   const itemClass = 'flex w-full items-center gap-2 px-3 py-2 text-left hover:bg-gray-50'
   const am = mt.addressMenu
   return (
     <div
+      ref={ref}
       className="fixed z-50 min-w-[210px] rounded-lg border border-gray-200 bg-white py-1 text-sm font-bold text-gray-700 shadow-xl shadow-gray-900/10"
-      style={{ left: menu.x, top: menu.y }}
+      style={style}
       onClick={event => event.stopPropagation()}
     >
       <button
@@ -2289,10 +2389,11 @@ function MailAddressButton({ address, onOpen }) {
       onClick={(event) => {
         event.stopPropagation()
         const rect = event.currentTarget.getBoundingClientRect()
+        // 원좌표만 전달하고 위치 보정은 useAnchoredMenuPosition이 처리한다. (MailService.md 19.55)
         onOpen?.({
           address,
-          x: Math.min(rect.left, window.innerWidth - 230),
-          y: Math.min(rect.bottom + 6, window.innerHeight - 230),
+          x: rect.left,
+          y: rect.bottom + 6,
         })
       }}
     >
@@ -2775,14 +2876,18 @@ function MailMenuButton({ active, icon, label, count, unreadCount, iconColor, on
 }
 
 function FolderContextMenu({ menu, onClose, onCreateFolder, onCreateSubFolder, onRenameFolder, onDeleteFolder, onSetFolderColor, onEmptyTrash, mt = MAIL_TEXT.ko }) {
+  const { ref, style } = useAnchoredMenuPosition(menu?.x ?? 0, menu?.y ?? 0)
   if (!menu?.folder) return null
-  const canDelete = !isSystemMailFolder(menu.folder)
+  // deletable === false: 서버가 삭제를 거부한 폴더(네이버 자동분류함/서버 예약 메일함 등). (folder_delete_error.md 2번)
+  const serverUndeletable = menu.folder.deletable === false
+  const canDelete = !isSystemMailFolder(menu.folder) && !serverUndeletable
   const canRename = !isSystemMailFolder(menu.folder)
   const fm = mt.folderMenu
   return (
     <div
+      ref={ref}
       className="fixed z-50 min-w-[210px] rounded-lg border border-gray-200 bg-white py-1 text-sm font-bold text-gray-700 shadow-xl shadow-gray-900/10"
-      style={{ left: menu.x, top: menu.y }}
+      style={style}
       onClick={event => event.stopPropagation()}
     >
       <button
@@ -2823,6 +2928,7 @@ function FolderContextMenu({ menu, onClose, onCreateFolder, onCreateSubFolder, o
       <button
         type="button"
         disabled={!canDelete}
+        title={serverUndeletable ? '이 메일함은 서버에서 삭제할 수 없습니다.' : undefined}
         onClick={() => {
           if (!canDelete) return
           onDeleteFolder(menu)
@@ -2870,6 +2976,7 @@ function FolderContextMenu({ menu, onClose, onCreateFolder, onCreateSubFolder, o
 }
 
 function UnifiedFolderContextMenu({ menu, onClose, onRefresh, onSetFolderColor, onEmptyUnifiedTrash, mt = MAIL_TEXT.ko }) {
+  const { ref, style } = useAnchoredMenuPosition(menu?.x ?? 0, menu?.y ?? 0)
   if (!menu?.folder) return null
   const label = String(menu.folder.label || '').trim()
   const isTrash = String(menu.folder.type || '') === 'trash' || String(menu.folder.key || '') === 'trash'
@@ -2877,8 +2984,9 @@ function UnifiedFolderContextMenu({ menu, onClose, onRefresh, onSetFolderColor, 
   const disabledTitle = fm.disabledUnified
   return (
     <div
+      ref={ref}
       className="fixed z-50 min-w-[210px] rounded-lg border border-gray-200 bg-white py-1 text-sm font-bold text-gray-700 shadow-xl shadow-gray-900/10"
-      style={{ left: menu.x, top: menu.y }}
+      style={style}
       onClick={event => event.stopPropagation()}
     >
       {isTrash && (
@@ -2972,12 +3080,14 @@ function UnifiedFolderContextMenu({ menu, onClose, onRefresh, onSetFolderColor, 
 
 // 스마트 폴더(태그 기반 통합) 우클릭 메뉴 — 이름 변경 / 삭제 / 색상. (MailService.md 13)
 function SmartFolderContextMenu({ menu, onClose, onRename, onDelete, onSetColor, mt = MAIL_TEXT.ko }) {
+  const { ref, style } = useAnchoredMenuPosition(menu?.x ?? 0, menu?.y ?? 0)
   if (!menu?.folder) return null
   const fm = mt.folderMenu
   return (
     <div
+      ref={ref}
       className="fixed z-50 min-w-[200px] rounded-lg border border-gray-200 bg-white py-1 text-sm font-bold text-gray-700 shadow-xl shadow-gray-900/10"
-      style={{ left: menu.x, top: menu.y }}
+      style={style}
       onClick={event => event.stopPropagation()}
     >
       <button
@@ -4917,7 +5027,7 @@ export default function MailPage({ onBackToMain, initialMailLink = null, onOpenC
   const [composeDraft, setComposeDraft] = useState(null)
   const [selectedMessage, setSelectedMessage] = useState(null)
   const [selectedMessageIds, setSelectedMessageIds] = useState([])
-  const [lastSelectedIndex, setLastSelectedIndex] = useState(null)
+  const [lastSelectedMessageId, setLastSelectedMessageId] = useState(null)
   // Drag & Drop: 드롭 하이라이트 대상 폴더 키(계정:폴더). (MailService.md 11)
   const [dropTargetKey, setDropTargetKey] = useState(null)
   const [messageMenu, setMessageMenu] = useState(null)
@@ -4926,6 +5036,8 @@ export default function MailPage({ onBackToMain, initialMailLink = null, onOpenC
   const [smartFolderMenu, setSmartFolderMenu] = useState(null)
   const [mailClawRegistration, setMailClawRegistration] = useState(null)
   const [pendingEmptyTrash, setPendingEmptyTrash] = useState(null)
+  // 폴더 삭제 확인 대기: { account, folder, message, danger }
+  const [pendingDeleteFolder, setPendingDeleteFolder] = useState(null)
   const [folderNameDialog, setFolderNameDialog] = useState(null)
   const [folderNameDialogLoading, setFolderNameDialogLoading] = useState(false)
   // 통합 휴지통 비우기(여러 계정 한 번에) 확인 대기. (MailService.md 15)
@@ -4935,6 +5047,8 @@ export default function MailPage({ onBackToMain, initialMailLink = null, onOpenC
   const folderSyncTimesRef = useRef(new Map())
   const handledInitialMailLinkRef = useRef('')
   const preserveSelectionOnNextLoadRef = useRef(null)
+  const messageLoadSeqRef = useRef(0)
+  const loadMoreSeqRef = useRef(0)
 
   const displayedMessages = useMemo(() => {
     const query = mailSearchQuery.trim().toLowerCase()
@@ -4956,6 +5070,14 @@ export default function MailPage({ onBackToMain, initialMailLink = null, onOpenC
     || tenants.find(item => item.type === 'personal')?.id
     || tenants[0]?.id
     || ''
+  const activeKeyRef = useRef(activeKey)
+  const currentTenantIdRef = useRef(currentTenantId)
+  const messagesLengthRef = useRef(messages.length)
+  useEffect(() => {
+    activeKeyRef.current = activeKey
+    currentTenantIdRef.current = currentTenantId
+    messagesLengthRef.current = messages.length
+  }, [activeKey, currentTenantId, messages.length])
   // 통합 사이드바 ① 시스템 항목만 남긴다. 이름-집계 커스텀 폴더는 13장 스마트 폴더로 대치(제거). (MailService.md 13.2.1)
   const unifiedMenus = useMemo(() => {
     const totalsByType = new Map()
@@ -5132,15 +5254,21 @@ export default function MailPage({ onBackToMain, initialMailLink = null, onOpenC
     setComposeMode(true)
     setSelectedMessage(null)
     setSelectedMessageIds([])
-    setLastSelectedIndex(null)
+    setLastSelectedMessageId(null)
     setMessageMenu(null)
     setMessageDetailError('')
+  }
+
+  function updateActiveKey(key) {
+    activeKeyRef.current = key
+    setLastSelectedMessageId(null)
+    setActiveKey(key)
   }
 
   function activateMailKey(key) {
     setComposeDraft(null)
     setComposeMode(false)
-    setActiveKey(key)
+    updateActiveKey(key)
   }
 
   function toggleAccount(accountId) {
@@ -5174,6 +5302,78 @@ export default function MailPage({ onBackToMain, initialMailLink = null, onOpenC
     if (!activeKey.startsWith(SMART_KEY_PREFIX)) return null
     const id = activeKey.slice(SMART_KEY_PREFIX.length)
     return sourceFolders.find(item => item.id === id) || null
+  }
+
+  function buildMessageViewKey(key = activeKey, tenantId = currentTenantId) {
+    const safeTenantId = String(tenantId || '').trim()
+    const safeKey = String(key || '').trim()
+    if (!safeKey) return ''
+    if (safeKey.startsWith(SMART_KEY_PREFIX)) {
+      const smartFolderId = safeKey.slice(SMART_KEY_PREFIX.length)
+      return smartFolderId && safeTenantId ? `smart:${safeTenantId}:${smartFolderId}` : ''
+    }
+    if (safeKey.startsWith(UNIFIED_KEY_PREFIX)) {
+      const unifiedKey = safeKey.slice(UNIFIED_KEY_PREFIX.length)
+      return unifiedKey && safeTenantId ? `unified:${safeTenantId}:${unifiedKey}` : ''
+    }
+    return safeTenantId ? `folder:${safeTenantId}:${safeKey}` : ''
+  }
+
+  function buildActiveMessageRequest(sourceAccounts = accounts) {
+    const tenantId = currentTenantId || sourceAccounts[0]?.tenant_id || ''
+
+    if (activeKey.startsWith(SMART_KEY_PREFIX)) {
+      const smartFolderId = activeKey.slice(SMART_KEY_PREFIX.length)
+      if (!tenantId || !smartFolderId) return null
+      return {
+        kind: 'smart',
+        tenantId,
+        viewKey: buildMessageViewKey(activeKey, tenantId),
+        params: new URLSearchParams({
+          tenantId,
+          scope: 'smart',
+          smartFolderId,
+          limit: String(MAIL_PAGE_SIZE),
+          offset: '0',
+        }),
+      }
+    }
+
+    const active = resolveActiveFolder(sourceAccounts)
+    if (active) {
+      return {
+        kind: 'folder',
+        tenantId: active.account.tenant_id,
+        viewKey: buildMessageViewKey(activeKey, active.account.tenant_id),
+        params: new URLSearchParams({
+          tenantId: active.account.tenant_id,
+          accountId: active.account.id,
+          folderId: active.folder.id,
+          limit: String(MAIL_PAGE_SIZE),
+          offset: '0',
+        }),
+      }
+    }
+
+    const unified = resolveActiveUnified()
+    if (unified && tenantId) {
+      return {
+        kind: 'unified',
+        tenantId,
+        viewKey: buildMessageViewKey(activeKey, tenantId),
+        params: new URLSearchParams({
+          tenantId,
+          scope: 'unified',
+          unifiedKey: unified.key,
+          folderType: unified.type || '',
+          folderName: unified.folderName || '',
+          limit: String(MAIL_PAGE_SIZE),
+          offset: '0',
+        }),
+      }
+    }
+
+    return null
   }
 
   function markMessageReadInState(message) {
@@ -5216,6 +5416,25 @@ export default function MailPage({ onBackToMain, initialMailLink = null, onOpenC
     }))
   }
 
+  function restoreMessagesBySnapshot(currentList, snapshotList, restoreIds) {
+    if (!restoreIds?.size) return currentList
+    const currentById = new Map(currentList.map(item => [String(item.id), item]))
+    const snapshotIds = new Set(snapshotList.map(item => String(item.id)))
+    const restored = []
+    for (const item of snapshotList) {
+      const id = String(item.id)
+      if (restoreIds.has(id)) {
+        restored.push(item)
+      } else if (currentById.has(id)) {
+        restored.push(currentById.get(id))
+      }
+    }
+    for (const item of currentList) {
+      if (!snapshotIds.has(String(item.id))) restored.push(item)
+    }
+    return restored
+  }
+
   function getActionMessages(target) {
     const ids = Array.isArray(target?.targetIds) && target.targetIds.length
       ? new Set(target.targetIds)
@@ -5232,11 +5451,12 @@ export default function MailPage({ onBackToMain, initialMailLink = null, onOpenC
       : [message.id]
     if (!isAlreadySelected) {
       setSelectedMessageIds([message.id])
-      setLastSelectedIndex(index)
+      setLastSelectedMessageId(message.id)
     }
+    // 원좌표만 저장하고, 실제 위치 보정은 useAnchoredMenuPosition이 렌더 후 실측으로 처리한다. (MailService.md 19.55)
     setMessageMenu({
-      x: Math.min(event.clientX, window.innerWidth - 220),
-      y: Math.min(event.clientY, window.innerHeight - 180),
+      x: event.clientX,
+      y: event.clientY,
       message,
       targetIds,
     })
@@ -5298,8 +5518,8 @@ export default function MailPage({ onBackToMain, initialMailLink = null, onOpenC
     event.preventDefault()
     event.stopPropagation()
     setFolderMenu({
-      x: Math.min(event.clientX, window.innerWidth - 190),
-      y: Math.min(event.clientY, window.innerHeight - 360),
+      x: event.clientX,
+      y: event.clientY,
       account,
       folder,
     })
@@ -5309,8 +5529,8 @@ export default function MailPage({ onBackToMain, initialMailLink = null, onOpenC
     event.preventDefault()
     event.stopPropagation()
     setUnifiedFolderMenu({
-      x: Math.min(event.clientX, window.innerWidth - 220),
-      y: Math.min(event.clientY, window.innerHeight - 420),
+      x: event.clientX,
+      y: event.clientY,
       folder,
     })
   }
@@ -5318,7 +5538,7 @@ export default function MailPage({ onBackToMain, initialMailLink = null, onOpenC
   function clearMailSelection() {
     setSelectedMessage(null)
     setSelectedMessageIds([])
-    setLastSelectedIndex(null)
+    setLastSelectedMessageId(null)
     setMessageDetailError('')
     setMessageMenu(null)
   }
@@ -5464,14 +5684,15 @@ export default function MailPage({ onBackToMain, initialMailLink = null, onOpenC
           ? { ...item, folders: [...(item.folders || []).filter(existing => existing.id !== folder.id), folder] }
           : item
       )))
-      setActiveKey(`${account.id}:${folder.id}`)
+      updateActiveKey(`${account.id}:${folder.id}`)
       setComposeMode(false)
     } catch (err) {
       throw new Error(err.message || '폴더를 추가하지 못했습니다.')
     }
   }
 
-  async function deleteMailFolder(menu) {
+  // 폴더 삭제: 네이티브 confirm 대신 ConfirmDialog로 확인을 받는다. 실제 삭제는 performDeleteMailFolder.
+  function deleteMailFolder(menu) {
     const account = menu?.account
     const folder = menu?.folder
     if (!account?.id || !folder?.id || !account?.tenant_id || isSystemMailFolder(folder)) return
@@ -5480,15 +5701,21 @@ export default function MailPage({ onBackToMain, initialMailLink = null, onOpenC
     //   - IMAP(메일함 삭제, 파괴적): 폴더와 그 안의 메일이 서버에서 영구 삭제된다.
     const label = getMailFolderLabel(folder)
     const msgCount = Number(folder.message_count || 0)
-    let confirmMsg
+    let message
     if (folder.is_local) {
-      confirmMsg = `"${label}" 폴더를 삭제하시겠습니까?`
+      message = `"${label}" 폴더를 삭제하시겠습니까?`
     } else if (account.provider === 'gmail') {
-      confirmMsg = `"${label}" 라벨을 삭제합니다.\n메일은 삭제되지 않고 전체보관함에 남습니다.\n\n계속하시겠습니까?`
+      message = `"${label}" 라벨을 삭제합니다.\n메일은 삭제되지 않고 전체보관함에 남습니다.`
     } else {
-      confirmMsg = `"${label}" 폴더${msgCount > 0 ? `와 그 안의 메일 ${msgCount}개` : ''}가 서버에서 영구 삭제됩니다.\n이 작업은 복구할 수 없습니다.\n\n계속하시겠습니까?`
+      message = `"${label}" 폴더${msgCount > 0 ? `와 그 안의 메일 ${msgCount}개` : ''}가 서버에서 영구 삭제됩니다.\n이 작업은 복구할 수 없습니다.`
     }
-    if (!window.confirm(confirmMsg)) return
+    setPendingDeleteFolder({ account, folder, message, danger: !folder.is_local })
+  }
+
+  async function performDeleteMailFolder(pending) {
+    if (!pending) return
+    const { account, folder } = pending
+    setPendingDeleteFolder(null)
     try {
       const params = new URLSearchParams({ tenantId: account.tenant_id })
       const result = await apiFetch(`/mail/accounts/${account.id}/folders/${folder.id}?${params.toString()}`, {
@@ -5501,7 +5728,7 @@ export default function MailPage({ onBackToMain, initialMailLink = null, onOpenC
       )))
       const active = resolveActiveFolder()
       if (active?.folder?.id === folder.id) {
-        setActiveKey(`${UNIFIED_KEY_PREFIX}inbox`)
+        updateActiveKey(`${UNIFIED_KEY_PREFIX}inbox`)
         setMessages([])
         clearMailSelection()
       }
@@ -5509,6 +5736,18 @@ export default function MailPage({ onBackToMain, initialMailLink = null, onOpenC
         setMessagesError(`폴더를 삭제했습니다. (메일 ${result.purgedMessages}개 영구 삭제)`)
       }
     } catch (err) {
+      // 서버가 영구 거부(server_rejected)한 폴더만 백엔드가 deletable=false로 학습한다.
+      // has_children(하위 폴더 정리 후 삭제 가능)은 학습하지 않으므로 로컬 상태도 건드리지 않는다.
+      // 로컬 상태도 즉시 반영해 재조회 없이 삭제 메뉴가 비활성화되도록 한다. (folder_delete_error.md 2번, MailService.md 22)
+      if (err.status === 409 && err.reason !== 'has_children') {
+        setAccounts(prev => prev.map(item => (
+          item.id === account.id
+            ? { ...item, folders: (item.folders || []).map(existing => (
+                existing.id === folder.id ? { ...existing, deletable: false } : existing
+              )) }
+            : item
+        )))
+      }
       setMessagesError(err.message || '폴더를 삭제하지 못했습니다.')
     }
   }
@@ -5668,6 +5907,25 @@ export default function MailPage({ onBackToMain, initialMailLink = null, onOpenC
     const targets = getActionMessages(target)
     const tenantId = targets[0]?.tenant_id || active?.account?.tenant_id || currentTenantId
     if (!tenantId || targets.length === 0) return
+    const targetIds = new Set(targets.map(item => String(item.id)))
+    const snapshotMessages = messages
+    const snapshotSelectedMessage = selectedMessage
+    const snapshotSelectedMessageIds = selectedMessageIds
+
+    setLastSelectedMessageId(null)
+    setMessages(prev => prev.filter(item => !targetIds.has(String(item.id))))
+    setSelectedMessage(prev => (prev && targetIds.has(String(prev.id)) ? null : prev))
+    setSelectedMessageIds(prev => prev.filter(id => !targetIds.has(String(id))))
+    setMessagesError('')
+    for (const message of targets) {
+      adjustFolderCounts({
+        accountId: message.account_id,
+        folderId: message.folder_id,
+        totalDelta: -1,
+        unreadDelta: message.is_read ? 0 : -1,
+      })
+    }
+
     try {
       const params = new URLSearchParams({ tenantId })
       const result = await apiFetch(`/mail/messages/bulk?${params.toString()}`, {
@@ -5675,19 +5933,33 @@ export default function MailPage({ onBackToMain, initialMailLink = null, onOpenC
         body: JSON.stringify({ action: 'delete', messageIds: targets.map(item => item.id) }),
       })
       const resultById = new Map((result?.results || []).map(item => [item.id, item]))
-      const targetIds = new Set(targets.map(item => item.id))
-      setMessages(prev => prev.filter(item => !targetIds.has(item.id)))
-      setSelectedMessage(prev => (prev && targetIds.has(prev.id) ? null : prev))
-      setSelectedMessageIds(prev => prev.filter(id => !targetIds.has(id)))
-      for (const message of targets) {
+      const successTargets = targets.filter(message => resultById.get(message.id)?.ok)
+      const failedTargets = targets.filter(message => !resultById.get(message.id)?.ok)
+      const failedIds = new Set(failedTargets.map(item => String(item.id)))
+
+      if (failedTargets.length > 0) {
+        setMessages(prev => restoreMessagesBySnapshot(prev, snapshotMessages, failedIds))
+        if (snapshotSelectedMessage && failedIds.has(String(snapshotSelectedMessage.id))) {
+          setSelectedMessage(snapshotSelectedMessage)
+        }
+        setSelectedMessageIds(prev => {
+          const existing = new Set(prev.map(String))
+          const restoredIds = snapshotSelectedMessageIds.filter(id => failedIds.has(String(id)) && !existing.has(String(id)))
+          return [...prev, ...restoredIds]
+        })
+        for (const message of failedTargets) {
+          adjustFolderCounts({
+            accountId: message.account_id,
+            folderId: message.folder_id,
+            totalDelta: 1,
+            unreadDelta: message.is_read ? 0 : 1,
+          })
+        }
+      }
+
+      for (const message of successTargets) {
         const resultItem = resultById.get(message.id)
         const targetFolderId = resultItem?.message?.trash_folder_id || resultItem?.message?.folder_id
-        adjustFolderCounts({
-          accountId: message.account_id,
-          folderId: message.folder_id,
-          totalDelta: -1,
-          unreadDelta: message.is_read ? 0 : -1,
-        })
         if (targetFolderId && targetFolderId !== message.folder_id && !resultItem?.message?.soft_deleted) {
           adjustFolderCounts({
             accountId: message.account_id,
@@ -5699,7 +5971,19 @@ export default function MailPage({ onBackToMain, initialMailLink = null, onOpenC
       }
       // 삭제/휴지통 이동은 스마트 폴더 태그 집계에서도 빠지므로 배지를 갱신한다. (MailService.md 13)
       await reloadSmartFolders().catch(() => {})
+      setMessagesError(failedTargets.length > 0 ? '일부 메일을 삭제하지 못했습니다.' : '')
     } catch (err) {
+      setMessages(prev => restoreMessagesBySnapshot(prev, snapshotMessages, targetIds))
+      setSelectedMessage(snapshotSelectedMessage)
+      setSelectedMessageIds(snapshotSelectedMessageIds)
+      for (const message of targets) {
+        adjustFolderCounts({
+          accountId: message.account_id,
+          folderId: message.folder_id,
+          totalDelta: 1,
+          unreadDelta: message.is_read ? 0 : 1,
+        })
+      }
       setMessagesError(err.message || '메일을 삭제하지 못했습니다.')
     }
   }
@@ -5728,6 +6012,7 @@ export default function MailPage({ onBackToMain, initialMailLink = null, onOpenC
         return
       }
       const movedSet = new Set(moved.map(item => item.id))
+      setLastSelectedMessageId(null)
       setMessages(prev => prev.filter(item => !movedSet.has(item.id)))
       setSelectedMessage(prev => (prev && movedSet.has(prev.id) ? null : prev))
       setSelectedMessageIds(prev => prev.filter(id => !movedSet.has(id)))
@@ -5883,6 +6168,7 @@ export default function MailPage({ onBackToMain, initialMailLink = null, onOpenC
       // 아카이브된 메일은 원 폴더에서 빠졌으므로, 현재 뷰가 스마트 폴더가 아니면 목록에서 제거한다.
       const viewingThisSmart = activeKey === `${SMART_KEY_PREFIX}${smartFolder.id}`
       if (archivedSet.size > 0 && !viewingThisSmart) {
+        setLastSelectedMessageId(null)
         setMessages(prev => prev.filter(item => !archivedSet.has(item.id)))
         setSelectedMessage(prev => (prev && archivedSet.has(prev.id) ? null : prev))
       }
@@ -5926,6 +6212,7 @@ export default function MailPage({ onBackToMain, initialMailLink = null, onOpenC
       })
       // 현재 원본 스마트 폴더 뷰에서 이동한 메일을 목록에서 제거
       const idSet = new Set(ids)
+      setLastSelectedMessageId(null)
       setMessages(prev => prev.filter(item => !idSet.has(item.id)))
       setSelectedMessage(prev => (prev && idSet.has(prev.id) ? null : prev))
       setSelectedMessageIds(prev => prev.filter(id => !idSet.has(id)))
@@ -5972,8 +6259,8 @@ export default function MailPage({ onBackToMain, initialMailLink = null, onOpenC
     event.preventDefault()
     event.stopPropagation()
     setSmartFolderMenu({
-      x: Math.min(event.clientX, window.innerWidth - 220),
-      y: Math.min(event.clientY, window.innerHeight - 260),
+      x: event.clientX,
+      y: event.clientY,
       folder,
     })
   }
@@ -6008,7 +6295,7 @@ export default function MailPage({ onBackToMain, initialMailLink = null, onOpenC
     if (!window.confirm(`"${folder.name}" 스마트 폴더를 삭제할까요?\n메일 원본은 각 계정에 그대로 남고, 이 폴더의 태그만 사라집니다.`)) return
     try {
       await apiFetch(`/mail/smart-folders/${folder.id}?tenantId=${encodeURIComponent(currentTenantId)}`, { method: 'DELETE' })
-      if (activeKey === `${SMART_KEY_PREFIX}${folder.id}`) setActiveKey(`${UNIFIED_KEY_PREFIX}all`)
+      if (activeKey === `${SMART_KEY_PREFIX}${folder.id}`) updateActiveKey(`${UNIFIED_KEY_PREFIX}all`)
       await reloadSmartFolders()
     } catch (err) {
       setMessagesError(err.message || '스마트 폴더를 삭제하지 못했습니다.')
@@ -6057,15 +6344,23 @@ export default function MailPage({ onBackToMain, initialMailLink = null, onOpenC
   async function loadActiveMessages(sourceAccounts = accounts, options = {}) {
     setComposeMode(false)
     const { silent = false, resetSelection = true } = options
-    const active = resolveActiveFolder(sourceAccounts)
-    const unified = resolveActiveUnified()
-    const smart = resolveActiveSmart()
-    if (!active && !unified && !smart) {
+    const requestSeq = ++messageLoadSeqRef.current
+    const request = buildActiveMessageRequest(sourceAccounts)
+    const latestViewKeyForRequest = () => buildMessageViewKey(
+      activeKeyRef.current,
+      request?.kind === 'folder' ? request.tenantId : currentTenantIdRef.current,
+    )
+    const isCurrentRequest = () => (
+      requestSeq === messageLoadSeqRef.current
+      && request?.viewKey
+      && request.viewKey === latestViewKeyForRequest()
+    )
+    if (!request) {
       setMessages([])
       setMessagesError('')
       setSelectedMessage(null)
       setSelectedMessageIds([])
-      setLastSelectedIndex(null)
+      setLastSelectedMessageId(null)
       setMessageDetailError('')
       setHasMoreMessages(false)
       return
@@ -6073,33 +6368,8 @@ export default function MailPage({ onBackToMain, initialMailLink = null, onOpenC
     if (!silent) setMessagesLoading(true)
     setMessagesError('')
     try {
-      const tenantId = currentTenantId || sourceAccounts[0]?.tenant_id
-      const params = active
-        ? new URLSearchParams({
-            tenantId: active.account.tenant_id,
-            accountId: active.account.id,
-            folderId: active.folder.id,
-            limit: String(MAIL_PAGE_SIZE),
-            offset: '0',
-          })
-        : smart
-          ? new URLSearchParams({
-              tenantId,
-              scope: 'smart',
-              smartFolderId: smart.id,
-              limit: String(MAIL_PAGE_SIZE),
-              offset: '0',
-            })
-          : new URLSearchParams({
-            tenantId,
-            scope: 'unified',
-            unifiedKey: unified.key,
-            folderType: unified.type || '',
-            folderName: unified.folderName || '',
-            limit: String(MAIL_PAGE_SIZE),
-            offset: '0',
-          })
-      const rows = await apiFetch(`/mail/messages?${params.toString()}`)
+      const rows = await apiFetch(`/mail/messages?${request.params.toString()}`)
+      if (!isCurrentRequest()) return
       const list = Array.isArray(rows) ? rows : []
       const preserved = preserveSelectionOnNextLoadRef.current
       const nextList = preserved?.id
@@ -6115,20 +6385,21 @@ export default function MailPage({ onBackToMain, initialMailLink = null, onOpenC
         if (preserved?.id) {
           setSelectedMessage(preserved.message)
           setSelectedMessageIds([preserved.id])
-          setLastSelectedIndex(null)
+          setLastSelectedMessageId(null)
           setMessageDetailError('')
           preserveSelectionOnNextLoadRef.current = null
         } else {
           setSelectedMessage(null)
           setSelectedMessageIds([])
-          setLastSelectedIndex(null)
+          setLastSelectedMessageId(null)
           setMessageDetailError('')
         }
       }
     } catch (err) {
+      if (!isCurrentRequest()) return
       setMessagesError(err.message || '메일 목록을 불러오지 못했습니다.')
     } finally {
-      if (!silent) setMessagesLoading(false)
+      if (!silent && requestSeq === messageLoadSeqRef.current) setMessagesLoading(false)
     }
   }
 
@@ -6136,8 +6407,25 @@ export default function MailPage({ onBackToMain, initialMailLink = null, onOpenC
   async function loadMoreMessages() {
     const active = resolveActiveFolder()
     const unified = resolveActiveUnified()
-    const smart = resolveActiveSmart()
-    if ((!active && !unified && !smart) || loadingMore || messagesLoading || !hasMoreMessages) return
+    const smartFolderId = activeKey.startsWith(SMART_KEY_PREFIX) ? activeKey.slice(SMART_KEY_PREFIX.length) : ''
+    const tenantId = currentTenantId
+    if ((!active && !unified && !smartFolderId) || loadingMore || messagesLoading || !hasMoreMessages) return
+    if (smartFolderId && !tenantId) return
+    const requestSeq = ++loadMoreSeqRef.current
+    const requestOffset = messages.length
+    const requestKind = active ? 'folder' : smartFolderId ? 'smart' : 'unified'
+    const requestTenantId = active ? active.account.tenant_id : tenantId
+    const requestViewKey = buildMessageViewKey(activeKey, requestTenantId)
+    const latestViewKeyForRequest = () => buildMessageViewKey(
+      activeKeyRef.current,
+      requestKind === 'folder' ? requestTenantId : currentTenantIdRef.current,
+    )
+    const isCurrentRequest = () => (
+      requestSeq === loadMoreSeqRef.current
+      && requestViewKey
+      && requestViewKey === latestViewKeyForRequest()
+      && requestOffset === messagesLengthRef.current
+    )
     setLoadingMore(true)
     try {
       const params = active
@@ -6148,16 +6436,16 @@ export default function MailPage({ onBackToMain, initialMailLink = null, onOpenC
             limit: String(MAIL_PAGE_SIZE),
             offset: String(messages.length),
           })
-        : smart
+        : smartFolderId
           ? new URLSearchParams({
-              tenantId: currentTenantId,
+              tenantId,
               scope: 'smart',
-              smartFolderId: smart.id,
+              smartFolderId,
               limit: String(MAIL_PAGE_SIZE),
               offset: String(messages.length),
             })
           : new URLSearchParams({
-            tenantId: currentTenantId,
+            tenantId,
             scope: 'unified',
             unifiedKey: unified.key,
             folderType: unified.type || '',
@@ -6166,13 +6454,18 @@ export default function MailPage({ onBackToMain, initialMailLink = null, onOpenC
             offset: String(messages.length),
           })
       const rows = await apiFetch(`/mail/messages?${params.toString()}`)
+      if (!isCurrentRequest()) return
       const list = Array.isArray(rows) ? rows : []
-      setMessages(prev => [...prev, ...list])
+      setMessages(prev => {
+        const existingIds = new Set(prev.map(item => String(item.id)))
+        const uniqueList = list.filter(item => !existingIds.has(String(item.id)))
+        return [...prev, ...uniqueList]
+      })
       setHasMoreMessages(list.length === MAIL_PAGE_SIZE)
     } catch {
       // 추가 로드 실패는 다음 스크롤에서 재시도
     } finally {
-      setLoadingMore(false)
+      if (requestSeq === loadMoreSeqRef.current) setLoadingMore(false)
     }
   }
 
@@ -6238,7 +6531,7 @@ export default function MailPage({ onBackToMain, initialMailLink = null, onOpenC
     async function openLinkedMail() {
       setComposeMode(false)
       setSelectedMessageIds([messageId])
-      setLastSelectedIndex(null)
+      setLastSelectedMessageId(null)
       preserveSelectionOnNextLoadRef.current = null
       setMessageDetailLoading(true)
       setMessageDetailError('')
@@ -6252,7 +6545,7 @@ export default function MailPage({ onBackToMain, initialMailLink = null, onOpenC
           : ''
         if (detailActiveKey && detailActiveKey !== activeKey) {
           preserveSelectionOnNextLoadRef.current = { id: detail.id, message: detail }
-          setActiveKey(detailActiveKey)
+          updateActiveKey(detailActiveKey)
         }
         setMessages(prev => {
           const exists = prev.some(item => item.id === detail.id)
@@ -6278,13 +6571,17 @@ export default function MailPage({ onBackToMain, initialMailLink = null, onOpenC
     const tenantId = message?.tenant_id || active?.account?.tenant_id || currentTenantId
     if (!tenantId || !message?.id) return
     setComposeMode(false)
-    if (event?.shiftKey && lastSelectedIndex != null) {
-      const start = Math.min(lastSelectedIndex, index)
-      const end = Math.max(lastSelectedIndex, index)
+    const anchorIndex = lastSelectedMessageId
+      ? displayedMessages.findIndex(item => String(item.id) === String(lastSelectedMessageId))
+      : -1
+    const currentIndex = displayedMessages.findIndex(item => String(item.id) === String(message.id))
+    if (event?.shiftKey && anchorIndex >= 0 && currentIndex >= 0) {
+      const start = Math.min(anchorIndex, currentIndex)
+      const end = Math.max(anchorIndex, currentIndex)
       setSelectedMessageIds(displayedMessages.slice(start, end + 1).map(item => item.id))
     } else {
       setSelectedMessageIds([message.id])
-      setLastSelectedIndex(index)
+      setLastSelectedMessageId(message.id)
     }
     setMessageDetailLoading(true)
     setMessageDetailError('')
@@ -6309,7 +6606,7 @@ export default function MailPage({ onBackToMain, initialMailLink = null, onOpenC
     if (!isDraftContext || !message?.id) return
     event?.stopPropagation?.()
     setSelectedMessageIds([message.id])
-    setLastSelectedIndex(index)
+    setLastSelectedMessageId(message.id)
     setMessageDetailLoading(true)
     setMessageDetailError('')
     setMessagesError('')
@@ -6340,7 +6637,7 @@ export default function MailPage({ onBackToMain, initialMailLink = null, onOpenC
     setComposeDraft(getMailActionComposeData(message, action, accountId, ownEmails))
     setSelectedMessage(null)
     setSelectedMessageIds([])
-    setLastSelectedIndex(null)
+    setLastSelectedMessageId(null)
     setMessageMenu(null)
     setMessageDetailError('')
     setComposeMode(true)
@@ -6533,7 +6830,10 @@ export default function MailPage({ onBackToMain, initialMailLink = null, onOpenC
           <input
             type="search"
             value={mailSearchQuery}
-            onChange={event => setMailSearchQuery(event.target.value)}
+            onChange={event => {
+              setMailSearchQuery(event.target.value)
+              setLastSelectedMessageId(null)
+            }}
             placeholder={mt.searchPlaceholder}
             className="h-10 w-full rounded-lg border border-gray-200 bg-gray-50 pl-10 pr-3 text-sm text-gray-700 outline-none transition focus:border-indigo-400 focus:bg-white focus:ring-2 focus:ring-indigo-100"
           />
@@ -6598,7 +6898,7 @@ export default function MailPage({ onBackToMain, initialMailLink = null, onOpenC
         const account = nextAccounts.find(item => item.id === accountId)
         const draftFolder = (account?.folders || []).find(folder => folder.id === draft?.folder_id || folder.type === 'drafts')
         if (draftFolder) {
-          setActiveKey(`${accountId}:${draftFolder.id || draftFolder.name}`)
+          updateActiveKey(`${accountId}:${draftFolder.id || draftFolder.name}`)
         } else {
           await loadActiveMessages(nextAccounts, { silent: true, resetSelection: true })
         }
@@ -6927,6 +7227,17 @@ export default function MailPage({ onBackToMain, initialMailLink = null, onOpenC
           danger
           onConfirm={() => emptyTrashFolder(pendingEmptyTrash)}
           onCancel={() => setPendingEmptyTrash(null)}
+        />
+      )}
+      {pendingDeleteFolder && (
+        <ConfirmDialog
+          title={mt.folderMenu.delete}
+          message={pendingDeleteFolder.message}
+          confirmText={mt.ok}
+          cancelText={mt.cancel}
+          danger={pendingDeleteFolder.danger}
+          onConfirm={() => performDeleteMailFolder(pendingDeleteFolder)}
+          onCancel={() => setPendingDeleteFolder(null)}
         />
       )}
       {pendingEmptyUnifiedTrash && (

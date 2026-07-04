@@ -1455,6 +1455,20 @@ router.delete('/accounts/:id/folders/:folderId', async (req, res, next) => {
       })
       if (!account) return res.status(404).json({ error: '메일 계정을 찾을 수 없습니다.' })
       const applied = await deleteFolderOnProvider({ tenantId, account, folder: current })
+      if (applied && applied.rejected) {
+        // 서버가 삭제를 거부(예약 메일함 등)한 경우: 500 대신 명확한 안내를 준다.
+        // 서버 거부(server_rejected)는 학습해 두었다가 이후 UI에서 삭제 메뉴를 막는다.
+        // (has_children은 하위 폴더 정리 후 삭제 가능하므로 학습하지 않는다.)
+        if (applied.reason === 'server_rejected') {
+          await repo.setFolderDeletable({ tenantId, accountId, folderId, deletable: false }).catch(() => {})
+        }
+        // reason을 함께 내려 프론트가 영구 거부(server_rejected)와 하위 정리로 풀리는(has_children)을 구분한다.
+        return res.status(409).json({
+          error: applied.message || '이 메일함은 서버에서 삭제할 수 없습니다.',
+          reason: applied.reason || 'server_rejected',
+          children: applied.children || [],
+        })
+      }
       if (applied && applied.skipped) {
         return res.status(400).json({ error: '이 계정 유형은 폴더 삭제를 지원하지 않습니다.' })
       }

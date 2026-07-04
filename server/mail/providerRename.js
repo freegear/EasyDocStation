@@ -152,8 +152,19 @@ async function deleteGmailLabel({ tenantId, account, folder }) {
   }
 }
 
+// IMAP 서버가 메일함 삭제를 거부하는 응답을 식별한다(예: 네이버 예약 메일함).
+// isMailboxMissingError(imapSync.js)와 동일한 패턴. NONEXISTENT(없음)와는 구분한다.
+function isMailboxDeleteRejectedError(err) {
+  if (!err) return false
+  const text = `${err.responseText || ''} ${err.response || ''} ${err.message || ''}`
+  if (/NONEXISTENT|mailbox doesn'?t exist|no such mailbox/i.test(text)) return false
+  return /cannot delete|can't delete|not allowed|permission denied|reserved/i.test(text)
+    || /\bNO\b.*DELETE/i.test(text)
+}
+
 // IMAP 메일함 삭제. 메일함과 그 안의 메일이 서버에서 함께 삭제된다(파괴적). (MailService.md 16.11)
 // 1차 범위: 하위 메일함이 없는 폴더만 허용한다.
+// 서버가 삭제를 거부하면 예외 대신 { rejected: true, message } 를 반환해 라우트에서 409로 안내한다.
 async function deleteImapMailbox({ account, folder }) {
   const password = decryptSecret(account.password_encrypted)
   if (!password) throw new Error('메일 계정 암호가 저장되어 있지 않습니다.')
@@ -168,12 +179,40 @@ async function deleteImapMailbox({ account, folder }) {
     if (!current) return { provider: 'imap', destructive: true, alreadyGone: true }
 
     const delimiter = current.delimiter || '/'
-    const hasChildren = mailboxes.some(box => String(box.path || '').startsWith(`${currentPath}${delimiter}`))
-    if (hasChildren) {
-      throw new Error('하위 폴더가 있는 폴더는 아직 삭제할 수 없습니다.')
+    // 하위 메일함(직속/후손 모두) 탐색. deleteImapMailbox의 이 가드는 폴더 발견(listImapFolders)과
+    // 다른 트리를 본다: 발견은 \Noselect(선택 불가·컨테이너 전용) 메일함을 건너뛰므로 사이드바에는
+    // 안 보이지만, 여기서는 원본 LIST에 남아 삭제를 막는다. 그래서 "안 보이는 하위 폴더" 때문에
+    // 막히는 혼란이 생긴다 → 어떤 하위 폴더가 막는지 이름을 함께 돌려줘 사용자가 조치할 수 있게 한다.
+    // (MailService.md 22)
+    const childBoxes = mailboxes.filter(box => String(box.path || '').startsWith(`${currentPath}${delimiter}`))
+    if (childBoxes.length > 0) {
+      const isNoselect = box => !!(box.flags && typeof box.flags.has === 'function' && box.flags.has('\\Noselect'))
+      // 표시용 이름은 부모 경로를 뺀 상대 경로(예: Mailbox/2019 → 2019)로 만든다.
+      const childNames = childBoxes.map(box => String(box.path || '').slice(currentPath.length + delimiter.length))
+      const allNoselect = childBoxes.every(isNoselect)
+      const preview = childNames.slice(0, 5).join(', ') + (childNames.length > 5 ? ` 외 ${childNames.length - 5}개` : '')
+      const hint = allNoselect
+        ? '(사이드바에 표시되지 않는 서버 전용/컨테이너 폴더입니다. 다른 메일 클라이언트에서 정리해야 할 수 있습니다.)'
+        : '먼저 하위 폴더를 삭제한 뒤 다시 시도하세요.'
+      return {
+        provider: 'imap',
+        rejected: true,
+        reason: 'has_children',
+        children: childNames,
+        allNoselect,
+        message: `하위 폴더 ${childBoxes.length}개가 있어 삭제할 수 없습니다: ${preview}. ${hint}`,
+      }
     }
 
-    await client.mailboxDelete(currentPath)
+    try {
+      await client.mailboxDelete(currentPath)
+    } catch (err) {
+      // 서버가 삭제를 거부(예: 네이버 예약 메일함 'Cannot delete this mailbox.')하면 500 대신 명확히 안내한다.
+      if (isMailboxDeleteRejectedError(err)) {
+        return { provider: 'imap', rejected: true, reason: 'server_rejected', message: '이 메일함은 서버에서 삭제할 수 없습니다.' }
+      }
+      throw err
+    }
     return { provider: 'imap', destructive: true }
   } finally {
     if (client.usable) await client.logout().catch(() => {})

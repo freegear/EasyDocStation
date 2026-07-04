@@ -2943,12 +2943,19 @@ function PostList({ posts, onSelect, onSubmit, selectedPostId, onOpenDocumentLis
     (p) => p.createdAt,
     (p) => `post-${p.id}`,
   )
+  // 피드 맨 아래(가장 최근) 글. append 감지·자동 스크롤 기준점. (UI.md 1.4)
+  const newestPost = normalPosts.length ? normalPosts[normalPosts.length - 1] : null
+  const newestPostId = newestPost ? String(newestPost.id) : null
   const feedRef = useRef(null)
   const bottomRef = useRef(null)
   const initialScrollChannelRef = useRef(null)
   const pendingScrollRestoreRef = useRef(null)
   const scrollMetricsRef = useRef({ channelId: null, postsLength: 0, scrollHeight: 0, scrollTop: 0 })
   const prependInProgressRef = useRef(false)
+  // 새 글 append 자동 스크롤(바닥 고정)용. (UI.md 1.4)
+  const lastPostIdRef = useRef(null)
+  const lastPostChannelRef = useRef(null)
+  const isNearBottomRef = useRef(true)
   const [showManageModal, setShowManageModal] = useState(false)
   const [showDeletedModal, setShowDeletedModal] = useState(false)
   const { currentUser } = useAuth()
@@ -2961,6 +2968,35 @@ function PostList({ posts, onSelect, onSubmit, selectedPostId, onOpenDocumentLis
     bottomRef.current?.scrollIntoView({ behavior: 'auto' })
     initialScrollChannelRef.current = channelId
   }, [posts.length, selectedChannel?.id])
+
+  // 새 글이 하단에 추가되면(append) 바닥으로 스크롤한다(바닥 고정 패턴). (UI.md 1.3~1.4)
+  //   - 내가 방금 쓴 글이거나, 사용자가 이미 바닥 근처면 스크롤한다.
+  //   - 위로 올려 과거 글을 읽는 중이면 끌어내리지 않는다.
+  //   - 과거 글 로딩(prepend)/최초 진입 스크롤과는 충돌하지 않게 분리한다.
+  useLayoutEffect(() => {
+    const channelId = selectedChannel?.id
+    if (!channelId) return
+
+    // 채널 최초 계산: 기준점만 잡고 스킵(최초 바닥 스크롤은 위 효과가 담당).
+    if (lastPostChannelRef.current !== channelId) {
+      lastPostChannelRef.current = channelId
+      lastPostIdRef.current = newestPostId
+      isNearBottomRef.current = true
+      return
+    }
+
+    const prevNewestId = lastPostIdRef.current
+    lastPostIdRef.current = newestPostId
+    // 맨 아래 글이 새로 바뀐 append만 대상. 최초 계산(prev=null)은 최초 스크롤이 처리했으므로 스킵.
+    if (!newestPostId || newestPostId === prevNewestId || prevNewestId === null) return
+    // 과거 글 로딩(prepend) 중이면 위치 보정과 충돌하므로 스킵.
+    if (prependInProgressRef.current || pendingScrollRestoreRef.current) return
+
+    const isOwnPost = newestPost?.author?.id != null && newestPost.author.id === currentUser?.id
+    if (isOwnPost || isNearBottomRef.current) {
+      bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+    }
+  }, [newestPostId, selectedChannel?.id])
 
   useLayoutEffect(() => {
     const pending = pendingScrollRestoreRef.current
@@ -3013,6 +3049,8 @@ function PostList({ posts, onSelect, onSubmit, selectedPostId, onOpenDocumentLis
 
   const handleFeedScroll = useCallback((event) => {
     const feed = event.currentTarget
+    // 바닥 근처 여부를 갱신한다(새 글 append 자동 스크롤 판정용). (UI.md 1.4)
+    isNearBottomRef.current = feed.scrollHeight - (feed.scrollTop + feed.clientHeight) <= 120
     if (selectedChannel?.id) {
       scrollMetricsRef.current = {
         channelId: selectedChannel.id,

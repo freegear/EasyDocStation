@@ -70,13 +70,23 @@ function mailboxDisplayName(box) {
   return box.name || segs[segs.length - 1] || box.path
 }
 
+// box.path에서 부모 메일함 경로를 산출한다(예: Mailbox/2019 → Mailbox). 최상위면 null.
+function mailboxParentPath(box) {
+  const delim = box.delimiter || '/'
+  const path = String(box.path || '')
+  const idx = path.lastIndexOf(delim)
+  if (idx <= 0) return null
+  return path.slice(0, idx)
+}
+
 function normalizeFolderIdentity(box) {
   const type = classifyMailbox(box)
-  if (type === 'inbox') return { providerFolderId: 'INBOX', name: '받은 편지함', type }
-  if (type === 'sent') return { providerFolderId: 'SENT', name: '보낸 메일', type }
-  if (type === 'drafts') return { providerFolderId: 'DRAFT', name: '임시 보관함', type }
-  if (type === 'trash') return { providerFolderId: 'TRASH', name: '휴지통', type }
-  return { providerFolderId: box.path, name: mailboxDisplayName(box), type }
+  // 시스템 폴더는 provider_folder_id가 논리값으로 재매핑되어 실제 경로를 잃으므로 부모 연결 대상에서 제외한다.
+  if (type === 'inbox') return { providerFolderId: 'INBOX', name: '받은 편지함', type, parentPath: null }
+  if (type === 'sent') return { providerFolderId: 'SENT', name: '보낸 메일', type, parentPath: null }
+  if (type === 'drafts') return { providerFolderId: 'DRAFT', name: '임시 보관함', type, parentPath: null }
+  if (type === 'trash') return { providerFolderId: 'TRASH', name: '휴지통', type, parentPath: null }
+  return { providerFolderId: box.path, name: mailboxDisplayName(box), type, parentPath: mailboxParentPath(box) }
 }
 
 // 계정의 전체 메일함을 발견해 폴더 목록으로 반환한다(선택 불가/가상 폴더 제외).

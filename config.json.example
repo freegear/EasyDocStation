@@ -73,7 +73,15 @@
     "num_predict": 2048,
     "num_ctx": 4096,
     "history": 6,
-    "language": "ko"
+    "language": "ko",
+    "groq": {
+      "enabled": true,
+      "prefer_when_available": true,
+      "api_key": "",
+      "model": "qwen/qwen3.6-27b",
+      "base_url": "https://api.groq.com/openai/v1",
+      "use_for_mail_summary": true
+    }
   },
   "agenticai_operation_mode": "server",
   "agenticai_mail": {
@@ -88,7 +96,7 @@
     "analysis_language": "ko",
     "telegram_min_severity": "normal"
   },
-  "MaxAttachmentFileSize": 200,
+  "MaxAttachmentFileSize": 500,
   "company": {
     "name": "SiliconCube",
     "address": "대한민국 경기도 성남시 수정구 창업로 54, 판교 테크노밸리 2호, LH 비즈니스 성장 지원 센터 7층 733~735호, 우편번호 13449",
@@ -134,7 +142,7 @@
   "google": {
     "client_id": "",
     "client_secret": "",
-    "redirect_uri": ""
+    "redirect_uri": "http://218.237.25.214:5173/api/mail/gmail/callback"
   },
   "DATA_ENCRYPTION_KEY": ""
 }

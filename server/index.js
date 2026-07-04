@@ -69,11 +69,20 @@ const PORT = process.env.PORT || 3001
 
 function normalizeAgenticAiConfig(ai = {}) {
   const language = ['ko', 'ja', 'en', 'zh'].includes(ai?.language) ? ai.language : 'ko'
+  const groq = ai?.groq && typeof ai.groq === 'object' ? ai.groq : {}
   return {
     num_predict: Number.isFinite(Number(ai?.num_predict)) ? Number(ai.num_predict) : 4096,
     num_ctx: Number.isFinite(Number(ai?.num_ctx)) ? Number(ai.num_ctx) : 8192,
     history: Number.isFinite(Number(ai?.history)) ? Number(ai.history) : 6,
     language,
+    groq: {
+      enabled: Boolean(groq.enabled),
+      prefer_when_available: Boolean(groq.prefer_when_available),
+      api_key: typeof groq.api_key === 'string' ? groq.api_key : '',
+      model: typeof groq.model === 'string' && groq.model.trim() ? groq.model.trim() : 'llama-3.1-8b-instant',
+      base_url: typeof groq.base_url === 'string' && groq.base_url.trim() ? groq.base_url.trim() : 'https://api.groq.com/openai/v1',
+      use_for_mail_summary: Boolean(groq.use_for_mail_summary),
+    },
   }
 }
 
@@ -186,12 +195,27 @@ app.get('/api/config/agenticai', (req, res) => {
     const configPath = path.resolve(__dirname, '../config.json')
     const config = JSON.parse(fs.readFileSync(configPath, 'utf8'))
     const ai = normalizeAgenticAiConfig(config.agenticai || {})
+    if (ai.groq) ai.groq.api_key = ''
     res.json({
       ...ai,
       operation_mode: normalizeAgenticAiOperationMode(config.agenticai_operation_mode),
     })
   } catch (e) {
-    res.json({ num_predict: 4096, num_ctx: 8192, history: 6, language: 'ko', operation_mode: 'server' })
+    res.json({
+      num_predict: 4096,
+      num_ctx: 8192,
+      history: 6,
+      language: 'ko',
+      operation_mode: 'server',
+      groq: {
+        enabled: false,
+        prefer_when_available: false,
+        api_key: '',
+        model: 'llama-3.1-8b-instant',
+        base_url: 'https://api.groq.com/openai/v1',
+        use_for_mail_summary: false,
+      },
+    })
   }
 })
 

@@ -330,6 +330,14 @@ async function ensureMailDataSchema(client, { standalone = false } = {}) {
       ADD COLUMN IF NOT EXISTS sync_status TEXT;
   `)
 
+  // deletable=false : 프로바이더가 삭제를 거부한 폴더(네이버 자동분류함, 서버 예약 메일함 등).
+  //   flags/specialUse로는 일반 custom 폴더와 구별되지 않으므로, 삭제 시도가 서버에서 거부되면
+  //   그 사실을 학습해 저장하고 이후 UI에서 삭제 메뉴를 비활성화한다. (folder_delete_error.md 2번)
+  await run(client, 'mail folder deletable column', `
+    ALTER TABLE mail_folders
+      ADD COLUMN IF NOT EXISTS deletable BOOLEAN NOT NULL DEFAULT TRUE;
+  `)
+
   await run(client, 'mail message internet id column', `
     ALTER TABLE mail_messages
       ADD COLUMN IF NOT EXISTS internet_message_id TEXT;
