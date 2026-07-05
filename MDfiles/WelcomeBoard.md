@@ -646,7 +646,8 @@ Welcome 보드 오픈 시에는 `GET /recent-post-views?limit=20` 한 번만 호
    - 기본키는 `(user_id, post_id)` 로 둔다. 같은 글을 다시 열면 `viewed_at` 과 표시 스냅샷을 갱신해 최신순 맨 위로 올린다.
    - 스냅샷 필드:
      `{ user_id, post_id, channel_id, team_id, kind, icon, title, tag, summary, created_at, updated_at, author_id, author_name, author_image_url, comment_count, attachments, viewed_at }`.
-     단, **최근에 본 문서 화면에서는 본문을 보여주지 않으므로 `summary` 는 빈 문자열로 저장/반환**한다.
+     단, **최근에 본 문서 화면에서는 본문 요약을 기본 표시하지 않으므로 `summary` 는 빈 문자열로 저장/반환**한다.
+     예외적으로 제목이 `(제목 없음)` 인 항목은 화면 식별성을 위해 본문 평문 첫 줄을 `summary` 로 저장/반환한다.
    - 인덱스: `(user_id, viewed_at DESC)` 로 Welcome 보드 조회를 빠르게 한다.
 3. **최근 본 문서 API** — [server/routes/recentPostViews.js](../server/routes/recentPostViews.js):
    - `POST /api/recent-post-views`: 열람 스냅샷을 upsert한다. 기록 전 `canAccessChannel` 로 현재 사용자의 채널 접근권한을 확인한다.
@@ -654,7 +655,7 @@ Welcome 보드 오픈 시에는 `GET /recent-post-views?limit=20` 한 번만 호
      조회 시에도 `canAccessChannel` 로 권한이 사라진 채널의 항목을 숨긴다.
 4. **추적 유틸** — [src/lib/recentPosts.js](../src/lib/recentPosts.js):
    - `makeWelcomePostSnapshot({ post, channel, team, viewedAt })`: 제목/첨부/작성자/작성자 프로필 이미지/댓글 수 스냅샷을 만든다.
-     최근에 본 문서에는 본문을 노출하지 않기 위해 `summary:''` 로 고정한다.
+     최근에 본 문서에는 본문을 기본 노출하지 않기 위해 `summary:''` 로 두되, 제목 후보가 없으면 본문 평문 첫 줄을 표시용 제목으로 승격한다.
    - `recordRecentPostView(...)`: 기존 localStorage 캐시를 갱신하고, 서버 POST에 넘길 스냅샷 객체를 반환한다.
      localStorage는 서버 기록 실패나 오프라인 상황의 fallback 용도로 유지한다.
 5. **열람 시 서버 기록** — [src/components/chat/PostDetailPane.jsx](../src/components/chat/PostDetailPane.jsx):
@@ -666,7 +667,8 @@ Welcome 보드 오픈 시에는 `GET /recent-post-views?limit=20` 한 번만 호
 5. **iframe 렌더** — [white](../template/WelcomeBoard_whiteThema.html) · [blue](../template/WelcomeBoard_blueThema.html):
    `#panel-docs` 데모 행 → `#recentDocsList` 컨테이너(로드 전 "…불러오는 중" 폴백)로 교체.
    `wbRenderRecentDocs(list)` 가 `.doc-row-lg`(작성자 아바타·제목·태그·상대시각·첨부·`등록일/업데이트일/작성자` 메타·**댓글 수 `💬 N`**)를 다시 그린다.
-   - **본문 미표시:** `recentPosts` 는 저장/조회/렌더 단계에서 `summary:''` 로 고정해 제목과 첨부, 메타만 보여준다.
+   - **본문 기본 미표시:** `recentPosts` 는 저장/조회/렌더 단계에서 제목이 있는 항목의 `summary` 를 비워 제목과 첨부, 메타만 보여준다.
+     제목이 `(제목 없음)` 인 항목만 예외로 본문 평문 첫 줄을 한 줄 요약으로 보여준다.
    - **왼쪽 작성자 표시:** `authorImageUrl` 이 있으면 프로필 이미지로 표시하고, 없거나 이미지 로딩에 실패하면 `authorName` 의 첫 글자 이니셜을 표시한다.
    - **프로필 이미지 보정:** 스냅샷의 `author_image_url` 이 비어 있어도 `author_id` 로 `users.image_url` 을 조회해 응답에 채우고, 가능하면 `recent_post_views.author_image_url` 도 갱신한다.
      이 분기는 `wbRenderRecentDocs` 에서만 `leadAuthor:true` 로 켜며, "최근에 업데이트 된 글" 탭은 기존 문서 아이콘을 유지한다.
@@ -682,11 +684,11 @@ Welcome 보드 오픈 시에는 `GET /recent-post-views?limit=20` 한 번만 호
 |---|---|---|
 | [server/routes/posts.js](../server/routes/posts.js) | `GET /` 게시글 직렬화(Cassandra·PG)에 `updatedAt: row.updated_at \|\| row.created_at` 가산 | 완료 |
 | [server/schema.sql](../server/schema.sql) · [server/db.js](../server/db.js) | `recent_post_views` 테이블과 `(user_id, viewed_at DESC)` 인덱스 추가, `author_id`/`author_image_url` 컬럼 추가/마이그레이션, 기존 row의 `author_id` 를 `posts.author_id` 로 backfill | 완료 |
-| [server/routes/recentPostViews.js](../server/routes/recentPostViews.js) · [server/index.js](../server/index.js) | `GET/POST /api/recent-post-views` 라우트 추가, 조회/기록 시 채널 접근권한 검증, `authorId`/`authorImageUrl` 직렬화, `users.image_url` fallback 보정 | 완료 |
-| [src/lib/recentPosts.js](../src/lib/recentPosts.js) | `makeWelcomePostSnapshot` 공용 함수 + `recordRecentPostView` 가 서버 POST용 스냅샷 반환, `summary:''` 로 본문 미노출, `authorId`/`authorImageUrl` 포함, localStorage fallback 유지 | 완료 |
+| [server/routes/recentPostViews.js](../server/routes/recentPostViews.js) · [server/index.js](../server/index.js) | `GET/POST /api/recent-post-views` 라우트 추가, 조회/기록 시 채널 접근권한 검증, `authorId`/`authorImageUrl` 직렬화, `users.image_url` fallback 보정, `(제목 없음)` row의 본문 한 줄 보강 | 완료 |
+| [src/lib/recentPosts.js](../src/lib/recentPosts.js) | `makeWelcomePostSnapshot` 공용 함수 + `recordRecentPostView` 가 서버 POST용 스냅샷 반환, 명시 제목/첨부명 없으면 본문 첫 줄을 표시용 제목으로 승격, `summary:''`, `authorId`/`authorImageUrl` 포함, localStorage fallback 유지 | 완료 |
 | [src/components/chat/PostDetailPane.jsx](../src/components/chat/PostDetailPane.jsx) | 게시글 오픈당 1회 스냅샷 생성 후 `POST /recent-post-views` 로 DB upsert | 완료 |
 | [src/App.jsx](../src/App.jsx) | `GET /recent-post-views?limit=20` 로 최근 본 문서 로드, 실패 시 localStorage fallback, payload에 `recentPosts` 주입 · `target==='post'` → `navigateToPost` 분기 | 완료 |
-| [template/WelcomeBoard_whiteThema.html](../template/WelcomeBoard_whiteThema.html) · [blue](../template/WelcomeBoard_blueThema.html) | `#panel-docs` → `#recentDocsList` 컨테이너 · `wbRenderRecentDocs`(+`wbRelTime`/`wbFmtDate`/메타 헬퍼, 안전 렌더, 왼쪽 작성자 프로필/이니셜, 본문 제거, 첨부 표기, **댓글 수 `💬 N`**, 클릭 이동) · `message` 핸들러에서 `recentPosts` 수신 | 완료 |
+| [template/WelcomeBoard_whiteThema.html](../template/WelcomeBoard_whiteThema.html) · [blue](../template/WelcomeBoard_blueThema.html) | `#panel-docs` → `#recentDocsList` 컨테이너 · `wbRenderRecentDocs`(+`wbRelTime`/`wbFmtDate`/메타 헬퍼, 안전 렌더, 왼쪽 작성자 프로필/이니셜, 제목 있는 항목 본문 제거, `(제목 없음)` 항목 본문 한 줄 표시, 첨부 표기, **댓글 수 `💬 N`**, 클릭 이동) · `message` 핸들러에서 `recentPosts` 수신 | 완료 |
 
 ### 15.4 대안 및 트레이드오프
 
@@ -698,23 +700,25 @@ Welcome 보드 오픈 시에는 `GET /recent-post-views?limit=20` 한 번만 호
 - **확장:** 하단 "최근에 업데이트 된 글" 탭은 15.7절에서 미열람 게시글 모음으로 구현했다.
   "최근에 수신한 메일" 탭도 동일 payload 채널로 확장 가능(후속).
 
-### 15.5 [보정] 10개 표시 + 스크롤 · 최근 본 문서 본문 미표시
+### 15.5 [보정] 10개 표시 + 스크롤 · 최근 본 문서 본문 기본 미표시
 
-> 요구: ① "최근에 본 문서"는 **10개까지만 보이고 그 이상은 스크롤**. ② **최근에 본 문서는 제목은 보여주되 본문은 보여주지 않는다**.
+> 요구: ① "최근에 본 문서"는 **10개까지만 보이고 그 이상은 스크롤**. ② **최근에 본 문서는 제목은 보여주되 본문은 기본적으로 보여주지 않는다**.
+> 추가 보정: 제목이 `(제목 없음)` 으로 나올 경우에는 식별을 위해 본문 평문 첫 줄을 한 줄 보여준다.
 
 - **① 10개 뷰포트 + 스크롤** — [white](../template/WelcomeBoard_whiteThema.html) · [blue](../template/WelcomeBoard_blueThema.html):
   `wbRenderRecentDocs` 렌더 후 `#recentDocsList` 자식이 10개 초과면 **앞 10행의 실제 높이 합**(`offsetHeight`)을
   `max-height` 로 설정하고 `overflow-y:auto` 를 준다. 행 높이가 가변(요약·첨부 유무)이라 고정 px 대신 **실측 합**으로
   정확히 10행 뷰포트를 만든다. 10개 이하이면 스타일 해제(스크롤 없음). 스냅샷 저장 상한은 20건이라 최대 10건이 스크롤 대상.
-- **② 최근 본 문서 본문 미표시** — [src/lib/recentPosts.js](../src/lib/recentPosts.js) · [server/routes/recentPostViews.js](../server/routes/recentPostViews.js) · [white](../template/WelcomeBoard_whiteThema.html) · [blue](../template/WelcomeBoard_blueThema.html):
-  `makeWelcomePostSnapshot` 이 `summary:''` 로 스냅샷을 만들고, 서버 `POST/GET /api/recent-post-views` 도 `summary` 를 빈 문자열로 저장/반환한다.
-  iframe의 `wbRenderRecentDocs` 역시 기존 localStorage fallback이나 과거 DB row에 본문 요약이 남아 있어도 렌더 직전에 `summary:''` 로 덮어써서 화면에는 본문을 표시하지 않는다.
+- **② 최근 본 문서 본문 기본 미표시 + 무제목 예외** — [src/lib/recentPosts.js](../src/lib/recentPosts.js) · [server/routes/recentPostViews.js](../server/routes/recentPostViews.js) · [white](../template/WelcomeBoard_whiteThema.html) · [blue](../template/WelcomeBoard_blueThema.html):
+  `makeWelcomePostSnapshot` 은 제목이 있는 항목의 `summary` 를 빈 문자열로 만들고, 제목이 `(제목 없음)` 인 항목만 본문에서 마크다운/HTML을 걷어낸 평문 첫 줄을 `summary` 로 만든다.
+  서버 `POST /api/recent-post-views` 도 같은 규칙으로 저장하고, `GET /api/recent-post-views` 는 기존에 저장된 무제목 row의 `summary` 가 비어 있으면 `posts.content` 를 조인해 본문 첫 줄을 보강한다.
+  iframe의 `wbRenderRecentDocs` 는 제목이 있는 항목은 `summary:''` 로 덮어써 본문을 숨긴다. `(제목 없음)` 항목은 서버/스냅샷 단계에서 가능한 경우 첫 번째 의미 있는 본문 줄 또는 링크를 제목으로 승격한다.
 
 | 파일 | 변경 | 상태 |
 |---|---|---|
-| [src/lib/recentPosts.js](../src/lib/recentPosts.js) | 최근 본 문서 스냅샷의 `summary` 를 항상 빈 문자열로 생성 | 완료 |
-| [server/routes/recentPostViews.js](../server/routes/recentPostViews.js) | 최근 본 문서 저장/조회 API에서 `summary` 를 빈 문자열로 고정해 과거/신규 기록 모두 본문 미노출 | 완료 |
-| [template/WelcomeBoard_whiteThema.html](../template/WelcomeBoard_whiteThema.html) · [blue](../template/WelcomeBoard_blueThema.html) | `#recentDocsList` 10행 초과 시 앞 10행 실측 높이로 `max-height`+`overflow-y:auto`, `wbRenderRecentDocs` 에서 본문 요약 제거 | 완료 |
+| [src/lib/recentPosts.js](../src/lib/recentPosts.js) | 최근 본 문서 스냅샷 제목 후보를 명시 제목 → 첨부 파일명 → 본문 첫 줄 → 링크 순으로 생성, `summary` 는 빈 문자열 유지 | 완료 |
+| [server/routes/recentPostViews.js](../server/routes/recentPostViews.js) | 최근 본 문서 저장/조회 API에서 기존/신규 `(제목 없음)` 항목의 표시용 제목을 본문 첫 줄/summary로 보강 | 완료 |
+| [template/WelcomeBoard_whiteThema.html](../template/WelcomeBoard_whiteThema.html) · [blue](../template/WelcomeBoard_blueThema.html) | `#recentDocsList` 10행 초과 시 앞 10행 실측 높이로 `max-height`+`overflow-y:auto`, `wbRenderRecentDocs` 에서 제목 있는 항목 요약 제거 | 완료 |
 
 ### 15.6 [보정] 최근 본 문서 왼쪽 작성자 표시
 
@@ -750,6 +754,10 @@ Welcome 보드 오픈 시에는 `GET /recent-post-views?limit=20` 한 번만 호
 > ⚠️ **[15.8절에서 확장됨]** 아래 초기 설계는 `unreadPost`(새 원글)만 모았다. 이후 "새 댓글·수정된 글·수정된 댓글도 포함"
 > 요구에 따라 **판정 기준을 `isUnread`(새 원글 OR 새 댓글 OR 수정된 원글 OR 수정된 댓글)로 확장**하고 정렬을
 > `unreadActivityAt`(가장 최근 미열람 활동) 기준으로 바꿨다. 최신 로직은 **15.8절**을 따른다.
+>
+> ⚠️ **[18절에서 성능 보정 예정]** 현재 구현은 Welcome 보드 초기 데이터 로드 중 대상 채널마다
+> `GET /posts?channelId=<id>&limit=100` 을 병렬 호출한다. 채널 수가 많으면 대시보드 전체 표시가 늦어지므로,
+> 후속 구현은 **대시보드 1차 데이터 먼저 표시 → 최근 업데이트는 후순위 지연 로드 → 중기적으로 전용 API로 대체**한다.
 
 #### 현재 구조 검토 결과
 
@@ -868,26 +876,32 @@ Welcome 보드 오픈 시에는 `GET /recent-post-views?limit=20` 한 번만 호
 - **수정 소음:** 사소한 재저장도 `updated_at` 을 올려 목록에 재부상할 수 있다. 필요 시 "실질 내용 변경 시에만 갱신"으로 후속 보정.
 - **`buildUnreadMeta`(비-Light):** 현재 호출부가 없어(정의만 존재) 이번 변경에서 제외. 추후 사용 시 동일 원칙(`postUpdatedAt`)으로 확장.
 
-### 15.9 [신규 요구] "최근에 본 문서" — **본문 미노출(문서명 우선) + 팀·채널 함께 표기**
+### 15.9 [신규 요구] "최근에 본 문서" — **문서명 우선 + 첫 줄/링크 제목 승격 + 팀·채널 함께 표기**
 
-> 요구: "최근에 본 문서"에서 ① **본문이 보이지 않도록** 하고, ② **문서가 속한 팀과 채널이 함께 보이도록** 한다.
+> 요구: "최근에 본 문서"에서 ① **본문이 제목처럼 보이지 않도록** 하고, ② **문서가 속한 팀과 채널이 함께 보이도록** 한다.  
+> 추가 보정: 명시 제목과 첨부 파일명이 모두 없어 `(제목 없음)` 으로 나올 경우에는
+> **첫 번째 의미 있는 본문 줄 → 링크** 순으로 표시용 제목을 승격한다.
 
 #### 현재 구조 검토 결과 (실제 코드 확인)
 
-- 본문 요약(`summary`)은 이미 저장/조회/렌더 전 구간에서 `''` 로 고정되어 **본문 요약 줄은 렌더되지 않는다**
-  ([recentPosts.js](../src/lib/recentPosts.js) `makeWelcomePostSnapshot`, [recentPostViews.js](../server/routes/recentPostViews.js) `rowToClient`, [white](../template/WelcomeBoard_whiteThema.html) `doc.summary` 가드). (15.5 ②)
-- 그런데 **일반 텍스트 글**은 제목이 없어 [recentPosts.js](../src/lib/recentPosts.js) `derivePostDisplay` 가 **본문 첫 줄을 제목으로** 파생한다
-  → 제목 칸에 본문이 그대로 노출된다(사용자가 지적한 "본문 보임"의 실제 원인).
+- 본문 요약(`summary`)은 저장/조회/렌더 전 구간에서 기본적으로 `''` 로 고정되어 **본문 요약 줄이 렌더되지 않는다**.
+- 일반 텍스트 글은 명시 `title` 이 없을 수 있다. 이 경우 목록 식별성을 위해 제목 후보 순서를
+  **명시 제목 → 첨부 파일명 → 첫 번째 의미 있는 본문 줄 → 링크 → `(제목 없음)`** 으로 둔다.
+  ([recentPosts.js](../src/lib/recentPosts.js) `derivePostDisplay`, [recentPostViews.js](../server/routes/recentPostViews.js) `rowToClient`)
 - 태그는 `tag: channel?.name || team?.name` 로 **채널 하나만** 표기했다([recentPosts.js](../src/lib/recentPosts.js) `makeWelcomePostSnapshot`).
 - 열람 기록부 [PostDetailPane.jsx](../src/components/chat/PostDetailPane.jsx) 는 `channel`(selectedChannel)·`team`(selectedTeam)을 모두 넘긴다 → 팀·채널 정보 확보 가능.
 
 #### 구현 방안 (결정: **문서명 우선**)
 
-1. **본문 미노출(문서명 우선)** — [recentPosts.js](../src/lib/recentPosts.js) `derivePostDisplay`:
-   `preferAttachmentTitle` 옵션 추가. 일반 글 제목을 **본문 첫 줄 대신 첨부 파일명**(없으면 `(제목 없음)`)으로 뽑는다.
+1. **문서명 우선 + 첫 줄/링크 제목 승격** — [recentPosts.js](../src/lib/recentPosts.js) `derivePostDisplay` / `makeWelcomePostSnapshot`:
+   `preferAttachmentTitle` 옵션에서 일반 글 제목을 **명시 제목 → 첨부 파일명 → 첫 번째 의미 있는 본문 줄 → 링크** 순으로 뽑는다.
    `recordRecentPostView`("최근에 본 문서" 기록)에서만 `preferAttachmentTitle: true` 로 호출 → **이 탭에만 적용**(양식/MD/시트 글은 원래 문서 제목이라 영향 없음).
+   첫 줄이나 링크를 제목으로 승격한 경우 `summary` 는 비워 제목과 중복 표시하지 않는다.
    - "최근에 업데이트 된 글"(15.7/15.8)은 글 중심이므로 **기존대로 본문 첫 줄 제목 유지**(옵션 false).
-2. **팀·채널 함께 표기** — [recentPosts.js](../src/lib/recentPosts.js) `makeWelcomePostSnapshot`:
+2. **기존 저장 row 보정** — [server/routes/recentPostViews.js](../server/routes/recentPostViews.js):
+   이미 `recent_post_views.title='(제목 없음)'` 으로 저장된 row도 조회 시 `posts.content` 또는 기존 `summary` 의 첫 번째 의미 있는 줄/링크를 `title` 로 승격해 응답한다.
+   따라서 사용자가 같은 글을 다시 열람하지 않아도 Welcome 보드 목록에서 제목이 개선된다.
+3. **팀·채널 함께 표기** — [recentPosts.js](../src/lib/recentPosts.js) `makeWelcomePostSnapshot`:
    `tag` 를 `팀 · 채널` 형태로 구성(`[team.name, channel.name]` 중복 제거 후 `' · '` 조인, 한쪽만 있으면 그것만).
    태그는 스냅샷 문자열에 실려 서버·템플릿 변경 없이 그대로 표시된다(템플릿 `.doc-tag` 재사용). 업데이트 글 탭도 동일하게 팀·채널을 함께 보게 된다(문맥 보강, 무해).
 
@@ -895,12 +909,13 @@ Welcome 보드 오픈 시에는 `GET /recent-post-views?limit=20` 한 번만 호
 
 | 파일 | 변경 | 상태 |
 |---|---|---|
-| [src/lib/recentPosts.js](../src/lib/recentPosts.js) | `derivePostDisplay(post, {preferAttachmentTitle})` — 문서명 우선 제목 · `makeWelcomePostSnapshot` `tag`=`팀 · 채널` · `recordRecentPostView` 는 `preferAttachmentTitle:true` | 완료 |
+| [src/lib/recentPosts.js](../src/lib/recentPosts.js) | `derivePostDisplay(post, {preferAttachmentTitle})` — 명시 제목 → 첨부 파일명 → 첫 번째 의미 있는 본문 줄 → 링크 순 제목 · `summary:''` · `makeWelcomePostSnapshot` `tag`=`팀 · 채널` · `recordRecentPostView` 는 `preferAttachmentTitle:true` | 완료 |
+| [server/routes/recentPostViews.js](../server/routes/recentPostViews.js) | 기존 `(제목 없음)` 저장 row를 조회 시 첫 번째 의미 있는 본문 줄/링크/summary로 표시용 제목 보정, summary 중복 노출 제거 | 완료 |
 
 #### 대안 및 트레이드오프
 
 - **적용 범위:** 문서명 우선은 "최근에 본 문서"에만 적용(업데이트 글 탭은 본문 첫 줄 제목이 탐색에 유용하므로 유지). 팀·채널 태그는 양 탭 공통.
-- **기존 스냅샷:** 이미 DB(`recent_post_views`)에 저장된 행은 예전 제목(본문 파생)·채널-only 태그를 유지하다가 **다시 열람하면** 새 규칙으로 갱신된다(서버/스키마 변경 불필요).
+- **기존 스냅샷:** 이미 DB(`recent_post_views`)에 저장된 `(제목 없음)` 행은 서버 조회 응답에서 표시용 제목을 보정한다. 태그 등 다른 스냅샷 값은 다시 열람하면 새 규칙으로 갱신된다.
 - **팀·채널 분리 칩:** 하나의 칩에 `팀 · 채널` 문자열로 표기(템플릿 변경 최소화). 필요 시 후속으로 팀/채널 별도 칩 렌더로 확장 가능.
 
 ---
@@ -947,7 +962,7 @@ Welcome 보드 오픈 시에는 `GET /recent-post-views?limit=20` 한 번만 호
 
 > 요구: 사이드바 SERVICE 섹션의 `Welcome 보드` 로고와 인패널 헤더
 > `EasyStation에 오신 것을 환영합니다.` 앞 로고를
-> [public/img/Welcome-logo.png](../public/img/Welcome-logo.png) 이미지로 표시한다.
+> [public/img/Welcome-logo_2nd.png](../public/img/Welcome-logo_2nd.png) 이미지로 표시한다.
 
 ### 17.1 현재 구조 검토 결과
 
@@ -956,11 +971,11 @@ Welcome 보드 오픈 시에는 `GET /recent-post-views?limit=20` 한 번만 호
   `<span>` 으로 출력하는 구조다.
 - 인패널 헤더 문구는 [src/App.jsx](../src/App.jsx)의 `PanelServicePage`에서
   `service.headerLabel || service.label` 을 렌더한다.
-- `public/img/Welcome-logo.png` 는 Vite 정적 public 자산이므로 앱에서는 `/img/Welcome-logo.png` 경로로 직접 참조할 수 있다.
+- `public/img/Welcome-logo_2nd.png` 는 Vite 정적 public 자산이므로 앱에서는 `/img/Welcome-logo_2nd.png` 경로로 직접 참조할 수 있다.
 
 ### 17.2 구현 방안
 
-1. **템플릿 메타 확장** — `WELCOME_BOARD_TEMPLATE`에 `iconImg: '/img/Welcome-logo.png'` 를 추가한다.
+1. **템플릿 메타 확장** — `WELCOME_BOARD_TEMPLATE`에 `iconImg: '/img/Welcome-logo_2nd.png'` 를 추가한다.
    - 기존 `icon` 값은 fallback 용도로 유지한다.
    - 다른 서비스 템플릿 구조에는 영향을 주지 않는다.
 2. **사이드바 렌더 확장** — `Sidebar` 서비스 버튼에서 `template.iconImg` 가 있으면 `<img>` 로 표시하고,
@@ -978,14 +993,392 @@ Welcome 보드 오픈 시에는 `GET /recent-post-views?limit=20` 한 번만 호
 
 | 파일 | 변경 | 상태 |
 |---|---|---|
-| [src/templates/formTemplates.js](../src/templates/formTemplates.js) | `WELCOME_BOARD_TEMPLATE.iconImg = '/img/Welcome-logo.png'` 추가, 기존 `icon` fallback 유지 | 완료 |
+| [src/templates/formTemplates.js](../src/templates/formTemplates.js) | `WELCOME_BOARD_TEMPLATE.iconImg = '/img/Welcome-logo_2nd.png'` 추가, 기존 `icon` fallback 유지 | 완료 |
 | [src/components/Sidebar.jsx](../src/components/Sidebar.jsx) | SERVICE 버튼 아이콘 렌더를 `iconImg` 우선 `<img>` / 없으면 기존 텍스트 아이콘으로 분기 | 완료 |
 | [src/App.jsx](../src/App.jsx) | `PanelServicePage` 인패널 헤더에서 `service.iconImg` 를 문구 앞 `<img>` 로 렌더 | 완료 |
 
 ### 17.4 검증 기준
 
 - `--showWelcomeBoard` 활성화 상태에서 사이드바 SERVICE 섹션 최상단 `Welcome 보드` 버튼 왼쪽에
-  [public/img/Welcome-logo.png](../public/img/Welcome-logo.png)가 표시되어야 한다.
+  [public/img/Welcome-logo_2nd.png](../public/img/Welcome-logo_2nd.png)가 표시되어야 한다.
 - Welcome 보드 인패널 헤더의 `EasyStation에 오신 것을 환영합니다.` 문구 앞에도
-  [public/img/Welcome-logo.png](../public/img/Welcome-logo.png)가 표시되어야 한다.
+  [public/img/Welcome-logo_2nd.png](../public/img/Welcome-logo_2nd.png)가 표시되어야 한다.
 - 건설 안전 칸반 보드, Easy Code 생성 플랫폼 등 `iconImg` 가 없는 기존 서비스는 기존 이모지 아이콘 렌더를 유지해야 한다.
+
+---
+
+## 18. [성능 보정 완료] Welcome 보드 초기 표시 우선 + 최근 업데이트 지연 로드 + 전용 API 전환
+
+> 요구/결정: 현재 Welcome 보드는 초기 로딩 중 "최근에 업데이트 된 글"을 만들기 위해 모든 가입 채널에
+> `GET /posts?channelId=<id>&limit=100` 을 병렬 호출한다. 이는 대시보드 첫 화면용으로 과하다.  
+> 구현 결정: **"대시보드 먼저, 최근 업데이트는 후순위"** 로 로딩 순서를 분리하고,
+> **"Welcome 전용 recent-updates API"** 로 `/posts?limit=100` 다중 호출을 제거한다.
+
+### 18.1 문제 정의
+
+- [src/App.jsx](../src/App.jsx) `welcomeBoardData` effect는 현재 `Promise.all` 로
+  `todaySchedule`, `importantMail`, `recentUnreadMail`, `recentUpdates`, `recentPosts` 를 모두 기다린 뒤
+  한 번에 `setWelcomeBoardData` 한다.
+- 이 중 `recentUpdates` 는 `teams[].channels[]` 전체를 순회하며 채널마다
+  `GET /posts?channelId=<id>&limit=100` 을 병렬 호출한다.
+- `/posts` 는 채널 화면용 API라 게시글 본문뿐 아니라 권한, 고정글, 삭제글, 댓글 메타, 좋아요, 첨부, 작성자,
+  미열람 상태 등을 조립한다. Welcome 보드 하단 탭 하나를 위해 모든 채널에서 이 무거운 API를 호출하는 구조다.
+- 결과적으로 가장 느린 `recentUpdates` 작업이 끝날 때까지 대시보드 카드 데이터까지 같이 늦게 보일 수 있다.
+- 로그상 다수의 `/api/posts?...limit=100` 요청이 같은 시각에 몰리면서 `socket hang up`/`ECONNREFUSED` 가 연쇄 발생한 흔적도 있다.
+
+### 18.2 목표
+
+1. **첫 화면 우선 표시:** 오늘 일정, 중요 메일, 최근 미확인 메일, 최근 본 문서는 가능한 한 빨리 표시한다.
+2. **무거운 업데이트 탭 분리:** 최근 업데이트 글 조회 실패나 지연이 대시보드 전체 표시를 막지 않게 한다.
+3. **점진 갱신:** "최근에 업데이트 된 글" 탭은 별도 로딩 상태를 유지하다가 결과가 오면 해당 탭만 갱신한다.
+4. **중기 최적화:** `/posts?limit=100` 다중 호출을 Welcome 전용 요약 API 한 번으로 대체한다.
+5. **읽음 상태 보존:** Welcome 보드에서 조회만 하는 행위는 기존처럼 채널/게시글 읽음 처리로 간주하지 않는다.
+
+### 18.3 단기 구현 방안 — 대시보드 먼저, 최근 업데이트는 후순위
+
+#### 18.3.1 데이터 주입을 2단계로 분리
+
+현재:
+
+```js
+const [todaySchedule, importantMail, recentUnreadMail, recentUpdates, recentPosts] = await Promise.all([...])
+setWelcomeBoardData({ todaySchedule, importantMail, recentUnreadMail, recentUpdates, recentPosts })
+```
+
+변경 방향:
+
+1. **1차 payload:** `todaySchedule`, `importantMail`, `recentUnreadMail`, `recentPosts` 만 먼저 병렬 조회한다.
+2. 1차 조회가 끝나면 즉시 `setWelcomeBoardData` 로 iframe에 주입한다.
+3. `recentUpdates` 는 별도 async 작업으로 뒤에서 시작한다.
+4. `recentUpdates` 결과가 오면 기존 `welcomeBoardData` 에 `recentUpdates` 만 병합해 다시 주입한다.
+
+주의:
+
+- `setWelcomeBoardData(prev => ({ ...prev, recentUpdates }))` 형태로 병합해야 1차 데이터가 사라지지 않는다.
+- `cancelled` 가 true인 경우 1차/2차 모두 state update를 하지 않는다.
+- `welcomeService?.id` 가 바뀌면 기존처럼 `setWelcomeBoardData(null)` 로 초기화한다.
+
+#### 18.3.2 iframe 렌더링 계약
+
+- 템플릿의 `window.addEventListener('message')` 는 이미 payload 일부만 있어도 해당 필드만 렌더한다.
+  예: `payload.recentPosts !== undefined` 이면 최근 본 문서만 렌더한다.
+- 따라서 1차 payload에는 `recentUpdates` 를 생략하거나 `recentUpdatesLoading:true` 같은 상태 필드를 넣을 수 있다.
+- 단기 구현은 템플릿 변경을 최소화하기 위해:
+  - 초기 HTML의 `#recentUpdatesList` 는 기존 "최근에 업데이트 된 글을 불러오는 중…" 문구를 유지한다.
+  - 2차 payload 도착 시 `payload.recentUpdates` 만 렌더한다.
+- 실패 시에는 `recentUpdates: []` 를 주입해 `읽지 않은 업데이트 글이 없습니다.` 로 표시할지,
+  별도 에러 문구를 표시할지 결정해야 한다. 기본안은 **빈 목록 처리**로 둔다.
+
+#### 18.3.3 `recentUpdates` 조회량 축소
+
+단기에서도 `/posts?limit=100` 은 부담이 크다. 최소 보정은 아래 중 하나다.
+
+- 1안: `limit=30` 으로 낮춘다. 채널 수가 많아도 최대 조회량이 크게 줄어든다.
+- 2안: `channel.unread > 0` 인 채널만 조회한다. 사이드바 unread count가 이미 있으므로 불필요한 채널 호출을 줄일 수 있다.
+- 3안: `channel.unread > 0` 채널 중 최근 활동순/팀 표시순으로 상위 N개만 먼저 조회하고, 필요 시 추가 조회한다.
+
+권장 단기안:
+
+1. `channel.unread > 0` 이고 `!channel.is_archived` 인 채널만 대상으로 한다.
+2. 채널당 `limit=30` 으로 시작한다.
+3. 결과는 기존처럼 `post.isUnread` 로 필터하고 `unreadActivityAt` 기준 최신순 30건만 유지한다.
+
+#### 18.3.4 동시성 제한
+
+현재 `Promise.all(channels.map(...))` 는 채널 수만큼 동시에 `/posts` 를 호출한다.
+단기 구현에서 전용 API를 만들기 전까지는 동시성을 제한한다.
+
+- 권장 동시성: 3~5개.
+- 구현은 별도 라이브러리 없이 작은 queue helper로 충분하다.
+- 실패한 채널은 빈 배열로 처리하고 전체 로딩을 실패시키지 않는다.
+
+예상 효과:
+
+- 첫 화면은 `recentUpdates` 와 무관하게 빠르게 뜬다.
+- 서버에 `/posts` 요청이 한꺼번에 30개씩 몰리지 않는다.
+- 메일/최근 본 문서/일정 API가 `/posts` 폭주에 같이 밀릴 가능성이 줄어든다.
+
+### 18.4 중기 구현 방안 — Welcome 전용 recent-updates API
+
+단기 보정 후에도 근본적으로는 `/posts` 채널 목록 API를 Welcome 집계용으로 재사용하지 않는 것이 좋다.
+중기에는 서버에 Welcome 전용 API를 만든다.
+
+#### 18.4.1 API 형태
+
+권장 endpoint:
+
+```http
+GET /api/welcome/recent-updates?limit=30
+```
+
+응답 항목:
+
+```json
+{
+  "postId": "...",
+  "channelId": "...",
+  "kind": "post",
+  "icon": "📄",
+  "title": "...",
+  "tag": "팀 · 채널",
+  "summary": "",
+  "createdAt": "...",
+  "updatedAt": "...",
+  "authorId": 1,
+  "authorName": "KevinIm",
+  "authorImageUrl": "...",
+  "commentCount": 2,
+  "attachments": ["file.pdf"],
+  "viewedAt": 1770000000000,
+  "unreadPost": true,
+  "unreadPostEdited": false,
+  "unreadCommentCount": 1,
+  "unreadActivityAt": "..."
+}
+```
+
+프론트는 이 응답을 기존 `wbRenderRecentUpdates` 에 그대로 넣을 수 있어야 한다.
+가능하면 [src/lib/recentPosts.js](../src/lib/recentPosts.js)의 `makeWelcomePostSnapshot` 출력 형태와 맞춘다.
+
+#### 18.4.2 서버 책임
+
+서버 API는 아래를 한 번에 수행한다.
+
+1. 현재 사용자가 접근 가능한 채널 목록을 구한다.
+2. 읽음 기준(`channel_last_read`)을 가져온다.
+3. 새 원글, 새 댓글, 수정된 원글, 수정된 댓글 조건을 반영해 후보를 만든다.
+4. `unreadActivityAt` 기준 최신순으로 정렬한다.
+5. `limit` 만큼만 반환한다.
+6. Welcome 보드에 필요한 최소 필드만 직렬화한다.
+
+중요:
+
+- `/posts` 처럼 댓글 목록, 상세 권한 필드, 전체 첨부 객체, 좋아요 상태, training status 등을 모두 만들 필요가 없다.
+- 첨부는 표시용 파일명 최대 5개만 있으면 된다.
+- 본문 요약은 최근 업데이트 탭에서는 표시하지 않으므로 `summary:''` 로 둔다.
+- 조회만으로 읽음 처리하지 않는다.
+
+#### 18.4.3 데이터 소스 선택
+
+현 구조상 후보:
+
+- **PostgreSQL 중심:** `posts`, `comments`, `channel_last_read`, `channels`, `teams`, `users`, `attachments` 를 조인/조회한다.
+  - 장점: 한 API 안에서 집계하기 쉽고 `updated_at` 조건을 쓰기 쉽다.
+  - 단점: Cassandra가 원본인 환경에서는 PG 미러 최신성이 중요하다.
+- **기존 `/posts` 재사용:** 구현은 빠르지만 병목 원인을 유지한다.
+- **별도 materialized table:** 장기적으로 가장 빠르지만 쓰기 경로마다 갱신해야 해서 범위가 크다.
+
+권장 중기안:
+
+- 우선 PostgreSQL 기반 전용 API로 구현한다.
+- PG 미러 누락 가능성이 확인되면 이후 materialized table 또는 Cassandra 보조 테이블을 검토한다.
+
+#### 18.4.4 권한/보안
+
+- 반드시 `requireAuth` 를 적용한다.
+- 채널 접근권한은 기존 `canAccessChannel` 또는 같은 기준의 set 기반 필터를 적용한다.
+- 채널 수가 많은 사용자에게 `canAccessChannel` 을 row마다 순차 호출하면 느려질 수 있으므로,
+  가능하면 "사용자가 접근 가능한 채널 id set" 을 먼저 만들고 SQL 후보를 그 set으로 제한한다.
+- 응답에는 사용자가 접근할 수 없는 채널의 post/comment 정보가 섞이면 안 된다.
+
+#### 18.4.5 프론트 전환
+
+중기 전환 시 [src/App.jsx](../src/App.jsx) `loadRecentUpdates` 는 아래처럼 바뀐다.
+
+1. `apiFetch('/welcome/recent-updates?limit=30')` 호출.
+2. 응답 배열 검증.
+3. 실패 시 빈 배열 반환.
+4. 기존 `teams` 순회와 `/posts?limit=100` 병렬 호출 제거.
+
+이때 18.3의 "후순위 지연 로드" 구조는 유지한다. 전용 API가 빨라져도 최근 업데이트가 첫 화면 필수 데이터가 될 필요는 없다.
+
+### 18.5 단계별 구현 순서
+
+#### 1단계 — 로딩 순서 분리
+
+- [src/App.jsx](../src/App.jsx) `welcomeBoardData` effect에서 1차 데이터와 `recentUpdates` 를 분리한다.
+- 1차 데이터:
+  - `loadTodaySchedule()`
+  - `loadImportantMail()`
+  - `loadRecentUnreadMail()`
+  - `loadRecentPosts()`
+- 2차 데이터:
+  - `loadRecentUpdates()`
+- 1차 완료 즉시 `setWelcomeBoardData`.
+- 2차 완료 시 `recentUpdates` 만 병합.
+
+#### 2단계 — 기존 `/posts` 방식의 피해 줄이기
+
+- `loadRecentUpdates` 대상 채널을 `channel.unread > 0` 인 채널로 제한한다.
+- 채널당 `limit=100` 을 `limit=30` 으로 낮춘다.
+- 동시 호출 개수를 3~5개로 제한한다.
+- 실패 채널은 전체 실패로 올리지 않고 빈 결과로 처리한다.
+
+#### 3단계 — 전용 API 추가
+
+- 서버에 `server/routes/welcome.js` 또는 `server/routes/welcomeRecentUpdates.js` 를 추가한다.
+- `GET /api/welcome/recent-updates?limit=30` 를 구현한다.
+- [server/index.js](../server/index.js)에 라우터를 연결한다.
+- 기존 `isUnread`/`unreadActivityAt` 의미와 15.8의 배지 범위 결정을 유지한다.
+
+#### 4단계 — 프론트 API 전환
+
+- [src/App.jsx](../src/App.jsx) `loadRecentUpdates` 를 새 API 호출로 교체한다.
+- 18.3의 지연 로드 구조는 그대로 유지한다.
+- `/posts?channelId=...&limit=...` 다중 호출은 제거한다.
+
+#### 5단계 — 관측/검증
+
+- 개발 로그 또는 브라우저 Network 기준으로 Welcome 보드 진입 시 `/posts?limit=100` 다중 호출이 없어졌는지 확인한다.
+- 첫 화면 카드/최근 본 문서가 최근 업데이트 결과를 기다리지 않고 표시되는지 확인한다.
+- 최근 업데이트 탭은 처음에는 로딩 문구, 이후 결과 또는 빈 목록으로 바뀌는지 확인한다.
+- unread가 있는 채널의 새 글/새 댓글/수정 글/수정 댓글이 15.8 기준대로 목록에 나타나는지 확인한다.
+- 항목 클릭 시 기존 `target:'post'` 라우팅이 유지되는지 확인한다.
+
+### 18.6 파일별 변경 계획
+
+| 단계 | 파일 | 변경 | 상태 |
+|---|---|---|---|
+| 1 | [src/App.jsx](../src/App.jsx) | Welcome 보드 데이터 로드를 1차 필수 데이터와 2차 `recentUpdates` 로 분리, 2차 결과는 병합 업데이트 | 완료 |
+| 2 | [src/App.jsx](../src/App.jsx) | `/posts` 방식의 임시 피해 축소 대신 전용 API로 바로 전환해 채널별 다중 호출 자체를 제거 | 완료 |
+| 3 | [server/routes/welcomeRecentUpdates.js](../server/routes/welcomeRecentUpdates.js) | `GET /api/welcome/recent-updates?limit=30` 신규 라우트 구현 | 완료 |
+| 3 | [server/index.js](../server/index.js) | Welcome recent updates 라우터 등록 | 완료 |
+| 4 | [src/App.jsx](../src/App.jsx) | `loadRecentUpdates` 를 전용 API 호출로 전환하고 `/posts` 다중 호출 제거 | 완료 |
+| 5 | [template/WelcomeBoard_whiteThema.html](../template/WelcomeBoard_whiteThema.html) · [blue](../template/WelcomeBoard_blueThema.html) | 기존 로딩 문구와 부분 payload 렌더링 계약을 그대로 사용해 변경 불필요 | 완료 |
+
+### 18.7 구현 시 주의사항
+
+- 단기 1단계와 2단계는 사용자 체감 개선이 크므로 먼저 한다.
+- 전용 API는 기존 `/posts` 응답과 동일한 모든 필드를 만들 필요가 없다. Welcome 보드 렌더에 필요한 최소 필드만 반환한다.
+- `recentUpdates` 조회 실패가 Welcome 보드 전체 실패가 되면 안 된다.
+- 메일/캘린더/최근 본 문서 조회와 `recentUpdates` 조회는 서로 독립적으로 실패·성공해야 한다.
+- 대시보드 첫 렌더 이후 iframe에 payload를 여러 번 보내도 템플릿이 부분 갱신 가능하도록 payload 필드 단위를 유지한다.
+- 장기적으로는 Welcome 보드에 필요한 데이터를 `/api/welcome/summary` 하나로 묶는 것도 가능하지만,
+  이번 보정의 핵심은 `recentUpdates` 병목을 첫 화면에서 분리하는 것이다.
+
+---
+
+## 19. [신규 요구] 제목 바 Welcome Board 이미지 버튼
+
+> 요구: 서버를 `--showWelcomeBoard` 옵션으로 시작한 경우, 제목 바에 **Welcome Board 버튼**을 표시한다.  
+> 버튼 위치는 **좌측 사이드바 숨기기/보이기 버튼의 왼쪽**이며, 텍스트가 아니라
+> [public/img/Welcome-logo_2nd.png](../public/img/Welcome-logo_2nd.png) 이미지를 사용한다.
+
+### 19.1 동작 목표
+
+1. `--showWelcomeBoard` 옵션이 켜진 경우에만 제목 바 버튼을 보여준다.
+2. 버튼은 `Welcome Board` 글자 대신 `public/img/Welcome-logo_2nd.png` 이미지만 표시한다.
+3. 위치는 제목 바 우측 컨트롤 영역에서 **좌측 사이드바 토글 버튼 바로 왼쪽**이다.
+4. 버튼 클릭 시 기존 Welcome 보드 인패널 화면으로 이동한다.
+5. Welcome 보드로 이동할 때 캘린더, DM, 메일 화면은 닫아 기존 상호배타 규칙을 유지한다.
+6. URL 딥링크 자동 처리 정책은 유지한다. 이 버튼은 사용자가 명시적으로 누르는 진입점이므로 딥링크 가드와 별개로 동작한다.
+
+### 19.2 구현 지침
+
+1. **TitleBar props 확장** — [src/components/TitleBar.jsx](../src/components/TitleBar.jsx):
+   - `showWelcomeBoardButton` boolean prop 추가.
+   - `onOpenWelcomeBoard` callback prop 추가.
+   - 데스크톱 컨트롤 영역에서 `showWelcomeBoardButton` 이 true일 때만 이미지 버튼 렌더.
+   - 버튼은 `aria-label`/`title` 을 `Welcome Board` 로 둔다.
+   - 이미지 `src="/img/Welcome-logo_2nd.png"` 를 사용하고, `alt=""` 로 두어 버튼의 accessible name은 `aria-label` 이 담당하게 한다.
+
+2. **버튼 위치** — [src/components/TitleBar.jsx](../src/components/TitleBar.jsx):
+   - 기존 사이드바 토글 버튼 주석/블록 바로 앞에 배치한다.
+   - AgenticAI 패널 토글, 사용자 메뉴, 언어 토글의 위치는 유지한다.
+
+3. **App 연결** — [src/App.jsx](../src/App.jsx):
+   - `TitleBar` 에 `showWelcomeBoardButton={SHOW_WELCOME_BOARD}` 전달.
+   - `onOpenWelcomeBoard` 에서:
+     - `setWelcomeService(WELCOME_BOARD_TEMPLATE)`
+     - `setShowCalendar(false)`
+     - `setShowDM(false)`
+     - `setShowMail(false)`
+     - `setActiveDMConv(null)`
+   - 필요 시 `setMailDeepLink(null)`/`setMailInitialFolder(null)` 도 함께 정리해 메일 딥링크 잔상을 남기지 않는다.
+
+### 19.3 파일별 변경 계획
+
+| 파일 | 변경 | 상태 |
+|---|---|---|
+| [MDfiles/WelcomeBoard.md](./WelcomeBoard.md) | 제목 바 Welcome Board 이미지 버튼 요구사항과 구현 지침 추가 | 완료 |
+| [src/components/TitleBar.jsx](../src/components/TitleBar.jsx) | `showWelcomeBoardButton`/`onOpenWelcomeBoard` props 추가, 사이드바 토글 왼쪽에 이미지 버튼 렌더 | 완료 |
+| [src/App.jsx](../src/App.jsx) | `TitleBar` props 연결, 클릭 시 Welcome 보드 인패널 오픈 및 다른 화면 닫기 | 완료 |
+
+### 19.4 검증 항목
+
+- `--showWelcomeBoard` 로 시작하면 제목 바에 Welcome 로고 이미지 버튼이 보인다.
+- 버튼은 좌측 사이드바 토글 버튼의 왼쪽에 있다.
+- 버튼 클릭 시 Welcome 보드가 가운데 메인 패널에 열린다.
+- 캘린더/DM/메일 화면에서 버튼을 눌러도 Welcome 보드로 전환된다.
+- `--showWelcomeBoard` 옵션이 꺼져 있으면 제목 바 버튼이 보이지 않는다.
+
+---
+
+## 20. [신규 요구] 오늘의 일정 `새 일정 추가` → 캘린더 이벤트 추가 창
+
+> 요구: Welcome Board의 **오늘의 일정** 카드에서 **새 일정 추가** 버튼을 누르면 캘린더의 이벤트 추가 창이 나타난다.
+
+### 20.1 검토 결과
+
+- Welcome 보드는 `PanelServicePage`의 `iframe srcDoc` 안에서 렌더되며, 이미 `welcome-board:navigate` `postMessage`로 부모 App에 라우팅 요청을 보낸다.
+- 오늘의 일정 `전체 보기`는 `target:'calendar'` 로 캘린더 화면을 열고 있다.
+- 캘린더의 추가 창은 [CalendarView.jsx](../src/components/CalendarView.jsx) 내부 `showEventModal` + `EventAddModal` 조합으로 열린다.
+- 기존 `calendarFocusEvent`는 특정 이벤트를 찾아 편집 모달을 여는 용도이므로, 새 일정 추가 요청은 별도 신호(`calendarAddEventRequest`)로 분리하는 것이 안전하다.
+
+### 20.2 구현 방안
+
+1. [template/WelcomeBoard_whiteThema.html](../template/WelcomeBoard_whiteThema.html) · [blue](../template/WelcomeBoard_blueThema.html)
+   - 오늘의 일정 카드 `새 일정 추가` 행에 클릭/키보드 핸들러를 추가한다.
+   - 메시지 스킴: `{ type:'welcome-board:navigate', target:'calendar-add-event' }`.
+
+2. [src/App.jsx](../src/App.jsx)
+   - `calendarAddEventRequest` state를 추가한다.
+   - `target === 'calendar-add-event'` 수신 시:
+     - `setCalendarFocusEvent(null)`
+     - `setCalendarAddEventRequest({ openedAt: Date.now() })`
+     - `setShowCalendar(true)`
+     - `setWelcomeService(null)`
+     - DM/메일 상태를 닫아 기존 상호배타 규칙을 유지한다.
+   - `CalendarView`에 `addEventRequest={calendarAddEventRequest}` 를 전달한다.
+   - CalendarView가 요청을 처리한 뒤 `onAddEventRequestHandled` 로 state를 비워, 이후 캘린더 재진입 때 모달이 다시 열리지 않게 한다.
+
+3. [src/components/CalendarView.jsx](../src/components/CalendarView.jsx)
+   - `addEventRequest` prop을 받고 `openedAt` 변경을 1회성 신호로 처리한다.
+   - 요청 수신 시 오늘 날짜의 `day` 뷰로 이동하고, `editingEvent`/`presetDts`를 비운 뒤 `showEventModal`을 `true`로 설정한다.
+   - 처리 후 부모 콜백을 호출해 1회성 요청을 소진한다.
+   - 실제 시간 기본값은 기존 `EventAddModal`의 `makeDefaultDt(0/1)` 로 유지한다.
+
+### 20.3 파일별 변경 계획
+
+| 파일 | 변경 | 상태 |
+|---|---|---|
+| [MDfiles/WelcomeBoard.md](./WelcomeBoard.md) | 요구사항 검토 및 구현 지침 추가 | 완료 |
+| [template/WelcomeBoard_whiteThema.html](../template/WelcomeBoard_whiteThema.html) · [blue](../template/WelcomeBoard_blueThema.html) | `새 일정 추가` 클릭/키보드 입력 시 `calendar-add-event` 메시지 전송 | 완료 |
+| [src/App.jsx](../src/App.jsx) | `calendarAddEventRequest` state 추가, Welcome 라우팅에서 캘린더 추가 요청 처리, `CalendarView` prop 전달 및 처리 후 요청 초기화 | 완료 |
+| [src/components/CalendarView.jsx](../src/components/CalendarView.jsx) | `addEventRequest` 신호 수신 시 이벤트 추가 모달 열기, 처리 완료 콜백 호출 | 완료 |
+
+### 20.4 검증 항목
+
+- Welcome 보드 오늘의 일정 카드에서 `새 일정 추가` 클릭 시 Welcome 보드가 닫히고 캘린더가 열린다.
+- 캘린더가 열린 직후 `EventAddModal`이 추가 모드로 나타난다.
+- `Enter`/`Space` 키로도 `새 일정 추가`가 동작한다.
+- 기존 `전체 보기` 버튼은 캘린더 화면 이동만 수행하며 모달을 열지 않는다.
+
+### 20.5 [보정] 캘린더로만 이동하고 이벤트 추가 창이 열리지 않는 문제
+
+#### 원인
+
+- `CalendarView`의 `addEventRequest` 처리 effect에서 `handledAddEventRequestRef.current = signature` 를 타이머 실행 전에 먼저 기록했다.
+- React 개발 환경의 StrictMode는 effect를 검증하기 위해 mount 시 effect를 한 번 정리했다가 다시 실행할 수 있다.
+- 첫 번째 effect에서 처리 완료 ref가 먼저 기록되고, 그 타이머는 StrictMode 정리 단계에서 취소된다.
+- 두 번째 effect는 같은 `openedAt` 값을 이미 처리한 요청으로 판단해 바로 반환한다.
+- 결과적으로 `showCalendar(true)` 는 적용되어 캘린더 화면으로 이동하지만, `setShowEventModal(true)` 가 실행되지 않아 이벤트 추가 창이 나타나지 않았다.
+
+#### 수정
+
+- 처리 완료 ref 기록을 타이머 예약 시점이 아니라 **타이머 콜백 내부**, 즉 실제로 모달을 여는 시점으로 옮겼다.
+- StrictMode가 첫 번째 타이머를 취소해도 ref가 아직 기록되지 않으므로, 두 번째 effect 실행에서 다시 타이머를 예약하고 모달을 정상적으로 연다.
+
+| 파일 | 변경 | 상태 |
+|---|---|---|
+| [src/components/CalendarView.jsx](../src/components/CalendarView.jsx) | `addEventRequest` 처리 완료 ref 기록을 실제 모달 오픈 타이머 내부로 이동 | 완료 |

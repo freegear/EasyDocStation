@@ -771,6 +771,7 @@ router.get('/messages', async (req, res, next) => {
     const unifiedKey = String(req.query.unifiedKey || '').trim()
     const folderType = String(req.query.folderType || '').trim()
     const folderName = String(req.query.folderName || '').trim()
+    const unreadOnly = /^(1|true|yes|on)$/i.test(String(req.query.unreadOnly || req.query.unread_only || ''))
     const limit = Math.min(200, Math.max(1, parseInt(req.query.limit || '50', 10) || 50))
     const offset = Math.max(0, parseInt(req.query.offset || '0', 10) || 0)
 
@@ -787,6 +788,7 @@ router.get('/messages', async (req, res, next) => {
         key: unifiedKey,
         folderType,
         folderName,
+        unreadOnly,
         limit,
         offset,
       }))

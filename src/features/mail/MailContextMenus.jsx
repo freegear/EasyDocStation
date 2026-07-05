@@ -4,7 +4,7 @@ import { MenuIcon } from './mailIcons'
 import { useAnchoredMenuPosition, useAnchoredSubmenuPosition } from './useAnchoredMenuPosition'
 import { FOLDER_COLOR_OPTIONS, getFolderColorLabel, getMailFolderLabel, isSystemMailFolder } from './mailFolderUtils'
 
-function MailMessageContextMenu({ menu, folders, onClose, onDelete, onMarkUnread, onToggleStar, onMove, onAgenticWatch, onRegisterMailClaw, onRegisterMailClawTrash, onRegisterAsPost, mt = MAIL_TEXT.ko }) {
+function MailMessageContextMenu({ menu, folders, onClose, onDelete, onMarkUnread, onToggleStar, onMove, onRegisterMailClaw, onRegisterMailClawTrash, onRegisterAsPost, mt = MAIL_TEXT.ko }) {
   const { ref, style } = useAnchoredMenuPosition(menu?.x ?? 0, menu?.y ?? 0)
   const [moveSubmenuAnchor, setMoveSubmenuAnchor] = useState(null)
   const [moveSubmenuOpen, setMoveSubmenuOpen] = useState(false)
@@ -75,17 +75,6 @@ function MailMessageContextMenu({ menu, folders, onClose, onDelete, onMarkUnread
       >
         <span className="h-2.5 w-2.5 rounded-full bg-blue-500" />
         <span>{mt.context.markUnread}</span>
-      </button>
-      <button
-        type="button"
-        onClick={() => {
-          onAgenticWatch?.(menu)
-          onClose()
-        }}
-        className="flex w-full items-center gap-2 px-3 py-2 text-left text-indigo-700 hover:bg-indigo-50"
-      >
-        <MenuIcon type="ai" />
-        <span>{mt.context.agenticWatch}</span>
       </button>
       <button
         type="button"

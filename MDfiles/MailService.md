@@ -115,6 +115,40 @@
   8.2 게시글/댓글로 공유
   8.3 AgenticAI로 보내기
 
+# 8.4 WelcomeBoard 최근 미확인 메일
+
+WelcomeBoard의 메일 카드는 "최근에 수신한 메일"이라는 이름보다 사용자가 바로 처리해야 할 항목을 보여주는 "최근 미확인 메일"로 정의한다.
+
+표시 기준은 다음과 같다.
+
+1. 통합 메일 계정 전체를 대상으로 한다.
+2. 받은 편지함(`inbox`)에 있는 메일만 대상으로 한다.
+3. 읽지 않은 메일(`is_read = false`)만 보여준다.
+4. `received_at`, `sent_at`, `created_at` 우선순위의 최신순으로 정렬한다.
+5. 기본 표시 개수는 5개이며, 서버 요청은 여유 있게 30개까지 받을 수 있다.
+
+표시 항목은 발신자 이름 또는 이메일, 제목, 본문 preview, 수신 시각, 계정 이메일을 포함한다. 계정 이메일은 여러 계정을 통합해서 볼 때 출처를 구분하기 위한 보조 정보다.
+
+빈 상태 문구는 `읽지 않은 받은 메일이 없습니다.`로 표시한다.
+
+`전체 보기`는 메일 화면의 통합 받은 편지함으로 이동한다. 목록의 개별 메일을 클릭하면 해당 메일 상세로 딥링크 이동한다.
+
+구현 기준:
+
+- [src/App.jsx](../src/App.jsx)
+  - WelcomeBoard 데이터 로딩에서 `/mail/messages`를 `scope=unified`, `unifiedKey=inbox`, `unreadOnly=1`로 호출한다.
+  - 결과는 `recentUnreadMail`과 기존 템플릿 호환용 `importantMail`에 함께 전달한다.
+- [server/routes/mail.js](../server/routes/mail.js)
+  - `/mail/messages`에서 `unreadOnly` query를 파싱해 repository로 넘긴다.
+- [server/mail/repository.js](../server/mail/repository.js)
+  - `listUnifiedMessages()`에서 `unreadOnly`가 true이면 `mm.is_read = false` 조건을 추가한다.
+- [template/WelcomeBoard_blueThema.html](../template/WelcomeBoard_blueThema.html), [template/WelcomeBoard_whiteThema.html](../template/WelcomeBoard_whiteThema.html)
+  - 카드 제목을 `최근 미확인 메일`로 표시한다.
+  - `전체 보기` target을 통합 받은 편지함으로 보낸다.
+  - `recentUnreadMail` payload를 우선 사용하고, 구버전 호환을 위해 `importantMail`도 처리한다.
+  - 템플릿에 박혀 있던 고정 샘플 메일 HTML은 모두 제거한다.
+  - 상단 메일 카드와 하단 `최근 미확인 메일` 탭은 같은 `recentUnreadMail` 데이터에서 렌더링한다.
+
 # 9. MailClaw
 
 수신한 메일에 대해서 자동화 서비스를 설정할 수 있다.
@@ -5285,9 +5319,6 @@ isTemplateContent(content) ? <TemplateRenderer ...> :
 - **다이얼로그 폭 +30%**: 패널 최대 폭을 `max-w-lg`(512px) → **`max-w-2xl`(672px, 약 +31%)** 로 확대한다.
   일정 표/본문 미리보기가 더 여유 있게 보인다. (`max-h-[90vh]`·세로 스크롤은 유지)
 - 구현 위치: [src/features/mail/MailPage.jsx](../src/features/mail/MailPage.jsx) `MailToPostDialog` 패널/헤더 className.
-
-
-
 
 
 

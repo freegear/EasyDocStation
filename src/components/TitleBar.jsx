@@ -259,6 +259,8 @@ export default function TitleBar({
   onSelectSearchResult,
   showSidebar = true,
   onToggleSidebar,
+  showWelcomeBoardButton = false,
+  onOpenWelcomeBoard,
   showAgenticPanel = true,
   onToggleAgenticPanel,
   isMobileLayout = false,
@@ -316,6 +318,23 @@ export default function TitleBar({
         {/* Sidebar / AI 패널 토글: 데스크톱 전용 (모바일은 하단 탭바 사용) */}
         {!isMobileLayout && (
           <>
+            {showWelcomeBoardButton && (
+              <button
+                type="button"
+                onClick={onOpenWelcomeBoard}
+                aria-label="Welcome Board"
+                title="Welcome Board"
+                className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-white shadow-sm ring-1 ring-gray-200 transition-transform hover:scale-[1.03] hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
+              >
+                <img
+                  src="/img/Welcome-logo_2nd.png"
+                  alt=""
+                  className="h-8 w-8 object-contain"
+                  draggable="false"
+                />
+              </button>
+            )}
+
             {/* Sidebar toggle (left of AI Panel) */}
             <button
               type="button"

@@ -18,7 +18,7 @@ import SelectionGuardPlaywrightFixture from './components/dev/SelectionGuardPlay
 import MailPage from './features/mail/MailPage'
 import { WELCOME_BOARD_TEMPLATE } from './templates/formTemplates'
 import { apiFetch } from './lib/api'
-import { getRecentPosts, makeWelcomePostSnapshot } from './lib/recentPosts'
+import { getRecentPosts } from './lib/recentPosts'
 
 // 서버 실행 옵션 --showWelcomeBoard (VITE_SHOW_WELCOME_BOARD)로 노출되는 빌드타임 플래그.
 const SHOW_WELCOME_BOARD = import.meta.env.VITE_SHOW_WELCOME_BOARD === '1'
@@ -188,6 +188,7 @@ function MainLayout() {
   const [searchSelectedPost, setSearchSelectedPost] = useState(null)
   const [showCalendar, setShowCalendar] = useState(false)
   const [calendarFocusEvent, setCalendarFocusEvent] = useState(null)
+  const [calendarAddEventRequest, setCalendarAddEventRequest] = useState(null)
   const [showMail, setShowMail] = useState(false)
   const [mailDeepLink, setMailDeepLink] = useState(null)
   const [mailInitialFolder, setMailInitialFolder] = useState(null)  // Welcome 보드 → 중요 편지함 등 진입 폴더
@@ -315,6 +316,16 @@ function MainLayout() {
     setTimeout(() => setSearchSelectedPost(null), 500)
   }
 
+  const openWelcomeBoard = useCallback(() => {
+    setWelcomeService(WELCOME_BOARD_TEMPLATE)
+    setShowCalendar(false)
+    setShowDM(false)
+    setShowMail(false)
+    setActiveDMConv(null)
+    setMailDeepLink(null)
+    setMailInitialFolder(null)
+  }, [])
+
   useEffect(() => {
     const userId = currentUser?.id || null
     if (!userId || lastUserIdRef.current === userId) {
@@ -343,7 +354,7 @@ function MainLayout() {
     }
   }, [currentUser?.id])
 
-  // Welcome 보드 오픈 시 카드 데이터(오늘의 일정 + 안 읽은 중요 메일)를 로드해 주입 (WelcomeBoard.md 12·13·14절)
+  // Welcome 보드 오픈 시 카드 데이터(오늘의 일정 + 최근 미확인 메일 등)를 로드해 주입한다.
   useEffect(() => {
     if (welcomeService?.id !== 'welcome-board') {
       setWelcomeBoardData(null)
@@ -373,11 +384,34 @@ function MainLayout() {
       }
     }
 
-    // 중요 메일: 안 읽은 중요(별표) 메일만. (WelcomeBoard.md 12·13절)
+    let welcomeMailTenantIdPromise = null
+    const getWelcomeMailTenantId = async () => {
+      if (welcomeMailTenantIdPromise) return welcomeMailTenantIdPromise
+      welcomeMailTenantIdPromise = (async () => {
+        try {
+          const accounts = await apiFetch('/mail/accounts')
+          return (Array.isArray(accounts) ? accounts : []).find(a => a?.tenant_id)?.tenant_id || ''
+        } catch {
+          return ''
+        }
+      })()
+      return welcomeMailTenantIdPromise
+    }
+
+    const toWelcomeMailItem = (m, tenantId) => ({
+      id: m.id,               // 클릭 시 해당 메일로 딥링크 이동 (WelcomeBoard.md 16절)
+      tenantId,
+      name: m.from_name || m.from_email || '',
+      subject: m.subject || '',
+      snippet: m.snippet || '',
+      received_at: m.received_at || null,
+      account_email: m.account_email || '',
+    })
+
+    // 중요 메일: 통합 중요 편지함(별표됨)을 최신순으로 표시한다.
     const loadImportantMail = async () => {
       try {
-        const accounts = await apiFetch('/mail/accounts')
-        const tenantId = (Array.isArray(accounts) ? accounts : []).find(a => a?.tenant_id)?.tenant_id
+        const tenantId = await getWelcomeMailTenantId()
         if (!tenantId) return []
         const params = new URLSearchParams({
           tenantId,
@@ -390,57 +424,45 @@ function MainLayout() {
         })
         const rows = await apiFetch(`/mail/messages?${params.toString()}`)
         return (Array.isArray(rows) ? rows : [])
-          .filter(m => !m.is_read)
-          .map(m => ({
-            id: m.id,               // 클릭 시 해당 메일로 딥링크 이동 (WelcomeBoard.md 16절)
-            tenantId,
-            name: m.from_name || m.from_email || '',
-            subject: m.subject || '',
-            snippet: m.snippet || '',
-            received_at: m.received_at || null,
-          }))
+          .slice(0, 3)
+          .map(m => toWelcomeMailItem(m, tenantId))
       } catch {
         return []
       }
     }
 
-    // 최근에 업데이트 된 글: 가입/접근 가능한 채널의 미열람 원글을 채널 경계 없이 최신순으로 모은다. (WelcomeBoard.md 15.6)
+    // 최근 미확인 메일: 통합 받은편지함의 읽지 않은 메일만 최신순으로 표시한다. (MailService.md 8.4)
+    const loadRecentUnreadMail = async () => {
+      try {
+        const tenantId = await getWelcomeMailTenantId()
+        if (!tenantId) return []
+        const params = new URLSearchParams({
+          tenantId,
+          scope: 'unified',
+          unifiedKey: 'inbox',
+          folderType: 'inbox',
+          folderName: '',
+          unreadOnly: '1',
+          limit: '30',
+          offset: '0',
+        })
+        const rows = await apiFetch(`/mail/messages?${params.toString()}`)
+        return (Array.isArray(rows) ? rows : [])
+          .slice(0, 5)
+          .map(m => toWelcomeMailItem(m, tenantId))
+      } catch {
+        return []
+      }
+    }
+
+    // 최근에 업데이트 된 글: Welcome 전용 요약 API로 미열람 활동만 한 번에 읽는다. (WelcomeBoard.md 18절)
     const loadRecentUpdates = async () => {
-      const channels = (Array.isArray(teams) ? teams : [])
-        .flatMap(team => (Array.isArray(team.channels) ? team.channels : [])
-          .filter(channel => channel?.id && !channel.is_archived)
-          .map(channel => ({ team, channel })))
-      if (!channels.length) return []
-      const batches = await Promise.all(channels.map(async ({ team, channel }) => {
-        try {
-          const data = await apiFetch(`/posts?channelId=${encodeURIComponent(channel.id)}&limit=100`)
-          const posts = Array.isArray(data) ? data : (Array.isArray(data?.posts) ? data.posts : [])
-          return posts
-            // 미열람 활동이 있는 글: 새 원글 · 새 댓글 · 수정된 원글 · 수정된 댓글 모두 포함 (WelcomeBoard.md 15.7)
-            .filter(post => post?.isUnread)
-            .map(post => {
-              // 정렬/상대시각은 "가장 최근 미열람 활동 시각" 우선 → 방금 댓글·수정된 글이 위로 온다.
-              const activityAt = post.unreadActivityAt || post.createdAt || post.updatedAt || Date.now()
-              return {
-                ...makeWelcomePostSnapshot({
-                  post,
-                  channel,
-                  team,
-                  viewedAt: new Date(activityAt).getTime() || Date.now(),
-                }),
-                summary: '',
-                unreadPost: !!post.unreadPost,
-                unreadCommentCount: Number(post.unreadCommentCount) || 0,
-              }
-            })
-        } catch {
-          return []
-        }
-      }))
-      return batches
-        .flat()
-        .sort((a, b) => (Number(b.viewedAt) || 0) - (Number(a.viewedAt) || 0))
-        .slice(0, 30)
+      try {
+        const rows = await apiFetch('/welcome/recent-updates?limit=30')
+        return Array.isArray(rows) ? rows : []
+      } catch {
+        return []
+      }
     }
 
     const loadRecentPosts = async () => {
@@ -456,17 +478,31 @@ function MainLayout() {
       const now = new Date()
       const todayLabel = `${now.getMonth() + 1}월 ${now.getDate()}일 ${WELCOME_WEEKDAYS[now.getDay()]}요일`
       // 최근에 본 문서: 서버 DB 스냅샷을 최신순으로 읽고, 실패 시 브라우저 캐시로 폴백. (WelcomeBoard.md 15절)
-      const [todaySchedule, importantMail, recentUpdates, recentPosts] = await Promise.all([
+      const [todaySchedule, importantMail, recentUnreadMail, recentPosts] = await Promise.all([
         loadTodaySchedule(),
         loadImportantMail(),
-        loadRecentUpdates(),
+        loadRecentUnreadMail(),
         loadRecentPosts(),
       ])
       if (cancelled) return
-      setWelcomeBoardData({ importantMail, todaySchedule, todayLabel, recentPosts, recentUpdates })
+      const primaryData = {
+        importantMail,
+        recentUnreadMail,
+        todaySchedule,
+        todayLabel,
+        recentPosts,
+      }
+      setWelcomeBoardData(primaryData)
+
+      const recentUpdates = await loadRecentUpdates()
+      if (cancelled) return
+      setWelcomeBoardData(prev => ({
+        ...(prev || primaryData),
+        recentUpdates,
+      }))
     })()
     return () => { cancelled = true }
-  }, [welcomeService?.id, currentUser?.id, teams])
+  }, [welcomeService?.id, currentUser?.id])
 
   useEffect(() => {
     if (typeof window === 'undefined') return
@@ -582,6 +618,8 @@ function MainLayout() {
         onSelectSearchResult={handleSearchSelect}
         showSidebar={showSidebar}
         onToggleSidebar={() => setShowSidebar(v => !v)}
+        showWelcomeBoardButton={SHOW_WELCOME_BOARD}
+        onOpenWelcomeBoard={openWelcomeBoard}
         showAgenticPanel={showAgenticPanel}
         onToggleAgenticPanel={() => setShowAgenticPanel(v => !v)}
         isMobileLayout={isMobileLayout}
@@ -652,7 +690,12 @@ function MainLayout() {
                 )}
 
                 {showCalendar ? (
-                  <CalendarView onClose={() => setShowCalendar(false)} focusEvent={calendarFocusEvent} />
+                  <CalendarView
+                    onClose={() => setShowCalendar(false)}
+                    focusEvent={calendarFocusEvent}
+                    addEventRequest={calendarAddEventRequest}
+                    onAddEventRequestHandled={() => setCalendarAddEventRequest(null)}
+                  />
                 ) : showDM && activeDMConv ? (
                   <DirectMessageView
                     conversation={activeDMConv}
@@ -672,6 +715,14 @@ function MainLayout() {
                         setShowDM(false)
                         setShowMail(false)
                         setActiveDMConv(null)
+                      } else if (target === 'calendar-add-event') {
+                        setCalendarFocusEvent(null)
+                        setCalendarAddEventRequest({ openedAt: Date.now() })
+                        setShowCalendar(true)
+                        setWelcomeService(null)
+                        setShowDM(false)
+                        setShowMail(false)
+                        setActiveDMConv(null)
                       } else if (target === 'mail-important') {
                         setShowMail(true)
                         setMailDeepLink(null)
@@ -680,8 +731,16 @@ function MainLayout() {
                         setShowCalendar(false)
                         setShowDM(false)
                         setActiveDMConv(null)
+                      } else if (target === 'mail-inbox') {
+                        setShowMail(true)
+                        setMailDeepLink(null)
+                        setMailInitialFolder({ key: 'unified:inbox', openedAt: Date.now() })
+                        setWelcomeService(null)
+                        setShowCalendar(false)
+                        setShowDM(false)
+                        setActiveDMConv(null)
                       } else if (target === 'mail' && data?.messageId && data?.tenantId) {
-                        // 중요 메일 항목 클릭 → 해당 메일로 딥링크 이동. (WelcomeBoard.md 16절)
+                        // 메일 항목 클릭 → 해당 메일로 딥링크 이동. (WelcomeBoard.md 16절)
                         setWelcomeService(null)
                         setMailInitialFolder(null)
                         openMailDeepLink({ messageId: String(data.messageId), tenantId: String(data.tenantId) })

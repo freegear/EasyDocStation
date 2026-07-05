@@ -24,14 +24,66 @@ function safeInt(value) {
   return Number.isFinite(n) ? n : null
 }
 
+function plainText(value) {
+  return String(value || '')
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, ' ')
+    .replace(/\[[^\]]*\]\([^)]*\)/g, ' ')
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/[#>*_`~]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+function plainTextLine(value) {
+  return plainText(value).replace(/^[-=*_#\s]+$/g, '').trim()
+}
+
+function firstMeaningfulLine(value, max = 100) {
+  const rawLines = String(value || '').split(/\r?\n/)
+  for (const line of rawLines) {
+    const text = plainTextLine(line)
+    if (text) return safeText(text, max)
+  }
+  return safeText(plainText(value), max)
+}
+
+function firstLink(value, max = 100) {
+  const text = String(value || '')
+  const markdownLink = text.match(/!?\[[^\]]*\]\((https?:\/\/[^)\s]+)[^)]*\)/i)
+  const htmlHref = text.match(/href=["'](https?:\/\/[^"']+)["']/i)
+  const rawUrl = text.match(/https?:\/\/[^\s<>"')]+/i)
+  const url = markdownLink?.[1] || htmlHref?.[1] || rawUrl?.[0] || ''
+  return safeText(url.replace(/[.,;:!?]+$/g, ''), max)
+}
+
+function isUntitled(value) {
+  const title = String(value || '').trim()
+  return !title || title === '(제목 없음)'
+}
+
+function displayTitle({ title, summary, content, attachments }) {
+  const rawTitle = String(title || '').trim()
+  if (!isUntitled(rawTitle)) return safeText(rawTitle, 500)
+  const firstAttachment = Array.isArray(attachments) ? attachments.find(Boolean) : ''
+  const textSource = content || summary
+  return safeText(firstAttachment || firstMeaningfulLine(textSource) || firstLink(textSource) || '(제목 없음)', 500)
+}
+
 function rowToClient(row = {}) {
   const authorImageUrl = row.author_image_url || row.user_image_url || ''
+  const attachments = Array.isArray(row.attachments) ? row.attachments : []
+  const title = displayTitle({
+    title: row.title,
+    summary: row.summary,
+    content: row.post_content,
+    attachments,
+  })
   return {
     postId: String(row.post_id || ''),
     channelId: String(row.channel_id || ''),
     kind: row.kind || 'post',
     icon: row.icon || '📄',
-    title: row.title || '(제목 없음)',
+    title,
     tag: row.tag || '',
     summary: '',
     createdAt: row.created_at || null,
@@ -40,7 +92,7 @@ function rowToClient(row = {}) {
     authorName: row.author_name || '',
     authorImageUrl,
     commentCount: Number(row.comment_count) || 0,
-    attachments: Array.isArray(row.attachments) ? row.attachments : [],
+    attachments,
     viewedAt: row.viewed_at ? new Date(row.viewed_at).getTime() : Date.now(),
   }
 }
@@ -49,9 +101,10 @@ router.get('/', requireAuth, async (req, res, next) => {
   try {
     const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 20, 1), 50)
     const result = await db.query(
-      `SELECT r.*, u.image_url AS user_image_url
+      `SELECT r.*, u.image_url AS user_image_url, p.content AS post_content
        FROM recent_post_views r
        LEFT JOIN users u ON u.id = r.author_id
+       LEFT JOIN posts p ON p.id = r.post_id
        WHERE r.user_id = $1
        ORDER BY viewed_at DESC
        LIMIT $2`,
@@ -130,7 +183,11 @@ router.post('/', requireAuth, async (req, res, next) => {
         safeText(body.teamId, 50) || null,
         safeText(body.kind, 30) || 'post',
         safeText(body.icon, 10) || '📄',
-        safeText(body.title, 500) || '(제목 없음)',
+        displayTitle({
+          title: safeText(body.title, 500),
+          summary: safeText(body.summary, 1000),
+          attachments,
+        }),
         safeText(body.tag, 200),
         '',
         safeDate(body.createdAt),

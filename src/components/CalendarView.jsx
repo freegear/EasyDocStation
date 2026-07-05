@@ -708,7 +708,7 @@ function YearView({ date, events = [], onMonthClick, onCellDoubleClick }) {
 
 // ─── Main CalendarView ────────────────────────────────────────
 
-export default function CalendarView({ onClose, focusEvent = null }) {
+export default function CalendarView({ onClose, focusEvent = null, addEventRequest = null, onAddEventRequestHandled }) {
   const { currentUser } = useAuth()
   const [viewType, setViewType] = useState('month')
   const [currentDate, setCurrentDate] = useState(new Date())
@@ -722,6 +722,7 @@ export default function CalendarView({ onClose, focusEvent = null }) {
   // { id, mode: 'move' | 'resize-start' | 'resize-end' }
   const draggingRef = useRef(null)
   const handledFocusEventRef = useRef('')
+  const handledAddEventRequestRef = useRef('')
 
   function canEditEvent(ev) {
     if (!ev) return false
@@ -775,6 +776,21 @@ export default function CalendarView({ onClose, focusEvent = null }) {
     }, 0)
     return () => window.clearTimeout(timer)
   }, [focusEvent?.eventId, focusEvent?.openedAt, events, loading])
+
+  useEffect(() => {
+    const signature = String(addEventRequest?.openedAt || '')
+    if (!signature || handledAddEventRequestRef.current === signature) return undefined
+    const timer = window.setTimeout(() => {
+      handledAddEventRequestRef.current = signature
+      setCurrentDate(new Date())
+      setViewType('day')
+      setEditingEvent(null)
+      setPresetDts(null)
+      setShowEventModal(true)
+      onAddEventRequestHandled?.()
+    }, 0)
+    return () => window.clearTimeout(timer)
+  }, [addEventRequest?.openedAt, onAddEventRequestHandled])
 
   // 캘린더 전용 인쇄 CSS 스코프 활성화
   useEffect(() => {

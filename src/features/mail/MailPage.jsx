@@ -20,7 +20,6 @@ import {
   addressListToSearchText,
   getDraftComposeData,
   getMailActionComposeData,
-  normalizeMailThreadSubject,
 } from './mailAddressUtils'
 import {
   FOLDER_COLOR_MAP,
@@ -1448,32 +1447,6 @@ export default function MailPage({ onBackToMain, initialMailLink = null, initial
     }
   }
 
-  async function registerAgenticWatch(target) {
-    const active = resolveActiveFolder()
-    const message = target?.message
-    const account = accounts.find(item => item.id === message?.account_id) || active?.account
-    if (!message?.id || !account?.tenant_id) return
-    try {
-      await apiFetch('/mail/agentic/watch-targets', {
-        method: 'POST',
-        body: JSON.stringify({
-          tenantId: account.tenant_id,
-          target_type: 'condition_group',
-          account_conditions: [account.email_address || message.account_id].filter(Boolean),
-          keyword_conditions: [],
-          subject_conditions: [normalizeMailThreadSubject(message.subject || '')].filter(Boolean),
-          condition_match_type: 'contains',
-          notify_telegram: true,
-          auto_create_todos: true,
-          message_id: message.id,
-        }),
-      })
-      setMessagesError('')
-    } catch (err) {
-      setMessagesError(err.message || 'AgenticAI 모니터링 등록에 실패했습니다.')
-    }
-  }
-
   async function loadActiveMessages(sourceAccounts = accounts, options = {}) {
     setComposeMode(false)
     const { silent = false, resetSelection = true } = options
@@ -2333,7 +2306,6 @@ export default function MailPage({ onBackToMain, initialMailLink = null, initial
         onMarkUnread={markMessageUnread}
         onToggleStar={toggleMessagesStarred}
         onMove={moveMessage}
-        onAgenticWatch={registerAgenticWatch}
         onRegisterMailClaw={registerMailClawFromMessage}
         onRegisterMailClawTrash={registerMailClawTrashFromMessage}
         onRegisterAsPost={registerAsPostFromMessage}

@@ -28,9 +28,39 @@ function toPlainText(content) {
     .trim()
 }
 
+function toPlainTextLine(line) {
+  return toPlainText(line).replace(/^[-=*_#\s]+$/g, '').trim()
+}
+
+function isUntitled(title) {
+  return !String(title || '').trim() || String(title || '').trim() === '(제목 없음)'
+}
+
+function deriveBodyPreview(content, max = 140) {
+  return toPlainText(content).slice(0, max)
+}
+
+function deriveFirstMeaningfulLine(content, max = 100) {
+  const rawLines = String(content || '').split(/\r?\n/)
+  for (const line of rawLines) {
+    const text = toPlainTextLine(line)
+    if (text) return text.slice(0, max)
+  }
+  return toPlainText(content).slice(0, max)
+}
+
+function deriveFirstLink(content, max = 100) {
+  const text = String(content || '')
+  const markdownLink = text.match(/!?\[[^\]]*\]\((https?:\/\/[^)\s]+)[^)]*\)/i)
+  const htmlHref = text.match(/href=["'](https?:\/\/[^"']+)["']/i)
+  const rawUrl = text.match(/https?:\/\/[^\s<>"')]+/i)
+  const url = markdownLink?.[1] || htmlHref?.[1] || rawUrl?.[0] || ''
+  return url.replace(/[.,;:!?]+$/g, '').slice(0, max)
+}
+
 // content 종류에 따라 표시 제목/아이콘/kind를 만든다. (ChatArea 문서 목록과 동일 규칙)
-// preferAttachmentTitle=true 이면 일반 글의 제목을 본문 첫 줄 대신 첨부 파일명으로 뽑는다
-// ("최근에 본 문서"는 문서 중심이라 본문 노출을 피함. WelcomeBoard.md 15.8)
+// preferAttachmentTitle=true 이면 명시 제목 → 첨부 파일명 → 첫 번째 의미 있는 본문 줄 → 링크 순으로 제목을 뽑는다.
+// ("최근에 본 문서"는 원본 title을 바꾸지 않고 표시용 제목만 보강함. WelcomeBoard.md 15.8)
 function derivePostDisplay(post, { preferAttachmentTitle = false } = {}) {
   const content = String(post?.content || '')
   if (isTemplateContent(content)) {
@@ -47,12 +77,13 @@ function derivePostDisplay(post, { preferAttachmentTitle = false } = {}) {
   const explicit = String(post?.title || '').trim()
   const firstAttachment = (Array.isArray(post?.attachments) ? post.attachments : [])
     .map(a => a?.name).filter(Boolean)[0] || ''
-  // 문서명 우선 모드: 본문 첫 줄은 쓰지 않는다(본문 미노출). 첨부도 없으면 "(제목 없음)".
+  const firstLine = deriveFirstMeaningfulLine(content)
+  const firstLink = deriveFirstLink(content)
+  // 문서명 우선 모드: 명시 제목/첨부명이 없으면 첫 번째 의미 있는 본문 줄을 표시용 제목으로 승격한다.
   if (preferAttachmentTitle) {
-    return { kind: 'post', icon: '📄', title: (explicit || firstAttachment).slice(0, 100) || '(제목 없음)' }
+    return { kind: 'post', icon: '📄', title: (explicit || firstAttachment || firstLine || firstLink).slice(0, 100) || '(제목 없음)' }
   }
-  const firstLine = toPlainText(content).split('\n').map(s => s.trim()).find(Boolean) || ''
-  return { kind: 'post', icon: '📄', title: (explicit || firstLine).slice(0, 100) || '(제목 없음)' }
+  return { kind: 'post', icon: '📄', title: (explicit || firstLine || firstLink).slice(0, 100) || '(제목 없음)' }
 }
 
 export function getRecentPosts(userId) {
@@ -78,7 +109,7 @@ export function makeWelcomePostSnapshot({ post, channel, team, viewedAt = Date.n
     icon,
     title,
     tag,
-    summary: '',
+    summary: isUntitled(title) ? deriveBodyPreview(post?.content) : '',
     createdAt: post?.createdAt || null,
     updatedAt: post?.updatedAt || post?.createdAt || null,
     authorId: post?.author?.id ?? null,

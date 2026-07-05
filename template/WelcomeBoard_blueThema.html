@@ -318,7 +318,7 @@
       <div id="todayScheduleList">
         <div class="sched-item" style="color:var(--text-tertiary)">일정을 불러오는 중…</div>
       </div>
-      <div class="add-row"><span class="plus">＋</span> 새 일정 추가</div>
+      <div class="add-row" role="button" tabindex="0" onclick="parent.postMessage({ type: 'welcome-board:navigate', target: 'calendar-add-event' }, '*')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();parent.postMessage({ type: 'welcome-board:navigate', target: 'calendar-add-event' }, '*')}"><span class="plus">＋</span> 새 일정 추가</div>
     </div>
 
     <!-- 중요 메일 -->
@@ -328,30 +328,7 @@
         <button class="view-all" onclick="parent.postMessage({ type: 'welcome-board:navigate', target: 'mail-important' }, '*')">전체 보기</button>
       </div>
       <div id="importantMailList" style="max-height:230px;overflow-y:auto;">
-      <div class="mail-item">
-        <div class="avatar av-1">HJ</div>
-        <div class="mail-body">
-          <div class="mail-top"><span class="mail-name">홍길동 (Partner)</span><span class="mail-time">10:30</span></div>
-          <div class="mail-subject">프로젝트 제안서 검토 요청</div>
-          <div class="mail-preview"><span class="unread"></span>안녕하세요, 지난 회의에서 논의한...</div>
-        </div>
-      </div>
-      <div class="mail-item">
-        <div class="avatar av-2">SY</div>
-        <div class="mail-body">
-          <div class="mail-top"><span class="mail-name">이수연 (Client)</span><span class="mail-time">09:15</span></div>
-          <div class="mail-subject">계약 관련 서류 전달드립니다.</div>
-          <div class="mail-preview"><span class="unread"></span>안녕하세요, 계약 진행을 위해 필요...</div>
-        </div>
-      </div>
-      <div class="mail-item">
-        <div class="avatar av-3">TB</div>
-        <div class="mail-body">
-          <div class="mail-top"><span class="mail-name">Team Builder</span><span class="mail-time">어제</span></div>
-          <div class="mail-subject">주간 리포트 공유</div>
-          <div class="mail-preview"><span class="unread"></span>이번 주 진행 상황을 공유드립니다.</div>
-        </div>
-      </div>
+        <div class="mail-item" style="color:var(--text-tertiary)">중요 메일을 불러오는 중…</div>
       </div>
       <div class="add-row"><span class="plus">＋</span> 새 메일 작성</div>
     </div>
@@ -399,7 +376,7 @@
     <div class="tabs">
       <div class="tab active" onclick="showPanel(this,'docs')">최근에 본 문서</div>
       <div class="tab" onclick="showPanel(this,'updates')">최근에 업데이트 된 글</div>
-      <div class="tab" onclick="showPanel(this,'mails')">최근에 수신한 메일</div>
+      <div class="tab" onclick="showPanel(this,'mails')">최근 미확인 메일</div>
     </div>
 
     <div class="tab-panel active" id="panel-docs">
@@ -420,12 +397,10 @@
 
     <div class="tab-panel" id="panel-mails">
       <div class="doc-list">
-        <div class="mailrow2"><div class="avatar av-1">HJ</div><div class="mail-body"><div class="mail-name">홍길동 (Partner)</div><div class="mail-preview" style="margin-top:2px"><span class="unread"></span>프로젝트 제안서 검토 요청</div></div><div class="doc-time">10:30</div></div>
-        <div class="mailrow2"><div class="avatar av-2">SY</div><div class="mail-body"><div class="mail-name">이수연 (Client)</div><div class="mail-preview" style="margin-top:2px"><span class="unread"></span>계약 관련 서류 전달드립니다.</div></div><div class="doc-time">09:15</div></div>
-        <div class="mailrow2"><div class="avatar av-3">TB</div><div class="mail-body"><div class="mail-name">Team Builder</div><div class="mail-preview" style="margin-top:2px"><span class="unread"></span>주간 리포트 공유</div></div><div class="doc-time">어제</div></div>
-        <div class="mailrow2"><div class="avatar" style="background:linear-gradient(135deg,#FF8A6B,#E0562B);">KM</div><div class="mail-body"><div class="mail-name">김민수 (Vendor)</div><div class="mail-preview" style="margin-top:2px"><span class="unread"></span>견적서 및 일정 확인 요청</div></div><div class="doc-time">어제</div></div>
-        <div class="mailrow2"><div class="avatar" style="background:linear-gradient(135deg,#9C7BFF,#6B4FE0);">박</div><div class="mail-body"><div class="mail-name">박지영 (Client)</div><div class="mail-preview" style="margin-top:2px"><span class="unread"></span>미팅 일정 변경 안내</div></div><div class="doc-time">2일 전</div></div>
-        <div class="foot-link">전체 보기 →</div>
+        <div id="recentUnreadMailList">
+          <div class="mailrow2" style="color:var(--text-tertiary)">최근 미확인 메일을 불러오는 중…</div>
+        </div>
+        <div class="foot-link" onclick="parent.postMessage({ type: 'welcome-board:navigate', target: 'mail-inbox' }, '*')">전체 보기 →</div>
       </div>
     </div>
   </div>
@@ -462,7 +437,7 @@
         var empty = document.createElement('div');
         empty.className = 'mail-item';
         empty.style.color = 'var(--text-tertiary)';
-        empty.textContent = '안 읽은 중요 메일이 없습니다.';
+        empty.textContent = '중요 메일이 없습니다.';
         box.appendChild(empty);
         return;
       }
@@ -499,10 +474,60 @@
         var dot = document.createElement('span');
         dot.className = 'unread';
         preview.appendChild(dot);
-        preview.appendChild(document.createTextNode(m.snippet || ''));
+        var previewText = m.snippet || '';
+        if (m.account_email) previewText = m.account_email + ' · ' + previewText;
+        preview.appendChild(document.createTextNode(previewText));
         body.appendChild(top); body.appendChild(subject); body.appendChild(preview);
         item.appendChild(body);
         box.appendChild(item);
+      });
+    }
+    function wbRenderRecentUnreadMailList(list){
+      var box = document.getElementById('recentUnreadMailList');
+      if (!box) return;
+      box.innerHTML = '';
+      list = Array.isArray(list) ? list : [];
+      if (!list.length){
+        var empty = document.createElement('div');
+        empty.className = 'mailrow2';
+        empty.style.color = 'var(--text-tertiary)';
+        empty.textContent = '읽지 않은 받은 메일이 없습니다.';
+        box.appendChild(empty);
+        return;
+      }
+      var avClasses = ['av-1','av-2','av-3'];
+      list.forEach(function(m, i){
+        var row = document.createElement('div');
+        row.className = 'mailrow2';
+        if (m.id && m.tenantId){
+          row.style.cursor = 'pointer';
+          row.addEventListener('click', function(){
+            parent.postMessage({ type:'welcome-board:navigate', target:'mail', messageId: m.id, tenantId: m.tenantId }, '*');
+          });
+        }
+        var avatar = document.createElement('div');
+        avatar.className = 'avatar ' + avClasses[i % 3];
+        avatar.textContent = wbMailInitials(m.name);
+        var body = document.createElement('div');
+        body.className = 'mail-body';
+        var name = document.createElement('div');
+        name.className = 'mail-name';
+        name.textContent = m.name || '(발신자 없음)';
+        var preview = document.createElement('div');
+        preview.className = 'mail-preview';
+        preview.style.marginTop = '2px';
+        var dot = document.createElement('span');
+        dot.className = 'unread';
+        preview.appendChild(dot);
+        var previewText = m.subject || m.snippet || '(제목 없음)';
+        if (m.account_email) previewText = m.account_email + ' · ' + previewText;
+        preview.appendChild(document.createTextNode(previewText));
+        var time = document.createElement('div');
+        time.className = 'doc-time';
+        time.textContent = wbMailTime(m.received_at);
+        body.appendChild(name); body.appendChild(preview);
+        row.appendChild(avatar); row.appendChild(body); row.appendChild(time);
+        box.appendChild(row);
       });
     }
     // 오늘의 일정 카드: 캘린더 오늘 이벤트 목록을 다시 그린다. (WelcomeBoard.md 14절)
@@ -681,7 +706,9 @@
     }
     function wbRenderRecentDocs(list){
       list = Array.isArray(list) ? list.map(function(doc){
-        return Object.assign({}, doc, { summary: '', leadAuthor: true });
+        var title = String(doc.title || '').trim();
+        var keepSummary = (!title || title === '(제목 없음)') ? doc.summary : '';
+        return Object.assign({}, doc, { summary: keepSummary, leadAuthor: true });
       }) : [];
       wbRenderDocCards(list, 'recentDocsList', '최근에 본 문서가 없습니다.');
     }
@@ -694,6 +721,7 @@
       var payload = data.payload || {};
       if (payload.todaySchedule !== undefined) wbRenderTodaySchedule(payload.todaySchedule, payload.todayLabel);
       if (payload.importantMail !== undefined) wbRenderImportantMail(payload.importantMail);
+      if (payload.recentUnreadMail !== undefined) wbRenderRecentUnreadMailList(payload.recentUnreadMail);
       if (payload.recentPosts !== undefined) wbRenderRecentDocs(payload.recentPosts);
       if (payload.recentUpdates !== undefined) wbRenderRecentUpdates(payload.recentUpdates);
     });

@@ -1136,7 +1136,7 @@ async function listMessages({ tenantId, accountId, folderId, userId, limit = 50,
   return rows
 }
 
-async function listUnifiedMessages({ tenantId, userId, key, folderType, folderName, limit = 50, offset = 0 }) {
+async function listUnifiedMessages({ tenantId, userId, key, folderType, folderName, unreadOnly = false, limit = 50, offset = 0 }) {
   const safeLimit = Math.min(200, Math.max(1, Number(limit) || 50))
   const safeOffset = Math.max(0, Number(offset) || 0)
   const cleanKey = String(key || '').trim()
@@ -1148,6 +1148,7 @@ async function listUnifiedMessages({ tenantId, userId, key, folderType, folderNa
     'mm.user_id = $2',
     'mm.deleted_at IS NULL',
   ]
+  if (unreadOnly) filters.push('mm.is_read = false')
 
   if (cleanKey === 'all') {
     filters.push(`NOT (
@@ -1157,6 +1158,9 @@ async function listUnifiedMessages({ tenantId, userId, key, folderType, folderNa
     )`)
   } else if (cleanKey === 'starred') {
     filters.push('mm.is_starred = true')
+  } else if (['inbox', 'sent', 'drafts', 'trash'].includes(cleanKey) && !cleanType) {
+    params.push(cleanKey)
+    filters.push(`mf.type = $${params.length}`)
   } else if (cleanType) {
     params.push(cleanType)
     filters.push(`mf.type = $${params.length}`)
