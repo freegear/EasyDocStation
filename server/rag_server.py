@@ -21,6 +21,8 @@ import torch
 from sentence_transformers import SentenceTransformer
 import lancedb
 
+MAX_VECTOR_DISTANCE = 1.0
+
 def resolve_device():
     forced = (os.getenv("EASYDOC_RAG_DEVICE", "auto") or "auto").strip().lower()
     if forced not in ("", "auto"):
@@ -168,10 +170,13 @@ class RagHandler(BaseHTTPRequestHandler):
 
             output = []
             for r in results:
+                distance = float(r.get("_distance", 0))
+                if distance >= MAX_VECTOR_DISTANCE:
+                    continue
                 meta = r.get("metadata") or {}
                 output.append({
                     "text":  r["text"],
-                    "score": float(r.get("_distance", 0)),
+                    "score": distance,
                     "metadata": {
                         "post_id":          meta.get("post_id", ""),
                         "chunk_id":         meta.get("chunk_id", 0),

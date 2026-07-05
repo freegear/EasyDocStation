@@ -20,6 +20,7 @@ const RAG_DATA_DIR = path.resolve(__dirname, '../../Database/RAGTrainingData')
 const RAG_DATA_INDEX_PATH = path.join(RAG_DATA_DIR, 'index.json')
 const RAG_DATA_TMP_DIR = path.join(RAG_DATA_DIR, 'tmp')
 const FILE_TRAINING_BASE_PATH = path.resolve(__dirname, '../../Database/ObjectFile/FileTrainingData')
+const MAX_VECTOR_DISTANCE = 1.0
 const LIBREOFFICE_COMMAND_CANDIDATES = [
   'libreoffice',
   'soffice',
@@ -1111,6 +1112,13 @@ function applySimilarityScoreThreshold(results = [], scoreThreshold = 0) {
   })
 }
 
+function applyVectorDistanceCeiling(results = []) {
+  return (Array.isArray(results) ? results : []).filter(item => {
+    const distance = asNum(item?.score)
+    return Number.isFinite(distance) && distance < MAX_VECTOR_DISTANCE
+  })
+}
+
 function normalizeRagScope(value = '') {
   const scope = String(value || '').trim().toLowerCase()
   return ['image_scope', 'post_scope', 'comment_scope', 'channel_scope', 'global_scope'].includes(scope)
@@ -2090,6 +2098,7 @@ router.post('/search', requireAuth, async (req, res) => {
 
     // init 레코드 제외
     let validResults = mergeUniqueResults(results.filter(r => r.text !== '__init__'))
+    validResults = applyVectorDistanceCeiling(validResults)
     validResults = applyChannelAccessFilter(validResults, searchChannelIds)
     validResults = applyMetadataFilter(validResults, retrievalOptions.filter)
     validResults = applyChannelAccessFilter(validResults, searchChannelIds)
@@ -2151,6 +2160,7 @@ router.post('/search', requireAuth, async (req, res) => {
 
     // 벡터 검색 결과에서 누락된 같은 페이지 내용을 text.json으로 보강 (재학습 없이 즉시 효과)
     finalResults = mergeUniqueResults(expandPageContextFromTrainingData(finalResults))
+    finalResults = applyVectorDistanceCeiling(finalResults)
     finalResults = applyChannelAccessFilter(finalResults, searchChannelIds)
     if (isEvidenceGatedScope(ragScope)) {
       finalResults = applyMetadataFilter(finalResults, retrievalOptions.filter)

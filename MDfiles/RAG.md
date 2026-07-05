@@ -1,5 +1,26 @@
 RAG.md
 
+# 0. RAG 검색 거리 컷오프
+
+LanceDB 벡터 검색의 `score`는 유사도가 아니라 `_distance` 값이다. 값이 작을수록 질문과 가까운 결과이고, 값이 커질수록 관련성이 낮다.
+
+운영 검색에서는 `_distance >= 1.0` 결과를 제외한다.
+
+적용 위치:
+
+- `server/rag_server.py`: 상시 실행 RAG 검색 서버에서 `_distance >= 1.0` 결과를 응답에서 제외한다.
+- `server/rag_search.py`: subprocess fallback 검색에서도 같은 기준을 적용한다.
+- `server/routes/rag.js`: `/api/rag/search`의 후처리 단계에서 `score >= 1.0` 결과를 다시 제외한다.
+- `server/services/ragLocateFallback.js`: `/api/questions` locate 실패 후 RAG fallback reference 생성 전에도 같은 기준을 적용한다.
+
+이 기준은 위치 찾기 질문에도 동일하게 적용한다. 예를 들어 아래 질문으로 RAG fallback이 실행되더라도 `score`가 `1.0` 이상인 reference는 사용자에게 보여주지 않는다.
+
+```txt
+연세대 교직원식당 한경관 어울샘 은 어디에 있어 ?
+```
+
+주의: `score_threshold` 옵션은 relevance threshold이고, `score`는 distance이므로 둘을 혼동하지 않는다. distance 컷오프는 항상 적용하고, `similarity_score_threshold`는 추가 필터로만 사용한다.
+
 # 1. MakeItDown을 설치
 
 # 2. RAG 학습 사용

@@ -69,6 +69,7 @@ def default_lancedb_path():
 LANCEDB_PATH = cfg.get("lancedb_path") or default_lancedb_path()
 TABLE_NAME = cfg.get("table_name") or cfg.get("rag_table_name") or "my_rag_table"
 VECTOR_SIZE  = int(cfg.get("vector_size", 1024))
+MAX_VECTOR_DISTANCE = 1.0
 
 def respond(results, ok=True, reason="ok"):
     if include_status:
@@ -128,10 +129,13 @@ results = search.limit(limit).to_list()
 
 output = []
 for r in results:
+    distance = float(r.get("_distance", 0))
+    if distance >= MAX_VECTOR_DISTANCE:
+        continue
     meta = r.get("metadata") or {}
     output.append({
         "text":  r["text"],
-        "score": float(r.get("_distance", 0)),
+        "score": distance,
         "metadata": {
             "post_id":          meta.get("post_id", ""),
             "chunk_id":         meta.get("chunk_id", 0),

@@ -56,6 +56,16 @@ resolvedQuestion
 이 단계는 Groq/내부 LLM 호출 전에 끝난다.
 따라서 Groq provider와 내부 LLM provider는 모두 같은 reference 목록을 받는다.
 
+## RAG fallback score 정책
+
+RAG/LanceDB 검색 결과의 `score`는 `_distance`이므로 값이 작을수록 관련성이 높다.
+
+Locate fallback과 일반 RAG 검색은 모두 `score >= 1.0` 결과를 제외한다. 따라서 다음 질문처럼 자료 유형어 없이 들어온 위치 찾기 질문도 내부적으로 `자료는 어디에 있어?` 형태로 재작성된 뒤, RAG fallback 결과 중 `1.0` 이상의 낮은 관련도 reference는 응답에서 빠진다.
+
+```txt
+연세대 교직원식당 한경관 어울샘 은 어디에 있어 ?
+```
+
 ## 구현 파일
 
 - [src/components/GroqPanel.jsx](../src/components/GroqPanel.jsx)
@@ -67,6 +77,7 @@ resolvedQuestion
   - locate 결과 0건일 때 RAG fallback 호출
 - [server/services/ragLocateFallback.js](../server/services/ragLocateFallback.js)
   - RAG 검색 결과 metadata를 링크 가능한 reference로 정규화
+  - `score >= 1.0`인 RAG fallback 결과 제외
 - [server/intent/parser/RuleBasedIntentParser.js](../server/intent/parser/RuleBasedIntentParser.js)
   - 서버 직접 호출 대비 NFC 정규화
 

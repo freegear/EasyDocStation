@@ -7,6 +7,7 @@ const { getAccessibleChannelIds, getUserSecurityLevel } = require('../lib/channe
 
 const CONFIG_PATH = path.resolve(__dirname, '../../config.json')
 const RAG_SERVER_PORT = 5001
+const MAX_VECTOR_DISTANCE = 1.0
 
 function readConfig() {
   try { return JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8')) }
@@ -19,6 +20,11 @@ function normalizeText(value = '') {
 
 function buildFallbackQuery(keywords = []) {
   return [...new Set((keywords || []).map(normalizeText).filter(Boolean))].join(' ')
+}
+
+function isWithinVectorDistance(item = {}) {
+  const distance = Number(item?.score)
+  return Number.isFinite(distance) && distance < MAX_VECTOR_DISTANCE
 }
 
 function callRagServer(payload) {
@@ -172,6 +178,7 @@ async function locateWithRagFallback({ keywords = [], channelId = '', limit = 10
 
   const userSecurityLevel = getUserSecurityLevel(user)
   const filtered = (Array.isArray(results) ? results : []).filter(item => {
+    if (!isWithinVectorDistance(item)) return false
     const meta = item?.metadata || {}
     const security = Number.parseInt(meta.security_level, 10) || 0
     if (security > userSecurityLevel) return false
