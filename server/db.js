@@ -338,6 +338,39 @@ async function initDb() {
         );
         CREATE INDEX IF NOT EXISTS idx_comment_likes_comment_id ON comment_likes(comment_id);
       `)
+      await runMigrationStep(client, 'create recent_post_views', `
+        CREATE TABLE IF NOT EXISTS recent_post_views (
+          user_id       INTEGER     NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          post_id       TEXT        NOT NULL,
+          channel_id    VARCHAR(50) NOT NULL REFERENCES channels(id) ON DELETE CASCADE,
+          team_id       VARCHAR(50) REFERENCES teams(id) ON DELETE SET NULL,
+          kind          TEXT        NOT NULL DEFAULT 'post',
+          icon          TEXT        NOT NULL DEFAULT '📄',
+          title         TEXT        NOT NULL DEFAULT '',
+          tag           TEXT        NOT NULL DEFAULT '',
+          summary       TEXT        NOT NULL DEFAULT '',
+          created_at    TIMESTAMPTZ,
+          updated_at    TIMESTAMPTZ,
+          author_id     INTEGER     REFERENCES users(id) ON DELETE SET NULL,
+          author_name   TEXT        NOT NULL DEFAULT '',
+          author_image_url TEXT      NOT NULL DEFAULT '',
+          comment_count INTEGER     NOT NULL DEFAULT 0,
+          attachments   JSONB       NOT NULL DEFAULT '[]',
+          viewed_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+          PRIMARY KEY (user_id, post_id)
+        );
+        ALTER TABLE recent_post_views
+          ADD COLUMN IF NOT EXISTS author_id INTEGER REFERENCES users(id) ON DELETE SET NULL;
+        ALTER TABLE recent_post_views
+          ADD COLUMN IF NOT EXISTS author_image_url TEXT NOT NULL DEFAULT '';
+        UPDATE recent_post_views r
+        SET author_id = p.author_id
+        FROM posts p
+        WHERE r.author_id IS NULL
+          AND p.id::text = r.post_id;
+        CREATE INDEX IF NOT EXISTS idx_recent_post_views_user_viewed
+          ON recent_post_views(user_id, viewed_at DESC);
+      `)
       await ensureSearchSchema(client)
       await ensureChannelMappingIndexSchema(client)
       // dm_conversations 테이블 생성 (21. Direct Message)

@@ -4887,3 +4887,408 @@ npm run build
 3. `has_children` 거부 후에도 삭제 메뉴가 로컬에서 비활성화되지 않는다(하위 정리 후 재시도 가능).
 4. 서버에서 폴더를 최상위로 옮긴 뒤 재발견하면 이전 부모 아래가 아니라 **최상위로 표시**된다
    (오래된 `parent_folder_id`가 정리됨). 사용자가 만든 로컬 서브 폴더의 부모 관계는 유지된다.
+
+
+
+# 23. 메일을 게시글/댓글로 등록 (Team → Channel → 게시글 선택)
+
+메일을 EasyStation의 **게시판(채널)** 으로 옮겨, 팀원과 공유하거나 후속 논의를 이어갈 수 있게 한다.
+메일 목록의 컨텍스트 메뉴와 메일 본문 상단 툴바 두 곳에서 진입하며, 다이얼로그로
+`Team 선택 → Channel 선택 → 게시글 선택`을 순서대로 고른다. 게시글을 고르지 않으면 **새 게시글**로,
+고르면 그 게시글의 **댓글**로 등록한다. 이 장은 **설계/검토** 결과이며 실제 코드는 별도 작업으로 진행한다.
+(8.2 "게시글/댓글로 공유"의 구체화이다.)
+
+## 23.1 동작 개요
+
+- 메일 하나를 선택해 `게시글로 등록`을 누르면 등록 다이얼로그가 뜬다.
+- 다이얼로그에서 **Team → Channel → 게시글**을 차례로 선택한다.
+  - **게시글 선택** 단계에는 맨 위에 `+ 새로운 게시글로 등록` 옵션이 항상 있다. 이걸 고르면 게시글을 고르지 않아도 된다.
+  - 목록에서 특정 게시글을 고르면 그 게시글의 **댓글**로 등록된다.
+- 게시글 목록은 채널의 **최근 게시글 20개**만 보여준다(전체를 나열하지 않는다).
+- `등록`을 누르면 선택에 따라 새 게시글 생성 또는 해당 게시글의 댓글 생성이 실행되고, 다이얼로그가 닫힌다.
+- 성공/실패는 토스트(또는 메일 화면 에러 배너)로 안내한다.
+
+## 23.2 진입점 (2곳)
+
+두 진입점 모두 **동일한 등록 다이얼로그**를 열며, 대상 메일 1건만 다르게 전달한다.
+
+### 1) 메일 목록 컨텍스트 메뉴
+
+- 대상 컴포넌트: [MailPage.jsx](../src/features/mail/MailPage.jsx) 의 `MailMessageContextMenu`(현재
+  `메일 삭제 / 중요 표시 / 안읽음 / EasyAI 모니터링 / MailClaw 등록 / MailClaw 휴지통 / 이동`을 렌더).
+- `MailClaw 휴지통 이동으로 등록` 버튼(약 [MailPage.jsx:1042-1052](../src/features/mail/MailPage.jsx#L1042-L1052)) **아래**,
+  `이동`(하위 메뉴) 위에 `게시글로 등록` 항목을 추가한다.
+- 배선: `MailMessageContextMenu`에 `onRegisterAsPost` prop을 추가하고, 클릭 시
+  `onRegisterAsPost?.(menu)` 호출 후 `onClose()`. `menu.message`가 대상 메일이다.
+- 아이콘: 기존 `MenuIcon type="ai"`(indigo) 계열과 구분되게 게시판/문서 계열 아이콘을 쓰거나, 일관성을 위해 동일 스타일을 재사용한다.
+
+### 2) 메일 본문 상단 툴바
+
+- 대상: 메일 본문 헤더의 버튼 줄([MailPage.jsx:2624-2643](../src/features/mail/MailPage.jsx#L2624-L2643) — `요약 다시 생성`(`generateSummary`) / `요약 복사`(`copySummary`)).
+- `요약 복사` 버튼 **오른쪽 옆**에 `게시글로 등록` 버튼을 추가한다.
+  - `요약 복사`는 `summary`가 있을 때만 보이지만, `게시글로 등록`은 **요약 없이도 항상** 노출한다(본문만으로도 등록 가능).
+- 클릭 시 현재 열려 있는 메일(`message`)을 대상으로 동일한 등록 다이얼로그를 연다.
+
+### 3) i18n 라벨
+
+- `MAIL_TEXT`의 ko/en/ja 각 블록에 라벨을 추가한다.
+  - 컨텍스트 메뉴: `context.registerAsPost` = `게시글로 등록` / `Register as post` / `投稿として登録`.
+  - 본문 툴바: 최상위 라벨(예: `registerAsPost`)로 추가(요약 버튼들이 있는 레벨).
+- 다이얼로그 내부 문구(`Team 선택`, `Channel 선택`, `게시글 선택`, `+ 새로운 게시글로 등록`, `등록`, `취소`)도 3개 언어로 추가한다.
+
+## 23.3 등록 다이얼로그 (`MailToPostDialog`)
+
+메일 계정 관리 모달(`MailAccountManageModal`) 등 기존 모달과 동일한 패턴의 컴포넌트를 신규로 만든다.
+(프로젝트에 `DialogPipUp`이라는 공용 컴포넌트는 현재 없다 → 메일 도메인 안에 전용 모달을 둔다.)
+
+**단계(위저드) 구성 — 3단 캐스케이드 선택**
+
+1. **Team 선택**
+   - 데이터: `useChat()`의 `teams` 배열(각 team에 `channels` 포함). 별도 API 조회 불필요.
+   - 표시: 사용자가 접근 가능한 팀 목록. 기본값으로 `selectedTeam`을 선(先)선택해두면 편하다(선택).
+2. **Channel 선택**
+   - 데이터: 선택한 team의 `team.channels`(아카이브 `is_archived` 제외 권장).
+   - 표시: 채널 이름 목록. 기본값으로 `selectedChannel` 선선택(같은 팀일 때).
+3. **게시글 선택**
+   - 맨 위 고정 옵션: `+ 새로운 게시글로 등록`(기본 선택 상태).
+   - 그 아래: 해당 채널의 **최근 게시글 20개**를 조회해 나열.
+     - 조회: `GET /posts?channelId={id}&limit=20`(응답은 `postsFromResponse`로 파싱). 채널이 바뀔 때마다 새로 불러온다.
+     - 각 항목 라벨: 게시글 `content`의 **첫 줄 / 앞부분 미리보기** + 작성자/시각(있으면). (게시글은 별도 title 필드가 없으므로 content 요약 사용.)
+   - 게시글을 고르면 하단에 "이 게시글의 댓글로 등록됩니다" 안내를 표시.
+
+**하단 액션**: `취소` / `등록`. 필수 조건(팀·채널 선택 완료, 대상 메일 존재)이 안 되면 `등록` 비활성화.
+
+**단계 UI 방식(택1, 구현 시 결정)**: (a) 한 화면에 3개의 드롭다운/셀렉트를 세로로 배치하고 위에서부터 활성화, 또는 (b) 단계별 화면 전환(step wizard). 항목 수가 적으므로 **(a) 3단 드롭다운 한 화면**을 권장(구현 단순·회귀 위험 낮음).
+
+## 23.4 등록 콘텐츠 정의 (무엇을 게시글/댓글 본문으로 넣나)
+
+메일에서 게시판으로 넘길 "본문 텍스트"를 정한다. 기존 자산을 재사용한다.
+
+- **요약이 있는 경우(본문 툴바 진입 등)**: 이미 있는 `formatMailSummaryForCopy(summary, mt)`
+  ([MailPage.jsx:1167](../src/features/mail/MailPage.jsx#L1167), `요약 복사`가 쓰는 함수) 결과를
+  본문으로 사용한다. 여기에 메일 메타(제목/보낸사람/날짜) 머리말을 덧붙인다.
+- **요약이 없는 경우(목록 컨텍스트 메뉴에서 요약을 아직 안 만든 메일)**: 요약을 강제로 만들지 않고,
+  `제목 + 보낸사람 + 날짜 + 본문 텍스트(스니펫/`body_text`)`로 구성한다.
+  - 옵션: 다이얼로그에 "요약을 생성해 함께 등록" 체크박스를 두어, 켜면 `generateSummary`를 호출해 요약을 붙인다(선택, 2차).
+- **콘텐츠는 편집 가능하게**: 다이얼로그에 본문 미리보기/편집 textarea를 두어 등록 전에 사용자가 다듬을 수 있게 한다(권장).
+- **첨부 처리**: 1차 범위에서는 **텍스트만** 등록한다. 메일 첨부는 서버 스토리지의 mail object이고,
+  게시글 첨부는 `attachmentIds`(게시판 스토리지 업로드본)라 저장 위치·5원칙 경로가 달라 바로 연결되지 않는다.
+  메일 첨부를 게시글 첨부로 복사하는 것은 **범위 밖(향후 확장)** 으로 둔다.
+
+## 23.5 등록 실행 (기존 ChatContext 재사용 — 신규 서버 API 불필요)
+
+`MailPage`는 `ChatProvider` 하위에 마운트되므로([App.jsx](../src/App.jsx) 로그인 후 `<ChatProvider>`가
+앱을 감싼다) `useChat()`를 그대로 쓸 수 있다.
+
+- **새 게시글로 등록**: `addPost(channelId, { content, security_level })`
+  ([ChatContext.jsx:554](../src/contexts/ChatContext.jsx#L554)).
+  - 내부에서 `POST /posts`(`{ channelId, content, attachmentIds, security_level }`) 호출 + 낙관적 삽입까지 처리.
+- **댓글로 등록(게시글 선택 시)**: `addComment(channelId, postId, text, user, [], security_level)`
+  ([ChatContext.jsx:593](../src/contexts/ChatContext.jsx#L593)).
+  - 내부에서 `POST /posts/:postId/comments` 호출 + 댓글 수/목록 부분 갱신 처리.
+- **게시글 목록 조회(최근 20)**: 기존 `GET /posts?channelId&limit=20` 재사용(신규 엔드포인트 없음).
+  - ChatContext에는 특정 채널 최근글만 뽑는 헬퍼가 따로 없으므로, 다이얼로그에서 `apiFetch`로 직접
+    조회하거나(간단), 필요하면 ChatContext에 얇은 조회 함수를 추가한다(선택).
+
+→ **서버 라우트 변경은 없다.** `server/routes/posts.js`의 `GET /`, `POST /`, `POST /:id/comments`를 그대로 사용한다.
+
+## 23.6 권한 · 보안 레벨 · 엣지 케이스
+
+- **채널 접근 권한**: `POST /posts`·`POST /:id/comments`는 `canAccessChannel`로 접근을 검증한다(403 반환).
+  `addPost`/`addComment`도 `findTeamChannelById`로 현 계정 접근 가능 채널인지 먼저 확인한다.
+  → 다이얼로그의 Team/Channel 목록을 `useChat().teams`(접근 가능 범위)로만 구성하면 대부분 사전 차단되지만,
+    서버 403(권한 회수 등)도 그대로 사용자에게 안내한다.
+- **보안 레벨(security_level)**: 지정하지 않으면 `POST /posts`가 사용자 레벨 기반 기본값(`min(1, userLevel)`)으로 처리한다.
+  1차는 기본값에 맡기고, 필요 시 다이얼로그에 보안 레벨 선택을 추가한다(선택, 게시판의 기존 규칙과 일치시킬 것).
+- **대상 메일 컨텍스트**: 컨텍스트 메뉴 진입 시 `menu.message`, 본문 진입 시 현재 `message`를 넘긴다.
+  요약(`summary`) 유무가 두 경로에서 다르므로 23.4의 분기를 따른다.
+- **팀/채널 없음**: 접근 가능한 팀·채널이 하나도 없으면 다이얼로그에서 안내 문구를 표시하고 `등록`을 막는다.
+- **빈 게시글 목록**: 채널에 최근 게시글이 없으면 `+ 새로운 게시글로 등록`만 노출(정상 흐름).
+- **중복 등록 방지**: `등록` 클릭 후 처리 중에는 버튼을 비활성화(더블 클릭/중복 POST 방지).
+- **다중 선택**: 1차는 **단건 메일**만 대상으로 한다(컨텍스트 메뉴의 다른 항목과 달리 다중 등록은 범위 밖).
+
+## 23.7 구현 위치 요약 (파일별)
+
+| 파일 | 변경 내용 |
+|---|---|
+| [src/features/mail/MailPage.jsx](../src/features/mail/MailPage.jsx) | `MailMessageContextMenu`에 `게시글로 등록` 항목+`onRegisterAsPost` prop / 본문 툴바(2624~) `요약 복사` 옆 버튼 추가 / 등록 다이얼로그 상태·핸들러 / `MAIL_TEXT` 라벨(ko·en·ja) |
+| (신규) `MailToPostDialog` 컴포넌트 | Team→Channel→게시글 3단 선택, 최근 20개 조회, 본문 미리보기/편집, 등록 실행. MailPage 내부 또는 별도 파일 |
+| [src/contexts/ChatContext.jsx](../src/contexts/ChatContext.jsx) | 변경 없음(기존 `addPost`/`addComment` 사용). 필요 시 "채널 최근글 조회" 얇은 헬퍼만 선택적 추가 |
+| server (posts 라우트) | **변경 없음**. `GET /posts`, `POST /posts`, `POST /:id/comments` 재사용 |
+
+## 23.8 범위 밖(향후 확장)
+
+- 메일 첨부 → 게시글 첨부 복사(스토리지 간 이관, 5원칙 경로 변환).
+- 여러 메일을 한 번에 하나의 게시글/스레드로 묶어 등록(다중 선택).
+- 등록 후 해당 게시글로 바로 이동(딥링크 `navigateToPost`) 옵션.
+- MailClaw 자동화 동작에 "게시글로 자동 등록" 추가(수신 시 자동).
+- 보안 레벨/멘션 등 게시판 고급 옵션을 다이얼로그에서 세밀 지정.
+
+# 24. 게시글 등록 개선 — 메일 화면 재현 + 원본 메일 링크
+
+23장으로 구현한 `게시글로 등록`을 실제로 쓰면서 나온 두 가지 개선 요청을 **설계/검토**한다.
+실제 코드는 별도 작업으로 진행한다.
+
+1. **메일 화면을 그대로 나타나게** 한다 — 지금은 요약 텍스트가 밋밋한 평문으로 들어가, 메일 뷰어의
+   카드형 화면(제목 헤더 · 일정 그리드 · 중요 포인트 · 액션 아이템)이 재현되지 않는다.
+2. **등록 글 끝에 원본 메일로 바로 가는 링크**를 붙인다.
+
+## 24.1 현재 상태 (구현 조사 결과)
+
+- **등록 본문 생성**: [buildMailPostContent](../src/features/mail/MailPage.jsx)가
+  `제목/보낸사람/날짜` 머리말 + (`formatMailSummaryForCopy` 요약 또는 본문 텍스트)를 **평문 문자열**로 만든다.
+- **게시글 렌더링 경로**([PostDetailPane.jsx](../src/components/chat/PostDetailPane.jsx))는 콘텐츠 종류에 따라 갈린다.
+  - `isTemplateContent(content)`(문자열이 `<!DOCTYPE html>`로 시작) → `TemplateRenderer`가 **iframe**으로 렌더.
+    단, 이 경로는 견적서/지출결의/출장보고서 등 **폼 템플릿 전용**으로, `/expense/load`·문서번호 발급·`postMessage`
+    저장 로직 같은 부수효과가 붙어 있어 메일 스냅샷 용도로 재사용하기엔 부적절하다.
+  - 그 외 평문 → `ContentRenderer`([ChatArea.jsx](../src/components/ChatArea.jsx))가 **ReactMarkdown + remarkGfm**으로 렌더.
+    즉 지금도 `- ` 목록·표·강조 같은 **마크다운 서식은 그대로 적용**된다(현재 화면이 밋밋한 건 출력이 헤더/표
+    없는 평문이라서지, 렌더러가 마크다운을 못 그려서가 아니다).
+  - `ContentRenderer`는 본문에서 `<!-- ... -->` 주석을 제거하므로 `<!--md-page-->` 같은 마커를 붙여도 결국 마크다운으로 렌더된다.
+- **메일 딥링크 메커니즘은 이미 존재한다.**
+  - URL 쿼리: `?mailMessageId={id}&mailTenantId={tenant}&mailTargetLanguage={lang}`.
+  - 서버 빌더: [buildMailDeepLink](../server/mail/calendarAction.js)(`CLIENT_ORIGIN` 기준).
+  - 앱 처리: [App.jsx](../src/App.jsx) `openMailDeepLinkFromUrl`가 로드 시(URL 파라미터) 또는
+    `easy-mail-open-link` 커스텀 이벤트로 호출되어 메일 화면으로 전환하고 해당 메일을 연다
+    (`initialMailLink` → [MailPage.jsx](../src/features/mail/MailPage.jsx)가 그 메일을 오픈).
+  - 인앱 인터셉트 예시: [EventAddModal.jsx](../src/components/EventAddModal.jsx)가 `mailMessageId`가 있는
+    같은 오리진 링크 클릭을 가로채 `easy-mail-open-link`를 dispatch한다(전체 새로고침 없이 전환).
+
+## 24.2 (1) 메일 화면 그대로 나타내기 — 방안 비교
+
+| 방안 | 방법 | 재현도 | 안전성 | 비용 |
+|---|---|---|---|---|
+| **A. 마크다운 리치화(권장)** | `buildMailPostContent`가 `##`제목·`**굵게**`·**표(일정 그리드)**·목록으로 구조화된 **마크다운**을 생성. 기존 `ContentRenderer`가 그대로 카드에 가깝게 렌더 | 중~상 | 안전(모델 생성 텍스트만) | 낮음(문자열 조립만) |
+| B. HTML 카드 스냅샷 | 요약 카드를 `<!DOCTYPE html>` 문서로 만들어 `TemplateRenderer` iframe에 렌더 | 상(카드 그대로) | 폼템플릿 전용 경로 재사용 → 부수효과/복잡, 별도 렌더 분기 필요 | 높음 |
+| C. 전용 메일 카드 렌더러 | 새 콘텐츠 타입(`<!--mail-card-->` 등)을 정의하고 `MailSummaryPanel`을 게시판에서 재사용 | 상 | 안전 | 높음(렌더 분기·스키마·RAG 정합) |
+
+- 세 방안의 비교 결과, **채택안은 (c) 하이브리드**다(24.3). 게시글은 C(인라인 카드), 댓글은 A(마크다운)로
+  간다. 게시글은 목록/스레드에서 카드로 강조되어 가치가 크고, 댓글은 이미 마크다운으로 충분히 읽히며
+  댓글 렌더 경로에 특수 분기를 새로 뚫는 표면적을 피할 수 있기 때문이다.
+- **메일 본문(body_html)을 그대로 심는 것은 범위에서 제외**한다. 본문은 외부에서 온 **신뢰 불가 HTML**이라
+  메일 뷰어에서도 `sandbox` iframe(`srcDoc`)으로만 렌더한다([MailPage.jsx](../src/features/mail/MailPage.jsx) 본문 iframe).
+  게시글에 원문 HTML을 삽입하면 XSS·원격 리소스 로딩 위험이 있으므로, **"진짜 원본 화면"은 딥링크(24.6)로 연결**해
+  실제 메일 뷰어(카드+본문+첨부)를 한 번에 열도록 한다. 카드(요약 재현)와 딥링크는 상호 보완이다.
+
+## 24.3 채택 결정 — (c) 하이브리드
+
+| 등록 대상 | 방식 | 표시 |
+|---|---|---|
+| **새 게시글** | **C: 인라인 메일 카드** | 요약 카드(일정 그리드/중요 포인트/요약/액션) + 원본 메일 열기 버튼 |
+| **기존 게시글의 댓글** | **A: 마크다운** | 구조화된 마크다운(헤더/표/목록) + 원본 메일 링크 |
+
+- 공통: 본문 끝에 **원본 메일 딥링크**(24.6)를 넣는다.
+- 공통: 외부 오픈소스 "메일 카드 렌더러" 라이브러리는 없다(이 카드는 앱 고유 요약 스키마).
+  따라서 **자체 컴포넌트를 재사용**한다 — 라이브러리 도입 없음.
+
+## 24.4 게시글: C(인라인 메일 카드) 설계
+
+### 24.4.1 콘텐츠 저장 형식 — "읽히는 마크다운 + 숨은 카드 데이터"
+
+게시글 `content`를 **사람이 읽는 마크다운(A 스타일) 뒤에 숨은 카드 데이터 주석**을 덧붙인 형태로 저장한다.
+
+```
+{A 스타일 마크다운 카드 텍스트}
+
+👉 [원본 메일 열기]({deepLink})
+
+<!--mail-card:{BASE64(JSON)}-->
+```
+
+- `<!--mail-card:...-->` 안의 JSON = `{ v, subject, from, date, messageId, tenantId, targetLanguage, deepLink, summary }`
+  (`summary`는 `normalizeMailSummary` 결과 스냅샷). BASE64는 UTF-8 안전 인코딩(한글 포함) 사용.
+- **이 형식의 장점(서버/DB 변경 0, RAG 오염 0)**:
+  - `ContentRenderer`가 `<!-- ... -->` 주석을 제거하므로, 카드 분기를 안 타는 모든 경로(목록 미리보기·검색·
+    알림·학습)에서는 **읽히는 마크다운만** 남는다 → 검색/학습이 JSON이 아니라 정상 텍스트를 인덱싱한다.
+  - 카드 데이터는 주석 안에 자기완결(self-contained)로 들어 있어, 게시판에서 메일 API를 다시 부를 필요가 없다.
+  - `POST /posts` 본문 스키마(`content`)를 그대로 쓰므로 **서버 변경이 없다**(별도 `ragContent` 주입 불필요).
+
+### 24.4.2 렌더 분기 (게시글 상세)
+
+[PostDetailPane.jsx](../src/components/chat/PostDetailPane.jsx)의 게시글 본문 렌더 분기(현재
+`isTemplateContent ? TemplateRenderer : ContentRenderer`)에 **맨 앞 우선순위로 카드 분기**를 추가한다.
+
+```
+isMailCardContent(content) ? <MailSummaryCard ...> :
+isTemplateContent(content) ? <TemplateRenderer ...> :
+                             <ContentRenderer ...>
+```
+
+- `isMailCardContent(content)` = `content`에 `<!--mail-card:` 마커가 있으면 true.
+- 마커에서 JSON을 파싱해 `MailSummaryCard`에 `summary`/메타/`deepLink`를 넘겨 카드를 그린다.
+- 카드 하단에 **원본 메일 열기** 버튼(딥링크, 24.6).
+- 미리보기/요약 텍스트를 뽑는 자리(예: 목록/상세 상단 요약)는 `stripMailCardMarker(content)`로
+  주석을 떼고 마크다운 텍스트를 사용한다(마커가 노출되지 않게).
+
+### 24.4.3 전용 카드 컴포넌트 — `MailSummaryCard` (읽기 전용, 신규)
+
+- 위치: **`src/components/mail/MailSummaryCard.jsx`** (신규). 게시판에서 import(메일 대용량 파일
+  [MailPage.jsx](../src/features/mail/MailPage.jsx) 직접 의존 회피).
+- 성격: **읽기 전용 프레젠테이셔널** 컴포넌트. 메일 뷰어의 `MailSummaryPanel`이 가진
+  **액션아이템 시간 편집·캘린더 등록 컨트롤은 제외**하고, 일정 그리드/중요 포인트/중요 내용 요약/
+  액션아이템(정적 표시)만 동일 레이아웃으로 렌더한다.
+  - `MailSummaryPanel`은 `onActionTimeChange`/`onCalendarEventOpen` 등 MailPage 상태에 강결합이라
+    그대로 끌어오면 게시판이 메일 상태에 묶인다. 그래서 **레이아웃만 미러링한 읽기 전용 트윈**을 둔다.
+    (향후 `MailSummaryPanel`이 이 카드를 조합하도록 통합하는 것은 후속 과제.)
+- i18n: 카드 라벨(일정/날짜/시간/…)은 컴포넌트에 ko/en/ja 세트를 내장하고, 스냅샷 JSON의
+  `targetLanguage`로 언어를 고른다(등록 시점 언어로 일관 표시).
+- 마커/파싱 헬퍼(`isMailCardContent`, `extractMailCardData`, `stripMailCardMarker`, `wrapWithMailCard`)는
+  [formTemplates.js](../src/templates/formTemplates.js)에 `isTemplateContent`/`isMdPage` 옆에 추가한다(자연스러운 위치).
+
+### 24.4.4 편집 처리
+
+- 카드형 게시글은 템플릿 게시글과 동일하게 **특수 렌더(읽기 전용)**로 취급한다. 1차 범위에서
+  카드 본문의 마크다운 인라인 편집은 지원하지 않는다(마커 손상 방지). 삭제/핀/좋아요 등 게시글 공통 동작은 그대로.
+
+## 24.5 댓글: A(마크다운) 설계
+
+- 댓글은 렌더 경로가 `ContentRenderer` 하나뿐이므로(특수 분기 없음), **구조화된 마크다운**만 저장한다.
+  - `## {제목}` + `**보낸사람**/**날짜**` 머리말, 일정 **2열 표**, `## 중요 포인트`(목록),
+    `## 중요 내용 요약`, `## 액션 아이템 / 시간`(목록/표). 요약이 없으면 본문 텍스트로 폴백.
+  - 끝에 원본 메일 딥링크(24.6).
+- 즉 댓글은 **카드 데이터 주석을 붙이지 않는다**(마커 없음 → 항상 마크다운 렌더).
+
+## 24.6 원본 메일 딥링크 (공통)
+
+- **URL 조립(프론트)**: 24.1 형식과 동일.
+  `${window.location.origin}/?mailMessageId=${message.id}&mailTenantId=${message.tenant_id}&mailTargetLanguage=${targetLanguage}`
+  - 서버 `buildMailDeepLink`와 동일 규격. 프론트 얇은 헬퍼 `buildMailDeepLinkClient(message, targetLanguage)`를 둔다.
+- **삽입**: 게시글은 카드 하단 버튼 + 마크다운 폴백 링크, 댓글은 마크다운 링크 `👉 [원본 메일 열기](URL)`.
+- **인앱 오픈(점진 개선)**: `ContentRenderer`의 ReactMarkdown `components`에는 `a` 오버라이드가 없어
+  링크 클릭 시 **전체 페이지 이동**(로드 후 `openMailDeepLinkFromUrl`가 열어줌)이 된다. UX 향상을 위해
+  `components.a`를 추가해 `mailMessageId`가 있는 **같은 오리진 링크**는 클릭을 가로채
+  `easy-mail-open-link`를 dispatch한다(EventAddModal과 동일 패턴, 새로고침 없이 전환).
+  카드의 "원본 메일 열기" 버튼도 동일 이벤트를 dispatch한다.
+
+## 24.7 콘텐츠 조립 변경 요약
+
+- [buildMailPostContent](../src/features/mail/MailPage.jsx)를 **A 스타일 마크다운(제목/일정 표/포인트/요약/액션 + 딥링크)** 생성기로 확장한다(게시글·댓글 공통 텍스트).
+- 새 게시글일 때만 `wrapWithMailCard(markdown, cardData)`로 **숨은 카드 데이터 주석을 뒤에 덧붙여** 저장(24.4.1).
+- 다이얼로그의 편집 textarea에는 **읽히는 마크다운만** 노출한다. 카드 데이터 주석은 화면에 보이지 않고,
+  등록(제출) 시점에 새 게시글이면 자동으로 덧붙인다(사용자 편집이 마커를 건드리지 않게).
+- `message.id`·`message.tenant_id`·`targetLanguage`를 인자로 받도록 시그니처를 넓힌다(딥링크·스냅샷용).
+
+## 24.8 구현 위치 요약 (파일별)
+
+| 파일 | 변경 내용 |
+|---|---|
+| **`src/components/mail/MailSummaryCard.jsx`** (신규) | 읽기 전용 메일 요약 카드(일정/포인트/요약/액션) + 원본 메일 열기 버튼. ko/en/ja 라벨 내장 |
+| [src/templates/formTemplates.js](../src/templates/formTemplates.js) | `isMailCardContent`/`extractMailCardData`/`stripMailCardMarker`/`wrapWithMailCard` + BASE64(UTF-8) 헬퍼 |
+| [src/features/mail/MailPage.jsx](../src/features/mail/MailPage.jsx) | `buildMailPostContent`(마크다운 카드) / `buildMailDeepLinkClient` / 새 게시글 제출 시 `wrapWithMailCard` / 다이얼로그에 `targetLanguage` 전달 |
+| [src/components/chat/PostDetailPane.jsx](../src/components/chat/PostDetailPane.jsx) | 게시글 본문 렌더에 `isMailCardContent` 분기 추가 → `MailSummaryCard` / 미리보기에서 `stripMailCardMarker` |
+| [src/components/ChatArea.jsx](../src/components/ChatArea.jsx) | 미리보기/`sanitizePostPreviewText`가 마커를 노출하지 않게 보장 / (점진) `ContentRenderer` `components.a` 인앱 인터셉트 |
+| server / DB | **변경 없음**(기존 `addPost`/`addComment`·딥링크 메커니즘 재사용) |
+
+## 24.9 보안 · RAG 고려
+
+- **신뢰 불가 본문 미삽입**: 카드/댓글 모두 모델 생성 요약(안전 텍스트)만 넣는다. 원문 HTML은 딥링크로만 연결.
+- **딥링크 오리진 제한**: 인앱 인터셉트는 `url.origin === window.location.origin` && `mailMessageId` 존재 시에만
+  가로챈다(그 외 외부 링크는 기존대로 새 탭). EventAddModal과 동일 기준.
+- **RAG/검색 오염 없음**: 카드 데이터는 `<!-- -->` 주석 안에 있어 학습/검색/미리보기 경로에서 자동 제거된다.
+  실제 인덱싱 대상은 **읽히는 마크다운 텍스트**다(24.4.1). 별도 `ragContent` 주입/서버 변경 불필요.
+
+## 24.10 범위 밖(향후 확장)
+
+- 댓글에도 인라인 카드(댓글 렌더 경로에 특수 분기 신설).
+- `MailSummaryPanel`(편집형)과 `MailSummaryCard`(읽기 전용) **레이아웃 통합**(중복 제거).
+- 카드형 게시글의 마크다운 인라인 편집 지원.
+- 딥링크에 특정 댓글/첨부 앵커까지 포함(현재는 메일 단위 오픈).
+
+## 24.11 개정 — 인라인 카드에 메일 본문 전체 렌더
+
+1차 구현(요약 카드만)으로는 **요약이 없는 메일**은 카드에 제목/보낸사람/날짜 + "원본 메일 열기" 버튼만
+남아 내용을 알 수 없었다. 링크로 넘어가는 방식은 유지하되, **메일 본문 전체가 카드 안에서 렌더**되도록 개정한다.
+(요약 카드만 넣고 본문은 딥링크로만 연결하던 24.2/24.9의 방침을 이 절이 대체한다.)
+
+### 24.11.1 렌더 방식 — 메일 뷰어와 동일한 샌드박스 iframe
+
+- 본문(`body_html`)은 **신뢰 불가 외부 HTML**이므로 메일 뷰어와 **동일하게 `sandbox` iframe(`srcDoc`)** 으로 렌더한다.
+  `dangerouslySetInnerHTML`로 게시판 DOM에 직접 삽입하지 않는다(XSS/원격 리소스 차단).
+  - 래핑: `<base target="_blank"><style>html,body{overflow:hidden!important;}</style>{body_html}`.
+  - iframe 속성: `sandbox="allow-same-origin allow-downloads allow-popups allow-popups-to-escape-sandbox allow-top-navigation-by-user-activation"`, `scrolling="no"`.
+  - **자동 높이**: `onLoad`에서 `contentDocument`의 `scrollHeight`로 iframe 높이를 맞춰 **본문 전체가 잘리지 않고** 보이게 한다(메일 뷰어 `resizeBodyFrame`과 동일 로직, 최소 높이만 축소).
+- `body_html`이 없으면 `body_text`/`snippet`을 `<pre>`(줄바꿈 유지)로 폴백 렌더(메일 뷰어와 동일).
+
+### 24.11.2 스냅샷 데이터 확장 (자기완결)
+
+- 게시글은 여러 팀원이 보므로 **본문을 게시글 스냅샷에 포함**해야 모두가 볼 수 있다(다른 사용자는 원본 메일
+  계정 접근권이 없어 런타임 재조회가 불가). 따라서 카드 스냅샷 JSON에 `bodyHtml`, `bodyText`를 추가한다.
+  - `<!--mail-card:BASE64(JSON)-->` JSON = `{ v, subject, from, date, messageId, tenantId, targetLanguage, deepLink, summary, bodyHtml, bodyText }`.
+- **크기 트레이드오프**: 인라인 base64 이미지가 많은 메일은 스냅샷이 커질 수 있다(게시글 `content`에 저장).
+  1차는 그대로 저장한다(템플릿 HTML 게시글도 전체 문서를 저장하는 선례가 있음). 과대 본문 상한/이미지 외부화는 후속 과제로 둔다.
+- **RAG/검색**: 카드 데이터는 여전히 `<!-- -->` 주석 안에 있어 학습/검색/미리보기에서 제거된다.
+  본문 HTML이 인덱싱을 오염시키지 않는다(읽히는 마크다운만 인덱싱).
+
+### 24.11.3 카드 구성(개정)
+
+`MailSummaryCard`는 다음 순서로 렌더한다: **헤더(제목/보낸사람/날짜) → 요약(있을 때만) → 본문 전체(iframe/`<pre>`) → 원본 메일 열기 버튼**.
+즉 메일 뷰어 화면 구성을 게시판 안에서 그대로 재현한다.
+
+### 24.11.4 구현 위치(개정)
+
+| 파일 | 변경 |
+|---|---|
+| [src/features/mail/MailPage.jsx](../src/features/mail/MailPage.jsx) | `buildMailCardData`에 `bodyHtml`/`bodyText` 추가 |
+| [src/components/mail/MailSummaryCard.jsx](../src/components/mail/MailSummaryCard.jsx) | 본문 iframe(sandbox+자동높이) + `<pre>` 폴백 추가, 렌더 순서 개정 |
+
+## 24.12 개정 — 등록 시 완전한 상세(요약 + 본문) 캡처
+
+실사용에서 두 문제가 관찰됐다.
+
+1. **AI 요약이 카드에 안 들어감** — 요약이 있는 메일인데도 카드에 요약이 빠짐.
+2. **본문 줄바꿈 소실** — 본문이 한 문단으로 뭉쳐 "줄이 안 맞게" 들어감.
+
+### 24.12.1 원인
+
+등록 진입점에 따라 캡처되는 메일 객체의 **완전성이 달랐다**.
+
+- **본문 뷰(툴바 "게시글로 등록")**: `selectedMessage`가 상세라 `body_html`이 있음. 단, 화면에 로드된 요약
+  상태(state)만 넘겨서 진입 경로에 따라 요약이 누락될 수 있음.
+- **목록 우클릭 메뉴("게시글로 등록")**: 메뉴의 `message`는 **목록 항목(경량)** 이라 `body_html`/`body_text`가
+  없고 `snippet`만 있음. `snippet`은 줄바꿈이 제거된 **한 줄 미리보기**라, 이걸 본문으로 캡처하면 줄바꿈이 사라진다.
+  또 목록 항목엔 저장된 `summary`도 없다.
+
+### 24.12.2 해결 — 등록 시 상세 재조회
+
+메일 상세 API가 **요약 + 본문(HTML/텍스트)** 을 모두 반환한다:
+`GET /mail/messages/{id}?tenantId={t}&targetLanguage={lang}` → `{ ..., summary, body_html, body_text }`
+(메일 뷰어가 본문/요약을 로드할 때 쓰는 것과 동일 엔드포인트).
+
+- **등록 다이얼로그가 열릴 때 이 API로 상세를 재조회**해, 진입 경로와 무관하게
+  **저장된 요약 + 완전한 본문(body_html·body_text)** 을 확보한다.
+  - 조회 결과로 카드 스냅샷(`buildMailCardData`)과 미리보기 마크다운(`buildMailPostContent`)을 구성한다.
+  - 사용자가 편집 textarea를 아직 건드리지 않았으면, 상세 도착 시 미리보기 내용을 자동 갱신한다(편집했으면 유지).
+  - 조회 실패 시 진입 시점의 메일 객체로 폴백(기존 동작).
+- 요약은 **저장된 것이 있으면 포함**하고, 없으면 요약 섹션을 생략한다(강제 생성하지 않음 — "만약 있으면" 규칙).
+
+### 24.12.3 본문 정렬(줄바꿈)
+
+- `body_html`이 있으면 sandbox iframe이 원본 서식을 **그대로** 렌더(정렬 문제 없음).
+- `body_html`이 없고 `body_text`만 있으면 `<pre>`(whitespace-pre-wrap)로 렌더해 **줄바꿈을 보존**한다.
+- **snippet은 본문으로 쓰지 않는다**(줄바꿈이 제거된 미리보기라 정렬이 깨짐). 상세 재조회로 `body_text`를 확보한다.
+
+### 24.12.4 구현 위치(개정)
+
+| 파일 | 변경 |
+|---|---|
+| [src/features/mail/MailPage.jsx](../src/features/mail/MailPage.jsx) | `MailToPostDialog`가 열릴 때 `/mail/messages/{id}` 상세 재조회 → 요약·본문 보강, 카드/미리보기 구성에 반영 |
+
+- **주의**: 이 개정 이전에 등록된 게시글은 스냅샷에 완전한 본문이 없어 그대로다. **다시 등록**하면 반영된다.
+
+## 24.13 개정 — 등록 다이얼로그 UI (파란 테마 헤더 · 폭 확대)
+
+`MailToPostDialog`의 시각을 다듬는다.
+
+- **제목 행(헤더) 파란 테마**: 헤더 배경을 `bg-indigo-600`, 제목 텍스트를 흰색(`text-white`)으로 바꿔
+  "등록" 기본 버튼(indigo)과 통일한다. 닫기(×) 버튼은 `text-indigo-100` + `hover:bg-indigo-500`.
+  (기존 회색 테두리 헤더 → 파란 헤더 바)
+- **다이얼로그 폭 +30%**: 패널 최대 폭을 `max-w-lg`(512px) → **`max-w-2xl`(672px, 약 +31%)** 로 확대한다.
+  일정 표/본문 미리보기가 더 여유 있게 보인다. (`max-h-[90vh]`·세로 스크롤은 유지)
+- 구현 위치: [src/features/mail/MailPage.jsx](../src/features/mail/MailPage.jsx) `MailToPostDialog` 패널/헤더 className.
+
+
+
+
+
+
+

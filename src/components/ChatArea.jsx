@@ -19,7 +19,7 @@ import SpeakerRegistrationModal from './SpeakerRegistrationModal'
 import PostDetailPane from './chat/PostDetailPane'
 import MDPageViewer from './chat/MDPageViewer'
 import { useT } from '../i18n/useT'
-import { isTemplateContent, isMdPage, getMdPageContent, getMdPageTitle, isEasySheet, getEasySheetTitle, FORM_TEMPLATES } from '../templates/formTemplates'
+import { isTemplateContent, isMdPage, getMdPageContent, getMdPageTitle, isEasySheet, getEasySheetTitle, isMailCardContent, FORM_TEMPLATES } from '../templates/formTemplates'
 // Univer 번들(~5.6MB)은 무거우므로 EasySheet 뷰어를 지연 로딩한다.
 const EasySheetViewer = lazy(() => import('./chat/EasySheetViewer'))
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels'
@@ -1879,6 +1879,7 @@ function canShowMeetingActionButtons(statusType = 'idle') {
 
 function ContentRenderer({ text = '', sttPostId = '', sttChannelId = '', contentFontStyle = null }) {
   const isAiMeetingNote = String(text || '').includes('<!--ai-meeting-note-->')
+  const isMailPostContent = isMailCardContent(text)
   const [isRecording, setIsRecording] = useState(false)
   const [sttUploading, setSttUploading] = useState(false)
   const [sttStatus, setSttStatus] = useState('')
@@ -1908,7 +1909,7 @@ function ContentRenderer({ text = '', sttPostId = '', sttChannelId = '', content
       )
     )
   )
-  const links = extractHttpUrls(text || '')
+  const links = isMailPostContent ? [] : extractHttpUrls(text || '')
 
   useEffect(() => {
     apiFetch('/ai/stt/feature-flags').then((f) => {
@@ -3485,7 +3486,7 @@ function resolvePreviewUrl(rawUrl = '', withToken = false) {
   return rawUrl.includes('?') ? `${rawUrl}&auth_token=${token}` : `${rawUrl}?auth_token=${token}`
 }
 
-function PostCardPreview({ post, rawForParsing = '', isTemplate = false }) {
+function PostCardPreview({ post, rawForParsing = '', isTemplate = false, isMailCard = false }) {
   const [failed, setFailed] = useState(false)
   const width = Math.max(120, Math.round(480 / 3))
   const height = Math.max(72, Math.round(270 / 3))
@@ -3506,7 +3507,7 @@ function PostCardPreview({ post, rawForParsing = '', isTemplate = false }) {
       return src ? { kind: 'attachment', src, alt: previewAttachment.name || 'preview' } : null
     }
 
-    if (!isTemplate) {
+    if (!isTemplate && !isMailCard) {
       const firstUrl = extractHttpUrls(rawForParsing)[0]
       if (firstUrl) {
         return {
@@ -3517,7 +3518,7 @@ function PostCardPreview({ post, rawForParsing = '', isTemplate = false }) {
       }
     }
     return null
-  }, [isTemplate, post.attachments, rawForParsing])
+  }, [isMailCard, isTemplate, post.attachments, rawForParsing])
 
   useEffect(() => {
     setFailed(false)
@@ -3555,6 +3556,7 @@ function PostCard({ post, onSelect, pinned, isSelected, contentFontScale = 100 }
   const isTemplate = isTemplateContent(post.content)
   const isMd = isMdPage(post.content)
   const isSheet = isEasySheet(post.content)
+  const isMailCard = isMailCardContent(post.content)
   const templateMeta = isTemplate
     ? FORM_TEMPLATES.find(f => post.content.includes(`<title>${f.label}`))
     : null
@@ -3733,7 +3735,7 @@ function PostCard({ post, onSelect, pinned, isSelected, contentFontScale = 100 }
             </p>
           )}
         </div>
-        <PostCardPreview post={post} rawForParsing={rawForParsing} isTemplate={isTemplate} />
+        <PostCardPreview post={post} rawForParsing={rawForParsing} isTemplate={isTemplate} isMailCard={isMailCard} />
       </div>
       </div>
       {copyToast && (

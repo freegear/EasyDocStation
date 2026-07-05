@@ -101,7 +101,7 @@ function parseTarget(question) {
 }
 
 function normalizeKeywordToken(value = '') {
-  return String(value || '')
+  return String(value || '').normalize('NFC')
     .replace(/[?？!！.,，。]/g, ' ')
     .replace(/\s+/g, ' ')
     .trim()
@@ -229,7 +229,7 @@ function parseKeywords(question) {
 class RuleBasedIntentParser {
   parse(question, context = {}) {
     const intent = createEmptyIntent()
-    const text = String(question || '').trim()
+    const text = String(question || '').normalize('NFC').trim()
 
     intent.action = parseAction(text)
     intent.target = parseTarget(text)

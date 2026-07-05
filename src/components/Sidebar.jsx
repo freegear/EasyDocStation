@@ -5,7 +5,7 @@ import { apiFetch } from '../lib/api'
 import TeamManageModal from './TeamManageModal'
 import ChannelManageModal from './ChannelManageModal'
 import { useT } from '../i18n/useT'
-import { CONSTRUCT_SAFE_KANBAN_TEMPLATE, EASY_CODE_GENERATION_TEMPLATE, FORM_TEMPLATES } from '../templates/formTemplates'
+import { WELCOME_BOARD_TEMPLATE, CONSTRUCT_SAFE_KANBAN_TEMPLATE, EASY_CODE_GENERATION_TEMPLATE, FORM_TEMPLATES } from '../templates/formTemplates'
 
 function ChatBubbleIcon() {
   return (
@@ -40,6 +40,8 @@ export default function Sidebar({
   onOpenDM,
   onNewDM,
   onOpenServicePage,
+  onOpenServiceInPanel,
+  onCloseWelcome,
   onOpenMail,
   activeDMConvId,
   isMobile = false,
@@ -49,9 +51,11 @@ export default function Sidebar({
   const { teams, selectedTeam, selectedChannel, selectTeam, selectChannel, refreshTeams, addPost } = useChat()
   const { currentUser } = useAuth()
   const t = useT()
+  const showWelcomeBoard = import.meta.env.VITE_SHOW_WELCOME_BOARD === '1'
   const showConstructSafeKanbanTemplate = import.meta.env.VITE_CONSTRUCT_SAFE_KANBAN_TEMPLATE === '1'
   const showEasyCodeGenerationTemplate = import.meta.env.VITE_EASY_CODE_GENERATION_TEMPLATE === '1'
   const topServices = [
+    ...(showWelcomeBoard ? [WELCOME_BOARD_TEMPLATE] : []),   // 최상단 (WelcomeBoard.md)
     ...(showConstructSafeKanbanTemplate ? [CONSTRUCT_SAFE_KANBAN_TEMPLATE] : []),
     ...(showEasyCodeGenerationTemplate ? [EASY_CODE_GENERATION_TEMPLATE] : []),
   ]
@@ -210,12 +214,25 @@ export default function Sidebar({
                     key={template.id}
                     type="button"
                     onClick={() => {
-                      onOpenServicePage?.(template)
+                      // Welcome 보드는 가운데 메인 패널에 인패널로 렌더 (WelcomeBoard.md 8절)
+                      if (template.id === 'welcome-board' && onOpenServiceInPanel) {
+                        onOpenServiceInPanel(template)
+                      } else {
+                        onOpenServicePage?.(template)
+                      }
                       closeMobileIfNeeded()
                     }}
                     className="flex items-center gap-2.5 w-full px-2 py-2 rounded-lg text-sm text-left text-gray-500 hover:bg-gray-100 hover:text-gray-700 transition-all"
                   >
-                    <span className="text-base leading-none">{template.icon}</span>
+                    {template.iconImg ? (
+                      <img
+                        src={template.iconImg}
+                        alt=""
+                        className="w-5 h-5 flex-shrink-0 object-contain"
+                      />
+                    ) : (
+                      <span className="text-base leading-none">{template.icon}</span>
+                    )}
                     <span className="flex-1 font-medium truncate">{template.label}</span>
                   </button>
                 ))}
@@ -240,7 +257,7 @@ export default function Sidebar({
               return (
                 <button
                   key={team.id}
-                  onClick={() => { selectTeam(team); onCloseCalendar?.(); closeMobileIfNeeded() }}
+                  onClick={() => { selectTeam(team); onCloseCalendar?.(); onCloseWelcome?.(); closeMobileIfNeeded() }}
                   onDoubleClick={() => {
                     if (!canManageTeam()) return
                     setEditingTeam(team)
@@ -294,7 +311,7 @@ export default function Sidebar({
                 return (
                   <button
                     key={ch.id}
-                    onClick={() => { selectChannel(ch); onCloseCalendar?.(); closeMobileIfNeeded() }}
+                    onClick={() => { selectChannel(ch); onCloseCalendar?.(); onCloseWelcome?.(); closeMobileIfNeeded() }}
                     onDoubleClick={() => {
                       if (!canManageChannel(ch)) return  // 권한 없으면 아무 동작 없음
                       setEditingChannel(ch)

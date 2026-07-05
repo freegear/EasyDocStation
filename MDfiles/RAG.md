@@ -732,6 +732,51 @@ RAG 사실 질문에서는 대화 히스토리를 일반 대화와 다르게 처
 
 이전 답변이 한 번 확대되면 다음 답변이 그 내용을 다시 이어받아 더 확대될 수 있으므로, RAG 사실 질문에서는 assistant history를 제외하는 것이 기본이다.
 
+### 4.8.1 후속 위치 질문 Query Rewrite
+
+사용자가 특정 대상을 먼저 말한 뒤 `"어디에 있어?"`, `"찾아줘"`, `"링크 줘"`처럼 짧은 후속 명령을 입력하면, RAG/검색/LLM 호출 전에 내부 처리용 질문을 명시적인 locate 질문으로 재작성한다.
+
+예:
+
+```txt
+사용자 표시 입력:
+어디에 있어?
+
+직전 사용자 대상:
+연세대 교직원식당 한경관 어울샘
+
+내부 검색 질문:
+연세대 교직원식당 한경관 어울샘 자료는 어디에 있어?
+```
+
+정책:
+
+- 말풍선에는 사용자가 입력한 원문을 유지한다.
+- `/api/questions`, 키워드 검색, `/rag/search`, Groq/내부 LLM 프롬프트에는 `resolvedQuestion`을 사용한다.
+- `"X 은 어디에 있어?"`처럼 현재 문장에 대상은 있지만 `자료/문서/파일` 같은 자료 유형어가 없으면 `"X 자료는 어디에 있어?"`로 보강한다.
+- `"X 자료는 어디에 있어?"`처럼 이미 명시적인 locate 질문은 의미를 바꾸지 않고 NFC 정규화만 적용한다.
+- `"어디에 있어?"`, `"찾아줘"`처럼 명령만 있는 경우에는 직전 사용자 발화에서 대상어를 추출해 붙인다.
+- 한글 입력은 검색/정규식 안정성을 위해 NFC로 정규화한다. 분해형 자모로 입력된 `"연세대"`도 `"연세대"`와 같은 검색어로 처리한다.
+
+구현 위치:
+
+- [src/components/GroqPanel.jsx](../src/components/GroqPanel.jsx)
+  - `normalizeUserQuestionText`
+  - `extractLocateSubject`
+  - `isShortLocateFollowup`
+  - `resolveQuestionForRetrieval`
+- [server/intent/parser/RuleBasedIntentParser.js](../server/intent/parser/RuleBasedIntentParser.js)
+  - 서버 직접 호출 대비 NFC 정규화
+
+검증 기준:
+
+```txt
+연세대 교직원식당 한경관 어울샘 은 어디에 있어 ?
+연세대 교직원식당 한경관 어울샘 자료는 어디에 있어 ?
+```
+
+두 질문은 내부적으로 같은 locate 검색 의도와 유사한 검색어로 처리되어야 한다.
+
 ## 4.9 키워드 검색 병합 제한
 
 이미지 질문과 현재 게시글 질문에서는 키워드 검색 결과를 무조건 RAG context에 병합하지 않는다.
@@ -745,7 +790,38 @@ RAG 사실 질문에서는 대화 히스토리를 일반 대화와 다르게 처
 
 키워드 검색 결과가 현재 범위 밖의 게시글을 가져오면 답변 확대의 원인이 된다.
 
-## 4.10 참고자료 표시 정책
+## 4.10 Locate 실패 시 RAG fallback
+
+`/api/questions`의 locate 경로는 우선 PostgreSQL 검색 인덱스(`search_documents`, `attachments`, `posts`, `comments`)에서 자료 링크를 찾는다.
+하지만 일부 자료는 LanceDB/RAG 학습 데이터에는 존재하지만 PostgreSQL locate 인덱스에는 없을 수 있다.
+
+이 경우 locate intent 자체는 성공했지만 결과가 0건이므로, 다음 순서로 fallback한다.
+
+1. `RuleBasedIntentParser`가 `action=locate`, `target=resources`, `keywords=[...]`를 만든다.
+2. [PostRepository.locateReferences](../server/query/repository/PostRepository.js)가 PostgreSQL locate 인덱스를 검색한다.
+3. 결과가 0건이면 [ragLocateFallback](../server/services/ragLocateFallback.js)이 RAG 서버(5001)에 동일 keyword query를 보낸다.
+4. RAG 검색 결과 metadata의 `channel_id`, `post_id`, `attachment_id`, `comment_id`, `file_name`, `page_number`를 link reference로 정규화한다.
+5. `channel_id/post_id`가 있고 현재 사용자 권한으로 접근 가능한 reference만 응답한다.
+6. [HandleUserQuestionUseCase](../server/application/usecase/HandleUserQuestionUseCase.js)는 기존 locate 응답과 동일하게 `frontend_deeplink` 링크를 만든다.
+
+정책:
+
+- fallback은 locate 결과가 0건일 때만 수행한다.
+- RAG fallback은 답변 요약을 만들지 않고 **링크 가능한 reference**만 만든다.
+- `post_id`가 없거나 `channel_id`를 복원할 수 없는 RAG 결과는 링크로 만들지 않는다.
+- 현재 채널 결과를 우선 정렬하고, 없으면 접근 가능한 다른 채널 결과를 뒤에 둔다.
+- 보안 레벨과 채널 접근 권한을 다시 확인한다.
+
+검증 기준:
+
+```txt
+연세대 교직원식당 한경관 어울샘 은 어디에 있어 ?
+연세대 교직원식당 한경관 어울샘 자료는 어디에 있어 ?
+```
+
+두 질문 모두 PostgreSQL locate 인덱스에서 0건이어도 RAG fallback을 통해 동일하거나 유사한 `post_id/channel_id` reference를 반환해야 한다.
+
+## 4.11 참고자료 표시 정책
 
 답변 아래 참고자료에는 검증된 reference만 표시한다.
 

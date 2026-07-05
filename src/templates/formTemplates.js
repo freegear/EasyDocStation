@@ -1,6 +1,18 @@
 import minutesTemplate from '../../template/minutes_template.html?raw'
 import constructSafeKanbanTemplate from '../../template/Construct_Safe_kanban.html?raw'
 import easyCodeGenerationTemplate from '../../template/EasyCodeGeneration.html?raw'
+import welcomeBoardTemplate from '../../template/WelcomeBoard_whiteThema.html?raw'
+
+// Welcome 보드 (WelcomeBoard.md) — 서버 실행 옵션 --showWelcomeBoard 로만 노출.
+export const WELCOME_BOARD_TEMPLATE = {
+  id: 'welcome-board',
+  label: 'Welcome 보드',
+  // 인패널 헤더 한 줄에 표시할 인사말(사이드바 버튼 label과 별개). WelcomeBoard.md 참조.
+  headerLabel: 'EasyStation에 오신 것을 환영합니다.',
+  icon: '👋',
+  iconImg: '/img/Welcome-logo.png',
+  content: welcomeBoardTemplate,
+}
 
 export const CONSTRUCT_SAFE_KANBAN_TEMPLATE = {
   id: 'construct-safe-kanban',
@@ -1329,6 +1341,57 @@ export function getMdPageTitle(content, fallback = 'MD 페이지') {
   const chars = Array.from(plain)
   if (chars.length <= MAX_TITLE_LENGTH) return plain
   return chars.slice(0, MAX_TITLE_LENGTH).join('')
+}
+
+// ─── 메일 카드 헬퍼 (MailService.md 24.4) ───
+// 게시글 본문 끝에 "숨은 카드 데이터 주석"을 붙여, 게시판에서 메일 요약 카드를 인라인 렌더한다.
+// content = "읽히는 마크다운\n\n<!--mail-card:BASE64(JSON)-->" 형태.
+// 주석은 ContentRenderer/미리보기가 제거하므로, 카드 분기를 안 타는 경로에서는 마크다운만 남는다(RAG/검색 오염 없음).
+
+const MAIL_CARD_MARKER_RE = /<!--mail-card:([A-Za-z0-9+/=]+)-->/
+
+// UTF-8 안전 base64(한글 포함). 브라우저 TextEncoder/TextDecoder 사용.
+function encodeMailCardBase64(json) {
+  const bytes = new TextEncoder().encode(String(json))
+  let bin = ''
+  for (let i = 0; i < bytes.length; i += 1) bin += String.fromCharCode(bytes[i])
+  return btoa(bin)
+}
+
+function decodeMailCardBase64(b64) {
+  const bin = atob(b64)
+  const bytes = Uint8Array.from(bin, (ch) => ch.charCodeAt(0))
+  return new TextDecoder().decode(bytes)
+}
+
+// 본문에 메일 카드 데이터 주석이 있는지 판별.
+export function isMailCardContent(content) {
+  return typeof content === 'string' && MAIL_CARD_MARKER_RE.test(content)
+}
+
+// 카드 데이터(JSON) 파싱. 실패 시 null(방어 — 마크다운 폴백 렌더).
+export function extractMailCardData(content) {
+  if (typeof content !== 'string') return null
+  const m = content.match(MAIL_CARD_MARKER_RE)
+  if (!m) return null
+  try {
+    return JSON.parse(decodeMailCardBase64(m[1]))
+  } catch {
+    return null
+  }
+}
+
+// 미리보기/텍스트 추출용: 카드 데이터 주석을 떼고 읽히는 마크다운만 반환.
+export function stripMailCardMarker(content) {
+  if (typeof content !== 'string') return ''
+  return content.replace(MAIL_CARD_MARKER_RE, '').replace(/\s+$/, '')
+}
+
+// 읽히는 마크다운 뒤에 카드 데이터 주석을 덧붙인다(새 게시글 등록 시).
+export function wrapWithMailCard(markdown, cardData) {
+  const marker = `<!--mail-card:${encodeMailCardBase64(JSON.stringify(cardData || {}))}-->`
+  const base = String(markdown || '').replace(/\s+$/, '')
+  return `${base}\n\n${marker}`
 }
 
 // ─── EasySheet 헬퍼 (md-page 헬퍼와 1:1 대응) ───

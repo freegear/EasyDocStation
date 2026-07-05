@@ -1,0 +1,709 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>워크스페이스 대시보드</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+KR:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #FAFBFD;
+    --bg-grad: radial-gradient(1200px 600px at 10% -10%, rgba(47,107,255,0.05) 0%, transparent 60%),
+               radial-gradient(1000px 500px at 100% 0%, rgba(47,107,255,0.04) 0%, transparent 55%),
+               #FAFBFD;
+    --panel: #FFFFFF;
+    --panel-hover: #F3F6FC;
+    --panel-border: #E7ECF5;
+    --text-primary: #0F1C3F;
+    --text-secondary: #5B6B8C;
+    --text-tertiary: #9AA7C2;
+    --accent: #2F6BFF;
+    --accent-soft: rgba(47,107,255,0.08);
+    --accent-strong: #1E52DB;
+    --danger: #E5484D;
+    --info: #2F6BFF;
+    --warn: #E08A1F;
+    --success: #17A673;
+    --dot-purple:#7C5CFF;
+    --dot-green:#17A673;
+    --dot-orange:#E08A1F;
+    --divider: rgba(15,28,63,0.07);
+    --shadow: 0 4px 18px rgba(15,28,63,0.05);
+  }
+  *{box-sizing:border-box;}
+  html,body{
+    margin:0;padding:0;
+    background:var(--bg-grad);
+    color:var(--text-primary);
+    font-family:'Inter','Noto Sans KR',sans-serif;
+    min-height:100vh;
+  }
+  .wrap{
+    max-width:1560px;
+    margin:0 auto;
+    padding:40px 48px 64px;
+  }
+  .topbar{
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    margin-bottom:32px;
+  }
+  .greeting{
+    display:flex;
+    align-items:baseline;
+    gap:14px;
+    flex-wrap:wrap;
+  }
+  .greeting h1{
+    font-size:26px;
+    font-weight:800;
+    letter-spacing:-0.02em;
+    margin:0;
+    display:flex;align-items:center;gap:10px;
+  }
+  .greeting p{
+    margin:0;
+    color:var(--text-secondary);
+    font-size:14.5px;
+  }
+  .actions{display:flex;align-items:center;gap:10px;}
+  .btn-new{
+    display:flex;align-items:center;gap:8px;
+    background:linear-gradient(180deg,#3E76F7,#2F5FE0);
+    color:white;
+    border:none;
+    padding:11px 18px;
+    border-radius:11px;
+    font-size:14px;
+    font-weight:600;
+    font-family:inherit;
+    cursor:pointer;
+    box-shadow:0 6px 16px rgba(47,111,255,0.35);
+  }
+  .icon-btn{
+    width:42px;height:42px;
+    border-radius:11px;
+    background:var(--panel);
+    border:1px solid var(--panel-border);
+    display:flex;align-items:center;justify-content:center;
+    cursor:pointer;
+    position:relative;
+    color:var(--text-secondary);
+  }
+  .icon-btn .dot{
+    position:absolute;top:9px;right:9px;
+    width:7px;height:7px;border-radius:50%;
+    background:var(--accent);
+    box-shadow:0 0 0 2px var(--panel);
+  }
+  .grid-top{
+    display:grid;
+    grid-template-columns:repeat(3,minmax(0,1fr));
+    gap:22px;
+    margin-bottom:22px;
+  }
+  .card{
+    background:var(--panel);
+    border:1px solid var(--panel-border);
+    border-radius:16px;
+    padding:22px 22px 18px;
+    box-shadow:var(--shadow);
+    min-width:0;
+  }
+  .card-head{
+    display:flex;align-items:center;justify-content:space-between;
+    margin-bottom:18px;
+  }
+  .card-title{
+    display:flex;align-items:center;gap:9px;
+    font-size:15.5px;font-weight:700;
+    color:var(--text-primary);
+  }
+  .card-title .ic{
+    width:26px;height:26px;border-radius:8px;
+    display:flex;align-items:center;justify-content:center;
+    font-size:14px;
+  }
+  .ic-cal{background:rgba(156,123,255,0.18);color:var(--dot-purple);}
+  .ic-mail{background:rgba(79,140,255,0.18);color:var(--accent);}
+  .ic-star{background:rgba(255,180,84,0.18);color:var(--warn);}
+  .view-all{
+    font-size:12.5px;color:var(--text-secondary);
+    border:1px solid var(--panel-border);
+    padding:5px 10px;border-radius:8px;
+    cursor:pointer;
+    background:transparent;
+  }
+  .view-all:hover{background:var(--panel-hover);color:var(--text-primary);}
+  .date-label{
+    font-size:13.5px;font-weight:700;color:var(--text-secondary);
+    margin-bottom:14px;
+  }
+  .sched-item{
+    display:flex;align-items:center;gap:12px;
+    padding:9px 0;min-width:0;
+    border-bottom:1px solid var(--divider);
+  }
+  .sched-item:last-of-type{border-bottom:none;}
+  .sched-time{
+    width:44px;flex-shrink:0;font-size:12.5px;color:var(--text-tertiary);font-weight:600;
+  }
+  .dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+  .sched-title{flex:1;min-width:0;font-size:14px;font-weight:500;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .sched-loc{font-size:12px;color:var(--text-tertiary);}
+  .add-row{
+    display:flex;align-items:center;gap:8px;
+    margin-top:14px;
+    font-size:13px;color:var(--text-secondary);
+    cursor:pointer;
+  }
+  .add-row:hover{color:var(--accent);}
+  .plus{
+    width:20px;height:20px;border-radius:6px;
+    border:1px dashed var(--panel-border);
+    display:flex;align-items:center;justify-content:center;
+    font-size:13px;
+  }
+  .mail-item{
+    display:flex;gap:12px;
+    padding:10px 0;
+    border-bottom:1px solid var(--divider);
+  }
+  .mail-item:last-of-type{border-bottom:none;}
+  .avatar{
+    width:36px;height:36px;border-radius:10px;
+    display:flex;align-items:center;justify-content:center;
+    font-size:12.5px;font-weight:700;color:#fff;
+    flex-shrink:0;
+  }
+  .av-1{background:linear-gradient(135deg,#5B7CFF,#3F5BE0);}
+  .av-2{background:linear-gradient(135deg,#3ED598,#22A473);}
+  .av-3{background:linear-gradient(135deg,#FFB454,#E08F1F);}
+  .mail-body{flex:1;min-width:0;}
+  .mail-top{display:flex;justify-content:space-between;gap:8px;}
+  .mail-name{font-size:13.5px;font-weight:700;color:var(--text-primary);}
+  /* 중요 메일 카드: 메일 목록처럼 각 필드 한 줄 말줄임(짧게) */
+  .mail-item .mail-top{min-width:0;}
+  .mail-item .mail-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .mail-item .mail-time{flex-shrink:0;}
+  .mail-time{font-size:11.5px;color:var(--text-tertiary);white-space:nowrap;}
+  .mail-subject{font-size:13px;color:var(--text-secondary);margin-top:2px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .mail-preview{
+    font-size:12px;color:var(--text-tertiary);margin-top:2px;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+    display:flex;align-items:center;gap:6px;
+  }
+  .unread{width:6px;height:6px;border-radius:50%;background:var(--accent);flex-shrink:0;}
+  .task-item{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:11px 0;
+    border-bottom:1px solid var(--divider);
+  }
+  .task-item:last-of-type{border-bottom:none;}
+  .task-left{display:flex;align-items:center;gap:10px;}
+  .badge{
+    display:flex;align-items:center;gap:5px;
+    font-size:12px;font-weight:700;
+    padding:5px 9px;border-radius:8px;
+  }
+  .badge-urgent{background:rgba(255,107,107,0.15);color:var(--danger);}
+  .badge-progress{background:rgba(79,140,255,0.15);color:var(--info);}
+  .badge-review{background:rgba(255,180,84,0.15);color:var(--warn);}
+  .badge-done{background:rgba(62,213,152,0.15);color:var(--success);}
+  .task-name{font-size:13.5px;font-weight:500;color:var(--text-primary);}
+  .task-date{font-size:12.5px;font-weight:700;}
+  .date-urgent{color:var(--danger);}
+  .date-progress{color:var(--info);}
+  .date-review{color:var(--warn);}
+  .date-done{color:var(--success);}
+
+  .bottom-panel{
+    background:var(--panel);
+    border:1px solid var(--panel-border);
+    border-radius:16px;
+    box-shadow:var(--shadow);
+    overflow:hidden;
+  }
+  .tabs{
+    display:flex;gap:6px;
+    padding:16px 22px 0;
+  }
+  .tab{
+    font-size:13.5px;font-weight:600;
+    color:var(--text-tertiary);
+    padding:10px 4px;
+    cursor:pointer;
+    border-bottom:2px solid transparent;
+  }
+  .tab.active{color:var(--accent);border-bottom-color:var(--accent);}
+  .tab:hover:not(.active){color:var(--text-secondary);}
+  .tab-panel{display:none;padding:6px 22px 20px;}
+  .tab-panel.active{display:block;}
+  .doc-list{display:flex;flex-direction:column;}
+  .file-ic{
+    width:34px;height:34px;border-radius:9px;
+    display:flex;align-items:center;justify-content:center;
+    font-size:15px;flex-shrink:0;
+  }
+  .fi-1{background:rgba(79,140,255,0.14);}
+  .fi-2{background:rgba(156,123,255,0.14);}
+  .doc-tag{font-size:11px;color:var(--text-tertiary);flex-shrink:0;padding:2px 8px;border-radius:6px;background:var(--panel-hover);}
+  .pill{
+    font-size:11px;font-weight:600;
+    background:var(--accent-soft);color:var(--accent);
+    padding:4px 9px;border-radius:7px;
+  }
+  .doc-time{font-size:11.5px;color:var(--text-tertiary);white-space:nowrap;}
+
+  /* expanded single-column document row */
+  .doc-row-lg{
+    display:flex;gap:18px;
+    padding:22px 4px;
+    border-bottom:1px solid var(--divider);
+  }
+  .doc-row-lg:last-of-type{border-bottom:none;}
+  .doc-row-lg .file-ic{width:46px;height:46px;font-size:20px;border-radius:12px;}
+  .doc-row-lg .author-lead{
+    position:relative;overflow:hidden;
+    font-size:18px;font-weight:800;color:#fff;
+    background:linear-gradient(135deg,#4C6FFF,#2FC5A7);
+  }
+  .doc-row-lg .author-lead img{
+    position:absolute;inset:0;width:100%;height:100%;
+    object-fit:cover;
+  }
+  .doc-main{flex:1;min-width:0;}
+  .doc-top-row{display:flex;align-items:center;gap:10px;margin-bottom:7px;}
+  .doc-title{font-size:15.5px;font-weight:700;color:var(--text-primary);}
+  .doc-top-row .doc-time{margin-left:auto;font-size:12px;}
+  .doc-summary{
+    font-size:13px;color:var(--text-secondary);line-height:1.55;
+    margin-bottom:10px;
+    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;
+    overflow:hidden;
+  }
+  .doc-meta{display:flex;align-items:center;flex-wrap:wrap;gap:8px;font-size:12px;color:var(--text-tertiary);}
+  .doc-meta b{color:var(--text-secondary);font-weight:600;}
+  .meta-dot{color:var(--panel-border);}
+  .author-chip{display:flex;align-items:center;gap:6px;}
+  .author-avatar{
+    width:18px;height:18px;border-radius:5px;
+    display:flex;align-items:center;justify-content:center;
+    font-size:9px;font-weight:700;color:#fff;flex-shrink:0;
+  }
+
+  /* simple rows used in the other two tabs */
+  .doc-row, .mailrow2{
+    display:flex;align-items:center;gap:12px;
+    padding:11px 0;
+    border-bottom:1px solid var(--divider);
+  }
+  .doc-row:last-of-type,.mailrow2:last-of-type{border-bottom:none;}
+  .doc-info{flex:1;min-width:0;display:flex;align-items:center;gap:8px;}
+  .doc-name{font-size:13.5px;font-weight:600;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .foot-link{
+    display:flex;align-items:center;gap:6px;
+    font-size:13px;font-weight:600;color:var(--text-secondary);
+    margin-top:14px;cursor:pointer;
+  }
+  .foot-link:hover{color:var(--accent);}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="grid-top">
+    <!-- 오늘의 일정 -->
+    <div class="card">
+      <div class="card-head">
+        <div class="card-title"><span class="ic ic-cal">📅</span> 오늘의 일정</div>
+        <button class="view-all" onclick="parent.postMessage({ type: 'welcome-board:navigate', target: 'calendar' }, '*')">전체 보기</button>
+      </div>
+      <div class="date-label" id="todayDateLabel">오늘</div>
+      <div id="todayScheduleList">
+        <div class="sched-item" style="color:var(--text-tertiary)">일정을 불러오는 중…</div>
+      </div>
+      <div class="add-row"><span class="plus">＋</span> 새 일정 추가</div>
+    </div>
+
+    <!-- 중요 메일 -->
+    <div class="card">
+      <div class="card-head">
+        <div class="card-title"><span class="ic ic-mail">✉️</span> 중요 메일</div>
+        <button class="view-all" onclick="parent.postMessage({ type: 'welcome-board:navigate', target: 'mail-important' }, '*')">전체 보기</button>
+      </div>
+      <div id="importantMailList" style="max-height:230px;overflow-y:auto;">
+      <div class="mail-item">
+        <div class="avatar av-1">HJ</div>
+        <div class="mail-body">
+          <div class="mail-top"><span class="mail-name">홍길동 (Partner)</span><span class="mail-time">10:30</span></div>
+          <div class="mail-subject">프로젝트 제안서 검토 요청</div>
+          <div class="mail-preview"><span class="unread"></span>안녕하세요, 지난 회의에서 논의한...</div>
+        </div>
+      </div>
+      <div class="mail-item">
+        <div class="avatar av-2">SY</div>
+        <div class="mail-body">
+          <div class="mail-top"><span class="mail-name">이수연 (Client)</span><span class="mail-time">09:15</span></div>
+          <div class="mail-subject">계약 관련 서류 전달드립니다.</div>
+          <div class="mail-preview"><span class="unread"></span>안녕하세요, 계약 진행을 위해 필요...</div>
+        </div>
+      </div>
+      <div class="mail-item">
+        <div class="avatar av-3">TB</div>
+        <div class="mail-body">
+          <div class="mail-top"><span class="mail-name">Team Builder</span><span class="mail-time">어제</span></div>
+          <div class="mail-subject">주간 리포트 공유</div>
+          <div class="mail-preview"><span class="unread"></span>이번 주 진행 상황을 공유드립니다.</div>
+        </div>
+      </div>
+      </div>
+      <div class="add-row"><span class="plus">＋</span> 새 메일 작성</div>
+    </div>
+
+    <!-- 중요 사항들 -->
+    <div class="card">
+      <div class="card-head">
+        <div class="card-title"><span class="ic ic-star">⭐</span> 중요 사항들</div>
+        <button class="view-all">전체 보기</button>
+      </div>
+      <div class="task-item">
+        <div class="task-left">
+          <span class="badge badge-urgent">🔴 긴급</span>
+          <span class="task-name">A 프로젝트 마감 기한</span>
+        </div>
+        <span class="task-date date-urgent">7월 10일</span>
+      </div>
+      <div class="task-item">
+        <div class="task-left">
+          <span class="badge badge-progress">ⓘ 진행중</span>
+          <span class="task-name">B 시스템 업데이트</span>
+        </div>
+        <span class="task-date date-progress">7월 15일</span>
+      </div>
+      <div class="task-item">
+        <div class="task-left">
+          <span class="badge badge-review">★ 검토</span>
+          <span class="task-name">C 보고서 검토</span>
+        </div>
+        <span class="task-date date-review">7월 8일</span>
+      </div>
+      <div class="task-item">
+        <div class="task-left">
+          <span class="badge badge-done">✓ 완료</span>
+          <span class="task-name">D 회의 자료 준비</span>
+        </div>
+        <span class="task-date date-done">완료</span>
+      </div>
+      <div class="add-row"><span class="plus">＋</span> 새 항목 추가</div>
+    </div>
+  </div>
+
+  <!-- 하단 -->
+  <div class="bottom-panel">
+    <div class="tabs">
+      <div class="tab active" onclick="showPanel(this,'docs')">최근에 본 문서</div>
+      <div class="tab" onclick="showPanel(this,'updates')">최근에 업데이트 된 글</div>
+      <div class="tab" onclick="showPanel(this,'mails')">최근에 수신한 메일</div>
+    </div>
+
+    <div class="tab-panel active" id="panel-docs">
+      <div class="doc-list">
+        <div id="recentDocsList">
+          <div class="doc-row-lg" style="color:var(--text-tertiary)">최근에 본 문서를 불러오는 중…</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tab-panel" id="panel-updates">
+      <div class="doc-list">
+        <div id="recentUpdatesList">
+          <div class="doc-row-lg" style="color:var(--text-tertiary)">최근에 업데이트 된 글을 불러오는 중…</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tab-panel" id="panel-mails">
+      <div class="doc-list">
+        <div class="mailrow2"><div class="avatar av-1">HJ</div><div class="mail-body"><div class="mail-name">홍길동 (Partner)</div><div class="mail-preview" style="margin-top:2px"><span class="unread"></span>프로젝트 제안서 검토 요청</div></div><div class="doc-time">10:30</div></div>
+        <div class="mailrow2"><div class="avatar av-2">SY</div><div class="mail-body"><div class="mail-name">이수연 (Client)</div><div class="mail-preview" style="margin-top:2px"><span class="unread"></span>계약 관련 서류 전달드립니다.</div></div><div class="doc-time">09:15</div></div>
+        <div class="mailrow2"><div class="avatar av-3">TB</div><div class="mail-body"><div class="mail-name">Team Builder</div><div class="mail-preview" style="margin-top:2px"><span class="unread"></span>주간 리포트 공유</div></div><div class="doc-time">어제</div></div>
+        <div class="mailrow2"><div class="avatar" style="background:linear-gradient(135deg,#FF8A6B,#E0562B);">KM</div><div class="mail-body"><div class="mail-name">김민수 (Vendor)</div><div class="mail-preview" style="margin-top:2px"><span class="unread"></span>견적서 및 일정 확인 요청</div></div><div class="doc-time">어제</div></div>
+        <div class="mailrow2"><div class="avatar" style="background:linear-gradient(135deg,#9C7BFF,#6B4FE0);">박</div><div class="mail-body"><div class="mail-name">박지영 (Client)</div><div class="mail-preview" style="margin-top:2px"><span class="unread"></span>미팅 일정 변경 안내</div></div><div class="doc-time">2일 전</div></div>
+        <div class="foot-link">전체 보기 →</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function showPanel(el, name){
+      document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+      document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+      el.classList.add('active');
+      document.getElementById('panel-'+name).classList.add('active');
+    }
+
+    // 부모(React)가 주입하는 실제 "중요 편지함" 데이터 렌더 (WelcomeBoard.md 12절)
+    function wbMailInitials(name){
+      var s = String(name || '').trim();
+      if (!s) return '?';
+      var parts = s.split(/\s+/).filter(Boolean);
+      if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+      return s.slice(0,2).toUpperCase();
+    }
+    function wbMailTime(iso){
+      if (!iso) return '';
+      var d = new Date(iso);
+      if (isNaN(d.getTime())) return '';
+      // 메일 목록과 동일한 날짜 표기
+      return d.toLocaleDateString();
+    }
+    function wbRenderImportantMail(list){
+      var box = document.getElementById('importantMailList');
+      if (!box) return;
+      box.innerHTML = '';
+      list = Array.isArray(list) ? list : [];
+      if (!list.length){
+        var empty = document.createElement('div');
+        empty.className = 'mail-item';
+        empty.style.color = 'var(--text-tertiary)';
+        empty.textContent = '안 읽은 중요 메일이 없습니다.';
+        box.appendChild(empty);
+        return;
+      }
+      var avClasses = ['av-1','av-2','av-3'];
+      list.forEach(function(m, i){
+        var item = document.createElement('div');
+        item.className = 'mail-item';
+        if (m.id && m.tenantId){
+          item.style.cursor = 'pointer';
+          item.addEventListener('click', function(){
+            parent.postMessage({ type:'welcome-board:navigate', target:'mail', messageId: m.id, tenantId: m.tenantId }, '*');
+          });
+        }
+        var avatar = document.createElement('div');
+        avatar.className = 'avatar ' + avClasses[i % 3];
+        avatar.textContent = wbMailInitials(m.name);
+        item.appendChild(avatar);
+        var body = document.createElement('div');
+        body.className = 'mail-body';
+        var top = document.createElement('div');
+        top.className = 'mail-top';
+        var name = document.createElement('span');
+        name.className = 'mail-name';
+        name.textContent = m.name || '(발신자 없음)';
+        var time = document.createElement('span');
+        time.className = 'mail-time';
+        time.textContent = wbMailTime(m.received_at);
+        top.appendChild(name); top.appendChild(time);
+        var subject = document.createElement('div');
+        subject.className = 'mail-subject';
+        subject.textContent = m.subject || '(제목 없음)';
+        var preview = document.createElement('div');
+        preview.className = 'mail-preview';
+        var dot = document.createElement('span');
+        dot.className = 'unread';
+        preview.appendChild(dot);
+        preview.appendChild(document.createTextNode(m.snippet || ''));
+        body.appendChild(top); body.appendChild(subject); body.appendChild(preview);
+        item.appendChild(body);
+        box.appendChild(item);
+      });
+    }
+    // 오늘의 일정 카드: 캘린더 오늘 이벤트 목록을 다시 그린다. (WelcomeBoard.md 14절)
+    function wbRenderTodaySchedule(list, label){
+      var labelEl = document.getElementById('todayDateLabel');
+      if (labelEl && label) labelEl.textContent = label;
+      var box = document.getElementById('todayScheduleList');
+      if (!box) return;
+      box.innerHTML = '';
+      list = Array.isArray(list) ? list : [];
+      if (!list.length){
+        var empty = document.createElement('div');
+        empty.className = 'sched-item';
+        empty.style.color = 'var(--text-tertiary)';
+        empty.textContent = '오늘 일정이 없습니다.';
+        box.appendChild(empty);
+        return;
+      }
+      list.forEach(function(ev){
+        var item = document.createElement('div');
+        item.className = 'sched-item';
+        var time = document.createElement('div');
+        time.className = 'sched-time';
+        time.textContent = ev.time || '';
+        var dot = document.createElement('div');
+        dot.className = 'dot';
+        dot.style.background = ev.color || 'var(--dot-purple)';
+        var title = document.createElement('div');
+        title.className = 'sched-title';
+        title.textContent = ev.title || '(제목 없음)';
+        item.appendChild(time); item.appendChild(dot); item.appendChild(title);
+        box.appendChild(item);
+      });
+    }
+    // 최근에 본 문서 카드 (WelcomeBoard.md 15절) — 표시 시각 상대 표기 / 날짜 표기 / 이니셜
+    function wbRelTime(ts){
+      var t = Number(ts);
+      if (!t) return '';
+      var diff = Date.now() - t;
+      if (diff < 60000) return '방금 전';
+      if (diff < 3600000) return Math.floor(diff/60000) + '분 전';
+      if (diff < 86400000) return Math.floor(diff/3600000) + '시간 전';
+      if (diff < 172800000) return '어제';
+      if (diff < 604800000) return Math.floor(diff/86400000) + '일 전';
+      var d = new Date(t);
+      return isNaN(d.getTime()) ? '' : (d.getFullYear() + '.' + String(d.getMonth()+1).padStart(2,'0') + '.' + String(d.getDate()).padStart(2,'0'));
+    }
+    function wbFmtDate(iso){
+      if (!iso) return '-';
+      var d = new Date(iso);
+      if (isNaN(d.getTime())) return '-';
+      return d.getFullYear() + '.' + String(d.getMonth()+1).padStart(2,'0') + '.' + String(d.getDate()).padStart(2,'0');
+    }
+    function wbMetaSpan(label, value){
+      var s = document.createElement('span');
+      var b = document.createElement('b');
+      b.textContent = label;
+      s.appendChild(b);
+      s.appendChild(document.createTextNode(' ' + value));
+      return s;
+    }
+    function wbDot(){ var d = document.createElement('span'); d.className='meta-dot'; d.textContent='·'; return d; }
+    function wbRenderDocCards(list, boxId, emptyText){
+      var box = document.getElementById(boxId);
+      if (!box) return;
+      box.innerHTML = '';
+      list = Array.isArray(list) ? list : [];
+      if (!list.length){
+        var empty = document.createElement('div');
+        empty.className = 'doc-row-lg';
+        empty.style.color = 'var(--text-tertiary)';
+        empty.textContent = emptyText || '표시할 글이 없습니다.';
+        box.appendChild(empty);
+        return;
+      }
+      var avClasses = ['av-1','av-2','av-3'];
+      list.forEach(function(doc, i){
+        var row = document.createElement('div');
+        row.className = 'doc-row-lg';
+        if (doc.channelId && doc.postId){
+          row.style.cursor = 'pointer';
+          row.addEventListener('click', function(){
+            parent.postMessage({ type:'welcome-board:navigate', target:'post', channelId: doc.channelId, postId: doc.postId }, '*');
+          });
+        }
+        var ic = document.createElement('div');
+        if (doc.leadAuthor){
+          ic.className = 'file-ic author-lead ' + avClasses[i % 3];
+          ic.textContent = wbMailInitials(doc.authorName || doc.title || '?').slice(0,1) || '?';
+          if (doc.authorImageUrl){
+            var profileImg = document.createElement('img');
+            profileImg.src = doc.authorImageUrl;
+            profileImg.alt = '';
+            profileImg.onerror = function(){ this.remove(); };
+            ic.appendChild(profileImg);
+          }
+        } else {
+          ic.className = 'file-ic fi-1';
+          ic.textContent = doc.icon || '📄';
+        }
+        row.appendChild(ic);
+
+        var main = document.createElement('div');
+        main.className = 'doc-main';
+
+        var top = document.createElement('div');
+        top.className = 'doc-top-row';
+        var title = document.createElement('span');
+        title.className = 'doc-title';
+        title.textContent = doc.title || '(제목 없음)';
+        top.appendChild(title);
+        if (doc.tag){
+          var tag = document.createElement('span');
+          tag.className = 'doc-tag';
+          tag.textContent = doc.tag;
+          top.appendChild(tag);
+        }
+        var time = document.createElement('span');
+        time.className = 'doc-time';
+        time.textContent = wbRelTime(doc.viewedAt);
+        top.appendChild(time);
+        main.appendChild(top);
+
+        if (doc.summary){
+          var summary = document.createElement('div');
+          summary.className = 'doc-summary';
+          summary.textContent = doc.summary;
+          main.appendChild(summary);
+        }
+
+        // 첨부 파일명(있으면) — "글과 파일"
+        var files = Array.isArray(doc.attachments) ? doc.attachments : [];
+        if (files.length){
+          var fileLine = document.createElement('div');
+          fileLine.className = 'doc-summary';
+          fileLine.style.marginBottom = '10px';
+          fileLine.textContent = '📎 ' + files.join(', ');
+          main.appendChild(fileLine);
+        }
+
+        var meta = document.createElement('div');
+        meta.className = 'doc-meta';
+        meta.appendChild(wbMetaSpan('등록일', wbFmtDate(doc.createdAt)));
+        meta.appendChild(wbDot());
+        meta.appendChild(wbMetaSpan('업데이트일', wbFmtDate(doc.updatedAt)));
+        if (doc.authorName){
+          meta.appendChild(wbDot());
+          var chip = document.createElement('span');
+          chip.className = 'author-chip';
+          var av = document.createElement('span');
+          av.className = 'author-avatar ' + avClasses[i % 3];
+          av.textContent = wbMailInitials(doc.authorName).slice(0,1);
+          chip.appendChild(av);
+          chip.appendChild(document.createTextNode(doc.authorName));
+          meta.appendChild(chip);
+        }
+        meta.appendChild(wbDot());
+        var cmt = document.createElement('span');
+        cmt.textContent = '💬 ' + (Number(doc.commentCount) || 0);
+        meta.appendChild(cmt);
+        main.appendChild(meta);
+
+        row.appendChild(main);
+        box.appendChild(row);
+      });
+      // 10개까지만 보이고 그 이상은 스크롤 — 앞 10행 실제 높이 합으로 뷰포트 고정. (WelcomeBoard.md 15.5)
+      if (box.children.length > 10){
+        var h = 0;
+        for (var k = 0; k < 10; k++) h += box.children[k].offsetHeight;
+        box.style.maxHeight = h + 'px';
+        box.style.overflowY = 'auto';
+      } else {
+        box.style.maxHeight = '';
+        box.style.overflowY = '';
+      }
+    }
+    function wbRenderRecentDocs(list){
+      list = Array.isArray(list) ? list.map(function(doc){
+        return Object.assign({}, doc, { summary: '', leadAuthor: true });
+      }) : [];
+      wbRenderDocCards(list, 'recentDocsList', '최근에 본 문서가 없습니다.');
+    }
+    function wbRenderRecentUpdates(list){
+      wbRenderDocCards(list, 'recentUpdatesList', '읽지 않은 업데이트 글이 없습니다.');
+    }
+    window.addEventListener('message', function(e){
+      var data = e.data;
+      if (!data || data.type !== 'welcome-board:data') return;
+      var payload = data.payload || {};
+      if (payload.todaySchedule !== undefined) wbRenderTodaySchedule(payload.todaySchedule, payload.todayLabel);
+      if (payload.importantMail !== undefined) wbRenderImportantMail(payload.importantMail);
+      if (payload.recentPosts !== undefined) wbRenderRecentDocs(payload.recentPosts);
+      if (payload.recentUpdates !== undefined) wbRenderRecentUpdates(payload.recentUpdates);
+    });
+  </script>
+
+</div>
+</body>
+</html>

@@ -102,8 +102,9 @@ router.get('/unread', requireAuth, async (req, res, next) => {
         const commentParams = lastRead
           ? [channelId, lastRead, userId]
           : [channelId, userId]
+        // 새 댓글 + 읽은 뒤 수정된 댓글(updated_at)까지 미열람으로 센다(게시글 수정은 배지 효율 유지 위해 제외).
         const commentSql = lastRead
-          ? 'SELECT COUNT(*)::int AS count FROM comments WHERE channel_id = $1 AND created_at > $2 AND author_id <> $3'
+          ? 'SELECT COUNT(*)::int AS count FROM comments WHERE channel_id = $1 AND (created_at > $2 OR updated_at > $2) AND author_id <> $3'
           : 'SELECT COUNT(*)::int AS count FROM comments WHERE channel_id = $1 AND author_id <> $2'
         const commentResult = await db.query(commentSql, commentParams)
         const commentCount = parseInt(commentResult.rows[0]?.count || 0, 10)
@@ -129,7 +130,7 @@ router.get('/unread', requireAuth, async (req, res, next) => {
             `SELECT
                (SELECT COUNT(*)::int FROM posts WHERE channel_id = $1 AND created_at > $2 AND author_id <> $3)
                +
-               (SELECT COUNT(*)::int FROM comments WHERE channel_id = $1 AND created_at > $2 AND author_id <> $3)
+               (SELECT COUNT(*)::int FROM comments WHERE channel_id = $1 AND (created_at > $2 OR updated_at > $2) AND author_id <> $3)
                AS count`,
             [channelId, lastRead, userId]
           )

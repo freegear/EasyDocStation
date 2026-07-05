@@ -25,6 +25,7 @@ BE_LOOP_LOCK_DIR="$LOG_DIR/dgx-be-loop.lockdir"
 ACTION="start"
 CONSTRUCT_SAFE_KANBAN_TEMPLATE="${VITE_CONSTRUCT_SAFE_KANBAN_TEMPLATE:-0}"
 EASY_CODE_GENERATION_TEMPLATE="${VITE_EASY_CODE_GENERATION_TEMPLATE:-0}"
+SHOW_WELCOME_BOARD="${VITE_SHOW_WELCOME_BOARD:-0}"
 
 log() {
   echo "[$(date '+%Y%m%d-%H:%M:%S')][DGX-SPARK] $*"
@@ -203,6 +204,9 @@ while [[ $# -gt 0 ]]; do
     --EasyCodeGeneration|--easy-code-generation|EasyCodeGeneration)
       EASY_CODE_GENERATION_TEMPLATE="1"
       ;;
+    --showWelcomeBoard|--show-welcome-board|showWelcomeBoard)
+      SHOW_WELCOME_BOARD="1"
+      ;;
     *)
       echo "[$(date '+%Y%m%d-%H:%M:%S')][ERROR] 알 수 없는 옵션: $1"
       echo "[$(date '+%Y%m%d-%H:%M:%S')][ERROR] 도움말: bash scripts/run-dgx-spark.sh --help"
@@ -227,6 +231,7 @@ Options:
   --restart                         전체 태스크 정리 후 재실행
   --Construct_safe_kanban_template  Teams 위 Service 섹션에 Construct_Safe_kanban.html 표시
   --EasyCodeGeneration              Teams 위 Service 섹션에 EasyCodeGeneration.html 표시
+  --showWelcomeBoard                Service 섹션 최상단에 Welcome 보드(WelcomeBoard_blueThema.html) 표시
 EOF
   exit 0
 fi
@@ -317,6 +322,9 @@ fi
 if [[ "$EASY_CODE_GENERATION_TEMPLATE" == "1" ]]; then
   log "EasyCodeGeneration Service 섹션 활성화"
 fi
+if [[ "$SHOW_WELCOME_BOARD" == "1" ]]; then
+  log "Welcome 보드 Service 섹션 활성화"
+fi
 
 setsid env ROOT_DIR="$ROOT_DIR" LOG_FILE="$LOG_FILE" bash -c \
   'cd "$ROOT_DIR" && npm run ollama:serve >> "$LOG_FILE" 2>&1 < /dev/null' \
@@ -325,7 +333,7 @@ ollama_pid=$!
 disown "$ollama_pid" >/dev/null 2>&1 || true
 echo "$ollama_pid" > "$OLLAMA_PID_FILE"
 
-setsid env ROOT_DIR="$ROOT_DIR" LOG_FILE="$LOG_FILE" VITE_CONSTRUCT_SAFE_KANBAN_TEMPLATE="$CONSTRUCT_SAFE_KANBAN_TEMPLATE" VITE_EASY_CODE_GENERATION_TEMPLATE="$EASY_CODE_GENERATION_TEMPLATE" bash -c \
+setsid env ROOT_DIR="$ROOT_DIR" LOG_FILE="$LOG_FILE" VITE_CONSTRUCT_SAFE_KANBAN_TEMPLATE="$CONSTRUCT_SAFE_KANBAN_TEMPLATE" VITE_EASY_CODE_GENERATION_TEMPLATE="$EASY_CODE_GENERATION_TEMPLATE" VITE_SHOW_WELCOME_BOARD="$SHOW_WELCOME_BOARD" bash -c \
   'cd "$ROOT_DIR" && npm run dev:frontend >> "$LOG_FILE" 2>&1 < /dev/null' \
   >/dev/null 2>&1 &
 fe_pid=$!

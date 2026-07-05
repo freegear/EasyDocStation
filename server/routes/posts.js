@@ -137,10 +137,13 @@ function makeUserCache() {
   }
 }
 
+// 프로필 사진은 업로드 시 256x256 JPEG(base64, 장당 수십 KB)로 축소되므로
+// 목록 응답에 그대로 포함해도 부담이 적다. data: URL도 통과시켜
+// 목록 카드에서 "프로필 사진 우선, 없으면 이니셜" 동작이 실제로 적용되게 한다.
 function compactListImageUrl(imageUrl) {
   const value = String(imageUrl || '')
   if (!value) return null
-  return value.startsWith('data:') ? null : value
+  return value
 }
 
 async function buildChannelPermissionContext(user, channelId) {
@@ -1743,7 +1746,7 @@ async function getCommentMetaMap(channelId, postIds = [], { userId = null, lastR
   let rows = []
   try {
     const r = await db.query(
-      'SELECT post_id, id, author_id, created_at FROM comments WHERE post_id = ANY($1)',
+      'SELECT post_id, id, author_id, created_at, updated_at FROM comments WHERE post_id = ANY($1)',
       [ids],
     )
     rows = r.rows || []
@@ -1763,12 +1766,16 @@ async function getCommentMetaMap(channelId, postIds = [], { userId = null, lastR
       cur.lastCommentAt = row.created_at
       cur.lastCommentAuthorId = row.author_id
     }
+    // 안 읽음 판정 기준 시각 = max(작성, 수정). 읽은 뒤 수정된 댓글도 "업데이트"로 잡는다.
+    const editedAt = (row.updated_at && new Date(row.updated_at).getTime() > new Date(row.created_at).getTime())
+      ? row.updated_at : null
+    const activityAt = editedAt || row.created_at
     if (
       String(row.author_id) !== String(userId)
-      && isAfterLastRead(row.created_at, lastReadAt)
-      && (!cur.lastUnreadCommentAt || new Date(row.created_at).getTime() > new Date(cur.lastUnreadCommentAt).getTime())
+      && isAfterLastRead(activityAt, lastReadAt)
+      && (!cur.lastUnreadCommentAt || new Date(activityAt).getTime() > new Date(cur.lastUnreadCommentAt).getTime())
     ) {
-      cur.lastUnreadCommentAt = row.created_at
+      cur.lastUnreadCommentAt = activityAt
     }
     map.set(key, cur)
   }
@@ -1779,6 +1786,7 @@ async function getCommentMetaMap(channelId, postIds = [], { userId = null, lastR
 // 정확한 안읽은 댓글 수는 게시글을 열 때(댓글 로딩) 보정된다.
 function buildUnreadMetaLight({
   postCreatedAt,
+  postUpdatedAt,
   postAuthorId,
   userId,
   lastReadAt,
@@ -1788,19 +1796,25 @@ function buildUnreadMetaLight({
 }) {
   const isOwnPost = String(postAuthorId) === String(userId)
   const unreadPost = !isOwnPost && isAfterLastRead(postCreatedAt, lastReadAt)
+  // 원글이 (읽은 뒤) 수정된 경우: 새 글은 아니지만 "업데이트"로 간주한다.
+  const postEditedAt = (postUpdatedAt && new Date(postUpdatedAt).getTime() > new Date(postCreatedAt).getTime())
+    ? postUpdatedAt : null
+  const unreadPostEdited = !isOwnPost && !unreadPost && isAfterLastRead(postEditedAt, lastReadAt)
   const hasUnreadComment = Boolean(lastUnreadCommentAt) || (Boolean(lastCommentAt)
     && String(lastCommentAuthorId) !== String(userId)
     && isAfterLastRead(lastCommentAt, lastReadAt))
   const unreadTimes = [
     unreadPost ? postCreatedAt : null,
+    unreadPostEdited ? postEditedAt : null,
     hasUnreadComment ? (lastUnreadCommentAt || lastCommentAt) : null,
   ].filter(Boolean)
   const unreadActivityAt = unreadTimes.length > 0
     ? new Date(Math.max(...unreadTimes.map(v => new Date(v).getTime()))).toISOString()
     : null
   return {
-    isUnread: unreadPost || hasUnreadComment,
+    isUnread: unreadPost || unreadPostEdited || hasUnreadComment,
     unreadPost,
+    unreadPostEdited,
     unreadCommentCount: 0,
     unreadActivityAt,
   }
@@ -1895,6 +1909,7 @@ router.get('/', requireAuth, async (req, res, next) => {
         }
         const unreadMeta = buildUnreadMetaLight({
           postCreatedAt: row.created_at,
+          postUpdatedAt: row.updated_at,
           postAuthorId: row.author_id,
           userId: req.user.id,
           lastReadAt,
@@ -1915,6 +1930,7 @@ router.get('/', requireAuth, async (req, res, next) => {
             image_url: compactListImageUrl(author.image_url),
           },
           createdAt: row.created_at,
+          updatedAt: row.updated_at || row.created_at,
           comments: [],
           commentsLoaded: false,
           comment_count: meta.count,
@@ -2025,6 +2041,7 @@ router.get('/', requireAuth, async (req, res, next) => {
       }
       const unreadMeta = buildUnreadMetaLight({
         postCreatedAt: row.created_at,
+        postUpdatedAt: row.updated_at,
         postAuthorId: row.author_id,
         userId: req.user.id,
         lastReadAt,
@@ -2046,6 +2063,7 @@ router.get('/', requireAuth, async (req, res, next) => {
           image_url: compactListImageUrl(row.image_url),
         },
         createdAt: row.created_at,
+        updatedAt: row.updated_at || row.created_at,
         comments: [],
         commentsLoaded: false,
         comment_count: meta.count,
@@ -2575,32 +2593,37 @@ router.put('/:id', requireAuth, async (req, res, next) => {
     const attCols = Array(10).fill(null)
     attachmentIds.forEach((v, i) => { attCols[i] = v })
 
+    // 수정 시각 기록: 안 읽음 판정(max(created_at, updated_at))과 "수정됨" 표시의 근거.
+    // Cassandra는 트리거가 없어 updated_at을 명시적으로 세팅해야 한다(PG는 트리거로도 갱신되지만 일관성 위해 함께 세팅).
+    const editedAt = new Date()
+
     // security_level은 요청자의 레벨 이하만 허용
     const userLevel = securityLevelOf(req.user)
     const safeLevel = (security_level != null) ? Math.min(Math.max(parseInt(security_level) || 0, 0), userLevel) : undefined
     if (safeLevel !== undefined) {
       await client.execute(
         `UPDATE posts
-         SET content = ?, security_level = ?,
+         SET content = ?, security_level = ?, updated_at = ?, is_edited = true,
              attachments_1 = ?, attachments_2 = ?, attachments_3 = ?, attachments_4 = ?, attachments_5 = ?,
              attachments_6 = ?, attachments_7 = ?, attachments_8 = ?, attachments_9 = ?, attachments_10 = ?
          WHERE channel_id = ? AND created_at = ?`,
-        [content, safeLevel, ...attCols, row.channel_id, row.created_at], { prepare: true }
+        [content, safeLevel, editedAt, ...attCols, row.channel_id, row.created_at], { prepare: true }
       )
     } else {
       await client.execute(
         `UPDATE posts
-         SET content = ?,
+         SET content = ?, updated_at = ?, is_edited = true,
              attachments_1 = ?, attachments_2 = ?, attachments_3 = ?, attachments_4 = ?, attachments_5 = ?,
              attachments_6 = ?, attachments_7 = ?, attachments_8 = ?, attachments_9 = ?, attachments_10 = ?
          WHERE channel_id = ? AND created_at = ?`,
-        [content, ...attCols, row.channel_id, row.created_at], { prepare: true }
+        [content, editedAt, ...attCols, row.channel_id, row.created_at], { prepare: true }
       )
     }
     await db.query(
       `UPDATE posts
        SET content = $1,
            security_level = COALESCE($2, security_level),
+           is_edited = true, updated_at = NOW(),
            attachments_1 = $3, attachments_2 = $4, attachments_3 = $5, attachments_4 = $6, attachments_5 = $7,
            attachments_6 = $8, attachments_7 = $9, attachments_8 = $10, attachments_9 = $11, attachments_10 = $12
        WHERE id = $13`,

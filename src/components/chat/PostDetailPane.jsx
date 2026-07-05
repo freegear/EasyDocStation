@@ -3,9 +3,11 @@ import { useChat } from '../../contexts/ChatContext'
 import { useAuth } from '../../contexts/AuthContext'
 import { apiFetch } from '../../lib/api'
 import { useT } from '../../i18n/useT'
-import { isTemplateContent } from '../../templates/formTemplates'
+import { isTemplateContent, isMailCardContent, extractMailCardData, stripMailCardMarker } from '../../templates/formTemplates'
+import MailSummaryCard from '../mail/MailSummaryCard'
 import { useSelectionClickGuard } from '../../hooks/useSelectionClickGuard'
 import { findDuplicateFileNames } from '../../lib/fileNameValidation'
+import { recordRecentPostView } from '../../lib/recentPosts'
 import { getContentFontStyle } from '../../lib/contentFont'
 import useMentionAutocomplete from '../../hooks/useMentionAutocomplete'
 import MentionDropdown from '../MentionDropdown'
@@ -204,6 +206,7 @@ function PostDetailPane({
   const [uploading, setUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(null)
   const viewedPostRef = useRef('')
+  const recordedRecentRef = useRef('')
   const commentSubmittingRef = useRef(false)
   const commentsEndRef = useRef(null)
   const commentItemRefs = useRef(new Map())
@@ -300,6 +303,20 @@ function PostDetailPane({
     incrementViews(channelId, post.id)
   }, [channelId, incrementViews, post.id])
 
+  // "최근에 본 문서"용 스냅샷 기록 — 게시글을 열 때 1회. (WelcomeBoard.md 15절)
+  useEffect(() => {
+    const key = `${channelId}:${post.id}`
+    if (recordedRecentRef.current === key) return
+    recordedRecentRef.current = key
+    const snapshot = recordRecentPostView({ post, channel: selectedChannel, team: selectedTeam, userId: currentUser?.id })
+    if (snapshot) {
+      apiFetch('/recent-post-views', {
+        method: 'POST',
+        body: JSON.stringify({ ...snapshot, teamId: selectedTeam?.id || null }),
+      }).catch(() => {})
+    }
+  }, [channelId, post, selectedChannel, selectedTeam, currentUser?.id])
+
   const channelPosts = Array.isArray(posts[channelId]) ? posts[channelId] : []
   const listPost = channelPosts.find(p => String(p.id) === String(post.id)) || null
   const detailPost = postDetails?.[`${channelId}:${post.id}`] || null
@@ -345,7 +362,9 @@ function PostDetailPane({
   const canDeleteSelected = activeTargetType === 'post' ? canDeletePost : Boolean(canDeleteComment)
   const canPinSelected = activeTargetType === 'post' && canPinPost
   const selectedContent = activeTargetType === 'post'
-    ? (isTemplateContent(freshPost.content) ? toPlainTextFromHtml(freshPost.content) : freshPost.content)
+    ? (isTemplateContent(freshPost.content) ? toPlainTextFromHtml(freshPost.content)
+      : isMailCardContent(freshPost.content) ? stripMailCardMarker(freshPost.content)
+      : freshPost.content)
     : selectedComment?.text
   const selectedCopyKey = activeTargetType === 'post' ? `post:${post.id}` : `comment:${selectedComment?.id}`
   const selectedLinkKey = activeTargetType === 'post' ? `post-link:${post.id}` : `comment-link:${selectedComment?.id}`
@@ -1076,7 +1095,9 @@ function PostDetailPane({
               onClickCapture={(e) => guardSelectionClickCapture(e, postBodySelectionGuard)}
               onClick={selectPostTarget}
             >
-              {isTemplateContent(freshPost.content) ? (
+              {isMailCardContent(freshPost.content) && extractMailCardData(freshPost.content) ? (
+                <MailSummaryCard data={extractMailCardData(freshPost.content)} />
+              ) : isTemplateContent(freshPost.content) ? (
                 <TemplateRenderer
                   html={freshPost.content}
                   postId={post.id}

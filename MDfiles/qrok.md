@@ -2,6 +2,8 @@
 
 작성일: 2026-07-04
 
+> 참고: Groq/내부 LLM 공통 Query Rewrite 정책은 [grok.md](./grok.md)에 정리한다.
+
 ## 목표
 
 EasyDocStation의 AgenticAI 지능형 비서와 메일 요약 서비스에서 GROQ LLM 서비스를 선택적으로 사용할 수 있도록 구축한다.

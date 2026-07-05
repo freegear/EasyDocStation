@@ -71,6 +71,10 @@ function isGlobalRagQuery(text = '') {
   return /(전체|모든|전사|전체\s*RAG|전체\s*검색|전역|global|all documents|all data)/i.test(String(text || ''))
 }
 
+function normalizeUserQuestionText(text = '') {
+  return String(text || '').normalize('NFC').trim()
+}
+
 function isImageRagQuery(text = '') {
   return /(이미지|사진|그림|첨부\s*이미지|이\s*이미지|해당\s*이미지|image|photo|picture|screenshot)/i.test(String(text || ''))
 }
@@ -86,6 +90,8 @@ function isChannelPostSummaryIntent(text) {
 
 function isChannelResourceLocateIntent(text) {
   const compact = String(text || '').replace(/\s+/g, '')
+  const locateCommandOnly = isShortLocateFollowup(text)
+  const genericLocateWithSubject = Boolean(extractLocateSubject(text))
   const hasImageTarget = /(이미지|사진|그림|스크린샷|캡처|캡쳐|image|photo|picture|screenshot)/i.test(compact)
   const imageLocate = (
     hasImageTarget &&
@@ -95,12 +101,68 @@ function isChannelResourceLocateIntent(text) {
   )
   return (
     imageLocate ||
+    locateCommandOnly ||
+    genericLocateWithSubject ||
     (
       /(글|게시글|포스트|post|문서|자료|파일|첨부|데이터|블럭도|블록도|도면|회로도|다이어그램|이미지|사진|그림|스크린샷|캡처|캡쳐|diagram|blockdiagram|image|photo|picture|screenshot|document|resource|file|attachment)/i.test(compact) ||
       /^[A-Za-z0-9가-힣_.+\-/#]+(?:을|를|은|는|이|가|의)?(?:찾아줘|찾아|검색|검색해줘)$/u.test(compact)
     ) &&
     /(어디|위치|찾아줘|찾아|검색|검색해줘|링크|바로가기|문서로가기)/i.test(compact)
   )
+}
+
+function stripLocateCommandText(text = '') {
+  return normalizeUserQuestionText(text)
+    .replace(/[?？!！.,，。]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .replace(/\s*(?:을|를|은|는|이|가|의)?\s*(?:자료|문서|파일|첨부|글|게시글|포스트)?\s*(?:은|는|이|가|을|를|의)?\s*(?:어디(?:에)?\s*(?:있는가|있어|있나요|있습니까)?|위치(?:를)?\s*(?:알려\s*줘|알려줘|찾아\s*줘|찾아줘)?|찾아\s*줘|찾아줘|찾아|검색해\s*줘|검색해줘|검색|링크\s*(?:보여\s*줘|보여줘|줘)?|바로\s*가기|문서로\s*가기)\s*$/iu, '')
+    .replace(/\s*(?:설명해\s*줘|설명해|알려\s*줘|알려줘|정리해\s*줘|요약해\s*줘|해\s*줘|주세요)\s*$/iu, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+function extractLocateSubject(text = '') {
+  const normalized = normalizeUserQuestionText(text)
+  if (!/(어디|위치|찾아\s*줘|찾아줘|찾아|검색해\s*줘|검색해줘|검색|링크|바로\s*가기|문서로\s*가기)/iu.test(normalized)) return ''
+  const subject = stripLocateCommandText(normalized)
+    .replace(/^(?:이|그|저|해당|이전|위)\s*(?:자료|문서|파일|첨부|글|게시글)?$/iu, '')
+    .trim()
+  if (!subject || subject.length < 2) return ''
+  if (/^(어디|위치|찾아|찾아줘|검색|검색해줘|링크|바로가기|문서로가기)$/iu.test(subject.replace(/\s+/g, ''))) return ''
+  return subject
+}
+
+function isShortLocateFollowup(text = '') {
+  const compact = normalizeUserQuestionText(text).replace(/\s+/g, '')
+  return /^(어디(?:에)?(?:있는가|있어|있나요|있습니까)?|위치(?:알려줘|찾아줘)?|찾아줘|찾아|검색해줘|검색|링크(?:줘|보여줘)?|바로가기|문서로가기)$/iu.test(compact)
+}
+
+function resolvePreviousLocateSubject(messages = []) {
+  const previousUsers = (Array.isArray(messages) ? messages : [])
+    .filter(message => message?.role === 'user')
+    .slice()
+    .reverse()
+  for (const message of previousUsers) {
+    const content = normalizeUserQuestionText(message.content || '')
+      .replace(/\[[^\]]+\]\s*$/u, '')
+      .trim()
+    const subject = extractLocateSubject(content) || stripLocateCommandText(content)
+    if (subject && subject.length >= 2 && !isShortLocateFollowup(subject)) return subject
+  }
+  return ''
+}
+
+function resolveQuestionForRetrieval(text = '', messages = []) {
+  const normalized = normalizeUserQuestionText(text)
+  const directSubject = extractLocateSubject(normalized)
+  if (directSubject && isChannelResourceLocateIntent(normalized) && !/(자료|문서|파일|첨부|resource|document|file|attachment)/iu.test(normalized)) {
+    return `${directSubject} 자료는 어디에 있어?`
+  }
+  if (isShortLocateFollowup(normalized)) {
+    const previousSubject = resolvePreviousLocateSubject(messages)
+    if (previousSubject) return `${previousSubject} 자료는 어디에 있어?`
+  }
+  return normalized
 }
 
 function isInternalToolJson(text = '') {
@@ -844,7 +906,8 @@ export default function GroqPanel({ width }) {
   }
 
   async function sendMessage() {
-    const text = input.trim()
+    const rawText = input.trim()
+    const text = normalizeUserQuestionText(rawText)
     if (!text && !attachedFile || loading) return
     const abortController = new AbortController()
     abortControllerRef.current = abortController
@@ -865,6 +928,8 @@ export default function GroqPanel({ width }) {
 
     const fileName = attachedFile ? ` [${t.ai.attachFile}: ${attachedFile.name}]` : ''
     const fullText = text + fileName
+    const resolvedQuestion = !attachedFile ? resolveQuestionForRetrieval(text, messages) : text
+    const resolvedFullText = resolvedQuestion + fileName
 
     const userMsg = {
       id: `u-${Date.now()}`,
@@ -881,7 +946,7 @@ export default function GroqPanel({ width }) {
     setLoading(true)
     setError(null)
 
-    if (!attachedFile && (isChannelPostSummaryIntent(text) || isChannelResourceLocateIntent(text) || isSingleKeywordLocateIntent(text))) {
+    if (!attachedFile && (isChannelPostSummaryIntent(resolvedQuestion) || isChannelResourceLocateIntent(resolvedQuestion) || isSingleKeywordLocateIntent(resolvedQuestion))) {
       try {
         if (!selectedChannel?.id) {
           setMessages(prev => [...prev, {
@@ -899,7 +964,8 @@ export default function GroqPanel({ width }) {
           method: 'POST',
           signal: abortController.signal,
           body: JSON.stringify({
-            question: text,
+            question: resolvedQuestion,
+            originalQuestion: text,
             channelId: selectedChannel.id,
             model: selectedModel,
           }),
@@ -1010,9 +1076,9 @@ export default function GroqPanel({ width }) {
     }
 
     // ── 1. 번역 요청 감지 — 번역이면 RAG 검색 없이 바로 AI 호출 ──
-    const isTranslation = isTranslationQuery(text)
+    const isTranslation = isTranslationQuery(resolvedQuestion)
     const ragScopeInfo = (!isTranslation && !base64Data)
-      ? resolveRagScope(text)
+      ? resolveRagScope(resolvedQuestion)
       : { scope: 'global_scope', filter: {}, target: {} }
 
     let ragContext = ''
@@ -1022,7 +1088,7 @@ export default function GroqPanel({ width }) {
       let keywordReferences = []
       try {
         const keywordGroups = []
-        for (const searchQuery of buildKeywordSearchQueries(text)) {
+        for (const searchQuery of buildKeywordSearchQueries(resolvedQuestion)) {
           const searchParams = new URLSearchParams({ q: searchQuery, limit: '5' })
           if (selectedChannel?.id) searchParams.set('current_channel_id', selectedChannel.id)
           if (selectedTeam?.id) searchParams.set('current_team_id', selectedTeam.id)
@@ -1041,8 +1107,8 @@ export default function GroqPanel({ width }) {
 
       // ── 1-1. RAG 검색 — LanceDB에서 관련 문서 검색 ──────────
       try {
-        const dynamicLimit = isCommandQuery(text) || isTemporalQuery(text) ? 10 : isEnumerationQuery(text) ? 8 : 5
-        const preferredSources = extractSourceHints(text)
+        const dynamicLimit = isCommandQuery(resolvedQuestion) || isTemporalQuery(resolvedQuestion) ? 10 : isEnumerationQuery(resolvedQuestion) ? 8 : 5
+        const preferredSources = extractSourceHints(resolvedQuestion)
         const scopedFetchK = ragScopeInfo.scope === 'global_scope' ? dynamicLimit * 3 : 80
         const retrievalPayload = {
           ...ragRetrieval,
@@ -1058,7 +1124,7 @@ export default function GroqPanel({ width }) {
           method: 'POST',
           signal: abortController.signal,
           body: JSON.stringify({
-            query: text,
+            query: resolvedQuestion,
             limit: dynamicLimit,
             preferred_sources: preferredSources,
             retrieval: retrievalPayload,
@@ -1110,8 +1176,8 @@ export default function GroqPanel({ width }) {
     // 이미지 첨부: RAG context 무시하고 직접 전송
     // 일반 질문: RAG context를 프롬프트에 포함
     const contentWithContext = (ragContext && !base64Data && !isTranslation)
-      ? `아래 [참고 정보]에 있는 사실만 근거로 답변하세요. 참고 정보에 없는 사실은 추측하지 마세요. 다만 언어/문체/역할 요청(예: 일본어로 답변)은 반영하세요.\n링크, URL, 경로는 절대 추측해서 만들지 마세요. /channels/{channelId}/posts/{postId} 같은 템플릿 링크를 작성하지 마세요. 실제 link 값이 참고 정보에 명시되어 있지 않으면 본문에 링크 항목을 쓰지 말고, 자료 위치는 참고 문서 카드에서 확인할 수 있다고만 안내하세요.\n\n[참고 정보]\n${ragContext}\n\n[질문]\n${fullText}`
-      : fullText
+      ? `아래 [참고 정보]에 있는 사실만 근거로 답변하세요. 참고 정보에 없는 사실은 추측하지 마세요. 다만 언어/문체/역할 요청(예: 일본어로 답변)은 반영하세요.\n링크, URL, 경로는 절대 추측해서 만들지 마세요. /channels/{channelId}/posts/{postId} 같은 템플릿 링크를 작성하지 마세요. 실제 link 값이 참고 정보에 명시되어 있지 않으면 본문에 링크 항목을 쓰지 말고, 자료 위치는 참고 문서 카드에서 확인할 수 있다고만 안내하세요.\n\n[참고 정보]\n${ragContext}\n\n[질문]\n${resolvedFullText}`
+      : resolvedFullText
 
     const scopedContentWithContext = agenticTarget
       ? (() => {

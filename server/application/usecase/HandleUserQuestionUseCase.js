@@ -6,6 +6,7 @@ const PostRepository = require('../../query/repository/PostRepository')
 const SummaryService = require('../../summarize/SummaryService')
 const { ACTIONS } = require('../../intent/schema/IntentSchema')
 const config = require('../../../config.json')
+const { locateWithRagFallback } = require('../../services/ragLocateFallback')
 
 function stripHtml(value = '') {
   return String(value)
@@ -104,13 +105,20 @@ class HandleUserQuestionUseCase {
     }
 
     if (intent.action === ACTIONS.LOCATE) {
-      const located = await this.postRepository.locateReferences({
+      let located = await this.postRepository.locateReferences({
         channelId: intent.channelId,
         target: intent.target,
         keywords: intent.keywords,
         matchMode: intent.matchMode,
         limit: 10,
       }, user)
+      if (located.length === 0) {
+        located = await locateWithRagFallback({
+          channelId: intent.channelId,
+          keywords: intent.keywords,
+          limit: 10,
+        }, user)
+      }
       const references = located.map((ref) => ({
         ...ref,
         link: buildFrontendLink({
