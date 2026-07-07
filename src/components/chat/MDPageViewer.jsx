@@ -28,6 +28,7 @@ import TipTapToolbar from './md-page/toolbar/TipTapToolbar'
 import LinkBubbleMenu from './md-page/toolbar/LinkBubbleMenu'
 import TableBubbleMenu from './md-page/toolbar/TableBubbleMenu'
 import InternalLinkAutocomplete from './md-page/toolbar/InternalLinkAutocomplete'
+import EasyPageSlashLinkMenu from './md-page/toolbar/EasyPageSlashLinkMenu'
 import { MermaidPreviewExtension, EchartsPreviewExtension } from './md-page/extensions/diagramPreviewExtensions'
 import { EasyDocClipboardExtension, getDomSelectedTextInsideElement, stopClipboardEvent, writeEasyDocClipboardData, pasteEasyDocClipboardData } from './md-page/extensions/clipboardExtension'
 import { TocNode } from './md-page/extensions/tocNode'
@@ -73,8 +74,76 @@ function findTaskItemPosFromTarget(view, targetEl) {
   }
 }
 
-export default function MDPageViewer({ post, channelId, onClose }) {
-  const { updatePost, deletePost, addComment, deleteComment, posts, selectedChannel, togglePostPin, togglePostLike, toggleCommentLike } = useChat()
+function getInternalPostLinkTarget(href = '') {
+  try {
+    const url = new URL(String(href || '').replace(/&amp;/g, '&'), window.location.origin)
+    if (url.origin !== window.location.origin) return null
+    const targetChannelId = url.searchParams.get('channelId') || url.searchParams.get('channelid')
+    const targetPostId = url.searchParams.get('postId') || url.searchParams.get('postid')
+    if (!targetChannelId || !targetPostId) return null
+    return { channelId: targetChannelId, postId: targetPostId }
+  } catch {
+    return null
+  }
+}
+
+function getEventTargetElement(target) {
+  if (target instanceof Element) return target
+  if (typeof Node !== 'undefined' && target instanceof Node) {
+    return target.parentElement || null
+  }
+  return null
+}
+
+function getLinkHrefFromResolvedPos(resolvedPos) {
+  const marks = [
+    ...(resolvedPos.marks?.() || []),
+    ...(resolvedPos.nodeAfter?.marks || []),
+    ...(resolvedPos.nodeBefore?.marks || []),
+  ]
+  const linkMark = marks.find(mark => mark?.type?.name === 'link' && mark.attrs?.href)
+  return linkMark?.attrs?.href ? String(linkMark.attrs.href) : ''
+}
+
+function getEditorLinkHrefFromEvent(editor, event) {
+  const target = getEventTargetElement(event?.target)
+  const anchor = target?.closest?.('a[href]')
+  if (anchor instanceof HTMLAnchorElement) {
+    const href = String(anchor.getAttribute('href') || '').trim()
+    if (href) return href
+  }
+
+  const view = editor?.view
+  if (!view?.posAtCoords || !event || typeof event.clientX !== 'number' || typeof event.clientY !== 'number') {
+    return ''
+  }
+
+  const found = view.posAtCoords({ left: event.clientX, top: event.clientY })
+  if (!found || !Number.isFinite(found.pos)) return ''
+
+  const { doc } = view.state
+  const docSize = doc.content.size
+  const positions = [found.pos, found.pos - 1, found.pos + 1]
+    .filter(pos => Number.isFinite(pos) && pos >= 0 && pos <= docSize)
+
+  for (const pos of positions) {
+    try {
+      const href = getLinkHrefFromResolvedPos(doc.resolve(pos))
+      if (href) return href
+    } catch {
+      // Try the adjacent editor positions; some clicks land on mark boundaries.
+    }
+  }
+  return ''
+}
+
+function looksLikeInternalPostHref(href = '') {
+  return /(?:^|[?&#])channelid=/i.test(String(href || ''))
+    || /(?:^|[?&#])postid=/i.test(String(href || ''))
+}
+
+export default function MDPageViewer({ post, channelId, onClose, onOpenPostLink }) {
+  const { updatePost, deletePost, addPost, addComment, deleteComment, posts, selectedChannel, togglePostPin, togglePostLike, toggleCommentLike } = useChat()
   const { currentUser, maxAttachmentFileSize } = useAuth()
   const t = useT()
   const authToken = getToken() || ''
@@ -94,6 +163,7 @@ export default function MDPageViewer({ post, channelId, onClose }) {
   const [savedImageMeta, setSavedImageMeta] = useState(() => extractImageMeta(initialMdStored))
   const [isChanged, setIsChanged] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [creatingChildPage, setCreatingChildPage] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [pinning, setPinning] = useState(false)
   const [showSaveDialog, setShowSaveDialog] = useState(false)
@@ -145,6 +215,8 @@ export default function MDPageViewer({ post, channelId, onClose }) {
   const sourceColorRangeRef = useRef(null)
   const modeRef = useRef(mode)
   const canEditRef = useRef(false)
+  const linkNavigationGuardRef = useRef({ href: '', at: 0 })
+  const editorRef = useRef(null)
   const hadCodeFenceRef = useRef(/```/.test(stripAllMdMeta(initialMdStored)))
 
   useEffect(() => { showSaveDialogRef.current = showSaveDialog }, [showSaveDialog])
@@ -161,6 +233,37 @@ export default function MDPageViewer({ post, channelId, onClose }) {
   const isPinManagerRole = ['site_admin', 'team_admin', 'channel_admin'].includes(String(currentUser?.role || ''))
   const canPinPost = (isPinManagerRole || isAuthor) && !selectedChannel?.is_archived
   useEffect(() => { canEditRef.current = canEdit }, [canEdit])
+
+  const handleEditorLinkNavigation = useCallback((event) => {
+    if (event?.button != null && event.button !== 0) return false
+    const target = getEventTargetElement(event?.target)
+    if (target?.closest?.('[data-easypage-slash-link-menu="true"]')) return false
+    const href = getEditorLinkHrefFromEvent(editorRef.current, event)
+    if (!href) return false
+
+    event.preventDefault()
+    event.stopPropagation()
+
+    const now = Date.now()
+    const previous = linkNavigationGuardRef.current
+    if (previous.href === href && now - previous.at < 500) return true
+    linkNavigationGuardRef.current = { href, at: now }
+
+    const internalTarget = getInternalPostLinkTarget(href) || getInternalPostLinkTarget(normalizeLinkUrl(href))
+    if (internalTarget && typeof onOpenPostLink === 'function') {
+      onOpenPostLink(internalTarget.channelId, internalTarget.postId)
+      return true
+    }
+
+    if (looksLikeInternalPostHref(href)) {
+      console.warn('Internal EasyPage link could not be resolved:', href)
+      return true
+    }
+
+    const normalized = normalizeLinkUrl(href)
+    window.open(normalized, '_blank', 'noopener,noreferrer')
+    return true
+  }, [onOpenPostLink])
 
   useEffect(() => {
     let cancelled = false
@@ -248,17 +351,7 @@ export default function MDPageViewer({ post, channelId, onClose }) {
           return true
         }
 
-        const anchor = target.closest('a[href]')
-        if (!(anchor instanceof HTMLAnchorElement)) return false
-        const href = String(anchor.getAttribute('href') || '').trim()
-        if (!href) return false
-
-        event.preventDefault()
-        event.stopPropagation()
-
-        const normalized = normalizeLinkUrl(href)
-        window.open(normalized, '_blank', 'noopener,noreferrer')
-        return true
+        return handleEditorLinkNavigation(event)
       },
       handleDrop(view, event) {
         if (!canEdit || mode !== 'preview') return false
@@ -329,6 +422,9 @@ export default function MDPageViewer({ post, channelId, onClose }) {
       hadCodeFenceRef.current = hasAnyCode
     },
   })
+  useEffect(() => {
+    editorRef.current = editor
+  }, [editor])
 
   useEffect(() => {
     if (!editor) return
@@ -590,17 +686,27 @@ export default function MDPageViewer({ post, channelId, onClose }) {
     )
   }, [mode, sourceText, editor])
 
-  const handleSave = useCallback(async () => {
-      const md = stripAuthTokenFromMarkdown(getCurrentMarkdown())
-      const withImageMeta = attachImageMeta(md, normalizeImageMetaKeys(imageMeta))
-      const mdWithMeta = mode === 'preview' && editor
-        ? attachDocMeta(withImageMeta, editor.getJSON())
-        : stripDocMeta(withImageMeta)
+  const buildCurrentMdPageContent = useCallback(() => {
+    const md = stripAuthTokenFromMarkdown(getCurrentMarkdown())
+    const normalizedImageMeta = normalizeImageMetaKeys(imageMeta)
+    const withImageMeta = attachImageMeta(md, normalizedImageMeta)
+    const mdWithMeta = mode === 'preview' && editor
+      ? attachDocMeta(withImageMeta, editor.getJSON())
+      : stripDocMeta(withImageMeta)
+    return {
+      md,
+      normalizedImageMeta,
+      content: `${MD_PAGE_MARKER}\n${mdWithMeta}`,
+    }
+  }, [editor, getCurrentMarkdown, imageMeta, mode])
+
+  const saveCurrentMdPage = useCallback(async () => {
+    const next = buildCurrentMdPageContent()
     setSaving(true)
     try {
-      await updatePost(channelId, post.id, { content: `${MD_PAGE_MARKER}\n${mdWithMeta}` })
-      setSavedContent(md)
-      setSavedImageMeta(normalizeImageMetaKeys(imageMeta))
+      await updatePost(channelId, post.id, { content: next.content })
+      setSavedContent(next.md)
+      setSavedImageMeta(next.normalizedImageMeta)
       if (mode === 'preview' && editor) {
         savedDocSignatureRef.current = getEditorDocSignature(editor)
       } else {
@@ -610,10 +716,60 @@ export default function MDPageViewer({ post, channelId, onClose }) {
       setIsChanged(false)
     } catch (e) {
       console.error('MD 페이지 저장 실패:', e)
+      throw e
     } finally {
       setSaving(false)
     }
-  }, [channelId, editor, getCurrentMarkdown, imageMeta, mode, post.id, updatePost])
+  }, [buildCurrentMdPageContent, channelId, editor, mode, post.id, updatePost])
+
+  const handleSave = useCallback(async () => {
+    try {
+      await saveCurrentMdPage()
+    } catch {
+      // Save errors are surfaced inside saveCurrentMdPage.
+    }
+  }, [saveCurrentMdPage])
+
+  const handleCreateChildPageFromSelection = useCallback(async () => {
+    if (!editor || creatingChildPage) return
+    const { from, to, empty } = editor.state.selection
+    if (empty || from === to) return
+    const selectedText = editor.state.doc.textBetween(from, to, ' ')
+    const normalizedTitle = selectedText.replace(/\s+/g, ' ').trim()
+    if (!normalizedTitle) return
+    const title = Array.from(normalizedTitle).slice(0, 80).join('')
+    const childContent = `${MD_PAGE_MARKER}\n# ${title}\n\n`
+    setCreatingChildPage(true)
+    try {
+      const createdPost = await addPost(
+        channelId,
+        {
+          content: childContent,
+          attachmentIds: [],
+          security_level: freshPost.security_level ?? post.security_level,
+        },
+        { suppressAlert: true },
+      )
+      const childPostId = createdPost?.id
+      if (!childPostId) throw new Error('생성된 EasyPage ID를 확인할 수 없습니다.')
+      const href = `/?channelId=${encodeURIComponent(channelId)}&postId=${encodeURIComponent(childPostId)}`
+      const docSize = editor.state.doc.content.size
+      if (to > docSize) throw new Error('선택 영역이 변경되어 링크를 적용할 수 없습니다.')
+      editor.chain().focus().setTextSelection({ from, to }).setLink({ href }).run()
+      try {
+        await saveCurrentMdPage()
+      } catch (saveErr) {
+        console.error('하위 EasyPage 링크 저장 실패:', saveErr)
+        setIsChanged(true)
+        alert('하위 페이지는 생성되었지만 현재 EasyPage 저장에 실패했습니다. 변경 내용을 수동으로 저장해주세요.')
+      }
+    } catch (err) {
+      console.error('하위 EasyPage 생성 실패:', err)
+      alert('하위 페이지 만들기에 실패했습니다: ' + (err?.message || err))
+    } finally {
+      setCreatingChildPage(false)
+    }
+  }, [addPost, channelId, creatingChildPage, editor, freshPost.security_level, post.security_level, saveCurrentMdPage])
 
   const handleCopyLink = useCallback(async () => {
     const link = `${window.location.origin}${window.location.pathname}?channelId=${encodeURIComponent(channelId)}&postId=${encodeURIComponent(post.id)}`
@@ -1014,9 +1170,22 @@ export default function MDPageViewer({ post, channelId, onClose }) {
               onPasteCapture={(event) => {
                 pasteEasyDocClipboardData(editor?.view, event)
               }}
+              onPointerDownCapture={(event) => {
+                handleEditorLinkNavigation(event)
+              }}
+              onMouseDownCapture={(event) => {
+                handleEditorLinkNavigation(event)
+              }}
+              onClickCapture={(event) => {
+                handleEditorLinkNavigation(event)
+              }}
             >
               {canEdit && (
-                <LinkBubbleMenu editor={editor} />
+                <LinkBubbleMenu
+                  editor={editor}
+                  onCreateChildPage={handleCreateChildPageFromSelection}
+                  creatingChildPage={creatingChildPage}
+                />
               )}
               {canEdit && (
                 <TableBubbleMenu editor={editor} />
@@ -1024,6 +1193,14 @@ export default function MDPageViewer({ post, channelId, onClose }) {
               <EditorContent editor={editor} className="tiptap-editor" style={contentFontStyle} />
               {canEdit && (
                 <InternalLinkAutocomplete editor={editor} />
+              )}
+              {canEdit && (
+                <EasyPageSlashLinkMenu
+                  editor={editor}
+                  channelId={channelId}
+                  currentPost={freshPost}
+                  channelPosts={channelPosts}
+                />
               )}
             </div>
           )}

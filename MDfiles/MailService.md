@@ -125,9 +125,16 @@ WelcomeBoard의 메일 카드는 "최근에 수신한 메일"이라는 이름보
 2. 받은 편지함(`inbox`)에 있는 메일만 대상으로 한다.
 3. 읽지 않은 메일(`is_read = false`)만 보여준다.
 4. `received_at`, `sent_at`, `created_at` 우선순위의 최신순으로 정렬한다.
-5. 기본 표시 개수는 5개이며, 서버 요청은 여유 있게 30개까지 받을 수 있다.
+5. 화면에는 최근 미확인 메일이 한 번에 7개 보이도록 한다.
+6. 미확인 메일이 7개를 초과하면 목록 영역 높이는 7개 기준으로 고정하고, 같은 영역 안에서 상하 스크롤로 나머지 미확인 메일을 볼 수 있게 한다.
+7. 서버 요청은 여유 있게 30개까지 받을 수 있으며, 프론트는 응답을 7개로 자르지 않고 템플릿에 전달한다.
 
-표시 항목은 발신자 이름 또는 이메일, 제목, 본문 preview, 수신 시각, 계정 이메일을 포함한다. 계정 이메일은 여러 계정을 통합해서 볼 때 출처를 구분하기 위한 보조 정보다.
+표시 항목은 발신자 이름 또는 이메일, 제목, 본문 preview, 수신 시각, 계정 이메일, 중요 표시, 발신자 도메인 favicon을 포함한다. 계정 이메일은 여러 계정을 통합해서 볼 때 출처를 구분하기 위한 보조 정보다.
+
+각 미확인 메일 행의 왼쪽 끝에는 다음 순서로 보조 표시를 둔다.
+
+1. 중요 마크: `is_starred`가 true이면 채워진 별표(`★`), 아니면 빈 별표(`☆`)를 표시한다.
+2. 발신자 홈페이지 favicon: `from_email`의 도메인을 기준으로 favicon을 표시한다. favicon을 가져오지 못하거나 발신자 도메인을 알 수 없으면 기존 이니셜 배지를 fallback으로 표시한다.
 
 빈 상태 문구는 `읽지 않은 받은 메일이 없습니다.`로 표시한다.
 
@@ -137,6 +144,8 @@ WelcomeBoard의 메일 카드는 "최근에 수신한 메일"이라는 이름보
 
 - [src/App.jsx](../src/App.jsx)
   - WelcomeBoard 데이터 로딩에서 `/mail/messages`를 `scope=unified`, `unifiedKey=inbox`, `unreadOnly=1`로 호출한다.
+  - 서버에서 받은 최근 미확인 메일은 최대 30개까지 `recentUnreadMail`로 전달하고, 7개 제한은 렌더링 높이로만 처리한다.
+  - 템플릿이 별표와 favicon을 렌더할 수 있도록 `from_email`, `is_starred` 값을 `recentUnreadMail` payload에 포함한다.
   - 결과는 `recentUnreadMail`과 기존 템플릿 호환용 `importantMail`에 함께 전달한다.
 - [server/routes/mail.js](../server/routes/mail.js)
   - `/mail/messages`에서 `unreadOnly` query를 파싱해 repository로 넘긴다.
@@ -146,6 +155,8 @@ WelcomeBoard의 메일 카드는 "최근에 수신한 메일"이라는 이름보
   - 카드 제목을 `최근 미확인 메일`로 표시한다.
   - `전체 보기` target을 통합 받은 편지함으로 보낸다.
   - `recentUnreadMail` payload를 우선 사용하고, 구버전 호환을 위해 `importantMail`도 처리한다.
+  - 하단 `최근 미확인 메일` 탭의 `#recentUnreadMailList`는 7개 행 높이로 고정하고 8번째 이후 행은 세로 스크롤로 표시한다.
+  - 각 행의 왼쪽에 별표와 발신자 도메인 favicon을 표시하고, favicon 실패 시 이니셜 배지로 대체한다.
   - 템플릿에 박혀 있던 고정 샘플 메일 HTML은 모두 제거한다.
   - 상단 메일 카드와 하단 `최근 미확인 메일` 탭은 같은 `recentUnreadMail` 데이터에서 렌더링한다.
 
@@ -5319,7 +5330,4 @@ isTemplateContent(content) ? <TemplateRenderer ...> :
 - **다이얼로그 폭 +30%**: 패널 최대 폭을 `max-w-lg`(512px) → **`max-w-2xl`(672px, 약 +31%)** 로 확대한다.
   일정 표/본문 미리보기가 더 여유 있게 보인다. (`max-h-[90vh]`·세로 스크롤은 유지)
 - 구현 위치: [src/features/mail/MailPage.jsx](../src/features/mail/MailPage.jsx) `MailToPostDialog` 패널/헤더 className.
-
-
-
 

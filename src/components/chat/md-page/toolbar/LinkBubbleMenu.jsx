@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { BubbleMenu } from '@tiptap/react/menus'
 import { normalizeLinkUrl } from '../utils/markdown'
 
-export default function LinkBubbleMenu({ editor }) {
+export default function LinkBubbleMenu({ editor, onCreateChildPage, creatingChildPage = false }) {
   const [isEditing, setIsEditing] = useState(false)
   const [url, setUrl] = useState('')
 
@@ -20,6 +20,7 @@ export default function LinkBubbleMenu({ editor }) {
   }, [editor])
 
   if (!editor) return null
+  const selectedHasLink = editor.isActive('link')
 
   const openEdit = () => {
     const currentHref = String(editor.getAttributes('link')?.href || '')
@@ -39,12 +40,18 @@ export default function LinkBubbleMenu({ editor }) {
     setIsEditing(false)
   }
 
+  const createChildPage = () => {
+    if (creatingChildPage || typeof onCreateChildPage !== 'function') return
+    setIsEditing(false)
+    onCreateChildPage()
+  }
+
   return (
     <BubbleMenu
       editor={editor}
       shouldShow={({ editor: ed, from, to }) => ed.isEditable && from !== to}
-      tippyOptions={{ duration: 120, placement: 'top', maxWidth: 360 }}
-      className="rounded-lg border border-gray-200 bg-white shadow-md px-2 py-1 flex items-center gap-1"
+      tippyOptions={{ duration: 120, placement: 'top', maxWidth: 460 }}
+      className="rounded-lg border border-gray-200 bg-white shadow-md px-2 py-1 flex items-center gap-1 flex-wrap"
     >
       {isEditing ? (
         <div className="flex items-center gap-1">
@@ -84,9 +91,18 @@ export default function LinkBubbleMenu({ editor }) {
             onMouseDown={(e) => { e.preventDefault(); openEdit() }}
             className="h-8 px-2 rounded-md text-xs text-gray-700 hover:bg-gray-100"
           >
-            {editor.isActive('link') ? '링크 수정' : '링크 추가'}
+            {selectedHasLink ? '링크 수정' : '링크 추가'}
           </button>
-          {editor.isActive('link') && (
+          {!selectedHasLink && typeof onCreateChildPage === 'function' && (
+            <button
+              onMouseDown={(e) => { e.preventDefault(); createChildPage() }}
+              disabled={creatingChildPage}
+              className="h-8 px-2 rounded-md text-xs text-gray-700 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {creatingChildPage ? '생성 중...' : '하위 페이지 만들기'}
+            </button>
+          )}
+          {selectedHasLink && (
             <button
               onMouseDown={(e) => { e.preventDefault(); unsetLink() }}
               className="h-8 px-2 rounded-md text-xs text-red-600 hover:bg-red-50"

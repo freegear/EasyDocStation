@@ -69,6 +69,28 @@ function SidePanelToggleIcon({ open }) {
   )
 }
 
+function TitleImageButton({ src, label, active = false, onClick }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      aria-label={label}
+      title={label}
+      className={`inline-flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl bg-white shadow-sm transition-transform hover:scale-[1.03] hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 ${
+        active ? 'ring-2 ring-indigo-500' : 'ring-1 ring-gray-200'
+      }`}
+    >
+      <img
+        src={src}
+        alt=""
+        className="h-8 w-8 object-contain"
+        draggable="false"
+      />
+    </button>
+  )
+}
+
 function sanitizePostPreviewText(text = '') {
   return String(text || '')
     .replace(/<!--[\s\S]*?-->/g, ' ')
@@ -261,6 +283,10 @@ export default function TitleBar({
   onToggleSidebar,
   showWelcomeBoardButton = false,
   onOpenWelcomeBoard,
+  showMail = false,
+  showCalendar = false,
+  onOpenMail,
+  onToggleCalendar,
   showAgenticPanel = true,
   onToggleAgenticPanel,
   isMobileLayout = false,
@@ -334,6 +360,20 @@ export default function TitleBar({
                 />
               </button>
             )}
+
+            <TitleImageButton
+              src="/img/mail_logo.jpeg"
+              label="메일"
+              active={showMail}
+              onClick={onOpenMail}
+            />
+
+            <TitleImageButton
+              src="/img/calendar_logo.jpeg"
+              label="캘린더"
+              active={showCalendar}
+              onClick={onToggleCalendar}
+            />
 
             {/* Sidebar toggle (left of AI Panel) */}
             <button

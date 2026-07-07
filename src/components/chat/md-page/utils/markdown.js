@@ -28,7 +28,7 @@ export function normalizeMarkdownForTableParsing(md = '') {
 export function normalizeLinkUrl(input = '') {
   const raw = String(input || '').trim()
   if (!raw) return ''
-  if (/^(https?:\/\/|mailto:|tel:|\/|#)/i.test(raw)) return raw
+  if (/^(https?:\/\/|mailto:|tel:|\/|#|\?)/i.test(raw)) return raw
   return `https://${raw}`
 }
 

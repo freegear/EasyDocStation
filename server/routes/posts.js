@@ -1499,6 +1499,198 @@ router.get('/search', requireAuth, async (req, res, next) => {
   }
 })
 
+// ─── GET /api/posts/:id ───────────────────────────────────────
+router.get('/:id', requireAuth, async (req, res, next) => {
+  try {
+    const postId = String(req.params.id || '').trim()
+    if (postId === 'deleted') return next('route')
+    if (!postId) return res.status(400).json({ error: 'post id is required' })
+
+    const channelIdFromQuery = String(req.query.channelId || '').trim()
+    const resolvedChannelId = channelIdFromQuery || await resolveChannelIdForPost(postId)
+    if (!resolvedChannelId) return res.status(404).json({ error: 'Post not found' })
+
+    const allowed = await canAccessChannel(db, req.user, resolvedChannelId)
+    if (!allowed) return res.status(403).json({ error: ACCESS_DENIED_MESSAGE })
+
+    const deletedPostIds = await getDeletedItemIdSet('post', { channelId: resolvedChannelId })
+    if (deletedPostIds.has(postId)) return res.status(404).json({ error: 'Post not found' })
+
+    const lastReadRes = await db.query(
+      'SELECT last_read_at FROM channel_last_read WHERE user_id = $1 AND channel_id = $2',
+      [req.user.id, resolvedChannelId],
+    )
+    const lastReadAt = lastReadRes.rows[0]?.last_read_at || null
+    const pinnedMap = await getPinnedMapByChannel(resolvedChannelId)
+    const postLikeMap = await getPostLikeMap([postId], req.user.id)
+    const commentMeta = await getCommentMetaMap(resolvedChannelId, [postId], { userId: req.user.id, lastReadAt })
+    const permissionCtx = await buildChannelPermissionContext(req.user, resolvedChannelId)
+
+    if (isConnected()) {
+      const row = await fetchCassandraPostRowById(postId)
+      if (!row || String(row.channel_id) !== String(resolvedChannelId)) {
+        return res.status(404).json({ error: 'Post not found' })
+      }
+
+      const userCache = makeUserCache()
+      const author = (await userCache.get(row.author_id))
+        || { id: null, name: '알 수 없음', username: 'unknown', image_url: null }
+      const avatarLetters = author.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+      const attachmentIds = [
+        row.attachments_1, row.attachments_2, row.attachments_3, row.attachments_4, row.attachments_5,
+        row.attachments_6, row.attachments_7, row.attachments_8, row.attachments_9, row.attachments_10,
+      ].filter(Boolean)
+      const attachments = await enrichAttachments(attachmentIds)
+      const pinInfo = pinnedMap.get(String(row.id)) || null
+      const likeInfo = postLikeMap.get(String(row.id)) || { likeCount: 0, likedByMe: false }
+      const meta = commentMeta.get(String(row.id)) || {
+        count: 0,
+        lastCommentAt: null,
+        lastCommentAuthorId: null,
+        lastUnreadCommentAt: null,
+      }
+      const unreadMeta = buildUnreadMetaLight({
+        postCreatedAt: row.created_at,
+        postUpdatedAt: row.updated_at,
+        postAuthorId: row.author_id,
+        userId: req.user.id,
+        lastReadAt,
+        lastCommentAt: meta.lastCommentAt,
+        lastCommentAuthorId: meta.lastCommentAuthorId,
+        lastUnreadCommentAt: meta.lastUnreadCommentAt,
+      })
+
+      return res.json({
+        id: row.id.toString(),
+        channel_id: row.channel_id,
+        content: row.content,
+        attachments,
+        author: {
+          id: author.id,
+          name: author.name,
+          username: author.username,
+          avatar: avatarLetters,
+          image_url: compactListImageUrl(author.image_url),
+        },
+        createdAt: row.created_at,
+        updatedAt: row.updated_at || row.created_at,
+        comments: [],
+        commentsLoaded: false,
+        comment_count: meta.count,
+        last_comment_at: meta.lastCommentAt,
+        last_comment_author_id: meta.lastCommentAuthorId,
+        ...getTrainingStatus('post', row.id.toString()),
+        likeCount: likeInfo.likeCount || 0,
+        likedByMe: Boolean(likeInfo.likedByMe),
+        security_level: row.security_level || 0,
+        can_edit: canMutateWithContext(permissionCtx, author),
+        tags: [],
+        pinned: Boolean(pinInfo?.pinned),
+        pinned_at: pinInfo?.pinned_at || null,
+        pinned_by: pinInfo?.pinned_by || null,
+        views: 0,
+        ...unreadMeta,
+      })
+    }
+
+    const result = await db.query(
+      `SELECT p.*, u.id AS u_id, u.name AS author_name, u.username, u.image_url,
+              u.role AS author_role, u.security_level AS author_security_level
+       FROM posts p JOIN users u ON p.author_id = u.id
+       WHERE p.id = $1 AND p.channel_id = $2
+       LIMIT 1`,
+      [postId, resolvedChannelId],
+    )
+    const row = result.rows?.[0]
+    if (!row) return res.status(404).json({ error: 'Post not found' })
+
+    const attachmentIds = [
+      row.attachments_1, row.attachments_2, row.attachments_3, row.attachments_4, row.attachments_5,
+      row.attachments_6, row.attachments_7, row.attachments_8, row.attachments_9, row.attachments_10,
+    ].filter(Boolean)
+    let attachments = []
+    if (attachmentIds.length > 0) {
+      attachments = await enrichAttachments(attachmentIds)
+    } else {
+      const attRes = await db.query(
+        `SELECT * FROM attachments WHERE post_id = $1 AND status = 'COMPLETED'`,
+        [row.id],
+      )
+      attachments = attRes.rows.map(a => ({
+        id: a.id,
+        name: a.filename,
+        type: a.content_type,
+        size: a.size,
+        url: `/api/files/view/${a.id}`,
+        thumbnail_url: a.thumbnail_path ? `/api/files/view/${a.id}?thumbnail=true` : null,
+      }))
+    }
+
+    const avatarLetters = row.author_name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+    const authorRecord = {
+      id: row.author_id,
+      name: row.author_name,
+      username: row.username,
+      image_url: row.image_url,
+      role: row.author_role,
+      security_level: row.author_security_level,
+    }
+    const pinInfo = pinnedMap.get(String(row.id)) || null
+    const likeInfo = postLikeMap.get(String(row.id)) || { likeCount: 0, likedByMe: false }
+    const meta = commentMeta.get(String(row.id)) || {
+      count: 0,
+      lastCommentAt: null,
+      lastCommentAuthorId: null,
+      lastUnreadCommentAt: null,
+    }
+    const unreadMeta = buildUnreadMetaLight({
+      postCreatedAt: row.created_at,
+      postUpdatedAt: row.updated_at,
+      postAuthorId: row.author_id,
+      userId: req.user.id,
+      lastReadAt,
+      lastCommentAt: meta.lastCommentAt,
+      lastCommentAuthorId: meta.lastCommentAuthorId,
+      lastUnreadCommentAt: meta.lastUnreadCommentAt,
+    })
+
+    return res.json({
+      id: row.id,
+      channel_id: row.channel_id,
+      content: row.content,
+      title: row.title || '',
+      attachments,
+      author: {
+        id: row.author_id,
+        name: row.author_name,
+        username: row.username,
+        avatar: avatarLetters,
+        image_url: compactListImageUrl(row.image_url),
+      },
+      createdAt: row.created_at,
+      updatedAt: row.updated_at || row.created_at,
+      comments: [],
+      commentsLoaded: false,
+      comment_count: meta.count,
+      last_comment_at: meta.lastCommentAt,
+      last_comment_author_id: meta.lastCommentAuthorId,
+      ...getTrainingStatus('post', row.id),
+      likeCount: likeInfo.likeCount || 0,
+      likedByMe: Boolean(likeInfo.likedByMe),
+      security_level: row.security_level || 0,
+      can_edit: canMutateWithContext(permissionCtx, authorRecord),
+      tags: [],
+      pinned: Boolean(pinInfo?.pinned),
+      pinned_at: pinInfo?.pinned_at || null,
+      pinned_by: pinInfo?.pinned_by || null,
+      views: row.views || 0,
+      ...unreadMeta,
+    })
+  } catch (err) {
+    next(err)
+  }
+})
+
 // ─── POST /api/posts/search-index/rebuild ─────────────────────
 router.post('/search-index/rebuild', requireAuth, async (req, res, next) => {
   try {

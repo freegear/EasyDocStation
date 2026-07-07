@@ -224,6 +224,7 @@
     padding:16px 22px 0;
   }
   .tab{
+    display:flex;align-items:center;gap:7px;
     font-size:13.5px;font-weight:600;
     color:var(--text-tertiary);
     padding:10px 4px;
@@ -232,6 +233,13 @@
   }
   .tab.active{color:var(--accent);border-bottom-color:var(--accent);}
   .tab:hover:not(.active){color:var(--text-secondary);}
+  .tab-count{
+    min-width:18px;height:18px;padding:0 6px;border-radius:999px;
+    display:inline-flex;align-items:center;justify-content:center;
+    background:var(--accent-soft);color:var(--accent);
+    font-size:11px;font-weight:800;line-height:1;
+  }
+  .tab-count:empty{display:none;}
   .tab-panel{display:none;padding:6px 22px 20px;}
   .tab-panel.active{display:block;}
   .doc-list{display:flex;flex-direction:column;}
@@ -294,6 +302,23 @@
     border-bottom:1px solid var(--divider);
   }
   .doc-row:last-of-type,.mailrow2:last-of-type{border-bottom:none;}
+  #recentUnreadMailList{
+    scrollbar-gutter:stable;
+    padding-right:4px;
+  }
+  .mailrow-leading{display:flex;align-items:center;gap:8px;flex-shrink:0;min-width:58px;}
+  .mail-star{width:14px;text-align:center;font-size:15px;line-height:1;color:var(--text-tertiary);}
+  .mail-star.is-starred{color:var(--warn);}
+  .mail-favicon-wrap{
+    position:relative;width:36px;height:36px;border-radius:10px;
+    display:flex;align-items:center;justify-content:center;flex-shrink:0;
+    background:var(--panel-hover);overflow:hidden;
+  }
+  .mail-favicon{width:22px;height:22px;object-fit:contain;}
+  .mail-favicon-fallback{display:none;width:36px;height:36px;border-radius:10px;}
+  .mail-favicon-wrap.fallback{background:transparent;}
+  .mail-favicon-wrap.fallback .mail-favicon{display:none;}
+  .mail-favicon-wrap.fallback .mail-favicon-fallback{display:flex;}
   .doc-info{flex:1;min-width:0;display:flex;align-items:center;gap:8px;}
   .doc-name{font-size:13.5px;font-weight:600;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .foot-link{
@@ -376,7 +401,7 @@
     <div class="tabs">
       <div class="tab active" onclick="showPanel(this,'docs')">최근에 본 문서</div>
       <div class="tab" onclick="showPanel(this,'updates')">최근에 업데이트 된 글</div>
-      <div class="tab" onclick="showPanel(this,'mails')">최근 미확인 메일</div>
+      <div class="tab" onclick="showPanel(this,'mails')">최근 미확인 메일 <span id="recentUnreadMailCount" class="tab-count"></span></div>
     </div>
 
     <div class="tab-panel active" id="panel-docs">
@@ -406,11 +431,29 @@
   </div>
 
   <script>
+    function wbApplyRecentUnreadMailViewport(){
+      var box = document.getElementById('recentUnreadMailList');
+      if (!box) return;
+      if (box.children.length <= 7){
+        box.style.maxHeight = '';
+        box.style.overflowY = '';
+        return;
+      }
+      var panel = document.getElementById('panel-mails');
+      if (!panel || !panel.classList.contains('active') || box.offsetParent === null) return;
+      var h = 0;
+      for (var k = 0; k < 7; k++) h += box.children[k].offsetHeight;
+      if (h > 0){
+        box.style.maxHeight = h + 'px';
+        box.style.overflowY = 'auto';
+      }
+    }
     function showPanel(el, name){
       document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
       document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
       el.classList.add('active');
       document.getElementById('panel-'+name).classList.add('active');
+      if (name === 'mails') requestAnimationFrame(wbApplyRecentUnreadMailViewport);
     }
 
     // 부모(React)가 주입하는 실제 "중요 편지함" 데이터 렌더 (WelcomeBoard.md 12절)
@@ -427,6 +470,21 @@
       if (isNaN(d.getTime())) return '';
       // 메일 목록과 동일한 날짜 표기
       return d.toLocaleDateString();
+    }
+    function wbSenderDomain(email){
+      var s = String(email || '').trim();
+      var match = s.match(/@([^>\s]+)/);
+      if (!match) return '';
+      return match[1].replace(/[),.;:]+$/g, '').toLowerCase();
+    }
+    function wbFaviconUrl(domain){
+      return domain ? 'https://www.google.com/s2/favicons?domain=' + encodeURIComponent(domain) + '&sz=64' : '';
+    }
+    function wbUpdateRecentUnreadMailCount(count){
+      var el = document.getElementById('recentUnreadMailCount');
+      if (!el) return;
+      var n = Number(count);
+      el.textContent = Number.isFinite(n) ? String(Math.max(0, n)) : '';
     }
     function wbRenderImportantMail(list){
       var box = document.getElementById('importantMailList');
@@ -482,17 +540,20 @@
         box.appendChild(item);
       });
     }
-    function wbRenderRecentUnreadMailList(list){
+    function wbRenderRecentUnreadMailList(list, totalCount){
       var box = document.getElementById('recentUnreadMailList');
       if (!box) return;
       box.innerHTML = '';
       list = Array.isArray(list) ? list : [];
+      wbUpdateRecentUnreadMailCount(totalCount !== undefined ? totalCount : list.length);
       if (!list.length){
         var empty = document.createElement('div');
         empty.className = 'mailrow2';
         empty.style.color = 'var(--text-tertiary)';
         empty.textContent = '읽지 않은 받은 메일이 없습니다.';
         box.appendChild(empty);
+        box.style.maxHeight = '';
+        box.style.overflowY = '';
         return;
       }
       var avClasses = ['av-1','av-2','av-3'];
@@ -505,9 +566,32 @@
             parent.postMessage({ type:'welcome-board:navigate', target:'mail', messageId: m.id, tenantId: m.tenantId }, '*');
           });
         }
-        var avatar = document.createElement('div');
-        avatar.className = 'avatar ' + avClasses[i % 3];
-        avatar.textContent = wbMailInitials(m.name);
+        var leading = document.createElement('div');
+        leading.className = 'mailrow-leading';
+        var star = document.createElement('span');
+        star.className = 'mail-star' + (m.is_starred ? ' is-starred' : '');
+        star.textContent = m.is_starred ? '★' : '☆';
+        star.title = m.is_starred ? '중요 메일' : '중요 표시 없음';
+        leading.appendChild(star);
+        var faviconWrap = document.createElement('div');
+        faviconWrap.className = 'mail-favicon-wrap';
+        var favicon = document.createElement('img');
+        favicon.className = 'mail-favicon';
+        favicon.alt = '';
+        var fallback = document.createElement('div');
+        fallback.className = 'avatar mail-favicon-fallback ' + avClasses[i % 3];
+        fallback.textContent = wbMailInitials(m.name);
+        var domain = wbSenderDomain(m.from_email || m.account_email);
+        var faviconUrl = wbFaviconUrl(domain);
+        if (faviconUrl){
+          favicon.src = faviconUrl;
+          favicon.onerror = function(){ this.parentNode.classList.add('fallback'); };
+        } else {
+          faviconWrap.classList.add('fallback');
+        }
+        faviconWrap.appendChild(favicon);
+        faviconWrap.appendChild(fallback);
+        leading.appendChild(faviconWrap);
         var body = document.createElement('div');
         body.className = 'mail-body';
         var name = document.createElement('div');
@@ -526,9 +610,15 @@
         time.className = 'doc-time';
         time.textContent = wbMailTime(m.received_at);
         body.appendChild(name); body.appendChild(preview);
-        row.appendChild(avatar); row.appendChild(body); row.appendChild(time);
+        row.appendChild(leading); row.appendChild(body); row.appendChild(time);
         box.appendChild(row);
       });
+      if (box.children.length > 7){
+        requestAnimationFrame(wbApplyRecentUnreadMailViewport);
+      } else {
+        box.style.maxHeight = '';
+        box.style.overflowY = '';
+      }
     }
     // 오늘의 일정 카드: 캘린더 오늘 이벤트 목록을 다시 그린다. (WelcomeBoard.md 14절)
     function wbRenderTodaySchedule(list, label){
@@ -721,7 +811,8 @@
       var payload = data.payload || {};
       if (payload.todaySchedule !== undefined) wbRenderTodaySchedule(payload.todaySchedule, payload.todayLabel);
       if (payload.importantMail !== undefined) wbRenderImportantMail(payload.importantMail);
-      if (payload.recentUnreadMail !== undefined) wbRenderRecentUnreadMailList(payload.recentUnreadMail);
+      if (payload.recentUnreadMailCount !== undefined) wbUpdateRecentUnreadMailCount(payload.recentUnreadMailCount);
+      if (payload.recentUnreadMail !== undefined) wbRenderRecentUnreadMailList(payload.recentUnreadMail, payload.recentUnreadMailCount);
       if (payload.recentPosts !== undefined) wbRenderRecentDocs(payload.recentPosts);
       if (payload.recentUpdates !== undefined) wbRenderRecentUpdates(payload.recentUpdates);
     });

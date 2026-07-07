@@ -326,6 +326,23 @@ function MainLayout() {
     setMailInitialFolder(null)
   }, [])
 
+  const openMailPage = useCallback(() => {
+    setShowMail(true)
+    setMailDeepLink(null)
+    setMailInitialFolder(null)
+    setShowCalendar(false)
+    setShowDM(false)
+    setActiveDMConv(null)
+    setWelcomeService(null)
+  }, [])
+
+  const toggleCalendarPage = useCallback(() => {
+    setShowCalendar(v => !v)
+    setShowDM(false)
+    setShowMail(false)
+    setWelcomeService(null)
+  }, [])
+
   useEffect(() => {
     const userId = currentUser?.id || null
     if (!userId || lastUserIdRef.current === userId) {
@@ -384,28 +401,34 @@ function MainLayout() {
       }
     }
 
-    let welcomeMailTenantIdPromise = null
-    const getWelcomeMailTenantId = async () => {
-      if (welcomeMailTenantIdPromise) return welcomeMailTenantIdPromise
-      welcomeMailTenantIdPromise = (async () => {
+    let welcomeMailAccountsPromise = null
+    const getWelcomeMailAccounts = async () => {
+      if (welcomeMailAccountsPromise) return welcomeMailAccountsPromise
+      welcomeMailAccountsPromise = (async () => {
         try {
           const accounts = await apiFetch('/mail/accounts')
-          return (Array.isArray(accounts) ? accounts : []).find(a => a?.tenant_id)?.tenant_id || ''
+          return Array.isArray(accounts) ? accounts : []
         } catch {
-          return ''
+          return []
         }
       })()
-      return welcomeMailTenantIdPromise
+      return welcomeMailAccountsPromise
+    }
+    const getWelcomeMailTenantId = async () => {
+      const accounts = await getWelcomeMailAccounts()
+      return accounts.find(a => a?.tenant_id)?.tenant_id || ''
     }
 
     const toWelcomeMailItem = (m, tenantId) => ({
       id: m.id,               // 클릭 시 해당 메일로 딥링크 이동 (WelcomeBoard.md 16절)
       tenantId,
       name: m.from_name || m.from_email || '',
+      from_email: m.from_email || '',
       subject: m.subject || '',
       snippet: m.snippet || '',
       received_at: m.received_at || null,
       account_email: m.account_email || '',
+      is_starred: !!m.is_starred,
     })
 
     // 중요 메일: 통합 중요 편지함(별표됨)을 최신순으로 표시한다.
@@ -434,8 +457,14 @@ function MainLayout() {
     // 최근 미확인 메일: 통합 받은편지함의 읽지 않은 메일만 최신순으로 표시한다. (MailService.md 8.4)
     const loadRecentUnreadMail = async () => {
       try {
-        const tenantId = await getWelcomeMailTenantId()
+        const accounts = await getWelcomeMailAccounts()
+        const tenantId = accounts.find(a => a?.tenant_id)?.tenant_id || ''
         if (!tenantId) return []
+        const recentUnreadMailCount = accounts
+          .filter(account => account?.tenant_id === tenantId)
+          .flatMap(account => Array.isArray(account.folders) ? account.folders : [])
+          .filter(folder => folder?.type === 'inbox')
+          .reduce((sum, folder) => sum + (Number(folder.unread_count) || 0), 0)
         const params = new URLSearchParams({
           tenantId,
           scope: 'unified',
@@ -447,11 +476,11 @@ function MainLayout() {
           offset: '0',
         })
         const rows = await apiFetch(`/mail/messages?${params.toString()}`)
-        return (Array.isArray(rows) ? rows : [])
-          .slice(0, 5)
+        const items = (Array.isArray(rows) ? rows : [])
           .map(m => toWelcomeMailItem(m, tenantId))
+        return { items, count: recentUnreadMailCount || items.length }
       } catch {
-        return []
+        return { items: [], count: 0 }
       }
     }
 
@@ -478,16 +507,22 @@ function MainLayout() {
       const now = new Date()
       const todayLabel = `${now.getMonth() + 1}월 ${now.getDate()}일 ${WELCOME_WEEKDAYS[now.getDay()]}요일`
       // 최근에 본 문서: 서버 DB 스냅샷을 최신순으로 읽고, 실패 시 브라우저 캐시로 폴백. (WelcomeBoard.md 15절)
-      const [todaySchedule, importantMail, recentUnreadMail, recentPosts] = await Promise.all([
+      const [todaySchedule, importantMail, recentUnreadMailResult, recentPosts] = await Promise.all([
         loadTodaySchedule(),
         loadImportantMail(),
         loadRecentUnreadMail(),
         loadRecentPosts(),
       ])
       if (cancelled) return
+      const recentUnreadMail = Array.isArray(recentUnreadMailResult)
+        ? recentUnreadMailResult
+        : (recentUnreadMailResult.items || [])
       const primaryData = {
         importantMail,
         recentUnreadMail,
+        recentUnreadMailCount: Array.isArray(recentUnreadMailResult)
+          ? recentUnreadMail.length
+          : Number(recentUnreadMailResult.count || 0),
         todaySchedule,
         todayLabel,
         recentPosts,
@@ -620,6 +655,10 @@ function MainLayout() {
         onToggleSidebar={() => setShowSidebar(v => !v)}
         showWelcomeBoardButton={SHOW_WELCOME_BOARD}
         onOpenWelcomeBoard={openWelcomeBoard}
+        showMail={showMail}
+        showCalendar={showCalendar}
+        onOpenMail={openMailPage}
+        onToggleCalendar={toggleCalendarPage}
         showAgenticPanel={showAgenticPanel}
         onToggleAgenticPanel={() => setShowAgenticPanel(v => !v)}
         isMobileLayout={isMobileLayout}
@@ -659,8 +698,6 @@ function MainLayout() {
               <>
                 {showSidebar && (
                   <Sidebar
-                    showCalendar={showCalendar}
-                    onToggleCalendar={() => { setShowCalendar(v => !v); setShowDM(false); setShowMail(false); setWelcomeService(null) }}
                     onCloseCalendar={() => setShowCalendar(false)}
                     showDM={showDM}
                     onToggleDM={() => setShowDM(v => !v)}
@@ -675,15 +712,6 @@ function MainLayout() {
                       setActiveDMConv(null)
                     }}
                     onCloseWelcome={() => setWelcomeService(null)}
-                    onOpenMail={() => {
-                      setShowMail(true)
-                      setMailDeepLink(null)
-                      setMailInitialFolder(null)
-                      setShowCalendar(false)
-                      setShowDM(false)
-                      setActiveDMConv(null)
-                      setWelcomeService(null)
-                    }}
                     activeDMConvId={activeDMConv?.id}
                     isMobile={false}
                   />

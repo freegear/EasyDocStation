@@ -1382,3 +1382,42 @@ GET /api/welcome/recent-updates?limit=30
 | 파일 | 변경 | 상태 |
 |---|---|---|
 | [src/components/CalendarView.jsx](../src/components/CalendarView.jsx) | `addEventRequest` 처리 완료 ref 기록을 실제 모달 오픈 타이머 내부로 이동 | 완료 |
+
+---
+
+## 21. [신규 요구] `최근 미확인 메일` 탭 제목 옆 미확인 메일 수 표시
+
+> 요구: Welcome Board 하단 탭의 `최근 미확인 메일` 제목 오른쪽 옆에 미확인 메일 개수를 표시한다.
+
+### 21.1 구현 방안
+
+1. **카운트 기준**
+   - 목록은 기존처럼 `/mail/messages?scope=unified&unifiedKey=inbox&unreadOnly=1&limit=30` 응답으로 최근 미확인 메일을 렌더한다.
+   - 탭 옆 숫자는 가능한 한 “현재 통합 받은편지함의 전체 미확인 수”에 가깝게 표시한다.
+   - 이를 위해 Welcome 보드 데이터 로딩 시 이미 호출하는 `/mail/accounts` 응답의 각 account `folders` 중 `type === 'inbox'` 인 폴더의 `unread_count`를 합산한다.
+   - 계정 메타데이터를 얻지 못하거나 unread_count가 없으면 `recentUnreadMail.length`를 fallback으로 사용한다.
+
+2. **부모 → iframe payload**
+   - [src/App.jsx](../src/App.jsx)는 기존 `recentUnreadMail` 배열과 함께 `recentUnreadMailCount` 숫자를 payload에 포함한다.
+   - 기존 payload 구조와 호환되도록 `recentUnreadMailCount`가 없어도 iframe은 배열 길이로 카운트를 표시한다.
+
+3. **iframe 렌더링**
+   - [template/WelcomeBoard_whiteThema.html](../template/WelcomeBoard_whiteThema.html) · [blue](../template/WelcomeBoard_blueThema.html)의 `최근 미확인 메일` 탭 텍스트 오른쪽에 `<span id="recentUnreadMailCount" class="tab-count">`를 둔다.
+   - 데이터가 들어오기 전에는 빈 span으로 숨긴다.
+   - 데이터 수신 후 `wbUpdateRecentUnreadMailCount(count)`로 숫자를 표시한다.
+   - 숫자는 작은 pill/badge 형태로 표시하고, active 탭 색상과 어울리도록 `var(--accent-soft)`, `var(--accent)`를 사용한다.
+
+### 21.2 파일별 변경 계획
+
+| 파일 | 변경 | 상태 |
+|---|---|---|
+| [src/App.jsx](../src/App.jsx) | `/mail/accounts` 응답에서 inbox unread_count 합산, `recentUnreadMailCount` payload 추가 | 완료 |
+| [template/WelcomeBoard_whiteThema.html](../template/WelcomeBoard_whiteThema.html) · [blue](../template/WelcomeBoard_blueThema.html) | 탭 제목 옆 count badge 마크업/CSS/렌더 함수 추가 | 완료 |
+| [MDfiles/WelcomeBoard.md](./WelcomeBoard.md) | 요구사항과 구현 방안 기록 | 완료 |
+
+### 21.3 검증 항목
+
+- Welcome 보드 로딩 후 `최근 미확인 메일` 탭 제목 오른쪽에 숫자 badge가 보인다.
+- 미확인 메일이 0개이면 `0`이 표시된다.
+- 목록 데이터만 있고 별도 count가 없는 구버전 payload에서도 배열 길이를 표시한다.
+- 기존 탭 전환, 7개 행 높이 고정, 8번째 이후 스크롤 동작은 유지된다.

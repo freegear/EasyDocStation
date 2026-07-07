@@ -203,6 +203,7 @@ function sanitizePostPreviewTextKeepLines(text = '') {
     .replace(/<[^>\n]*>/g, ' ')
     .replace(/\r\n/g, '\n')
     .replace(/\r/g, '\n')
+    .replace(/\\[ \t]*(?=\n|$)/g, '')
     .replace(/[ \t]+/g, ' ')
     .replace(/\n{3,}/g, '\n\n')
     .trim()
@@ -1858,6 +1859,53 @@ function renderMentionTokens(text, keyPrefix = 'mention') {
   }
 
   return text.replaceAll(MENTION_SEPARATOR, '')
+}
+
+function renderPostPreviewTokens(text, keyPrefix = 'preview') {
+  if (typeof text !== 'string') return text
+
+  const nodes = []
+  const linkPattern = /(!?)\[([^\]\n]+)\]\(([^)\s]+)(?:\s+"[^"]*")?\)/g
+  let lastIndex = 0
+  let match
+
+  while ((match = linkPattern.exec(text)) !== null) {
+    if (match.index > lastIndex) {
+      nodes.push(
+        <span key={`${keyPrefix}-t${nodes.length}`}>
+          {renderMentionTokens(text.slice(lastIndex, match.index), `${keyPrefix}-t${nodes.length}`)}
+        </span>
+      )
+    }
+
+    if (match[1] === '!') {
+      nodes.push(
+        <span key={`${keyPrefix}-img${nodes.length}`}>
+          {renderMentionTokens(match[2], `${keyPrefix}-img${nodes.length}`)}
+        </span>
+      )
+    } else {
+      nodes.push(
+        <span
+          key={`${keyPrefix}-link${nodes.length}`}
+          className="underline decoration-gray-400 underline-offset-2"
+        >
+          {renderMentionTokens(match[2], `${keyPrefix}-link${nodes.length}`)}
+        </span>
+      )
+    }
+    lastIndex = linkPattern.lastIndex
+  }
+
+  if (lastIndex < text.length) {
+    nodes.push(
+      <span key={`${keyPrefix}-t${nodes.length}`}>
+        {renderMentionTokens(text.slice(lastIndex), `${keyPrefix}-t${nodes.length}`)}
+      </span>
+    )
+  }
+
+  return nodes.length > 0 ? nodes : renderMentionTokens(text, keyPrefix)
 }
 
 // @표시이름 을 테두리 배지 span 으로 치환 — ReactMarkdown children(문자열 노드)에 적용
@@ -3688,7 +3736,7 @@ function PostCard({ post, onSelect, pinned, isSelected, contentFontScale = 100 }
             {pinned && <PinIcon />}
             {leadLine && (
               <p className="text-gray-800 font-semibold leading-tight group-hover:text-indigo-600 transition-colors overflow-hidden text-ellipsis whitespace-nowrap select-text allow-copy cursor-text" style={{ ...contentFontStyle, fontSize: 'calc(0.875rem * var(--content-font-scale))' }}>
-                {renderMentionTokens(leadLine, `lead-${post.id}`)}
+                {renderPostPreviewTokens(leadLine, `lead-${post.id}`)}
               </p>
             )}
           </div>
@@ -3731,7 +3779,7 @@ function PostCard({ post, onSelect, pinned, isSelected, contentFontScale = 100 }
               className="text-gray-400 leading-relaxed line-clamp-5 whitespace-pre-wrap break-words select-text allow-copy cursor-text"
               style={{ ...contentFontStyle, fontSize: 'calc(0.75rem * var(--content-font-scale))' }}
             >
-              {renderMentionTokens(bodyPreview, `body-${post.id}`)}
+              {renderPostPreviewTokens(bodyPreview, `body-${post.id}`)}
             </p>
           )}
         </div>
@@ -3765,6 +3813,8 @@ export default function ChatArea({ autoOpenPostId, isMobile = false, onExitChann
     pendingOpenPostId,
     pendingOpenCommentId,
     pendingOpenAttachmentId,
+    navigateToPost,
+    fetchPost,
     clearPendingPost,
     setSelectedPostContext,
     clearSelectedPostContext,
@@ -3776,12 +3826,118 @@ export default function ChatArea({ autoOpenPostId, isMobile = false, onExitChann
   const [resizing, setResizing] = useState(false)
   const [contentFontScale, setContentFontScale] = useState(100)
   const containerRef = useRef(null)
+  const selectedPostRef = useRef(null)
+  const selectedChannelRef = useRef(null)
+  const easyPageNavigationStackRef = useRef([])
+
+  useEffect(() => { selectedPostRef.current = selectedPost }, [selectedPost])
+  useEffect(() => { selectedChannelRef.current = selectedChannel }, [selectedChannel])
+
+  const getEasyPageNavigationEntry = useCallback((channel = selectedChannelRef.current, post = selectedPostRef.current) => {
+    if (!channel?.id || !post?.id || !isMdPage(post.content)) return null
+    return {
+      channelId: String(channel.id),
+      postId: String(post.id),
+      title: getMdPageTitle(post.content, 'EasyPage'),
+      openedAt: Date.now(),
+    }
+  }, [])
+
+  const buildPostUrl = useCallback((channelId, postId) => {
+    if (typeof window === 'undefined') return ''
+    const url = new URL(window.location.href)
+    url.searchParams.set('channelId', String(channelId))
+    url.searchParams.set('postId', String(postId))
+    url.searchParams.delete('commentId')
+    url.searchParams.delete('attachmentId')
+    return `${url.pathname}${url.search}${url.hash}`
+  }, [])
+
+  const writeEasyPageHistory = useCallback((channelId, postId, { replace = false } = {}) => {
+    if (typeof window === 'undefined' || !channelId || !postId) return
+    const next = buildPostUrl(channelId, postId)
+    const state = {
+      ...(window.history.state || {}),
+      easyPage: true,
+      channelId: String(channelId),
+      postId: String(postId),
+    }
+    if (replace) window.history.replaceState(state, '', next)
+    else window.history.pushState(state, '', next)
+  }, [buildPostUrl])
+
+  const pushEasyPageNavigation = useCallback((entry) => {
+    if (!entry?.channelId || !entry?.postId) return false
+    const stack = easyPageNavigationStackRef.current
+    const last = stack[stack.length - 1]
+    if (last && last.channelId === entry.channelId && last.postId === entry.postId) return false
+    stack.push(entry)
+    return true
+  }, [])
+
+  const openEasyPageEntry = useCallback(async (entry) => {
+    if (!entry?.channelId || !entry?.postId) return false
+    const currentChannel = selectedChannelRef.current
+
+    if (String(entry.channelId) === String(currentChannel?.id)) {
+      const channelPosts = Array.isArray(posts[entry.channelId]) ? posts[entry.channelId] : []
+      const localPost = channelPosts.find(p => String(p.id) === String(entry.postId))
+      if (localPost) {
+        setSelectedPost(localPost)
+        writeEasyPageHistory(entry.channelId, entry.postId, { replace: true })
+        return true
+      }
+      const fetched = await fetchPost(entry.channelId, entry.postId)
+      if (fetched) {
+        setSelectedPost(fetched)
+        writeEasyPageHistory(entry.channelId, entry.postId, { replace: true })
+        return true
+      }
+      return false
+    }
+
+    const opened = await navigateToPost(entry.channelId, entry.postId)
+    if (opened) {
+      writeEasyPageHistory(entry.channelId, entry.postId, { replace: true })
+    }
+    return Boolean(opened)
+  }, [fetchPost, navigateToPost, posts, writeEasyPageHistory])
+
+  const openPreviousEasyPageFromStack = useCallback(async () => {
+    while (easyPageNavigationStackRef.current.length > 0) {
+      const previous = easyPageNavigationStackRef.current.pop()
+      try {
+        const opened = await openEasyPageEntry(previous)
+        if (opened) return true
+      } catch (err) {
+        console.error('Failed to open previous EasyPage:', err)
+      }
+    }
+    return false
+  }, [openEasyPageEntry])
+
+  const clearEasyPageNavigationStack = useCallback(() => {
+    easyPageNavigationStackRef.current = []
+  }, [])
+
+  const handleEasyPageBack = useCallback(async () => {
+    if (easyPageNavigationStackRef.current.length > 0) {
+      window.history.back()
+      return
+    }
+    clearEasyPageNavigationStack()
+    setSelectedPost(null)
+  }, [clearEasyPageNavigationStack])
 
   useEffect(() => {
     apiFetch('/config/display')
       .then(data => setContentFontScale(normalizeContentFontScale(data?.contentFontScale)))
       .catch(() => {})
   }, [])
+
+  useEffect(() => {
+    clearEasyPageNavigationStack()
+  }, [selectedChannel?.id, clearEasyPageNavigationStack])
 
   // 검색 결과로 선택된 게시글 자동 오픈
   useEffect(() => {
@@ -3803,6 +3959,72 @@ export default function ChatArea({ autoOpenPostId, isMobile = false, onExitChann
       }
     }
   }, [pendingOpenPostId, pendingOpenCommentId, pendingOpenAttachmentId, selectedChannel?.id, posts, clearPendingPost])
+
+  const handleOpenPostLink = useCallback(async (targetChannelId, targetPostId) => {
+    if (!targetChannelId || !targetPostId) return false
+
+    const currentEntry = getEasyPageNavigationEntry()
+    const isSamePost = currentEntry
+      && String(currentEntry.channelId) === String(targetChannelId)
+      && String(currentEntry.postId) === String(targetPostId)
+    if (isSamePost) return true
+
+    if (String(targetChannelId) === String(selectedChannel?.id)) {
+      const channelPosts = Array.isArray(posts[targetChannelId]) ? posts[targetChannelId] : []
+      const target = channelPosts.find(p => String(p.id) === String(targetPostId))
+      if (target) {
+        if (currentEntry) pushEasyPageNavigation(currentEntry)
+        setSelectedPost(target)
+        writeEasyPageHistory(targetChannelId, targetPostId)
+        return true
+      }
+      try {
+        const fetched = await fetchPost(targetChannelId, targetPostId)
+        if (fetched) {
+          if (currentEntry) pushEasyPageNavigation(currentEntry)
+          setSelectedPost(fetched)
+          writeEasyPageHistory(targetChannelId, targetPostId)
+          return true
+        }
+      } catch (err) {
+        console.error('Failed to open linked post:', err)
+      }
+    }
+
+    const opened = await navigateToPost(targetChannelId, targetPostId)
+    if (opened) {
+      if (currentEntry) pushEasyPageNavigation(currentEntry)
+      writeEasyPageHistory(targetChannelId, targetPostId)
+    }
+    return Boolean(opened)
+  }, [
+    fetchPost,
+    getEasyPageNavigationEntry,
+    navigateToPost,
+    posts,
+    pushEasyPageNavigation,
+    selectedChannel?.id,
+    writeEasyPageHistory,
+  ])
+
+  useEffect(() => {
+    function handlePopState() {
+      if (easyPageNavigationStackRef.current.length === 0) return
+      openPreviousEasyPageFromStack()
+    }
+    window.addEventListener('popstate', handlePopState)
+    return () => window.removeEventListener('popstate', handlePopState)
+  }, [openPreviousEasyPageFromStack])
+
+  const handleSelectPost = useCallback((post) => {
+    clearEasyPageNavigationStack()
+    setSelectedPost(post)
+  }, [clearEasyPageNavigationStack])
+
+  const handleCloseSelectedPost = useCallback(() => {
+    clearEasyPageNavigationStack()
+    setSelectedPost(null)
+  }, [clearEasyPageNavigationStack])
 
   const startResizing = useCallback(() => {
     setResizing(true)
@@ -3907,9 +4129,11 @@ export default function ChatArea({ autoOpenPostId, isMobile = false, onExitChann
     if (isMdPageSelected) {
       return (
         <MDPageViewer
+          key={selectedPost.id}
           post={selectedPost}
           channelId={selectedChannel.id}
-          onClose={() => setSelectedPost(null)}
+          onClose={handleEasyPageBack}
+          onOpenPostLink={handleOpenPostLink}
         />
       )
     }
@@ -3919,7 +4143,7 @@ export default function ChatArea({ autoOpenPostId, isMobile = false, onExitChann
           <EasySheetViewer
             post={selectedPost}
             channelId={selectedChannel.id}
-            onClose={() => setSelectedPost(null)}
+            onClose={handleCloseSelectedPost}
           />
         </Suspense>
       )
@@ -3929,13 +4153,13 @@ export default function ChatArea({ autoOpenPostId, isMobile = false, onExitChann
         <ChannelDocumentListPage
           posts={channelPosts}
           onBack={() => setShowDocumentList(false)}
-          onOpenPost={(post) => { setSelectedPost(post); setShowDocumentList(false) }}
+          onOpenPost={(post) => { handleSelectPost(post); setShowDocumentList(false) }}
         />
       )
     }
 
     const backToList = () => {
-      if (selectedPost) { setSelectedPost(null); return }
+      if (selectedPost) { handleCloseSelectedPost(); return }
       onExitChannel?.()
     }
     const headerTitle = selectedPost ? (t.chat.postDetail || '게시글') : selectedChannel.name
@@ -3963,7 +4187,7 @@ export default function ChatArea({ autoOpenPostId, isMobile = false, onExitChann
             <PostDetailPane
               post={selectedPost}
               channelId={selectedChannel.id}
-              onClose={() => setSelectedPost(null)}
+              onClose={handleCloseSelectedPost}
               pendingOpenCommentId={pendingOpenCommentId}
               pendingOpenAttachmentId={pendingOpenAttachmentId}
               onConsumePendingOpen={clearPendingPost}
@@ -3975,9 +4199,9 @@ export default function ChatArea({ autoOpenPostId, isMobile = false, onExitChann
             <PostList
               posts={channelPosts}
               selectedPostId={selectedPost?.id}
-              onSelect={setSelectedPost}
+              onSelect={handleSelectPost}
               onSubmit={handleNewPost}
-              onOpenDocumentList={() => { setSelectedPost(null); setShowDocumentList(true) }}
+              onOpenDocumentList={() => { handleCloseSelectedPost(); setShowDocumentList(true) }}
               contentFontScale={contentFontScale}
             />
           )}
@@ -3993,16 +4217,18 @@ export default function ChatArea({ autoOpenPostId, isMobile = false, onExitChann
           posts={channelPosts}
           onBack={() => setShowDocumentList(false)}
           onOpenPost={(post) => {
-            setSelectedPost(post)
+            handleSelectPost(post)
             setShowDocumentList(false)
           }}
         />
       ) : isMdPageSelected ? (
         /* MD 페이지 — 전체 영역을 뷰어로 대체 */
         <MDPageViewer
+          key={selectedPost.id}
           post={selectedPost}
           channelId={selectedChannel.id}
-          onClose={() => setSelectedPost(null)}
+          onClose={handleEasyPageBack}
+          onOpenPostLink={handleOpenPostLink}
         />
       ) : isEasySheetSelected ? (
         /* EasySheet — 전체 영역을 Univer 편집기로 대체 (지연 로딩) */
@@ -4010,7 +4236,7 @@ export default function ChatArea({ autoOpenPostId, isMobile = false, onExitChann
           <EasySheetViewer
             post={selectedPost}
             channelId={selectedChannel.id}
-            onClose={() => setSelectedPost(null)}
+            onClose={handleCloseSelectedPost}
           />
         </Suspense>
       ) : (
@@ -4026,10 +4252,10 @@ export default function ChatArea({ autoOpenPostId, isMobile = false, onExitChann
         <PostList
           posts={channelPosts}
           selectedPostId={selectedPost?.id}
-          onSelect={setSelectedPost}
+          onSelect={handleSelectPost}
           onSubmit={handleNewPost}
           onOpenDocumentList={() => {
-            setSelectedPost(null)
+            handleCloseSelectedPost()
             setShowDocumentList(true)
           }}
           contentFontScale={contentFontScale}
@@ -4052,7 +4278,7 @@ export default function ChatArea({ autoOpenPostId, isMobile = false, onExitChann
         <PostDetailPane
           post={selectedPost}
           channelId={selectedChannel.id}
-          onClose={() => setSelectedPost(null)}
+          onClose={handleCloseSelectedPost}
           pendingOpenCommentId={pendingOpenCommentId}
           pendingOpenAttachmentId={pendingOpenAttachmentId}
           onConsumePendingOpen={clearPendingPost}

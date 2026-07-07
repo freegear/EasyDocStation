@@ -306,6 +306,17 @@ export function ChatProvider({ children }) {
     }))
   }
 
+  function upsertPostInChannel(channelId, post) {
+    if (!channelId || !post?.id) return
+    setPosts(prev => ({
+      ...prev,
+      [channelId]: sortByCreatedAt([
+        ...asList(prev[channelId]).filter(p => String(p.id) !== String(post.id)),
+        post,
+      ]),
+    }))
+  }
+
   function detailKey(channelId, postId) {
     return `${channelId || ''}:${postId || ''}`
   }
@@ -522,6 +533,16 @@ export function ChatProvider({ children }) {
     }
   }
 
+  async function fetchPost(channelId, postId) {
+    if (!channelId || !postId) return null
+    const data = await apiFetch(`/posts/${encodeURIComponent(postId)}?channelId=${encodeURIComponent(channelId)}`)
+    if (data?.id) {
+      upsertPostInChannel(channelId, data)
+      return data
+    }
+    return null
+  }
+
   function markPostRead(channelId, postId) {
     if (!channelId || !postId) return
     setPosts(prev => ({
@@ -577,6 +598,7 @@ export function ChatProvider({ children }) {
           optimisticPost,
         ]),
       }))
+      return optimisticPost
     } catch (err) {
       if (err?.status === 403) {
         if (!err.accessHandled) await handleSaveAccessDenied()
@@ -974,7 +996,12 @@ export function ChatProvider({ children }) {
         setSelectedTeam(team)
         const opened = await selectChannel(ch)
         if (!opened) return false
-        if (postId) setPendingOpenPostId(postId)
+        if (postId) {
+          setPendingOpenPostId(postId)
+          fetchPost(ch.id, postId).catch((err) => {
+            console.error('Failed to fetch navigated post:', err)
+          })
+        }
         if (meta.commentId) setPendingOpenCommentId(meta.commentId)
         if (meta.attachmentId) setPendingOpenAttachmentId(meta.attachmentId)
         return true
@@ -1109,6 +1136,7 @@ export function ChatProvider({ children }) {
       loadOlderPosts,
       loadPostComments,
       markPostRead,
+      fetchPost,
       addPost,
       addComment,
       incrementViews,
