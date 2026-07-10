@@ -1,19 +1,16 @@
 import { useState, useEffect, useRef } from 'react'
 import { apiFetch, getToken } from '../lib/api'
 import { ROLE_BADGE } from '../constants/roles'
+import { SUPPORTED_LANGUAGES } from '../constants/languages'
 import { useAuth } from '../contexts/AuthContext'
 import { useT } from '../i18n/useT'
 import GroqPanel from './GroqPanel'
 import ConfirmDialog from './ConfirmDialog'
+import LanguageFlag from './LanguageFlag'
 import { MIN_CONTENT_FONT_SCALE, MAX_CONTENT_FONT_SCALE } from '../lib/contentFont'
 
 // ─── helpers ─────────────────────────────────────────────────
 const USERNAME_PATTERN = /^[A-Za-z][A-Za-z0-9_.]*$/
-const LANGUAGES = [
-  { code: 'ko', label: '한국어', flag: '🇰🇷' },
-  { code: 'en', label: 'English', flag: '🇺🇸' },
-  { code: 'ja', label: '日本語', flag: '🇯🇵' },
-]
 const GPU_OPTIMIZATION_DEFAULTS = {
   redis_enabled: false,
   redis_url: 'redis://127.0.0.1:6379',
@@ -1838,7 +1835,7 @@ export default function SiteAdminPage({ onClose, initialTab = 'users' }) {
           </button>
 
           <div className="flex items-center bg-gray-100 border border-gray-200 rounded-lg overflow-hidden">
-            {LANGUAGES.map(lang => (
+            {SUPPORTED_LANGUAGES.map(lang => (
               <button
                 key={lang.code}
                 type="button"
@@ -1851,7 +1848,7 @@ export default function SiteAdminPage({ onClose, initialTab = 'users' }) {
                     : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200'
                 }`}
               >
-                {lang.flag}
+                <LanguageFlag lang={lang} />
               </button>
             ))}
           </div>

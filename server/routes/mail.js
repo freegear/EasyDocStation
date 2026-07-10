@@ -1,10 +1,16 @@
 const express = require('express')
 const crypto = require('crypto')
+const fs = require('fs')
+const path = require('path')
 const nodemailer = require('nodemailer')
 const multer = require('multer')
 const requireAuth = require('../middleware/auth')
+const db = require('../db')
+const { client, isConnected } = require('../cassandra')
+const { getDatabasePath } = require('../databasePaths')
 const { buildMailObjectKey, getMailStorage } = require('../mail/storage')
 const repo = require('../mail/repository')
+const { ACCESS_DENIED_MESSAGE, canAccessChannel } = require('../lib/channelAccess')
 const { syncGmailAccount, discoverGmailFolders, syncGmailFolder } = require('../mail/gmailSync')
 const { syncImapAccount, listImapFolders, syncImapFolder } = require('../mail/imapSync')
 const { decryptSecret } = require('../lib/secrets')
@@ -38,6 +44,29 @@ const router = express.Router()
 
 function isSiteAdmin(req) {
   return req.user?.role === 'site_admin'
+}
+
+function readConfigSafe() {
+  try {
+    return JSON.parse(fs.readFileSync(path.resolve(__dirname, '../../config.json'), 'utf8'))
+  } catch {
+    return {}
+  }
+}
+
+function getPostAttachmentStorageBase() {
+  const storageBase = getDatabasePath(readConfigSafe(), 'ObjectFile Path')
+  if (!fs.existsSync(storageBase)) fs.mkdirSync(storageBase, { recursive: true })
+  return storageBase
+}
+
+function sanitizePostAttachmentFilename(value, fallback = 'attachment') {
+  const cleaned = String(value || '')
+    .replace(/[\\/]/g, '_')
+    .replace(/\.\.+/g, '_')
+    .replace(/[\x00-\x1f\x7f]/g, '')
+    .trim()
+  return cleaned || fallback
 }
 
 function getClientOrigin() {
@@ -1087,6 +1116,80 @@ router.get('/messages/:id/attachments/:attId', async (req, res, next) => {
     res.setHeader('Content-Disposition', `${disposition}; filename="${asciiName}"; filename*=UTF-8''${encodedName}`)
     res.setHeader('Cache-Control', 'private, max-age=3600')
     return res.end(buffer)
+  } catch (err) {
+    next(err)
+  }
+})
+
+// 메일 첨부를 게시글/댓글 첨부로 복사한다. 게시글/댓글 생성 자체는 기존 /posts API가 담당한다.
+router.post('/messages/:id/post-attachments', async (req, res, next) => {
+  try {
+    const messageId = String(req.params.id || '').trim()
+    const tenantId = String(req.body?.tenantId || req.query.tenantId || '').trim()
+    const channelId = String(req.body?.channelId || '').trim()
+    const requestedIds = Array.isArray(req.body?.attachmentIds)
+      ? [...new Set(req.body.attachmentIds.map(id => String(id || '').trim()).filter(Boolean))]
+      : []
+
+    if (!messageId || !tenantId || !channelId) {
+      return res.status(400).json({ error: 'tenantId, channelId, messageId가 필요합니다.' })
+    }
+    if (requestedIds.length > 10) {
+      return res.status(400).json({ error: '첨부파일은 최대 10개까지만 가능합니다.' })
+    }
+    if (!(await repo.canAccessTenant({ userId: req.user.id, tenantId, isSiteAdmin: isSiteAdmin(req) }))) {
+      return res.status(403).json({ error: '메일 tenant 접근 권한이 없습니다.' })
+    }
+    if (!(await canAccessChannel(db, req.user, channelId))) {
+      return res.status(403).json({ error: ACCESS_DENIED_MESSAGE })
+    }
+
+    const message = await repo.getMessage({ tenantId, messageId, userId: req.user.id, isSiteAdmin: isSiteAdmin(req) })
+    if (!message) return res.status(404).json({ error: '메일을 찾을 수 없습니다.' })
+
+    const allAttachments = await repo.listMessageAttachments({ tenantId, messageId })
+    const selected = requestedIds.length
+      ? allAttachments.filter(att => requestedIds.includes(String(att.id)))
+      : allAttachments.slice(0, 10)
+    if (selected.length !== (requestedIds.length || selected.length)) {
+      return res.status(404).json({ error: '복사할 메일 첨부파일을 찾을 수 없습니다.' })
+    }
+    if (selected.length > 10) {
+      return res.status(400).json({ error: '첨부파일은 최대 10개까지만 가능합니다.' })
+    }
+
+    const storage = getMailStorage()
+    const postStorageBase = getPostAttachmentStorageBase()
+    const copied = []
+    for (const source of selected) {
+      const buffer = await storage.getObject(source.object_key)
+      const id = crypto.randomUUID()
+      const filename = sanitizePostAttachmentFilename(source.filename, `mail-attachment-${copied.length + 1}`)
+      const safeChannelId = sanitizePostAttachmentFilename(channelId, 'unknown')
+      const storagePath = path.join(safeChannelId, id, filename)
+      const fullPath = path.join(postStorageBase, storagePath)
+      await fs.promises.mkdir(path.dirname(fullPath), { recursive: true })
+      await fs.promises.writeFile(fullPath, buffer)
+
+      const contentType = source.content_type || 'application/octet-stream'
+      const size = Number(source.size_bytes) || buffer.length
+      if (isConnected()) {
+        await client.execute(
+          `INSERT INTO attachments (id, filename, content_type, size, status, storage_path, uploader_id, created_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+          [id, filename, contentType, size, 'COMPLETED', storagePath, req.user.id, new Date()],
+          { prepare: true },
+        )
+      }
+      await db.query(
+        `INSERT INTO attachments (id, filename, content_type, size, status, storage_path, uploader_id, channel_id, created_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())`,
+        [id, filename, contentType, size, 'COMPLETED', storagePath, req.user.id, channelId],
+      )
+      copied.push({ id, filename, content_type: contentType, size })
+    }
+
+    res.json({ attachments: copied })
   } catch (err) {
     next(err)
   }

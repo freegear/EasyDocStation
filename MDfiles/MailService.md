@@ -293,12 +293,20 @@ WelcomeBoard의 메일 카드는 "최근에 수신한 메일"이라는 이름보
    - 메일 내용을 요약해서 중요 메모로 생성한다.
    - 중요 메모를 텔레그램으로 사용자에게 전송한다.
 
-2. 지정된 메일 주소로 발송
+2. 중요 메일 등록
+   - `AI 메일 분석` 항목 바로 밑에 `중요 메일 등록` 옵션을 둔다.
+   - 옵션명 오른쪽에는 기존 동작 항목과 동일한 Slide 스위치를 둔다.
+   - 해당 옵션이 켜진 `MailClaw` 조건에 수신 메일이 부합하면, 해당 메일의 `mail_messages.is_starred`를 `true`로 변경한다.
+   - 기존 14장의 중요 메일 표시 정책을 재사용하므로, 별도 테이블은 만들지 않는다.
+   - 중요 메일로 등록된 메일은 목록 카드의 별표와 통합 메뉴 `별표됨` 뷰에 자동 반영된다.
+   - 이 동작은 로컬 메타데이터 변경이며, Gmail/IMAP provider의 별표 상태와 양방향 동기화하지 않는다.
+
+3. 지정된 메일 주소로 발송
    - 사용자가 지정한 메일 주소로 원본 메일을 전달한다.
    - 발송의 의미는 AI 요약문 발송이 아니라 수신한 원본 메일의 전달이다.
    - 원본 메일의 제목, 본문, 주요 헤더, 첨부파일을 가능한 범위에서 유지해서 전달한다.
 
-3. 지정된 폴더로 이동
+4. 지정된 폴더로 이동
    - 사용자가 지정한 폴더로 메일을 이동한다.
 
 # 9.2.1 MailClaw 자동화 실행 순서
@@ -306,12 +314,23 @@ WelcomeBoard의 메일 카드는 "최근에 수신한 메일"이라는 이름보
 여러 자동화 동작이 동시에 켜져 있으면 아래 순서로 실행한다.
 
 1. AI 메일 분석
-2. 지정된 메일 주소로 원본 메일 전달
-3. 지정된 폴더로 이동
+2. 중요 메일 등록
+3. 지정된 메일 주소로 원본 메일 전달
+4. 지정된 폴더로 이동
 
 예를 들어 `폴더 이동`과 `지정된 메일 주소로 발송`이 모두 켜져 있으면 먼저 원본 메일을 지정된 주소로 전달한 뒤 폴더를 이동한다.
 
 `AI 메일 분석`과 `지정된 메일 주소로 발송`이 모두 켜져 있으면 AI 분석을 먼저 수행한 뒤 원본 메일을 지정된 주소로 전달한다.
+
+`AI 메일 분석`과 `중요 메일 등록`이 모두 켜져 있으면 AI 분석을 먼저 수행하고, 같은 조건에 매칭된 메일을 중요 메일로 표시한다.
+
+첨부 이미지처럼 `AI 메일 분석`, `중요 메일 등록`, `지정된 폴더로 이동`이 켜져 있고 `지정된 메일 주소로 원본 메일 전달`이 꺼져 있으면 실행 순서는 반드시 아래와 같다.
+
+1. AI 메일 분석
+2. 중요 메일 등록
+3. 지정된 폴더로 이동
+
+즉, 메일을 폴더로 이동하기 전에 먼저 AI 분석과 중요 표시를 끝낸다. 이렇게 해야 이동 후 대상 폴더에서도 해당 메일이 이미 중요 메일로 표시되어 있고, 실행 로그에도 `ai_analysis → important_mail → move_folder` 순서로 남는다.
 
 각 동작은 독립적으로 실행한다.
 
@@ -5016,26 +5035,36 @@ npm run build
   `제목 + 보낸사람 + 날짜 + 본문 텍스트(스니펫/`body_text`)`로 구성한다.
   - 옵션: 다이얼로그에 "요약을 생성해 함께 등록" 체크박스를 두어, 켜면 `generateSummary`를 호출해 요약을 붙인다(선택, 2차).
 - **콘텐츠는 편집 가능하게**: 다이얼로그에 본문 미리보기/편집 textarea를 두어 등록 전에 사용자가 다듬을 수 있게 한다(권장).
-- **첨부 처리**: 1차 범위에서는 **텍스트만** 등록한다. 메일 첨부는 서버 스토리지의 mail object이고,
-  게시글 첨부는 `attachmentIds`(게시판 스토리지 업로드본)라 저장 위치·5원칙 경로가 달라 바로 연결되지 않는다.
-  메일 첨부를 게시글 첨부로 복사하는 것은 **범위 밖(향후 확장)** 으로 둔다.
+- **첨부 처리**: 메일에 첨부파일이 있으면 게시글/댓글 등록 시 첨부도 함께 등록한다.
+  - 메일 첨부(`mail_attachments`)의 원본 object를 서버에서 읽어 게시판 첨부 스토리지(`attachments.storage_path`)로 복사한다.
+  - 복사된 파일은 기존 게시판 첨부와 동일하게 `attachments` 테이블에 `COMPLETED` 상태로 등록한다.
+  - 새 게시글로 등록하면 복사된 첨부 ID를 `addPost(... attachmentIds)`에 전달한다.
+  - 기존 게시글의 댓글로 등록하면 복사된 첨부 ID를 `addComment(... attachmentIds)`에 전달한다.
+  - 첨부파일은 기존 게시글/댓글 정책과 동일하게 최대 10개까지만 등록한다.
+  - 첨부 복사 실패 시 게시글/댓글 등록 전체를 중단하고 사용자에게 실패 메시지를 표시한다. 본문만 먼저 등록하고 첨부가 누락되는 상태는 만들지 않는다.
 
-## 23.5 등록 실행 (기존 ChatContext 재사용 — 신규 서버 API 불필요)
+## 23.5 등록 실행 (기존 ChatContext 재사용 + 메일 첨부 복사 API)
 
 `MailPage`는 `ChatProvider` 하위에 마운트되므로([App.jsx](../src/App.jsx) 로그인 후 `<ChatProvider>`가
 앱을 감싼다) `useChat()`를 그대로 쓸 수 있다.
 
-- **새 게시글로 등록**: `addPost(channelId, { content, security_level })`
+- **메일 첨부 복사**: 등록 전에 `POST /mail/messages/:id/post-attachments`를 호출한다.
+  - 요청: `{ tenantId, channelId, attachmentIds }`
+  - 처리: 메일 첨부 object를 게시판 첨부 스토리지로 복사하고, 게시판 `attachments` 행을 만든 뒤 `attachmentIds`를 반환한다.
+  - 반환: `{ attachments: [{ id, filename, content_type, size }] }`
+  - 메일에 첨부가 없으면 호출하지 않고 빈 배열로 진행한다.
+- **새 게시글로 등록**: `addPost(channelId, { content, attachmentIds, security_level })`
   ([ChatContext.jsx:554](../src/contexts/ChatContext.jsx#L554)).
   - 내부에서 `POST /posts`(`{ channelId, content, attachmentIds, security_level }`) 호출 + 낙관적 삽입까지 처리.
 - **댓글로 등록(게시글 선택 시)**: `addComment(channelId, postId, text, user, [], security_level)`
   ([ChatContext.jsx:593](../src/contexts/ChatContext.jsx#L593)).
   - 내부에서 `POST /posts/:postId/comments` 호출 + 댓글 수/목록 부분 갱신 처리.
+  - 5번째 인자로 복사된 `attachmentIds`를 넘겨 `POST /posts/:postId/comments`의 첨부 배열에 연결한다.
 - **게시글 목록 조회(최근 20)**: 기존 `GET /posts?channelId&limit=20` 재사용(신규 엔드포인트 없음).
   - ChatContext에는 특정 채널 최근글만 뽑는 헬퍼가 따로 없으므로, 다이얼로그에서 `apiFetch`로 직접
     조회하거나(간단), 필요하면 ChatContext에 얇은 조회 함수를 추가한다(선택).
 
-→ **서버 라우트 변경은 없다.** `server/routes/posts.js`의 `GET /`, `POST /`, `POST /:id/comments`를 그대로 사용한다.
+→ 게시글/댓글 생성은 기존 `server/routes/posts.js`의 `GET /`, `POST /`, `POST /:id/comments`를 그대로 사용한다. 메일 첨부를 게시판 첨부로 복사하는 전용 API만 메일 라우트에 추가한다.
 
 ## 23.6 권한 · 보안 레벨 · 엣지 케이스
 
@@ -5057,13 +5086,13 @@ npm run build
 | 파일 | 변경 내용 |
 |---|---|
 | [src/features/mail/MailPage.jsx](../src/features/mail/MailPage.jsx) | `MailMessageContextMenu`에 `게시글로 등록` 항목+`onRegisterAsPost` prop / 본문 툴바(2624~) `요약 복사` 옆 버튼 추가 / 등록 다이얼로그 상태·핸들러 / `MAIL_TEXT` 라벨(ko·en·ja) |
-| (신규) `MailToPostDialog` 컴포넌트 | Team→Channel→게시글 3단 선택, 최근 20개 조회, 본문 미리보기/편집, 등록 실행. MailPage 내부 또는 별도 파일 |
+| [src/features/mail/MailToPostDialog.jsx](../src/features/mail/MailToPostDialog.jsx) | Team→Channel→게시글 3단 선택, 최근 20개 조회, 본문 미리보기/편집, 메일 첨부 목록 표시, 등록 실행 |
 | [src/contexts/ChatContext.jsx](../src/contexts/ChatContext.jsx) | 변경 없음(기존 `addPost`/`addComment` 사용). 필요 시 "채널 최근글 조회" 얇은 헬퍼만 선택적 추가 |
-| server (posts 라우트) | **변경 없음**. `GET /posts`, `POST /posts`, `POST /:id/comments` 재사용 |
+| [server/routes/mail.js](../server/routes/mail.js) | `POST /mail/messages/:id/post-attachments` 추가. 메일 첨부를 게시판 첨부 스토리지/테이블로 복사 |
+| server (posts 라우트) | `GET /posts`, `POST /posts`, `POST /:id/comments` 재사용 |
 
 ## 23.8 범위 밖(향후 확장)
 
-- 메일 첨부 → 게시글 첨부 복사(스토리지 간 이관, 5원칙 경로 변환).
 - 여러 메일을 한 번에 하나의 게시글/스레드로 묶어 등록(다중 선택).
 - 등록 후 해당 게시글로 바로 이동(딥링크 `navigateToPost`) 옵션.
 - MailClaw 자동화 동작에 "게시글로 자동 등록" 추가(수신 시 자동).
@@ -5330,4 +5359,3 @@ isTemplateContent(content) ? <TemplateRenderer ...> :
 - **다이얼로그 폭 +30%**: 패널 최대 폭을 `max-w-lg`(512px) → **`max-w-2xl`(672px, 약 +31%)** 로 확대한다.
   일정 표/본문 미리보기가 더 여유 있게 보인다. (`max-h-[90vh]`·세로 스크롤은 유지)
 - 구현 위치: [src/features/mail/MailPage.jsx](../src/features/mail/MailPage.jsx) `MailToPostDialog` 패널/헤더 className.
-

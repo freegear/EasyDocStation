@@ -115,6 +115,9 @@ function MailToPostDialog({ message, summary, teams = [], defaultTeamId = '', de
     const text = content.trim()
     if (!channelId) { setError(pd.selectChannelFirst); return }
     if (!text) { setError(pd.emptyContent); return }
+    const mailAttachments = Array.isArray(detailMsg?.attachments)
+      ? detailMsg.attachments
+      : (Array.isArray(message?.attachments) ? message.attachments : [])
     // 새 게시글이면 인라인 카드 데이터 주석을 덧붙인다(게시글=C). 댓글은 마크다운 그대로(댓글=A). (MailService.md 24.3/24.7)
     // 카드 스냅샷은 재조회한 완전한 상세(요약+본문)로 구성한다. (MailService.md 24.12)
     const finalContent = postId
@@ -123,7 +126,14 @@ function MailToPostDialog({ message, summary, teams = [], defaultTeamId = '', de
     setSubmitting(true)
     setError('')
     try {
-      await onSubmit?.({ channelId, postId: postId || '', content: finalContent })
+      await onSubmit?.({
+        channelId,
+        postId: postId || '',
+        content: finalContent,
+        messageId: detailMsg?.id || message?.id || '',
+        tenantId: detailMsg?.tenant_id || message?.tenant_id || '',
+        mailAttachmentIds: mailAttachments.map(att => att.id).filter(Boolean),
+      })
       onClose?.()
     } catch (err) {
       setError(err?.message || pd.failed)
@@ -250,6 +260,20 @@ function MailToPostDialog({ message, summary, teams = [], defaultTeamId = '', de
                   className="w-full resize-y rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium leading-6 text-gray-800 focus:border-indigo-400 focus:outline-none"
                 />
               </label>
+
+              {Array.isArray(detailMsg?.attachments) && detailMsg.attachments.length > 0 && (
+                <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2">
+                  <div className="mb-1 text-xs font-extrabold text-gray-500">{pd.attachments}</div>
+                  <div className="flex flex-wrap gap-2">
+                    {detailMsg.attachments.slice(0, 10).map(att => (
+                      <span key={att.id} className="max-w-full truncate rounded-full border border-gray-200 bg-white px-2.5 py-1 text-[11px] font-bold text-gray-600">
+                        {att.filename || att.name || att.id}
+                      </span>
+                    ))}
+                  </div>
+                  <p className="mt-1 text-[11px] font-bold text-gray-400">{pd.attachmentsHint}</p>
+                </div>
+              )}
 
               {error && <p className="text-xs font-bold text-red-500">{error}</p>}
             </>

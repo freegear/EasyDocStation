@@ -140,6 +140,11 @@ export function AuthProvider({ children }) {
   // currentUser 변경 시 ref 동기화
   useEffect(() => {
     currentUserRef.current = currentUser
+    const preferredLanguage = currentUser?.preferred_language
+    if (SUPPORTED_LANGUAGES.has(preferredLanguage)) {
+      setLanguageState(preferredLanguage)
+      localStorage.setItem(LANGUAGE_STORAGE_KEY, preferredLanguage)
+    }
   }, [currentUser])
 
   // Restore session on app load

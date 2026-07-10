@@ -71,33 +71,33 @@ export function getCursorCoords(textarea) {
   }
 }
 
-export default function useMentionAutocomplete(teamId) {
+export default function useMentionAutocomplete(channelId) {
   const [query, setQuery] = useState(null)
   const [users, setUsers] = useState([])
   const [selectedIdx, setSelectedIdx] = useState(0)
   const [open, setOpen] = useState(false)
   const [cursorCoords, setCursorCoords] = useState(null)
-  const [teamMembers, setTeamMembers] = useState([])
+  const [channelMembers, setChannelMembers] = useState([])
   const fetchTimer = useRef(null)
   const activeQuery = useRef(null)
 
   useEffect(() => {
     let disposed = false
     ;(async () => {
-      if (!teamId) {
-        setTeamMembers([])
+      if (!channelId) {
+        setChannelMembers([])
         return
       }
       try {
-        const data = await apiFetch(`/teams/${teamId}/members`)
+        const data = await apiFetch(`/channels/${channelId}/members`)
         const members = Array.isArray(data) ? data : (data?.members || [])
-        if (!disposed) setTeamMembers(members)
+        if (!disposed) setChannelMembers(members)
       } catch {
-        if (!disposed) setTeamMembers([])
+        if (!disposed) setChannelMembers([])
       }
     })()
     return () => { disposed = true }
-  }, [teamId])
+  }, [channelId])
 
   useEffect(() => {
     if (query === null) { setOpen(false); return }
@@ -105,9 +105,9 @@ export default function useMentionAutocomplete(teamId) {
     fetchTimer.current = setTimeout(async () => {
       try {
         let results
-        if (teamId) {
+        if (channelId) {
           const q = String(query || '').trim().toLowerCase()
-          results = (teamMembers || []).filter((u) => {
+          results = (channelMembers || []).filter((u) => {
             if (!q) return true
             const name = String(u?.name || '').toLowerCase()
             const displayName = String(u?.display_name || '').toLowerCase()
@@ -127,7 +127,7 @@ export default function useMentionAutocomplete(teamId) {
         setOpen(false)
       }
     }, query === '' ? 0 : 200)
-  }, [query, teamId, teamMembers])
+  }, [query, channelId, channelMembers])
 
   // textarea onChange 에서 호출 — textareaEl 을 넘기면 커서 좌표도 갱신
   const handleChange = useCallback((value, cursorPos, textareaEl) => {

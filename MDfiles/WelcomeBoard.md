@@ -1392,9 +1392,9 @@ GET /api/welcome/recent-updates?limit=30
 ### 21.1 구현 방안
 
 1. **카운트 기준**
-   - 목록은 기존처럼 `/mail/messages?scope=unified&unifiedKey=inbox&unreadOnly=1&limit=30` 응답으로 최근 미확인 메일을 렌더한다.
-   - 탭 옆 숫자는 가능한 한 “현재 통합 받은편지함의 전체 미확인 수”에 가깝게 표시한다.
-   - 이를 위해 Welcome 보드 데이터 로딩 시 이미 호출하는 `/mail/accounts` 응답의 각 account `folders` 중 `type === 'inbox'` 인 폴더의 `unread_count`를 합산한다.
+   - 목록은 `/mail/messages?scope=unified&unifiedKey=all&unreadOnly=1&limit=30` 응답으로 최근 미확인 메일을 렌더한다.
+   - 탭 옆 숫자는 가능한 한 “현재 통합 전체 편지함의 전체 미확인 수”에 가깝게 표시한다.
+   - 이를 위해 Welcome 보드 데이터 로딩 시 이미 호출하는 `/mail/accounts` 응답의 각 account `folders` 중 휴지통이 아닌 폴더의 `unread_count`를 합산한다.
    - 계정 메타데이터를 얻지 못하거나 unread_count가 없으면 `recentUnreadMail.length`를 fallback으로 사용한다.
 
 2. **부모 → iframe payload**
@@ -1411,7 +1411,7 @@ GET /api/welcome/recent-updates?limit=30
 
 | 파일 | 변경 | 상태 |
 |---|---|---|
-| [src/App.jsx](../src/App.jsx) | `/mail/accounts` 응답에서 inbox unread_count 합산, `recentUnreadMailCount` payload 추가 | 완료 |
+| [src/App.jsx](../src/App.jsx) | `/mail/accounts` 응답에서 전체 편지함(휴지통 제외) unread_count 합산, `recentUnreadMailCount` payload 추가 | 완료 |
 | [template/WelcomeBoard_whiteThema.html](../template/WelcomeBoard_whiteThema.html) · [blue](../template/WelcomeBoard_blueThema.html) | 탭 제목 옆 count badge 마크업/CSS/렌더 함수 추가 | 완료 |
 | [MDfiles/WelcomeBoard.md](./WelcomeBoard.md) | 요구사항과 구현 방안 기록 | 완료 |
 
@@ -1420,4 +1420,116 @@ GET /api/welcome/recent-updates?limit=30
 - Welcome 보드 로딩 후 `최근 미확인 메일` 탭 제목 오른쪽에 숫자 badge가 보인다.
 - 미확인 메일이 0개이면 `0`이 표시된다.
 - 목록 데이터만 있고 별도 count가 없는 구버전 payload에서도 배열 길이를 표시한다.
+- 자동 분류되어 받은 편지함 밖 폴더로 이동된 미확인 메일도 목록과 숫자에 포함된다.
 - 기존 탭 전환, 7개 행 높이 고정, 8번째 이후 스크롤 동작은 유지된다.
+
+---
+
+## 22. [버그] 메일 목록에서 중요 메일을 추가해도 Welcome Board "중요 메일"에 반영되지 않음
+
+> 증상: 메일 목록에서 별표(중요)를 추가해도 Welcome Board의 `중요 메일` 카드 내용이 바뀌지 않는다.
+
+### 22.1 원인
+
+1. **부모(App)에서 중요 메일을 다시 3개로 자른다.**
+
+   Welcome Board는 `GET /mail/messages?scope=unified&unifiedKey=starred&limit=30` 으로 중요 메일을 가져오지만, [src/App.jsx](../src/App.jsx)의 `loadImportantMail()`에서 응답을 다시 `.slice(0, 3)`으로 잘라 iframe에 주입한다.
+
+   따라서 새로 별표를 단 메일이 기존 최신 중요 메일 3개보다 오래된 경우, 서버에는 중요 메일로 저장되어도 Welcome Board payload에는 포함되지 않는다. 스크린샷처럼 4월 메일을 추가했는데 보드에 7월/6월 메일 3개만 남는 경우가 여기에 해당한다.
+
+2. **별표 토글 후 Welcome Board 재조회 신호가 없다.**
+
+   [src/features/mail/MailPage.jsx](../src/features/mail/MailPage.jsx)의 별표 토글은 서버 PATCH와 메일 화면 내부 state만 갱신한다. 반면 Welcome Board 데이터 로드 effect는 `welcomeService.id` 또는 `currentUser.id`가 바뀔 때만 다시 실행된다.
+
+   그래서 Welcome Board가 열린 상태에서 메일 화면에서 중요 표시를 추가/해제해도 `welcomeBoardData`가 갱신되지 않는다.
+
+### 22.2 해결 방법
+
+- `loadImportantMail()`에서 `.slice(0, 3)`을 제거하고, 서버에서 받은 중요 메일 목록을 모두 주입한다. 카드 내부는 이미 `#importantMailList`에 `max-height`와 `overflow-y:auto`가 있으므로 카드 높이는 유지된다.
+- 메일 별표 토글 성공 후 `window.dispatchEvent(new CustomEvent('easy-mail-starred-changed', ...))`를 발행한다.
+- App은 해당 이벤트를 수신해 `welcomeBoardRefreshTick`을 증가시키고, Welcome Board가 열려 있을 때 데이터 로드 effect를 다시 실행한다.
+
+### 22.3 파일별 변경 계획
+
+| 파일 | 변경 | 상태 |
+|---|---|---|
+| [src/App.jsx](../src/App.jsx) | `welcomeBoardRefreshTick` state 추가, `easy-mail-starred-changed` 수신, Welcome Board 데이터 로드 effect dependency에 tick 추가, 중요 메일 `.slice(0, 3)` 제거 | 완료 |
+| [src/features/mail/MailPage.jsx](../src/features/mail/MailPage.jsx) | 별표 토글 성공 후 `easy-mail-starred-changed` 이벤트 발행 | 완료 |
+| [MDfiles/WelcomeBoard.md](./WelcomeBoard.md) | 원인/해결 방법 기록 | 완료 |
+
+### 22.4 검증 항목
+
+- 기존 최신 3개보다 오래된 메일을 중요 표시해도 Welcome Board `중요 메일` 카드 스크롤 영역에 추가된다.
+- Welcome Board가 열린 상태에서 메일 목록의 별표를 추가/해제하면 새로고침 없이 카드가 갱신된다.
+- `중요 메일 전체 보기` 버튼은 기존처럼 메일의 `unified:starred` 편지함으로 이동한다.
+
+---
+
+## 23. [버그] 자동 분류된 미확인 메일이 Welcome Board `최근 미확인 메일`에 나타나지 않음
+
+> 증상: 새 미확인 메일이 자동 규칙으로 계정의 특정 폴더로 이동되면, 메일 화면의 해당 폴더에는 보이지만 Welcome Board의 `최근 미확인 메일` 탭에는 나타나지 않는다.
+
+### 23.1 원인
+
+- Welcome Board 데이터 로드가 `unifiedKey=inbox`, `folderType=inbox`, `unreadOnly=1` 조합으로 최근 미확인 메일을 조회했다.
+- 이 기준은 “받은 편지함 안의 미확인 메일”만 포함하므로, 자동 분류나 사용자 이동으로 다른 폴더에 들어간 미확인 메일은 제외된다.
+- 탭 카운트도 `/mail/accounts` 응답에서 `type === 'inbox'` 폴더의 `unread_count`만 합산해 목록과 같은 누락이 발생했다.
+
+### 23.2 수정
+
+- [src/App.jsx](../src/App.jsx)의 `loadRecentUnreadMail()` 요청을 `unifiedKey=all`, `folderType=''`, `unreadOnly=1`로 변경했다.
+- 카운트는 같은 tenant의 모든 폴더 `unread_count`를 합산하되, 통합 `all` 쿼리와 맞추기 위해 휴지통(`type === 'trash'`, provider id `TRASH`, 이름 `휴지통`)은 제외한다.
+- 결과적으로 받은 편지함 밖으로 자동 이동된 미확인 메일도 `최근 미확인 메일` 목록과 배지 숫자에 포함된다.
+
+### 23.3 파일별 변경 요약
+
+| 파일 | 변경 | 상태 |
+|---|---|---|
+| [src/App.jsx](../src/App.jsx) | `isWelcomeMailTrashFolder()` 추가, 최근 미확인 메일 조회 기준을 `unifiedKey=all&unreadOnly=1`로 변경, count 합산 기준을 전체 폴더(휴지통 제외)로 변경 | 완료 |
+| [MDfiles/WelcomeBoard.md](./WelcomeBoard.md) | 21절 inbox 기준 설명 보정, 자동 분류된 미확인 메일 포함 요구/수정 내용 기록 | 완료 |
+
+---
+
+## 24. [버그] 삭제된 문서가 Welcome Board `최근에 본 문서`에 나타남
+
+> 요구: `최근에 본 문서` 목록에서 해당 문서가 삭제되었으면 그 문서는 리스트에 나타나지 않아야 한다.
+
+### 24.1 원인
+
+- `최근에 본 문서`는 사용자가 게시글을 열 때 `recent_post_views`에 표시용 스냅샷을 저장한다.
+- 게시글 삭제는 원본을 즉시 지우지 않고 `deleted_items`에 삭제 표시를 남기는 소프트 삭제 구조다.
+- 기존 `GET /api/recent-post-views` 조회는 `recent_post_views`의 스냅샷을 기준으로 목록을 만들고, `deleted_items`에 있는 삭제 상태를 제외하지 않았다.
+- 또한 원본 게시글이 영구 삭제되어 `posts`에서 사라져도, `recent_post_views`에 남은 스냅샷이 목록에 다시 표시될 수 있었다.
+- 서버 조회 실패 시 사용하는 브라우저 `localStorage` fallback도 오래된 스냅샷을 그대로 반환할 수 있었다.
+
+### 24.2 해결 방법
+
+1. **서버 조회에서 삭제/미존재 문서 제외**
+   - [server/routes/recentPostViews.js](../server/routes/recentPostViews.js)의 `GET /api/recent-post-views`에서 `posts`와 `JOIN`한다.
+   - 원본 `posts` 행이 없는 최근 본 기록은 응답하지 않는다.
+   - `deleted_items`에 `item_type='post'`, `item_id=post_id`로 등록된 소프트 삭제 문서는 응답하지 않는다.
+
+2. **영구 삭제 시 최근 본 기록 정리**
+   - [server/routes/posts.js](../server/routes/posts.js)의 `purgePostHard()`에서 해당 `post_id`의 `recent_post_views` 행을 삭제한다.
+   - 소프트 삭제 단계에서는 복구 가능성을 유지하기 위해 `recent_post_views`를 삭제하지 않고, 조회 필터로만 숨긴다.
+   - 1분 내 복구되면 `deleted_items`가 제거되므로 최근 본 문서 목록에 다시 나타날 수 있다.
+
+3. **프론트 fallback 검증**
+   - [src/App.jsx](../src/App.jsx)의 `loadRecentPosts()`가 서버 목록 조회에 실패해 `localStorage` fallback을 사용할 때도 각 항목을 `/api/posts/:id?channelId=...`로 확인한다.
+   - 삭제됨, 원본 없음, 권한 없음으로 확인되는 항목은 fallback 목록에서도 제외한다.
+
+### 24.3 파일별 변경 요약
+
+| 파일 | 변경 | 상태 |
+|---|---|---|
+| [server/routes/recentPostViews.js](../server/routes/recentPostViews.js) | `deleted_items` 스키마 보장 추가, 최근 본 문서 조회 시 `posts` `JOIN` + `deleted_items` 제외 조건 적용 | 완료 |
+| [server/routes/posts.js](../server/routes/posts.js) | 게시글 영구 삭제 시 `recent_post_views`의 해당 `post_id` 기록 삭제 | 완료 |
+| [src/App.jsx](../src/App.jsx) | `filterExistingWelcomePosts()` 추가, 서버 조회 실패 fallback에서도 삭제/미존재/권한 없음 문서 제외 | 완료 |
+| [MDfiles/WelcomeBoard.md](./WelcomeBoard.md) | 요구사항, 원인, 구현 방안, 변경 파일 기록 | 완료 |
+
+### 24.4 검증 항목
+
+- 문서를 삭제하면 Welcome Board `최근에 본 문서` 목록에서 즉시 보이지 않는다.
+- 삭제 후 1분 내 복구하면 원본이 다시 접근 가능하므로 최근 본 목록에 다시 표시될 수 있다.
+- 1분이 지나 영구 삭제되면 `recent_post_views` 기록도 정리된다.
+- 서버 최근 본 문서 API가 실패해 브라우저 캐시 fallback을 사용하더라도 삭제된 문서는 표시하지 않는다.

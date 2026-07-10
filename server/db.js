@@ -177,6 +177,9 @@ async function initDb() {
           IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='display_name') THEN
             ALTER TABLE users ADD COLUMN display_name TEXT;
           END IF;
+          IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='preferred_language') THEN
+            ALTER TABLE users ADD COLUMN preferred_language VARCHAR(10) NOT NULL DEFAULT 'ko';
+          END IF;
           IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='phone') THEN
             ALTER TABLE users ADD COLUMN phone VARCHAR(30);
           END IF;
@@ -225,6 +228,21 @@ async function initDb() {
               EXECUTE 'ALTER TABLE posts ADD COLUMN attachments_' || i || ' VARCHAR(50)';
             END IF;
           END LOOP;
+        END $$;
+      `)
+      await runMigrationStep(client, 'enforce unique user emails when clean', `
+        DO $$
+        BEGIN
+          IF NOT EXISTS (
+            SELECT 1
+            FROM users
+            GROUP BY lower(email)
+            HAVING COUNT(*) > 1
+          ) THEN
+            CREATE UNIQUE INDEX IF NOT EXISTS users_email_key ON users(email);
+          ELSE
+            RAISE NOTICE 'users.email unique index skipped because duplicate emails already exist';
+          END IF;
         END $$;
       `)
       // calendar_events 테이블 생성

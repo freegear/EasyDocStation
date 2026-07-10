@@ -25,6 +25,14 @@ async function migrate() {
         END IF;
       END $$;
     `);
+    await pool.query(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='preferred_language') THEN
+          ALTER TABLE users ADD COLUMN preferred_language VARCHAR(10) NOT NULL DEFAULT 'ko';
+        END IF;
+      END $$;
+    `);
     console.log('Migration successful.');
   } catch (err) {
     console.error('Migration failed:', err.message);

@@ -2,10 +2,12 @@ import { useState, useEffect, useRef } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { useChat } from '../contexts/ChatContext'
 import { ROLE_BADGE } from '../constants/roles'
+import { SUPPORTED_LANGUAGES } from '../constants/languages'
 import { useT } from '../i18n/useT'
+import LanguageFlag from './LanguageFlag'
 
 export default function UserProfileModal({ onClose, onSaved }) {
-  const { currentUser, updateProfile } = useAuth()
+  const { currentUser, updateProfile, language, setLanguage } = useAuth()
   const { teams = [] } = useChat()
   const t = useT()
 
@@ -19,6 +21,7 @@ export default function UserProfileModal({ onClose, onSaved }) {
   const [useSnsChannel, setUseSnsChannel] = useState(currentUser?.use_sns_channel ?? '')
   const [imageUrl, setImageUrl] = useState(currentUser?.image_url ?? '')
   const [stampPicture, setStampPicture] = useState(currentUser?.stamp_picture ?? '')
+  const [profileLanguage, setProfileLanguage] = useState(currentUser?.preferred_language || language || 'ko')
 
   const [currentPw, setCurrentPw] = useState('')
   const [newPw, setNewPw] = useState('')
@@ -101,6 +104,57 @@ export default function UserProfileModal({ onClose, onSaved }) {
     e.target.value = ''
   }
 
+  async function handleLanguageChange(nextLanguage) {
+    clearMessages()
+    const previousLanguage = profileLanguage
+    setProfileLanguage(nextLanguage)
+    setLanguage(nextLanguage)
+    try {
+      await updateProfile({ preferred_language: nextLanguage })
+    } catch (err) {
+      setProfileLanguage(previousLanguage)
+      setLanguage(previousLanguage)
+      setError(err.message)
+    }
+  }
+
+  function buildProfilePayload() {
+    const payload = {
+      name: String(name || '').trim(),
+      display_name: displayName || null,
+      email,
+      phone,
+      telegram_id: telegramId || null,
+      kakaotalk_api_key: kakaoTalkApiKey || null,
+      line_channel_access_token: lineChannelAccessToken || null,
+      use_sns_channel: useSnsChannel || null,
+      preferred_language: profileLanguage || 'ko',
+      image_url: imageUrl,
+      stamp_picture: stampPicture || null,
+    }
+    if (newPw || confirmPw) {
+      payload.currentPassword = currentPw
+      payload.newPassword = newPw
+    }
+    return payload
+  }
+
+  async function saveProfile(payload) {
+    setSaving(true)
+    try {
+      await updateProfile(payload)
+      setCurrentPw('')
+      setNewPw('')
+      setConfirmPw('')
+      onSaved?.()
+      onClose?.()
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setSaving(false)
+    }
+  }
+
   async function handleSaveInfo(e) {
     e.preventDefault()
     clearMessages()
@@ -131,36 +185,7 @@ export default function UserProfileModal({ onClose, onSaved }) {
       }
     }
 
-    setSaving(true)
-    try {
-      const payload = {
-        name: normalizedName,
-        display_name: displayName || null,
-        email,
-        phone,
-        telegram_id: telegramId || null,
-        kakaotalk_api_key: kakaoTalkApiKey || null,
-        line_channel_access_token: lineChannelAccessToken || null,
-        use_sns_channel: useSnsChannel || null,
-        image_url: imageUrl,
-        stamp_picture: stampPicture || null,
-      }
-      if (tryingPasswordChange) {
-        payload.currentPassword = currentPw
-        payload.newPassword = newPw
-      }
-
-      await updateProfile(payload)
-      setCurrentPw('')
-      setNewPw('')
-      setConfirmPw('')
-      onSaved?.()
-      onClose?.()
-    } catch (err) {
-      setError(err.message)
-    } finally {
-      setSaving(false)
-    }
+    await saveProfile(buildProfilePayload())
   }
 
   const roleBadge = ROLE_BADGE[currentUser?.role] ?? ROLE_BADGE.user
@@ -271,6 +296,28 @@ export default function UserProfileModal({ onClose, onSaved }) {
 
             <div className="md:col-span-2">
               <ReadOnlyField label={t.profile.department || t.admin.labelDepartment} value={teamName} />
+            </div>
+
+            <div className="md:col-span-2 p-4 rounded-2xl bg-gray-50 border border-gray-200">
+              <p className="text-gray-900 text-sm font-semibold mb-3">{t.profile.language || '언어'}</p>
+              <div className="flex flex-wrap items-center gap-2">
+                {SUPPORTED_LANGUAGES.map(lang => (
+                  <button
+                    key={lang.code}
+                    type="button"
+                    onClick={() => handleLanguageChange(lang.code)}
+                    aria-pressed={profileLanguage === lang.code}
+                    className={`inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-sm font-semibold transition-colors ${
+                      profileLanguage === lang.code
+                        ? 'border-indigo-500 bg-indigo-600 text-white shadow-sm'
+                        : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-100'
+                    }`}
+                  >
+                    <LanguageFlag lang={lang} />
+                    <span>{lang.label}</span>
+                  </button>
+                ))}
+              </div>
             </div>
 
             <div className="md:col-span-2 p-4 rounded-2xl bg-gray-50 border border-gray-200">

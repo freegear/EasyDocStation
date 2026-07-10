@@ -6,6 +6,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { apiFetch, getToken } from '../lib/api'
 import { hasAnyTextSelection } from '../lib/textSelection'
 import { findDuplicateFileNames } from '../lib/fileNameValidation'
+import { getPastedImageFiles } from '../lib/clipboardFiles'
 import { useSelectionClickGuard } from '../hooks/useSelectionClickGuard'
 import { getContentFontStyle, normalizeContentFontScale } from '../lib/contentFont'
 import { normalizeBrokenOrderedListItems } from '../lib/markdownNormalize'
@@ -2571,7 +2572,7 @@ function normalizeDashNumberedLists(text) {
 
 // ─── Compose bar with file attach ────────────────────────────
 
-function ComposeBar({ onSubmit, isArchived, teamId, contentFontScale = 100 }) {
+function ComposeBar({ onSubmit, isArchived, channelId, contentFontScale = 100 }) {
   const t = useT()
   const { currentUser, maxAttachmentFileSize } = useAuth()
   const { selectedChannel } = useChat()
@@ -2589,7 +2590,7 @@ function ComposeBar({ onSubmit, isArchived, teamId, contentFontScale = 100 }) {
   const fileInputRef = useRef(null)
   const dragCounter = useRef(0)
   const composeWrapRef = useRef(null)
-  const mention = useMentionAutocomplete(teamId)
+  const mention = useMentionAutocomplete(channelId)
 
   function addFiles(newFiles) {
     if (files.length + newFiles.length > 10) {
@@ -2661,6 +2662,13 @@ function ComposeBar({ onSubmit, isArchived, teamId, contentFontScale = 100 }) {
     e.preventDefault()
     e.stopPropagation()
     handleDrop(e)
+  }
+
+  function handleTextareaPaste(e) {
+    const pastedImages = getPastedImageFiles(e)
+    if (pastedImages.length === 0) return
+    e.preventDefault()
+    addFiles(pastedImages)
   }
 
   function handleTextareaDragOver(e) {
@@ -2838,6 +2846,7 @@ function ComposeBar({ onSubmit, isArchived, teamId, contentFontScale = 100 }) {
                 onClick={e => mention.handleChange(e.currentTarget.value, e.currentTarget.selectionStart, e.currentTarget)}
                 onKeyUp={e => mention.handleChange(e.currentTarget.value, e.currentTarget.selectionStart, e.currentTarget)}
                 onKeyDown={handleKeyDown}
+                onPaste={handleTextareaPaste}
                 onDragOver={handleTextareaDragOver}
                 onDrop={handleTextareaDrop}
                 placeholder={t.chat.messagePlaceholder}
@@ -3278,7 +3287,7 @@ function PostList({ posts, onSelect, onSubmit, selectedPostId, onOpenDocumentLis
             key={`compose-${currentUser?.id ?? 'anon'}-${selectedChannel?.id ?? 'none'}`}
             onSubmit={onSubmit}
             isArchived={selectedChannel?.is_archived}
-            teamId={selectedTeam?.id}
+            channelId={selectedChannel?.id}
             contentFontScale={contentFontScale}
           />
         </Panel>

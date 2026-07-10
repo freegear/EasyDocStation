@@ -20,6 +20,7 @@ import { useT } from '../../i18n/useT'
 import ConfirmDialog from '../ConfirmDialog'
 import { getMdPageTitle } from '../../templates/formTemplates'
 import { apiFetch, getToken } from '../../lib/api'
+import { getPastedImageFiles } from '../../lib/clipboardFiles'
 import { getContentFontStyle } from '../../lib/contentFont'
 import { normalizeBrokenOrderedListItems } from '../../lib/markdownNormalize'
 import LikeButton from './md-page/LikeButton'
@@ -426,6 +427,29 @@ export default function MDPageViewer({ post, channelId, onClose, onOpenPostLink 
     editorRef.current = editor
   }, [editor])
 
+  function handleEditorPaste(event) {
+    if (!editor?.view) return false
+    const nativeEvent = event?.nativeEvent || event
+    if (nativeEvent.__easyDocPasteHandled) return true
+
+    if (pasteEasyDocClipboardData(editor.view, event)) {
+      nativeEvent.__easyDocPasteHandled = true
+      return true
+    }
+
+    const pastedImages = getPastedImageFiles(event)
+    if (pastedImages.length === 0) return false
+
+    nativeEvent.__easyDocPasteHandled = true
+    stopClipboardEvent(event)
+    ;(async () => {
+      for (const file of pastedImages) {
+        await uploadAndInsertImage(file)
+      }
+    })()
+    return true
+  }
+
   useEffect(() => {
     if (!editor) return
     // 최초 진입 시 문서 시그니처를 baseline으로 저장
@@ -445,7 +469,7 @@ export default function MDPageViewer({ post, channelId, onClose, onOpenPostLink 
       writeEasyDocClipboardData(editor.view, event, { cut: true })
     }
     const handlePaste = (event) => {
-      pasteEasyDocClipboardData(editor.view, event)
+      handleEditorPaste(event)
     }
 
     dom.addEventListener('copy', handleCopy, true)
@@ -1168,7 +1192,7 @@ export default function MDPageViewer({ post, channelId, onClose, onOpenPostLink 
                 writeEasyDocClipboardData(editor?.view, event, { cut: true })
               }}
               onPasteCapture={(event) => {
-                pasteEasyDocClipboardData(editor?.view, event)
+                handleEditorPaste(event)
               }}
               onPointerDownCapture={(event) => {
                 handleEditorLinkNavigation(event)

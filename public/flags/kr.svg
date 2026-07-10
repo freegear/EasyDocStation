@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 36 24" role="img" aria-label="한국어">
+  <rect width="36" height="24" rx="2" fill="#fff"/>
+  <g transform="translate(18 12) rotate(-33.69)">
+    <path d="M0-6a6 6 0 1 1 0 12 3 3 0 1 1 0-6 3 3 0 1 0 0-6z" fill="#cd2e3a"/>
+    <path d="M0-6a3 3 0 1 1 0 6 3 3 0 1 0 0 6 6 6 0 1 1 0-12z" fill="#0047a0"/>
+  </g>
+  <g stroke="#111" stroke-width="1.1" stroke-linecap="square">
+    <path d="M6.2 4.5l5.2 3M7.2 2.8l5.2 3M5.2 6.2l5.2 3"/>
+    <path d="M24.6 15l5.2 3M25.6 13.3l5.2 3M23.6 16.7l5.2 3"/>
+    <path d="M25.4 7.8l5.2-3M24.4 6.1l2-1.15M28.6 3.7l2-1.15M26.4 9.5l2-1.15M30.6 7.1l2-1.15"/>
+    <path d="M5.4 16.2l5.2-3M4.4 14.5l2-1.15M8.6 12.1l2-1.15M6.4 17.9l2-1.15M10.6 15.5l2-1.15"/>
+  </g>
+</svg>

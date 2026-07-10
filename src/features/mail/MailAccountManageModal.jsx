@@ -181,6 +181,7 @@ const EMPTY_MAILCLAW_FORM = {
   keyword_check_enabled: false,
   keyword_conditions_text: '',
   ai_analysis_enabled: true,
+  important_mail_enabled: false,
   forward_enabled: false,
   forward_addresses_text: '',
   move_folder_enabled: false,
@@ -213,6 +214,7 @@ function mailClawRuleToForm(rule) {
     keyword_check_enabled: !!rule.keyword_check_enabled,
     keyword_conditions_text: joinLines(rule.keyword_conditions),
     ai_analysis_enabled: !!rule.ai_analysis_enabled,
+    important_mail_enabled: !!rule.important_mail_enabled,
     forward_enabled: !!rule.forward_enabled,
     forward_addresses_text: joinLines(rule.forward_addresses),
     move_folder_enabled: !!rule.move_folder_enabled,
@@ -235,6 +237,7 @@ function mailClawFormToPayload(form, tenantId) {
     keyword_check_enabled: !!form.keyword_check_enabled,
     keyword_conditions: splitLines(form.keyword_conditions_text),
     ai_analysis_enabled: !!form.ai_analysis_enabled,
+    important_mail_enabled: !!form.important_mail_enabled,
     forward_enabled: !!form.forward_enabled,
     forward_addresses: splitLines(form.forward_addresses_text),
     move_folder_enabled: !!form.move_folder_enabled,
@@ -1224,7 +1227,7 @@ function MailAccountManageModal({ accounts, tenants = [], activeFolder, activeUn
                         <span className="mt-1 block truncate text-xs text-gray-500">
                           {[rule.sender_check_enabled ? '발신자' : '', rule.cc_check_enabled ? '참조자' : '', rule.keyword_check_enabled ? '키워드' : ''].filter(Boolean).join(' AND ') || '조건 없음'}
                           {' / '}
-                          {[rule.ai_analysis_enabled ? 'AI 분석' : '', rule.forward_enabled ? '원본 전달' : '', rule.move_folder_enabled ? '폴더 이동' : '', rule.tag_smart_folder_enabled ? '스마트 폴더 태그' : ''].filter(Boolean).join(' → ') || '동작 없음'}
+                          {[rule.ai_analysis_enabled ? 'AI 분석' : '', rule.important_mail_enabled ? '중요 메일 등록' : '', rule.forward_enabled ? '원본 전달' : '', rule.move_folder_enabled ? '폴더 이동' : '', rule.tag_smart_folder_enabled ? '스마트 폴더 태그' : ''].filter(Boolean).join(' → ') || '동작 없음'}
                         </span>
                       </button>
                       <span className={`rounded-full px-2 py-1 text-[11px] font-extrabold ${rule.enabled ? 'bg-emerald-50 text-emerald-700' : 'bg-gray-100 text-gray-400'}`}>
@@ -1330,6 +1333,18 @@ function MailAccountManageModal({ accounts, tenants = [], activeFolder, activeUn
                       checked={mailClawForm.ai_analysis_enabled}
                       onChange={value => updateMailClawField('ai_analysis_enabled', value)}
                       label="AI 메일 분석 Enable"
+                    />
+                  </div>
+                  <div className="hidden sm:block" />
+                </div>
+                <div className="grid gap-3 rounded-lg border border-gray-200 bg-white p-3 sm:grid-cols-[280px_96px_minmax(0,1fr)] sm:items-center">
+                  <span className="whitespace-nowrap text-sm font-bold text-gray-700">중요 메일 등록</span>
+                  <div className="flex items-center gap-2 text-xs font-extrabold text-gray-400 sm:justify-end">
+                    <span>Enable</span>
+                    <SlideToggle
+                      checked={mailClawForm.important_mail_enabled}
+                      onChange={value => updateMailClawField('important_mail_enabled', value)}
+                      label="중요 메일 등록 Enable"
                     />
                   </div>
                   <div className="hidden sm:block" />

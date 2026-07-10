@@ -4,6 +4,28 @@ const db = require('../db')
 const requireAuth = require('../middleware/auth')
 const { canAccessChannel } = require('../lib/channelAccess')
 
+let softDeleteSchemaEnsured = false
+async function ensureSoftDeleteSchema() {
+  if (softDeleteSchemaEnsured) return
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS deleted_items (
+      item_type   TEXT NOT NULL,
+      item_id     VARCHAR(50) NOT NULL,
+      channel_id  VARCHAR(50),
+      post_id     VARCHAR(50),
+      author_id   INTEGER,
+      deleted_by  INTEGER,
+      preview     TEXT,
+      deleted_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      PRIMARY KEY (item_type, item_id)
+    )
+  `)
+  await db.query('CREATE INDEX IF NOT EXISTS idx_deleted_items_channel ON deleted_items(item_type, channel_id)')
+  await db.query('CREATE INDEX IF NOT EXISTS idx_deleted_items_post ON deleted_items(item_type, post_id)')
+  await db.query('CREATE INDEX IF NOT EXISTS idx_deleted_items_deleted_at ON deleted_items(deleted_at)')
+  softDeleteSchemaEnsured = true
+}
+
 function safeText(value, max = 1000) {
   return String(value || '').slice(0, max)
 }
@@ -100,12 +122,17 @@ function rowToClient(row = {}) {
 router.get('/', requireAuth, async (req, res, next) => {
   try {
     const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 20, 1), 50)
+    await ensureSoftDeleteSchema()
     const result = await db.query(
       `SELECT r.*, u.image_url AS user_image_url, p.content AS post_content
        FROM recent_post_views r
+       JOIN posts p ON p.id::text = r.post_id
        LEFT JOIN users u ON u.id = r.author_id
-       LEFT JOIN posts p ON p.id = r.post_id
        WHERE r.user_id = $1
+         AND NOT EXISTS (
+           SELECT 1 FROM deleted_items d
+           WHERE d.item_type = 'post' AND d.item_id = r.post_id
+         )
        ORDER BY viewed_at DESC
        LIMIT $2`,
       [req.user.id, limit * 2],

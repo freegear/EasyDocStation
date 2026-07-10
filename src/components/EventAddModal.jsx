@@ -168,6 +168,7 @@ export default function EventAddModal({ onClose, onAdd, onSave, onDelete, event:
   const isSiteAdmin = currentUser?.role === 'site_admin'
   const maxLevel = isSiteAdmin ? 4 : (currentUser?.security_level ?? 0)
   const isEditMode = !!editEvent
+  const isRepeatSeries = !!(editEvent?.repeat && editEvent.repeat !== 'none' && editEvent.seriesId)
   const canMutate = !isEditMode || canEdit
   const ownerId = Number(editEvent?.ownerId)
   const isOwnerCurrentUser = !isEditMode || ownerId === Number(currentUser?.id)
@@ -317,7 +318,7 @@ export default function EventAddModal({ onClose, onAdd, onSave, onDelete, event:
     if (!canMutate) return
     if (!title.trim()) { titleRef.current?.focus(); return }
     if (isEditMode) {
-      if (editEvent.repeat && editEvent.repeat !== 'none') {
+      if (isRepeatSeries) {
         setShowRepeatSaveConfirm(true)
       } else {
         onSave?.({ ...editEvent, ...buildData() }, 'single')
@@ -331,7 +332,7 @@ export default function EventAddModal({ onClose, onAdd, onSave, onDelete, event:
 
   function handleDelete() {
     if (!canMutate) return
-    if (editEvent.repeat && editEvent.repeat !== 'none') {
+    if (isRepeatSeries) {
       setShowRepeatDeleteConfirm(true)
     } else {
       onDelete?.(editEvent.id, 'single')

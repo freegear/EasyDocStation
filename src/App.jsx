@@ -51,6 +51,26 @@ function hasDeepLinkParams() {
   )
 }
 
+function isWelcomeMailTrashFolder(folder) {
+  const type = String(folder?.type || '').trim().toLowerCase()
+  const providerId = String(folder?.provider_folder_id || '').trim().toUpperCase()
+  const name = String(folder?.name || '').trim().toLowerCase()
+  return type === 'trash' || providerId === 'TRASH' || name === '휴지통'
+}
+
+async function filterExistingWelcomePosts(posts) {
+  const list = Array.isArray(posts) ? posts : []
+  if (!list.length) return []
+  const checks = await Promise.allSettled(list.map(async (post) => {
+    const postId = String(post?.postId || '').trim()
+    const channelId = String(post?.channelId || '').trim()
+    if (!postId || !channelId) return false
+    await apiFetch(`/posts/${encodeURIComponent(postId)}?channelId=${encodeURIComponent(channelId)}`)
+    return true
+  }))
+  return list.filter((_, index) => checks[index]?.status === 'fulfilled' && checks[index].value)
+}
+
 function FullscreenServicePage({ service, onClose }) {
   const iframeRef = useRef(null)
   const lastEscapeAtRef = useRef(0)
@@ -199,6 +219,7 @@ function MainLayout() {
   const [fullscreenService, setFullscreenService] = useState(null)
   const [welcomeService, setWelcomeService] = useState(null)  // 가운데 패널 인패널 서비스 (WelcomeBoard.md 8절)
   const [welcomeBoardData, setWelcomeBoardData] = useState(null)  // Welcome 보드 카드 주입 데이터 (WelcomeBoard.md 12절)
+  const [welcomeBoardRefreshTick, setWelcomeBoardRefreshTick] = useState(0)
   const { currentUser } = useAuth()
   const { isSearchMode, teams, selectedTeam, navigateToPost, recoverFromAccessDenied } = useChat()
   const deepLinkHandledRef = useRef(false)
@@ -371,6 +392,14 @@ function MainLayout() {
     }
   }, [currentUser?.id])
 
+  useEffect(() => {
+    function refreshWelcomeBoardMail() {
+      setWelcomeBoardRefreshTick(tick => tick + 1)
+    }
+    window.addEventListener('easy-mail-starred-changed', refreshWelcomeBoardMail)
+    return () => window.removeEventListener('easy-mail-starred-changed', refreshWelcomeBoardMail)
+  }, [])
+
   // Welcome 보드 오픈 시 카드 데이터(오늘의 일정 + 최근 미확인 메일 등)를 로드해 주입한다.
   useEffect(() => {
     if (welcomeService?.id !== 'welcome-board') {
@@ -447,14 +476,13 @@ function MainLayout() {
         })
         const rows = await apiFetch(`/mail/messages?${params.toString()}`)
         return (Array.isArray(rows) ? rows : [])
-          .slice(0, 3)
           .map(m => toWelcomeMailItem(m, tenantId))
       } catch {
         return []
       }
     }
 
-    // 최근 미확인 메일: 통합 받은편지함의 읽지 않은 메일만 최신순으로 표시한다. (MailService.md 8.4)
+    // 최근 미확인 메일: 자동 분류/이동된 메일까지 포함하도록 모든 편지함의 읽지 않은 메일을 최신순으로 표시한다.
     const loadRecentUnreadMail = async () => {
       try {
         const accounts = await getWelcomeMailAccounts()
@@ -463,13 +491,13 @@ function MainLayout() {
         const recentUnreadMailCount = accounts
           .filter(account => account?.tenant_id === tenantId)
           .flatMap(account => Array.isArray(account.folders) ? account.folders : [])
-          .filter(folder => folder?.type === 'inbox')
+          .filter(folder => !isWelcomeMailTrashFolder(folder))
           .reduce((sum, folder) => sum + (Number(folder.unread_count) || 0), 0)
         const params = new URLSearchParams({
           tenantId,
           scope: 'unified',
-          unifiedKey: 'inbox',
-          folderType: 'inbox',
+          unifiedKey: 'all',
+          folderType: '',
           folderName: '',
           unreadOnly: '1',
           limit: '30',
@@ -499,7 +527,7 @@ function MainLayout() {
         const rows = await apiFetch('/recent-post-views?limit=20')
         return Array.isArray(rows) ? rows : []
       } catch {
-        return getRecentPosts(currentUser?.id)
+        return filterExistingWelcomePosts(getRecentPosts(currentUser?.id))
       }
     }
 
@@ -537,7 +565,7 @@ function MainLayout() {
       }))
     })()
     return () => { cancelled = true }
-  }, [welcomeService?.id, currentUser?.id])
+  }, [welcomeService?.id, currentUser?.id, welcomeBoardRefreshTick])
 
   useEffect(() => {
     if (typeof window === 'undefined') return

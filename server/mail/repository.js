@@ -2068,7 +2068,7 @@ async function saveSyncedMessage({ tenantId, account, parsed, folderId, objectKe
          received_at = EXCLUDED.received_at,
          sent_at = EXCLUDED.sent_at,
          is_read = EXCLUDED.is_read,
-         is_starred = EXCLUDED.is_starred,
+         is_starred = mail_messages.is_starred OR EXCLUDED.is_starred,
          has_attachments = EXCLUDED.has_attachments,
          size_bytes = EXCLUDED.size_bytes,
          raw_object_key = EXCLUDED.raw_object_key,
@@ -2420,6 +2420,7 @@ function normalizeMailClawFields(fields = {}) {
     keyword_check_enabled: !!fields.keyword_check_enabled,
     keyword_conditions: normalizeStringArray(fields.keyword_conditions),
     ai_analysis_enabled: !!fields.ai_analysis_enabled,
+    important_mail_enabled: !!fields.important_mail_enabled,
     forward_enabled: !!fields.forward_enabled,
     forward_addresses: normalizeStringArray(fields.forward_addresses),
     move_folder_enabled: !!fields.move_folder_enabled,
@@ -2496,10 +2497,10 @@ async function ensureDefaultMailClawTrashRule({ tenantId, userId }) {
          sender_check_enabled, sender_conditions,
          cc_check_enabled, cc_conditions,
          keyword_check_enabled, keyword_conditions,
-         ai_analysis_enabled, forward_enabled, forward_addresses,
+         ai_analysis_enabled, important_mail_enabled, forward_enabled, forward_addresses,
          move_folder_enabled, target_folder_id
        )
-       VALUES ($1,$2,$3,true,false,'[]'::jsonb,false,'[]'::jsonb,false,'[]'::jsonb,false,false,'[]'::jsonb,true,$4)
+       VALUES ($1,$2,$3,true,false,'[]'::jsonb,false,'[]'::jsonb,false,'[]'::jsonb,false,false,false,'[]'::jsonb,true,$4)
        RETURNING *`,
       [tenantId, userId, DEFAULT_MAILCLAW_TRASH_RULE_NAME, targetFolderId],
     )
@@ -2573,6 +2574,7 @@ async function listMailClawRules({ tenantId, userId, isSiteAdmin }) {
             mcr.keyword_check_enabled,
             mcr.keyword_conditions,
             mcr.ai_analysis_enabled,
+            mcr.important_mail_enabled,
             mcr.forward_enabled,
             mcr.forward_addresses,
             mcr.move_folder_enabled,
@@ -2610,6 +2612,7 @@ async function listEnabledMailClawRules({ tenantId }) {
             keyword_check_enabled,
             keyword_conditions,
             ai_analysis_enabled,
+            important_mail_enabled,
             forward_enabled,
             forward_addresses,
             move_folder_enabled,
@@ -2641,6 +2644,7 @@ async function getMailClawRule({ tenantId, id, userId, isSiteAdmin }) {
             keyword_check_enabled,
             keyword_conditions,
             ai_analysis_enabled,
+            important_mail_enabled,
             forward_enabled,
             forward_addresses,
             move_folder_enabled,
@@ -2667,11 +2671,11 @@ async function createMailClawRule({ tenantId, ownerUserId, fields }) {
        sender_check_enabled, sender_conditions,
        cc_check_enabled, cc_conditions,
        keyword_check_enabled, keyword_conditions,
-       ai_analysis_enabled, forward_enabled, forward_addresses,
+       ai_analysis_enabled, important_mail_enabled, forward_enabled, forward_addresses,
        move_folder_enabled, target_folder_id,
        tag_smart_folder_enabled, tag_smart_folder_id, tag_archive_enabled
      )
-     VALUES ($1,$2,$3,$4,$5,$6::jsonb,$7,$8::jsonb,$9,$10::jsonb,$11,$12,$13::jsonb,$14,$15,$16,$17,$18)
+     VALUES ($1,$2,$3,$4,$5,$6::jsonb,$7,$8::jsonb,$9,$10::jsonb,$11,$12,$13,$14::jsonb,$15,$16,$17,$18,$19)
      RETURNING *`,
     [
       tenantId,
@@ -2685,6 +2689,7 @@ async function createMailClawRule({ tenantId, ownerUserId, fields }) {
       f.keyword_check_enabled,
       JSON.stringify(f.keyword_conditions),
       f.ai_analysis_enabled,
+      f.important_mail_enabled,
       f.forward_enabled,
       JSON.stringify(f.forward_addresses),
       f.move_folder_enabled,
@@ -2711,17 +2716,18 @@ async function updateMailClawRule({ tenantId, id, ownerUserId, isSiteAdmin, fiel
          keyword_check_enabled = $10,
          keyword_conditions = $11::jsonb,
          ai_analysis_enabled = $12,
-         forward_enabled = $13,
-         forward_addresses = $14::jsonb,
-         move_folder_enabled = $15,
-         target_folder_id = $16,
-         tag_smart_folder_enabled = $18,
-         tag_smart_folder_id = $19,
-         tag_archive_enabled = $20,
+         important_mail_enabled = $13,
+         forward_enabled = $14,
+         forward_addresses = $15::jsonb,
+         move_folder_enabled = $16,
+         target_folder_id = $17,
+         tag_smart_folder_enabled = $19,
+         tag_smart_folder_id = $20,
+         tag_archive_enabled = $21,
          updated_at = NOW()
      WHERE tenant_id = $1
        AND id = $2
-       AND ($3::boolean = true OR owner_user_id = $17)
+       AND ($3::boolean = true OR owner_user_id = $18)
      RETURNING *`,
     [
       tenantId,
@@ -2736,6 +2742,7 @@ async function updateMailClawRule({ tenantId, id, ownerUserId, isSiteAdmin, fiel
       f.keyword_check_enabled,
       JSON.stringify(f.keyword_conditions),
       f.ai_analysis_enabled,
+      f.important_mail_enabled,
       f.forward_enabled,
       JSON.stringify(f.forward_addresses),
       f.move_folder_enabled,

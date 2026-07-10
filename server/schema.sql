@@ -60,6 +60,8 @@ CREATE TABLE IF NOT EXISTS users (
   role          VARCHAR(20)  NOT NULL DEFAULT 'user'
                   CHECK (role IN ('site_admin', 'team_admin', 'channel_admin', 'user')),
   display_name  VARCHAR(100),
+  preferred_language VARCHAR(10) NOT NULL DEFAULT 'ko'
+                  CHECK (preferred_language IN ('ko', 'en', 'ja')),
   image_url     TEXT,
   is_active     BOOLEAN      NOT NULL DEFAULT true,
   can_edit_search_results BOOLEAN NOT NULL DEFAULT false,
@@ -86,6 +88,8 @@ DO $$ BEGIN
   THEN ALTER TABLE users ADD COLUMN active_session_id TEXT; END IF;
   IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='supabase_user_id')
   THEN ALTER TABLE users ADD COLUMN supabase_user_id UUID; END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='preferred_language')
+  THEN ALTER TABLE users ADD COLUMN preferred_language VARCHAR(10) NOT NULL DEFAULT 'ko'; END IF;
 END $$;
 
 -- ─── Login history ───────────────────────────────────────────

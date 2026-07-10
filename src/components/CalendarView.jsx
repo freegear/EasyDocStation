@@ -10,6 +10,7 @@ const HOURS = Array.from({ length: 24 }, (_, i) => i)
 // Each hour row height in px (1 minute = 1px for DayView, 52/60 px for WeekView)
 const DAY_SLOT_PX = 60
 const WEEK_SLOT_PX = 52
+const WEEK_GRID_COLUMNS = '56px repeat(7, minmax(0, 1fr))'
 
 function hexToRgba(hex, alpha) {
   const r = parseInt(hex.slice(1, 3), 16)
@@ -21,9 +22,10 @@ function hexToRgba(hex, alpha) {
 // Convert event dt object (with ampm) to { hour, minute } in 24h
 function dtTo24h(dt) {
   let h = Number(dt.hour)
-  const m = Number(dt.minute)
-  if (dt.ampm === 'PM' && h !== 12) h += 12
-  if (dt.ampm === 'AM' && h === 12) h = 0
+  const m = Number(dt.minute) || 0
+  const ampm = dt.ampm
+  if ((ampm === 'PM' || ampm === '오후') && h !== 12) h += 12
+  if ((ampm === 'AM' || ampm === '오전') && h === 12) h = 0
   return { hour: h, minute: m }
 }
 
@@ -61,6 +63,10 @@ function makeDt(date, hour24, minute = 0) {
 function eventOnDay(ev, date) {
   const s = ev.startDt
   return s.year === date.getFullYear() && s.month === date.getMonth() + 1 && s.day === date.getDate()
+}
+
+function isRepeatSeriesEvent(ev) {
+  return !!(ev?.repeat && ev.repeat !== 'none' && ev.seriesId)
 }
 
 function isSameDay(a, b) {
@@ -259,12 +265,12 @@ function WeekView({ date, events = [], onEventDoubleClick, onEventDragStart, onW
   return (
     <div className="flex flex-col h-full overflow-hidden calendar-scale-root">
       {/* Day headers */}
-      <div className="grid border-b border-gray-200 bg-gray-50 flex-shrink-0" style={{ gridTemplateColumns: '56px repeat(7, 1fr)' }}>
+      <div className="grid border-b border-gray-200 bg-gray-50 flex-shrink-0" style={{ gridTemplateColumns: WEEK_GRID_COLUMNS }}>
         <div />
         {days.map((d, i) => {
           const isToday = isSameDay(d, today)
           return (
-            <div key={i} className="py-2 text-center">
+            <div key={i} className="py-2 text-center min-w-0">
               <div className={`text-xs font-medium ${i === 0 ? 'text-red-500' : i === 6 ? 'text-blue-500' : 'text-gray-500'}`}>
                 {WEEKDAYS[i]}
               </div>
@@ -279,7 +285,7 @@ function WeekView({ date, events = [], onEventDoubleClick, onEventDragStart, onW
 
       {/* 하루종일 이벤트 행 */}
       <div className="grid border-b border-gray-200 bg-white flex-shrink-0 min-h-[32px]"
-        style={{ gridTemplateColumns: '56px repeat(7, 1fr)' }}>
+        style={{ gridTemplateColumns: WEEK_GRID_COLUMNS }}>
         <div className="pr-2 text-right text-[10px] text-gray-400 leading-8 select-none flex-shrink-0">하루종일</div>
         {days.map((d, i) => {
           const dayAllDayEvents = events.filter(ev => ev.allDay && eventOnDay(ev, d))
@@ -287,7 +293,7 @@ function WeekView({ date, events = [], onEventDoubleClick, onEventDragStart, onW
           const isAllDayDragOver = dragOverAllDayDate && isSameDay(dragOverAllDayDate, d)
           return (
             <div key={i}
-              className={`border-l border-gray-100 px-0.5 py-0.5 min-h-[32px] transition-colors
+              className={`border-l border-gray-100 px-0.5 py-0.5 min-h-[32px] min-w-0 overflow-hidden transition-colors
                 ${isAllDayDragOver ? 'bg-indigo-100/70 ring-2 ring-inset ring-indigo-400' : isTodayCol ? 'bg-indigo-50/20' : ''}`}
               onDragOver={e => { e.preventDefault(); setDragOverAllDayDate(d) }}
               onDragLeave={e => { if (!e.currentTarget.contains(e.relatedTarget)) setDragOverAllDayDate(null) }}
@@ -300,7 +306,7 @@ function WeekView({ date, events = [], onEventDoubleClick, onEventDragStart, onW
                   draggable={canEdit}
                   onDragStart={e => { if (!canEdit) { e.preventDefault(); return }; e.stopPropagation(); grabOffsetRef.current = 0; onEventDragStart?.(ev.id) }}
                   onDoubleClick={e => { e.stopPropagation(); onEventDoubleClick?.(ev) }}
-                  className={`text-[10px] font-medium text-white px-1.5 py-0.5 rounded mb-0.5 truncate hover:brightness-95 ${canEdit ? 'cursor-grab active:cursor-grabbing' : 'cursor-default'}`}
+                  className={`w-full text-[10px] font-medium text-white px-1.5 py-0.5 rounded mb-0.5 truncate hover:brightness-95 ${canEdit ? 'cursor-grab active:cursor-grabbing' : 'cursor-default'}`}
                   style={{ backgroundColor: ev.color }}>
                   {ev.title}
                 </div>
@@ -312,7 +318,7 @@ function WeekView({ date, events = [], onEventDoubleClick, onEventDragStart, onW
 
       {/* Time grid */}
       <div className="time-grid-scroll flex-1 overflow-y-auto">
-        <div ref={gridRef} className="time-grid-inner relative" style={{ display: 'grid', gridTemplateColumns: '56px repeat(7, 1fr)', height: totalGridPx }}>
+        <div ref={gridRef} className="time-grid-inner relative" style={{ display: 'grid', gridTemplateColumns: WEEK_GRID_COLUMNS, height: totalGridPx }}>
           {/* Hour labels + horizontal lines */}
           {HOURS.map(h => (
             <div
@@ -358,7 +364,7 @@ function WeekView({ date, events = [], onEventDoubleClick, onEventDragStart, onW
                   const { hour, minute } = calcClickTime(e.clientY)
                   onCellDoubleClick?.(d, hour, minute)
                 }}
-                className={`relative border-l border-gray-100 transition-colors
+                className={`relative min-w-0 border-l border-gray-100 transition-colors
                   ${isDragOver ? 'bg-indigo-100/60 ring-2 ring-inset ring-indigo-400' : isTodayCol ? 'bg-indigo-50/20' : ''}`}
                 style={{ gridColumn: ci + 2, gridRow: `1 / ${HOURS.length + 1}` }}
               >
@@ -856,6 +862,18 @@ export default function CalendarView({ onClose, focusEvent = null, addEventReque
     draggingRef.current = { id: evId, mode }
   }
 
+  function persistDragUpdate(updated, prevEvents) {
+    if (isRepeatSeriesEvent(updated)) {
+      setPendingDragUpdate({ updated, prevEvents })
+      return
+    }
+    apiFetch(`/events/${updated.id}`, { method: 'PUT', body: JSON.stringify(updated) })
+      .catch((err) => {
+        setEvents(prevEvents)
+        openCalendarError('이벤트 수정 실패', err)
+      })
+  }
+
   // Month view: date-only change (no time)
   function handleDayDrop(newDate) {
     const drag = draggingRef.current
@@ -872,11 +890,7 @@ export default function CalendarView({ onClose, focusEvent = null, addEventReque
       })
       const updated = next.find(ev => ev.id === drag.id)
       if (updated) {
-        if (updated.repeat && updated.repeat !== 'none') {
-          setPendingDragUpdate({ updated, prevEvents: prev })
-        } else {
-          apiFetch(`/events/${updated.id}`, { method: 'PUT', body: JSON.stringify(updated) }).catch(() => {})
-        }
+        persistDragUpdate(updated, prev)
       }
       return next
     })
@@ -940,11 +954,7 @@ export default function CalendarView({ onClose, focusEvent = null, addEventReque
       })
       const updated = next.find(ev => ev.id === drag.id)
       if (updated) {
-        if (updated.repeat && updated.repeat !== 'none') {
-          setPendingDragUpdate({ updated, prevEvents: prev })
-        } else {
-          apiFetch(`/events/${updated.id}`, { method: 'PUT', body: JSON.stringify(updated) }).catch(() => {})
-        }
+        persistDragUpdate(updated, prev)
       }
       return next
     })
@@ -970,11 +980,7 @@ export default function CalendarView({ onClose, focusEvent = null, addEventReque
       })
       const updated = next.find(ev => ev.id === drag.id)
       if (updated) {
-        if (updated.repeat && updated.repeat !== 'none') {
-          setPendingDragUpdate({ updated, prevEvents: prev })
-        } else {
-          apiFetch(`/events/${updated.id}`, { method: 'PUT', body: JSON.stringify(updated) }).catch(() => {})
-        }
+        persistDragUpdate(updated, prev)
       }
       return next
     })
@@ -1191,9 +1197,14 @@ export default function CalendarView({ onClose, focusEvent = null, addEventReque
             <div className="flex items-center gap-2 px-6 pb-5">
               <button
                 onClick={async () => {
-                  const { updated } = pendingDragUpdate
+                  const { updated, prevEvents } = pendingDragUpdate
                   setPendingDragUpdate(null)
-                  apiFetch(`/events/${updated.id}`, { method: 'PUT', body: JSON.stringify(updated) }).catch(() => {})
+                  try {
+                    await apiFetch(`/events/${updated.id}`, { method: 'PUT', body: JSON.stringify(updated) })
+                  } catch (e) {
+                    setEvents(prevEvents)
+                    openCalendarError('이벤트 수정 실패', e)
+                  }
                 }}
                 className="flex-1 px-3 py-2 rounded-lg text-sm font-medium border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors"
               >
@@ -1201,13 +1212,14 @@ export default function CalendarView({ onClose, focusEvent = null, addEventReque
               </button>
               <button
                 onClick={async () => {
-                  const { updated } = pendingDragUpdate
+                  const { updated, prevEvents } = pendingDragUpdate
                   setPendingDragUpdate(null)
                   try {
                     const savedAll = await apiFetch(`/events/series/${updated.seriesId}`, { method: 'PUT', body: JSON.stringify(updated) })
                     const savedMap = new Map(savedAll.map(ev => [ev.id, ev]))
                     setEvents(prev => prev.map(ev => savedMap.has(ev.id) ? savedMap.get(ev.id) : ev))
                   } catch (e) {
+                    setEvents(prevEvents)
                     openCalendarError('이벤트 수정 실패', e)
                   }
                 }}

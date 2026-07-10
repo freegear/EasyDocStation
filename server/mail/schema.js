@@ -393,6 +393,7 @@ async function ensureMailDataSchema(client, { standalone = false } = {}) {
       keyword_check_enabled BOOLEAN NOT NULL DEFAULT false,
       keyword_conditions    JSONB NOT NULL DEFAULT '[]',
       ai_analysis_enabled   BOOLEAN NOT NULL DEFAULT false,
+      important_mail_enabled BOOLEAN NOT NULL DEFAULT false,
       forward_enabled       BOOLEAN NOT NULL DEFAULT false,
       forward_addresses     JSONB NOT NULL DEFAULT '[]',
       move_folder_enabled   BOOLEAN NOT NULL DEFAULT false,
@@ -429,6 +430,12 @@ async function ensureMailDataSchema(client, { standalone = false } = {}) {
       ADD COLUMN IF NOT EXISTS tag_smart_folder_id TEXT;
     ALTER TABLE mailclaw_rules
       ADD COLUMN IF NOT EXISTS tag_archive_enabled BOOLEAN NOT NULL DEFAULT false;
+  `)
+
+  // MailClaw 규칙에 "중요 메일 등록" 액션을 추가한다. 매칭된 메일의 로컬 중요 표시(is_starred)를 켠다.
+  await run(client, 'mailclaw important mail action column', `
+    ALTER TABLE mailclaw_rules
+      ADD COLUMN IF NOT EXISTS important_mail_enabled BOOLEAN NOT NULL DEFAULT false;
   `)
 
   // 통합 메일함 태그 기반 스마트 폴더 (MailService.md 13)

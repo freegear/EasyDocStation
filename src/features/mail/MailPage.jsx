@@ -636,12 +636,27 @@ export default function MailPage({ onBackToMain, initialMailLink = null, initial
   }
 
   // 새 게시글 또는 선택 게시글의 댓글로 등록 (MailService.md 23.5)
-  async function submitRegisterAsPost({ channelId, postId, content }) {
+  async function submitRegisterAsPost({ channelId, postId, content, messageId, tenantId, mailAttachmentIds = [] }) {
+    let attachmentIds = []
+    const sourceAttachmentIds = Array.isArray(mailAttachmentIds)
+      ? mailAttachmentIds.map(id => String(id || '').trim()).filter(Boolean).slice(0, 10)
+      : []
+    if (sourceAttachmentIds.length > 0) {
+      const copied = await apiFetch(`/mail/messages/${encodeURIComponent(messageId)}/post-attachments`, {
+        method: 'POST',
+        body: JSON.stringify({
+          tenantId,
+          channelId,
+          attachmentIds: sourceAttachmentIds,
+        }),
+      })
+      attachmentIds = (copied?.attachments || []).map(att => att.id).filter(Boolean)
+    }
     if (postId) {
-      await addComment(channelId, postId, content, currentUser, [], undefined)
+      await addComment(channelId, postId, content, currentUser, attachmentIds, undefined)
       showToast({ message: mt.postDialog.successComment, tone: 'success' })
     } else {
-      await addPost(channelId, { content }, { suppressAlert: true })
+      await addPost(channelId, { content, attachmentIds }, { suppressAlert: true })
       showToast({ message: mt.postDialog.successPost, tone: 'success' })
     }
   }
@@ -1029,6 +1044,13 @@ export default function MailPage({ onBackToMain, initialMailLink = null, initial
           starredUnreadDelta: message.is_read ? 0 : (starred ? 1 : -1),
         })
       }
+      window.dispatchEvent(new CustomEvent('easy-mail-starred-changed', {
+        detail: {
+          tenantId,
+          starred,
+          messageIds: targets.map(item => item.id),
+        },
+      }))
     } catch (err) {
       setMessagesError(err.message || '중요 표시를 변경하지 못했습니다.')
     }

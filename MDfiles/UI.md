@@ -335,3 +335,499 @@ npm run build
 7. macOS에서 트랙패드에 두 손가락을 대고 오른쪽으로 스와이프하면 버튼 클릭과 동일하게
    `Z-GUNDAM -> Gundam-Mk2 -> GUNDAM -> EasyPage A` 순서로 이동한다.
 8. EasyPage stack이 비어 있는 상태에서 같은 스와이프를 하면 브라우저의 기존 이전 페이지로 이동한다.
+
+---
+
+# 4. 언어 선택 국기 이모지를 이미지 아이콘으로 고정
+
+## 4.1 증상
+
+언어 선택 UI에서 사용자 환경에 따라 표시가 다르게 나타난다.
+
+- 어떤 사용자 화면: `🇰🇷`, `🇺🇸`, `🇯🇵` 국기 모양으로 표시
+- 다른 사용자 화면: `KR`, `US`, `JP` 텍스트처럼 표시
+
+즉 같은 UI인데도 접속한 PC, OS, 브라우저, 폰트 환경에 따라 국기 표시가 달라진다.
+
+## 4.2 원인
+
+현재 언어 선택 버튼은 국기 이미지를 쓰는 것이 아니라 Unicode 국기 이모지를 문자열로 렌더한다.
+
+실제 코드 위치:
+
+- [src/components/TitleBar.jsx](../src/components/TitleBar.jsx)
+- [src/components/SiteAdminPage.jsx](../src/components/SiteAdminPage.jsx)
+
+현재 구조는 다음과 같은 형태다.
+
+```jsx
+const LANGUAGES = [
+  { code: 'ko', label: '한국어', flag: '🇰🇷' },
+  { code: 'en', label: 'English', flag: '🇺🇸' },
+  { code: 'ja', label: '日本語', flag: '🇯🇵' },
+]
+```
+
+Unicode 국기 이모지는 내부적으로 국가 코드 조합이다.
+
+예:
+
+```txt
+🇰🇷 = Regional Indicator Symbol K + R
+🇺🇸 = Regional Indicator Symbol U + S
+🇯🇵 = Regional Indicator Symbol J + P
+```
+
+OS나 브라우저가 이 조합을 컬러 국기 이모지로 렌더하면 국기로 보이고, 지원하지 못하면 `KR`, `US`, `JP`처럼 보일 수 있다.
+
+특히 다음 환경에서 차이가 날 수 있다.
+
+- Windows의 이모지/폰트 렌더링 차이
+- Linux에서 `Noto Color Emoji` 같은 컬러 이모지 폰트 설치 여부
+- 브라우저별 emoji fallback 처리 차이
+- CSS `font-family`가 강하게 지정되어 emoji fallback이 막히는 경우
+
+## 4.3 정책 (의견)
+
+서비스 UI에서 모든 사용자에게 동일한 모양을 보장하려면 국기 이모지 대신 **이미지 아이콘**을 사용한다.
+
+권장 원칙:
+
+1. 언어 선택 UI에서는 Unicode 국기 이모지를 직접 렌더하지 않는다.
+2. `public/flags` 아래에 고정 이미지 자산을 둔다.
+3. 언어 목록 데이터에는 `flag` 문자열 대신 `flagSrc` 이미지 경로를 둔다.
+4. 접근성 문구는 국가명이 아니라 언어명 기준으로 제공한다.
+   - 좋은 예: `alt="한국어"`, `alt="English"`, `alt="日本語"`
+   - 피할 예: `alt="한국 국기"`, `alt="미국 국기"`
+
+국기는 국가를 의미하고 언어는 언어를 의미하므로, 화면에는 국기 이미지를 쓰더라도 접근성 라벨과 tooltip은 언어명을 기준으로 잡는 것이 좋다.
+
+## 4.4 이미지 자산 위치
+
+권장 파일 구조:
+
+```txt
+public/
+  flags/
+    kr.svg
+    us.svg
+    jp.svg
+```
+
+Vite/React에서 `public` 아래 파일은 다음처럼 절대 경로로 접근한다.
+
+```jsx
+<img src="/flags/kr.svg" alt="한국어" />
+```
+
+이미지 형식은 SVG를 우선 권장한다.
+
+이유:
+
+- OS/브라우저 emoji 폰트 영향을 받지 않는다.
+- 확대/축소해도 깨지지 않는다.
+- 용량이 작다.
+- 버튼 크기에 맞추기 쉽다.
+
+SVG 확보가 어렵거나 라이선스 확인이 필요한 경우에는 PNG도 가능하다. 단, PNG를 쓸 때는 최소 2배 해상도 자산을 준비해 고해상도 디스플레이에서 흐릿하지 않게 한다.
+
+## 4.5 구현 방향
+
+### 4.5.1 언어 데이터 변경
+
+기존:
+
+```jsx
+const LANGUAGES = [
+  { code: 'ko', label: '한국어', flag: '🇰🇷' },
+  { code: 'en', label: 'English', flag: '🇺🇸' },
+  { code: 'ja', label: '日本語', flag: '🇯🇵' },
+]
+```
+
+변경:
+
+```jsx
+const LANGUAGES = [
+  { code: 'ko', label: '한국어', shortLabel: 'KR', flagSrc: '/flags/kr.svg' },
+  { code: 'en', label: 'English', shortLabel: 'US', flagSrc: '/flags/us.svg' },
+  { code: 'ja', label: '日本語', shortLabel: 'JP', flagSrc: '/flags/jp.svg' },
+]
+```
+
+`shortLabel`은 이미지 로딩 실패 시 대체 텍스트나 fallback으로 사용할 수 있다.
+
+### 4.5.2 버튼 렌더링 변경
+
+기존:
+
+```jsx
+<span className="inline-block align-middle">{lang.flag}</span>
+```
+
+변경:
+
+```jsx
+<img
+  src={lang.flagSrc}
+  alt={lang.label}
+  title={lang.label}
+  className="h-5 w-5 object-contain"
+  draggable={false}
+/>
+```
+
+이미지 로딩 실패 fallback까지 고려하면 다음처럼 처리할 수 있다.
+
+```jsx
+<img
+  src={lang.flagSrc}
+  alt={lang.label}
+  title={lang.label}
+  className="h-5 w-5 object-contain"
+  draggable={false}
+  onError={(event) => {
+    event.currentTarget.style.display = 'none'
+  }}
+/>
+```
+
+다만 `onError`만으로는 버튼 안이 비어 보일 수 있으므로, 더 안정적으로 하려면 공통 `LanguageFlag` 컴포넌트를 두는 것이 좋다.
+
+권장 컴포넌트:
+
+```jsx
+function LanguageFlag({ lang }) {
+  const [failed, setFailed] = useState(false)
+  if (failed) {
+    return <span className="text-xs font-bold">{lang.shortLabel}</span>
+  }
+  return (
+    <img
+      src={lang.flagSrc}
+      alt={lang.label}
+      title={lang.label}
+      className="h-5 w-5 object-contain"
+      draggable={false}
+      onError={() => setFailed(true)}
+    />
+  )
+}
+```
+
+## 4.6 공통화 의견
+
+현재 `LANGUAGES` 정의가 [TitleBar.jsx](../src/components/TitleBar.jsx)와 [SiteAdminPage.jsx](../src/components/SiteAdminPage.jsx)에 중복되어 있다.
+
+이미지 아이콘으로 전환할 때는 언어 목록과 렌더링을 공통화하는 것이 좋다.
+
+권장 신규 파일:
+
+```txt
+src/constants/languages.js
+src/components/LanguageFlag.jsx
+```
+
+역할:
+
+- `src/constants/languages.js`
+  - `SUPPORTED_LANGUAGES` 배열 관리
+  - 언어 코드, 언어명, 짧은 라벨, 이미지 경로를 한 곳에서 관리
+- `src/components/LanguageFlag.jsx`
+  - 이미지 렌더링
+  - 이미지 로딩 실패 시 `KR/US/JP` fallback
+  - 공통 크기와 접근성 속성 관리
+
+이렇게 하면 타이틀바와 관리자 페이지가 같은 이미지, 같은 크기, 같은 fallback 정책을 사용한다.
+
+## 4.7 구현 결과
+
+| 파일 | 변경 | 상태 |
+|---|---|---|
+| `public/flags/kr.svg` | 한국어 선택용 고정 SVG 국기 이미지 추가 | 완료 |
+| `public/flags/us.svg` | English 선택용 고정 SVG 국기 이미지 추가 | 완료 |
+| `public/flags/jp.svg` | 日本語 선택용 고정 SVG 국기 이미지 추가 | 완료 |
+| [src/constants/languages.js](../src/constants/languages.js) | `SUPPORTED_LANGUAGES` 공통 언어 목록 추가 (`code`, `label`, `shortLabel`, `flagSrc`) | 완료 |
+| [src/components/LanguageFlag.jsx](../src/components/LanguageFlag.jsx) | 국기 이미지 렌더링 및 이미지 로딩 실패 시 `KR/US/JP` fallback 처리 | 완료 |
+| [src/components/TitleBar.jsx](../src/components/TitleBar.jsx) | 기존 이모지 기반 `LANGUAGES` 제거, `SUPPORTED_LANGUAGES`와 `LanguageFlag` 사용 | 완료 |
+| [src/components/SiteAdminPage.jsx](../src/components/SiteAdminPage.jsx) | 기존 이모지 기반 `LANGUAGES` 제거, `SUPPORTED_LANGUAGES`와 `LanguageFlag` 사용 | 완료 |
+
+## 4.8 검증
+
+```txt
+npm run build
+```
+
+실제 확인:
+
+1. 타이틀바 언어 선택 버튼이 모든 환경에서 이미지 국기로 표시된다.
+2. 사이트 관리자 페이지의 언어 선택 버튼도 같은 이미지 국기로 표시된다.
+3. Windows, macOS, Linux, Chrome, Edge, Safari 등에서 `KR/US/JP` 텍스트로 깨지지 않는다.
+4. 이미지 로딩에 실패하면 버튼이 비어 보이지 않고 `KR`, `US`, `JP` fallback이 표시된다.
+5. `alt`, `title`, `aria-label`은 국기명이 아니라 `한국어`, `English`, `日本語`처럼 언어명으로 제공된다.
+
+---
+
+# 5. `@` 멘션 후보를 현재 채널 멤버 기준으로 제한
+
+## 5.1 증상
+
+채널 설정 화면의 `채널 멤버` 목록에는 `yoo`가 보이지만, 게시글 또는 댓글 입력창에서 `@yoo`를 입력하면 멘션 후보에 나타나지 않는다.
+
+## 5.2 원인
+
+채널 멤버 UI와 `@` 멘션 자동완성이 서로 다른 데이터 기준을 사용하고 있었다.
+
+- 채널 멤버 UI:
+  - [src/components/ChannelManageModal.jsx](../src/components/ChannelManageModal.jsx)
+  - `GET /api/channels/:id/members` 사용
+  - 현재 채널에 등록된 멤버를 표시한다.
+
+- 기존 `@` 멘션 자동완성:
+  - [src/hooks/useMentionAutocomplete.js](../src/hooks/useMentionAutocomplete.js)
+  - `GET /api/teams/:teamId/members` 사용
+  - 현재 채널 멤버가 아니라 현재 팀 멤버를 기준으로 후보를 만들었다.
+
+따라서 어떤 사용자가 채널 멤버 목록에는 보이더라도, 멘션 자동완성이 읽는 팀 멤버 목록에 없거나 검색 결과 상위 10명 밖으로 밀리면 `@` 후보에 나타나지 않을 수 있었다.
+
+## 5.3 정책 (의견)
+
+게시글과 댓글의 `@` 멘션은 사용자가 **현재 채널 안에서 대화 상대를 부르는 기능**이다.
+
+따라서 멘션 후보는 팀 전체 멤버가 아니라 **현재 채널 멤버만** 대상으로 하는 것이 자연스럽다.
+
+정책:
+
+1. 게시글 작성창의 `@` 후보는 현재 선택된 채널의 멤버만 표시한다.
+2. 댓글 작성창의 `@` 후보도 해당 게시글이 속한 채널의 멤버만 표시한다.
+3. 채널 멤버가 아닌 팀 멤버는 `@` 후보에 표시하지 않는다.
+4. 후보 검색 조건은 기존처럼 `name`, `display_name`, `username` prefix 매칭을 유지한다.
+
+이렇게 하면 채널 설정에서 보이는 `채널 멤버`와 실제 `@` 멘션 후보의 기준이 일치한다.
+
+## 5.4 구현 결과
+
+| 파일 | 변경 | 상태 |
+|---|---|---|
+| [src/hooks/useMentionAutocomplete.js](../src/hooks/useMentionAutocomplete.js) | 인자를 `teamId` 기준에서 `channelId` 기준으로 변경, `/teams/:id/members` 대신 `/channels/:id/members` 호출 | 완료 |
+| [src/components/ChatArea.jsx](../src/components/ChatArea.jsx) | 게시글 작성창 `ComposeBar`에서 `selectedTeam.id` 대신 `selectedChannel.id`를 멘션 훅에 전달 | 완료 |
+| [src/components/chat/PostDetailPane.jsx](../src/components/chat/PostDetailPane.jsx) | 댓글 작성창에서 `selectedTeam.id` 대신 게시글의 `channelId`를 멘션 훅에 전달 | 완료 |
+| [MDfiles/UI.md](./UI.md) | 원인, 정책, 구현 결과 기록 | 완료 |
+
+## 5.5 검증
+
+```txt
+npm run build
+```
+
+실제 확인:
+
+1. 채널 멤버 목록에 `yoo`가 있는 채널에서 게시글 입력창에 `@yoo`를 입력하면 후보에 나타난다.
+2. 같은 채널의 댓글 입력창에서도 `@yoo`가 후보에 나타난다.
+3. 현재 채널 멤버가 아닌 팀 멤버는 `@` 후보에 나타나지 않는다.
+4. `@`만 입력했을 때 후보 목록은 현재 채널 멤버 기준으로 표시된다.
+5. 후보 선택 시 기존처럼 `@표시이름` 형태로 입력된다.
+
+---
+
+# 6. 붙여넣기에서 텍스트는 되지만 이미지는 안 되는 문제
+
+## 6.1 증상
+
+입력창에 텍스트를 복사해서 붙여넣으면 정상적으로 들어간다. 하지만 스크린샷이나 이미지 파일을 클립보드에 복사한 뒤 붙여넣으면 첨부 또는 본문 이미지로 들어가지 않는다.
+
+예상 사용 시나리오:
+
+- OS 스크린샷 도구로 캡처 후 `Ctrl+V`
+- 브라우저/메신저/이미지 뷰어에서 이미지 복사 후 `Ctrl+V`
+- 파일 탐색기에서 이미지 파일 복사 후 입력창에 `Ctrl+V`
+
+## 6.2 원인
+
+현재 구현은 텍스트 붙여넣기와 파일 드래그앤드롭은 처리하지만, 클립보드 이미지 파일을 처리하는 `paste` 경로가 빠져 있다.
+
+### 6.2.1 게시글 작성창
+
+[src/components/ChatArea.jsx](../src/components/ChatArea.jsx)의 `ComposeBar`는 다음 경로만 처리한다.
+
+- 파일 선택: `<input type="file">` → `handleFileSelect()` → `addFiles()`
+- 드래그앤드롭: `onDrop` / `onDragOver` → `handleDrop()` → `addFiles()`
+
+하지만 `<textarea>`에는 `onPaste`가 없다.
+
+현재 구조:
+
+```jsx
+<textarea
+  onChange={...}
+  onDragOver={handleTextareaDragOver}
+  onDrop={handleTextareaDrop}
+/>
+```
+
+따라서 텍스트는 브라우저 기본 동작으로 붙지만, 클립보드에 들어 있는 이미지 파일은 애플리케이션이 읽지 않으므로 첨부 목록에 추가되지 않는다.
+
+### 6.2.2 댓글 작성창
+
+[src/components/chat/PostDetailPane.jsx](../src/components/chat/PostDetailPane.jsx)의 댓글 입력창도 게시글 작성창과 동일하다.
+
+- 파일 선택 지원
+- 드래그앤드롭 지원
+- `onPaste` 없음
+
+즉 댓글에서도 텍스트는 붙지만 이미지는 첨부되지 않는다.
+
+### 6.2.3 EasyPage / MD 편집기
+
+[src/components/chat/MDPageViewer.jsx](../src/components/chat/MDPageViewer.jsx)는 TipTap 편집기에서 copy/cut/paste를 별도로 처리한다.
+
+현재 paste 흐름:
+
+- `pasteEasyDocClipboardData(editor.view, event)` 호출
+- [clipboardExtension.js](../src/components/chat/md-page/extensions/clipboardExtension.js)에서 `application/x-easydocstation-md-slice` 전용 payload만 읽음
+- EasyDoc 내부에서 복사한 문서 slice가 있으면 붙여넣고, 없으면 `false` 반환
+
+이 로직은 EasyDoc 내부 문서 조각 복사/붙여넣기에는 유효하지만, 외부 클립보드 이미지(`clipboardData.items`, `clipboardData.files`)를 업로드해서 이미지 노드로 삽입하는 기능은 없다.
+
+반면 MD 편집기에는 이미 이미지 업로드 함수가 있다.
+
+- `uploadAndInsertImage(file)`
+- `uploadAndInsertFile(file)`
+- 드래그앤드롭 이미지 삽입
+
+즉 이미지 삽입 능력은 있지만, paste 이벤트에서 이미지 파일을 꺼내 이 함수로 연결하는 경로가 빠져 있다.
+
+## 6.3 정책 (의견)
+
+붙여넣기는 드래그앤드롭, 파일 선택과 같은 파일 첨부 경로로 취급한다.
+
+정책:
+
+1. 텍스트만 있는 paste는 브라우저 기본 동작을 유지한다.
+2. 클립보드에 이미지 파일이 있으면 기본 paste를 막고 이미지 첨부 또는 이미지 삽입으로 처리한다.
+3. 게시글/댓글 작성창에서는 붙여넣은 이미지를 첨부 파일 목록에 추가한다.
+4. EasyPage/MD 편집기에서는 붙여넣은 이미지를 업로드 후 현재 커서 위치에 이미지 노드로 삽입한다.
+5. 이미지 외 파일이 클립보드에 들어오면 정책을 선택한다.
+   - 1차 권장: 이미지 파일만 paste 지원
+   - 후속 확장: PDF/문서 파일도 첨부로 paste 지원
+6. 이미지 파일명은 클립보드에서 이름이 없을 수 있으므로 안전한 기본 이름을 만든다.
+   - 예: `pasted-image-20260709-143012.png`
+
+## 6.4 구현 방향
+
+### 6.4.1 공통 클립보드 파일 추출 helper
+
+중복을 줄이기 위해 클립보드에서 파일을 추출하는 helper를 둔다.
+
+권장 위치:
+
+```txt
+src/lib/clipboardFiles.js
+```
+
+역할:
+
+- `event.clipboardData.files`에서 파일 추출
+- `event.clipboardData.items`에서 `kind === 'file'` 항목을 `getAsFile()`로 추출
+- `image/*` 타입만 필터링
+- 파일 이름이 없거나 `image.png`처럼 너무 일반적이면 `pasted-image-...` 이름으로 보정
+
+예상 함수:
+
+```js
+export function getPastedImageFiles(event) {
+  const data = event.clipboardData
+  if (!data) return []
+
+  const files = []
+  for (const item of Array.from(data.items || [])) {
+    if (item.kind !== 'file') continue
+    const file = item.getAsFile()
+    if (file?.type?.startsWith('image/')) files.push(file)
+  }
+
+  for (const file of Array.from(data.files || [])) {
+    if (file?.type?.startsWith('image/')) files.push(file)
+  }
+
+  return dedupeAndNormalize(files)
+}
+```
+
+### 6.4.2 게시글 작성창 적용
+
+[src/components/ChatArea.jsx](../src/components/ChatArea.jsx)의 `ComposeBar`에 paste handler를 추가한다.
+
+동작:
+
+1. `getPastedImageFiles(event)` 호출
+2. 이미지가 없으면 아무것도 하지 않음 → 텍스트 paste 기본 동작 유지
+3. 이미지가 있으면 `event.preventDefault()`
+4. 기존 `addFiles(files)` 호출
+
+적용 위치:
+
+```jsx
+<textarea
+  ...
+  onPaste={handleTextareaPaste}
+/>
+```
+
+`handleTextareaPaste`는 `handleTextareaDrop`과 유사하게 `addFiles()`로 연결한다.
+
+### 6.4.3 댓글 작성창 적용
+
+[src/components/chat/PostDetailPane.jsx](../src/components/chat/PostDetailPane.jsx)의 댓글 textarea에도 같은 paste handler를 추가한다.
+
+동작은 게시글 작성창과 동일하다.
+
+- 텍스트 paste는 기본 동작
+- 이미지 paste는 첨부 파일 목록에 추가
+
+### 6.4.4 EasyPage / MD 편집기 적용
+
+[src/components/chat/MDPageViewer.jsx](../src/components/chat/MDPageViewer.jsx)의 paste 처리 순서를 조정한다.
+
+권장 순서:
+
+1. `pasteEasyDocClipboardData(editor.view, event)`를 먼저 시도한다.
+2. EasyDoc 내부 slice paste가 처리되면 종료한다.
+3. 처리되지 않았고 클립보드에 이미지 파일이 있으면:
+   - `event.preventDefault()`
+   - 이미지 파일을 순서대로 `uploadAndInsertImage(file)`에 전달
+4. 이미지가 없으면 기본 TipTap paste를 허용한다.
+
+이렇게 하면 기존 EasyDoc 내부 문서 복사/붙여넣기 기능은 유지하면서 외부 이미지 paste만 추가할 수 있다.
+
+주의:
+
+- `pasteEasyDocClipboardData()`가 `false`를 반환한 경우에만 이미지 paste를 검사한다.
+- `onPasteCapture`와 ProseMirror plugin `handleDOMEvents.paste`가 중복으로 실행될 수 있으므로, 한 곳으로 통합하거나 중복 처리 방지 플래그를 둔다.
+
+## 6.5 파일별 변경 계획
+
+| 파일 | 변경 | 상태 |
+|---|---|---|
+| [src/lib/clipboardFiles.js](../src/lib/clipboardFiles.js) | 클립보드 이미지 파일 추출 및 파일명 보정 helper 추가 | 완료 |
+| [src/components/ChatArea.jsx](../src/components/ChatArea.jsx) | 게시글 작성 textarea에 `onPaste` 추가, 이미지 paste 시 `addFiles()` 연결 | 완료 |
+| [src/components/chat/PostDetailPane.jsx](../src/components/chat/PostDetailPane.jsx) | 댓글 textarea에 `onPaste` 추가, 이미지 paste 시 `addFiles()` 연결 | 완료 |
+| [src/components/chat/MDPageViewer.jsx](../src/components/chat/MDPageViewer.jsx) | EasyDoc slice paste 실패 시 클립보드 이미지 파일을 `uploadAndInsertImage()`로 삽입 | 완료 |
+| [src/components/chat/md-page/extensions/clipboardExtension.js](../src/components/chat/md-page/extensions/clipboardExtension.js) | EasyDoc 전용 paste는 유지하고, 외부 이미지 paste는 MDPageViewer에서 후속 처리 | 완료 |
+| [MDfiles/UI.md](./UI.md) | 원인 분석과 해결 방안 기록 | 완료 |
+
+## 6.6 검증 항목
+
+```txt
+npm run build
+```
+
+실제 확인:
+
+1. 게시글 작성창에 텍스트를 붙여넣으면 기존처럼 텍스트가 들어간다.
+2. 게시글 작성창에 스크린샷 이미지를 붙여넣으면 첨부 파일 목록에 이미지가 추가된다.
+3. 댓글 작성창에 스크린샷 이미지를 붙여넣으면 첨부 파일 목록에 이미지가 추가된다.
+4. 이미지가 첨부된 상태로 게시글/댓글을 등록하면 기존 파일 업로드 경로로 정상 저장된다.
+5. EasyPage 편집기에서 이미지를 붙여넣으면 현재 커서 위치에 이미지가 삽입된다.
+6. EasyPage 내부에서 복사한 문서 조각 붙여넣기는 기존처럼 유지된다.
+7. 이미지가 아닌 일반 텍스트/HTML paste는 기존 편집기 기본 동작을 해치지 않는다.

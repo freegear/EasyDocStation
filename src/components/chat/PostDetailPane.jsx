@@ -7,6 +7,7 @@ import { isTemplateContent, isMailCardContent, extractMailCardData, stripMailCar
 import MailSummaryCard from '../mail/MailSummaryCard'
 import { useSelectionClickGuard } from '../../hooks/useSelectionClickGuard'
 import { findDuplicateFileNames } from '../../lib/fileNameValidation'
+import { getPastedImageFiles } from '../../lib/clipboardFiles'
 import { recordRecentPostView } from '../../lib/recentPosts'
 import { getContentFontStyle } from '../../lib/contentFont'
 import useMentionAutocomplete from '../../hooks/useMentionAutocomplete'
@@ -212,7 +213,7 @@ function PostDetailPane({
   const commentItemRefs = useRef(new Map())
   const [highlightCommentId, setHighlightCommentId] = useState(null)
   const commentTextareaRef = useRef(null)
-  const mention = useMentionAutocomplete(selectedTeam?.id)
+  const mention = useMentionAutocomplete(channelId)
   const fileInputRef = useRef(null)
   const dragCounter = useRef(0)
 
@@ -286,6 +287,13 @@ function PostDetailPane({
     if (e.dataTransfer.files?.length) {
       addFiles(e.dataTransfer.files)
     }
+  }
+
+  function handleTextareaPaste(e) {
+    const pastedImages = getPastedImageFiles(e)
+    if (pastedImages.length === 0) return
+    e.preventDefault()
+    addFiles(pastedImages)
   }
 
   function handleTextareaDragOver(e) {
@@ -1409,6 +1417,7 @@ function PostDetailPane({
                   placeholder={t.chat.commentPlaceholder}
                   className="w-full h-full bg-transparent text-gray-700 placeholder-gray-400 text-sm px-4 pt-3 pb-2 resize-none focus:outline-none leading-relaxed overflow-y-auto"
                   style={commentTextStyle}
+                  onPaste={handleTextareaPaste}
                   onDragOver={handleTextareaDragOver}
                   onDrop={handleTextareaDrop}
                   onKeyDown={e => {

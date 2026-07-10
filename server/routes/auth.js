@@ -49,6 +49,7 @@ function toPublicUser(u) {
     kakaotalk_api_key: maskSecret(u.kakaotalk_api_key),
     line_channel_access_token: maskSecret(u.line_channel_access_token),
     use_sns_channel: u.use_sns_channel ?? null,
+    preferred_language: ['ko', 'en', 'ja'].includes(u.preferred_language) ? u.preferred_language : 'ko',
     role: u.role,
     is_active: u.is_active,
     can_edit_search_results: Boolean(u.can_edit_search_results),
@@ -62,7 +63,20 @@ function toPublicUser(u) {
   }
 }
 
+function normalizeEmail(value) {
+  return String(value || '').trim().toLowerCase()
+}
+
+async function findOtherUserByEmail(email, userId) {
+  const { rows } = await pool.query(
+    'SELECT id FROM users WHERE lower(email) = $1 AND id <> $2 LIMIT 1',
+    [email, userId]
+  )
+  return rows[0] || null
+}
+
 const MAX_FAILED_ATTEMPTS = 3
+const DUPLICATE_EMAIL_MESSAGE = '같은 메일 주소를 사용하는 사용자가 있습니다. 메일 주소를 변경해 주십시요'
 
 async function issueLegacySessionCookie(res, user, meta = {}, columnSupport = null) {
   const cs = columnSupport || await getUsersColumnSupport()
@@ -232,11 +246,12 @@ router.get('/me', requireAuth, async (req, res) => {
 router.put('/me', requireAuth, async (req, res) => {
   const {
     name, display_name, email, phone, image_url, stamp_picture, currentPassword, newPassword,
-    telegram_id, kakaotalk_api_key, line_channel_access_token, use_sns_channel,
+    telegram_id, kakaotalk_api_key, line_channel_access_token, use_sns_channel, preferred_language,
   } = req.body
   try {
     const { rows } = await pool.query('SELECT * FROM users WHERE id = $1', [req.user.id])
     const user = rows[0]
+    if (!user) return res.status(404).json({ error: '사용자를 찾을 수 없습니다.' })
 
     const sets = []
     const vals = []
@@ -244,7 +259,16 @@ router.put('/me', requireAuth, async (req, res) => {
 
     if (name?.trim()) { sets.push(`name = $${i++}`); vals.push(name.trim()) }
     if (display_name !== undefined) { sets.push(`display_name = $${i++}`); vals.push(display_name?.trim() || null) }
-    if (email?.trim()) { sets.push(`email = $${i++}`); vals.push(email.trim().toLowerCase()) }
+    if (email !== undefined) {
+      const nextEmail = normalizeEmail(email)
+      if (!nextEmail) return res.status(400).json({ error: '이메일을 입력해 주세요.' })
+      if (nextEmail !== normalizeEmail(user.email)) {
+        const duplicate = await findOtherUserByEmail(nextEmail, user.id)
+        if (duplicate) return res.status(400).json({ error: DUPLICATE_EMAIL_MESSAGE })
+        sets.push(`email = $${i++}`)
+        vals.push(nextEmail)
+      }
+    }
     if (phone !== undefined) { sets.push(`phone = $${i++}`); vals.push(phone?.trim() || null) }
     if (telegram_id !== undefined) { sets.push(`telegram_id = $${i++}`); vals.push(telegram_id?.trim() || null) }
     if (kakaotalk_api_key !== undefined && !isMaskedValue(kakaotalk_api_key)) {
@@ -262,6 +286,13 @@ router.put('/me', requireAuth, async (req, res) => {
         return res.status(400).json({ error: 'UseSNSChannel 값이 올바르지 않습니다.' })
       }
       sets.push(`use_sns_channel = $${i++}`); vals.push(use_sns_channel || null)
+    }
+    if (preferred_language !== undefined) {
+      if (!['ko', 'en', 'ja'].includes(preferred_language)) {
+        return res.status(400).json({ error: '언어 설정 값이 올바르지 않습니다.' })
+      }
+      sets.push(`preferred_language = $${i++}`)
+      vals.push(preferred_language)
     }
     if (image_url !== undefined) { sets.push(`image_url = $${i++}`); vals.push(image_url) }
     if (stamp_picture !== undefined) { sets.push(`stamp_picture = $${i++}`); vals.push(stamp_picture || null) }
@@ -284,7 +315,8 @@ router.put('/me', requireAuth, async (req, res) => {
     res.json(toPublicUser(updated[0]))
   } catch (err) {
     console.error('Profile update error:', err)
-    if (err.code === '23505') return res.status(400).json({ error: '이미 사용 중인 이메일입니다.' })
+    if (err.code === '23505' && err.constraint === 'users_email_key') return res.status(400).json({ error: DUPLICATE_EMAIL_MESSAGE })
+    if (err.code === '23505') return res.status(400).json({ error: '이미 사용 중인 값입니다.' })
     res.status(500).json({ error: '서버 오류가 발생했습니다: ' + err.message })
   }
 })

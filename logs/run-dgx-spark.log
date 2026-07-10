@@ -1,98 +1,1615 @@
-[20260708-00:00:01][BE] [ATTACH-REF] sync ownerType=post ownerId=2aab41c9-5c80-4914-966a-5a8aa471c757 actorUserId=1 prev=0 next=0 add=0 remove=0
-[20260708-00:00:01][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
-[20260708-00:00:01][BE] /home/freegear/EasyDocStation/server/rag_train.py:120: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
-[20260708-00:00:01][BE]   from langchain_community.document_loaders import Docx2txtLoader
-[20260708-00:00:04][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v2' already exists
-[20260708-00:00:05][BE] [RAG] 기존 청크 삭제 완료: post_id=2aab41c9-5c80-4914-966a-5a8aa471c757
-[20260708-00:00:05][BE] [RAG] post=2aab41c9-5c80-4914-966a-5a8aa471c757 text → 1청크
-[20260708-00:00:05][BE] [RAG] 학습 진행률: 50% (게시글 본문)
-[20260708-00:00:05][BE] [RAG] 저장 완료 — 1청크 / 1개 게시글 / 0개 댓글
-[20260708-00:00:05][BE] [RAG] 학습 진행률: 100% (저장)
-[20260708-00:00:06][BE] [RAG] 학습 완료
-[20260708-00:00:19][BE] [ATTACH-REF] sync ownerType=post ownerId=2aab41c9-5c80-4914-966a-5a8aa471c757 actorUserId=1 prev=0 next=0 add=0 remove=0
-[20260708-00:00:19][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
-[20260708-00:00:19][BE] /home/freegear/EasyDocStation/server/rag_train.py:120: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
-[20260708-00:00:19][BE]   from langchain_community.document_loaders import Docx2txtLoader
-[20260708-00:00:22][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v2' already exists
-[20260708-00:00:23][BE] [RAG] 기존 청크 삭제 완료: post_id=2aab41c9-5c80-4914-966a-5a8aa471c757
-[20260708-00:00:23][BE] [RAG] post=2aab41c9-5c80-4914-966a-5a8aa471c757 text → 3청크
-[20260708-00:00:23][BE] [RAG] 학습 진행률: 50% (게시글 본문)
-[20260708-00:00:23][BE] [RAG] 저장 완료 — 3청크 / 1개 게시글 / 0개 댓글
-[20260708-00:00:23][BE] [RAG] 학습 진행률: 100% (저장)
-[20260708-00:00:23][BE] [RAG] 학습 완료
-[20260708-00:00:26][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
-[20260708-00:00:30][BE] [ATTACH-REF] sync ownerType=post ownerId=1e5bc355-336c-406c-b90b-088e023b5268 actorUserId=1 prev=0 next=0 add=0 remove=0
-[20260708-00:00:30][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
-[20260708-00:00:30][BE] /home/freegear/EasyDocStation/server/rag_train.py:120: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
-[20260708-00:00:30][BE]   from langchain_community.document_loaders import Docx2txtLoader
-[20260708-00:00:33][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v2' already exists
-[20260708-00:00:33][BE] [RAG] 기존 청크 삭제 완료: post_id=1e5bc355-336c-406c-b90b-088e023b5268
-[20260708-00:00:33][BE] [RAG] post=1e5bc355-336c-406c-b90b-088e023b5268 text → 3청크
-[20260708-00:00:33][BE] [RAG] 학습 진행률: 50% (게시글 본문)
-[20260708-00:00:33][BE] [RAG] 저장 완료 — 3청크 / 1개 게시글 / 0개 댓글
-[20260708-00:00:33][BE] [RAG] 학습 진행률: 100% (저장)
-[20260708-00:00:34][BE] [RAG] 학습 완료
-[20260708-00:00:55][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
-[20260708-00:01:57][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
-[20260708-00:02:57][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
-AM 12:03:04 [vite] hmr update /src/components/chat/md-page/toolbar/EasyPageSlashLinkMenu.jsx, /src/index.css
-AM 12:03:17 [vite] hmr update /src/components/chat/md-page/toolbar/EasyPageSlashLinkMenu.jsx, /src/index.css
-AM 12:03:30 [vite] hmr update /src/components/chat/md-page/toolbar/EasyPageSlashLinkMenu.jsx, /src/index.css
-AM 12:03:40 [vite] hmr update /src/components/chat/md-page/toolbar/EasyPageSlashLinkMenu.jsx, /src/index.css
-[20260708-00:03:55][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
-종료됨
-[20260708-00:04:43][BE] process exited with code 143. restarting in 2s...
-종료됨
-[20260708-00:04:43][BE] 
-[20260708-00:04:43][BE] > easydocstation-server@1.0.0 start
-[20260708-00:04:43][BE] > node index.js
-[20260708-00:04:43][BE] 
-[20260708-00:04:43][BE] [RAG] 초기화 — 학습 방식: immediate
-[20260708-00:04:43][BE] [RAG] 초기화 — PDF 파싱 모드: FAST
-[20260708-00:04:43][BE] [Mail sync] 자동 동기화 스케줄러 시작: interval=60s
-[20260708-00:04:43][BE] ✅ EasyDocStation server running on http://localhost:3001
-[20260708-00:04:43][BE] ✅ [CONFIG] HF_TOKEN 확인됨 (hf_u****butv, 길이 37)
-[20260708-00:04:43][BE] ✅ Cassandra connected
-[20260708-00:04:43][BE] ✅ Cassandra schema initialized
-[20260708-00:04:43][BE] ✅ Database migration complete.
-[20260708-00:04:43][BE] Terminated
-
-> easydocstation@1.0.0 dev:frontend
-> vite
-
-
-> easydocstation@1.0.0 ollama:serve
-> node scripts/ollama-serve-safe.mjs
-
-[Ollama] already running on 127.0.0.1:11434, skipping duplicate serve.
-[20260708-00:04:46][BE] 
-[20260708-00:04:46][BE] > easydocstation-server@1.0.0 start
-[20260708-00:04:46][BE] > node index.js
-[20260708-00:04:46][BE] 
-
-  VITE v5.4.21  ready in 103 ms
-
-  ➜  Local:   http://localhost:5173/
-  ➜  Network: http://10.0.0.194:5173/
-[20260708-00:04:46][BE] [RAG] 초기화 — 학습 방식: immediate
-[20260708-00:04:46][BE] [RAG] 초기화 — PDF 파싱 모드: FAST
-[20260708-00:04:46][BE] [Mail sync] 자동 동기화 스케줄러 시작: interval=60s
-[20260708-00:04:46][BE] ✅ EasyDocStation server running on http://localhost:3001
-[20260708-00:04:46][BE] ✅ [CONFIG] HF_TOKEN 확인됨 (hf_u****butv, 길이 37)
-[20260708-00:04:46][BE] ✅ Cassandra connected
-[20260708-00:04:46][BE] ✅ Cassandra schema initialized
-[20260708-00:04:46][BE] ✅ Database migration complete.
-[20260708-00:04:49][BE] [RAG Server] [RAG Server] 임베딩 모델 로드 중 (device=cuda)...
-[20260708-00:05:04][BE] [RAG Server] [RAG Server] 임베딩 모델 로드 완료
-[20260708-00:05:04][BE] [RAG Server] [RAG Server] 포트 5001 에서 시작됨
-[20260708-00:05:12][BE] [ATTACH-REF] sync ownerType=post ownerId=2aab41c9-5c80-4914-966a-5a8aa471c757 actorUserId=1 prev=0 next=0 add=0 remove=0
-[20260708-00:05:12][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
-[20260708-00:05:12][BE] /home/freegear/EasyDocStation/server/rag_train.py:120: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
-[20260708-00:05:12][BE]   from langchain_community.document_loaders import Docx2txtLoader
-[20260708-00:05:15][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v2' already exists
-[20260708-00:05:15][BE] [RAG] 기존 청크 삭제 완료: post_id=2aab41c9-5c80-4914-966a-5a8aa471c757
-[20260708-00:05:16][BE] [RAG] post=2aab41c9-5c80-4914-966a-5a8aa471c757 text → 3청크
-[20260708-00:05:16][BE] [RAG] 학습 진행률: 50% (게시글 본문)
-[20260708-00:05:16][BE] [RAG] 저장 완료 — 3청크 / 1개 게시글 / 0개 댓글
-[20260708-00:05:16][BE] [RAG] 학습 진행률: 100% (저장)
-[20260708-00:05:17][BE] [RAG] 학습 완료
+[20260710-00:00:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-00:01:05][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-00:02:05][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-00:03:13][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-00:04:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-00:05:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-00:06:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-00:07:05][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-00:08:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-00:09:05][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-00:10:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-00:11:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-00:12:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-00:13:06][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-00:14:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-00:15:01][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-00:16:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260710-00:17:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-00:18:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-00:19:01][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-00:20:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-00:21:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-00:22:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-00:23:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-00:24:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-00:25:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-00:26:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-00:27:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-00:28:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-00:29:08][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-00:30:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-00:31:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-00:32:05][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-00:33:05][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-00:34:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-00:35:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-00:36:06][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-00:37:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-00:38:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-00:39:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-00:40:05][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-00:41:01][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-00:42:07][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-00:43:01][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-00:44:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-00:45:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-00:46:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-00:47:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-00:48:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-00:49:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-00:50:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-00:51:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-00:52:05][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-00:53:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-00:54:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-00:55:12][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-00:56:01][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-00:57:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-00:58:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-00:59:05][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-01:00:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-01:01:05][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-01:02:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-01:03:07][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-01:04:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-01:05:07][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-01:06:05][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-01:07:06][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-01:08:08][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-01:09:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260710-01:10:01][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-01:11:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-01:12:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-01:13:06][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-01:14:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-01:15:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260710-01:16:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-01:17:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-01:18:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260710-01:19:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-01:20:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-01:21:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-01:22:05][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-01:23:01][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-01:24:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-01:25:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-01:26:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-01:27:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-01:28:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-01:29:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-01:30:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-01:31:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-01:32:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-01:33:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-01:34:05][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-01:35:07][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-01:36:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-01:37:01][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-01:38:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-01:39:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-01:40:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-01:41:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-01:42:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-01:43:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-01:44:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-01:45:07][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-01:46:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-01:47:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-01:48:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-01:49:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-01:50:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-01:51:07][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-01:52:01][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-01:53:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-01:54:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-01:55:01][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-01:56:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-01:57:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-01:58:01][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-01:59:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-02:00:05][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-02:01:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-02:02:09][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-02:03:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-02:04:07][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-02:05:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-02:06:01][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-02:07:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-02:08:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-02:09:01][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-02:10:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-02:11:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-02:12:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-02:13:01][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-02:14:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-02:15:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-02:16:01][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-02:17:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-02:18:01][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-02:19:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-02:20:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-02:21:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-02:22:01][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-02:23:06][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-02:24:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-02:25:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-02:26:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-02:27:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-02:28:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-02:29:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-02:30:06][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-02:31:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-02:32:05][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-02:33:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-02:34:01][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-02:35:05][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-02:36:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-02:37:01][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-02:38:01][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-02:39:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-02:40:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260710-02:41:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-02:42:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-02:43:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-02:44:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-02:45:07][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-02:46:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-02:47:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-02:48:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-02:49:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-02:50:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-02:51:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-02:52:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-02:53:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-02:54:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-02:55:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-02:56:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-02:57:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-02:58:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-02:59:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-03:00:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-03:01:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-03:02:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-03:03:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-03:04:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-03:05:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-03:06:08][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-03:07:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-03:08:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-03:09:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-03:10:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-03:11:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260710-03:12:01][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260710-03:13:05][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-03:14:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-03:15:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-03:16:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-03:17:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-03:18:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-03:19:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-03:20:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-03:21:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-03:22:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-03:23:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-03:24:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-03:25:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-03:26:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-03:27:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-03:28:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260710-03:29:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-03:30:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-03:31:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-03:32:11][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-03:33:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-03:34:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-03:35:05][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-03:36:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-03:37:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-03:38:01][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-03:39:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-03:40:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-03:41:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-03:42:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-03:43:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-03:44:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-03:45:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-03:46:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-03:47:01][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-03:48:01][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-03:49:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-03:50:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-03:51:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-03:52:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-03:53:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-03:54:05][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-03:55:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-03:56:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-03:57:01][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-03:58:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-03:59:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-04:00:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-04:01:06][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-04:02:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-04:03:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-04:04:05][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260710-04:05:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-04:06:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-04:07:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-04:08:01][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-04:09:01][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-04:10:01][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-04:11:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-04:12:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-04:13:17][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-04:14:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-04:15:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-04:16:01][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-04:17:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-04:18:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-04:19:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260710-04:20:01][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-04:21:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-04:22:01][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-04:23:05][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-04:24:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-04:25:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-04:26:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-04:27:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-04:28:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-04:29:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-04:30:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-04:31:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-04:32:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-04:33:06][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-04:34:05][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-04:35:05][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-04:36:11][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-04:37:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-04:38:01][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-04:39:01][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-04:40:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-04:41:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-04:42:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-04:43:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-04:44:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-04:45:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-04:46:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260710-04:47:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-04:48:07][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-04:49:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-04:50:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-04:51:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-04:52:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-04:53:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-04:54:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-04:55:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-04:56:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-04:57:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-04:58:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-04:59:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-05:00:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-05:01:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260710-05:02:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-05:03:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-05:04:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-05:05:05][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-05:05:48][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260710-05:06:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-05:06:12][BE] [ATTACH-REF] sync ownerType=comment ownerId=c-f7a26659-e9b7-4bbe-acfa-6941ffb6e780 actorUserId=1 prev=0 next=1 add=1 remove=0
+[20260710-05:06:12][BE] [RAG] 댓글 학습 시작 — 1개 댓글 (제외: 0개)
+[20260710-05:06:12][BE] /home/freegear/EasyDocStation/server/rag_train.py:120: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260710-05:06:12][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260710-05:06:15][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v2' already exists
+[20260710-05:06:15][BE] [RAG] comment=c-f7a26659-e9b7-4bbe-acfa-6941ffb6e780 post=0bd08c6b-93dd-404a-8a56-e15fdcd90513 text → 1청크
+[20260710-05:06:15][BE] [RAG] 학습 진행률: 30% (댓글 본문)
+[20260710-05:06:15][BE] [RAG] 이미지 학습 시작: Gemini_Generated_Image_ib3cfcib3cfcib3c.png
+[20260710-05:06:59][BE] [RAG] Gemma 이미지 설명 완료 (page=1, 43.4s): 3532자
+[20260710-05:06:59][BE] [RAG] 이미지 학습 완료: Gemini_Generated_Image_ib3cfcib3cfcib3c.png (7청크)
+[20260710-05:06:59][BE] [RAG] 학습 진행률: 60% (댓글 이미지)
+[20260710-05:06:59][BE] [RAG] 저장 완료 — 8청크 / 0개 게시글 / 1개 댓글
+[20260710-05:06:59][BE] [RAG] 학습 진행률: 100% (저장)
+[20260710-05:07:01][BE] [RAG] 댓글 학습 완료 — 1개 댓글 (49.4s)
+[20260710-05:07:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-05:07:21][BE] [SearchIndex] 이미지 첨부 인덱싱 완료: f7df1a66-d1a0-4499-b3e0-8669d187b478 Gemini_Generated_Image_ib3cfcib3cfcib3c.png
+[20260710-05:08:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-05:09:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-05:10:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-05:11:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-05:11:17][BE] [ATTACH-REF] sync ownerType=comment ownerId=c-e5803c06-3c75-4b95-97e3-ce36a29b4574 actorUserId=1 prev=0 next=1 add=1 remove=0
+[20260710-05:11:17][BE] [RAG] 댓글 학습 시작 — 1개 댓글 (제외: 0개)
+[20260710-05:11:17][BE] /home/freegear/EasyDocStation/server/rag_train.py:120: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260710-05:11:17][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260710-05:11:21][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v2' already exists
+[20260710-05:11:21][BE] [RAG] comment=c-e5803c06-3c75-4b95-97e3-ce36a29b4574 post=0bd08c6b-93dd-404a-8a56-e15fdcd90513 text → 1청크
+[20260710-05:11:21][BE] [RAG] 학습 진행률: 30% (댓글 본문)
+[20260710-05:11:21][BE] [RAG] 이미지 학습 시작: Gemini_Generated_Image_pcxtgrpcxtgrpcxt.png
+[20260710-05:11:41][BE] [SearchIndex] 이미지 첨부 인덱싱 완료: 98c4dafc-c30c-49f4-8c6e-552eb3363f46 Gemini_Generated_Image_pcxtgrpcxtgrpcxt.png
+[20260710-05:12:06][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-05:12:20][BE] [RAG] Gemma 이미지 설명 완료 (page=1, 59.3s): 3294자
+[20260710-05:12:21][BE] [RAG] 이미지 학습 완료: Gemini_Generated_Image_pcxtgrpcxtgrpcxt.png (6청크)
+[20260710-05:12:21][BE] [RAG] 학습 진행률: 60% (댓글 이미지)
+[20260710-05:12:21][BE] [RAG] 저장 완료 — 7청크 / 0개 게시글 / 1개 댓글
+[20260710-05:12:21][BE] [RAG] 학습 진행률: 100% (저장)
+[20260710-05:12:21][BE] [RAG] 댓글 학습 완료 — 1개 댓글 (64.1s)
+[20260710-05:13:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-05:14:09][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-05:14:19][BE] [ATTACH-REF] sync ownerType=comment ownerId=c-2f259b84-0092-48c1-aa9d-897a4f7149f2 actorUserId=1 prev=0 next=1 add=1 remove=0
+[20260710-05:14:19][BE] [RAG] 댓글 학습 시작 — 1개 댓글 (제외: 0개)
+[20260710-05:14:19][BE] /home/freegear/EasyDocStation/server/rag_train.py:120: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260710-05:14:19][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260710-05:14:22][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v2' already exists
+[20260710-05:14:22][BE] [RAG] comment=c-2f259b84-0092-48c1-aa9d-897a4f7149f2 post=0bd08c6b-93dd-404a-8a56-e15fdcd90513 text → 1청크
+[20260710-05:14:22][BE] [RAG] 학습 진행률: 30% (댓글 본문)
+[20260710-05:14:22][BE] [RAG] 이미지 학습 시작: Gemini_Generated_Image_1szysn1szysn1szy (1).png
+[20260710-05:14:42][BE] [SearchIndex] 이미지 첨부 인덱싱 완료: 95925ca6-c0cc-4b06-b6d0-e1b7a788390b Gemini_Generated_Image_1szysn1szysn1szy (1).png
+[20260710-05:15:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-05:15:21][BE] [RAG] Gemma 이미지 설명 완료 (page=1, 58.7s): 3400자
+[20260710-05:15:21][BE] [RAG] 이미지 학습 완료: Gemini_Generated_Image_1szysn1szysn1szy (1).png (6청크)
+[20260710-05:15:21][BE] [RAG] 학습 진행률: 60% (댓글 이미지)
+[20260710-05:15:21][BE] [RAG] 저장 완료 — 7청크 / 0개 게시글 / 1개 댓글
+[20260710-05:15:21][BE] [RAG] 학습 진행률: 100% (저장)
+[20260710-05:15:22][BE] [RAG] 댓글 학습 완료 — 1개 댓글 (63.5s)
+[20260710-05:16:05][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-05:17:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-05:18:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-05:19:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-05:20:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-05:21:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-05:22:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-05:22:42][BE] [ATTACH-REF] sync ownerType=comment ownerId=c-780aa1e5-9079-4e94-b66e-65caa230fe40 actorUserId=1 prev=0 next=1 add=1 remove=0
+[20260710-05:22:42][BE] [RAG] 댓글 학습 시작 — 1개 댓글 (제외: 0개)
+[20260710-05:22:42][BE] /home/freegear/EasyDocStation/server/rag_train.py:120: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260710-05:22:42][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260710-05:22:46][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v2' already exists
+[20260710-05:22:46][BE] [RAG] comment=c-780aa1e5-9079-4e94-b66e-65caa230fe40 post=0bd08c6b-93dd-404a-8a56-e15fdcd90513 text → 1청크
+[20260710-05:22:46][BE] [RAG] 학습 진행률: 30% (댓글 본문)
+[20260710-05:22:46][BE] [RAG] 이미지 학습 시작: Gemini_Generated_Image_m20pn0m20pn0m20p.png
+[20260710-05:23:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-05:23:22][BE] [RAG] Gemma 이미지 설명 완료 (page=1, 36.8s): 2945자
+[20260710-05:23:22][BE] [RAG] 이미지 학습 완료: Gemini_Generated_Image_m20pn0m20pn0m20p.png (4청크)
+[20260710-05:23:22][BE] [RAG] 학습 진행률: 60% (댓글 이미지)
+[20260710-05:23:22][BE] [RAG] 저장 완료 — 5청크 / 0개 게시글 / 1개 댓글
+[20260710-05:23:22][BE] [RAG] 학습 진행률: 100% (저장)
+[20260710-05:23:25][BE] [RAG] 댓글 학습 완료 — 1개 댓글 (42.7s)
+[20260710-05:23:46][BE] [SearchIndex] 이미지 첨부 인덱싱 완료: de864365-32bd-46bf-ae52-8a69a08224cd Gemini_Generated_Image_m20pn0m20pn0m20p.png
+[20260710-05:24:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-05:25:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-05:26:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-05:27:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-05:28:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-05:29:05][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260710-05:30:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-05:31:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-05:32:01][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-05:33:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-05:34:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-05:35:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-05:36:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-05:36:37][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260710-05:36:46][BE] [ATTACH-REF] sync ownerType=comment ownerId=c-9683f574-e551-46f0-af18-57488a339fbc actorUserId=1 prev=0 next=1 add=1 remove=0
+[20260710-05:36:46][BE] [RAG] 학습 제외 (댓글): c-9683f574-e551-46f0-af18-57488a339fbc — 첨부파일 없음, 31자
+[20260710-05:36:46][BE] [RAG] 학습 제외 후 학습할 댓글이 없습니다.
+[20260710-05:37:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-05:38:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-05:39:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-05:40:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-05:41:01][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-05:42:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-05:43:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-05:44:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-05:45:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-05:46:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-05:47:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-05:48:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-05:49:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-05:50:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-05:51:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-05:51:37][BE] [link-preview-image] meta image failed, fallback screenshot: This operation was aborted
+[20260710-05:51:49][BE] [link-preview-image] local render failed, try remote fallback: page.goto: Timeout 12000ms exceeded.
+[20260710-05:51:49][BE] Call log:
+[20260710-05:51:49][BE] [2m  - navigating to "http://114.207.245.216/", waiting until "domcontentloaded"[22m
+[20260710-05:51:49][BE] 
+[20260710-05:51:50][BE] [link-preview-image] remote fallback failed, placeholder: fallback preview fetch failed (404)
+[20260710-05:51:56][BE] [ATTACH-REF] sync ownerType=comment ownerId=c-eeca5c06-add4-4110-a4f6-401442ac84f2 actorUserId=1 prev=0 next=1 add=1 remove=0
+[20260710-05:51:56][BE] [RAG] 댓글 학습 시작 — 1개 댓글 (제외: 0개)
+[20260710-05:51:56][BE] /home/freegear/EasyDocStation/server/rag_train.py:120: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260710-05:51:56][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260710-05:51:59][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v2' already exists
+[20260710-05:51:59][BE] [RAG] comment=c-eeca5c06-add4-4110-a4f6-401442ac84f2 post=0bd08c6b-93dd-404a-8a56-e15fdcd90513 text → 1청크
+[20260710-05:51:59][BE] [RAG] 학습 진행률: 30% (댓글 본문)
+[20260710-05:51:59][BE] [RAG] 이미지 학습 시작: Gemini_Generated_Image_8a2t818a2t818a2t.png
+[20260710-05:52:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-05:52:10][BE] [ATTACH-REF] sync ownerType=post ownerId=516c613b-2b99-42b5-922a-7993fbae4500 actorUserId=1 prev=0 next=1 add=1 remove=0
+[20260710-05:52:10][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
+[20260710-05:52:10][BE] /home/freegear/EasyDocStation/server/rag_train.py:120: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260710-05:52:10][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260710-05:52:16][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v2' already exists
+[20260710-05:52:16][BE] [RAG] post=516c613b-2b99-42b5-922a-7993fbae4500 text → 1청크
+[20260710-05:52:16][BE] [RAG] 학습 진행률: 30% (게시글 본문)
+[20260710-05:52:16][BE] [RAG] 이미지 학습 시작: Gemini_Generated_Image_8a2t818a2t818a2t.png
+[20260710-05:52:26][BE] [ATTACH-REF] sync ownerType=comment ownerId=c-0eefdfd0-dc9d-430a-85fd-d8176efc473e actorUserId=1 prev=0 next=1 add=1 remove=0
+[20260710-05:52:26][BE] [RAG] 댓글 학습 시작 — 1개 댓글 (제외: 0개)
+[20260710-05:52:26][BE] /home/freegear/EasyDocStation/server/rag_train.py:120: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260710-05:52:26][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260710-05:52:31][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v2' already exists
+[20260710-05:52:31][BE] [RAG] comment=c-0eefdfd0-dc9d-430a-85fd-d8176efc473e post=516c613b-2b99-42b5-922a-7993fbae4500 text → 1청크
+[20260710-05:52:31][BE] [RAG] 학습 진행률: 30% (댓글 본문)
+[20260710-05:52:31][BE] [RAG] 이미지 학습 시작: Gemini_Generated_Image_m20pn0m20pn0m20p (1).png
+[20260710-05:52:45][BE] [RAG] Gemma 이미지 설명 완료 (page=1, 45.9s): 3770자
+[20260710-05:52:45][BE] [RAG] 이미지 학습 완료: Gemini_Generated_Image_8a2t818a2t818a2t.png (6청크)
+[20260710-05:52:45][BE] [RAG] 학습 진행률: 60% (댓글 이미지)
+[20260710-05:52:45][BE] [RAG] 저장 완료 — 7청크 / 0개 게시글 / 1개 댓글
+[20260710-05:52:45][BE] [RAG] 학습 진행률: 100% (저장)
+[20260710-05:52:48][BE] [RAG] 댓글 학습 완료 — 1개 댓글 (52.0s)
+[20260710-05:53:01][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-05:53:13][BE] [SearchIndex] 이미지 첨부 인덱싱 완료: 585dfd2b-cbec-4aa8-9ac6-fbb5107e3bdd Gemini_Generated_Image_8a2t818a2t818a2t.png
+[20260710-05:53:40][BE] [SearchIndex] 이미지 첨부 인덱싱 완료: c9a7b72b-04bf-49d5-b4b9-07c3a04fedba Gemini_Generated_Image_8a2t818a2t818a2t.png
+[20260710-05:53:58][BE] [SearchIndex] 이미지 Vision 분석 실패, OCR만 사용: This operation was aborted
+[20260710-05:53:58][BE] [SearchIndex] 이미지 첨부 인덱싱 완료: 4396cb03-f09e-40b2-8221-ade09397b765 Gemini_Generated_Image_m20pn0m20pn0m20p (1).png
+[20260710-05:54:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-05:54:21][BE] [RAG] Gemma 이미지 설명 완료 (page=1, 125.5s): 3222자
+[20260710-05:54:21][BE] [RAG] 이미지 학습 완료: Gemini_Generated_Image_8a2t818a2t818a2t.png (5청크)
+[20260710-05:54:21][BE] [RAG] 학습 진행률: 60% (게시글 이미지)
+[20260710-05:54:21][BE] [RAG] 저장 완료 — 6청크 / 1개 게시글 / 0개 댓글
+[20260710-05:54:21][BE] [RAG] 학습 진행률: 100% (저장)
+[20260710-05:54:22][BE] [ATTACH-REF] sync ownerType=comment ownerId=c-ac561b91-b1a9-47a7-a335-377edfc622c2 actorUserId=1 prev=0 next=1 add=1 remove=0
+[20260710-05:54:22][BE] [RAG] 댓글 학습 시작 — 1개 댓글 (제외: 0개)
+[20260710-05:54:22][BE] /home/freegear/EasyDocStation/server/rag_train.py:120: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260710-05:54:22][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260710-05:54:23][BE] [RAG] 학습 완료
+[20260710-05:54:27][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v2' already exists
+[20260710-05:54:27][BE] [RAG] comment=c-ac561b91-b1a9-47a7-a335-377edfc622c2 post=516c613b-2b99-42b5-922a-7993fbae4500 text → 1청크
+[20260710-05:54:27][BE] [RAG] 학습 진행률: 30% (댓글 본문)
+[20260710-05:54:27][BE] [RAG] 이미지 학습 시작: Gemini_Generated_Image_m20pn0m20pn0m20p (1).png
+[20260710-05:55:00][BE] [RAG] Gemma 이미지 설명 완료 (page=1, 148.5s): 3355자
+[20260710-05:55:00][BE] [RAG] 이미지 학습 완료: Gemini_Generated_Image_m20pn0m20pn0m20p (1).png (6청크)
+[20260710-05:55:00][BE] [RAG] 학습 진행률: 60% (댓글 이미지)
+[20260710-05:55:00][BE] [RAG] 저장 완료 — 7청크 / 0개 게시글 / 1개 댓글
+[20260710-05:55:00][BE] [RAG] 학습 진행률: 100% (저장)
+[20260710-05:55:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-05:55:03][BE] [RAG] 댓글 학습 완료 — 1개 댓글 (156.8s)
+[20260710-05:55:24][BE] [SearchIndex] 이미지 첨부 인덱싱 완료: df8c6bc0-51c9-47b9-936c-6ff467b47163 Gemini_Generated_Image_m20pn0m20pn0m20p (1).png
+[20260710-05:56:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-05:56:05][BE] [RAG] Gemma 이미지 설명 완료 (page=1, 98.1s): 3624자
+[20260710-05:56:05][BE] [RAG] 이미지 학습 완료: Gemini_Generated_Image_m20pn0m20pn0m20p (1).png (6청크)
+[20260710-05:56:05][BE] [RAG] 학습 진행률: 60% (댓글 이미지)
+[20260710-05:56:05][BE] [RAG] 저장 완료 — 7청크 / 0개 게시글 / 1개 댓글
+[20260710-05:56:05][BE] [RAG] 학습 진행률: 100% (저장)
+[20260710-05:56:06][BE] [RAG] 댓글 학습 완료 — 1개 댓글 (104.5s)
+[20260710-05:56:29][BE] [ATTACH-REF] sync ownerType=post ownerId=ade102a7-ba30-4488-b816-bd22f8d0ef2e actorUserId=1 prev=0 next=1 add=1 remove=0
+[20260710-05:56:29][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
+[20260710-05:56:29][BE] /home/freegear/EasyDocStation/server/rag_train.py:120: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260710-05:56:29][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260710-05:56:32][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v2' already exists
+[20260710-05:56:32][BE] [RAG] post=ade102a7-ba30-4488-b816-bd22f8d0ef2e text → 1청크
+[20260710-05:56:32][BE] [RAG] 학습 진행률: 30% (게시글 본문)
+[20260710-05:56:32][BE] [RAG] PDF 학습 시작: SC_주주명부-20260702.pdf
+[20260710-05:56:33][BE] [RAG] PDF 파싱 시작 (Unstructured fast): SC_주주명부-20260702.pdf
+[20260710-05:56:33][BE] [RAG] Tesseract OCR fallback 시작: lang=kor+eng, pages=1
+[20260710-05:56:33][BE] [RAG] Tesseract OCR 진행: 1/1
+[20260710-05:56:34][BE] [RAG] Tesseract OCR fallback 완료: 추출 페이지 1/1
+[20260710-05:56:35][BE] [RAG] PDF 학습 완료: SC_주주명부-20260702.pdf (2청크)
+[20260710-05:56:35][BE] [RAG] 분리 저장 완료: /home/freegear/EasyDocStation/Database/ObjectFile/FileTrainingData/ade102a7-ba30-4488-b816-bd22f8d0ef2e/no_comment/bdf5b4bb-e71d-4978-b1e4-8b0f87461982/SC_주주명부-20260702.pdf
+[20260710-05:56:35][BE] [RAG] 학습 진행률: 60% (게시글 PDF)
+[20260710-05:56:35][BE] [RAG] 저장 완료 — 3청크 / 1개 게시글 / 0개 댓글
+[20260710-05:56:35][BE] [RAG] 학습 진행률: 100% (저장)
+[20260710-05:56:36][BE] [RAG] 학습 완료
+[20260710-05:57:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-05:58:08][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-05:59:03][BE] [ATTACH-REF] sync ownerType=post ownerId=7bfc23de-4f97-4ac3-a928-54484f239ef2 actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260710-05:59:03][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
+[20260710-05:59:03][BE] /home/freegear/EasyDocStation/server/rag_train.py:120: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260710-05:59:03][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260710-05:59:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-05:59:06][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v2' already exists
+[20260710-05:59:06][BE] [RAG] post=7bfc23de-4f97-4ac3-a928-54484f239ef2 text → 4청크
+[20260710-05:59:06][BE] [RAG] 학습 진행률: 50% (게시글 본문)
+[20260710-05:59:06][BE] [RAG] 저장 완료 — 4청크 / 1개 게시글 / 0개 댓글
+[20260710-05:59:06][BE] [RAG] 학습 진행률: 100% (저장)
+[20260710-05:59:07][BE] [RAG] 학습 완료
+[20260710-06:00:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-06:01:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-06:01:52][BE] [ATTACH-REF] sync ownerType=comment ownerId=c-58b3a5c8-2df0-4fbd-b5a7-613d39f288ce actorUserId=1 prev=0 next=1 add=1 remove=0
+[20260710-06:01:52][BE] [RAG] 댓글 학습 시작 — 1개 댓글 (제외: 0개)
+[20260710-06:01:52][BE] /home/freegear/EasyDocStation/server/rag_train.py:120: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260710-06:01:52][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260710-06:01:55][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v2' already exists
+[20260710-06:01:55][BE] [RAG] comment=c-58b3a5c8-2df0-4fbd-b5a7-613d39f288ce post=7bfc23de-4f97-4ac3-a928-54484f239ef2 text → 1청크
+[20260710-06:01:55][BE] [RAG] 학습 진행률: 30% (댓글 본문)
+[20260710-06:01:55][BE] [RAG] 이미지 학습 시작: ChatGPT Image 2026년 7월 10일 오전 06_01_45.png
+[20260710-06:02:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-06:02:33][BE] [SearchIndex] 이미지 첨부 인덱싱 완료: 30528ad4-e3d2-4f2e-80b9-5e13103c1272 ChatGPT Image 2026년 7월 10일 오전 06_01_45.png
+[20260710-06:03:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-06:03:16][BE] [RAG] Gemma 이미지 설명 완료 (page=1, 80.5s): 3052자
+[20260710-06:03:16][BE] [RAG] 이미지 학습 완료: ChatGPT Image 2026년 7월 10일 오전 06_01_45.png (5청크)
+[20260710-06:03:16][BE] [RAG] 학습 진행률: 60% (댓글 이미지)
+[20260710-06:03:16][BE] [RAG] 저장 완료 — 6청크 / 0개 게시글 / 1개 댓글
+[20260710-06:03:16][BE] [RAG] 학습 진행률: 100% (저장)
+[20260710-06:03:17][BE] [RAG] 댓글 학습 완료 — 1개 댓글 (84.7s)
+[20260710-06:04:05][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-06:05:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+AM 6:05:11 [vite] hmr update /src/components/TitleBar.jsx, /src/index.css
+[20260710-06:06:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-06:07:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-06:08:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-06:09:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-06:10:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+AM 6:10:09 [vite] hmr update /src/components/TitleBar.jsx, /src/index.css
+AM 6:10:15 [vite] hmr update /src/components/TitleBar.jsx, /src/index.css
+[20260710-06:11:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-06:12:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+AM 6:12:22 [vite] hmr update /src/components/TitleBar.jsx, /src/index.css
+[20260710-06:13:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-06:14:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-06:15:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-06:16:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-06:17:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-06:18:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-06:19:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+AM 6:19:11 [vite] hmr update /src/contexts/AuthContext.jsx, /src/index.css
+AM 6:19:11 [vite] hmr invalidate /src/contexts/AuthContext.jsx Could not Fast Refresh ("useAuth" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+AM 6:19:11 [vite] hmr update /src/App.jsx, /src/index.css, /src/contexts/ChatContext.jsx, /src/components/TitleBar.jsx, /src/components/LoginScreen.jsx, /src/components/Sidebar.jsx, /src/components/GroqPanel.jsx, /src/components/UserProfileModal.jsx, /src/components/SearchResultsArea.jsx, /src/components/ChatArea.jsx, /src/components/DirectMessageView.jsx, /src/components/SiteAdminPage.jsx, /src/components/TeamManageModal.jsx, /src/components/ChannelManageModal.jsx, /src/components/chat/PostDetailPane.jsx, /src/components/chat/MDPageViewer.jsx, /src/components/EventAddModal.jsx, /src/components/CalendarView.jsx, /src/features/mail/MailPage.jsx, /src/features/mail/MailAccountManageModal.jsx
+AM 6:19:12 [vite] hmr invalidate /src/contexts/ChatContext.jsx Could not Fast Refresh ("useChat" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+AM 6:19:12 [vite] hmr update /src/App.jsx, /src/index.css, /src/components/TitleBar.jsx, /src/components/Sidebar.jsx, /src/components/MobileLayout.jsx, /src/components/GroqPanel.jsx, /src/components/UserProfileModal.jsx, /src/components/SearchResultsArea.jsx, /src/components/ChatArea.jsx, /src/features/mail/MailPage.jsx, /src/components/ChannelManageModal.jsx, /src/components/chat/PostDetailPane.jsx, /src/components/chat/MDPageViewer.jsx
+AM 6:19:18 [vite] hmr update /src/contexts/AuthContext.jsx, /src/index.css
+AM 6:19:18 [vite] hmr invalidate /src/contexts/AuthContext.jsx Could not Fast Refresh ("useAuth" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+AM 6:19:18 [vite] hmr update /src/App.jsx, /src/index.css, /src/contexts/ChatContext.jsx, /src/components/TitleBar.jsx, /src/components/LoginScreen.jsx, /src/components/Sidebar.jsx, /src/components/GroqPanel.jsx, /src/components/UserProfileModal.jsx, /src/components/SearchResultsArea.jsx, /src/components/ChatArea.jsx, /src/components/DirectMessageView.jsx, /src/components/SiteAdminPage.jsx, /src/components/TeamManageModal.jsx, /src/components/ChannelManageModal.jsx, /src/components/chat/PostDetailPane.jsx, /src/components/chat/MDPageViewer.jsx, /src/components/EventAddModal.jsx, /src/components/CalendarView.jsx, /src/features/mail/MailPage.jsx, /src/features/mail/MailAccountManageModal.jsx
+AM 6:19:19 [vite] hmr invalidate /src/contexts/ChatContext.jsx Could not Fast Refresh ("useChat" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+AM 6:19:19 [vite] hmr update /src/App.jsx, /src/index.css, /src/components/TitleBar.jsx, /src/components/Sidebar.jsx, /src/components/MobileLayout.jsx, /src/components/GroqPanel.jsx, /src/components/UserProfileModal.jsx, /src/components/SearchResultsArea.jsx, /src/components/ChatArea.jsx, /src/features/mail/MailPage.jsx, /src/components/ChannelManageModal.jsx, /src/components/chat/PostDetailPane.jsx, /src/components/chat/MDPageViewer.jsx
+AM 6:19:34 [vite] hmr update /src/components/UserProfileModal.jsx, /src/index.css
+AM 6:19:43 [vite] hmr update /src/components/TitleBar.jsx, /src/index.css
+[20260710-06:20:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+AM 6:20:31 [vite] hmr update /src/components/UserProfileModal.jsx, /src/index.css
+AM 6:20:37 [vite] hmr update /src/index.css, /src/components/TitleBar.jsx, /src/components/LoginScreen.jsx, /src/components/Sidebar.jsx, /src/components/GroqPanel.jsx, /src/components/UserProfileModal.jsx, /src/components/SearchResultsArea.jsx, /src/components/ChatArea.jsx, /src/components/DirectMessageView.jsx, /src/components/SiteAdminPage.jsx, /src/components/TeamManageModal.jsx, /src/components/ChannelManageModal.jsx, /src/components/chat/PostDetailPane.jsx, /src/components/chat/MDPageViewer.jsx, /src/components/EventAddModal.jsx
+AM 6:20:42 [vite] hmr update /src/components/TitleBar.jsx, /src/index.css
+[20260710-06:21:05][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-06:22:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-06:23:05][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-06:24:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-06:25:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-06:26:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-06:27:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-06:28:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-06:29:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-06:30:01][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-06:31:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-06:32:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-06:33:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-06:34:05][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-06:35:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-06:36:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-06:37:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-06:38:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-06:39:06][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-06:40:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-06:41:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-06:42:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-06:43:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-06:44:01][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-06:45:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-06:46:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-06:47:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-06:48:06][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-06:49:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-06:50:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-06:51:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-06:52:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-06:53:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-06:54:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-06:55:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-06:56:05][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-06:57:01][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-06:58:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-06:59:01][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-07:00:01][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-07:01:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-07:02:05][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-07:03:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-07:04:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-07:05:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-07:06:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-07:07:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-07:08:06][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-07:09:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-07:10:06][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-07:11:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260710-07:12:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-07:13:05][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-07:14:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-07:15:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-07:16:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-07:17:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-07:18:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-07:19:01][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-07:20:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-07:21:06][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-07:22:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-07:23:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-07:24:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-07:25:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-07:26:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-07:27:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-07:28:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260710-07:29:05][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-07:30:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-07:31:05][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-07:32:05][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-07:33:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-07:34:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-07:35:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-07:36:08][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260710-07:37:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-07:38:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-07:39:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-07:40:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-07:41:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-07:42:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-07:43:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-07:44:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-07:45:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-07:46:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-07:47:01][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-07:48:05][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-07:49:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-07:50:07][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-07:51:06][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260710-07:52:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-07:53:05][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260710-07:54:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-07:55:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-07:56:01][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-07:57:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-07:58:01][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-07:59:01][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-08:00:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-08:01:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-08:02:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260710-08:03:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-08:04:05][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-08:05:06][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-08:06:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-08:07:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-08:08:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-08:09:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-08:10:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-08:11:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-08:12:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-08:13:01][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-08:14:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-08:15:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-08:16:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-08:17:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-08:18:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-08:19:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-08:20:05][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-08:21:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260710-08:22:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-08:23:01][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-08:24:05][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-08:25:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-08:26:05][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-08:27:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-08:28:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-08:29:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-08:30:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-08:31:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260710-08:32:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-08:33:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-08:34:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-08:35:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-08:36:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-08:37:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-08:38:01][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-08:39:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-08:40:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-08:41:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-08:42:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-08:43:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-08:44:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-08:45:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-08:46:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-08:47:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-08:48:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-08:49:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-08:50:06][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-08:51:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-08:52:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-08:53:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-08:54:06][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-08:55:05][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-08:56:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-08:57:05][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260710-08:58:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-08:59:08][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-09:00:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-09:01:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-09:02:06][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-09:03:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-09:04:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260710-09:05:01][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-09:06:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-09:07:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260710-09:08:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-09:09:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260710-09:10:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-09:11:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-09:12:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-09:13:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-09:14:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-09:15:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-09:16:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-09:17:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-09:18:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-09:19:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-09:20:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-09:21:01][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-09:22:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-09:23:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-09:24:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-09:25:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-09:26:05][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-09:27:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-09:28:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-09:29:05][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-09:30:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-09:31:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-09:32:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260710-09:33:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=3
+[20260710-09:34:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-09:35:01][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-09:36:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-09:37:06][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260710-09:38:17][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-09:39:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-09:40:05][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-09:41:01][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-09:42:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-09:43:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-09:44:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-09:45:05][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260710-09:46:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260710-09:47:05][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-09:48:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-09:49:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-09:50:05][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-09:51:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260710-09:52:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-09:53:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-09:54:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-09:55:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-09:56:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-09:57:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-09:58:19][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-09:59:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-10:00:05][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260710-10:01:01][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-10:02:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260710-10:03:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-10:04:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260710-10:05:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260710-10:06:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-10:07:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-10:08:05][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-10:09:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-10:10:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-10:11:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-10:12:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-10:13:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-10:14:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-10:15:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-10:16:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-10:17:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-10:18:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-10:19:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260710-10:20:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-10:21:06][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-10:22:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-10:22:16][BE] [ATTACH-REF] sync ownerType=post ownerId=c7b0c5bb-2baf-4288-bba4-32e413947573 actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260710-10:22:16][BE] [RAG] 학습 제외 (게시글): c7b0c5bb-2baf-4288-bba4-32e413947573 — 첨부파일 없음, 12자
+[20260710-10:22:16][BE] [RAG] 학습 제외 후 학습할 게시글이 없습니다.
+[20260710-10:22:22][BE] [ATTACH-REF] sync ownerType=comment ownerId=c-967d75e5-933d-45ed-81d5-42b9b20db74a actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260710-10:22:22][BE] [RAG] 학습 제외 (댓글): c-967d75e5-933d-45ed-81d5-42b9b20db74a — 첨부파일 없음, 8자
+[20260710-10:22:22][BE] [RAG] 학습 제외 후 학습할 댓글이 없습니다.
+[20260710-10:22:37][BE] [ATTACH-REF] sync ownerType=comment ownerId=c-86f23dbf-a888-4b61-be88-8403750015cd actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260710-10:22:37][BE] [RAG] 학습 제외 (댓글): c-86f23dbf-a888-4b61-be88-8403750015cd — 첨부파일 없음, 30자
+[20260710-10:22:37][BE] [RAG] 학습 제외 후 학습할 댓글이 없습니다.
+[20260710-10:23:04][BE] [ATTACH-REF] sync ownerType=comment ownerId=c-fa788953-e8c4-4e65-b160-23a1ce195510 actorUserId=1 prev=0 next=1 add=1 remove=0
+[20260710-10:23:04][BE] [RAG] 댓글 학습 시작 — 1개 댓글 (제외: 0개)
+[20260710-10:23:04][BE] /home/freegear/EasyDocStation/server/rag_train.py:120: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260710-10:23:04][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260710-10:23:05][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-10:23:08][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v2' already exists
+[20260710-10:23:08][BE] [RAG] comment=c-fa788953-e8c4-4e65-b160-23a1ce195510 post=c7b0c5bb-2baf-4288-bba4-32e413947573 text → 1청크
+[20260710-10:23:08][BE] [RAG] 학습 진행률: 30% (댓글 본문)
+[20260710-10:23:08][BE] [RAG] PDF 학습 시작: 0499_001.pdf
+[20260710-10:23:08][BE] [RAG] PDF 파싱 시작 (Unstructured fast): 0499_001.pdf
+[20260710-10:23:08][BE] [RAG] Tesseract OCR fallback 시작: lang=kor+eng, pages=1
+[20260710-10:23:08][BE] [RAG] Tesseract OCR 진행: 1/1
+[20260710-10:23:11][BE] [RAG] Tesseract OCR fallback 완료: 추출 페이지 1/1
+[20260710-10:23:11][BE] [RAG] PDF 학습 완료: 0499_001.pdf (3청크)
+[20260710-10:23:11][BE] [RAG] 분리 저장 완료: /home/freegear/EasyDocStation/Database/ObjectFile/FileTrainingData/c7b0c5bb-2baf-4288-bba4-32e413947573/c-fa788953-e8c4-4e65-b160-23a1ce195510/9f710486-e945-4a0f-b9da-fda02283ab4c/0499_001.pdf
+[20260710-10:23:11][BE] [RAG] 학습 진행률: 60% (댓글 PDF)
+[20260710-10:23:11][BE] [RAG] 저장 완료 — 4청크 / 0개 게시글 / 1개 댓글
+[20260710-10:23:11][BE] [RAG] 학습 진행률: 100% (저장)
+[20260710-10:23:12][BE] [RAG] 댓글 학습 완료 — 1개 댓글 (7.8s)
+[20260710-10:23:47][BE] [ATTACH-REF] sync ownerType=comment ownerId=c-92641f8d-1d9d-492d-9058-d9c34f71d2a9 actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260710-10:23:47][BE] [RAG] 학습 제외 (댓글): c-92641f8d-1d9d-492d-9058-d9c34f71d2a9 — 첨부파일 없음, 43자
+[20260710-10:23:47][BE] [RAG] 학습 제외 후 학습할 댓글이 없습니다.
+[20260710-10:24:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-10:25:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260710-10:27:33][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-10:28:56][BE] [ATTACH-REF] sync ownerType=post ownerId=d76ecb70-d338-4277-9459-16ce2a9f6a53 actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260710-10:28:56][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
+[20260710-10:28:56][BE] /home/freegear/EasyDocStation/server/rag_train.py:120: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260710-10:28:56][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260710-10:28:59][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v2' already exists
+[20260710-10:29:00][BE] [RAG] post=d76ecb70-d338-4277-9459-16ce2a9f6a53 text → 2청크
+[20260710-10:29:00][BE] [RAG] 학습 진행률: 50% (게시글 본문)
+[20260710-10:29:00][BE] [RAG] 저장 완료 — 2청크 / 1개 게시글 / 0개 댓글
+[20260710-10:29:00][BE] [RAG] 학습 진행률: 100% (저장)
+[20260710-10:29:01][BE] [RAG] 학습 완료
+[20260710-10:29:11][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260710-10:29:26][BE] [ATTACH-REF] sync ownerType=comment ownerId=c-e83ca473-baba-4344-ae09-bf18820b1c72 actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260710-10:29:26][BE] [RAG] 댓글 학습 시작 — 1개 댓글 (제외: 0개)
+[20260710-10:29:26][BE] /home/freegear/EasyDocStation/server/rag_train.py:120: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260710-10:29:26][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260710-10:29:29][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v2' already exists
+[20260710-10:29:30][BE] [RAG] comment=c-e83ca473-baba-4344-ae09-bf18820b1c72 post=d76ecb70-d338-4277-9459-16ce2a9f6a53 text → 1청크
+[20260710-10:29:30][BE] [RAG] 학습 진행률: 50% (댓글 본문)
+[20260710-10:29:30][BE] [RAG] 저장 완료 — 1청크 / 0개 게시글 / 1개 댓글
+[20260710-10:29:30][BE] [RAG] 학습 진행률: 100% (저장)
+[20260710-10:29:30][BE] [RAG] 댓글 학습 완료 — 1개 댓글 (3.9s)
+[20260710-10:29:32][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-10:30:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-10:32:33][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-10:33:06][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-10:34:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-10:36:34][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-10:38:31][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-10:39:05][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-10:41:31][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-10:42:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260710-10:43:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-10:44:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-10:45:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-10:46:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-10:48:34][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-10:49:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260710-10:50:07][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-10:51:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-10:52:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-10:54:34][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-10:55:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-10:57:34][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-10:58:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-10:59:05][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-11:00:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-11:01:05][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-11:02:06][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-11:03:05][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-11:05:31][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-11:06:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-11:07:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-11:09:31][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-11:10:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-11:11:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-11:12:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-11:13:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-11:14:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-11:15:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260710-11:17:32][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-11:18:05][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-11:20:32][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-11:22:31][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-11:23:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-11:24:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-11:26:32][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-11:27:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-11:28:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-11:29:05][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-11:30:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-11:31:05][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-11:32:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-11:33:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-11:35:33][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-11:37:31][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-11:38:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-11:39:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-11:40:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-11:41:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-11:42:05][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-11:43:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-11:44:05][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-11:45:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-11:46:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-11:47:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260710-11:48:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-11:49:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-11:50:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-11:51:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-11:52:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-11:54:33][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-11:55:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-11:56:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-11:58:33][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260710-11:59:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-12:00:01][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-12:01:01][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-12:02:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-12:04:31][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-12:06:33][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-12:07:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-12:08:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-12:10:31][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-12:12:32][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-12:14:33][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-12:15:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-12:16:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-12:17:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-12:19:33][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-12:20:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-12:22:34][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-12:24:33][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-12:25:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-12:27:34][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-12:28:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-12:30:34][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260710-12:31:01][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-12:33:32][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-12:34:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-12:36:33][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-12:37:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-12:39:31][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-12:40:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-12:41:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-12:42:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-12:43:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-12:44:01][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-12:46:31][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260710-12:47:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-12:48:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-12:49:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-12:51:34][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-12:52:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-12:53:01][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-12:54:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-12:56:35][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-12:58:33][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-12:59:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-13:01:34][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-13:02:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-13:03:07][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260710-13:04:01][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-13:06:31][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-13:07:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-13:08:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-13:09:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260710-13:10:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-13:11:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-13:12:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-13:13:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-13:15:34][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-13:16:01][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-13:18:32][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260710-13:19:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-13:20:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-13:21:10][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260710-13:22:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260710-13:23:05][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-13:24:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-13:25:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-13:27:33][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-13:28:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-13:29:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260710-13:30:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-13:31:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-13:33:33][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260710-13:34:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-13:35:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-13:36:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-13:38:40][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260710-13:39:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-13:41:31][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-13:42:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-13:44:31][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-13:45:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-13:46:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260710-13:48:31][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-13:49:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-13:50:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-13:52:33][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-13:54:35][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-13:56:33][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-13:58:33][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-13:59:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-14:01:30][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260710-14:02:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-14:03:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-14:04:05][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-14:05:05][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-14:06:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-14:07:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-14:08:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-14:09:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-14:10:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-14:12:32][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-14:13:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260710-14:15:33][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-14:16:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-14:17:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-14:18:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-14:20:35][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-14:21:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-14:22:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-14:24:33][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-14:25:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-14:26:06][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-14:27:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-14:28:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-14:29:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-14:31:33][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-14:32:01][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-14:34:30][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-14:36:31][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-14:38:38][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-14:40:36][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260710-14:41:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-14:42:01][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-14:44:32][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-14:46:31][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-14:47:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-14:48:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-14:49:05][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-14:50:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-14:51:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-14:53:31][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-14:55:34][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260710-14:57:32][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-14:58:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260710-14:59:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-15:00:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-15:01:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-15:02:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-15:04:31][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-15:05:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-15:06:08][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-15:07:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-15:08:05][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260710-15:10:31][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-15:12:32][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-15:14:35][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-15:15:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-15:16:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-15:17:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-15:19:18][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260710-15:20:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260710-15:21:08][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-15:22:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-15:23:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-15:25:33][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-15:26:09][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-15:27:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-15:29:32][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-15:31:37][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-15:32:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-15:33:05][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-15:34:28][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-15:35:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-15:37:31][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-15:38:37][BE] [link-preview-image] meta image failed, fallback screenshot: fetch failed
+[20260710-15:38:37][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260710-15:39:03][BE] [ATTACH-REF] sync ownerType=post ownerId=62a3eaf5-2f50-4431-bfcb-b8757a57bb18 actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260710-15:39:03][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
+[20260710-15:39:03][BE] /home/freegear/EasyDocStation/server/rag_train.py:120: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260710-15:39:03][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260710-15:39:06][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v2' already exists
+[20260710-15:39:06][BE] [RAG] post=62a3eaf5-2f50-4431-bfcb-b8757a57bb18 text → 6청크
+[20260710-15:39:06][BE] [RAG] 학습 진행률: 50% (게시글 본문)
+[20260710-15:39:06][BE] [RAG] 저장 완료 — 6청크 / 1개 게시글 / 0개 댓글
+[20260710-15:39:06][BE] [RAG] 학습 진행률: 100% (저장)
+[20260710-15:39:07][BE] [RAG] 학습 완료
+[20260710-15:39:31][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-15:40:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-15:42:33][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-15:44:33][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-15:45:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-15:45:41][BE] [ATTACH-REF] sync ownerType=post ownerId=47fada79-4a31-4cc1-9f63-16d42ebecfbb actorUserId=1 prev=0 next=3 add=3 remove=0
+[20260710-15:45:41][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
+[20260710-15:45:41][BE] /home/freegear/EasyDocStation/server/rag_train.py:120: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260710-15:45:41][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260710-15:45:44][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v2' already exists
+[20260710-15:45:44][BE] [RAG] post=47fada79-4a31-4cc1-9f63-16d42ebecfbb text → 1청크
+[20260710-15:45:44][BE] [RAG] 학습 진행률: 20% (게시글 본문)
+[20260710-15:45:44][BE] [RAG] MarkItDown 학습 시작: 6_거래명세서_아이윈_~~~라이브러리 개발_260710.xlsx (excel)
+[20260710-15:45:44][BE] [RAG] MarkItDown 학습 완료: 6_거래명세서_아이윈_~~~라이브러리 개발_260710.xlsx (8청크, 0.6s)
+[20260710-15:45:44][BE] [RAG] 학습 진행률: 40% (게시글 Excel)
+[20260710-15:45:44][BE] [RAG] MarkItDown 학습 시작: 3_품의서 & 4_검수보고서_아이윈_~~~~라이브러리 개발_260710.xlsx (excel)
+[20260710-15:45:45][BE] [RAG] MarkItDown 학습 완료: 3_품의서 & 4_검수보고서_아이윈_~~~~라이브러리 개발_260710.xlsx (18청크, 0.6s)
+[20260710-15:45:45][BE] [RAG] 학습 진행률: 60% (게시글 Excel)
+[20260710-15:45:45][BE] [RAG] MarkItDown 학습 시작: 1_견적서_아이윈_~~~라이브러리 개발_260610.xlsx (excel)
+[20260710-15:45:46][BE] [RAG] MarkItDown 학습 완료: 1_견적서_아이윈_~~~라이브러리 개발_260610.xlsx (12청크, 0.5s)
+[20260710-15:45:46][BE] [RAG] 학습 진행률: 80% (게시글 Excel)
+[20260710-15:45:46][BE] [RAG] 저장 완료 — 39청크 / 1개 게시글 / 0개 댓글
+[20260710-15:45:46][BE] [RAG] 학습 진행률: 100% (저장)
+[20260710-15:45:46][BE] [RAG] 학습 완료
+[20260710-15:46:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-15:47:07][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260710-15:49:34][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-15:51:36][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-15:52:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-15:54:33][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-15:55:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-15:56:07][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-15:57:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-15:58:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260710-15:59:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260710-16:00:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-16:01:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-16:02:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-16:03:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-16:04:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260710-16:05:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-16:05:43][BE] [ATTACH-REF] sync ownerType=comment ownerId=c-ddcc3df3-60a6-4a70-b62f-f036c915afd9 actorUserId=1 prev=0 next=1 add=1 remove=0
+[20260710-16:05:43][BE] [RAG] 댓글 학습 시작 — 1개 댓글 (제외: 0개)
+[20260710-16:05:43][BE] /home/freegear/EasyDocStation/server/rag_train.py:120: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260710-16:05:43][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260710-16:05:46][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v2' already exists
+[20260710-16:05:46][BE] [RAG] comment=c-ddcc3df3-60a6-4a70-b62f-f036c915afd9 post=47fada79-4a31-4cc1-9f63-16d42ebecfbb text → 1청크
+[20260710-16:05:46][BE] [RAG] 학습 진행률: 30% (댓글 본문)
+[20260710-16:05:46][BE] [RAG] MarkItDown 학습 시작: 1_견적서_아이윈_~~~라이브러리 개발_260610.xlsx (excel)
+[20260710-16:05:46][BE] [ATTACH-REF] sync ownerType=comment ownerId=c-e87b3e0d-8d59-4636-9139-63dd458b0512 actorUserId=1 prev=0 next=1 add=1 remove=0
+[20260710-16:05:46][BE] [RAG] 댓글 학습 시작 — 1개 댓글 (제외: 0개)
+[20260710-16:05:46][BE] /home/freegear/EasyDocStation/server/rag_train.py:120: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260710-16:05:46][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260710-16:05:47][BE] [RAG] MarkItDown 학습 완료: 1_견적서_아이윈_~~~라이브러리 개발_260610.xlsx (12청크, 0.7s)
+[20260710-16:05:47][BE] [RAG] 학습 진행률: 60% (댓글 Excel)
+[20260710-16:05:47][BE] [RAG] 저장 완료 — 13청크 / 0개 게시글 / 1개 댓글
+[20260710-16:05:47][BE] [RAG] 학습 진행률: 100% (저장)
+[20260710-16:05:47][BE] [RAG] 댓글 학습 완료 — 1개 댓글 (4.7s)
+[20260710-16:05:50][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v2' already exists
+[20260710-16:05:50][BE] [RAG] comment=c-e87b3e0d-8d59-4636-9139-63dd458b0512 post=47fada79-4a31-4cc1-9f63-16d42ebecfbb text → 1청크
+[20260710-16:05:50][BE] [RAG] 학습 진행률: 30% (댓글 본문)
+[20260710-16:05:50][BE] [RAG] 이미지 학습 시작: KakaoTalk_Photo_2026-07-10-16-05-34.png
+[20260710-16:06:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-16:06:24][BE] [SearchIndex] 이미지 첨부 인덱싱 완료: 1a2586bb-c5e2-4e96-bca2-bb136ac964e4 KakaoTalk_Photo_2026-07-10-16-05-34.png
+[20260710-16:06:58][BE] [RAG] Gemma 이미지 설명 완료 (page=1, 68.9s): 2102자
+[20260710-16:06:59][BE] [RAG] 이미지 학습 완료: KakaoTalk_Photo_2026-07-10-16-05-34.png (3청크)
+[20260710-16:06:59][BE] [RAG] 학습 진행률: 60% (댓글 이미지)
+[20260710-16:06:59][BE] [RAG] 저장 완료 — 4청크 / 0개 게시글 / 1개 댓글
+[20260710-16:06:59][BE] [RAG] 학습 진행률: 100% (저장)
+[20260710-16:06:59][BE] [RAG] 댓글 학습 완료 — 1개 댓글 (73.1s)
+[20260710-16:07:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=2
+[20260710-16:08:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-16:09:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-16:10:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=2
+[20260710-16:11:15][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-16:12:06][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-16:13:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-16:13:32][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260710-16:14:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260710-16:14:05][BE] [ATTACH-REF] sync ownerType=comment ownerId=c-b2073c51-5156-4098-8c53-df4d6aab66ac actorUserId=1 prev=0 next=1 add=1 remove=0
+[20260710-16:14:05][BE] [RAG] 댓글 학습 시작 — 1개 댓글 (제외: 0개)
+[20260710-16:14:05][BE] /home/freegear/EasyDocStation/server/rag_train.py:120: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260710-16:14:05][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260710-16:14:08][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v2' already exists
+[20260710-16:14:08][BE] [RAG] comment=c-b2073c51-5156-4098-8c53-df4d6aab66ac post=47fada79-4a31-4cc1-9f63-16d42ebecfbb text → 1청크
+[20260710-16:14:08][BE] [RAG] 학습 진행률: 30% (댓글 본문)
+[20260710-16:14:08][BE] [RAG] PDF 학습 시작: 0503_001.pdf
+[20260710-16:14:09][BE] [RAG] PDF 파싱 시작 (Unstructured fast): 0503_001.pdf
+[20260710-16:14:09][BE] [RAG] Tesseract OCR fallback 시작: lang=kor+eng, pages=1
+[20260710-16:14:09][BE] [RAG] Tesseract OCR 진행: 1/1
+[20260710-16:14:09][BE] [RAG] Tesseract OCR fallback 완료: 추출 페이지 1/1
+[20260710-16:14:10][BE] [RAG] PDF 학습 완료: 0503_001.pdf (2청크)
+[20260710-16:14:10][BE] [RAG] 분리 저장 완료: /home/freegear/EasyDocStation/Database/ObjectFile/FileTrainingData/47fada79-4a31-4cc1-9f63-16d42ebecfbb/c-b2073c51-5156-4098-8c53-df4d6aab66ac/cb47347f-bc81-4538-a6d1-975e37d7cde4/0503_001.pdf
+[20260710-16:14:10][BE] [RAG] 학습 진행률: 60% (댓글 PDF)
+[20260710-16:14:10][BE] [RAG] 저장 완료 — 3청크 / 0개 게시글 / 1개 댓글
+[20260710-16:14:10][BE] [RAG] 학습 진행률: 100% (저장)
+[20260710-16:14:11][BE] [RAG] 댓글 학습 완료 — 1개 댓글 (5.6s)
+[20260710-16:15:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-16:16:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-16:17:06][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260710-16:18:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-16:19:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-16:20:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-16:21:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-16:22:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-16:23:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-16:24:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260710-16:24:29][BE] [ATTACH-REF] sync ownerType=comment ownerId=c-4265b531-d3d5-47d6-8006-071942977b63 actorUserId=1 prev=0 next=1 add=1 remove=0
+[20260710-16:24:29][BE] [RAG] 댓글 학습 시작 — 1개 댓글 (제외: 0개)
+[20260710-16:24:29][BE] /home/freegear/EasyDocStation/server/rag_train.py:120: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260710-16:24:29][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260710-16:24:32][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v2' already exists
+[20260710-16:24:32][BE] [RAG] comment=c-4265b531-d3d5-47d6-8006-071942977b63 post=47fada79-4a31-4cc1-9f63-16d42ebecfbb text → 1청크
+[20260710-16:24:32][BE] [RAG] 학습 진행률: 30% (댓글 본문)
+[20260710-16:24:32][BE] [RAG] PDF 학습 시작: 아이윈 거래명세서.pdf
+[20260710-16:24:32][BE] [RAG] PDF 파싱 시작 (Unstructured fast): 아이윈 거래명세서.pdf
+[20260710-16:24:33][BE] [RAG] Tesseract OCR fallback 시작: lang=kor+eng, pages=1
+[20260710-16:24:33][BE] [RAG] Tesseract OCR 진행: 1/1
+[20260710-16:24:34][BE] [RAG] Tesseract OCR fallback 완료: 추출 페이지 1/1
+[20260710-16:24:34][BE] [RAG] PDF 학습 완료: 아이윈 거래명세서.pdf (2청크)
+[20260710-16:24:34][BE] [RAG] 분리 저장 완료: /home/freegear/EasyDocStation/Database/ObjectFile/FileTrainingData/47fada79-4a31-4cc1-9f63-16d42ebecfbb/c-4265b531-d3d5-47d6-8006-071942977b63/e932a812-bdaa-47dd-a216-b24a8db0bd8d/아이윈_거래명세서.pdf
+[20260710-16:24:34][BE] [RAG] 학습 진행률: 60% (댓글 PDF)
+[20260710-16:24:34][BE] [RAG] 저장 완료 — 3청크 / 0개 게시글 / 1개 댓글
+[20260710-16:24:34][BE] [RAG] 학습 진행률: 100% (저장)
+[20260710-16:24:35][BE] [RAG] 댓글 학습 완료 — 1개 댓글 (6.2s)
+[20260710-16:25:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-16:26:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-16:27:08][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-16:28:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-16:29:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-16:30:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-16:31:07][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-16:32:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260710-16:33:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-16:34:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-16:35:00][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-16:35:59][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-16:37:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-16:38:01][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-16:39:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-16:40:09][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-16:41:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-16:42:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-16:43:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-16:44:07][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-16:45:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-16:46:07][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-16:47:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-16:48:05][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-16:49:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260710-16:50:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-16:51:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-16:52:01][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-16:53:01][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-16:54:01][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-16:55:01][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-16:56:01][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-16:57:01][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-16:58:00][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-16:59:01][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-17:00:01][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-17:01:01][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-17:02:01][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-17:03:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-17:04:07][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-17:05:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260710-17:06:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-17:07:06][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-17:07:21][BE] [link-preview-image] meta image failed, fallback screenshot: fetch failed
+[20260710-17:07:21][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260710-17:08:05][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-17:09:05][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-17:10:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-17:11:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-17:11:27][BE] [ATTACH-REF] sync ownerType=post ownerId=3bb56b6b-03c4-4df6-ae80-2e32afb4617d actorUserId=1 prev=0 next=1 add=1 remove=0
+[20260710-17:11:27][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
+[20260710-17:11:27][BE] /home/freegear/EasyDocStation/server/rag_train.py:120: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260710-17:11:27][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260710-17:11:30][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v2' already exists
+[20260710-17:11:30][BE] [RAG] post=3bb56b6b-03c4-4df6-ae80-2e32afb4617d text → 1청크
+[20260710-17:11:30][BE] [RAG] 학습 진행률: 30% (게시글 본문)
+[20260710-17:11:30][BE] [RAG] PDF 학습 시작: 0499_001.pdf
+[20260710-17:11:31][BE] [RAG] PDF 파싱 시작 (Unstructured fast): 0499_001.pdf
+[20260710-17:11:31][BE] [RAG] Tesseract OCR fallback 시작: lang=kor+eng, pages=1
+[20260710-17:11:31][BE] [RAG] Tesseract OCR 진행: 1/1
+[20260710-17:11:33][BE] [RAG] Tesseract OCR fallback 완료: 추출 페이지 1/1
+[20260710-17:11:33][BE] [RAG] PDF 학습 완료: 0499_001.pdf (3청크)
+[20260710-17:11:33][BE] [RAG] 분리 저장 완료: /home/freegear/EasyDocStation/Database/ObjectFile/FileTrainingData/3bb56b6b-03c4-4df6-ae80-2e32afb4617d/no_comment/c0e6b895-1ebb-4672-b461-adb00cd6b7c5/0499_001.pdf
+[20260710-17:11:33][BE] [RAG] 학습 진행률: 60% (게시글 PDF)
+[20260710-17:11:33][BE] [RAG] 저장 완료 — 4청크 / 1개 게시글 / 0개 댓글
+[20260710-17:11:33][BE] [RAG] 학습 진행률: 100% (저장)
+[20260710-17:11:34][BE] [RAG] 학습 완료
+[20260710-17:12:05][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-17:13:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-17:14:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-17:15:05][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-17:16:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-17:17:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-17:18:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-17:19:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-17:20:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-17:21:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-17:22:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-17:23:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-17:24:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-17:25:05][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-17:26:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260710-17:27:01][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-17:28:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-17:29:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-17:30:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-17:31:05][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-17:32:06][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-17:33:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-17:34:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-17:35:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-17:36:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-17:37:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-17:38:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-17:39:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-17:40:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-17:41:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260710-17:42:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-17:43:18][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-17:44:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260710-17:45:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-17:46:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-17:47:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-17:48:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-17:49:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-17:50:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-17:51:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-17:52:05][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-17:53:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-17:54:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-17:55:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-17:56:05][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-17:57:01][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-17:58:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-17:59:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-18:00:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-18:01:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-18:02:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-18:03:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-18:04:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-18:05:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-18:06:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-18:07:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-18:08:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-18:09:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-18:10:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-18:11:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-18:12:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-18:13:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-18:14:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-18:15:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-18:16:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-18:17:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-18:18:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-18:19:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-18:20:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-18:21:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-18:22:06][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-18:23:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-18:24:05][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-18:25:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-18:26:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-18:27:01][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-18:28:01][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-18:29:01][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-18:30:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-18:31:05][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-18:32:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-18:33:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-18:34:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-18:35:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-18:36:05][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-18:37:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-18:38:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-18:39:05][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-18:40:05][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-18:41:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-18:42:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-18:43:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-18:44:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-18:45:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-18:46:05][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-18:47:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-18:48:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-18:49:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-18:50:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-18:51:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-18:52:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-18:53:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-18:54:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-18:55:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-18:56:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-18:57:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-18:58:05][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-18:59:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-19:00:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-19:01:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-19:02:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-19:03:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-19:04:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260710-19:05:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260710-19:06:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-19:07:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-19:08:05][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-19:09:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-19:10:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-19:11:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-19:12:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-19:13:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-19:14:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-19:15:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-19:16:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-19:17:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-19:18:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-19:19:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-19:20:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-19:21:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-19:22:06][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260710-19:23:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-19:24:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-19:25:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-19:26:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-19:27:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-19:28:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-19:29:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-19:30:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-19:31:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-19:32:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-19:33:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-19:34:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-19:35:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-19:36:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-19:37:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-19:38:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-19:39:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-19:40:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-19:41:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-19:42:05][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-19:43:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-19:44:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260710-19:45:05][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-19:46:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-19:47:06][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-19:48:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-19:49:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-19:50:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-19:51:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-19:52:05][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-19:53:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-19:54:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-19:55:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-19:56:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-19:57:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-19:58:05][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-19:59:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-20:00:12][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-20:01:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-20:02:07][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-20:03:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-20:04:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-20:05:05][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-20:06:05][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-20:07:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-20:08:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-20:09:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-20:10:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-20:11:06][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-20:12:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-20:13:05][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260710-20:14:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-20:15:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-20:16:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-20:17:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-20:18:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-20:19:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-20:20:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-20:21:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260710-20:22:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-20:23:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-20:24:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-20:25:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-20:26:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-20:27:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-20:28:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-20:29:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-20:30:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-20:31:16][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-20:32:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-20:33:09][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-20:34:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-20:35:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-20:36:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-20:37:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-20:38:06][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-20:39:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-20:40:05][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-20:41:28][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-20:42:07][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-20:43:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-20:44:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-20:45:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-20:46:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-20:47:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-20:48:05][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-20:49:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-20:50:01][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-20:51:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-20:52:06][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-20:53:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-20:54:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-20:55:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-20:56:05][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-20:57:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-20:58:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-20:59:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-21:00:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260710-21:01:05][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-21:02:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-21:03:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-21:04:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-21:05:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-21:06:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-21:07:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-21:08:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-21:09:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-21:10:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-21:11:21][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-21:12:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-21:13:15][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-21:14:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-21:15:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-21:16:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-21:17:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-21:18:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-21:19:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-21:20:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-21:21:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-21:22:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-21:23:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-21:24:05][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-21:25:05][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-21:26:05][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-21:27:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-21:28:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-21:29:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-21:30:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-21:31:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-21:32:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-21:33:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-21:34:06][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-21:35:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-21:36:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-21:37:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-21:38:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-21:39:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-21:40:05][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-21:41:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-21:42:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-21:43:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-21:44:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-21:45:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-21:46:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-21:47:05][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-21:48:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-21:49:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-21:50:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-21:51:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-21:52:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-21:53:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-21:54:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-21:55:05][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-21:56:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-21:57:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-21:58:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-21:59:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-22:00:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-22:01:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-22:02:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-22:03:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-22:04:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-22:05:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-22:06:05][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-22:07:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-22:08:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-22:09:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-22:10:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-22:11:05][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-22:12:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260710-22:13:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0

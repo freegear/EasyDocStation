@@ -246,6 +246,9 @@ async function executeRule({ tenantId, rule, message, force = false }) {
     userId: message.user_id,
   })
 
+  // MailService.md 9.2.1 실행 순서:
+  // 1) AI 메일 분석 → 2) 중요 메일 등록 → 3) 원본 전달(켜진 경우) → 4) 지정된 폴더로 이동.
+  // 따라서 원본 전달이 꺼져 있으면 AI 분석 → 중요 메일 등록 → 지정된 폴더 이동 순서가 된다.
   if (rule.ai_analysis_enabled) {
     try {
       const bodyText = await loadObjectText(message.body_text_object_key)
@@ -260,6 +263,22 @@ async function executeRule({ tenantId, rule, message, force = false }) {
     } catch (err) {
       errors.push(err)
       actionResults.push({ action: 'ai_analysis', ok: false, error: err.message })
+    }
+  }
+
+  if (rule.important_mail_enabled) {
+    try {
+      const updated = await repo.setMessagesStarred({
+        tenantId,
+        userId: message.user_id,
+        messageIds: [message.id],
+        starred: true,
+      })
+      if (!updated.length) throw new Error('중요 메일 상태를 갱신하지 못했습니다.')
+      actionResults.push({ action: 'important_mail', ok: true, is_starred: true })
+    } catch (err) {
+      errors.push(err)
+      actionResults.push({ action: 'important_mail', ok: false, error: err.message })
     }
   }
 
@@ -363,6 +382,7 @@ async function executeRule({ tenantId, rule, message, force = false }) {
 
   const enabledActions = [
     rule.ai_analysis_enabled,
+    rule.important_mail_enabled,
     rule.forward_enabled,
     rule.move_folder_enabled,
     rule.tag_smart_folder_enabled,

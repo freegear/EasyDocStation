@@ -2516,6 +2516,7 @@ async function purgePostHard(id, actorUserId = null) {
   if (!row) {
     await db.query('DELETE FROM comments WHERE post_id = $1', [id]).catch(() => {})
     await db.query('DELETE FROM post_likes WHERE post_id = $1', [id]).catch(() => {})
+    await db.query('DELETE FROM recent_post_views WHERE post_id = $1', [String(id)]).catch(() => {})
     await db.query('DELETE FROM posts WHERE id = $1', [id]).catch(() => {})
     await db.query('DELETE FROM search_documents WHERE post_id = $1', [id]).catch(() => {})
     return
@@ -2594,6 +2595,7 @@ async function purgePostHard(id, actorUserId = null) {
   }
   await db.query('DELETE FROM post_likes WHERE post_id = $1', [id]).catch(() => {})
   await db.query('DELETE FROM comments WHERE post_id = $1', [id])
+  await db.query('DELETE FROM recent_post_views WHERE post_id = $1', [String(id)]).catch(() => {})
   await db.query('DELETE FROM posts WHERE id = $1', [id])
   await db.query('DELETE FROM search_documents WHERE post_id = $1', [id]).catch(() => {})
 

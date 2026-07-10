@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 36 24" role="img" aria-label="English">
+  <rect width="36" height="24" rx="2" fill="#fff"/>
+  <g fill="#b22234">
+    <rect width="36" height="1.85" y="0"/>
+    <rect width="36" height="1.85" y="3.69"/>
+    <rect width="36" height="1.85" y="7.38"/>
+    <rect width="36" height="1.85" y="11.08"/>
+    <rect width="36" height="1.85" y="14.77"/>
+    <rect width="36" height="1.85" y="18.46"/>
+    <rect width="36" height="1.85" y="22.15"/>
+  </g>
+  <rect width="15.8" height="12.92" rx="1" fill="#3c3b6e"/>
+  <g fill="#fff">
+    <circle cx="2.2" cy="1.9" r=".42"/><circle cx="4.7" cy="1.9" r=".42"/><circle cx="7.2" cy="1.9" r=".42"/><circle cx="9.7" cy="1.9" r=".42"/><circle cx="12.2" cy="1.9" r=".42"/>
+    <circle cx="3.45" cy="3.5" r=".42"/><circle cx="5.95" cy="3.5" r=".42"/><circle cx="8.45" cy="3.5" r=".42"/><circle cx="10.95" cy="3.5" r=".42"/><circle cx="13.45" cy="3.5" r=".42"/>
+    <circle cx="2.2" cy="5.1" r=".42"/><circle cx="4.7" cy="5.1" r=".42"/><circle cx="7.2" cy="5.1" r=".42"/><circle cx="9.7" cy="5.1" r=".42"/><circle cx="12.2" cy="5.1" r=".42"/>
+    <circle cx="3.45" cy="6.7" r=".42"/><circle cx="5.95" cy="6.7" r=".42"/><circle cx="8.45" cy="6.7" r=".42"/><circle cx="10.95" cy="6.7" r=".42"/><circle cx="13.45" cy="6.7" r=".42"/>
+    <circle cx="2.2" cy="8.3" r=".42"/><circle cx="4.7" cy="8.3" r=".42"/><circle cx="7.2" cy="8.3" r=".42"/><circle cx="9.7" cy="8.3" r=".42"/><circle cx="12.2" cy="8.3" r=".42"/>
+    <circle cx="3.45" cy="9.9" r=".42"/><circle cx="5.95" cy="9.9" r=".42"/><circle cx="8.45" cy="9.9" r=".42"/><circle cx="10.95" cy="9.9" r=".42"/><circle cx="13.45" cy="9.9" r=".42"/>
+    <circle cx="2.2" cy="11.5" r=".42"/><circle cx="4.7" cy="11.5" r=".42"/><circle cx="7.2" cy="11.5" r=".42"/><circle cx="9.7" cy="11.5" r=".42"/><circle cx="12.2" cy="11.5" r=".42"/>
+  </g>
+</svg>
