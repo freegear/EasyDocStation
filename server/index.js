@@ -61,6 +61,8 @@ const mailRouter = require('./routes/mail')
 const mailAgenticRouter = require('./routes/mailAgentic')
 const recentPostViewsRouter = require('./routes/recentPostViews')
 const welcomeRecentUpdatesRouter = require('./routes/welcomeRecentUpdates')
+const folderDatasetsRouter = require('./routes/folderDatasets')
+const contactbookRouter = require('./routes/contactbook')
 const { initCassandra } = require('./cassandra')
 const { initRag } = require('./rag')
 const { startMailSyncScheduler } = require('./mail/scheduler')
@@ -147,6 +149,8 @@ app.use('/api/mail', mailRouter)
 app.use('/api/mail/agentic', mailAgenticRouter)
 app.use('/api/recent-post-views', recentPostViewsRouter)
 app.use('/api/welcome', welcomeRecentUpdatesRouter)
+app.use('/api/folder-datasets', folderDatasetsRouter)
+app.use('/api/contactbook', contactbookRouter)
 
 app.get('/api/health', (_req, res) => res.json({ ok: true }))
 
@@ -274,6 +278,16 @@ const server = app.listen(PORT, () => {
   } else {
     const masked = hfToken.slice(0, 4) + '****' + hfToken.slice(-4)
     console.log(`✅ [CONFIG] HF_TOKEN 확인됨 (${masked}, 길이 ${hfToken.length})`)
+  }
+
+  // GPU 브로커 워커 시작 (MDfiles/GpuScheduling.md 4단계).
+  // broker_enabled + queue_enabled 일 때만 실제 동작하는 opt-in 구조.
+  try {
+    const { startBroker } = require('./gpu/broker')
+    const r = startBroker()
+    if (r.started && !r.already) console.log('[GPU Broker] 활성화됨')
+  } catch (e) {
+    console.warn('[GPU Broker] 시작 실패(무시하고 계속):', e.message)
   }
 })
 

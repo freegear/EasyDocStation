@@ -11,7 +11,7 @@ const CARD_LABELS = {
     schedule: '일정', date: '날짜', time: '시간', location: '장소',
     participants: '참석 대상', notes: '비고', keyPoints: '중요 포인트',
     detail: '중요 내용 요약', actions: '액션 아이템 / 시간', noInfo: '확인된 내용 없음',
-    from: '보낸 사람', sentAt: '날짜', openOriginal: '원본 메일 열기',
+    from: '보낸 사람', sentAt: '날짜', openOriginal: '원본 메일로 가기',
     body: '본문', noBody: '본문이 없습니다.',
   },
   en: {
@@ -157,9 +157,22 @@ export default function MailSummaryCard({ data }) {
     <div className="rounded-xl border border-indigo-100 bg-indigo-50/60 p-4 text-sm text-gray-800">
       {/* 메일 헤더 */}
       <header className="border-b border-indigo-100 pb-3">
-        <div className="flex items-start gap-2">
-          <MailIcon className="mt-0.5 h-4 w-4 flex-shrink-0 text-indigo-500" />
-          <h3 className="text-base font-extrabold leading-6 text-gray-950">{data.subject || '(제목 없음)'}</h3>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div className="flex min-w-0 items-start gap-2">
+            <MailIcon className="mt-0.5 h-4 w-4 flex-shrink-0 text-indigo-500" />
+            <h3 className="min-w-0 break-words text-base font-extrabold leading-6 text-gray-950">{data.subject || '(제목 없음)'}</h3>
+          </div>
+          {(deepLink || (data.messageId && data.tenantId)) && (
+            <button
+              type="button"
+              onClick={(event) => openMailDeepLink(event, deepLink, data)}
+              aria-label={t.openOriginal}
+              className="inline-flex flex-shrink-0 items-center justify-center gap-2 self-start rounded-lg border border-indigo-200 bg-white px-3 py-2 text-sm font-extrabold text-indigo-700 transition hover:bg-indigo-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
+            >
+              <MailIcon className="h-4 w-4" />
+              <span>{t.openOriginal}</span>
+            </button>
+          )}
         </div>
         <div className="mt-2 grid gap-0.5 text-xs text-gray-500">
           {data.from && (
@@ -232,20 +245,6 @@ export default function MailSummaryCard({ data }) {
             <MailBodyFrame bodyHtml={data.bodyHtml} bodyText={data.bodyText} noBodyLabel={t.noBody} />
           </div>
         </section>
-      )}
-
-      {/* 원본 메일 열기 */}
-      {(deepLink || (data.messageId && data.tenantId)) && (
-        <div className="mt-4 border-t border-indigo-100 pt-3">
-          <button
-            type="button"
-            onClick={(event) => openMailDeepLink(event, deepLink, data)}
-            className="inline-flex items-center gap-2 rounded-lg border border-indigo-200 bg-white px-3 py-2 text-sm font-extrabold text-indigo-700 transition hover:bg-indigo-50"
-          >
-            <MailIcon className="h-4 w-4" />
-            <span>{t.openOriginal}</span>
-          </button>
-        </div>
       )}
     </div>
   )

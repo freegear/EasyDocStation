@@ -33,9 +33,12 @@ except Exception as e:
 cfg        = payload.get("config", {})
 posts      = payload.get("posts", [])
 comments   = payload.get("comments", [])
+folder_documents = payload.get("folder_documents", [])  # 폴더 업로드 문서(UploadFolder.md)
 delete_ids = payload.get("delete_ids", [])
 delete_post_ids = payload.get("delete_post_ids", [])
 delete_comment_ids = payload.get("delete_comment_ids", [])
+delete_dataset_ids = payload.get("delete_dataset_ids", [])       # 폴더 데이터셋 완전 삭제(23.2)
+delete_attachment_ids = payload.get("delete_attachment_ids", []) # 첨부 삭제(17.1)
 reset_table = bool(payload.get("reset_table") or cfg.get("reset_table"))
 
 def default_lancedb_path():
@@ -111,7 +114,9 @@ EMBED_SERVER_RETRIES = int(
 AMOUNT_RE = re.compile(r"(?<!\d)(\d{1,3}(?:,\d{3})+|\d{5,})(?:\s*원)?")
 MAX_STORED_AMOUNT = 999_999_999_999_999
 
-if not posts and not comments and not delete_ids and not delete_post_ids and not delete_comment_ids and not reset_table:
+if (not posts and not comments and not delete_ids and not delete_post_ids
+        and not delete_comment_ids and not delete_dataset_ids and not delete_attachment_ids
+        and not payload.get("folder_documents") and not reset_table):
     print("[RAG] 학습할 데이터가 없습니다.")
     sys.exit(0)
 
@@ -188,6 +193,26 @@ os.makedirs(FILE_TRAINING_PATH, exist_ok=True)
 db = lancedb.connect(LANCEDB_PATH)
 
 
+# schema v3: 폴더 업로드 접근 범위(모두/팀/채널/개인) + 폴더 문맥 메타데이터
+# (UploadFolder.md 23장, RAG.md). 검색 프리필터가 청크만 보고 ACL을 판정하기 위해 저장한다.
+def schema_v3_fields():
+    return {
+        "access_scope": "",
+        "scope_team_id": "",
+        "scope_channel_id": "",
+        "owner_id": "",
+        "dataset_id": "",
+        "folder_document_id": "",
+        "effective_security_level": 0,
+        "root_folder": "",
+        "relative_path": "",
+        "folder_path": "",
+        "parent_folder": "",
+        "folder_group_id": "",
+        "folder_keywords_text": "",
+    }
+
+
 def ensure_table(vector_size, force_recreate=False):
     init_meta = {
         "post_id": "",
@@ -233,6 +258,8 @@ def ensure_table(vector_size, force_recreate=False):
             "archive_file_path": "",
             "inner_source_ext": "",
         })
+    if RAG_SCHEMA_VERSION >= 3:
+        init_meta.update(schema_v3_fields())
     init_data = [{
         "vector": [0.0] * vector_size,
         "text": "__init__",
@@ -296,6 +323,8 @@ def ensure_table(vector_size, force_recreate=False):
             "slide_title", "xml_path", "html_title", "heading_path",
             "archive_id", "archive_file_path", "inner_source_ext",
         ])
+    if RAG_SCHEMA_VERSION >= 3:
+        required.extend(list(schema_v3_fields().keys()))
 
     needs_recreate = vec_size != vector_size
     if not needs_recreate:
@@ -341,7 +370,34 @@ if delete_comment_targets:
         except Exception as e:
             print(f"[RAG] 청크 삭제 실패 (comment_id={del_id}): {e}", file=sys.stderr)
 
-if (delete_post_targets or delete_comment_targets) and (not posts and not comments):
+# 폴더 데이터셋/첨부 기준 벡터 청크 삭제 (UploadFolder.md 17.5, 23.2)
+delete_dataset_targets = list(dict.fromkeys([
+    str(v) for v in (delete_dataset_ids if isinstance(delete_dataset_ids, list) else [])
+    if v is not None and str(v).strip() != ""
+]))
+delete_attachment_targets = list(dict.fromkeys([
+    str(v) for v in (delete_attachment_ids if isinstance(delete_attachment_ids, list) else [])
+    if v is not None and str(v).strip() != ""
+]))
+
+for del_id in delete_dataset_targets:
+    try:
+        safe_id = str(del_id).replace("'", "''")
+        table.delete(f"metadata.dataset_id = '{safe_id}'")
+        print(f"[RAG] 폴더 데이터셋 청크 삭제 완료: dataset_id={del_id}", flush=True)
+    except Exception as e:
+        print(f"[RAG] 청크 삭제 실패 (dataset_id={del_id}): {e}", file=sys.stderr)
+
+for del_id in delete_attachment_targets:
+    try:
+        safe_id = str(del_id).replace("'", "''")
+        table.delete(f"metadata.attachment_id = '{safe_id}'")
+        print(f"[RAG] 첨부 청크 삭제 완료: attachment_id={del_id}", flush=True)
+    except Exception as e:
+        print(f"[RAG] 청크 삭제 실패 (attachment_id={del_id}): {e}", file=sys.stderr)
+
+_has_delete = bool(delete_post_targets or delete_comment_targets or delete_dataset_targets or delete_attachment_targets)
+if _has_delete and (not posts and not comments):
         print("[RAG] 삭제 전용 처리 완료")
         sys.exit(0)
 
@@ -570,6 +626,8 @@ def metadata_base(post_id, channel_id, attachment_id, comment_id, source, file_n
             "archive_file_path": "",
             "inner_source_ext": "",
         })
+    if RAG_SCHEMA_VERSION >= 3:
+        meta.update(schema_v3_fields())
     return meta
 
 
@@ -1819,10 +1877,77 @@ class ProgressTracker:
         self._emit(label=label)
 
 
+# ─── 폴더 데이터셋 문서 인제션 (UploadFolder.md 11장, 23장) ──
+# 기존 타입별 ingest 함수를 재사용해 청크를 만든 뒤, 각 청크 메타데이터에
+# 접근 범위/폴더 문맥 스코프 필드를 stamp 한다. (schema_version >= 3 필요)
+def ingest_folder_document(records, fdoc):
+    ext = str(fdoc.get("extension") or "").lower().lstrip(".")
+    file_path = fdoc.get("path") or ""
+    file_name = fdoc.get("file_name") or ""
+    attachment_id = fdoc.get("attachment_id") or ""
+    if not file_path or not os.path.exists(file_path):
+        print(f"[RAG] 폴더 문서 원본 없음: {file_path}", file=sys.stderr)
+        return 0
+
+    start = len(records)
+    common = dict(post_id="", channel_id="", attachment_id=attachment_id, comment_id="")
+    try:
+        if ext == "pdf":
+            ingest_pdf(records, **common, pdf_path=file_path, file_name=file_name)
+        elif ext in ("doc", "docx"):
+            ingest_word(records, **common, word_path=file_path, file_name=file_name)
+        elif ext in ("txt", "md", "log", "json"):
+            ingest_txt(records, **common, txt_path=file_path, file_name=file_name)
+        elif ext in ("png", "jpg", "jpeg", "gif", "webp", "bmp"):
+            ingest_image(records, **common, image_path=file_path, file_name=file_name)
+        elif ext == "zip":
+            ingest_zip(records, **common, zip_path=file_path, file_name=file_name)
+        elif ext in ("xls", "xlsx"):
+            ingest_markitdown_document(records, **common, file_path=file_path, file_name=file_name, doc_type="excel")
+        elif ext in ("ppt", "pptx"):
+            ingest_markitdown_document(records, **common, file_path=file_path, file_name=file_name, doc_type="presentation")
+        elif ext in ("xml", "html", "htm", "csv"):
+            ingest_markitdown_document(records, **common, file_path=file_path, file_name=file_name, doc_type=ext)
+        else:
+            ingest_txt(records, **common, txt_path=file_path, file_name=file_name)
+    except Exception as e:
+        print(f"[RAG] 폴더 문서 인제스트 실패({file_name}): {e}", file=sys.stderr)
+        del records[start:]
+        return 0
+
+    # 생성된 청크에 스코프/폴더 메타데이터 stamp
+    keywords = fdoc.get("folder_keywords") or []
+    stamp = {
+        "access_scope": str(fdoc.get("access_scope") or ""),
+        "scope_team_id": str(fdoc.get("scope_team_id") or ""),
+        "scope_channel_id": str(fdoc.get("scope_channel_id") or ""),
+        "owner_id": str(fdoc.get("owner_id") or ""),
+        "dataset_id": str(fdoc.get("dataset_id") or ""),
+        "folder_document_id": str(fdoc.get("folder_document_id") or ""),
+        "effective_security_level": int(fdoc.get("effective_security_level") or 0),
+        "root_folder": str(fdoc.get("root_folder") or ""),
+        "relative_path": str(fdoc.get("relative_path") or ""),
+        "folder_path": str(fdoc.get("folder_path") or ""),
+        "parent_folder": str(fdoc.get("parent_folder") or ""),
+        "folder_group_id": str(fdoc.get("folder_group_id") or ""),
+        "folder_keywords_text": " ".join(str(k) for k in keywords),
+    }
+    for r in records[start:]:
+        r["metadata"].update(stamp)
+    return len(records) - start
+
+
 # ─── 학습 실행 ───────────────────────────────────────────────
 records = []
 total_chunks = 0
 progress = ProgressTracker(count_training_steps(posts, comments))
+
+folder_documents = payload.get("folder_documents", [])
+for fdoc in (folder_documents if isinstance(folder_documents, list) else []):
+    cnt = ingest_folder_document(records, fdoc)
+    total_chunks += cnt
+    if cnt:
+        print(f"[RAG] 폴더 문서 {fdoc.get('file_name')} → {cnt}청크", flush=True)
 
 for post in posts:
     post_id = post.get("id", "unknown")
@@ -2092,9 +2217,80 @@ for comment in comments:
         progress.step(label="댓글 ZIP")
 
 
+# ─── 폴더 업로드 문서 인제션 (UploadFolder.md 11장, 23장) ────────────
+# 기존 파일 형식별 파서를 재사용하고, 생성된 청크마다 스코프/폴더 메타데이터를 stamp 한다.
+def stamp_folder_meta(rec_list, fdoc):
+    if RAG_SCHEMA_VERSION < 3:
+        return
+    keywords = fdoc.get("folder_keywords") or []
+    kw_text = " ".join(str(k) for k in keywords) if isinstance(keywords, list) else str(keywords or "")
+    scope_meta = {
+        "access_scope": str(fdoc.get("access_scope") or ""),
+        "scope_team_id": str(fdoc.get("scope_team_id") or ""),
+        "scope_channel_id": str(fdoc.get("scope_channel_id") or ""),
+        "owner_id": str(fdoc.get("owner_id") or ""),
+        "dataset_id": str(fdoc.get("dataset_id") or ""),
+        "folder_document_id": str(fdoc.get("id") or ""),
+        "effective_security_level": int(fdoc.get("effective_security_level", 0) or 0),
+        "root_folder": str(fdoc.get("root_folder") or ""),
+        "relative_path": str(fdoc.get("relative_path") or ""),
+        "folder_path": str(fdoc.get("folder_path") or ""),
+        "parent_folder": str(fdoc.get("parent_folder") or ""),
+        "folder_group_id": str(fdoc.get("folder_group_id") or ""),
+        "folder_keywords_text": kw_text,
+    }
+    for r in rec_list:
+        r["metadata"].update(scope_meta)
+
+
+def ingest_folder_document(fdoc):
+    """단일 폴더 문서를 확장자에 맞는 파서로 처리해 스코프 stamp된 records를 반환한다."""
+    file_path = fdoc.get("file_path") or ""
+    file_name = fdoc.get("file_name") or ""
+    ext = str(fdoc.get("extension") or "").lower() or os.path.splitext(file_name)[1].replace(".", "").lower()
+    attachment_id = str(fdoc.get("attachment_id") or "")
+    if not file_path or not os.path.exists(file_path):
+        print(f"[RAG] 폴더 문서 원본 없음: {file_name}", file=sys.stderr)
+        return []
+    frecords = []
+    kw = dict(
+        post_id="", channel_id="", attachment_id=attachment_id, comment_id="",
+    )
+    try:
+        if ext == "pdf":
+            ingest_pdf(frecords, pdf_path=file_path, file_name=file_name, **kw)
+        elif ext in ("doc", "docx"):
+            ingest_word(frecords, word_path=file_path, file_name=file_name, **kw)
+        elif ext in ("txt", "md", "log", "json"):
+            ingest_txt(frecords, txt_path=file_path, file_name=file_name, **kw)
+        elif ext in ("xls", "xlsx"):
+            ingest_markitdown_document(frecords, file_path=file_path, file_name=file_name, doc_type="excel", **kw)
+        elif ext in ("ppt", "pptx"):
+            ingest_markitdown_document(frecords, file_path=file_path, file_name=file_name, doc_type="presentation", **kw)
+        elif ext in ("xml", "html", "htm", "csv"):
+            ingest_markitdown_document(frecords, file_path=file_path, file_name=file_name, doc_type=ext, **kw)
+        elif ext in ("png", "jpg", "jpeg", "gif", "webp", "bmp"):
+            ingest_image(frecords, image_path=file_path, file_name=file_name, **kw)
+        else:
+            print(f"[RAG] 폴더 문서 미지원 확장자 건너뜀: {file_name} ({ext})", flush=True)
+            return []
+    except Exception as e:
+        print(f"[RAG] 폴더 문서 인제션 실패 ({file_name}): {e}", file=sys.stderr)
+        return []
+    stamp_folder_meta(frecords, fdoc)
+    return frecords
+
+
+for fdoc in (folder_documents if isinstance(folder_documents, list) else []):
+    frecords = ingest_folder_document(fdoc)
+    if frecords:
+        records.extend(frecords)
+        total_chunks += len(frecords)
+        print(f"[RAG] folder_document={fdoc.get('id')} → {len(frecords)}청크", flush=True)
+
 if records:
     table.add(records)
-    print(f"[RAG] 저장 완료 — {total_chunks}청크 / {len(posts)}개 게시글 / {len(comments)}개 댓글", flush=True)
+    print(f"[RAG] 저장 완료 — {total_chunks}청크 / {len(posts)}개 게시글 / {len(comments)}개 댓글 / {len(folder_documents)}개 폴더문서", flush=True)
 else:
     print("[RAG] 저장할 레코드 없음", flush=True)
 progress.step(label="저장")

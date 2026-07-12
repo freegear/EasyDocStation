@@ -1623,6 +1623,27 @@ async function getMessageSummary({ tenantId, userId, messageId, targetLanguage =
   return rows[0] || null
 }
 
+async function listMessageThreadContext({ tenantId, userId, message, targetLanguage = 'ko' }) {
+  if (!message?.provider_thread_id) return [message].filter(Boolean)
+  const { rows } = await tenantQuery(
+    tenantId,
+    `SELECT mm.id, mm.provider_message_id, mm.internet_message_id, mm.provider_thread_id,
+            mm.subject, mm.from_email, mm.from_name, mm.snippet,
+            mm.received_at, mm.sent_at, mm.created_at, ms.summary_json
+     FROM mail_messages mm
+     LEFT JOIN mail_message_summaries ms
+       ON ms.tenant_id = mm.tenant_id AND ms.user_id = mm.user_id
+      AND ms.message_id = mm.id AND ms.target_language = $5
+     WHERE mm.tenant_id = $1 AND mm.user_id = $2
+       AND mm.account_id = $3 AND mm.provider_thread_id = $4
+       AND mm.deleted_at IS NULL
+     ORDER BY COALESCE(mm.received_at, mm.sent_at, mm.created_at) DESC
+     LIMIT 100`,
+    [tenantId, userId, message.account_id, message.provider_thread_id, targetLanguage],
+  )
+  return rows
+}
+
 async function upsertMessageSummary({
   tenantId,
   userId,
@@ -1957,6 +1978,22 @@ async function deleteMessage({ tenantId, messageId, userId }) {
   return rows[0] || null
 }
 
+async function softDeleteLocalOrphanMessage({ tenantId, messageId, userId }) {
+  const { rows } = await tenantQuery(
+    tenantId,
+    `UPDATE mail_messages
+     SET deleted_at = NOW(),
+         updated_at = NOW()
+     WHERE tenant_id = $1
+       AND id = $2
+       AND user_id = $3
+       AND deleted_at IS NULL
+     RETURNING id, account_id, folder_id AS previous_folder_id, folder_id, is_read, TRUE AS soft_deleted`,
+    [tenantId, messageId, userId],
+  )
+  return rows[0] || null
+}
+
 async function purgeTrashFolder({ tenantId, accountId, folderId, userId }) {
   const result = await withTenantTx(tenantId, async (client) => {
     // 휴지통 판정을 프론트 isMailTrashFolder와 맞춘다. iCloud처럼 실제 휴지통이
@@ -2093,12 +2130,13 @@ async function saveSyncedMessage({ tenantId, account, parsed, folderId, objectKe
       await client.query(
         `INSERT INTO mail_attachments (
            tenant_id, user_id, account_id, message_id, provider_attachment_id,
-           filename, content_type, size_bytes, object_key
+           filename, content_type, content_id, disposition, size_bytes, object_key
          )
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,
         [
           tenantId, account.user_id, account.id, messageId, att.providerAttachmentId || null,
-          att.filename, att.contentType || null, att.sizeBytes || 0, att.objectKey,
+          att.filename, att.contentType || null, att.contentId || null, att.disposition || null,
+          att.sizeBytes || 0, att.objectKey,
         ],
       )
     }
@@ -2376,13 +2414,36 @@ async function upsertDomainFavicon({ domain, contentType = null, image = null, s
 async function listMessageAttachments({ tenantId, messageId }) {
   const { rows } = await tenantQuery(
     tenantId,
-    `SELECT id, provider_attachment_id, filename, content_type, size_bytes, object_key
+    `SELECT id, provider_attachment_id, filename, content_type, content_id, disposition, size_bytes, object_key
      FROM mail_attachments
      WHERE tenant_id = $1 AND message_id = $2
      ORDER BY created_at ASC, id ASC`,
     [tenantId, messageId],
   )
   return rows
+}
+
+async function saveRemoteImageAttachment({ tenantId, message, sourceUrlHash, contentType, sizeBytes, objectKey, hostname }) {
+  return withTenantTx(tenantId, async client => {
+    const providerAttachmentId = `remote:${sourceUrlHash}`
+    const existing = await client.query(
+      `SELECT id FROM mail_attachments
+       WHERE tenant_id = $1 AND message_id = $2 AND provider_attachment_id = $3
+       LIMIT 1`,
+      [tenantId, message.id, providerAttachmentId],
+    )
+    if (existing.rows[0]) return existing.rows[0]
+    const { rows } = await client.query(
+      `INSERT INTO mail_attachments (
+         tenant_id, user_id, account_id, message_id, provider_attachment_id,
+         filename, content_type, content_id, disposition, size_bytes, object_key
+       ) VALUES ($1,$2,$3,$4,$5,$6,$7,NULL,'remote', $8,$9)
+       RETURNING id`,
+      [tenantId, message.user_id, message.account_id, message.id, providerAttachmentId,
+        `remote-${String(hostname || 'image').replace(/[^a-z0-9.-]/gi, '_')}`, contentType, sizeBytes, objectKey],
+    )
+    return rows[0]
+  })
 }
 
 // 단건 첨부 조회(다운로드용). 비관리자는 본인 소유 첨부만 접근 가능.
@@ -2909,6 +2970,7 @@ module.exports = {
   reconcileTrashFolders,
   getMessage,
   getMessageSummary,
+  listMessageThreadContext,
   upsertMessageSummary,
   updateMessageSummaryJson,
   deleteMessageSummary,
@@ -2919,6 +2981,7 @@ module.exports = {
   moveMessageToFolder,
   moveMessageToAccountFolder,
   deleteMessage,
+  softDeleteLocalOrphanMessage,
   purgeTrashFolder,
   saveSyncedMessage,
   saveDraftMessage,
@@ -2930,6 +2993,7 @@ module.exports = {
   getDomainFavicon,
   upsertDomainFavicon,
   listMessageAttachments,
+  saveRemoteImageAttachment,
   getMessageAttachment,
   // MailClaw
   listMailClawRules,

@@ -266,6 +266,8 @@ function buildParsedMessage({ account, providerFolderId, uid, source, parsed, fl
       providerAttachmentId: att.contentId || `${uid}-${index + 1}`,
       filename: att.filename || `attachment-${index + 1}`,
       contentType: att.contentType || 'application/octet-stream',
+      contentId: att.contentId || null,
+      disposition: att.contentDisposition || (att.contentId ? 'inline' : 'attachment'),
       sizeBytes: Number(att.size || att.content?.length || 0),
       content: att.content || Buffer.alloc(0),
     })),
@@ -305,6 +307,8 @@ async function saveImapMessage({ tenantId, account, storage, folderMap, provider
       providerAttachmentId: att.providerAttachmentId,
       filename: att.filename,
       contentType: att.contentType,
+      contentId: att.contentId,
+      disposition: att.disposition,
       sizeBytes: att.sizeBytes || att.content.length,
       objectKey: k,
     })

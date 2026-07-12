@@ -7,11 +7,56 @@ const requireAuth = require('../middleware/auth')
 const router = express.Router()
 router.use(requireAuth)
 
+async function clearMailSummaryCalendarLinks(userId, eventIds) {
+  const ids = (Array.isArray(eventIds) ? eventIds : [eventIds]).map(String).filter(Boolean)
+  if (!ids.length) return
+  await db.query(`
+    UPDATE mail_message_summaries
+    SET summary_json = jsonb_set(
+          summary_json,
+          '{actionItems}',
+          COALESCE((
+            SELECT jsonb_agg(
+              CASE
+                WHEN item->>'calendarEventId' = ANY($2::text[])
+                  THEN item - 'calendarEventId'
+                ELSE item
+              END
+              ORDER BY position
+            )
+            FROM jsonb_array_elements(COALESCE(summary_json->'actionItems', '[]'::jsonb))
+                 WITH ORDINALITY AS action(item, position)
+          ), '[]'::jsonb),
+          false
+        ),
+        summary_version = summary_version + 1,
+        updated_at = NOW()
+    WHERE user_id = $1
+      AND EXISTS (
+        SELECT 1
+        FROM jsonb_array_elements(COALESCE(summary_json->'actionItems', '[]'::jsonb)) AS action(item)
+        WHERE item->>'calendarEventId' = ANY($2::text[])
+      )
+  `, [userId, ids])
+}
+
 // dt 객체 → JS Date
 function dtToDate(dt) {
   let h = (dt.hour % 12)
   if (dt.ampm === '오후') h += 12
   return new Date(dt.year, dt.month - 1, dt.day, h, dt.minute || 0, 0, 0)
+}
+
+function dateOnlyValue(dt) {
+  if (!dt || !Number.isInteger(Number(dt.year)) || !Number.isInteger(Number(dt.month)) || !Number.isInteger(Number(dt.day))) return NaN
+  return Date.UTC(Number(dt.year), Number(dt.month) - 1, Number(dt.day))
+}
+
+function hasInvalidAllDayRange(allDay, startDt, endDt) {
+  if (!allDay) return false
+  const start = dateOnlyValue(startDt)
+  const end = dateOnlyValue(endDt)
+  return !Number.isFinite(start) || !Number.isFinite(end) || end < start
 }
 
 // JS Date → dt 객체 (allDay이면 시간 무시)
@@ -175,6 +220,7 @@ router.put('/series/:seriesId', async (req, res) => {
   const userId = req.user.id
   const { seriesId } = req.params
   const { title, color, allDay, startDt, endDt, repeat, invitees, memo, securityLevel, remindDt, remindRepeat } = req.body
+  if (hasInvalidAllDayRange(allDay, startDt, endDt)) return res.status(400).json({ error: '종료 날짜는 시작 날짜보다 빠를 수 없습니다.' })
   try {
     const { rows: seriesRows } = await db.query(
       'SELECT * FROM calendar_events WHERE owner_id = $1 AND series_id = $2 ORDER BY created_at ASC',
@@ -252,6 +298,7 @@ router.delete('/series/:seriesId', async (req, res) => {
       'DELETE FROM calendar_invitations WHERE owner_id = $1 AND event_id = ANY($2::text[])',
       [userId, deletedIds]
     )
+    await clearMailSummaryCalendarLinks(userId, deletedIds)
     res.json({ success: true, deleted: deletedIds.length })
 
     for (const id of deletedIds) {
@@ -267,6 +314,7 @@ router.delete('/series/:seriesId', async (req, res) => {
 router.post('/', async (req, res) => {
   const userId = req.user.id
   const { title, color, allDay, startDt, endDt, repeat, invitees, memo, securityLevel, remindDt, remindRepeat } = req.body
+  if (hasInvalidAllDayRange(allDay, startDt, endDt)) return res.status(400).json({ error: '종료 날짜는 시작 날짜보다 빠를 수 없습니다.' })
   const isRepeat = repeat && repeat !== 'none'
   const seriesId = isRepeat ? randomUUID() : null
 
@@ -318,6 +366,7 @@ router.put('/:id', async (req, res) => {
   const userId = req.user.id
   const evId = req.params.id
   const { title, color, allDay, startDt, endDt, repeat, invitees, memo, securityLevel, remindDt, remindRepeat } = req.body
+  if (hasInvalidAllDayRange(allDay, startDt, endDt)) return res.status(400).json({ error: '종료 날짜는 시작 날짜보다 빠를 수 없습니다.' })
   try {
     const ownerSummary = await fetchOwnerSummary(userId)
     const { rows } = await db.query(
@@ -364,6 +413,7 @@ router.delete('/:id', async (req, res) => {
 
     await db.query('DELETE FROM calendar_events WHERE owner_id = $1 AND id = $2', [userId, evId])
     await db.query('DELETE FROM calendar_invitations WHERE owner_id = $1 AND event_id = $2', [userId, evId])
+    await clearMailSummaryCalendarLinks(userId, evId)
     res.json({ success: true })
 
     deleteEventFromRAG(evId).catch(() => {})

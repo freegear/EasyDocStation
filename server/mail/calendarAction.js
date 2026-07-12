@@ -1,7 +1,8 @@
 const { randomUUID } = require('crypto')
 const db = require('../db')
+const { resolveCalendarEventTitle } = require('./calendarTitle')
 
-const SOURCE_TYPE = 'mail_summary_action_item'
+const SOURCE_TYPE = 'mail_summary'
 let sourceColumnMigrationPromise = null
 
 function pad2(value) {
@@ -68,6 +69,12 @@ function toCalendarDt(dateObj) {
   }
 }
 
+function calendarEventEnd(start, isAllDay) {
+  return isAllDay
+    ? new Date(start.getTime())
+    : new Date(start.getTime() + 30 * 60 * 1000)
+}
+
 function compactText(value, fallback = '') {
   const text = String(value || '').replace(/\s+/g, ' ').trim()
   return text || fallback
@@ -99,15 +106,92 @@ async function ensureMailSummarySourceColumns() {
       ALTER TABLE calendar_events ADD COLUMN IF NOT EXISTS source_message_id TEXT NOT NULL DEFAULT '';
       ALTER TABLE calendar_events ADD COLUMN IF NOT EXISTS source_summary_id TEXT NOT NULL DEFAULT '';
       ALTER TABLE calendar_events ADD COLUMN IF NOT EXISTS source_action_index INTEGER;
-      CREATE UNIQUE INDEX IF NOT EXISTS idx_calendar_events_mail_action_unique
-        ON calendar_events(owner_id, source_type, source_message_id, source_summary_id, source_action_index)
-        WHERE source_type = 'mail_summary_action_item';
+      ALTER TABLE calendar_events ADD COLUMN IF NOT EXISTS source_deduplication_key TEXT NOT NULL DEFAULT '';
+      ALTER TABLE calendar_events ADD COLUMN IF NOT EXISTS source_payload JSONB NOT NULL DEFAULT '{}';
+      ALTER TABLE calendar_events ADD COLUMN IF NOT EXISTS location TEXT NOT NULL DEFAULT '';
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_calendar_events_mail_dedup_unique
+        ON calendar_events(owner_id, source_deduplication_key)
+        WHERE source_type = 'mail_summary' AND source_deduplication_key <> '';
+
+      UPDATE calendar_events
+      SET end_dt = start_dt,
+          updated_at = NOW()
+      WHERE source_type = 'mail_summary'
+        AND all_day = TRUE
+        AND end_dt <> start_dt;
     `).catch(err => {
       sourceColumnMigrationPromise = null
       throw err
     })
   }
   return sourceColumnMigrationPromise
+}
+
+function uniqueContentRows(rows) {
+  const seen = new Set()
+  return (Array.isArray(rows) ? rows : [])
+    .map(row => compactText(row))
+    .filter(Boolean)
+    .filter(row => {
+      const key = row.toLowerCase().replace(/[\s.,!?。，！？]+/g, '')
+      if (!key || seen.has(key)) return false
+      seen.add(key)
+      return true
+    })
+}
+
+function buildMailCalendarPayload({ message, summaryRow, actionIndex, actionItem, date, time, isAllDay, targetLanguage = 'ko' }) {
+  const summary = summaryRow?.summary_json || {}
+  const from = formatAddress(message?.from_name, message?.from_email)
+  const normalizedTime = isAllDay ? null : String(time || '').trim() || null
+  return {
+    version: 1,
+    source: {
+      type: SOURCE_TYPE,
+      tenantId: String(message?.tenant_id || ''),
+      messageId: String(message?.id || ''),
+      summaryId: String(summaryRow?.id || ''),
+      actionIndex: Number(actionIndex),
+      originalMailLink: buildMailDeepLink({ message, targetLanguage }),
+    },
+    sender: {
+      name: compactText(message?.from_name),
+      email: compactText(message?.from_email),
+      display: from,
+    },
+    schedule: {
+      date: String(date || '').trim(),
+      time: normalizedTime,
+      allDay: normalizedTime === null,
+      timezone: 'Asia/Seoul',
+    },
+    content: {
+      keyPoints: uniqueContentRows(summary.keyPoints),
+      summary: compactText(summary.summary),
+    },
+    location: compactText(summary?.schedule?.location),
+    actionItem: {
+      index: Number(actionIndex),
+      task: compactText(actionItem?.task),
+    },
+    event: {
+      title: resolveCalendarEventTitle(actionItem, message),
+    },
+    deduplicationKey: `mail_summary:${message?.tenant_id || ''}:${message?.id || ''}:${Number(actionIndex)}`,
+  }
+}
+
+function buildCalendarMemo(payload) {
+  const rows = []
+  if (payload.sender.display) rows.push('보낸 사람', payload.sender.display)
+  if (payload.content.keyPoints.length) {
+    rows.push('', '중요 포인트', ...payload.content.keyPoints.map(item => `- ${item}`))
+  }
+  if (payload.content.summary) rows.push('', '중요 내용 요약', payload.content.summary)
+  if (payload.source.originalMailLink) {
+    rows.push('', '원본 메일 링크:', payload.source.originalMailLink)
+  }
+  return rows.join('\n').trim()
 }
 
 async function upsertMailSummaryActionCalendarEvent({
@@ -129,36 +213,25 @@ async function upsertMailSummaryActionCalendarEvent({
     throw err
   }
 
-  const end = isAllDay
-    ? new Date(start.getFullYear(), start.getMonth(), start.getDate() + 1, 0, 0, 0, 0)
-    : new Date(start.getTime() + 30 * 60 * 1000)
-  const title = compactText(message?.subject, compactText(actionItem?.task, '메일 액션 아이템'))
-  const actionText = compactText(actionItem?.task)
-  const from = formatAddress(message?.from_name, message?.from_email)
-  const mailLink = buildMailDeepLink({ message, targetLanguage })
-  const memo = [
-    '메일 요약 액션 아이템에서 생성된 일정입니다.',
-    message?.subject ? `제목: ${message.subject}` : '',
-    actionText ? `액션 아이템: ${actionText}` : '',
-    from ? `보낸 사람: ${from}` : '',
-    message?.received_at ? `메일 날짜: ${message.received_at}` : '',
-    summaryRow?.summary_json?.summary ? `요약: ${summaryRow.summary_json.summary}` : '',
-    '',
-    '원본 메일 링크:',
-    mailLink,
-  ].filter(Boolean).join('\n')
+  // CalendarView treats an all-day end date as inclusive. A one-day mail action
+  // must therefore use the same calendar date for both start and end.
+  const end = calendarEventEnd(start, isAllDay)
+  const payload = buildMailCalendarPayload({
+    message, summaryRow, actionIndex, actionItem, date, time, isAllDay, targetLanguage,
+  })
+  const title = payload.event.title
+  const memo = buildCalendarMemo(payload)
 
   const sourceMessageId = String(message?.id || '')
   const sourceSummaryId = String(summaryRow?.id || '')
-  const params = [userId, SOURCE_TYPE, sourceMessageId, sourceSummaryId, Number(actionIndex)]
+  const params = [userId, sourceMessageId, Number(actionIndex), payload.deduplicationKey]
   const existing = await db.query(
     `SELECT id
      FROM calendar_events
      WHERE owner_id = $1
-       AND source_type = $2
-       AND source_message_id = $3
-       AND source_summary_id = $4
-       AND source_action_index = $5
+       AND ((source_message_id = $2 AND source_action_index = $3)
+         OR source_deduplication_key = $4)
+     ORDER BY updated_at DESC
      LIMIT 1`,
     params,
   )
@@ -172,6 +245,7 @@ async function upsertMailSummaryActionCalendarEvent({
     repeat: 'none',
     invitees: [],
     memo,
+    location: payload.location,
     securityLevel: 0,
     remindDt: {},
     remindRepeat: 'none',
@@ -188,11 +262,18 @@ async function upsertMailSummaryActionCalendarEvent({
            repeat = $6,
            invitees = $7,
            memo = $8,
-           security_level = $9,
-           remind_dt = $10,
-           remind_repeat = $11,
+           location = $9,
+           source_type = $10,
+           source_message_id = $11,
+           source_summary_id = $12,
+           source_action_index = $13,
+           source_deduplication_key = $14,
+           source_payload = $15,
+           security_level = $16,
+           remind_dt = $17,
+           remind_repeat = $18,
            updated_at = NOW()
-       WHERE owner_id = $12 AND id = $13
+       WHERE owner_id = $19 AND id = $20
        RETURNING *`,
       [
         eventValues.title,
@@ -203,6 +284,13 @@ async function upsertMailSummaryActionCalendarEvent({
         eventValues.repeat,
         JSON.stringify(eventValues.invitees),
         eventValues.memo,
+        eventValues.location,
+        SOURCE_TYPE,
+        sourceMessageId,
+        sourceSummaryId,
+        Number(actionIndex),
+        payload.deduplicationKey,
+        JSON.stringify(payload),
         eventValues.securityLevel,
         JSON.stringify(eventValues.remindDt),
         eventValues.remindRepeat,
@@ -215,15 +303,15 @@ async function upsertMailSummaryActionCalendarEvent({
 
   const { rows } = await db.query(
     `INSERT INTO calendar_events (
-       id, owner_id, title, color, all_day, start_dt, end_dt, repeat, invitees, memo,
-       security_level, remind_dt, remind_repeat, series_id,
-       source_type, source_message_id, source_summary_id, source_action_index,
+      id, owner_id, title, color, all_day, start_dt, end_dt, repeat, invitees, memo,
+       location, security_level, remind_dt, remind_repeat, series_id,
+       source_type, source_message_id, source_summary_id, source_action_index, source_deduplication_key, source_payload,
        created_at, updated_at
      )
      VALUES (
        $1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
-       $11, $12, $13, $14,
-       $15, $16, $17, $18,
+       $11, $12, $13, $14, $15,
+       $16, $17, $18, $19, $20, $21,
        NOW(), NOW()
      )
      RETURNING *`,
@@ -238,6 +326,7 @@ async function upsertMailSummaryActionCalendarEvent({
       eventValues.repeat,
       JSON.stringify(eventValues.invitees),
       eventValues.memo,
+      eventValues.location,
       eventValues.securityLevel,
       JSON.stringify(eventValues.remindDt),
       eventValues.remindRepeat,
@@ -246,6 +335,8 @@ async function upsertMailSummaryActionCalendarEvent({
       sourceMessageId,
       sourceSummaryId,
       Number(actionIndex),
+      payload.deduplicationKey,
+      JSON.stringify(payload),
     ],
   )
   return serializeCalendarEvent(rows[0])
@@ -263,6 +354,7 @@ function serializeCalendarEvent(row) {
     sourceMessageId: row.source_message_id || '',
     sourceSummaryId: row.source_summary_id || '',
     sourceActionIndex: Number.isInteger(row.source_action_index) ? row.source_action_index : null,
+    deduplicationKey: row.source_deduplication_key || '',
   }
 }
 
@@ -275,6 +367,8 @@ function formatActionTime(date, time, isAllDay = false) {
 }
 
 module.exports = {
+  calendarEventEnd,
   formatActionTime,
   upsertMailSummaryActionCalendarEvent,
+  buildMailCalendarPayload,
 }

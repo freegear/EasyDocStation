@@ -1,0 +1,364 @@
+// 폴더 업로드 데이터셋 라우트 (UploadFolder.md 1단계 MVP)
+// - 브라우저 폴더 업로드(webkitdirectory) multipart 수신
+// - 서버에서 SHA-256 재계산, 중복 감지, temp→최종 저장소 이동
+// - 전용 attachments + folder_documents 생성, 폴더 키워드/folder_group_id 저장
+// - 접근 범위(모두/팀/채널/개인)와 완전 삭제(23.2)
+//
+// 아직 다음 단계로 미룬 것: RAG 학습 파이프라인 연동(LanceDB 스키마 확장 필요, 23.4 충돌 2),
+// 검색 ACL 스코프 확장, GPU 학습 스케줄링(RAG.md 5장).
+
+const express = require('express')
+const multer = require('multer')
+const path = require('path')
+const fs = require('fs')
+const crypto = require('crypto')
+
+const db = require('../db')
+const requireAuth = require('../middleware/auth')
+const { getDatabasePath } = require('../databasePaths')
+const { getAccessibleChannelIds, canAccessChannel } = require('../lib/channelAccess')
+const repo = require('../folder/repository')
+const ragTrainer = require('../folder/ragTrainer')
+
+const router = express.Router()
+
+const CONFIG_PATH = path.resolve(__dirname, '../../config.json')
+function readConfig() {
+  try { return JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8')) } catch (_) { return {} }
+}
+const STORAGE_BASE = getDatabasePath(readConfig(), 'ObjectFile Path')
+const FOLDER_TMP_DIR = path.join(STORAGE_BASE, 'folder-datasets', '_tmp')
+fs.mkdirSync(FOLDER_TMP_DIR, { recursive: true })
+
+const BLOCKED_EXTENSIONS = new Set(['exe', 'bat', 'cmd', 'com', 'scr', 'pif', 'sh', 'msi', 'cpl', 'dll'])
+const MAX_FILE_BYTES = 1024 * 1024 * 1024 // 1GB
+const MAX_FILES = 500
+
+const folderUpload = multer({
+  dest: FOLDER_TMP_DIR,
+  limits: { files: MAX_FILES, fileSize: MAX_FILE_BYTES },
+})
+
+// ── 유틸 ──
+function sha256OfFile(filePath) {
+  return new Promise((resolve, reject) => {
+    const hash = crypto.createHash('sha256')
+    const stream = fs.createReadStream(filePath)
+    stream.on('error', reject)
+    stream.on('data', chunk => hash.update(chunk))
+    stream.on('end', () => resolve(hash.digest('hex')))
+  })
+}
+
+function decodeName(name = '') {
+  // multer는 latin1로 originalname을 줄 수 있어 UTF-8 복원 시도
+  try {
+    const decoded = Buffer.from(String(name), 'latin1').toString('utf8')
+    const ko = (decoded.match(/[가-힣]/g) || []).length
+    const koOrig = (String(name).match(/[가-힣]/g) || []).length
+    return ko > koOrig ? decoded : String(name)
+  } catch (_) { return String(name) }
+}
+
+function safeSegment(seg = '') {
+  const cleaned = String(seg).normalize('NFC').replace(/[\/\\]/g, '_').replace(/[\u0000-\u001F\u007F]/g, '').trim()
+  return cleaned || `file-${Date.now()}`
+}
+
+async function getUserTeamIds(userId) {
+  const { rows } = await db.query(
+    `SELECT team_id FROM team_members WHERE user_id=$1
+       UNION SELECT team_id FROM team_admins WHERE user_id=$1`,
+    [userId],
+  )
+  return rows.map(r => r.team_id)
+}
+
+function cleanupTemp(files) {
+  for (const f of files || []) {
+    try { if (f?.path && fs.existsSync(f.path)) fs.unlinkSync(f.path) } catch (_) {}
+  }
+}
+
+// ── POST /api/folder-datasets — 브라우저 폴더 업로드 ──
+router.post('/', requireAuth, folderUpload.array('files', MAX_FILES), async (req, res) => {
+  const files = Array.isArray(req.files) ? req.files : []
+  try {
+    if (files.length === 0) {
+      return res.status(400).json({ error: '업로드할 파일이 없습니다.' })
+    }
+
+    // relativePaths[]: files와 같은 순서의 webkitRelativePath 배열(JSON 문자열)
+    let relativePaths = []
+    try {
+      const raw = req.body?.relativePaths
+      relativePaths = typeof raw === 'string' ? JSON.parse(raw) : (Array.isArray(raw) ? raw : [])
+    } catch (_) { relativePaths = [] }
+    if (relativePaths.length !== files.length) {
+      cleanupTemp(files)
+      return res.status(400).json({ error: 'relativePaths 개수가 파일 개수와 일치하지 않습니다.' })
+    }
+
+    // 접근 범위 검증 (23.1)
+    const accessScope = String(req.body?.accessScope || 'personal')
+    if (!['all', 'team', 'channel', 'personal'].includes(accessScope)) {
+      cleanupTemp(files)
+      return res.status(400).json({ error: 'accessScope 값이 올바르지 않습니다.' })
+    }
+    const scopeTeamId = accessScope === 'team' ? String(req.body?.scopeTeamId || '').trim() : null
+    const scopeChannelId = accessScope === 'channel' ? String(req.body?.scopeChannelId || '').trim() : null
+    if (accessScope === 'team') {
+      if (!scopeTeamId) { cleanupTemp(files); return res.status(400).json({ error: 'team 범위에는 scopeTeamId가 필요합니다.' }) }
+      const teamIds = await getUserTeamIds(req.user.id)
+      if (!teamIds.includes(scopeTeamId) && req.user.role !== 'site_admin') {
+        cleanupTemp(files); return res.status(403).json({ error: '해당 팀에 대한 권한이 없습니다.' })
+      }
+    }
+    if (accessScope === 'channel') {
+      if (!scopeChannelId) { cleanupTemp(files); return res.status(400).json({ error: 'channel 범위에는 scopeChannelId가 필요합니다.' }) }
+      const ok = await canAccessChannel(db, req.user, scopeChannelId)
+      if (!ok) { cleanupTemp(files); return res.status(403).json({ error: '해당 채널에 대한 권한이 없습니다.' }) }
+    }
+
+    const securityLevel = Math.max(0, Number.parseInt(req.body?.securityLevel, 10) || 0)
+    const rootFolder = String(relativePaths[0] || '').replace(/\\/g, '/').split('/').filter(Boolean)[0] || ''
+    const datasetName = String(req.body?.datasetName || rootFolder || '폴더 데이터셋').slice(0, 200)
+
+    // 데이터셋 + 배치 생성
+    const datasetId = await repo.createDataset({
+      ownerId: req.user.id, name: datasetName, rootFolder,
+      accessScope, scopeTeamId, scopeChannelId, securityLevel,
+    })
+    const totalBytes = files.reduce((s, f) => s + (f.size || 0), 0)
+    const batchId = await repo.createBatch({ datasetId, ownerId: req.user.id, fileCount: files.length, totalBytes })
+
+    // 사전 정규화 + folder_group_id + 형제 파일명 맵
+    const prepared = files.map((f, i) => {
+      const relativePath = String(relativePaths[i] || decodeName(f.originalname)).replace(/\\/g, '/')
+      const norm = repo.normalizeFolderPath(relativePath)
+      const fileName = norm.segments[norm.segments.length - 1] || decodeName(f.originalname)
+      const folderGroupId = repo.makeFolderGroupId(datasetId, norm.folderPath)
+      return { file: f, relativePath, fileName, norm, folderGroupId }
+    })
+    const siblingMap = repo.computeSiblingMap(prepared)
+
+    const results = []
+    const createdDocs = []
+    let completed = 0
+    let failed = 0
+
+    for (const item of prepared) {
+      const { file, relativePath, fileName, norm, folderGroupId } = item
+      const extension = path.extname(fileName).replace('.', '').toLowerCase()
+      try {
+        if (BLOCKED_EXTENSIONS.has(extension)) {
+          fs.unlinkSync(file.path)
+          results.push({ relativePath, status: 'blocked_extension' })
+          failed += 1
+          continue
+        }
+
+        // 서버 스트리밍 SHA-256 재계산 (16장)
+        const hash = await sha256OfFile(file.path)
+
+        // 중복 감지: 같은 dataset + relative_path + hash
+        const dup = await repo.findDuplicate(datasetId, relativePath, hash)
+        if (dup) {
+          fs.unlinkSync(file.path)
+          results.push({ relativePath, status: 'skipped_duplicate' })
+          continue
+        }
+
+        // 전용 attachment 생성 후 최종 저장소로 이동
+        const attachmentId = await repo.createAttachment({
+          filename: fileName,
+          contentType: file.mimetype || 'application/octet-stream',
+          size: file.size || 0,
+          storagePath: 'PENDING', // 아래에서 실제 key로 갱신
+          uploaderId: req.user.id,
+          securityLevel,
+        })
+        const storageKey = path.join('folder-datasets', datasetId, attachmentId, safeSegment(fileName))
+        const finalPath = path.join(STORAGE_BASE, storageKey)
+        fs.mkdirSync(path.dirname(finalPath), { recursive: true })
+        fs.renameSync(file.path, finalPath)
+        await db.query(`UPDATE attachments SET storage_path=$2 WHERE id=$1`, [attachmentId, storageKey])
+
+        const siblings = (siblingMap.get(folderGroupId) || []).filter(n => n !== fileName)
+        const effectiveSecurityLevel = Math.max(securityLevel, securityLevel) // = dataset 기준(4.4)
+
+        const documentId = await repo.createDocument({
+          datasetId, batchId, attachmentId, ownerId: req.user.id,
+          accessScope, scopeTeamId, scopeChannelId,
+          securityLevel, effectiveSecurityLevel,
+          fileName, extension, fileSize: file.size || 0,
+          contentType: file.mimetype || 'application/octet-stream',
+          hash, hashAlgorithm: 'sha256',
+          uploadStatus: 'uploaded', storageStatus: 'committed', storagePath: storageKey,
+          rootFolder, relativePath, folderPath: norm.folderPath, parentFolder: norm.parentFolder,
+          folderKeywords: norm.keywords, folderGroupId, siblingFiles: siblings,
+        })
+        createdDocs.push({
+          id: documentId, attachment_id: attachmentId, dataset_id: datasetId,
+          storage_path: storageKey, file_name: fileName, extension,
+          access_scope: accessScope, scope_team_id: scopeTeamId, scope_channel_id: scopeChannelId,
+          owner_id: req.user.id, effective_security_level: effectiveSecurityLevel,
+          root_folder: rootFolder, relative_path: relativePath, folder_path: norm.folderPath,
+          parent_folder: norm.parentFolder, folder_group_id: folderGroupId, folder_keywords: norm.keywords,
+        })
+        results.push({ relativePath, status: 'committed', attachment_id: attachmentId })
+        completed += 1
+      } catch (err) {
+        try { if (fs.existsSync(file.path)) fs.unlinkSync(file.path) } catch (_) {}
+        results.push({ relativePath, status: 'failed', error: err.message })
+        failed += 1
+      }
+    }
+
+    const batchStatus = failed === 0 ? 'completed' : (completed === 0 ? 'failed' : 'partial_failed')
+    await repo.finishBatch(batchId, { status: batchStatus, completedCount: completed, failedCount: failed })
+    await repo.refreshDatasetCounts(datasetId)
+    await repo.updateDatasetStatus(datasetId, batchStatus === 'failed' ? 'failed' : (failed > 0 ? 'partial_failed' : 'completed'))
+
+    // 응답을 먼저 보내고 학습은 백그라운드로 진행(임베딩은 시간이 걸린다).
+    res.json({
+      dataset_id: datasetId,
+      batch_id: batchId,
+      file_count: files.length,
+      completed_count: completed,
+      failed_count: failed,
+      status: batchStatus,
+      training: ragTrainer.folderVectorsEnabled() ? 'queued' : 'pending_migration',
+      results,
+    })
+
+    // 백그라운드 학습 (활성 테이블이 schema v3일 때만 실제 수행)
+    // training_status 는 ragTrainer.trainBatchDirect 가 파일 배치 단위로 소유한다
+    // (직접·브로커 경로 모두 정확한 완료/실패 시점 반영). 여기선 착수 상태만 표시.
+    if (createdDocs.length > 0 && ragTrainer.folderVectorsEnabled()) {
+      const ids = createdDocs.map(d => d.id)
+      db.query(`UPDATE folder_documents SET training_status='training' WHERE id = ANY($1)`, [ids]).catch(() => {})
+      ragTrainer.trainFolderDocuments(createdDocs)
+        .catch(err => console.error('[FolderUpload] 학습 트리거 실패:', err.message))
+    }
+  } catch (e) {
+    cleanupTemp(files)
+    if (!res.headersSent) res.status(500).json({ error: `폴더 업로드 실패: ${e.message}` })
+  }
+})
+
+// ── GET /api/folder-datasets — 접근 가능한 데이터셋 목록 ──
+router.get('/', requireAuth, async (req, res) => {
+  try {
+    const [accessibleChannelIds, teamIds] = await Promise.all([
+      getAccessibleChannelIds(db, req.user),
+      getUserTeamIds(req.user.id),
+    ])
+    const rows = await repo.listAccessibleDatasets({
+      userId: req.user.id,
+      isSiteAdmin: req.user.role === 'site_admin',
+      accessibleChannelIds,
+      teamIds,
+    })
+    res.json({ items: rows })
+  } catch (e) {
+    res.status(500).json({ error: `데이터셋 목록 조회 실패: ${e.message}` })
+  }
+})
+
+// ── GET /api/folder-datasets/:id — 데이터셋 상세 + 문서 목록 ──
+router.get('/:id', requireAuth, async (req, res) => {
+  try {
+    const dataset = await repo.getDataset(req.params.id)
+    if (!dataset || repo.REMOVED_STATUSES.includes(dataset.status)) {
+      return res.status(404).json({ error: '데이터셋을 찾을 수 없습니다.' })
+    }
+    const allowed = await canAccessDataset(req.user, dataset)
+    if (!allowed) return res.status(403).json({ error: '접근 권한이 없습니다.' })
+    const documents = await repo.getDatasetDocuments(dataset.id)
+    res.json({ dataset, documents })
+  } catch (e) {
+    res.status(500).json({ error: `데이터셋 조회 실패: ${e.message}` })
+  }
+})
+
+// ── DELETE /api/folder-datasets/:id — 완전 삭제 (23.2, 17.3) ──
+router.delete('/:id', requireAuth, async (req, res) => {
+  try {
+    const dataset = await repo.getDataset(req.params.id)
+    if (!dataset || repo.REMOVED_STATUSES.includes(dataset.status)) {
+      return res.status(404).json({ error: '데이터셋을 찾을 수 없습니다.' })
+    }
+    // 삭제 권한: 소유자 또는 site_admin
+    if (dataset.owner_id !== req.user.id && req.user.role !== 'site_admin') {
+      return res.status(403).json({ error: '삭제 권한이 없습니다.' })
+    }
+
+    const documents = await repo.getDatasetDocuments(dataset.id)
+    let deletedOriginals = 0
+    let keptShared = 0
+    for (const doc of documents) {
+      if (!doc.attachment_id) continue
+      // 참조 수 검증(17.4): 이 데이터셋 외에 참조가 있으면 원본 유지
+      const refCount = await repo.countAttachmentReferences(doc.attachment_id, { excludeDatasetId: dataset.id })
+      if (refCount > 0) { keptShared += 1; continue }
+      // 참조가 이 데이터셋뿐 → 물리 파일 + attachments 행 완전 삭제
+      try {
+        if (doc.storage_path) {
+          const abs = path.join(STORAGE_BASE, doc.storage_path)
+          if (fs.existsSync(abs)) fs.unlinkSync(abs)
+          // 문서 전용 디렉터리 정리
+          const dir = path.dirname(abs)
+          if (fs.existsSync(dir) && fs.readdirSync(dir).length === 0) fs.rmdirSync(dir)
+        }
+      } catch (_) {}
+      await db.query(`DELETE FROM attachments WHERE id=$1`, [doc.attachment_id])
+      deletedOriginals += 1
+    }
+
+    // folder_datasets 삭제 → folder_documents/batches/relationships CASCADE
+    await db.query(`DELETE FROM folder_datasets WHERE id=$1`, [dataset.id])
+
+    // 데이터셋 저장소 디렉터리 정리(비어 있으면 제거)
+    try {
+      const datasetDir = path.join(STORAGE_BASE, 'folder-datasets', dataset.id)
+      if (fs.existsSync(datasetDir)) fs.rmSync(datasetDir, { recursive: true, force: true })
+    } catch (_) {}
+
+    // 벡터 청크 삭제 (17.5, 23.2). 활성 테이블이 schema v3일 때만 실제 수행된다.
+    let vectorsDeleted = false
+    try {
+      const r = await ragTrainer.deleteVectors({ datasetIds: [dataset.id] })
+      vectorsDeleted = !!r.deleted
+    } catch (err) {
+      console.error('[FolderUpload] 벡터 삭제 실패:', err.message)
+    }
+
+    res.json({
+      ok: true,
+      dataset_id: dataset.id,
+      deleted_originals: deletedOriginals,
+      kept_shared: keptShared,
+      vectors_deleted: vectorsDeleted,
+    })
+  } catch (e) {
+    res.status(500).json({ error: `데이터셋 삭제 실패: ${e.message}` })
+  }
+})
+
+// 데이터셋 접근 판정 (23.1)
+async function canAccessDataset(user, dataset) {
+  if (user.role === 'site_admin') return true
+  if (dataset.access_scope === 'all') return true
+  if (dataset.access_scope === 'personal') return dataset.owner_id === user.id
+  if (dataset.access_scope === 'team') {
+    const teamIds = await getUserTeamIds(user.id)
+    return teamIds.includes(dataset.scope_team_id)
+  }
+  if (dataset.access_scope === 'channel') {
+    return canAccessChannel(db, user, dataset.scope_channel_id)
+  }
+  return false
+}
+
+module.exports = router

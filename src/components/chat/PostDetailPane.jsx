@@ -13,8 +13,28 @@ import { getContentFontStyle } from '../../lib/contentFont'
 import useMentionAutocomplete from '../../hooks/useMentionAutocomplete'
 import MentionDropdown from '../MentionDropdown'
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels'
+import { useOutsideMouseDown } from '../../hooks/useOutsideMouseDown'
 
 const EMPTY_COMMENTS = []
+
+function ActionMenu({ type, canEdit, canDelete, canPin, pinned, labels, position, onAction }) {
+  const itemClass = 'flex min-h-10 w-full items-center rounded-lg px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 focus:bg-gray-100 focus:outline-none'
+  const item = (key, label, tone = '') => <button key={key} type="button" role="menuitem" onClick={() => onAction(key)} className={`${itemClass} ${tone}`}>{label}</button>
+  return <div role="menu" aria-label={type === 'post' ? '게시글 작업 메뉴' : '댓글 작업 메뉴'} style={{ left: position.x, top: position.y }} className="fixed z-[90] w-60 rounded-xl border border-gray-200 bg-white p-2 shadow-2xl">
+    {canEdit && item('edit', `✎ ${labels.edit || '수정'}`)}
+    {canDelete && item('delete', `🗑 ${labels.delete || '삭제'}`, 'text-red-600 hover:bg-red-50 focus:bg-red-50')}
+    <div className="my-1 border-t border-gray-100" />
+    {item('copy', `⧉ ${labels.copy}`)}
+    {item('copy-link', `🔗 ${labels.copyLink}`)}
+    {type === 'post' && canPin && <><div className="my-1 border-t border-gray-100" />{item('pin', `📌 ${pinned ? '핀 해제' : '핀 고정'}`)}</>}
+    <div className="my-1 border-t border-gray-100" />
+    {item('transfer-copy', '⇥ 다른 채널로 복사', 'text-indigo-600')}
+    {canDelete && item('transfer-move', '➜ 다른 채널로 이동', 'text-amber-600')}
+    <div className="my-1 border-t border-gray-100" />
+    {item('agentic', `⚡ ${labels.agentic}`, 'text-sky-600')}
+    {item('dm', `💬 ${labels.dm}`, 'text-indigo-600')}
+  </div>
+}
 
 function toKstDateKey(iso) {
   const d = new Date(iso)
@@ -156,7 +176,7 @@ function PostDetailPane({
   contentFontScale = 100,
 }) {
   const t = useT()
-  const { addComment, incrementViews, deletePost, updatePost, togglePostPin, togglePostLike, toggleCommentLike, deleteComment, updateComment, loadPostComments, posts, postDetails, selectedChannel, selectedTeam, openInAgenticAI } = useChat()
+  const { addComment, incrementViews, deletePost, updatePost, togglePostPin, togglePostLike, toggleCommentLike, deleteComment, updateComment, loadPostComments, posts, postDetails, selectedChannel, selectedTeam, teams, selectTeam, selectChannel, navigateToPost, openInAgenticAI } = useChat()
   const { currentUser, maxAttachmentFileSize } = useAuth()
   const {
     Avatar,
@@ -175,6 +195,11 @@ function PostDetailPane({
   } = helpers
   const [comment, setComment] = useState('')
   const [showSendToDMModal, setShowSendToDMModal] = useState(false)
+  const [transferDialog, setTransferDialog] = useState(null)
+  const [transferWorking, setTransferWorking] = useState(false)
+  const [actionMenuOpen, setActionMenuOpen] = useState(false)
+  const [actionMenuPosition, setActionMenuPosition] = useState({ x: 0, y: 0 })
+  const actionMenuRef = useRef(null)
   const [dmConversations, setDmConversations] = useState([])
   const [loadingDMConversations, setLoadingDMConversations] = useState(false)
   const [sendingToDMId, setSendingToDMId] = useState(null)
@@ -199,7 +224,7 @@ function PostDetailPane({
   const [commentsLoadError, setCommentsLoadError] = useState('')
   const [dmNoticeDialog, setDmNoticeDialog] = useState(null)
   const [duplicateFileDialog, setDuplicateFileDialog] = useState(null)
-  const [copiedKey, setCopiedKey] = useState('')
+  const [, setCopiedKey] = useState('')
   const [selectedTarget, setSelectedTarget] = useState({ type: 'post', postId: post.id, id: post.id })
 
   const [files, setFiles] = useState([])
@@ -388,6 +413,48 @@ function PostDetailPane({
     dragThreshold: 4,
     blockOnAnySelection: false,
   })
+  useOutsideMouseDown({
+    enabled: actionMenuOpen,
+    containerRef: actionMenuRef,
+    onOutside: () => setActionMenuOpen(false),
+    ignoreWhenTextSelected: true,
+    scope: 'post-detail-action-menu',
+  })
+
+  useEffect(() => {
+    if (!actionMenuOpen) return undefined
+    const onKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        event.preventDefault()
+        setActionMenuOpen(false)
+        return
+      }
+      if (!['ArrowDown', 'ArrowUp'].includes(event.key)) return
+      const items = [...(actionMenuRef.current?.querySelectorAll('[role="menuitem"]:not(:disabled)') || [])]
+      if (!items.length) return
+      event.preventDefault()
+      const current = items.indexOf(document.activeElement)
+      const delta = event.key === 'ArrowDown' ? 1 : -1
+      items[(current + delta + items.length) % items.length].focus()
+    }
+    window.addEventListener('keydown', onKeyDown, true)
+    return () => window.removeEventListener('keydown', onKeyDown, true)
+  }, [actionMenuOpen])
+
+  function openContextActionMenu(event, target) {
+    if (event.target?.closest?.('a, button, input, textarea, select, [data-attachment]')) return
+    event.preventDefault()
+    event.stopPropagation()
+    if (target.type === 'comment') selectCommentTarget(target.comment)
+    else setSelectedTarget({ type: 'post', postId: post.id, id: post.id })
+    const menuWidth = 240
+    const menuHeight = target.type === 'post' ? 430 : 390
+    setActionMenuPosition({
+      x: Math.max(8, Math.min(event.clientX, window.innerWidth - menuWidth - 8)),
+      y: Math.max(8, Math.min(event.clientY, window.innerHeight - menuHeight - 8)),
+    })
+    setActionMenuOpen(true)
+  }
   const contentFontStyle = getContentFontStyle(contentFontScale)
   const postTextStyle = contentFontStyle
   const commentTextStyle = contentFontStyle
@@ -659,6 +726,45 @@ function PostDetailPane({
     await copyTextContent(selectedContent, selectedCopyKey)
   }
 
+  function openTransferDialog(operation) {
+    const isComment = activeTargetType === 'comment' && selectedComment
+    const firstTarget = (teams || []).flatMap(team => (team.channels || []).map(channel => ({ team, channel })))
+      .find(item => !item.channel.is_archived && String(item.channel.id) !== String(channelId))
+    if (!firstTarget) {
+      setCommentErrorDialog('이동하거나 복사할 수 있는 다른 채널이 없습니다.')
+      return
+    }
+    setTransferDialog({ operation, contentType: isComment ? 'COMMENT' : 'POST', targetChannelId: firstTarget.channel.id,
+      includeComments: true, includeAttachments: true, mode: 'AS_POST', targetPostId: '' })
+  }
+
+  async function submitTransfer() {
+    if (!transferDialog || transferWorking) return
+    setTransferWorking(true)
+    try {
+      const isComment = transferDialog.contentType === 'COMMENT'
+      const endpoint = isComment
+        ? `/posts/${post.id}/comments/${selectedComment.id}/transfer`
+        : `/posts/${post.id}/transfer`
+      const result = await apiFetch(endpoint, { method: 'POST', body: JSON.stringify({ ...transferDialog,
+        idempotencyKey: `${currentUser.id}:${Date.now()}:${crypto.randomUUID?.() || Math.random()}` }) })
+      const destination = (teams || []).flatMap(team => (team.channels || []).map(channel => ({ team, channel })))
+        .find(item => String(item.channel.id) === String(result.targetChannelId))
+      setTransferDialog(null)
+      if (destination) {
+        selectTeam(destination.team)
+        await selectChannel(destination.channel)
+        await navigateToPost(result.targetChannelId, result.targetPostId, { commentId: result.targetCommentId || '' })
+      } else {
+        onClose?.()
+      }
+    } catch (err) {
+      setCommentErrorDialog(`콘텐츠 전송에 실패했습니다: ${err.message}`)
+    } finally {
+      setTransferWorking(false)
+    }
+  }
+
   async function openSendToDMModal() {
     setShowSendToDMModal(true)
     setLoadingDMConversations(true)
@@ -815,86 +921,7 @@ function PostDetailPane({
   return (
     <div className="flex-1 flex flex-col min-h-0" style={{ WebkitAppRegion: 'no-drag' }}>
       <div className={`flex items-center gap-3 border-b border-gray-200 flex-shrink-0 ${isMobile ? 'px-3 py-2 overflow-x-auto' : 'px-6 py-3'}`}>
-        {!isMobile && <div className="flex-1" />}
-        {!isEditingPost && !selectedChannel?.is_archived && (
-          <div className="flex items-center gap-2">
-            {canPinSelected && (
-              <button
-                onClick={handleTogglePin}
-                title={freshPost.pinned ? (t.chat.unpinPost || '핀해제') : (t.chat.pinPost || '핀고정')}
-                aria-label={freshPost.pinned ? (t.chat.unpinPost || '핀해제') : (t.chat.pinPost || '핀고정')}
-                className={`flex items-center gap-1 text-xs transition-colors ${freshPost.pinned ? 'text-amber-600 hover:text-amber-700' : 'text-gray-500 hover:text-gray-800'}`}
-              >
-                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7V4a1 1 0 00-1-1H9a1 1 0 00-1 1v3m8 0H8m8 0l-1.2 11.2a1 1 0 01-.995.8H10.2a1 1 0 01-.995-.8L8 7m4 4v6" />
-                </svg>
-                <span>{freshPost.pinned ? (t.chat.unpinPost || '핀해제') : (t.chat.pinPost || '핀고정')}</span>
-              </button>
-            )}
-            <button
-              onClick={handleSelectedCopyLink}
-              title={copiedKey === selectedLinkKey ? (t.ai.copied || 'Copied!') : (t.chat.copyLink || '링크복사')}
-              aria-label={copiedKey === selectedLinkKey ? (t.ai.copied || 'Copied!') : (t.chat.copyLink || '링크복사')}
-              className="flex items-center gap-1 text-gray-500 hover:text-gray-800 text-xs transition-colors"
-            >
-              {copiedKey === selectedLinkKey ? (
-                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-              ) : (
-                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 010 5.656l-3 3a4 4 0 01-5.656-5.656l1.5-1.5M10.172 13.828a4 4 0 010-5.656l3-3a4 4 0 115.656 5.656l-1.5 1.5" />
-                </svg>
-              )}
-              <span>{t.chat.copyLink || '링크복사'}</span>
-            </button>
-            {canEditSelected && (
-              <button onClick={handleSelectedEdit} className="flex items-center gap-1 text-gray-400 hover:text-gray-900 text-xs transition-colors">
-                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
-                {t.chat.edit}
-              </button>
-            )}
-            {canDeleteSelected && (
-              <button onClick={handleSelectedDelete} className="flex items-center gap-1 text-red-500 hover:text-red-400 text-xs transition-colors">
-                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                {t.chat.delete}
-              </button>
-            )}
-          </div>
-        )}
-        {!isEditingPost && !selectedChannel?.is_archived && (
-          <div className="flex items-center gap-2">
-            <button
-              onClick={handleSelectedCopyContent}
-              title={copiedKey === selectedCopyKey ? (t.ai.copied || 'Copied!') : (t.ai.copy || 'Copy')}
-              aria-label={copiedKey === selectedCopyKey ? (t.ai.copied || 'Copied!') : (t.ai.copy || 'Copy')}
-              className="flex items-center gap-1 text-gray-500 hover:text-gray-800 text-xs transition-colors"
-            >
-              {copiedKey === selectedCopyKey ? (
-                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-              ) : (
-                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V5a2 2 0 012-2h6a2 2 0 012 2v6m-2 10H8a2 2 0 01-2-2V9a2 2 0 012-2h8a2 2 0 012 2v8a2 2 0 01-2 2z" />
-                </svg>
-              )}
-              <span>{t.ai.copy || 'Copy'}</span>
-            </button>
-            <button onClick={handleSendSelectedToAgenticAI} className="flex items-center gap-1 text-sky-600 hover:text-sky-700 text-xs transition-colors">
-              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-              </svg>
-              {t.chat.sendToAgenticAI || 'AgenticAI로 보내기'}
-            </button>
-            <button onClick={openSendToDMModal} className="flex items-center gap-1 text-indigo-600 hover:text-indigo-700 text-xs transition-colors">
-              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
-              </svg>
-              {t.chat.sendToDM}
-            </button>
-          </div>
-        )}
+        <div className="flex-1" />
         {/* Close right panel (데스크톱 전용 — 모바일은 ChatArea 상단 뒤로가기 사용) */}
         {!isMobile && (
           <button
@@ -907,6 +934,30 @@ function PostDetailPane({
           </button>
         )}
       </div>
+
+      {actionMenuOpen && !isEditingPost && !selectedChannel?.is_archived && <div ref={actionMenuRef}>
+        <ActionMenu
+          type={activeTargetType}
+          canEdit={canEditSelected}
+          canDelete={canDeleteSelected}
+          canPin={canPinSelected}
+          pinned={Boolean(freshPost.pinned)}
+          position={actionMenuPosition}
+          labels={{ edit: t.chat.edit, delete: t.chat.delete, copy: t.ai.copy || '복사', copyLink: t.chat.copyLink || '링크복사', agentic: t.chat.sendToAgenticAI || 'AgenticAI로 보내기', dm: t.chat.sendToDM }}
+          onAction={(action) => {
+            setActionMenuOpen(false)
+            if (action === 'edit') handleSelectedEdit()
+            else if (action === 'delete') handleSelectedDelete()
+            else if (action === 'copy') handleSelectedCopyContent()
+            else if (action === 'copy-link') handleSelectedCopyLink()
+            else if (action === 'pin') handleTogglePin()
+            else if (action === 'transfer-copy') openTransferDialog('COPY')
+            else if (action === 'transfer-move') openTransferDialog('MOVE')
+            else if (action === 'agentic') handleSendSelectedToAgenticAI()
+            else if (action === 'dm') openSendToDMModal()
+          }}
+        />
+      </div>}
 
       {showSendToDMModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
@@ -942,6 +993,32 @@ function PostDetailPane({
                 {t.chat.cancel}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+      {transferDialog && (
+        <div className="fixed inset-0 z-[96] flex items-center justify-center bg-black/45 px-4">
+          <div className="w-full max-w-md rounded-2xl bg-white p-5 shadow-2xl">
+            <h3 className="text-base font-bold text-gray-900">{transferDialog.contentType === 'POST' ? '게시글' : '댓글'} {transferDialog.operation === 'MOVE' ? '이동' : '복사'}</h3>
+            <p className="mt-1 text-xs text-gray-500">대상 채널에 쓰기 권한이 있어야 하며 보안 등급은 유지됩니다.</p>
+            <label className="mt-4 block text-xs font-semibold text-gray-600">대상 채널
+              <select value={transferDialog.targetChannelId} onChange={e => setTransferDialog(prev => ({ ...prev, targetChannelId: e.target.value }))} className="mt-1 w-full rounded-lg border border-gray-300 p-2 text-sm">
+                {(teams || []).map(team => (team.channels || []).filter(ch => !ch.is_archived && String(ch.id) !== String(channelId)).map(ch => <option key={ch.id} value={ch.id}>{team.name} / {ch.name}</option>))}
+              </select>
+            </label>
+            {transferDialog.contentType === 'COMMENT' && <>
+              <label className="mt-3 block text-xs font-semibold text-gray-600">전송 위치
+                <select value={transferDialog.mode} onChange={e => setTransferDialog(prev => ({ ...prev, mode: e.target.value }))} className="mt-1 w-full rounded-lg border border-gray-300 p-2 text-sm">
+                  <option value="AS_POST">대상 채널의 새 게시글</option><option value="AS_COMMENT">대상 게시글의 댓글</option>
+                </select>
+              </label>
+              {transferDialog.mode === 'AS_COMMENT' && <label className="mt-3 block text-xs font-semibold text-gray-600">대상 게시글 ID
+                <input value={transferDialog.targetPostId} onChange={e => setTransferDialog(prev => ({ ...prev, targetPostId: e.target.value.trim() }))} className="mt-1 w-full rounded-lg border border-gray-300 p-2 text-sm" placeholder="대상 게시글 링크의 postId" />
+              </label>}
+            </>}
+            {transferDialog.contentType === 'POST' && transferDialog.operation === 'COPY' && <label className="mt-3 flex items-center gap-2 text-sm"><input type="checkbox" checked={transferDialog.includeComments} onChange={e => setTransferDialog(prev => ({ ...prev, includeComments: e.target.checked }))} />댓글 포함</label>}
+            <label className="mt-3 flex items-center gap-2 text-sm"><input type="checkbox" checked={transferDialog.includeAttachments} onChange={e => setTransferDialog(prev => ({ ...prev, includeAttachments: e.target.checked }))} />첨부파일 포함</label>
+            <div className="mt-5 flex justify-end gap-2"><button disabled={transferWorking} onClick={() => setTransferDialog(null)} className="rounded-lg px-4 py-2 text-sm text-gray-600 hover:bg-gray-100">취소</button><button disabled={transferWorking || (transferDialog.mode === 'AS_COMMENT' && !transferDialog.targetPostId)} onClick={submitTransfer} className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">{transferWorking ? '처리 중…' : transferDialog.operation === 'MOVE' ? '이동' : '복사'}</button></div>
           </div>
         </div>
       )}
@@ -1029,11 +1106,21 @@ function PostDetailPane({
         className="flex-1 min-h-0"
       >
         <Panel defaultSize={isMobile ? 82 : 72} minSize={25} className="overflow-hidden">
-      <div className={`h-full ${isMobile ? 'px-4 py-4' : 'px-6 py-6'} ${isEditingPost ? 'flex flex-col overflow-hidden' : 'overflow-y-auto overflow-x-hidden'}`}>
+      <div
+        onContextMenu={(event) => {
+          if (event.target?.closest?.('[data-comment-card="true"]')) return
+          openContextActionMenu(event, { type: 'post' })
+        }}
+        className={`h-full ${isMobile ? 'px-4 py-4' : 'px-6 py-6'} ${isEditingPost ? 'flex flex-col overflow-hidden' : 'overflow-y-auto overflow-x-hidden'}`}
+      >
         {/* Meta */}
         <div className="mb-6">
           {freshPost.pinned && <div className="flex items-center gap-1.5 text-amber-600 text-xs font-medium mb-3"><PinIcon /><span>{t.chat.pinnedPost}</span></div>}
-          <div className="flex items-center gap-4 mb-6 p-4 rounded-2xl bg-gray-50 border border-gray-200">
+          <div
+            onClick={() => { setSelectedTarget({ type: 'post', postId: post.id, id: post.id }); setActionMenuOpen(false) }}
+            onContextMenu={(event) => openContextActionMenu(event, { type: 'post' })}
+            className={`flex items-center gap-4 mb-6 p-4 rounded-2xl border transition-colors ${activeTargetType === 'post' ? 'bg-indigo-50/60 border-indigo-200' : 'bg-gray-50 border-gray-200'}`}
+          >
             <Avatar letters={freshPost.author?.avatar || '?'} imageUrl={freshPost.author?.image_url} size="lg" />
             <div className="min-w-0 flex-1">
               <p className="text-gray-900 font-semibold text-base leading-tight">{freshPost.author?.name}</p>
@@ -1248,6 +1335,7 @@ function PostDetailPane({
                   const c = row.item
                   return (
                     <div
+                      data-comment-card="true"
                       key={row.key}
                       ref={(el) => {
                         if (!el) {
@@ -1256,7 +1344,8 @@ function PostDetailPane({
                         }
                         commentItemRefs.current.set(String(c.id), el)
                       }}
-                      onClick={() => selectCommentTarget(c)}
+                      onClick={() => { selectCommentTarget(c); setActionMenuOpen(false) }}
+                      onContextMenu={(event) => openContextActionMenu(event, { type: 'comment', comment: c })}
                       className={`flex items-start gap-3 group rounded-xl transition-colors min-w-0 ${
                         String(highlightCommentId || '') === String(c.id)
                           ? 'bg-indigo-50/70 ring-1 ring-indigo-200'

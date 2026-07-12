@@ -239,6 +239,8 @@ async function ensureMailDataSchema(client, { standalone = false } = {}) {
       provider_attachment_id TEXT,
       filename               TEXT NOT NULL,
       content_type           TEXT,
+      content_id             TEXT,
+      disposition            TEXT,
       size_bytes             BIGINT NOT NULL DEFAULT 0,
       object_key             TEXT NOT NULL,
       created_at             TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -249,6 +251,13 @@ async function ensureMailDataSchema(client, { standalone = false } = {}) {
     CREATE INDEX IF NOT EXISTS idx_mail_messages_account_internet_id ON mail_messages(account_id, internet_message_id);
     CREATE INDEX IF NOT EXISTS idx_mail_messages_tenant_user ON mail_messages(tenant_id, user_id);
     CREATE INDEX IF NOT EXISTS idx_mail_attachments_message ON mail_attachments(message_id);
+  `)
+
+  await run(client, 'mail attachment image metadata columns', `
+    ALTER TABLE mail_attachments
+      ADD COLUMN IF NOT EXISTS content_id TEXT;
+    ALTER TABLE mail_attachments
+      ADD COLUMN IF NOT EXISTS disposition TEXT;
   `)
 
   // 메일 요약 결과 캐시(메일 상세 재진입 시 즉시 표시). 원본 메일과 분리된 AI 메타데이터다.

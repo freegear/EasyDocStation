@@ -11,6 +11,7 @@ const HOURS = Array.from({ length: 24 }, (_, i) => i)
 const DAY_SLOT_PX = 60
 const WEEK_SLOT_PX = 52
 const WEEK_GRID_COLUMNS = '56px repeat(7, minmax(0, 1fr))'
+const MONTH_GRID_COLUMNS = 'repeat(7, minmax(0, 1fr))'
 
 function hexToRgba(hex, alpha) {
   const r = parseInt(hex.slice(1, 3), 16)
@@ -62,6 +63,12 @@ function makeDt(date, hour24, minute = 0) {
 
 function eventOnDay(ev, date) {
   const s = ev.startDt
+  if (ev.allDay && ev.endDt) {
+    const start = new Date(s.year, s.month - 1, s.day)
+    const end = new Date(ev.endDt.year, ev.endDt.month - 1, ev.endDt.day)
+    const target = new Date(date.getFullYear(), date.getMonth(), date.getDate())
+    return start <= target && target <= end
+  }
   return s.year === date.getFullYear() && s.month === date.getMonth() + 1 && s.day === date.getDate()
 }
 
@@ -151,6 +158,39 @@ function timedEventsForDay(events, date, slotPx) {
 
 // ─── Month View ──────────────────────────────────────────────
 
+function monthAllDaySegments(events, week) {
+  const weekStart = new Date(week[0].date.getFullYear(), week[0].date.getMonth(), week[0].date.getDate())
+  const weekEnd = new Date(week[6].date.getFullYear(), week[6].date.getMonth(), week[6].date.getDate())
+  const segments = events
+    .filter(ev => ev.allDay && ev.startDt && ev.endDt)
+    .map(ev => {
+      const eventStart = new Date(ev.startDt.year, ev.startDt.month - 1, ev.startDt.day)
+      const eventEnd = new Date(ev.endDt.year, ev.endDt.month - 1, ev.endDt.day)
+      if (eventEnd < weekStart || eventStart > weekEnd) return null
+      const segmentStart = eventStart < weekStart ? weekStart : eventStart
+      const segmentEnd = eventEnd > weekEnd ? weekEnd : eventEnd
+      const startCol = Math.round((segmentStart - weekStart) / 86400000)
+      const endCol = Math.round((segmentEnd - weekStart) / 86400000)
+      return {
+        ev,
+        startCol,
+        endCol,
+        startsHere: eventStart >= weekStart,
+        endsHere: eventEnd <= weekEnd,
+      }
+    })
+    .filter(Boolean)
+    .sort((a, b) => a.startCol - b.startCol || b.endCol - a.endCol || String(a.ev.id).localeCompare(String(b.ev.id)))
+
+  const laneEnds = []
+  return segments.map(segment => {
+    let lane = laneEnds.findIndex(endCol => endCol < segment.startCol)
+    if (lane === -1) lane = laneEnds.length
+    laneEnds[lane] = segment.endCol
+    return { ...segment, lane }
+  })
+}
+
 function MonthView({ date, events = [], onEventDoubleClick, onEventDragStart, onDayDrop, onCellDoubleClick, canEditEvent }) {
   const today = new Date()
   const [dragOverDate, setDragOverDate] = useState(null)
@@ -160,7 +200,7 @@ function MonthView({ date, events = [], onEventDoubleClick, onEventDragStart, on
 
   return (
     <div className="flex flex-col h-full">
-      <div className="grid grid-cols-7 border-b border-gray-200 bg-gray-50 flex-shrink-0">
+      <div className="grid border-b border-gray-200 bg-gray-50 flex-shrink-0" style={{ gridTemplateColumns: MONTH_GRID_COLUMNS }}>
         {WEEKDAYS.map((d, i) => (
           <div key={d} className={`py-2 text-center text-xs font-semibold tracking-wide ${i === 0 ? 'text-red-500' : i === 6 ? 'text-blue-500' : 'text-gray-500'}`}>
             {d}
@@ -168,13 +208,17 @@ function MonthView({ date, events = [], onEventDoubleClick, onEventDragStart, on
         ))}
       </div>
       <div className="flex-1 grid" style={{ gridTemplateRows: `repeat(${weeks.length}, 1fr)` }}>
-        {weeks.map((week, wi) => (
-          <div key={wi} className="grid grid-cols-7 border-b border-gray-100 last:border-0">
+        {weeks.map((week, wi) => {
+          const allDaySegments = monthAllDaySegments(events, week)
+          const visibleSegments = allDaySegments.filter(segment => segment.lane < 3)
+          return (
+          <div key={wi} className="relative grid min-w-0 overflow-hidden border-b border-gray-100 last:border-0 min-h-[90px]" style={{ gridTemplateColumns: MONTH_GRID_COLUMNS }}>
             {week.map(({ date: d, isCurrentMonth }, di) => {
               const isToday = isSameDay(d, today)
               const isSun = di === 0
               const isSat = di === 6
-              const dayEvents = events.filter(ev => eventOnDay(ev, d))
+              const dayEvents = events.filter(ev => !ev.allDay && eventOnDay(ev, d))
+              const hiddenAllDayCount = allDaySegments.filter(segment => segment.lane >= 3 && segment.startCol <= di && di <= segment.endCol).length
               const isDragOver = dragOverDate && isSameDay(dragOverDate, d)
               return (
                 <div
@@ -183,10 +227,10 @@ function MonthView({ date, events = [], onEventDoubleClick, onEventDragStart, on
                   onDragLeave={() => setDragOverDate(null)}
                   onDrop={e => { e.preventDefault(); setDragOverDate(null); onDayDrop?.(d) }}
                   onDoubleClick={() => { const now = new Date(); onCellDoubleClick?.(d, now.getHours(), now.getMinutes()) }}
-                  className={`p-1.5 border-r border-gray-100 last:border-0 min-h-[90px] transition-colors overflow-hidden
+                  className={`relative p-1.5 pt-[88px] border-r border-gray-100 last:border-0 min-h-[120px] transition-colors overflow-hidden
                     ${isDragOver ? 'bg-indigo-100/70 ring-2 ring-inset ring-indigo-400' : !isCurrentMonth ? 'bg-gray-50/60 hover:bg-indigo-50/20' : 'bg-white hover:bg-indigo-50/40'}`}
                 >
-                  <div className={`w-7 h-7 flex items-center justify-center rounded-full text-sm font-medium mb-1
+                  <div className={`absolute top-1.5 w-7 h-7 flex items-center justify-center rounded-full text-sm font-medium mb-1
                     ${isToday
                       ? 'bg-indigo-600 text-white'
                       : !isCurrentMonth
@@ -213,15 +257,38 @@ function MonthView({ date, events = [], onEventDoubleClick, onEventDragStart, on
                         {ev.allDay ? ev.title : `${dtTo24h(ev.startDt).hour.toString().padStart(2,'0')}:${String(dtTo24h(ev.startDt).minute).padStart(2,'0')} ${ev.title}`}
                       </div>
                     )})}
-                    {dayEvents.length > 3 && (
-                      <div className="text-[10px] text-gray-400 px-1">+{dayEvents.length - 3}개</div>
+                    {(dayEvents.length > 3 || hiddenAllDayCount > 0) && (
+                      <div className="text-[10px] text-gray-400 px-1">+{Math.max(0, dayEvents.length - 3) + hiddenAllDayCount}개</div>
                     )}
                   </div>
                 </div>
               )
             })}
+            <div className="absolute left-0 right-0 top-9 grid min-w-0 overflow-hidden gap-y-0.5 pointer-events-none z-10" style={{ gridTemplateColumns: MONTH_GRID_COLUMNS }}>
+              {visibleSegments.map(({ ev, startCol, endCol, startsHere, endsHere, lane }) => {
+                const canEdit = canEditEvent?.(ev) !== false
+                return (
+                  <div
+                    key={`${ev.id}-${wi}`}
+                    draggable={canEdit}
+                    onDragStart={e => { if (!canEdit) { e.preventDefault(); return }; e.stopPropagation(); onEventDragStart?.(ev.id) }}
+                    onDoubleClick={e => { e.stopPropagation(); onEventDoubleClick?.(ev) }}
+                    className={`pointer-events-auto h-[20px] min-w-0 max-w-full overflow-hidden box-border text-[10px] font-medium text-white px-1.5 py-0.5 whitespace-nowrap text-ellipsis leading-tight hover:brightness-95
+                      ${startsHere ? 'ml-1.5 rounded-l' : ''} ${endsHere ? 'mr-1.5 rounded-r' : ''} ${canEdit ? 'cursor-grab active:cursor-grabbing' : 'cursor-default'}`}
+                    title={ev.title}
+                    style={{
+                      backgroundColor: ev.color,
+                      gridColumn: `${startCol + 1} / span ${endCol - startCol + 1}`,
+                      gridRow: lane + 1,
+                    }}
+                  >
+                    {ev.title}
+                  </div>
+                )
+              })}
+            </div>
           </div>
-        ))}
+        )})}
       </div>
     </div>
   )
@@ -244,6 +311,8 @@ function WeekView({ date, events = [], onEventDoubleClick, onEventDragStart, onW
   const totalGridPx = 24 * WEEK_SLOT_PX
   const grabOffsetRef = useRef(0)
   const gridRef = useRef(null)
+  const allDaySegments = monthAllDaySegments(events, days.map(d => ({ date: d })))
+  const allDayLaneCount = Math.max(1, Math.min(3, allDaySegments.reduce((max, segment) => Math.max(max, segment.lane + 1), 0)))
 
   function calcDropTime(clientY) {
     const rect = gridRef.current?.getBoundingClientRect()
@@ -284,36 +353,47 @@ function WeekView({ date, events = [], onEventDoubleClick, onEventDragStart, onW
       </div>
 
       {/* 하루종일 이벤트 행 */}
-      <div className="grid border-b border-gray-200 bg-white flex-shrink-0 min-h-[32px]"
-        style={{ gridTemplateColumns: WEEK_GRID_COLUMNS }}>
+      <div className="relative grid border-b border-gray-200 bg-white flex-shrink-0 min-h-[32px]"
+        style={{ gridTemplateColumns: WEEK_GRID_COLUMNS, height: 8 + allDayLaneCount * 22 }}>
         <div className="pr-2 text-right text-[10px] text-gray-400 leading-8 select-none flex-shrink-0">하루종일</div>
         {days.map((d, i) => {
-          const dayAllDayEvents = events.filter(ev => ev.allDay && eventOnDay(ev, d))
           const isTodayCol = isSameDay(d, today)
           const isAllDayDragOver = dragOverAllDayDate && isSameDay(dragOverAllDayDate, d)
           return (
             <div key={i}
-              className={`border-l border-gray-100 px-0.5 py-0.5 min-h-[32px] min-w-0 overflow-hidden transition-colors
+              className={`border-l border-gray-100 min-h-[32px] min-w-0 overflow-hidden transition-colors
                 ${isAllDayDragOver ? 'bg-indigo-100/70 ring-2 ring-inset ring-indigo-400' : isTodayCol ? 'bg-indigo-50/20' : ''}`}
               onDragOver={e => { e.preventDefault(); setDragOverAllDayDate(d) }}
               onDragLeave={e => { if (!e.currentTarget.contains(e.relatedTarget)) setDragOverAllDayDate(null) }}
               onDrop={e => { e.preventDefault(); setDragOverAllDayDate(null); onAllDayDrop?.(d) }}
             >
-              {dayAllDayEvents.map(ev => {
-                const canEdit = canEditEvent?.(ev) !== false
-                return (
-                <div key={ev.id}
-                  draggable={canEdit}
-                  onDragStart={e => { if (!canEdit) { e.preventDefault(); return }; e.stopPropagation(); grabOffsetRef.current = 0; onEventDragStart?.(ev.id) }}
-                  onDoubleClick={e => { e.stopPropagation(); onEventDoubleClick?.(ev) }}
-                  className={`w-full text-[10px] font-medium text-white px-1.5 py-0.5 rounded mb-0.5 truncate hover:brightness-95 ${canEdit ? 'cursor-grab active:cursor-grabbing' : 'cursor-default'}`}
-                  style={{ backgroundColor: ev.color }}>
-                  {ev.title}
-                </div>
-              )})}
             </div>
           )
         })}
+        <div className="absolute inset-0 grid pointer-events-none z-10 py-1"
+          style={{ gridTemplateColumns: WEEK_GRID_COLUMNS, gridAutoRows: 20, rowGap: 2 }}>
+          {allDaySegments.filter(segment => segment.lane < 3).map(({ ev, startCol, endCol, startsHere, endsHere, lane }) => {
+            const canEdit = canEditEvent?.(ev) !== false
+            return (
+              <div
+                key={ev.id}
+                draggable={canEdit}
+                onDragStart={e => { if (!canEdit) { e.preventDefault(); return }; e.stopPropagation(); grabOffsetRef.current = 0; onEventDragStart?.(ev.id) }}
+                onDoubleClick={e => { e.stopPropagation(); onEventDoubleClick?.(ev) }}
+                className={`pointer-events-auto min-w-0 max-w-full overflow-hidden box-border text-[10px] font-medium text-white px-1.5 py-0.5 whitespace-nowrap text-ellipsis hover:brightness-95
+                  ${startsHere ? 'ml-0.5 rounded-l' : ''} ${endsHere ? 'mr-0.5 rounded-r' : ''} ${canEdit ? 'cursor-grab active:cursor-grabbing' : 'cursor-default'}`}
+                title={ev.title}
+                style={{
+                  backgroundColor: ev.color,
+                  gridColumn: `${startCol + 2} / span ${endCol - startCol + 1}`,
+                  gridRow: lane + 1,
+                }}
+              >
+                {ev.title}
+              </div>
+            )
+          })}
+        </div>
       </div>
 
       {/* Time grid */}
@@ -520,7 +600,8 @@ function DayView({ date, events = [], onEventDoubleClick, onEventDragStart, onTi
                   draggable={canEdit}
                   onDragStart={e => { if (!canEdit) { e.preventDefault(); return }; e.stopPropagation(); grabOffsetRef.current = 0; onEventDragStart?.(ev.id) }}
                   onDoubleClick={e => { e.stopPropagation(); onEventDoubleClick?.(ev) }}
-                  className={`text-[11px] font-medium text-white px-2 py-0.5 rounded truncate max-w-xs hover:brightness-95 ${canEdit ? 'cursor-grab active:cursor-grabbing' : 'cursor-default'}`}
+                  className={`min-w-0 max-w-xs overflow-hidden box-border whitespace-nowrap text-ellipsis text-[11px] font-medium text-white px-2 py-0.5 rounded hover:brightness-95 ${canEdit ? 'cursor-grab active:cursor-grabbing' : 'cursor-default'}`}
+                  title={ev.title}
                   style={{ backgroundColor: ev.color }}>
                   {ev.title}
                 </div>
@@ -971,11 +1052,16 @@ export default function CalendarView({ onClose, focusEvent = null, addEventReque
         if (ev.id !== drag.id) return ev
         if (!canEditEvent(ev)) return ev
         // 18.5.6.2: timed → allDay, 또는 allDay → allDay 날짜 이동
+        const oldStart = new Date(ev.startDt.year, ev.startDt.month - 1, ev.startDt.day)
+        const oldEnd = new Date(ev.endDt.year, ev.endDt.month - 1, ev.endDt.day)
+        const durationDays = ev.allDay ? Math.max(0, Math.round((oldEnd - oldStart) / 86400000)) : 0
+        const targetEnd = new Date(targetDate)
+        targetEnd.setDate(targetEnd.getDate() + durationDays)
         return {
           ...ev,
           allDay: true,
           startDt: { ...ev.startDt, year: targetDate.getFullYear(), month: targetDate.getMonth() + 1, day: targetDate.getDate() },
-          endDt:   { ...ev.endDt,   year: targetDate.getFullYear(), month: targetDate.getMonth() + 1, day: targetDate.getDate() },
+          endDt:   { ...ev.endDt, year: targetEnd.getFullYear(), month: targetEnd.getMonth() + 1, day: targetEnd.getDate() },
         }
       })
       const updated = next.find(ev => ev.id === drag.id)

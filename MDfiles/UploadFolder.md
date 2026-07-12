@@ -75,7 +75,7 @@ EasyStation의 폴더 업로드는 단순한 다중 파일 업로드가 아니�
   "upload_status": "uploaded",
   "storage_status": "committed",
   "owner": "user_xxxx",
-  "security_level": "internal"
+  "security_level": 1
 }
 ```
 
@@ -93,6 +93,10 @@ EasyStation의 폴더 업로드는 단순한 다중 파일 업로드가 아니�
 - `owner_id`
 - `name`
 - `root_folder`
+- `access_scope`: `all`, `team`, `channel`, `personal` (23장 참조. 업로더가 등록 시 선택)
+- `scope_team_id`: `access_scope = team`일 때 대상 팀 ID
+- `scope_channel_id`: `access_scope = channel`일 때 대상 채널 ID
+- `security_level`: 데이터셋 최소 보안등급(정수). `effective_security_level` 계산의 상한 기준(4.4장)
 - `source_type`: `browser_upload` 또는 `server_path`
 - `source_root_id`: 서버 경로 등록 방식일 때만 사용. 관리자가 사전에 등록한 허용 루트 ID
 - `source_sub_path`: 서버 경로 등록 방식일 때만 사용. 허용 루트 아래의 상대 경로
@@ -144,11 +148,24 @@ EasyStation의 폴더 업로드는 단순한 다중 파일 업로드가 아니�
 
 `attachments`는 실제 원본 파일의 저장 위치, 소유권, 보안등급, 삭제 상태를 관리하는 기준 테이블로 둔다. `folder_documents`는 특정 `folder_datasets` 안에서 해당 원본 파일이 어떤 폴더 문맥과 상대 경로로 등록되었는지 나타내는 파생 메타데이터다.
 
+> **전제 조건 — `attachments` 스키마 보강 (선행 필수)**
+>
+> 현재 `attachments`(`server/schema.sql`)는 `uploader_id`(`ON DELETE SET NULL`), `status`(기본 `PENDING`)만 있고 아래 정보를 아직 담지 못한다. `attachments`를 "기준 테이블"로 쓰려면 폴더 업로드 구현 전에 다음 컬럼을 먼저 추가한다.
+>
+> - `owner_id INTEGER`: 원본의 최종 소유자. `uploader_id`와 달리 소유자가 삭제돼도 `NULL`로 흩어지지 않도록 소유권 기준 컬럼으로 둔다.
+> - `security_level INTEGER NOT NULL DEFAULT 0`: 보안등급의 원천. `users.security_level`, `posts.security_level`과 **같은 정수 체계**를 쓴다. 문자열(`internal` 등)은 사용하지 않는다.
+> - `deleted_at TIMESTAMPTZ`: soft delete 시각. `status`에는 `deleted`/`removed` 상태를 추가한다.
+>
+> 이 컬럼이 없으면 아래 소유권·보안등급·삭제 정책은 상속할 원천 자체가 없으므로 성립하지 않는다. 즉 이 절의 정책은 위 스키마 보강을 반드시 전제한다.
+
 - `id`
 - `dataset_id`
 - `batch_id`
 - `attachment_id`
 - `owner_id`
+- `access_scope`: 상위 `folder_datasets.access_scope`를 상속 (23장)
+- `scope_team_id`
+- `scope_channel_id`
 - `security_level`
 - `effective_security_level`
 - `file_name`
@@ -177,12 +194,14 @@ EasyStation의 폴더 업로드는 단순한 다중 파일 업로드가 아니�
 소유권과 보안등급 정책:
 
 - `attachments.owner_id`를 원본 파일의 최종 소유자로 본다.
+- **폴더 업로드 경로는 기존 게시글 첨부를 재사용하지 않고 전용 `attachments` 레코드를 새로 생성**하며, 이때 업로더를 곧바로 `owner_id`로 확정한다. 이렇게 하면 소유권·삭제 판단이 단순해진다. 다른 경로의 기존 첨부를 재사용하는 것은 같은 hash 중복 최적화(16장)에서만 제한적으로 허용한다.
 - `folder_documents.owner_id`는 조회 최적화와 감사 목적으로 저장하되, 기본적으로 연결된 `attachments.owner_id`와 같아야 한다.
 - `folder_datasets.owner_id`, `folder_upload_batches.owner_id`, `folder_documents.owner_id`, `attachments.owner_id`는 생성 시 일관성을 검증한다.
 - 다른 사용자의 `attachment_id`를 임의로 `folder_documents`에 연결할 수 없게 한다.
+- **보안등급은 모두 정수(`INTEGER`) 체계**를 쓴다. `users.security_level`과 같은 척도이며, 값이 클수록 더 높은 등급이다. `internal` 같은 문자열 표기는 사용하지 않는다.
 - `folder_documents.security_level`은 기본적으로 `attachments.security_level`을 상속한다.
-- `folder_datasets.security_level`이 더 엄격하면 `effective_security_level`은 데이터셋 기준으로 상향한다.
-- 검색, RAG 컨텍스트 구성, 원본 열기 권한 검사는 `effective_security_level`과 앱 권한을 함께 기준으로 한다.
+- `folder_datasets.security_level`이 더 높으면(더 엄격하면) `effective_security_level = max(attachment.security_level, dataset.security_level)`로 상향한다.
+- 검색, RAG 컨텍스트 구성, 원본 열기 권한 검사는 `effective_security_level`과 요청 사용자의 `users.security_level`(및 앱 권한)을 함께 기준으로 한다.
 - 팀/조직 공유 데이터셋을 지원하는 경우에는 `owner_id`만으로 권한을 표현하지 않고 별도 ACL 또는 권한 테이블을 둔다.
 
 #### `folder_relationships`
@@ -505,6 +524,8 @@ GET /api/folder-datasets/:datasetId/batches/:batchId
 
 ## 11. 기존 RAG 파이프라인 연동
 
+> 폴더 업로드는 파일이 많아 학습 GPU 점유가 크다. 학습은 GPU가 비어 있을 때만 실행하고 대화형 요청(검색·답변)에 양보하도록 스케줄링한다. 상세 설계는 [RAG.md](./RAG.md)의 "5. GPU 학습 스케줄링" 장을 따른다.
+
 폴더 업로드된 파일도 기존 파일 형식별 학습 전략을 재사용한다.
 
 - PDF: 기존 PDF 파서
@@ -522,6 +543,9 @@ GET /api/folder-datasets/:datasetId/batches/:batchId
 - `attachment_id`
 - `folder_document_id`
 - `owner_id`
+- `access_scope`
+- `scope_team_id`
+- `scope_channel_id`
 - `effective_security_level`
 - `storage_status`
 - `root_folder`
@@ -531,6 +555,8 @@ GET /api/folder-datasets/:datasetId/batches/:batchId
 - `folder_keywords`
 - `folder_group_id`
 - `sibling_files`
+
+`access_scope`, `scope_team_id`, `scope_channel_id`, `effective_security_level`은 검색 프리필터가 청크만 보고 접근 권한을 판정하기 위해 반드시 청크에 함께 저장한다(23장 참조).
 
 ## 12. LanceDB 메타데이터
 
@@ -548,7 +574,10 @@ GET /api/folder-datasets/:datasetId/batches/:batchId
   "attachment_id": "attachment_xxxx",
   "folder_document_id": "doc_xxxx",
   "owner_id": "user_xxxx",
-  "effective_security_level": "internal",
+  "access_scope": "team",
+  "scope_team_id": "team_xxxx",
+  "scope_channel_id": "",
+  "effective_security_level": 1,
   "storage_status": "committed",
   "relative_path": "2026/고객A/계약서.docx",
   "folder_path": "계약자료/2026/고객A",
@@ -708,7 +737,7 @@ folder_documents
 
 - `attachments.status`를 `deleted` 또는 `removed`로 변경한다.
 - 연결된 `folder_documents.storage_status`를 `removed`로 변경한다.
-- 연결된 벡터 청크를 삭제하거나 tombstone 처리한다.
+- 연결된 벡터 청크를 tombstone 처리한다(즉시 검색 제외). 물리 삭제는 이후 비동기 정리 작업에서 수행한다. 상세 기준은 17.5장을 따른다.
 - 검색/RAG 결과와 원본 열기 UI에서 제외한다.
 - 물리 파일 삭제는 즉시 수행하지 않고 soft delete 이후 비동기 정리 작업에서 처리한다.
 
@@ -725,25 +754,43 @@ folder_documents
 
 ### 17.3 데이터셋 삭제
 
-데이터셋 삭제는 폴더 문맥 삭제와 원본 파일 삭제를 분리한다.
+> **정책 변경(결정 사항): 데이터셋 삭제는 완전 삭제(hard delete)를 기본으로 한다.**
+>
+> 이전 판본은 "데이터셋을 삭제해도 원본 `attachments`는 유지, `delete_originals=false`가 기본"이었으나, 폴더 데이터셋은 원본까지 포함한 하나의 자료 단위로 취급하기로 결정했다. 따라서 데이터셋 삭제 시 **원본 파일, `attachments` 행, RAG 청크, LanceDB row를 모두 삭제**한다. 다만 아래의 참조 수 검증(17.4장)은 반드시 유지한다 — 같은 원본을 게시글 첨부나 다른 데이터셋이 참조 중이면 그 원본은 남겨야 게시글 첨부가 깨지지 않는다.
 
-권장 기본값:
+데이터셋 삭제 시 `dataset_id` 기준으로 다음을 수행한다.
 
 - `folder_datasets.status`를 `removed` 또는 `deleted`로 변경한다.
 - 해당 `dataset_id`의 `folder_documents`를 `removed`로 변경한다.
-- 해당 `dataset_id`의 벡터 청크를 삭제한다.
-- 연결된 `attachments` 원본은 기본적으로 유지한다.
+- 해당 `dataset_id`의 벡터 청크를 tombstone → 물리 삭제한다(17.5장 2단계).
+- 각 `attachment_id`에 대해 참조 수(17.4장)를 확인한다.
+  - **참조 수 = 0**(이 데이터셋만 참조): 원본 파일과 `attachments` 행을 삭제한다.
+  - **참조 수 > 0**(게시글 첨부 또는 다른 데이터셋이 참조 중): 해당 원본과 `attachments`는 유지하고, 이 데이터셋의 `folder_documents`·청크만 제거한다.
+- 삭제 실행은 17.7장의 최종 일관성·멱등·재시도 원칙을 따른다.
 
-원본까지 삭제하는 옵션을 제공할 경우:
-
-- 기본값은 `delete_originals = false`로 둔다.
-- `delete_originals = true`일 때만 원본 삭제 후보를 계산한다.
-- 삭제 후보 `attachment_id`가 다른 `folder_documents`나 일반 첨부 흐름에서 참조 중이면 원본을 유지한다.
-- 참조 수가 0이고 사용자가 원본 삭제 권한을 가진 경우에만 `attachments`를 삭제 처리한다.
+즉 "완전 삭제"는 **참조가 오직 이 데이터셋뿐인 원본에 대해서만 원본까지 물리 삭제**한다는 의미다. 공유 원본을 말없이 지워 다른 곳을 깨뜨리지 않는다. 폴더 업로드 전용으로 새로 만든 `attachments`는 애초에 이 데이터셋만 참조하므로(4.4장) 대부분 참조 수 0으로 원본까지 삭제된다.
 
 ### 17.4 중복 원본과 참조 수
 
 같은 해시의 파일은 원본 저장을 공유할 수 있으므로 삭제 시 반드시 참조 수를 확인한다.
+
+참조 수를 셀 실체(referencer)를 먼저 명시한다. 현재 하나의 `attachments`를 가리키는 경로는 두 갈래다.
+
+- 게시글 첨부: `attachments.post_id` 및 `posts.attachments_1..10`
+- 폴더 문서: `folder_documents.attachment_id`
+
+게시글 참조는 두 곳에 정보가 있으므로 **권위(authoritative) 기준을 하나로 고정**한다. 이 문서는 `posts.attachments_1..10`(게시글이 실제로 노출·소유하는 슬롯)을 게시글 참조의 권위 기준으로 삼고, `attachments.post_id`는 역참조 캐시로만 취급한다. 둘이 어긋나면 `posts.attachments_1..10`을 우선한다.
+
+따라서 참조 수는 다음과 같이 정의한다.
+
+```text
+attachments 참조 수
+= (해당 attachment_id를 참조하는 folder_documents 중 storage_status != 'removed' 개수)
++ (해당 attachment_id가 어떤 posts.attachments_1..10 슬롯에 아직 들어 있으면 1, 아니면 0)
+```
+
+- 초기 구현에서는 별도 카운터 컬럼을 두지 않고 삭제 시점에 위 기준으로 `COUNT` 조회한다(단순함 우선).
+- 성능이 문제되면 이후 `reference_count` 캐시 컬럼을 도입하되, 정합성을 위해 증감 시점을 반드시 트랜잭션으로 묶는다.
 
 ```text
 attachments 참조 수 > 1
@@ -765,21 +812,61 @@ attachments 참조 수 = 1이고 원본 삭제 요청이 명시됨
 - `storage_status`
 - `deleted_at`
 
-삭제 작업은 다음 키를 기준으로 수행한다.
+**삭제는 2단계로 통일한다.** 앞선 17.1~17.3장의 "벡터 청크를 삭제한다"는 표현은 모두 아래 2단계를 의미하며, 즉시 물리 삭제를 뜻하지 않는다.
+
+1. **tombstone(즉시 검색 제외):** 대상 청크의 `storage_status = 'removed'`, `deleted_at = now()`로 표시한다. 검색·RAG·원본 열기는 이 시점부터 해당 청크를 제외한다. 사용자 관점의 "삭제"는 여기서 완료된다.
+2. **물리 삭제(비동기 정리):** 별도 정리 작업(배치/TTL)이 tombstone된 청크를 `vector_store.delete(...)`로 실제 제거한다. LanceDB의 물리 삭제/compaction 비용을 한데 모으기 위함이다.
+
+삭제 대상 청크를 고르는 키는 다음과 같다(각 키로 1단계 tombstone을 표시하고, 2단계에서 물리 삭제한다).
 
 ```text
 folder_document 제거
-→ vector_store.delete(where folder_document_id = ...)
+→ where folder_document_id = ...
 → folder_documents.storage_status = removed
 
 folder_dataset 제거
-→ vector_store.delete(where dataset_id = ...)
+→ where dataset_id = ...
 → folder_documents 일괄 removed
 
 attachment 제거
-→ vector_store.delete(where attachment_id = ...)
+→ where attachment_id = ...
 → 관련 folder_documents 일괄 removed
 ```
+
+### 17.6 기존 CASCADE 삭제와의 충돌
+
+위 삭제 흐름은 앱이 **의도적으로** 첨부/문서/데이터셋을 지우는 soft delete 경로만 다룬다. 그러나 현재 `attachments.channel_id`는 `ON DELETE CASCADE`(`server/schema.sql`)라서, **채널이 삭제되면 `attachments`가 물리 삭제(hard delete)** 되고 이를 참조하던 `folder_documents`·벡터 청크가 조용히 고아가 된다.
+
+이 경로를 명시적으로 처리한다.
+
+- 폴더 데이터셋이 특정 채널 수명주기에 묶이는 것이 맞는지 먼저 결정한다. 폴더 데이터셋은 채널과 독립적인 사용자/팀 자원으로 보는 것을 권장한다.
+- 폴더 업로드 전용으로 새로 만든 `attachments`는 채널에 종속시키지 않도록 `channel_id`를 `NULL`로 두거나, CASCADE 대상에서 제외되는 소유 모델을 사용한다.
+- 채널 삭제가 불가피하게 첨부를 지워야 한다면, hard delete 전에 연결된 `folder_documents`를 `removed` 처리하고 벡터 청크를 정리하는 정합성 단계(트리거 또는 애플리케이션 훅)를 반드시 거친다.
+
+### 17.7 삭제 흐름의 원자성과 부분 실패
+
+삭제는 서로 다른 3개 저장소를 건드린다.
+
+- Postgres `attachments`
+- Postgres `folder_documents`
+- 벡터 저장소(LanceDB)
+
+이들을 하나의 트랜잭션으로 묶을 수 없으므로, 삭제도 업로드(18장)와 마찬가지로 **최종 일관성(eventual consistency)** 으로 수렴시킨다. 핵심 원칙은 다음과 같다.
+
+- **Postgres 상태 변경을 먼저 확정한다.** `attachments.status`/`folder_documents.storage_status`를 `removed`로 바꾸는 것을 진실의 원천(source of truth)으로 삼는다. 이 단계가 성공하면 사용자 관점의 삭제는 완료된 것으로 본다.
+- **벡터 tombstone/물리 삭제는 뒤따르는 비동기 작업**으로 처리한다. 벡터 삭제가 실패해 고아 청크가 남아도, 검색 단계에서 `storage_status = 'removed'`인 청크를 필터링하므로 사용자에게 노출되지 않는다.
+- **정리 작업은 멱등(idempotent)하게** 만든다. 같은 tombstone 대상을 여러 번 삭제 시도해도 안전해야 한다.
+- 주기적 **reconciliation 작업**으로 "Postgres에서 removed인데 벡터에 아직 남아 있는" 청크와 "벡터에는 있는데 대응 `folder_documents`가 없는" 고아 청크를 찾아 정리한다.
+- 부분 실패는 실패로 롤백하지 않고 재시도 큐로 넘긴다. 즉 삭제는 "실패 시 원상복구"가 아니라 "성공할 때까지 재시도"로 설계한다.
+
+### 17.8 보안등급 변경 시 재계산
+
+`folder_datasets.security_level` 또는 원본 `attachments.security_level`이 사후에 변경되면, 그로부터 파생된 값이 자동으로 갱신되지 않는다. 오래된 등급으로 검색에 노출되는 보안 구멍을 막기 위해 **재계산을 명시한다.**
+
+- `folder_documents.effective_security_level = max(attachments.security_level, folder_datasets.security_level)`는 파생 값이다.
+- 데이터셋 또는 원본 첨부의 `security_level`이 변경되면, 영향받는 `folder_documents.effective_security_level`을 **다시 계산해 반영**한다.
+- 재계산된 값은 **벡터 청크 메타데이터의 `effective_security_level`에도 전파**한다. 벡터 갱신도 17.7장과 같은 비동기·멱등·최종 일관성 원칙을 따른다.
+- 전파가 완료되기 전까지 검색이 낮은(느슨한) 등급으로 노출되면 안 되므로, **상향(더 엄격해지는) 변경은 Postgres 기준값을 먼저 반영**하고 검색 권한 검사에서 Postgres의 최신 `effective_security_level`을 우선 신뢰한다. 벡터 메타데이터는 성능 최적화용 사본으로 취급한다.
 
 ## 18. 실패 처리
 
@@ -819,6 +906,14 @@ attachment 제거
 - 오래된 미완료 임시 업로드는 TTL 기반 정리 작업으로 삭제한다.
 
 ## 19. 구현 단계
+
+### 0단계: `attachments` 스키마 보강 (선행 필수)
+
+4.4장 전제 조건을 먼저 반영한다. 이 단계 없이는 소유권·보안등급·삭제 정책이 성립하지 않는다.
+
+- `attachments`에 `owner_id INTEGER`, `security_level INTEGER NOT NULL DEFAULT 0`, `deleted_at TIMESTAMPTZ` 추가(재실행 안전 마이그레이션).
+- `status`에 `deleted`/`removed` 상태 도입.
+- `channel_id ON DELETE CASCADE`가 폴더 데이터셋을 끌고 가는 문제(17.6장) 처리 방향 확정.
 
 ### 1단계: 브라우저 폴더 업로드 MVP
 
@@ -864,7 +959,7 @@ attachment 제거
 - `server/routes/files.js` 연동 또는 공통 저장 헬퍼 추출
 - `server/rag.js` 폴더 업로드 payload 연동
 - `server/rag_train.py` 청크 메타데이터 확장
-- `server/schema.sql` 또는 `server/db.js` 마이그레이션 추가
+- `server/schema.sql` 또는 `server/db.js` 마이그레이션 추가 (`attachments`에 `owner_id`, `security_level`, `deleted_at` 추가 및 신규 폴더 테이블 생성)
 
 검색:
 
@@ -885,7 +980,10 @@ attachment 제거
 - 같은 폴더 파일들이 같은 `folder_group_id`를 가진다.
 - RAG 청크 메타데이터에 폴더 정보가 들어간다.
 - `고객A 관련 자료 찾아줘` 질의에서 `고객A` 폴더 문서가 우선 검색된다.
-- 검색 결과에 같은 폴더 관련 문서가 표시된다.
+- 검색 결과에 같은 폴더 관련 문서가 표시되고, 같은 폴더 문서가 답변 생성 컨텍스트에도 포함된다(23.3).
+- `access_scope`에 따라 접근 권한이 없는 사용자는 해당 데이터셋을 검색·열람할 수 없다(모두/팀/채널/개인, 23.1).
+- `personal` 데이터셋은 업로더 외 다른 사용자 검색 결과·컨텍스트에 노출되지 않는다.
+- 데이터셋 삭제 시 원본 파일·`attachments`·RAG 청크·LanceDB row가 모두 삭제되되, 공유 원본(참조 수 > 0)은 유지된다(23.2).
 - 일부 파일 파싱 실패 시 나머지 파일 학습은 계속된다.
 
 ## 22. 결론
@@ -903,3 +1001,105 @@ EasyStation의 폴더 업로드 기능은 사용자가 이미 정리해 둔 자�
 ```
 
 이 구조를 적용하면 EasyStation은 파일 단위 검색을 넘어 고객, 프로젝트, 연도, 업무 분류 단위로 문서를 이해하고 답변할 수 있다.
+
+## 23. 접근 범위 모델 · 컨텍스트 주입 · 기존 구현 충돌
+
+이 장은 아래 세 가지 결정 사항과, 이를 구현할 때 **기존 RAG 코드와 충돌하는 지점**을 정리한다. 여기 적힌 충돌은 무시하고 진행할 수 없는 선결 과제다.
+
+### 23.1 접근 범위: 모두 / 팀 / 채널 / 개인
+
+폴더 업로드 데이터셋은 채널·팀에만 귀속되지 않는다. 업로더가 등록 시 다음 4가지 중 하나를 **선택**한다.
+
+- `all` (모두): 해당 워크스페이스의 모든 사용자가 검색·열람 가능.
+- `team` (팀): `scope_team_id` 팀에 연결된 사용자만 검색·열람 가능.
+- `channel` (채널): `scope_channel_id` 채널에 연결된 사용자만 검색·열람 가능.
+- `personal` (개인): 업로더 본인(`owner_id`)만 검색·열람 가능.
+
+이 범위는 `folder_datasets`에 저장하고, `folder_documents`와 **벡터 청크 메타데이터에까지 복제**한다. 검색 프리필터가 청크만 보고 판정해야 하기 때문이다. 사용자 `U`의 접근 판정은 다음 OR 조건이다.
+
+```text
+접근 허용 =
+   access_scope = 'all'
+OR (access_scope = 'team'     AND scope_team_id ∈ U의 소속 팀)
+OR (access_scope = 'channel'  AND scope_channel_id ∈ U의 접근 가능 채널)
+OR (access_scope = 'personal' AND owner_id = U.id)
+그리고 항상: effective_security_level ≤ U.security_level
+```
+
+### 23.2 데이터셋 삭제: 완전 삭제
+
+17.3장 결정에 따라 데이터셋 삭제는 원본 파일·`attachments`·RAG 청크·LanceDB row를 **모두 삭제**한다. 단, 17.4장의 참조 수 검증을 유지해 공유 원본은 보호한다.
+
+### 23.3 같은 폴더 관련 문서: 생성 컨텍스트에 주입
+
+같은 폴더(`folder_group_id`) 관련 문서는 UI 추천에 그치지 않고 **답변 생성 컨텍스트에 포함**한다. 1차 벡터 검색 결과의 `folder_group_id`를 모아 같은 그룹 문서 청크를 추가 조회하고, 최종 컨텍스트에 병합한다. 단 아래 제약을 지킨다.
+
+- 확장된 형제 문서도 23.1의 접근 범위와 `effective_security_level` 필터를 **다시 통과**시킨다(권한 누수 방지).
+- 그룹당 상위 N개로 제한하고, 원문 문서보다 낮은 가중치(7장 same_folder=1.0 기준 아래)로 넣어 컨텍스트 토큰 예산을 지킨다.
+
+### 23.4 기존 구현과의 충돌 (선결 과제)
+
+**충돌 1 — RAG ACL이 채널 전용 하드필터다. (차단성)**
+현재 `server/rag_search.py`는 `metadata.channel_id IN (allowed_channel_ids)`로만 필터하고, `allowed_channel_ids`가 비면 무조건 빈 결과를 낸다. `server/routes/rag.js`도 접근 채널이 0개면 검색을 아예 안 한다. 폴더 데이터셋 청크는 `channel_id`가 없어 **현재 로직에서는 아무에게도 안 보인다.** `all`/`team`/`personal` 범위는 채널 필터로 표현조차 불가능하다. → `rag_search.py`의 프리필터를 23.1 OR 조건으로 확장하고, `rag.js`·`ragLocateFallback.js`가 채널 ID 대신 "사용자 스코프 컨텍스트(소속 팀, 접근 채널, user_id, security_level)"를 전달하도록 재설계해야 한다.
+
+**충돌 2 — LanceDB 메타데이터가 고정 struct 스키마다. (차단성)**
+`server/rag_train.py`의 `required` 필드 목록과 struct 서브필드가 고정이라, `access_scope`·`scope_team_id`·`scope_channel_id`·`owner_id`·`dataset_id`·`folder_group_id`·`effective_security_level`을 넣으려면 **schema_version 업 + 테이블 재생성/백필**이 필요하다. 무시하면 신규 필드가 저장되지 않는다.
+
+**충돌 3 — `security_level`이 청크 스키마에 없어 사실상 무력하다.**
+`server/services/ragLocateFallback.js`는 `meta.security_level`로 필터하지만, 그 필드는 `rag_train.py`의 청크 스키마에 **없다.** 현재 벡터 검색 단계의 보안등급 필터는 항상 0으로 취급되어 무력하다. 폴더 업로드의 `effective_security_level`을 실제로 적용하려면 이 필드를 스키마에 먼저 넣어야 한다(충돌 2와 함께 처리).
+
+**충돌 4 — 데이터셋을 pseudo 채널로 우회한 선례가 있다.**
+기존 "수동 데이터셋" 업로드는 `server/routes/rag.js`에서 `channel_id: 'rag_dataset'`(실재하지 않는 채널)로 저장한다. 이 값은 어떤 사용자의 접근 가능 채널에도 없어 메인 검색에서 걸리지 않는다. 폴더 업로드는 이 우회를 답습하지 말고 23.1 스코프 모델로 정식 처리한다.
+
+**충돌 5 — 벡터 삭제 키가 `post_id`/`comment_id`뿐이다. (차단성)**
+`server/rag_train.py`의 삭제는 `metadata.post_id` / `comment_id` 기준만 지원한다. 데이터셋 완전 삭제(23.2)를 위해 `metadata.dataset_id` / `attachment_id` 기준 삭제 키를 추가해야 하며, 이는 충돌 2의 스키마 확장이 선행돼야 한다.
+
+**충돌 6 — 컨텍스트 조립·캐시가 이미 예산에 묶여 있다.**
+`server/routes/rag.js`의 컨텍스트 조립부는 `finalResults`를 그대로 join하고 결과를 캐시한다. 23.3의 형제 문서 확장은 이 파이프라인에 얹되, ACL 재검증과 개수 상한을 반드시 적용해 권한 누수와 캐시 키 불일치를 막는다. 방향 자체는 기존 `priorityBoost`(채널/팀 근접도 가감) 확장으로 자연스럽게 붙는다.
+
+### 23.5 처리 순서 권고
+
+1. `attachments` 스키마 보강(19장 0단계) + 폴더 테이블에 `access_scope` 계열 컬럼 추가.
+2. LanceDB schema_version 업 + `access_scope`·`scope_*`·`owner_id`·`dataset_id`·`effective_security_level` 필드 추가 및 백필(충돌 2·3).
+3. `rag_search.py` 프리필터를 23.1 OR 조건으로 확장, 호출부(`rag.js`·`ragLocateFallback.js`)를 스코프 컨텍스트 전달로 변경(충돌 1·4).
+4. `rag_train.py`에 `dataset_id`/`attachment_id` 삭제 키 추가(충돌 5), 데이터셋 완전 삭제 흐름 연결(23.2).
+5. 같은 폴더 컨텍스트 주입 + ACL 재검증 + 개수 상한(23.3, 충돌 6).
+
+### 23.6 구현 현황 (2026-07-11 기준)
+
+**1단계(업로드/저장) — 완료**
+- `attachments` 보강 + `folder_datasets`/`folder_upload_batches`/`folder_documents`/`folder_relationships` 테이블(`server/folder/schema.js`, boot 자동 마이그레이션).
+- 업로드/목록/상세/완전삭제 라우트(`server/routes/folderDatasets.js`), 데이터 접근 계층(`server/folder/repository.js`).
+- 기존 JSON 데이터셋 흡수(`server/scripts/absorb-rag-datasets.js`).
+- 프론트 폴더 업로드 모달(`src/features/folderUpload/FolderUploadModal.jsx`).
+
+**스코프 검색 인프라 — 완료(단, 활성화는 마이그레이션 필요)**
+- LanceDB **schema v3** 필드(스코프+폴더): `server/rag_train.py` `schema_v3_fields()`. **`schema_version >= 3`에서만 적용**되어 활성 v2 테이블은 무영향.
+- 스코프 인지형 검색 ACL: `server/rag_server.py` `build_acl_clause()`(모두/팀/채널/개인 + `effective_security_level` + site_admin). 테이블에 스코프 필드가 있을 때만 스코프 절 적용 → v2 검색 동작 보존.
+- 폴더 문서 학습 인제션: `server/rag_train.py` `ingest_folder_document()`(기존 파서 재사용 + 스코프 stamp).
+- `dataset_id`/`attachment_id` 벡터 삭제 키.
+- 검색 호출부 `server/routes/rag.js`에 `scope_context` 전달 + 캐시 키 스코프 지문(사용자 간 누수 방지).
+- 라우트 학습/삭제 트리거: `server/folder/ragTrainer.js`(**`folderVectorsEnabled()`=schema>=3일 때만 실제 수행**), 업로드 시 백그라운드 학습, 삭제 시 벡터 삭제.
+
+**활성화(마이그레이션) — 운영 단계로 남김 (사용자가 파괴적 방식 승인)**
+현재 `config.json`의 `rag.schema_version = 2`, `active_table = my_rag_table_v2`(16,223행)이다. 스코프 검색을 켜려면:
+1. 게시글/댓글 전체를 schema v3 테이블로 **재학습**(기존 rebuild 흐름). 재학습 완료 전까지 검색이 비므로 저부하 시간대에 수행.
+2. `config.json` `rag.schema_version = 3`, `active_table`을 v3로 전환.
+3. `node server/scripts/train-folder-datasets.js`로 기존/보류 폴더 문서 백필.
+마이그레이션 전까지 폴더 업로드는 저장은 되고 `training_status = pending`(응답 `training: pending_migration`)으로 대기하며, 활성 v2 데이터는 절대 손상되지 않는다.
+
+**같은 폴더 컨텍스트 주입(23.3) — 완료**
+- 1차 결과의 `folder_group_id`를 모아 같은 그룹 청크를 추가 조회하고 ACL 재검증 + 그룹당/전체 개수 상한을 적용해 생성 컨텍스트에 병합: `server/routes/rag.js` `expandFolderSiblings()`/`buildFolderSiblingContext()`.
+- 검색 엔진 양쪽 경로 대칭: `server/rag_server.py`(상시 HTTP 서버)와 `server/rag_search.py`(subprocess 폴백) 모두 `with_folder_group_filter()`로 `folder_group_ids` 필터를 ACL 위에 AND 결합. 두 경로 모두 스코프 ACL(`build_acl_clause`) 반영 완료.
+
+**GPU 학습 스케줄링 (RAG.md 5장) — 1~5단계 구현 완료**
+
+폴더 업로드 대량 학습이 실시간 검색·답변과 GPU를 경합하는 문제를 5단계로 해소했다. 상세 설계·플래그·검증 기준은 [GpuScheduling.md](./GpuScheduling.md)(§9.1 구현 현황) 참조.
+
+1. **경량 협조 게이트** — `server/gpu/gpuGate.js`(nvidia-smi 물리 게이트 + Redis 논리 리스 + `waitForTrainingSlot`). `ragTrainer`가 파일 배치 단위로 양보. 검색·Ollama 하트비트(`markInteractiveBusy`/`withInteractiveLease`). 기본 on, nvidia-smi/Redis 폴백으로 안전.
+2. **임베딩 단일화** — `rag_train.py` `embed_texts()`가 rag_server `/embed`로 통일(기존 구현). bge-m3 이중 로드 제거.
+3. **관측성** — `aiMetrics` GPU 메트릭 + `GET /api/admin/gpu-optimization`의 `gpu_scheduling` 상태 + SiteAdminPage "GPU 학습 스케줄링" 패널.
+4. **정식 단일 브로커 큐** (opt-in) — `server/gpu/broker.js`(전용 커넥션 소비자 그룹). `broker_enabled`+`queue_enabled` 시 `ai:queue:training`으로 학습 적재, 아니면 직접 게이트 경로. `index.js`에서 기동.
+5. **운영 성숙** — 기아 방지(`max_yield_wait_sec`), 파일 단위 양보(`train_yield_batch`), Ollama 논리 레인(리스).
+
+`training_status`는 `trainBatchDirect`가 배치 단위로 소유(직접·브로커 경로 정확). 기본값에서 검색·기존 학습 경로 동작을 보존한다.

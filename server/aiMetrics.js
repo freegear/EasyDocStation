@@ -2,6 +2,15 @@ const state = {
   started_at: new Date().toISOString(),
   tasks: {},
   experiments: [],
+  // GPU 학습 스케줄링 메트릭 (MDfiles/GpuScheduling.md 3단계 관측성)
+  gpu: {
+    training_yield_count: 0,      // 학습이 대화형/물리 게이트에 양보한 횟수
+    training_admit_rejected: 0,   // admit 판정에서 거절된 누적 횟수
+    training_forced: 0,           // 기아 방지로 강제 진행한 횟수(5단계)
+    training_batches: 0,          // 실행된 학습 단위(파일 배치) 수
+    train_wait_ms: [],            // 학습 단위별 대기 시간
+    last_status: null,            // 최근 nvidia-smi/게이트 상태 스냅샷
+  },
 }
 
 function ensureTask(task) {
@@ -75,6 +84,31 @@ function recordQueue(task, { waitMs, batchSize } = {}) {
   pushBounded(item.batch_sizes, batchSize)
 }
 
+// ── GPU 학습 스케줄링 메트릭 (3단계 관측성) ──
+function recordTrainingSlot({ waitedMs = 0, forced = false, rejectedCount = 0 } = {}) {
+  state.gpu.training_batches += 1
+  if (waitedMs > 0 || rejectedCount > 0) state.gpu.training_yield_count += 1
+  state.gpu.training_admit_rejected += Number(rejectedCount || 0)
+  if (forced) state.gpu.training_forced += 1
+  pushBounded(state.gpu.train_wait_ms, waitedMs)
+}
+
+function setGpuStatus(status = {}) {
+  state.gpu.last_status = { ...status, recorded_at: new Date().toISOString() }
+}
+
+function summarizeGpu() {
+  return {
+    training_yield_count: Number(state.gpu.training_yield_count || 0),
+    training_admit_rejected: Number(state.gpu.training_admit_rejected || 0),
+    training_forced: Number(state.gpu.training_forced || 0),
+    training_batches: Number(state.gpu.training_batches || 0),
+    avg_train_wait_ms: avg(state.gpu.train_wait_ms),
+    p95_train_wait_ms: percentile(state.gpu.train_wait_ms, 95),
+    last_status: state.gpu.last_status,
+  }
+}
+
 function addExperiment(result = {}) {
   const row = { ...result, created_at: new Date().toISOString() }
   state.experiments.unshift(row)
@@ -113,6 +147,7 @@ function snapshot() {
     generated_at: new Date().toISOString(),
     tasks: Object.fromEntries(Object.entries(state.tasks).map(([task, item]) => [task, summarizeTask(item)])),
     experiments: state.experiments,
+    gpu_scheduling: summarizeGpu(),
   }
 }
 
@@ -120,6 +155,14 @@ function resetMetrics() {
   state.started_at = new Date().toISOString()
   state.tasks = {}
   state.experiments = []
+  state.gpu = {
+    training_yield_count: 0,
+    training_admit_rejected: 0,
+    training_forced: 0,
+    training_batches: 0,
+    train_wait_ms: [],
+    last_status: null,
+  }
 }
 
 module.exports = {
@@ -129,6 +172,8 @@ module.exports = {
   recordGpuCall,
   recordRequest,
   recordQueue,
+  recordTrainingSlot,
+  setGpuStatus,
   addExperiment,
   snapshot,
   resetMetrics,

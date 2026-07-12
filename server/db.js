@@ -5,6 +5,8 @@ const bcrypt = require('bcryptjs')
 const { getPostgresPoolOptions } = require('./runtimeDbConfig')
 const { ensureMailSchema } = require('./mail/schema')
 const { ensureChannelMappingIndexSchema } = require('./lib/channelMappingIndex')
+const { ensureFolderDatasetSchema } = require('./folder/schema')
+const { ensureContactBookSchema } = require('./contactbook/schema')
 
 const pool = new Pool(getPostgresPoolOptions())
 
@@ -278,9 +280,23 @@ async function initDb() {
         ALTER TABLE calendar_events ADD COLUMN IF NOT EXISTS source_message_id TEXT NOT NULL DEFAULT '';
         ALTER TABLE calendar_events ADD COLUMN IF NOT EXISTS source_summary_id TEXT NOT NULL DEFAULT '';
         ALTER TABLE calendar_events ADD COLUMN IF NOT EXISTS source_action_index INTEGER;
+        ALTER TABLE calendar_events ADD COLUMN IF NOT EXISTS source_deduplication_key TEXT NOT NULL DEFAULT '';
+        ALTER TABLE calendar_events ADD COLUMN IF NOT EXISTS source_payload JSONB NOT NULL DEFAULT '{}';
+        ALTER TABLE calendar_events ADD COLUMN IF NOT EXISTS location TEXT NOT NULL DEFAULT '';
         CREATE UNIQUE INDEX IF NOT EXISTS idx_calendar_events_mail_action_unique
           ON calendar_events(owner_id, source_type, source_message_id, source_summary_id, source_action_index)
           WHERE source_type = 'mail_summary_action_item';
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_calendar_events_mail_dedup_unique
+          ON calendar_events(owner_id, source_deduplication_key)
+          WHERE source_type = 'mail_summary' AND source_deduplication_key <> '';
+      `)
+      await runMigrationStep(client, 'normalize one-day mail summary all-day events', `
+        UPDATE calendar_events
+        SET end_dt = start_dt,
+            updated_at = NOW()
+        WHERE source_type = 'mail_summary'
+          AND all_day = TRUE
+          AND end_dt <> start_dt;
       `)
       // calendar_events.id: SERIAL → TEXT(UUID) 마이그레이션
       await runMigrationStep(client, 'calendar_events id type migration', `
@@ -428,8 +444,30 @@ async function initDb() {
         ALTER TABLE dm_messages ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;
         ALTER TABLE dm_messages ADD COLUMN IF NOT EXISTS deleted_by INTEGER REFERENCES users(id) ON DELETE SET NULL;
       `)
+      await ensureFolderDatasetSchema(client)
       await ensureDefaultUsers(client)
       await ensureMailSchema(client)
+      await ensureContactBookSchema(client)
+      await runMigrationStep(client, 'create content transfer history', `
+        CREATE TABLE IF NOT EXISTS content_transfer_history (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          idempotency_key TEXT,
+          content_type TEXT NOT NULL CHECK (content_type IN ('POST', 'COMMENT')),
+          operation TEXT NOT NULL CHECK (operation IN ('MOVE', 'COPY')),
+          source_channel_id VARCHAR(50) NOT NULL REFERENCES channels(id) ON DELETE CASCADE,
+          source_post_id VARCHAR(50),
+          source_comment_id VARCHAR(50),
+          target_channel_id VARCHAR(50) NOT NULL REFERENCES channels(id) ON DELETE CASCADE,
+          target_post_id VARCHAR(50),
+          target_comment_id VARCHAR(50),
+          performed_by INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          options JSONB NOT NULL DEFAULT '{}',
+          created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+          UNIQUE (performed_by, idempotency_key)
+        );
+        CREATE INDEX IF NOT EXISTS idx_content_transfer_source ON content_transfer_history(content_type, source_post_id, source_comment_id);
+        CREATE INDEX IF NOT EXISTS idx_content_transfer_target ON content_transfer_history(target_channel_id, created_at DESC);
+      `)
       console.log('✅ Database migration complete.')
     } finally {
       client.release()

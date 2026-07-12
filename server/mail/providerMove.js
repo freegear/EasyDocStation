@@ -90,11 +90,33 @@ function isImapProvider(provider) {
   return ['naver', 'apple', 'imap', 'other'].includes(provider)
 }
 
+function normalizeMailboxName(value) {
+  return String(value || '').trim().toLowerCase()
+}
+
+function mailboxLeafName(box) {
+  const path = String(box?.path || '')
+  const delimiter = String(box?.delimiter || '/')
+  return normalizeMailboxName(path.split(delimiter).filter(Boolean).pop() || path)
+}
+
+function mailboxHasSpecialUse(box, expected) {
+  const target = normalizeMailboxName(expected)
+  if (normalizeMailboxName(box?.specialUse) === target) return true
+  for (const collection of [box?.flags, box?.attributes]) {
+    if (!collection) continue
+    const values = typeof collection[Symbol.iterator] === 'function' ? [...collection] : []
+    if (values.some(value => normalizeMailboxName(value) === target)) return true
+  }
+  return false
+}
+
 function findMailbox(mailboxes, candidates) {
-  for (const candidate of candidates.filter(Boolean)) {
+  for (const candidate of candidates.map(normalizeMailboxName).filter(Boolean)) {
     const found = mailboxes.find(box => (
-      String(box.path || '').toLowerCase() === String(candidate).toLowerCase()
-      || String(box.name || '').toLowerCase() === String(candidate).toLowerCase()
+      normalizeMailboxName(box.path) === candidate
+      || normalizeMailboxName(box.name) === candidate
+      || mailboxLeafName(box) === candidate
     ))
     if (found) return found.path
   }
@@ -105,18 +127,24 @@ function resolveMailboxPath(mailboxes, folder) {
   if (!folder) return null
   if (folder.type === 'inbox' || folder.provider_folder_id === 'INBOX') return 'INBOX'
   if (folder.type === 'trash' || folder.provider_folder_id === 'TRASH') {
-    const bySpecial = mailboxes.find(box => String(box.specialUse || '').toLowerCase() === '\\trash')
-    return bySpecial?.path || findMailbox(mailboxes, ['TRASH', 'Trash', 'Deleted Messages', 'Deleted Items', '휴지통']) || folder.provider_folder_id
+    const bySpecial = mailboxes.find(box => mailboxHasSpecialUse(box, '\\trash'))
+    return bySpecial?.path || findMailbox(mailboxes, [folder.provider_folder_id, 'Trash', 'Deleted Messages', 'Deleted Items', 'Deleted', '휴지통', '지운 편지함'])
   }
   if (folder.type === 'sent' || folder.provider_folder_id === 'SENT') {
-    const bySpecial = mailboxes.find(box => String(box.specialUse || '').toLowerCase() === '\\sent')
-    return bySpecial?.path || findMailbox(mailboxes, ['SENT', 'Sent', 'Sent Messages', 'Sent Mail', '보낸메일함', '보낸 메일']) || folder.provider_folder_id
+    const bySpecial = mailboxes.find(box => mailboxHasSpecialUse(box, '\\sent'))
+    return bySpecial?.path || findMailbox(mailboxes, [folder.provider_folder_id, 'Sent', 'Sent Messages', 'Sent Mail', '보낸메일함', '보낸 메일'])
   }
   if (folder.type === 'drafts' || folder.provider_folder_id === 'DRAFT') {
-    const bySpecial = mailboxes.find(box => String(box.specialUse || '').toLowerCase() === '\\drafts')
-    return bySpecial?.path || findMailbox(mailboxes, ['DRAFT', 'Draft', 'Drafts', '임시보관함', '임시 보관함']) || folder.provider_folder_id
+    const bySpecial = mailboxes.find(box => mailboxHasSpecialUse(box, '\\drafts'))
+    return bySpecial?.path || findMailbox(mailboxes, [folder.provider_folder_id, 'Draft', 'Drafts', '임시보관함', '임시 보관함'])
   }
-  return folder.provider_folder_id
+  return findMailbox(mailboxes, [folder.provider_folder_id])
+}
+
+function mailMoveError(code, message) {
+  const err = new Error(message)
+  err.code = code
+  return err
 }
 
 // IMAP 메일함에서 Message-ID 헤더로 메시지 UID를 찾는다. (provider_message_id에
@@ -127,6 +155,26 @@ async function findImapUidByMessageId(client, internetMessageId) {
   const found = await client.search({ header: { 'message-id': id } }, { uid: true })
   if (!Array.isArray(found) || found.length === 0) return null
   return found[found.length - 1]
+}
+
+async function findImapMessageAcrossMailboxes(client, mailboxes, internetMessageId) {
+  const id = String(internetMessageId || '').trim()
+  if (!id) return null
+  for (const box of mailboxes) {
+    if (!box?.path || mailboxHasSpecialUse(box, '\\trash')) continue
+    if (box.flags?.has?.('\\Noselect') || box.attributes?.has?.('\\Noselect')) continue
+    let lock
+    try {
+      lock = await client.getMailboxLock(box.path)
+      const uid = await findImapUidByMessageId(client, id)
+      if (uid) return { mailbox: box.path, uid }
+    } catch {
+      // 일부 선택 불가 메일함의 오류는 다른 메일함 탐색을 막지 않는다.
+    } finally {
+      lock?.release()
+    }
+  }
+  return null
 }
 
 async function moveImapMessageOnProvider({ account, message, targetFolder }) {
@@ -146,15 +194,26 @@ async function moveImapMessageOnProvider({ account, message, targetFolder }) {
       provider_folder_id: parsed?.providerFolderId || message.folder_provider_id,
       type: message.folder_type || 'custom',
     }
-    const sourceMailbox = resolveMailboxPath(mailboxes, sourceFolder)
+    let sourceMailbox = resolveMailboxPath(mailboxes, sourceFolder)
     const targetMailbox = resolveMailboxPath(mailboxes, targetFolder)
-    if (!sourceMailbox || !targetMailbox) throw new Error('IMAP 이동 대상 메일함을 찾지 못했습니다.')
+    if (!targetMailbox) throw mailMoveError('IMAP_TRASH_MAILBOX_NOT_FOUND', 'IMAP 휴지통 메일함을 찾지 못했습니다.')
+
+    let recoveredUid = null
+    if (!sourceMailbox) {
+      const recovered = await findImapMessageAcrossMailboxes(client, mailboxes, message.internet_message_id)
+      if (!recovered) {
+        if (message.internet_message_id) throw mailMoveError('IMAP_MESSAGE_NOT_FOUND', '원격 IMAP 서버에서 메일을 찾지 못했습니다.')
+        throw mailMoveError('LOCAL_ORPHAN_CANDIDATE', '원본 메일함과 Message-ID가 없어 원격 메일을 확인할 수 없습니다.')
+      }
+      sourceMailbox = recovered.mailbox
+      recoveredUid = recovered.uid
+    }
 
     const lock = await client.getMailboxLock(sourceMailbox)
     try {
-      let uid = parsed?.uid || null
+      let uid = recoveredUid || parsed?.uid || null
       if (!uid) uid = await findImapUidByMessageId(client, message.internet_message_id)
-      if (!uid) throw new Error('IMAP 메시지 UID를 확인할 수 없습니다.')
+      if (!uid) throw mailMoveError('IMAP_MESSAGE_NOT_FOUND', '원격 IMAP 서버에서 메일을 찾지 못했습니다.')
       const result = await client.messageMove(String(uid), targetMailbox, { uid: true })
       const movedUid = result?.uidMap?.get(uid) || uid
       return {
@@ -166,6 +225,27 @@ async function moveImapMessageOnProvider({ account, message, targetFolder }) {
     } finally {
       lock.release()
     }
+  } finally {
+    if (client.usable) await client.logout().catch(() => {})
+    else client.close()
+  }
+}
+
+async function isLocalOrphanCandidateOnProvider({ account, message }) {
+  if (!isImapProvider(account?.provider) || String(message?.internet_message_id || '').trim()) return false
+  const password = decryptSecret(account.password_encrypted)
+  if (!password) throw new Error('메일 계정 암호가 저장되어 있지 않습니다.')
+
+  const parsed = parseImapProviderMessageId(message.provider_message_id)
+  const client = buildImapClient(account, password)
+  await client.connect()
+  try {
+    const mailboxes = await client.list()
+    const sourceFolder = {
+      provider_folder_id: parsed?.providerFolderId || message.folder_provider_id,
+      type: message.folder_type || 'custom',
+    }
+    return !resolveMailboxPath(mailboxes, sourceFolder)
   } finally {
     if (client.usable) await client.logout().catch(() => {})
     else client.close()
@@ -366,6 +446,8 @@ async function moveMessagesToTrashOnProvider({ tenantId, account, messages, tras
 }
 
 module.exports = {
+  resolveMailboxPath,
+  isLocalOrphanCandidateOnProvider,
   moveMessageOnProvider,
   moveMessagesToTrashOnProvider,
 }

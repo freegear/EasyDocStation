@@ -137,6 +137,7 @@ export default function MailPage({ onBackToMain, initialMailLink = null, initial
   const [smartFolderMenu, setSmartFolderMenu] = useState(null)
   const [mailClawRegistration, setMailClawRegistration] = useState(null)
   const [pendingEmptyTrash, setPendingEmptyTrash] = useState(null)
+  const [pendingLocalOrphanDelete, setPendingLocalOrphanDelete] = useState(null)
   // 폴더 삭제 확인 대기: { account, folder, message, danger }
   const [pendingDeleteFolder, setPendingDeleteFolder] = useState(null)
   const [folderNameDialog, setFolderNameDialog] = useState(null)
@@ -1086,12 +1087,23 @@ export default function MailPage({ onBackToMain, initialMailLink = null, initial
         method: 'PATCH',
         body: JSON.stringify({ action: 'delete', messageIds: targets.map(item => item.id) }),
       })
-      const resultById = new Map((result?.results || []).map(item => [item.id, item]))
-      const successTargets = targets.filter(message => resultById.get(message.id)?.ok)
-      const failedTargets = targets.filter(message => !resultById.get(message.id)?.ok)
+      const resultById = new Map((result?.results || []).map(item => [String(item.id), item]))
+      const successTargets = targets.filter(message => resultById.get(String(message.id))?.ok)
+      const failedTargets = targets.filter(message => !resultById.get(String(message.id))?.ok)
       const failedIds = new Set(failedTargets.map(item => String(item.id)))
 
       if (failedTargets.length > 0) {
+        console.warn('[mail delete] 일부 메일 삭제 실패', {
+          requested: targets.length,
+          failed: failedTargets.length,
+          results: failedTargets.map(message => {
+            const item = resultById.get(String(message.id))
+            return {
+              messageId: String(message.id),
+              error: item?.error || '서버에서 삭제 성공 결과를 반환하지 않았습니다.',
+            }
+          }),
+        })
         setMessages(prev => restoreMessagesBySnapshot(prev, snapshotMessages, failedIds))
         if (snapshotSelectedMessage && failedIds.has(String(snapshotSelectedMessage.id))) {
           setSelectedMessage(snapshotSelectedMessage)
@@ -1125,7 +1137,12 @@ export default function MailPage({ onBackToMain, initialMailLink = null, initial
       }
       // 삭제/휴지통 이동은 스마트 폴더 태그 집계에서도 빠지므로 배지를 갱신한다. (MailService.md 13)
       await reloadSmartFolders().catch(() => {})
-      setMessagesError(failedTargets.length > 0 ? '일부 메일을 삭제하지 못했습니다.' : '')
+      const orphanTargets = failedTargets.filter(message => resultById.get(String(message.id))?.canDeleteLocally)
+      const ordinaryFailures = failedTargets.filter(message => !resultById.get(String(message.id))?.canDeleteLocally)
+      if (orphanTargets.length > 0) {
+        setPendingLocalOrphanDelete({ tenantId, targets: orphanTargets, loading: false })
+      }
+      setMessagesError(ordinaryFailures.length > 0 ? '일부 메일을 삭제하지 못했습니다.' : '')
     } catch (err) {
       setMessages(prev => restoreMessagesBySnapshot(prev, snapshotMessages, targetIds))
       setSelectedMessage(snapshotSelectedMessage)
@@ -1139,6 +1156,43 @@ export default function MailPage({ onBackToMain, initialMailLink = null, initial
         })
       }
       setMessagesError(err.message || '메일을 삭제하지 못했습니다.')
+    }
+  }
+
+  async function confirmLocalOrphanDelete() {
+    const pending = pendingLocalOrphanDelete
+    if (!pending || pending.loading) return
+    setPendingLocalOrphanDelete(prev => ({ ...prev, loading: true }))
+    try {
+      const result = await apiFetch(`/mail/messages/bulk?tenantId=${encodeURIComponent(pending.tenantId)}`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          action: 'delete_local_orphan',
+          messageIds: pending.targets.map(item => item.id),
+          confirmation: 'LOCAL_ONLY',
+        }),
+      })
+      const okIds = new Set((result?.results || []).filter(item => item.ok).map(item => String(item.id)))
+      const removed = pending.targets.filter(item => okIds.has(String(item.id)))
+      setMessages(prev => prev.filter(item => !okIds.has(String(item.id))))
+      setSelectedMessage(prev => (prev && okIds.has(String(prev.id)) ? null : prev))
+      setSelectedMessageIds(prev => prev.filter(id => !okIds.has(String(id))))
+      for (const message of removed) {
+        adjustFolderCounts({
+          accountId: message.account_id,
+          folderId: message.folder_id,
+          totalDelta: -1,
+          unreadDelta: message.is_read ? 0 : -1,
+        })
+      }
+      await reloadSmartFolders().catch(() => {})
+      const failed = pending.targets.length - removed.length
+      setMessagesError(failed > 0 ? '일부 고아 메일을 로컬 목록에서 제거하지 못했습니다.' : '')
+      if (removed.length > 0) showToast({ message: `${removed.length}개 메일을 로컬 목록에서 제거했습니다.`, tone: 'success' })
+      setPendingLocalOrphanDelete(null)
+    } catch (err) {
+      setMessagesError(err.message || '고아 메일을 로컬 목록에서 제거하지 못했습니다.')
+      setPendingLocalOrphanDelete(prev => ({ ...prev, loading: false }))
     }
   }
 
@@ -2077,9 +2131,20 @@ export default function MailPage({ onBackToMain, initialMailLink = null, initial
       >
         <div className="flex-1 overflow-y-auto py-2">
           <div className="px-3 pb-2 mb-1 border-b border-gray-300">
-            <div className="flex items-center gap-2.5 px-2 py-2 text-gray-900">
-              <MailIcon className="w-5 h-5 text-indigo-600" />
-              <span className="font-extrabold">{mt.mail}</span>
+            <div className="flex items-center justify-between px-2 py-2 text-gray-900">
+              <div className="flex items-center gap-2.5">
+                <MailIcon className="w-5 h-5 text-indigo-600" />
+                <span className="font-extrabold">{mt.mail}</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowAccountModal(true)}
+                className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-500 transition-all hover:bg-gray-300 hover:text-gray-900"
+                title={mt.accountSettings}
+                aria-label={mt.accountSettings}
+              >
+                <MenuIcon type="settings" />
+              </button>
             </div>
             <button
               type="button"
@@ -2242,25 +2307,6 @@ export default function MailPage({ onBackToMain, initialMailLink = null, initial
           </div>
         </div>
 
-        <div className="flex gap-2 border-t border-gray-100 px-3 py-2">
-          <button
-            type="button"
-            onClick={onBackToMain}
-            className="flex basis-3/4 items-center gap-2.5 rounded-lg px-2 py-2 text-left text-sm text-gray-500 transition-all hover:bg-gray-200 hover:text-gray-900"
-          >
-            <MenuIcon type="back" />
-            <span className="font-medium">{mt.mainMenu}</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setShowAccountModal(true)}
-            className="flex basis-1/4 items-center justify-center rounded-lg px-2 py-2 text-gray-500 transition-all hover:bg-gray-200 hover:text-gray-900"
-            title={mt.accountSettings}
-            aria-label={mt.accountSettings}
-          >
-            <MenuIcon type="settings" />
-          </button>
-        </div>
       </aside>
 
       {isSidebarResizable && (
@@ -2382,6 +2428,20 @@ export default function MailPage({ onBackToMain, initialMailLink = null, initial
           danger
           onConfirm={() => emptyTrashFolder(pendingEmptyTrash)}
           onCancel={() => setPendingEmptyTrash(null)}
+        />
+      )}
+      {pendingLocalOrphanDelete && (
+        <ConfirmDialog
+          title="불완전한 메일 로컬 제거"
+          message={`원본 메일함 정보를 확인할 수 없는 메일 ${pendingLocalOrphanDelete.targets.length}개입니다.\n메일 서버의 원본은 변경하지 않고 이 앱의 목록에서만 제거할까요?`}
+          confirmText="로컬 목록에서 제거"
+          cancelText={mt.cancel}
+          danger
+          loading={pendingLocalOrphanDelete.loading}
+          onConfirm={confirmLocalOrphanDelete}
+          onCancel={() => {
+            if (!pendingLocalOrphanDelete.loading) setPendingLocalOrphanDelete(null)
+          }}
         />
       )}
       {pendingDeleteFolder && (

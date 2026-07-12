@@ -125,10 +125,12 @@ async function syncOneMessage({ tenantId, account, accessToken, storage, folderM
     if (att.providerAttachmentId) {
       const res = await gmailGetAttachment(accessToken, parsed.providerMessageId, att.providerAttachmentId)
       data = decodeBase64Url(res.data)
+    } else if (att.inlineData) {
+      data = decodeBase64Url(att.inlineData)
     }
     const k = buildMailObjectKey({ ...keyBase, suffix: `attachments/${idx}-${att.filename}` })
     await storage.saveObject(k, data)
-    attachments.push({ ...att, sizeBytes: att.sizeBytes || data.length, objectKey: k })
+    attachments.push({ ...att, inlineData: undefined, sizeBytes: att.sizeBytes || data.length, objectKey: k })
   }
 
   const folderId = resolveGmailFolderId(folderMap, parsed.labelIds, forceFolderId)

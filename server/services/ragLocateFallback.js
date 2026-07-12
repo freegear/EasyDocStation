@@ -148,6 +148,21 @@ async function hydrateReferences(results = [], { allowedChannelIds = [], limit =
     .slice(0, limit)
 }
 
+// 폴더 데이터셋 스코프 판정용: 사용자가 속한 팀 ID 목록 (rag.js getUserTeamIds 와 동일)
+async function getUserTeamIds(userId) {
+  if (!userId) return []
+  try {
+    const { rows } = await db.query(
+      `SELECT team_id FROM team_members WHERE user_id=$1
+         UNION SELECT team_id FROM team_admins WHERE user_id=$1`,
+      [userId],
+    )
+    return rows.map(r => r.team_id)
+  } catch (_) {
+    return []
+  }
+}
+
 async function locateWithRagFallback({ keywords = [], channelId = '', limit = 10 } = {}, user = {}) {
   const query = buildFallbackQuery(keywords)
   if (!query) return []
@@ -155,6 +170,7 @@ async function locateWithRagFallback({ keywords = [], channelId = '', limit = 10
   const allowedChannelIds = await getAccessibleChannelIds(db, user)
   if (!allowedChannelIds.length) return []
 
+  const userSecurityLevel = getUserSecurityLevel(user)
   const cfg = readConfig()
   const ragCfg = cfg.rag || {}
   const activeTable = ragCfg.active_table || ragCfg.table_name || 'my_rag_table'
@@ -169,6 +185,15 @@ async function locateWithRagFallback({ keywords = [], channelId = '', limit = 10
     query,
     limit: Math.max(limit * 3, 20),
     allowed_channel_ids: allowedChannelIds,
+    // 폴더 데이터셋 접근 범위(모두/팀/채널/개인) 판정 컨텍스트 (UploadFolder.md 23.1).
+    // 활성 테이블에 스코프 필드가 없으면 무시되어 기존 동작을 보존한다.
+    scope_context: {
+      user_id: String(user?.id || ''),
+      team_ids: await getUserTeamIds(user?.id),
+      accessible_channel_ids: allowedChannelIds,
+      security_level: userSecurityLevel,
+      is_site_admin: user?.role === 'site_admin',
+    },
   }
 
   const results = await callRagServer(payload).catch(err => {
@@ -176,11 +201,11 @@ async function locateWithRagFallback({ keywords = [], channelId = '', limit = 10
     return []
   })
 
-  const userSecurityLevel = getUserSecurityLevel(user)
   const filtered = (Array.isArray(results) ? results : []).filter(item => {
     if (!isWithinVectorDistance(item)) return false
     const meta = item?.metadata || {}
-    const security = Number.parseInt(meta.security_level, 10) || 0
+    // 보안등급: 폴더 청크는 effective_security_level, 그 외는 기존 security_level(없으면 0).
+    const security = Number.parseInt(meta.effective_security_level ?? meta.security_level, 10) || 0
     if (security > userSecurityLevel) return false
     const metaChannelId = String(meta.channel_id || '').trim()
     return !metaChannelId || allowedChannelIds.map(String).includes(metaChannelId)

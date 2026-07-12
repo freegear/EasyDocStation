@@ -63,7 +63,7 @@ function SidePanelToggleIcon({ open }) {
   )
 }
 
-function TitleImageButton({ src, label, active = false, onClick }) {
+function TitleImageButton({ src, label, active = false, onClick, imageClassName = '' }) {
   return (
     <button
       type="button"
@@ -78,11 +78,26 @@ function TitleImageButton({ src, label, active = false, onClick }) {
       <img
         src={src}
         alt=""
-        className="h-8 w-8 object-contain"
+        className={`h-8 w-8 object-contain ${imageClassName}`}
         draggable="false"
       />
     </button>
   )
+}
+
+function BoardActionButtons({ isAdmin }) {
+  const buttonClass = 'inline-flex h-8 items-center gap-1.5 whitespace-nowrap rounded-xl border px-3 text-xs font-semibold transition-colors'
+  return <div className="flex flex-shrink-0 items-center gap-2">
+    <button type="button" onClick={() => window.dispatchEvent(new Event('easy-board-open-documents'))} className={`${buttonClass} border-sky-200 bg-sky-50 text-sky-600 hover:bg-sky-100`}>
+      <span aria-hidden="true">▤</span> 문서 목록
+    </button>
+    <button type="button" onClick={() => window.dispatchEvent(new Event('easy-board-open-deleted'))} className={`${buttonClass} border-gray-200 bg-white text-gray-600 hover:bg-gray-100`}>
+      <span aria-hidden="true">♲</span> 최근 삭제됨
+    </button>
+    {isAdmin && <button type="button" onClick={() => window.dispatchEvent(new Event('easy-board-open-channel-manage'))} className={`${buttonClass} border-indigo-200 bg-indigo-50 text-indigo-600 hover:bg-indigo-100`}>
+      <span aria-hidden="true">⚙</span> 채널 관리
+    </button>}
+  </div>
 }
 
 function sanitizePostPreviewText(text = '') {
@@ -276,11 +291,16 @@ export default function TitleBar({
   showSidebar = true,
   onToggleSidebar,
   showWelcomeBoardButton = false,
+  showWelcomeBoard = false,
   onOpenWelcomeBoard,
+  onOpenBoard,
+  showBoard = false,
   showMail = false,
   showCalendar = false,
   onOpenMail,
   onToggleCalendar,
+  showContactBook = false,
+  onOpenContactBook,
   showAgenticPanel = true,
   onToggleAgenticPanel,
   isMobileLayout = false,
@@ -413,21 +433,20 @@ export default function TitleBar({
         {!isMobileLayout && (
           <>
             {showWelcomeBoardButton && (
-              <button
-                type="button"
+              <TitleImageButton
+                src="/img/Welcome-logo_4th.png"
+                label="Welcome Board"
+                active={showWelcomeBoard}
                 onClick={onOpenWelcomeBoard}
-                aria-label="Welcome Board"
-                title="Welcome Board"
-                className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-white shadow-sm ring-1 ring-gray-200 transition-transform hover:scale-[1.03] hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
-              >
-                <img
-                  src="/img/Welcome-logo_2nd.png"
-                  alt=""
-                  className="h-8 w-8 object-contain"
-                  draggable="false"
-                />
-              </button>
+              />
             )}
+
+            <TitleImageButton
+              src="/img/board_logo.png"
+              label="게시판"
+              active={showBoard}
+              onClick={onOpenBoard}
+            />
 
             <TitleImageButton
               src="/img/mail_logo.jpeg"
@@ -441,6 +460,14 @@ export default function TitleBar({
               label="캘린더"
               active={showCalendar}
               onClick={onToggleCalendar}
+            />
+
+            <TitleImageButton
+              src="/img/contacbook_logo.png"
+              label="Contact Book"
+              active={showContactBook}
+              onClick={onOpenContactBook}
+              imageClassName="scale-[1.15]"
             />
 
             {/* Sidebar toggle (left of AI Panel) */}
@@ -474,6 +501,7 @@ export default function TitleBar({
         )}
 
         {!isMobileLayout && <SearchBar onSelectResult={onSelectSearchResult} />}
+        {!isMobileLayout && showBoard && <BoardActionButtons isAdmin={isSiteAdmin || ['team_admin', 'channel_admin'].includes(currentUser?.role)} />}
         {isMobileLayout && (
           <button
             type="button"

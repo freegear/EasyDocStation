@@ -6,6 +6,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { useT } from '../i18n/useT'
 import GroqPanel from './GroqPanel'
 import ConfirmDialog from './ConfirmDialog'
+import FolderUploadModal from '../features/folderUpload/FolderUploadModal'
 import LanguageFlag from './LanguageFlag'
 import { MIN_CONTENT_FONT_SCALE, MAX_CONTENT_FONT_SCALE } from '../lib/contentFont'
 
@@ -809,6 +810,7 @@ export default function SiteAdminPage({ onClose, initialTab = 'users' }) {
   const [ragForm, setRagForm] = useState({ type: 'manual', time: '02:00', vectorSize: 1024, chunkSize: 800, chunkOverlap: 100, pdfParseStrategy: 'auto' })
   const [ragDatasets, setRagDatasets] = useState([])
   const [ragDatasetSelectedIds, setRagDatasetSelectedIds] = useState([])
+  const [showFolderUpload, setShowFolderUpload] = useState(false)
   const [ragDatasetUploading, setRagDatasetUploading] = useState(false)
   const [ragDatasetTraining, setRagDatasetTraining] = useState(false)
   const [ragPptComparing, setRagPptComparing] = useState(false)
@@ -893,6 +895,7 @@ export default function SiteAdminPage({ onClose, initialTab = 'users' }) {
   const [sttRestartCountdown, setSttRestartCountdown] = useState(-1)
   const [gpuOptimization, setGpuOptimization] = useState(GPU_OPTIMIZATION_DEFAULTS)
   const [gpuMetrics, setGpuMetrics] = useState(null)
+  const [gpuScheduling, setGpuScheduling] = useState(null)
   const [gpuSaving, setGpuSaving] = useState(false)
   const [gpuTesting, setGpuTesting] = useState(false)
   const [gpuMeasuring, setGpuMeasuring] = useState('')
@@ -1023,6 +1026,7 @@ export default function SiteAdminPage({ onClose, initialTab = 'users' }) {
       const data = await apiFetch('/admin/gpu-optimization')
       setGpuOptimization({ ...GPU_OPTIMIZATION_DEFAULTS, ...(data.config || {}) })
       setGpuMetrics(data.metrics || null)
+      setGpuScheduling(data.gpu_scheduling || null)
     } catch (err) {
       setGpuMessage(`GPU 최적화 설정 조회 실패: ${err.message}`)
     }
@@ -2893,6 +2897,12 @@ export default function SiteAdminPage({ onClose, initialTab = 'users' }) {
                   {ragDatasetUploading ? (t.admin.ragAddingData || '추가 중...') : (t.admin.ragAddData || '학습 데이터 추가')}
                 </button>
                 <button
+                  onClick={() => setShowFolderUpload(true)}
+                  className="px-4 py-2 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-sm font-semibold"
+                >
+                  📁 폴더 업로드
+                </button>
+                <button
                   onClick={handleStartRagDatasetTraining}
                   disabled={ragDatasetTraining || ragDatasets.filter(item => item.status !== 'trained').length === 0}
                   className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-sm font-semibold"
@@ -3105,6 +3115,56 @@ export default function SiteAdminPage({ onClose, initialTab = 'users' }) {
                     Redis Cache, Queue, Vector Cache를 따로 켜고 끄며 GPU 호출 감소와 응답 시간 개선을 측정합니다.
                   </p>
                 </div>
+
+                {/* GPU 학습 스케줄링 상태 (MDfiles/GpuScheduling.md 3단계 관측성) */}
+                {(() => {
+                  const gs = gpuScheduling || {}
+                  const smi = gs.nvidia_smi || null
+                  const sched = gpuMetrics?.gpu_scheduling || {}
+                  const badge = (on, label) => (
+                    <span className={`px-3 py-1 rounded-full text-xs font-bold ${on ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-200 text-gray-500'}`}>{label}</span>
+                  )
+                  return (
+                    <div className="bg-gray-100 border border-gray-200 rounded-2xl p-6 shadow-xl">
+                      <div className="flex items-center justify-between gap-4 mb-4">
+                        <div>
+                          <h3 className="text-gray-900 font-bold text-base">GPU 학습 스케줄링</h3>
+                          <p className="text-gray-400 text-xs mt-0.5">폴더 업로드 대량 학습이 검색·답변에 양보하는지 확인합니다.</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {badge(gs.gate_enabled, gs.gate_enabled ? '게이트 On' : '게이트 Off')}
+                          {badge(gs.broker_enabled, gs.broker_enabled ? '브로커 On' : '브로커 Off')}
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                        <div className="bg-white rounded-xl border border-gray-200 p-3">
+                          <div className="text-gray-400 text-[11px]">대화형 사용 중</div>
+                          <div className="text-gray-900 font-bold text-lg">{gs.interactive_active ? '예' : '아니오'}</div>
+                        </div>
+                        <div className="bg-white rounded-xl border border-gray-200 p-3">
+                          <div className="text-gray-400 text-[11px]">GPU 물리 포화</div>
+                          <div className="text-gray-900 font-bold text-lg">{gs.physically_busy ? '예' : '아니오'}</div>
+                        </div>
+                        <div className="bg-white rounded-xl border border-gray-200 p-3">
+                          <div className="text-gray-400 text-[11px]">GPU util / mem</div>
+                          <div className="text-gray-900 font-bold text-lg">
+                            {smi ? `${smi.util ?? 0}% / ${smi.mem_percent ?? 0}%` : (gs.nvidia_smi_available === false ? 'N/A' : '—')}
+                          </div>
+                        </div>
+                        <div className="bg-white rounded-xl border border-gray-200 p-3">
+                          <div className="text-gray-400 text-[11px]">학습 양보 / 강제</div>
+                          <div className="text-gray-900 font-bold text-lg">
+                            {Number(sched.training_yield_count || 0)} / {Number(sched.training_forced || 0)}
+                          </div>
+                        </div>
+                      </div>
+                      <p className="text-gray-400 text-[11px] mt-3">
+                        학습 단위 {Number(sched.training_batches || 0)}건 · 평균 대기 {Math.round(Number(sched.avg_train_wait_ms || 0))}ms · admit 거절 누적 {Number(sched.training_admit_rejected || 0)}회
+                        {gs.nvidia_smi_available === false ? ' · nvidia-smi 없음(물리 게이트 폴백)' : ''}
+                      </p>
+                    </div>
+                  )
+                })()}
 
                 <div className="bg-gray-100 border border-gray-200 rounded-2xl p-6 shadow-xl">
                     <div className="flex items-center justify-between gap-4 mb-5">
@@ -4511,6 +4571,7 @@ export default function SiteAdminPage({ onClose, initialTab = 'users' }) {
           }}
         />
       )}
+      <FolderUploadModal open={showFolderUpload} onClose={() => setShowFolderUpload(false)} />
     </div>
   )
 }

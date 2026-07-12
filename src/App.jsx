@@ -16,6 +16,7 @@ import DirectMessageView, { NewConversationModal } from './components/DirectMess
 import ConfirmDialog from './components/ConfirmDialog'
 import SelectionGuardPlaywrightFixture from './components/dev/SelectionGuardPlaywrightFixture'
 import MailPage from './features/mail/MailPage'
+import ContactBookPage from './features/contactbook/ContactBookPage'
 import { WELCOME_BOARD_TEMPLATE } from './templates/formTemplates'
 import { apiFetch } from './lib/api'
 import { getRecentPosts } from './lib/recentPosts'
@@ -167,10 +168,11 @@ function PanelServicePage({ service, onClose, onNavigate, injectType, injectData
   }, [service?.id])
 
   if (!service) return null
+  const hideHeader = service.id === 'welcome-board'
 
   return (
     <div className="flex flex-1 min-h-0 flex-col bg-white">
-      <div className="flex items-center gap-2 px-3 py-2 border-b border-[#C9DAF7] bg-[#E8F0FF] flex-shrink-0">
+      {!hideHeader && <div className="flex items-center gap-2 px-3 py-2 border-b border-[#C9DAF7] bg-[#E8F0FF] flex-shrink-0">
         <button
           type="button"
           onClick={onClose}
@@ -186,7 +188,7 @@ function PanelServicePage({ service, onClose, onNavigate, injectType, injectData
           />
         )}
         <span className="text-[21px] text-[#5B6B8C] truncate">{service.headerLabel || service.label}</span>
-      </div>
+      </div>}
       <iframe
         ref={iframeRef}
         title={service.label}
@@ -210,6 +212,7 @@ function MainLayout() {
   const [calendarFocusEvent, setCalendarFocusEvent] = useState(null)
   const [calendarAddEventRequest, setCalendarAddEventRequest] = useState(null)
   const [showMail, setShowMail] = useState(false)
+  const [showContactBook, setShowContactBook] = useState(false)
   const [mailDeepLink, setMailDeepLink] = useState(null)
   const [mailInitialFolder, setMailInitialFolder] = useState(null)  // Welcome 보드 → 중요 편지함 등 진입 폴더
   const [showDM, setShowDM] = useState(false)
@@ -338,6 +341,7 @@ function MainLayout() {
   }
 
   const openWelcomeBoard = useCallback(() => {
+    setShowContactBook(false)
     setWelcomeService(WELCOME_BOARD_TEMPLATE)
     setShowCalendar(false)
     setShowDM(false)
@@ -348,6 +352,7 @@ function MainLayout() {
   }, [])
 
   const openMailPage = useCallback(() => {
+    setShowContactBook(false)
     setShowMail(true)
     setMailDeepLink(null)
     setMailInitialFolder(null)
@@ -357,7 +362,19 @@ function MainLayout() {
     setWelcomeService(null)
   }, [])
 
+  const openBoardPage = useCallback(() => {
+    setShowContactBook(false)
+    setShowCalendar(false)
+    setShowDM(false)
+    setShowMail(false)
+    setActiveDMConv(null)
+    setWelcomeService(null)
+    setMailDeepLink(null)
+    setMailInitialFolder(null)
+  }, [])
+
   const toggleCalendarPage = useCallback(() => {
+    setShowContactBook(false)
     setShowCalendar(v => !v)
     setShowDM(false)
     setShowMail(false)
@@ -375,6 +392,7 @@ function MainLayout() {
     setShowCalendar(false)
     setCalendarFocusEvent(null)
     setShowMail(false)
+    setShowContactBook(false)
     setMailDeepLink(null)
     setMailInitialFolder(null)
     setShowDM(false)
@@ -682,9 +700,14 @@ function MainLayout() {
         showSidebar={showSidebar}
         onToggleSidebar={() => setShowSidebar(v => !v)}
         showWelcomeBoardButton={SHOW_WELCOME_BOARD}
+        showWelcomeBoard={welcomeService?.id === 'welcome-board'}
         onOpenWelcomeBoard={openWelcomeBoard}
+        onOpenBoard={openBoardPage}
+        showBoard={!showMail && !showCalendar && !showContactBook && !showDM && !welcomeService}
         showMail={showMail}
         showCalendar={showCalendar}
+        showContactBook={showContactBook}
+        onOpenContactBook={() => { setShowContactBook(true); setShowMail(false); setShowCalendar(false); setShowDM(false); setWelcomeService(null) }}
         onOpenMail={openMailPage}
         onToggleCalendar={toggleCalendarPage}
         showAgenticPanel={showAgenticPanel}
@@ -696,7 +719,9 @@ function MainLayout() {
           <MobileLayout onOpenServicePage={setFullscreenService} />
         ) : (
           <>
-            {showMail ? (
+            {showContactBook ? (
+              <ContactBookPage onBackToMain={() => setShowContactBook(false)} />
+            ) : showMail ? (
               <>
                 <MailPage
                   onBackToMain={() => setShowMail(false)}

@@ -1227,7 +1227,7 @@ function MailAccountManageModal({ accounts, tenants = [], activeFolder, activeUn
                         <span className="mt-1 block truncate text-xs text-gray-500">
                           {[rule.sender_check_enabled ? '발신자' : '', rule.cc_check_enabled ? '참조자' : '', rule.keyword_check_enabled ? '키워드' : ''].filter(Boolean).join(' AND ') || '조건 없음'}
                           {' / '}
-                          {[rule.ai_analysis_enabled ? 'AI 분석' : '', rule.important_mail_enabled ? '중요 메일 등록' : '', rule.forward_enabled ? '원본 전달' : '', rule.move_folder_enabled ? '폴더 이동' : '', rule.tag_smart_folder_enabled ? '스마트 폴더 태그' : ''].filter(Boolean).join(' → ') || '동작 없음'}
+                          {[rule.ai_analysis_enabled ? 'AI 요약 자동 생성' : '', rule.important_mail_enabled ? '중요 메일 등록' : '', rule.forward_enabled ? '원본 전달' : '', rule.move_folder_enabled ? '폴더 이동' : '', rule.tag_smart_folder_enabled ? '스마트 폴더 태그' : ''].filter(Boolean).join(' → ') || '동작 없음'}
                         </span>
                       </button>
                       <span className={`rounded-full px-2 py-1 text-[11px] font-extrabold ${rule.enabled ? 'bg-emerald-50 text-emerald-700' : 'bg-gray-100 text-gray-400'}`}>
@@ -1326,16 +1326,16 @@ function MailAccountManageModal({ accounts, tenants = [], activeFolder, activeUn
               <div className="grid gap-3 rounded-lg border border-gray-200 bg-gray-50 p-3">
                 <h3 className="text-sm font-extrabold text-gray-900">동작</h3>
                 <div className="grid gap-3 rounded-lg border border-gray-200 bg-white p-3 sm:grid-cols-[280px_96px_minmax(0,1fr)] sm:items-center">
-                  <span className="whitespace-nowrap text-sm font-bold text-gray-700">AI 메일 분석</span>
+                  <span className="whitespace-nowrap text-sm font-bold text-gray-700">AI 요약 자동 생성</span>
                   <div className="flex items-center gap-2 text-xs font-extrabold text-gray-400 sm:justify-end">
                     <span>Enable</span>
                     <SlideToggle
                       checked={mailClawForm.ai_analysis_enabled}
                       onChange={value => updateMailClawField('ai_analysis_enabled', value)}
-                      label="AI 메일 분석 Enable"
+                      label="AI 요약 자동 생성 Enable"
                     />
                   </div>
-                  <div className="hidden sm:block" />
+                  <p className="text-xs leading-5 text-gray-500">조건에 일치하는 새 메일이 수신되면 본문을 자동으로 요약합니다. 저장 후 수신되는 메일부터 적용되며 기존 메일은 자동 분석하지 않습니다.</p>
                 </div>
                 <div className="grid gap-3 rounded-lg border border-gray-200 bg-white p-3 sm:grid-cols-[280px_96px_minmax(0,1fr)] sm:items-center">
                   <span className="whitespace-nowrap text-sm font-bold text-gray-700">중요 메일 등록</span>

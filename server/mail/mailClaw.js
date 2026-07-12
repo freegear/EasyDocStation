@@ -6,6 +6,7 @@ const db = require('../db')
 const { getMailStorage } = require('./storage')
 const { decryptSecret } = require('../lib/secrets')
 const { moveMessageOnProvider } = require('./providerMove')
+const { summarizeMail } = require('./mailSummary')
 
 const CONFIG_PATH = path.resolve(__dirname, '../../config.json')
 
@@ -100,6 +101,49 @@ function analyzeMessage(message, bodyText) {
     summary: (message.snippet || bodyText || message.subject || '').slice(0, 500),
     action_items: [...new Set(actionItems)].slice(0, 10),
     date_hints: [...new Set(dateHints)].slice(0, 10),
+  }
+}
+
+async function generateOrReuseMessageSummary({ tenantId, message, bodyText }) {
+  const existing = await repo.getMessageSummary({
+    tenantId,
+    userId: message.user_id,
+    messageId: message.id,
+    targetLanguage: 'ko',
+  })
+  if (existing?.summary_json) {
+    return { summary: existing.summary_json, reused: true, summaryId: existing.id }
+  }
+
+  const result = await summarizeMail({ message, bodyText, targetLanguage: 'ko' })
+  const saved = await repo.upsertMessageSummary({
+    tenantId,
+    userId: message.user_id,
+    accountId: message.account_id,
+    messageId: message.id,
+    providerMessageId: message.provider_message_id,
+    summary: result.summary,
+    rawText: result.rawText || '',
+    model: result.model || '',
+    promptVersion: 'mail-summary-json-v2',
+    targetLanguage: result.targetLanguage || 'ko',
+    sourceLanguage: result.sourceLanguage || 'unknown',
+    translated: !!result.translated,
+    translatedText: result.translatedText || '',
+    cleanBodyText: result.cleanBodyText || '',
+    factList: result.factList || [],
+    pipelineVersion: result.pipelineVersion || 'mail-summary-pipeline-v2',
+    fallbackUsed: !!result.fallbackUsed,
+    qualityFlags: result.qualityFlags || [],
+  })
+  return { summary: saved.summary_json, reused: false, summaryId: saved.id }
+}
+
+function structuredSummaryForTelegram(summary = {}) {
+  return {
+    summary: summary.summary || '',
+    action_items: asArray(summary.actionItems).map(item => item?.task || '').filter(Boolean),
+    date_hints: [summary.schedule?.date, summary.schedule?.time].filter(Boolean),
   }
 }
 
@@ -251,15 +295,27 @@ async function executeRule({ tenantId, rule, message, force = false }) {
   // 따라서 원본 전달이 꺼져 있으면 AI 분석 → 중요 메일 등록 → 지정된 폴더 이동 순서가 된다.
   if (rule.ai_analysis_enabled) {
     try {
-      const bodyText = await loadObjectText(message.body_text_object_key)
-      const analysis = analyzeMessage(message, bodyText)
+      let bodyText = await loadObjectText(message.body_text_object_key)
+      if (!bodyText && message.body_html_object_key) {
+        bodyText = stripHtmlToText(await loadObjectText(message.body_html_object_key))
+      }
+      if (!bodyText && !message.snippet && !message.subject) throw new Error('요약할 메일 내용이 없습니다.')
+      const generated = await generateOrReuseMessageSummary({ tenantId, message, bodyText })
+      const analysis = structuredSummaryForTelegram(generated.summary)
       let telegram = null
       try {
         telegram = await notifyAnalysisToTelegram({ userId: message.user_id, message, analysis })
       } catch (err) {
         telegram = { ok: false, error: err.message }
       }
-      actionResults.push({ action: 'ai_analysis', ok: true, analysis, telegram })
+      actionResults.push({
+        action: 'ai_analysis',
+        ok: true,
+        status: generated.reused ? 'reused' : 'completed',
+        summary_id: generated.summaryId,
+        summary: generated.summary,
+        telegram,
+      })
     } catch (err) {
       errors.push(err)
       actionResults.push({ action: 'ai_analysis', ok: false, error: err.message })
@@ -418,6 +474,45 @@ async function executeMailClawForMessage({ tenantId, messageId }) {
   return { matched, results }
 }
 
+async function getMailClawSummaryStatus({ tenantId, messageId }) {
+  if (!tenantId || !messageId) return null
+  const message = await repo.getMessageForAgentic({ tenantId, messageId })
+  if (!message) return null
+  const rules = (await repo.listEnabledMailClawRules({ tenantId })).filter(rule => (
+    rule.owner_user_id === message.user_id
+    && rule.ai_analysis_enabled
+    && matchRule(rule, message)
+  ))
+  if (!rules.length) return null
+
+  const ruleIds = rules.map(rule => rule.id)
+  const { rows: processingRows } = await repo.tenantQuery(
+    tenantId,
+    `SELECT 1
+       FROM mailclaw_execution_logs
+      WHERE tenant_id = $1
+        AND message_id = $2
+        AND rule_id = ANY($3::text[])
+        AND status = 'pending'
+      LIMIT 1`,
+    [tenantId, messageId, ruleIds],
+  )
+  if (processingRows.length) return 'processing'
+
+  const { rows: queuedRows } = await repo.tenantQuery(
+    tenantId,
+    `SELECT 1
+       FROM mail_agentic_events
+      WHERE tenant_id = $1
+        AND message_id = $2
+        AND event_type = 'mail_message_synced'
+        AND status = 'pending'
+      LIMIT 1`,
+    [tenantId, messageId],
+  )
+  return queuedRows.length ? 'queued' : null
+}
+
 async function executeMailClawRuleForMessage({ tenantId, ruleId, messageId, userId, isSiteAdmin = false, force = false }) {
   if (!tenantId || !ruleId || !messageId) return { matched: false, error: 'missing_required_fields' }
   const [rule, message] = await Promise.all([
@@ -499,6 +594,7 @@ async function executeMailClawRuleForMessages({
 
 module.exports = {
   executeMailClawForMessage,
+  getMailClawSummaryStatus,
   executeMailClawRuleForMessage,
   executeMailClawRuleForMessages,
   matchRule,

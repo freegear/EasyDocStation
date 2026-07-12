@@ -65,13 +65,18 @@ function walkParts(node, acc) {
   const mime = String(node.mimeType || '').toLowerCase()
   const filename = node.filename || ''
   const body = node.body || {}
+  const contentId = getHeader(node.headers || [], 'Content-ID').replace(/^<|>$/g, '')
+  const disposition = getHeader(node.headers || [], 'Content-Disposition')
 
-  if (filename && body.attachmentId) {
+  if ((body.attachmentId || body.data) && (filename || mime.startsWith('image/'))) {
     acc.attachments.push({
       providerAttachmentId: body.attachmentId,
-      filename,
+      inlineData: body.data || null,
+      filename: filename || `inline-image-${acc.attachments.length + 1}`,
       contentType: node.mimeType || 'application/octet-stream',
       sizeBytes: Number(body.size || 0),
+      contentId: contentId || null,
+      disposition: disposition || (mime.startsWith('image/') ? 'inline' : 'attachment'),
     })
   } else if (mime === 'text/plain' && body.data && acc.bodyText == null) {
     acc.bodyText = decodeBase64Url(body.data).toString('utf8')

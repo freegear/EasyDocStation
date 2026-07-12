@@ -21,7 +21,7 @@ install_frontend_dependencies() {
     @lexical/history \
     @lexical/list \
     @lexical/link
-  npm install jose nodemailer redis --prefix server
+  npm install jose nodemailer redis content-disposition --prefix server
 
   echo "  Playwright 시스템 의존성/브라우저 설치"
   sudo npx playwright install-deps

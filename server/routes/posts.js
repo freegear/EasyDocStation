@@ -348,6 +348,68 @@ async function deleteSearchDocument(sourceType, sourceId) {
   await db.query('DELETE FROM search_documents WHERE id = $1', [`${safeSourceType}:${safeSourceId}`])
 }
 
+async function ensureContentTransferSchema() {
+  await db.query(`CREATE TABLE IF NOT EXISTS content_transfer_history (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(), idempotency_key TEXT,
+    content_type TEXT NOT NULL CHECK (content_type IN ('POST','COMMENT')),
+    operation TEXT NOT NULL CHECK (operation IN ('MOVE','COPY')),
+    source_channel_id VARCHAR(50) NOT NULL REFERENCES channels(id) ON DELETE CASCADE,
+    source_post_id VARCHAR(50), source_comment_id VARCHAR(50),
+    target_channel_id VARCHAR(50) NOT NULL REFERENCES channels(id) ON DELETE CASCADE,
+    target_post_id VARCHAR(50), target_comment_id VARCHAR(50),
+    performed_by INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    options JSONB NOT NULL DEFAULT '{}', created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE (performed_by, idempotency_key))`)
+}
+
+async function getTransferIdempotentResult(userId, key) {
+  if (!key) return null
+  const result = await db.query(
+    `SELECT content_type,operation,target_channel_id,target_post_id,target_comment_id
+     FROM content_transfer_history WHERE performed_by=$1 AND idempotency_key=$2`, [userId, key])
+  const row = result.rows[0]
+  return row ? { ok: true, idempotent: true, operation: row.operation, contentType: row.content_type,
+    targetChannelId: row.target_channel_id, targetPostId: row.target_post_id, targetCommentId: row.target_comment_id } : null
+}
+
+async function recordContentTransfer(clientDb, data) {
+  await clientDb.query(`INSERT INTO content_transfer_history
+    (idempotency_key,content_type,operation,source_channel_id,source_post_id,source_comment_id,
+     target_channel_id,target_post_id,target_comment_id,performed_by,options)
+    VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`, [data.idempotencyKey || null, data.contentType,
+    data.operation, data.sourceChannelId, data.sourcePostId || null, data.sourceCommentId || null,
+    data.targetChannelId, data.targetPostId || null, data.targetCommentId || null, data.userId, JSON.stringify(data.options || {})])
+}
+
+async function mirrorPostToCassandra(row, { oldChannelId = '', oldCreatedAt = null } = {}) {
+  if (!isConnected()) return
+  const attachments = extractPostAttachmentIds(row)
+  const attCols = Array(10).fill(null); attachments.forEach((id, i) => { attCols[i] = id })
+  await client.execute(`INSERT INTO posts (channel_id,id,author_id,content,created_at,updated_at,is_edited,
+    prev_post_id,next_post_id,child_post_id,parent_id,attachments_1,attachments_2,attachments_3,attachments_4,
+    attachments_5,attachments_6,attachments_7,attachments_8,attachments_9,attachments_10,security_level)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`, [row.channel_id, row.id, row.author_id, row.content,
+    row.created_at, row.updated_at, Boolean(row.is_edited), row.prev_post_id || null, row.next_post_id || null,
+    row.child_post_id || null, row.parent_id || null, ...attCols, row.security_level || 0], { prepare: true })
+  await client.execute('INSERT INTO posts_by_id (id,channel_id,created_at,author_id) VALUES (?,?,?,?)',
+    [row.id, row.channel_id, row.created_at, row.author_id], { prepare: true })
+  if (oldChannelId && oldCreatedAt && oldChannelId !== row.channel_id) {
+    await client.execute('DELETE FROM posts WHERE channel_id=? AND created_at=?', [oldChannelId, oldCreatedAt], { prepare: true })
+  }
+}
+
+async function mirrorCommentToCassandra(row, { oldPostId = '', oldCreatedAt = null } = {}) {
+  if (!isConnected()) return
+  const ids = toAttachmentIdArray(Array.isArray(row.attachments) ? row.attachments : JSON.parse(row.attachments || '[]'))
+  await client.execute(`INSERT INTO comments (post_id,id,channel_id,author_id,content,attachments,security_level,created_at)
+    VALUES (?,?,?,?,?,?,?,?)`, [row.post_id, row.id, row.channel_id, row.author_id, row.content, ids, row.security_level || 0, row.created_at], { prepare: true })
+  await client.execute('INSERT INTO comments_by_id (id,post_id,created_at,author_id) VALUES (?,?,?,?)',
+    [row.id, row.post_id, row.created_at, row.author_id], { prepare: true })
+  if (oldPostId && oldCreatedAt && oldPostId !== row.post_id) {
+    await client.execute('DELETE FROM comments WHERE post_id=? AND created_at=?', [oldPostId, oldCreatedAt], { prepare: true })
+  }
+}
+
 function getOllamaChatUrl() {
   const host = String(process.env.OLLAMA_HOST || '127.0.0.1').trim() || '127.0.0.1'
   const port = String(process.env.OLLAMA_PORT || '11434').trim() || '11434'
@@ -2994,6 +3056,166 @@ router.get('/:id/likes', requireAuth, async (req, res, next) => {
   } catch (err) {
     next(err)
   }
+})
+
+// ─── POST /api/posts/:id/transfer (게시글 이동/복사) ──────────
+router.post('/:id/transfer', requireAuth, async (req, res, next) => {
+  const pg = await db.connect()
+  try {
+    await ensureContentTransferSchema()
+    const operation = String(req.body.operation || '').toUpperCase()
+    const targetChannelId = String(req.body.targetChannelId || '').trim()
+    const includeComments = req.body.includeComments !== false
+    const includeAttachments = req.body.includeAttachments !== false
+    const idempotencyKey = String(req.body.idempotencyKey || '').trim().slice(0, 160)
+    if (!['MOVE', 'COPY'].includes(operation) || !targetChannelId) return res.status(400).json({ error: '이동/복사 방식과 대상 채널을 선택해 주세요.' })
+    const prior = await getTransferIdempotentResult(req.user.id, idempotencyKey)
+    if (prior) return res.json(prior)
+    const sourceResult = await db.query('SELECT * FROM posts WHERE id=$1 LIMIT 1', [req.params.id])
+    const source = sourceResult.rows[0]
+    if (!source) return res.status(404).json({ error: '게시글을 찾을 수 없습니다.' })
+    if (source.channel_id === targetChannelId) return res.status(400).json({ error: '현재 채널이 아닌 다른 채널을 선택해 주세요.' })
+    if (!(await canAccessChannel(db, req.user, source.channel_id)) || !(await canAccessChannel(db, req.user, targetChannelId))) {
+      return res.status(403).json({ error: ACCESS_DENIED_MESSAGE })
+    }
+    if (operation === 'MOVE' && !(await canMutatePostRow(req.user, source))) return res.status(403).json({ error: '이 게시글을 이동할 권한이 없습니다.' })
+    if (securityLevelOf(req.user) < Number(source.security_level || 0)) return res.status(403).json({ error: '게시글의 보안 등급이 사용자 권한보다 높습니다.' })
+
+    await pg.query('BEGIN')
+    await pg.query('SELECT id FROM channels WHERE id=ANY($1::varchar[]) FOR UPDATE', [[source.channel_id, targetChannelId]])
+    const now = new Date()
+    const targetPostId = operation === 'COPY' ? randomUUID() : source.id
+    const targetCreatedAt = operation === 'COPY' ? now : source.created_at
+    const attachmentIds = includeAttachments ? extractPostAttachmentIds(source) : []
+    const attCols = Array(10).fill(null); attachmentIds.forEach((id, i) => { attCols[i] = id })
+    const tailResult = await pg.query('SELECT tail_post_id FROM channels WHERE id=$1', [targetChannelId])
+    const targetPrevId = tailResult.rows[0]?.tail_post_id || null
+    let targetPost
+    if (operation === 'COPY') {
+      const result = await pg.query(`INSERT INTO posts
+        (id,channel_id,author_id,content,created_at,updated_at,is_edited,prev_post_id,next_post_id,child_post_id,parent_id,
+         attachments_1,attachments_2,attachments_3,attachments_4,attachments_5,attachments_6,attachments_7,attachments_8,attachments_9,attachments_10,security_level)
+        VALUES ($1,$2,$3,$4,$5,$5,false,$6,NULL,NULL,NULL,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17) RETURNING *`,
+      [targetPostId,targetChannelId,source.author_id,source.content,targetCreatedAt,targetPrevId,...attCols,source.security_level || 0])
+      targetPost = result.rows[0]
+    } else {
+      const result = await pg.query(`UPDATE posts SET channel_id=$1,prev_post_id=$2,next_post_id=NULL,updated_at=NOW() WHERE id=$3 RETURNING *`,
+        [targetChannelId,targetPrevId,source.id]); targetPost = result.rows[0]
+      await pg.query('UPDATE comments SET channel_id=$1 WHERE post_id=$2', [targetChannelId, source.id])
+    }
+    if (targetPrevId) await pg.query('UPDATE posts SET next_post_id=$1 WHERE id=$2', [targetPostId, targetPrevId])
+    await pg.query(`UPDATE channels SET root_post_id=COALESCE(root_post_id,$1),tail_post_id=$1 WHERE id=$2`, [targetPostId,targetChannelId])
+    if (operation === 'MOVE') {
+      if (source.prev_post_id) await pg.query('UPDATE posts SET next_post_id=$1 WHERE id=$2', [source.next_post_id || null,source.prev_post_id])
+      if (source.next_post_id) await pg.query('UPDATE posts SET prev_post_id=$1 WHERE id=$2', [source.prev_post_id || null,source.next_post_id])
+      await pg.query(`UPDATE channels SET root_post_id=CASE WHEN root_post_id=$1 THEN $2 ELSE root_post_id END,
+        tail_post_id=CASE WHEN tail_post_id=$1 THEN $3 ELSE tail_post_id END WHERE id=$4`,
+      [source.id,source.next_post_id || null,source.prev_post_id || null,source.channel_id])
+    }
+    const sourceComments = includeComments || operation === 'MOVE'
+      ? (await pg.query('SELECT * FROM comments WHERE post_id=$1 ORDER BY created_at', [source.id])).rows : []
+    const copiedComments = []
+    if (operation === 'COPY' && includeComments) {
+      for (const [commentIndex, comment] of sourceComments.entries()) {
+        const id = randomUUID()
+        const ids = includeAttachments ? toAttachmentIdArray(comment.attachments || []) : []
+        const copiedAt = new Date(now.getTime() + commentIndex)
+        const inserted = await pg.query(`INSERT INTO comments
+          (id,post_id,channel_id,author_id,content,attachments,security_level,created_at,updated_at)
+          VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$8) RETURNING *`, [id,targetPostId,targetChannelId,comment.author_id,comment.content,
+          JSON.stringify(ids),comment.security_level || 0,copiedAt]); copiedComments.push({ row: inserted.rows[0], ids })
+      }
+    }
+    await recordContentTransfer(pg, { idempotencyKey,contentType:'POST',operation,sourceChannelId:source.channel_id,
+      sourcePostId:source.id,targetChannelId,targetPostId,userId:req.user.id,options:{ includeComments,includeAttachments } })
+    await pg.query('COMMIT')
+
+    await mirrorPostToCassandra(targetPost, operation === 'MOVE' ? { oldChannelId: source.channel_id, oldCreatedAt: source.created_at } : {})
+    if (operation === 'MOVE') {
+      for (const comment of sourceComments) await mirrorCommentToCassandra({ ...comment, channel_id: targetChannelId })
+    } else {
+      for (const copied of copiedComments) await mirrorCommentToCassandra(copied.row)
+    }
+    await syncAttachmentRefs({ ownerType:'post',ownerId:targetPostId,nextAttachmentIds:attachmentIds,actorUserId:req.user.id })
+    for (const copied of copiedComments) await syncAttachmentRefs({ ownerType:'comment',ownerId:copied.row.id,nextAttachmentIds:copied.ids,actorUserId:req.user.id })
+    await upsertSearchDocument({ sourceType:'post',sourceId:targetPostId,postId:targetPostId,channelId:targetChannelId,
+      authorId:targetPost.author_id,content:targetPost.content,securityLevel:targetPost.security_level,createdAt:targetPost.created_at })
+    if (operation === 'MOVE') await db.query('UPDATE search_documents SET channel_id=$1,updated_at=NOW() WHERE post_id=$2', [targetChannelId,source.id])
+    for (const copied of copiedComments) await upsertSearchDocument({ sourceType:'comment',sourceId:copied.row.id,postId:targetPostId,
+      commentId:copied.row.id,channelId:targetChannelId,authorId:copied.row.author_id,content:copied.row.content,
+      securityLevel:copied.row.security_level,createdAt:copied.row.created_at })
+    res.json({ ok:true,operation,contentType:'POST',targetChannelId,targetPostId })
+  } catch (err) { await pg.query('ROLLBACK').catch(() => {}); next(err) } finally { pg.release() }
+})
+
+// ─── POST /api/posts/:postId/comments/:commentId/transfer ─────
+router.post('/:postId/comments/:commentId/transfer', requireAuth, async (req, res, next) => {
+  const pg = await db.connect()
+  try {
+    await ensureContentTransferSchema()
+    const operation = String(req.body.operation || '').toUpperCase()
+    const mode = String(req.body.mode || 'AS_POST').toUpperCase()
+    const targetChannelId = String(req.body.targetChannelId || '').trim()
+    const requestedTargetPostId = String(req.body.targetPostId || '').trim()
+    const includeAttachments = req.body.includeAttachments !== false
+    const idempotencyKey = String(req.body.idempotencyKey || '').trim().slice(0,160)
+    if (!['MOVE','COPY'].includes(operation) || !['AS_POST','AS_COMMENT'].includes(mode) || !targetChannelId) return res.status(400).json({ error:'전송 방식을 확인해 주세요.' })
+    const prior = await getTransferIdempotentResult(req.user.id,idempotencyKey); if (prior) return res.json(prior)
+    const result = await db.query('SELECT * FROM comments WHERE id=$1 AND post_id=$2 LIMIT 1',[req.params.commentId,req.params.postId])
+    const source = result.rows[0]; if (!source) return res.status(404).json({ error:'댓글을 찾을 수 없습니다.' })
+    if (!(await canAccessChannel(db,req.user,source.channel_id)) || !(await canAccessChannel(db,req.user,targetChannelId))) return res.status(403).json({ error:ACCESS_DENIED_MESSAGE })
+    if (operation === 'MOVE' && !(await canMutateCommentRow(req.user,source))) return res.status(403).json({ error:'이 댓글을 이동할 권한이 없습니다.' })
+    if (securityLevelOf(req.user) < Number(source.security_level || 0)) return res.status(403).json({ error:'댓글의 보안 등급이 사용자 권한보다 높습니다.' })
+    await pg.query('BEGIN')
+    let targetPostId = requestedTargetPostId
+    let targetCommentId = null
+    const ids = includeAttachments ? toAttachmentIdArray(source.attachments || []) : []
+    if (mode === 'AS_POST') {
+      targetPostId = randomUUID(); const now = new Date(); const attCols=Array(10).fill(null); ids.slice(0,10).forEach((id,i)=>{attCols[i]=id})
+      const tail=(await pg.query('SELECT tail_post_id FROM channels WHERE id=$1 FOR UPDATE',[targetChannelId])).rows[0]?.tail_post_id||null
+      await pg.query(`INSERT INTO posts (id,channel_id,author_id,content,created_at,updated_at,is_edited,prev_post_id,
+        attachments_1,attachments_2,attachments_3,attachments_4,attachments_5,attachments_6,attachments_7,attachments_8,attachments_9,attachments_10,security_level)
+        VALUES ($1,$2,$3,$4,$5,$5,false,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)`,
+      [targetPostId,targetChannelId,source.author_id,source.content,now,tail,...attCols,source.security_level||0])
+      if(tail) await pg.query('UPDATE posts SET next_post_id=$1 WHERE id=$2',[targetPostId,tail])
+      await pg.query('UPDATE channels SET root_post_id=COALESCE(root_post_id,$1),tail_post_id=$1 WHERE id=$2',[targetPostId,targetChannelId])
+    } else {
+      if (!targetPostId) throw Object.assign(new Error('대상 게시글을 선택해 주세요.'),{status:400})
+      const target=(await pg.query('SELECT id,channel_id FROM posts WHERE id=$1',[targetPostId])).rows[0]
+      if (!target || target.channel_id!==targetChannelId) throw Object.assign(new Error('대상 게시글을 찾을 수 없습니다.'),{status:404})
+      targetCommentId=operation==='MOVE'?source.id:randomUUID()
+      if(operation==='MOVE') await pg.query('UPDATE comments SET post_id=$1,channel_id=$2,attachments=$3,updated_at=NOW() WHERE id=$4',[targetPostId,targetChannelId,JSON.stringify(ids),source.id])
+      else await pg.query(`INSERT INTO comments (id,post_id,channel_id,author_id,content,attachments,security_level,created_at,updated_at)
+        VALUES ($1,$2,$3,$4,$5,$6,$7,NOW(),NOW())`,[targetCommentId,targetPostId,targetChannelId,source.author_id,source.content,JSON.stringify(ids),source.security_level||0])
+    }
+    if(operation==='MOVE' && mode==='AS_POST') {
+      await pg.query('DELETE FROM comment_likes WHERE comment_id=$1',[source.id]).catch(() => {})
+      await pg.query('DELETE FROM comments WHERE id=$1',[source.id])
+    }
+    await recordContentTransfer(pg,{idempotencyKey,contentType:'COMMENT',operation,sourceChannelId:source.channel_id,sourcePostId:source.post_id,
+      sourceCommentId:source.id,targetChannelId,targetPostId,targetCommentId,userId:req.user.id,options:{mode,includeAttachments}})
+    await pg.query('COMMIT')
+    const targetPost=(await db.query('SELECT * FROM posts WHERE id=$1',[targetPostId])).rows[0]
+    if(mode==='AS_POST') await mirrorPostToCassandra(targetPost)
+    else {
+      const targetComment=(await db.query('SELECT * FROM comments WHERE id=$1',[targetCommentId])).rows[0]
+      await mirrorCommentToCassandra(targetComment,operation==='MOVE'?{oldPostId:source.post_id,oldCreatedAt:source.created_at}:{})
+    }
+    if(operation==='MOVE'&&mode==='AS_POST'&&isConnected()) {
+      await client.execute('DELETE FROM comments WHERE post_id=? AND created_at=?',[source.post_id,source.created_at],{prepare:true})
+      await client.execute('DELETE FROM comments_by_id WHERE id=?',[source.id],{prepare:true})
+      await deleteSearchDocument('comment',source.id)
+    }
+    if(operation==='MOVE'&&mode==='AS_POST') {
+      await syncAttachmentRefs({ownerType:'comment',ownerId:source.id,nextAttachmentIds:[],actorUserId:req.user.id})
+    }
+    const ownerType=mode==='AS_POST'?'post':'comment',ownerId=mode==='AS_POST'?targetPostId:targetCommentId
+    await syncAttachmentRefs({ownerType,ownerId,nextAttachmentIds:ids,actorUserId:req.user.id})
+    await upsertSearchDocument({sourceType:mode==='AS_POST'?'post':'comment',sourceId:ownerId,postId:targetPostId,
+      commentId:mode==='AS_COMMENT'?targetCommentId:'',channelId:targetChannelId,authorId:source.author_id,content:source.content,
+      securityLevel:source.security_level,createdAt:targetPost?.created_at||new Date()})
+    res.json({ok:true,operation,contentType:'COMMENT',targetChannelId,targetPostId,targetCommentId})
+  } catch(err) { await pg.query('ROLLBACK').catch(()=>{}); next(err) } finally { pg.release() }
 })
 
 // ─── GET /api/posts/:id/comments ─────────────────────────────

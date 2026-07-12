@@ -37,17 +37,74 @@ def normalize_id_list(values):
 def sql_quote(value):
     return "'" + str(value).replace("'", "''") + "'"
 
-def apply_channel_acl(search, allowed_channel_ids):
+def build_acl_clause(meta_subfields, allowed_channel_ids, scope_ctx):
+    """스코프 인지형 ACL WHERE 절 (UploadFolder.md 23.1). rag_server.py 와 동일 로직.
+
+    - 게시글/댓글 청크: channel_id 로 판정(기존 동작 보존).
+    - 폴더 청크(access_scope 필드 보유): 모두/팀/채널/개인 + effective_security_level.
+    스코프 필드가 없는 테이블(v2)에서는 채널 절만 반환한다.
+    """
     allowed = normalize_id_list(allowed_channel_ids)
-    if not allowed:
+    parts = []
+    if allowed:
+        parts.append("metadata.channel_id IN (" + ", ".join(sql_quote(v) for v in allowed) + ")")
+
+    has_scope = "access_scope" in (meta_subfields or [])
+    if has_scope and scope_ctx:
+        uid = str(scope_ctx.get("user_id") or "").strip()
+        team_ids = normalize_id_list(scope_ctx.get("team_ids", []))
+        sec = int(scope_ctx.get("security_level", 0) or 0)
+        is_admin = bool(scope_ctx.get("is_site_admin"))
+
+        if is_admin:
+            parts.append("metadata.access_scope <> ''")
+            return " OR ".join(parts) if parts else None
+
+        scope_or = ["metadata.access_scope = 'all'"]
+        if uid:
+            scope_or.append("(metadata.access_scope = 'personal' AND metadata.owner_id = " + sql_quote(uid) + ")")
+        if team_ids:
+            scope_or.append("(metadata.access_scope = 'team' AND metadata.scope_team_id IN (" +
+                            ", ".join(sql_quote(v) for v in team_ids) + "))")
+        if allowed:
+            scope_or.append("(metadata.access_scope = 'channel' AND metadata.scope_channel_id IN (" +
+                            ", ".join(sql_quote(v) for v in allowed) + "))")
+        folder_clause = "((" + " OR ".join(scope_or) + ") AND metadata.effective_security_level <= " + str(sec) + ")"
+        parts.append(folder_clause)
+
+    if not parts:
         return None
-    clause = "metadata.channel_id IN (" + ", ".join(sql_quote(v) for v in allowed) + ")"
+    return " OR ".join(parts)
+
+
+def apply_acl(search, where_clause):
+    if not where_clause:
+        return None
     try:
-        return search.where(clause, prefilter=True)
+        return search.where(where_clause, prefilter=True)
     except TypeError:
-        return search.where(clause)
+        return search.where(where_clause)
+
+
+def with_folder_group_filter(where_clause, meta_subfields, folder_group_ids):
+    """같은 폴더(folder_group_id) 형제 청크만 조회하도록 필터를 AND 결합한다 (UploadFolder.md 23.3).
+
+    ACL(where_clause)은 그대로 유지한 채 folder_group_id ∈ (...) 조건을 함께 건다.
+    스코프 필드가 없는 테이블(v2)에는 folder_group_id 필드도 없으므로 원본 절을 반환한다.
+    rag_server.py 와 동일 로직(두 검색 경로 대칭 유지).
+    """
+    groups = normalize_id_list(folder_group_ids)
+    if not groups or "folder_group_id" not in (meta_subfields or []):
+        return where_clause
+    group_clause = "metadata.folder_group_id IN (" + ", ".join(sql_quote(v) for v in groups) + ")"
+    if not where_clause:
+        return group_clause
+    return "(" + where_clause + ") AND " + group_clause
 
 allowed_channel_ids = normalize_id_list(payload.get("allowed_channel_ids", []))
+scope_ctx = payload.get("scope_context") or {}
+has_scope_ctx = bool(str(scope_ctx.get("user_id") or "").strip() or scope_ctx.get("team_ids"))
+folder_group_ids = normalize_id_list(payload.get("folder_group_ids", []))
 
 def default_lancedb_path():
     env_lancedb = os.getenv("EASYDOC_LANCEDB_PATH", "").strip()
@@ -82,7 +139,7 @@ def respond(results, ok=True, reason="ok"):
     else:
         print(json.dumps(results, ensure_ascii=False))
 
-if not query.strip() or not allowed_channel_ids:
+if not query.strip() or (not allowed_channel_ids and not has_scope_ctx):
     respond([], True, "invalid_query_or_acl")
     sys.exit(0)
 
@@ -120,10 +177,16 @@ if len(table) <= 1:          # init 레코드만 있으면 skip
     respond([], False, "empty_table")
     sys.exit(0)
 
+meta_field = next((f for f in table.schema if f.name == "metadata"), None)
+meta_subfields = [sf.name for sf in meta_field.type] if meta_field else []
+
 query_vec = embed_model.encode(query, show_progress_bar=False).tolist()
-search = apply_channel_acl(table.search(query_vec), allowed_channel_ids)
+where_clause = build_acl_clause(meta_subfields, allowed_channel_ids, scope_ctx if has_scope_ctx else None)
+# 형제 문서 확장(23.3): folder_group_id 필터를 ACL 위에 AND 결합
+where_clause = with_folder_group_filter(where_clause, meta_subfields, folder_group_ids)
+search = apply_acl(table.search(query_vec), where_clause)
 if search is None:
-    print(json.dumps([]))
+    respond([], True, "invalid_acl")
     sys.exit(0)
 results = search.limit(limit).to_list()
 
@@ -176,6 +239,16 @@ for r in results:
             "archive_id":         meta.get("archive_id", ""),
             "archive_file_path":  meta.get("archive_file_path", ""),
             "inner_source_ext":   meta.get("inner_source_ext", ""),
+            "access_scope":            meta.get("access_scope", ""),
+            "scope_team_id":           meta.get("scope_team_id", ""),
+            "scope_channel_id":        meta.get("scope_channel_id", ""),
+            "dataset_id":              meta.get("dataset_id", ""),
+            "folder_document_id":      meta.get("folder_document_id", ""),
+            "folder_group_id":         meta.get("folder_group_id", ""),
+            "folder_path":             meta.get("folder_path", ""),
+            "relative_path":           meta.get("relative_path", ""),
+            "effective_security_level": meta.get("effective_security_level", 0),
+            "owner_id":                meta.get("owner_id", ""),
         }
     })
 

@@ -22,9 +22,13 @@ export function normalizeMailSummary(value) {
     if (!item || typeof item !== 'object') return null
     return {
       task: stringOrNoInfo(item.task),
+      taskSource: String(item.taskSource || '').trim(),
       time: stringOrNoInfo(item.time),
       timeSource: String(item.timeSource || '').trim(),
       isAllDay: item.isAllDay === true,
+      date: String(item.date || '').trim(),
+      clockTime: item.clockTime == null ? null : String(item.clockTime).trim(),
+      calendarCandidateKey: String(item.calendarCandidateKey || '').trim(),
       calendarEventId: String(item.calendarEventId || '').trim(),
     }
   }).filter(Boolean)
@@ -58,6 +62,26 @@ export function parseSummaryActionDateTime(value) {
     date: `${dateOnlyMatch[1]}-${dateOnlyMatch[2]}-${dateOnlyMatch[3]}`,
     time: '',
   }
+}
+
+export function parseSummaryScheduleDate(value, referenceDate) {
+  const text = String(value || '').trim()
+  const isoMatch = text.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/)
+  const koreanMatch = text.match(/(?:(\d{4})년\s*)?(?:(\d{1,2})월\s*)?(\d{1,2})일/)
+  const match = isoMatch || koreanMatch
+  if (!match) return ''
+  const reference = new Date(referenceDate || Date.now())
+  const year = Number(match[1]) || (Number.isNaN(reference.getTime()) ? new Date().getFullYear() : reference.getFullYear())
+  const month = Number(match[2]) || (Number.isNaN(reference.getTime()) ? new Date().getMonth() + 1 : reference.getMonth() + 1)
+  const day = Number(match[3])
+  const date = new Date(year, month - 1, day)
+  if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) return ''
+  return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+}
+
+export function isSummaryTimeMissing(value, noInfo = MAIL_SUMMARY_NO_INFO) {
+  const text = String(value || '').trim()
+  return !text || text === noInfo || /^(확인된 (내용|시간) 없음|no (confirmed )?(time|information)|確認された(時間|内容)なし)$/i.test(text)
 }
 
 export function formatSummaryActionTimeLabel(item, mt = MAIL_TEXT.ko) {

@@ -1,4 +1,7 @@
 const { loadRuntimeConfig, requestChatCompletion } = require('../llmClient')
+const { normalizeCalendarDate } = require('./calendarDateNormalizer')
+const { applyActionItemSummaryFallback } = require('./actionItemFallback')
+const { buildWeightedThreadContext } = require('./threadSummaryPolicy')
 
 function normalizeText(value = '') {
   return String(value || '')
@@ -225,6 +228,62 @@ function normalizeStructuredSummary(value, language = 'ko') {
   }
 }
 
+function parseSummaryCalendarDate(value, referenceDate) {
+  return normalizeCalendarDate(value, referenceDate)
+}
+
+function parseSummaryCalendarTime(value, language = 'ko') {
+  const text = String(value || '').trim()
+  if (!text || isNoInfoText(text, language)) return ''
+  let match = text.match(/(?:^|\s)([01]?\d|2[0-3]):([0-5]\d)(?:\s|$)/)
+  if (match) return `${String(Number(match[1])).padStart(2, '0')}:${match[2]}`
+  match = text.match(/(오전|오후)?\s*(\d{1,2})시(?:\s*(\d{1,2})분)?/)
+  if (!match) return ''
+  let hour = Number(match[2])
+  const minute = Number(match[3] || 0)
+  if (hour > 23 || minute > 59) return ''
+  if (match[1] === '오후' && hour < 12) hour += 12
+  if (match[1] === '오전' && hour === 12) hour = 0
+  return `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`
+}
+
+function applyScheduleToActionItems(summary, message, language = 'ko', sourceText = '') {
+  const scheduleDateText = String(summary?.schedule?.date || '')
+  const fallbackDateText = [
+    sourceText,
+    summary?.summary,
+    ...(Array.isArray(summary?.keyPoints) ? summary.keyPoints : []),
+    ...(Array.isArray(summary?.actionItems) ? summary.actionItems.map(item => item?.task || item) : []),
+  ].filter(Boolean).join('\n')
+  const referenceDate = message?.received_at || message?.sent_at || message?.created_at
+  const date = parseSummaryCalendarDate(scheduleDateText, referenceDate)
+    || parseSummaryCalendarDate(fallbackDateText, referenceDate)
+  if (!date || !Array.isArray(summary?.actionItems)) return summary
+  const time = parseSummaryCalendarTime(summary?.schedule?.time, language)
+  return {
+    ...summary,
+    schedule: { ...(summary.schedule || {}), date },
+    actionItems: summary.actionItems.map((item, index) => {
+      const row = typeof item === 'string' ? { task: item } : { ...(item || {}) }
+      const rowDate = parseSummaryCalendarDate(row.time, referenceDate)
+      const resolvedDate = rowDate || date
+      const hasSavedAbsoluteTime = /^\d{4}-\d{2}-\d{2}(?:[ T]\d{2}:\d{2})?/.test(String(row.time || '').trim())
+      if (row.timeSource === 'user' && hasSavedAbsoluteTime) return row
+      return {
+        ...row,
+        time: time ? `${resolvedDate} ${time}` : resolvedDate,
+        date: resolvedDate,
+        clockTime: time || null,
+        timeSource: /[월화수목금토일]요일/.test(`${row.time || ''}\n${scheduleDateText}\n${fallbackDateText}`)
+          ? 'received_date_weekday'
+          : 'schedule',
+        isAllDay: !time,
+        calendarCandidateKey: `mail_summary:${message?.tenant_id || ''}:${message?.id || ''}:${index}`,
+      }
+    }),
+  }
+}
+
 function stripJsonFence(text) {
   return String(text || '')
     .trim()
@@ -429,7 +488,7 @@ function isNoInfoText(value, language = 'ko') {
   if (!text) return true
   const noInfo = getLanguageMeta(language).noInfo.toLowerCase()
   return text === noInfo ||
-    /^(확인된 내용 없음|확인된 일정 정보 없음|no confirmed information|no confirmed schedule information|確認できる内容なし|確認できる日程情報なし)$/i.test(text)
+    /^(확인된 내용 없음|확인된 시간 없음|확인된 일정 정보 없음|no confirmed information|no confirmed time|no confirmed schedule information|確認できる内容なし|確認できる時間なし|確認できる日程情報なし)$/i.test(text)
 }
 
 function findSummaryQualityFlags(summary, factList, language = 'ko') {
@@ -680,9 +739,14 @@ function buildStructuredSystemPrompt({ retry = false, targetLanguage = 'ko', sen
     `- 사실 목록에 업무 의미가 있으면 "${noInfo}"으로 대체하지 말고 요약에 반영하세요.`,
     '- 단순 감사/처리 예정/입금 대기 같은 짧은 업무 메일도 의미 있는 keyPoints와 summary로 작성하세요.',
     '- 날짜, 시간, 장소, 참석 대상 등 일정 정보는 schedule에 정리하세요.',
+    '- 연월일 없이 요일만 있으면 schedule.date에 원문의 요일 표현을 그대로 기록하세요. 수신 시간을 기준으로 한 절대 날짜 변환은 후처리에서 수행합니다.',
     '- 핵심 목적, 회의 배경, 주요 요청사항은 keyPoints 배열에 정리하세요.',
     '- 전체 메일 내용은 summary에 2~4문장으로 자연스럽게 요약하세요.',
     '- 사용자가 해야 할 일, 준비물, 회신 필요 여부, 마감 또는 관련 시간은 actionItems에 정리하세요.',
+    '- 동일 스레드 컨텍스트가 있으면 mail(t1)이 최신 메일이며 제공된 weight는 출력 우선순위와 강조도에만 사용하세요.',
+    '- 최신 메일의 명시적 변경·취소·완료를 우선하되, 최신 메일에 생략된 과거의 확정 사실을 임의로 삭제하지 마세요.',
+    '- 취소되거나 완료된 과거 액션은 현재 수행할 actionItems에 넣지 말고, 표현만 다른 동일 액션은 하나로 합치세요.',
+    '- 메일 간 사실이 충돌하고 현재 값을 확정할 수 없으면 추측하지 말고 확인 필요 상태를 요약에 명시하세요.',
     `- 정보가 없는 문자열 필드는 "${noInfo}"으로 작성하세요.`,
     `- 정보가 없는 배열 필드는 ["${noInfo}"]으로 작성하세요.`,
     `- actionItems의 time이 명확하지 않으면 "${noInfo}"으로 작성하세요.`,
@@ -691,10 +755,23 @@ function buildStructuredSystemPrompt({ retry = false, targetLanguage = 'ko', sen
   ].filter(Boolean).join('\n')
 }
 
-function buildStructuredUserContent({ message, bodyText, factList }) {
+function buildStructuredUserContent({ message, bodyText, factList, threadContext = [] }) {
   const prompt = buildMailSummaryPrompt({ message, bodyText })
+  const threadRows = threadContext.map(item => {
+    const saved = item.summary_json || {}
+    const content = saved.summary || item.snippet || item.subject || ''
+    return [
+      `mail(t${item.rank}) weight=${item.weight.toFixed(6)} messageId=${item.id}`,
+      `date=${item.received_at || item.sent_at || item.created_at || 'unknown'}`,
+      `subject=${item.subject || '(제목 없음)'}`,
+      `content=${String(content).replace(/\s+/g, ' ').trim()}`,
+      Array.isArray(saved.actionItems) ? `actions=${JSON.stringify(saved.actionItems)}` : '',
+    ].filter(Boolean).join('\n')
+  })
   return [
     prompt,
+    threadRows.length > 1 ? '\n[동일 스레드 최신성 가중 컨텍스트]' : '',
+    ...threadRows,
     '',
     '[확인된 사실 목록]',
     ...(factList.length ? factList.map(item => `- ${item}`) : ['- 확인된 사실 없음']),
@@ -734,7 +811,7 @@ function buildFallbackSummary({ cleanBodyText, analysisText, targetLanguage, fac
   }
 }
 
-async function summarizeMail({ message, bodyText, model: requestedModel, targetLanguage: requestedTargetLanguage = 'ko' }) {
+async function summarizeMail({ message, bodyText, threadMessages = [], model: requestedModel, targetLanguage: requestedTargetLanguage = 'ko' }) {
   const runtimeConfig = loadRuntimeConfig()
   const llmContext = {
     config: runtimeConfig,
@@ -775,12 +852,17 @@ async function summarizeMail({ message, bodyText, model: requestedModel, targetL
   const llmFacts = await extractMailFacts({ text: analysisText, targetLanguage, model, context: llmContext, senderReference })
   const ruleFacts = buildRuleFacts({ cleanBodyText, analysisText, targetLanguage, senderReference })
   const factList = uniqueRows([...ruleFacts, ...llmFacts]).slice(0, 12)
+  const threadContext = buildWeightedThreadContext(threadMessages)
   const sourceText = buildStructuredUserContent({
     message,
     bodyText: analysisText,
     factList,
+    threadContext,
   })
   const qualityFlags = []
+  if (threadContext.length > 1) {
+    qualityFlags.push('thread_summary_weighted', `thread_message_count_${threadContext.length}`)
+  }
   const buildPayload = (retry = false) => ({
     model,
     stream: false,
@@ -882,6 +964,8 @@ async function summarizeMail({ message, bodyText, model: requestedModel, targetL
   }
 
   summary = applySenderReferenceToSummary(summary, senderReference, targetLanguage)
+  summary = applyActionItemSummaryFallback(summary, getLanguageMeta(targetLanguage).noInfo)
+  summary = applyScheduleToActionItems(summary, message, targetLanguage, cleanBodyText)
   const finalCleanedSummary = stripModelArtifactsFromSummary(summary, targetLanguage)
   if (finalCleanedSummary.removed) {
     if (finalCleanedSummary.reasoningRemoved) qualityFlags.push('reasoning_trace_detected', 'reasoning_trace_removed')

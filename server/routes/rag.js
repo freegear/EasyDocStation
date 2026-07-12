@@ -13,6 +13,7 @@ const { getAccessibleChannelIds } = require('../lib/channelAccess')
 const { resolveQueryChannelScope } = require('../lib/channelMappingIndex')
 const { getCachedJson, setCachedJson, hashPayload } = require('../aiCache')
 const aiMetrics = require('../aiMetrics')
+const gpuGate = require('../gpu/gpuGate')
 
 const CONFIG_PATH = path.resolve(__dirname, '../../config.json')
 const RAG_SERVER_PORT = 5001
@@ -89,6 +90,21 @@ function writeConfig(config) {
 function buildPgInClause(values = [], startIndex = 1) {
   const placeholders = values.map((_, i) => `$${startIndex + i}`).join(', ')
   return `(${placeholders})`
+}
+
+// 폴더 데이터셋 팀 범위 판정용: 사용자가 속한 팀 ID 목록
+async function getUserTeamIds(userId) {
+  if (!userId) return []
+  try {
+    const { rows } = await db.query(
+      `SELECT team_id FROM team_members WHERE user_id=$1
+         UNION SELECT team_id FROM team_admins WHERE user_id=$1`,
+      [userId],
+    )
+    return rows.map(r => r.team_id)
+  } catch (_) {
+    return []
+  }
 }
 
 function makeDatasetId() {
@@ -1256,13 +1272,94 @@ function normalizePriorityContext(raw = {}, allowedChannelIds = []) {
   }
 }
 
-function applyChannelAccessFilter(results = [], allowedChannelIds = []) {
+// 폴더 데이터셋 청크(채널 ID 없음)에 대한 접근 판정 (UploadFolder.md 23.1).
+// rag_server.build_acl_clause 와 같은 OR 조건을 클라이언트에서 다시 검증한다(권한 누수 방지, 23.3).
+function userCanAccessFolderChunk(meta = {}, scopeCtx = null) {
+  const scope = String(meta.access_scope || '').trim()
+  if (!scope || !scopeCtx) return false
+  const ctx = scopeCtx || {}
+  if (ctx.is_site_admin) return true
+  const sec = Number(meta.effective_security_level || 0)
+  if (sec > Number(ctx.security_level || 0)) return false
+  if (scope === 'all') return true
+  if (scope === 'personal') {
+    return String(meta.owner_id || '') === String(ctx.user_id || '') && !!ctx.user_id
+  }
+  if (scope === 'team') {
+    const teamIds = new Set((ctx.team_ids || []).map(String))
+    return teamIds.has(String(meta.scope_team_id || ''))
+  }
+  if (scope === 'channel') {
+    const chIds = new Set((ctx.accessible_channel_ids || []).map(String))
+    return chIds.has(String(meta.scope_channel_id || ''))
+  }
+  return false
+}
+
+function applyChannelAccessFilter(results = [], allowedChannelIds = [], scopeCtx = null) {
   const allowedSet = normalizeIdSet(allowedChannelIds)
-  if (allowedSet.size === 0) return []
   return (Array.isArray(results) ? results : []).filter(item => {
-    const channelId = String(item?.metadata?.channel_id || '').trim()
-    return channelId && allowedSet.has(channelId)
+    const meta = item?.metadata || {}
+    const channelId = String(meta.channel_id || '').trim()
+    if (channelId && allowedSet.has(channelId)) return true
+    // 채널 ID가 없는 폴더 데이터셋 청크는 스코프 접근 범위로 판정한다.
+    if (!channelId && meta.access_scope) return userCanAccessFolderChunk(meta, scopeCtx)
+    return false
   })
+}
+
+// 같은 폴더(folder_group_id) 형제 문서를 생성 컨텍스트에 주입 (UploadFolder.md 23.3).
+// 1차 결과의 folder_group_id를 모아 같은 그룹 청크를 추가 조회하고, ACL을 다시 통과시킨
+// 뒤 그룹당/전체 개수 상한으로 제한한다. 원문보다 낮은 우선순위로 컨텍스트에 덧붙인다.
+async function expandFolderSiblings(finalResults = [], { searchPayload, query, scopeCtx, perGroup = 2, overall = 6 } = {}) {
+  const groupIds = [...new Set(
+    (Array.isArray(finalResults) ? finalResults : [])
+      .map(r => String(r?.metadata?.folder_group_id || '').trim())
+      .filter(Boolean),
+  )]
+  if (groupIds.length === 0 || !searchPayload) return []
+
+  // 이미 컨텍스트에 있는 청크는 다시 넣지 않는다.
+  const existingKeys = new Set(finalResults.map(buildSearchResultKey))
+
+  const siblingResults = await callPythonSearch({
+    ...searchPayload,
+    query,
+    folder_group_ids: groupIds,
+    limit: Math.max(overall * 3, 12),
+  }).catch(() => [])
+
+  const perGroupCount = new Map()
+  const picked = []
+  for (const item of applyVectorDistanceCeiling(siblingResults)) {
+    const meta = item?.metadata || {}
+    const gid = String(meta.folder_group_id || '').trim()
+    if (!gid) continue
+    const key = buildSearchResultKey(item)
+    if (existingKeys.has(key)) continue
+    // ACL 재검증(권한 누수 방지): 서버 프리필터를 신뢰하지 않고 다시 확인한다.
+    if (!userCanAccessFolderChunk(meta, scopeCtx)) continue
+    const used = perGroupCount.get(gid) || 0
+    if (used >= perGroup) continue
+    perGroupCount.set(gid, used + 1)
+    existingKeys.add(key)
+    picked.push(item)
+    if (picked.length >= overall) break
+  }
+  return picked
+}
+
+// 형제 문서 청크를 "같은 폴더 관련 문서" 블록 텍스트로 변환 (원문보다 낮은 가중치 힌트 포함)
+function buildFolderSiblingContext(siblings = []) {
+  if (!Array.isArray(siblings) || siblings.length === 0) return ''
+  const blocks = siblings.map((r) => {
+    const meta = r.metadata || {}
+    const source = meta.file_name || meta.source || 'unknown'
+    const folderPath = meta.folder_path || ''
+    const header = `[같은 폴더 관련 문서 (참고) - source: ${source}${folderPath ? ` / folder: ${folderPath}` : ''}]`
+    return `${header}\n${r.text}`
+  })
+  return blocks.join('\n\n')
 }
 
 async function resolvePriorityContext(context = {}) {
@@ -1914,6 +2011,9 @@ router.post('/search', requireAuth, async (req, res) => {
   try {
     const { query, limit = 3, preferred_sources: preferredSources = [], retrieval: retrievalRaw = {} } = req.body
     if (!query?.trim()) return res.json({ context: '', references: [] })
+    // 대화형(검색) 진행 중임을 GPU 게이트에 알린다 → 폴더 학습이 양보한다.
+    // fire-and-forget: 실패해도 검색 진행에 영향 없음(GpuScheduling.md 1단계).
+    gpuGate.markInteractiveBusy()
     const allowedChannelIds = await getAccessibleChannelIds(db, req.user)
     if (allowedChannelIds.length === 0) {
       return res.json({ context: '', references: [] })
@@ -1989,6 +2089,15 @@ router.post('/search', requireAuth, async (req, res) => {
       query,
       limit: firstPassLimit,
       allowed_channel_ids: searchChannelIds,
+      // 폴더 데이터셋 접근 범위(모두/팀/채널/개인) 판정용 컨텍스트 (UploadFolder.md 23.1).
+      // 활성 테이블에 스코프 필드가 없으면(rag_server) 무시되어 기존 동작을 보존한다.
+      scope_context: {
+        user_id: String(req.user?.id || ''),
+        team_ids: await getUserTeamIds(req.user?.id),
+        accessible_channel_ids: allowedChannelIds,
+        security_level: Number(req.user?.security_level || 0),
+        is_site_admin: req.user?.role === 'site_admin',
+      },
     }
 
     const cachePayload = {
@@ -2001,6 +2110,13 @@ router.post('/search', requireAuth, async (req, res) => {
       vector_size: ragCfg.vectorSize ?? 1024,
       allowed_channel_ids_fingerprint: hashPayload([...allowedChannelIds].sort()),
       search_channel_ids_fingerprint: hashPayload([...searchChannelIds].sort()),
+      // 스코프별 결과 격리: 캐시 키에 사용자/팀/보안등급을 포함해 사용자 간 누수를 막는다.
+      scope_fingerprint: hashPayload({
+        user_id: String(req.user?.id || ''),
+        team_ids: [...(payload.scope_context.team_ids || [])].sort(),
+        security_level: Number(req.user?.security_level || 0),
+        is_site_admin: req.user?.role === 'site_admin',
+      }),
       priority_context: priorityContext,
       rag_scope: ragScope,
       channel_search_mode: channelSearchMode || 'auto',
@@ -2161,7 +2277,7 @@ router.post('/search', requireAuth, async (req, res) => {
     // 벡터 검색 결과에서 누락된 같은 페이지 내용을 text.json으로 보강 (재학습 없이 즉시 효과)
     finalResults = mergeUniqueResults(expandPageContextFromTrainingData(finalResults))
     finalResults = applyVectorDistanceCeiling(finalResults)
-    finalResults = applyChannelAccessFilter(finalResults, searchChannelIds)
+    finalResults = applyChannelAccessFilter(finalResults, searchChannelIds, payload.scope_context)
     if (isEvidenceGatedScope(ragScope)) {
       finalResults = applyMetadataFilter(finalResults, retrievalOptions.filter)
     }
@@ -2210,6 +2326,22 @@ router.post('/search', requireAuth, async (req, res) => {
       return `${header}\n${r.text}`
     }).join('\n\n')
     const references = await enrichReferences(finalResults)
+
+    // 같은 폴더(folder_group_id) 형제 문서를 생성 컨텍스트에 주입한다 (UploadFolder.md 23.3).
+    // 1차 결과에 폴더 청크가 없으면 groupIds가 비어 no-op이므로 일반 검색에는 영향이 없다.
+    try {
+      const siblings = await expandFolderSiblings(finalResults, {
+        searchPayload,
+        query,
+        scopeCtx: payload.scope_context,
+      })
+      const siblingContext = buildFolderSiblingContext(siblings)
+      if (siblingContext) {
+        context = `${context}\n\n${siblingContext}`
+      }
+    } catch (e) {
+      console.warn('[RAG] 같은 폴더 형제 문서 확장 실패:', e.message)
+    }
 
     if (temporalQuery && !hasDateOrTimeSignal(context)) {
       const temporalFallbackBlocks = buildTemporalFallbackContextFromReferences(references)

@@ -1,10 +1,12 @@
-import { useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import { MAIL_TEXT } from './mailText'
 import { MenuIcon } from './mailIcons'
 import {
   MAIL_SUMMARY_NO_INFO,
   formatDraftSummaryActionTimeLabel,
+  isSummaryTimeMissing,
   parseSummaryActionDateTime,
+  parseSummaryScheduleDate,
 } from './mailSummaryUtils'
 
 function MailSummaryValue({ label, value, noInfo = MAIL_SUMMARY_NO_INFO }) {
@@ -23,10 +25,46 @@ export default function MailSummaryPanel({
   actionTimeDrafts = {},
   actionTimeSavingKey = '',
   actionTimeError = '',
+  actionTaskSavingKey = '',
+  actionTaskError = '',
   onActionTimeChange,
-  onCalendarEventOpen,
+  onActionTaskChange,
+  onCalendarRegister,
+  referenceDate,
 }) {
   const [openActionMenu, setOpenActionMenu] = useState(null)
+  const [editingActionIndex, setEditingActionIndex] = useState(null)
+  const [editingActionValue, setEditingActionValue] = useState('')
+  const cancelledEditRef = useRef(null)
+  const actionMenuIdPrefix = useId()
+  const actionMenuContainersRef = useRef(new Map())
+  const actionMenuTriggersRef = useRef(new Map())
+
+  useEffect(() => {
+    if (openActionMenu === null) return undefined
+
+    function closeOnOutsidePointer(event) {
+      const container = actionMenuContainersRef.current.get(openActionMenu)
+      if (container?.contains(event.target)) return
+      setOpenActionMenu(null)
+    }
+
+    function closeOnEscape(event) {
+      if (event.key !== 'Escape') return
+      event.preventDefault()
+      const trigger = actionMenuTriggersRef.current.get(openActionMenu)
+      setOpenActionMenu(null)
+      window.requestAnimationFrame(() => trigger?.focus())
+    }
+
+    document.addEventListener('pointerdown', closeOnOutsidePointer)
+    document.addEventListener('keydown', closeOnEscape)
+    return () => {
+      document.removeEventListener('pointerdown', closeOnOutsidePointer)
+      document.removeEventListener('keydown', closeOnEscape)
+    }
+  }, [openActionMenu])
+
   if (!summary) return null
   const schedule = summary.schedule || {}
   const s = mt.summary
@@ -66,28 +104,93 @@ export default function MailSummaryPanel({
           {(summary.actionItems || [{ task: s.noInfo, time: s.noInfo }]).map((item, index) => {
             const savedDateTime = parseSummaryActionDateTime(item.time)
             const draft = actionTimeDrafts[index] || {}
-            const dateValue = draft.date ?? savedDateTime.date
-            const timeValue = draft.time ?? savedDateTime.time
-            const isAllDay = draft.isAllDay ?? item.isAllDay === true
+            const scheduleDate = parseSummaryScheduleDate(schedule.date, referenceDate)
+            const useScheduleAllDay = !savedDateTime.date && scheduleDate && isSummaryTimeMissing(schedule.time, s.noInfo)
+            const dateValue = draft.date ?? (item.date || savedDateTime.date || (useScheduleAllDay ? scheduleDate : ''))
+            const timeValue = draft.time ?? (item.clockTime ?? savedDateTime.time)
+            const isAllDay = draft.isAllDay ?? (item.isAllDay === true || Boolean(useScheduleAllDay))
+            const effectiveDraft = { ...draft, date: dateValue, time: timeValue, isAllDay }
             const menuOpen = openActionMenu === index
+            const menuId = `${actionMenuIdPrefix}-action-time-${index}`
             return (
               <div key={`${item.task}-${index}`} className="grid gap-2 px-3 py-2 lg:grid-cols-[1fr_auto] lg:items-center">
-                <span className="font-bold text-gray-800">{item.task || s.noInfo}</span>
+                {editingActionIndex === index ? (
+                  <input
+                    type="text"
+                    autoFocus
+                    maxLength={500}
+                    value={editingActionValue}
+                    disabled={actionTaskSavingKey === String(index)}
+                    aria-label={item.task || s.noInfo}
+                    onChange={event => setEditingActionValue(event.target.value)}
+                    onKeyDown={event => {
+                      if (event.key === 'Escape') {
+                        cancelledEditRef.current = index
+                        setEditingActionIndex(null)
+                        setEditingActionValue('')
+                        event.currentTarget.blur()
+                      } else if (event.key === 'Enter' && !event.isComposing && !event.nativeEvent?.isComposing) {
+                        event.preventDefault()
+                        event.currentTarget.blur()
+                      }
+                    }}
+                    onBlur={async () => {
+                      if (cancelledEditRef.current === index) {
+                        cancelledEditRef.current = null
+                        return
+                      }
+                      const saved = await onActionTaskChange?.(index, editingActionValue)
+                      if (saved !== false) {
+                        setEditingActionIndex(null)
+                        setEditingActionValue('')
+                      }
+                    }}
+                    className="h-9 min-w-0 w-full rounded-md border border-indigo-300 bg-white px-2.5 text-sm font-bold text-gray-800 outline-none ring-2 ring-indigo-100 focus:border-indigo-500 disabled:opacity-60"
+                  />
+                ) : (
+                  <span
+                    className="cursor-text font-bold text-gray-800"
+                    title="더블클릭하여 편집"
+                    onDoubleClick={() => {
+                      setEditingActionIndex(index)
+                      setEditingActionValue(item.task || '')
+                    }}
+                  >
+                    {item.task || s.noInfo}
+                  </span>
+                )}
                 <div className="flex flex-wrap items-center gap-2 lg:justify-end">
-                  <div className="relative">
+                  <div
+                    ref={node => {
+                      if (node) actionMenuContainersRef.current.set(index, node)
+                      else actionMenuContainersRef.current.delete(index)
+                    }}
+                    className="relative"
+                  >
                     <button
+                      ref={node => {
+                        if (node) actionMenuTriggersRef.current.set(index, node)
+                        else actionMenuTriggersRef.current.delete(index)
+                      }}
                       type="button"
                       aria-expanded={menuOpen}
+                      aria-controls={menuId}
+                      aria-haspopup="dialog"
                       onClick={() => setOpenActionMenu(prev => (prev === index ? null : index))}
                       className="inline-flex h-8 min-w-[128px] items-center justify-between gap-2 rounded-md border border-indigo-100 bg-indigo-50/50 px-2.5 text-xs font-extrabold text-gray-600 transition hover:border-indigo-200 hover:bg-indigo-50"
                     >
-                      <span>{formatDraftSummaryActionTimeLabel(item, draft, mt)}</span>
+                      <span>{formatDraftSummaryActionTimeLabel(item, effectiveDraft, mt)}</span>
                       <span className={`transition-transform ${menuOpen ? 'rotate-180' : ''}`}>
                         <MenuIcon type="chevronDown" />
                       </span>
                     </button>
                     {menuOpen && (
-                      <div className="absolute right-0 z-30 mt-2 w-[278px] rounded-lg border border-indigo-100 bg-white p-3 shadow-xl shadow-indigo-100/70">
+                      <div
+                        id={menuId}
+                        role="dialog"
+                        aria-label={`${item.task || s.noInfo} ${s.selectDate}`}
+                        className="absolute right-0 z-30 mt-2 w-[278px] rounded-lg border border-indigo-100 bg-white p-3 shadow-xl shadow-indigo-100/70"
+                      >
                         <label className="block text-[11px] font-extrabold text-gray-500">
                           {s.selectDate}
                           <input
@@ -107,7 +210,7 @@ export default function MailSummaryPanel({
                             aria-checked={isAllDay}
                             aria-label={s.allDay}
                             title={s.allDay}
-                            onClick={() => onActionTimeChange?.(index, { isAllDay: !isAllDay })}
+                            onClick={() => onActionTimeChange?.(index, { date: dateValue, time: timeValue, isAllDay: !isAllDay })}
                             className={`relative h-5 w-10 flex-shrink-0 rounded-full transition ${
                               isAllDay ? 'bg-indigo-600' : 'bg-gray-300'
                             }`}
@@ -133,11 +236,23 @@ export default function MailSummaryPanel({
                   {actionTimeSavingKey === String(index) && (
                     <span className="text-[11px] font-extrabold text-indigo-500">{s.savingActionTime}</span>
                   )}
+                  {!item.calendarEventId && editingActionIndex !== index && dateValue && (isAllDay || timeValue) && (
+                    <button
+                      type="button"
+                      disabled={actionTimeSavingKey === String(index) || actionTaskSavingKey === String(index)}
+                      onClick={() => onCalendarRegister?.(index)}
+                      className="rounded px-1.5 py-1 text-[11px] font-extrabold text-indigo-500 underline decoration-indigo-200 underline-offset-2 transition hover:bg-indigo-50 hover:text-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {s.calendarRegister}
+                    </button>
+                  )}
                   {item.calendarEventId && (
                     <button
                       type="button"
-                      onClick={() => onCalendarEventOpen?.(item.calendarEventId)}
+                      disabled={actionTimeSavingKey === String(index) || actionTaskSavingKey === String(index)}
+                      onClick={() => onCalendarRegister?.(index)}
                       className="rounded px-1.5 py-1 text-[11px] font-extrabold text-indigo-500 underline decoration-indigo-200 underline-offset-2 transition hover:bg-indigo-50 hover:text-indigo-700"
+                      title="연결된 캘린더 이벤트를 다시 확인하고 동기화합니다."
                     >
                       {s.calendarAdded}
                     </button>
@@ -149,6 +264,9 @@ export default function MailSummaryPanel({
         </div>
         {actionTimeError && (
           <p className="mt-2 text-xs font-bold text-red-500">{actionTimeError}</p>
+        )}
+        {actionTaskError && (
+          <p className="mt-2 text-xs font-bold text-red-500">{actionTaskError}</p>
         )}
       </section>
     </div>

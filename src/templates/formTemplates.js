@@ -10,7 +10,7 @@ export const WELCOME_BOARD_TEMPLATE = {
   // 인패널 헤더 한 줄에 표시할 인사말(사이드바 버튼 label과 별개). WelcomeBoard.md 참조.
   headerLabel: 'EasyStation에 오신 것을 환영합니다.',
   icon: '👋',
-  iconImg: '/img/Welcome-logo_2nd.png',
+  iconImg: '/img/Welcome-logo_4th.png',
   content: welcomeBoardTemplate,
 }
 

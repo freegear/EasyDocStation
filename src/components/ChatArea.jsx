@@ -3085,6 +3085,20 @@ function PostList({ posts, onSelect, onSubmit, selectedPostId, onOpenDocumentLis
   }, [posts.length, selectedChannel?.id])
 
   useEffect(() => {
+    const openDocuments = () => onOpenDocumentList?.()
+    const openDeleted = () => setShowDeletedModal(true)
+    const openManage = () => { if (isAdmin) setShowManageModal(true) }
+    window.addEventListener('easy-board-open-documents', openDocuments)
+    window.addEventListener('easy-board-open-deleted', openDeleted)
+    window.addEventListener('easy-board-open-channel-manage', openManage)
+    return () => {
+      window.removeEventListener('easy-board-open-documents', openDocuments)
+      window.removeEventListener('easy-board-open-deleted', openDeleted)
+      window.removeEventListener('easy-board-open-channel-manage', openManage)
+    }
+  }, [isAdmin, onOpenDocumentList])
+
+  useEffect(() => {
     if (pageState.loadingOlder || pageState.prefetching) {
       prependInProgressRef.current = true
     }
@@ -3166,60 +3180,6 @@ function PostList({ posts, onSelect, onSubmit, selectedPostId, onOpenDocumentLis
 
   return (
     <div className="flex-1 flex flex-col min-h-0">
-      {/* Header */}
-      <div className="flex items-center px-6 py-4 border-b border-gray-200 flex-shrink-0">
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="text-gray-400 text-sm">#</span>
-            <h2 className="text-gray-900 font-bold text-base">{selectedChannel.name}</h2>
-            {selectedChannel.type === 'private' && (
-              <svg className="w-3.5 h-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-              </svg>
-            )}
-          </div>
-          <p className="text-gray-400 text-xs mt-0.5">{t.chat.postsCount(selectedTeam.name, posts.length)}</p>
-        </div>
-
-        <div className="flex-1" />
-
-        <div className="flex items-center gap-2">
-          <button
-            onClick={onOpenDocumentList}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-sky-50 border border-sky-200 text-sky-600 hover:bg-sky-100 transition-all text-xs font-semibold"
-          >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
-            {t.chat.documentList || '문서 목록'}
-          </button>
-
-          <button
-            onClick={() => setShowDeletedModal(true)}
-            title={t.chat.recentlyDeleted || '최근 삭제됨'}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gray-50 border border-gray-200 text-gray-600 hover:bg-gray-100 transition-all text-xs font-semibold"
-          >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7h18M8 7V5a2 2 0 012-2h4a2 2 0 012 2v2m-1 0v12a2 2 0 01-2 2H9a2 2 0 01-2-2V7h10z" />
-            </svg>
-            {t.chat.recentlyDeleted || '최근 삭제됨'}
-          </button>
-
-          {isAdmin && (
-            <button
-              onClick={() => setShowManageModal(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-50 border border-indigo-200 text-indigo-600 hover:bg-indigo-100 transition-all text-xs font-semibold"
-            >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-              </svg>
-              {t.channel.manageTitle}
-            </button>
-          )}
-        </div>
-      </div>
-
       {showManageModal && (
         <ChannelManageModal
           onClose={() => setShowManageModal(false)}

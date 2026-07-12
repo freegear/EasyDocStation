@@ -693,9 +693,18 @@ router.post('/groq/test', requireSiteAdmin, async (req, res) => {
 // GET /api/admin/gpu-optimization — Redis/GPU optimization settings and metrics
 router.get('/gpu-optimization', requireSiteAdmin, async (_req, res) => {
   try {
+    // GPU 학습 스케줄링 게이트/nvidia-smi 상태 (MDfiles/GpuScheduling.md 3단계 관측성)
+    let gpuScheduling = null
+    try {
+      const gpuGate = require('../gpu/gpuGate')
+      gpuScheduling = await gpuGate.getGpuStatus()
+    } catch (e) {
+      gpuScheduling = { error: e.message }
+    }
     res.json({
       config: getAiOptimizationConfig(),
       metrics: aiMetrics.snapshot(),
+      gpu_scheduling: gpuScheduling,
     })
   } catch (err) {
     console.error('GPU Optimization Load Error:', err)

@@ -1,0 +1,10 @@
+{
+  "files.watcherExclude": {
+    "**/Database/**": true,
+    "**/node_modules/**": true,
+    "**/dist/**": true,
+    "**/logs/**": true,
+    "**/.venv/**": true,
+    "**/tmp/**": true
+  }
+}

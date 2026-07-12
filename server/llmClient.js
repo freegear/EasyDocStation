@@ -2,6 +2,7 @@ const fs = require('fs')
 const http = require('http')
 const https = require('https')
 const path = require('path')
+const gpuGate = require('./gpu/gpuGate')
 
 const DEFAULT_GROQ_BASE_URL = 'https://api.groq.com/openai/v1'
 const DEFAULT_GROQ_MODEL = 'llama-3.1-8b-instant'
@@ -15,6 +16,12 @@ function getOllamaChatOptions() {
 }
 
 function requestOllama(payload, timeoutMs = 120000) {
+  // Ollama(dgx-spark)는 GPU 소비자다. 답변 생성 동안 대화형 리스를 갱신해
+  // 폴더 학습이 양보하도록 한다(MDfiles/GpuScheduling.md 1·5단계).
+  return gpuGate.withInteractiveLease(() => requestOllamaRaw(payload, timeoutMs), 30)
+}
+
+function requestOllamaRaw(payload, timeoutMs = 120000) {
   const options = getOllamaChatOptions()
   const body = JSON.stringify(payload)
 

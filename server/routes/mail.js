@@ -15,11 +15,24 @@ const { syncGmailAccount, discoverGmailFolders, syncGmailFolder } = require('../
 const { syncImapAccount, listImapFolders, syncImapFolder } = require('../mail/imapSync')
 const { decryptSecret } = require('../lib/secrets')
 const { enqueueMessageSynced } = require('../mail/agentic/worker')
-const { executeMailClawRuleForMessage, executeMailClawRuleForMessages } = require('../mail/mailClaw')
-const { moveMessageOnProvider } = require('../mail/providerMove')
+const { executeMailClawRuleForMessage, executeMailClawRuleForMessages, getMailClawSummaryStatus } = require('../mail/mailClaw')
+const { moveMessageOnProvider, isLocalOrphanCandidateOnProvider } = require('../mail/providerMove')
 const { renameFolderOnProvider, deleteFolderOnProvider } = require('../mail/providerRename')
 const { summarizeMail, normalizeLanguage } = require('../mail/mailSummary')
 const { formatActionTime, upsertMailSummaryActionCalendarEvent } = require('../mail/calendarAction')
+const { isAttachmentPreviewCandidate, resolveAttachmentPreview } = require('../mail/attachmentPreview')
+const { analyzeMailImages, formatImageAnalysisForSummary } = require('../mail/imageOcr')
+const { extractRemoteImageCandidates, fetchRemoteImage } = require('../mail/remoteImages')
+const contentDisposition = require('content-disposition')
+
+// 첨부 파일명을 Content-Disposition 헤더로 안전 변환한다.
+// content-disposition은 filename에 basename()을 적용하므로, 파일명에 포함된 경로 구분자('/', '\\')를
+// 미리 '_'로 바꿔 앞부분이 잘리는 것을 막는다(브라우저도 다운로드 시 '/'를 '_'로 정화한다).
+// 라이브러리가 RFC 5987/2231에 맞게 홑따옴표 등 예약문자를 처리하므로 한글 파일명이 깨지지 않는다.
+function attachmentDisposition(filename, type) {
+  const safeName = String(filename || 'attachment').replace(/[\\/\r\n]/g, '_')
+  return contentDisposition(safeName, { type })
+}
 
 const IMAP_PROVIDERS = ['naver', 'apple', 'imap', 'other']
 const {
@@ -893,6 +906,7 @@ router.get('/messages/:id', async (req, res, next) => {
       filename: a.filename,
       content_type: a.content_type,
       size_bytes: Number(a.size_bytes) || 0,
+      preview_available: isAttachmentPreviewCandidate({ filename: a.filename, contentType: a.content_type }),
     }))
     const savedSummary = await repo.getMessageSummary({
       tenantId,
@@ -901,6 +915,11 @@ router.get('/messages/:id', async (req, res, next) => {
       targetLanguage,
     })
     const summaryPayload = serializeMessageSummary(savedSummary)
+    const remoteCandidates = extractRemoteImageCandidates(bodyHtml).filter(item => !item.tracking)
+    const savedRemoteHashes = new Set(attachmentRows
+      .map(item => String(item.provider_attachment_id || ''))
+      .filter(value => value.startsWith('remote:'))
+      .map(value => value.slice(7)))
     res.json({
       ...message,
       is_read: true,
@@ -908,8 +927,101 @@ router.get('/messages/:id', async (req, res, next) => {
       body_html: bodyHtml,
       body_text: bodyText,
       attachments,
+      remote_image_analysis: {
+        status: remoteCandidates.length === 0
+          ? 'none'
+          : remoteCandidates.every(item => savedRemoteHashes.has(item.id)) ? 'completed' : 'approval_required',
+        candidateIds: remoteCandidates.filter(item => !savedRemoteHashes.has(item.id)).map(item => item.id),
+        candidateCount: remoteCandidates.length,
+      },
       ...summaryPayload,
     })
+  } catch (err) {
+    next(err)
+  }
+})
+
+router.post('/messages/:id/remote-images/analyze', async (req, res, next) => {
+  try {
+    const messageId = String(req.params.id || '').trim()
+    const tenantId = String(req.body?.tenantId || '').trim()
+    const requestedIds = new Set((Array.isArray(req.body?.candidateIds) ? req.body.candidateIds : [])
+      .map(value => String(value || '').trim()).filter(Boolean))
+    if (!messageId || !tenantId) return res.status(400).json({ error: 'messageId와 tenantId가 필요합니다.' })
+    if (!(await repo.canAccessTenant({ userId: req.user.id, tenantId, isSiteAdmin: isSiteAdmin(req) }))) {
+      return res.status(403).json({ error: '메일 tenant 접근 권한이 없습니다.' })
+    }
+    const message = await repo.getMessage({ tenantId, messageId, userId: req.user.id, isSiteAdmin: isSiteAdmin(req) })
+    if (!message) return res.status(404).json({ error: '메일을 찾을 수 없습니다.' })
+    if (!message.body_html_object_key) return res.json({ ok: true, analyzed: 0, skipped: 0 })
+
+    const storage = getMailStorage()
+    const bodyHtml = (await storage.getObject(message.body_html_object_key)).toString('utf8')
+    const candidates = extractRemoteImageCandidates(bodyHtml)
+      .filter(item => !item.tracking && (requestedIds.size === 0 || requestedIds.has(item.id)))
+    if (requestedIds.size && candidates.length !== requestedIds.size) {
+      return res.status(400).json({ error: '메일 본문에 없는 외부 이미지 후보가 포함되었습니다.' })
+    }
+    const failures = []
+    let analyzed = 0
+    for (const candidate of candidates.slice(0, 10)) {
+      try {
+        const fetched = await fetchRemoteImage(candidate.url)
+        const contentHash = crypto.createHash('sha256').update(fetched.buffer).digest('hex')
+        const objectKey = buildMailObjectKey({
+          tenantId,
+          userId: message.user_id,
+          accountId: message.account_id,
+          providerMessageId: message.provider_message_id,
+          suffix: `remote-images/${candidate.id}/${contentHash}.${fetched.extension}`,
+        })
+        await storage.saveObject(objectKey, fetched.buffer)
+        await repo.saveRemoteImageAttachment({
+          tenantId, message, sourceUrlHash: candidate.id, contentType: fetched.contentType,
+          sizeBytes: fetched.buffer.length, objectKey, hostname: fetched.finalHostname,
+        })
+        analyzed += 1
+      } catch (error) {
+        failures.push({ candidateId: candidate.id, error: error.message })
+      }
+    }
+    if (!analyzed && failures.length) {
+      return res.status(422).json({ error: '외부 이미지를 안전하게 가져오지 못했습니다.', failures })
+    }
+    res.json({ ok: true, analyzed, failed: failures.length, failures })
+  } catch (err) {
+    next(err)
+  }
+})
+
+// MailClaw 같은 백그라운드 작업이 만든 요약을 본문 전체 재조회 없이 확인한다.
+router.get('/messages/:id/summary', async (req, res, next) => {
+  try {
+    const messageId = String(req.params.id || '').trim()
+    const tenantId = String(req.query.tenantId || '').trim()
+    const targetLanguage = normalizeLanguage(req.query.targetLanguage || req.query.language || 'ko')
+    if (!messageId || !tenantId) return res.status(400).json({ error: 'messageId와 tenantId가 필요합니다.' })
+    if (!(await repo.canAccessTenant({ userId: req.user.id, tenantId, isSiteAdmin: isSiteAdmin(req) }))) {
+      return res.status(403).json({ error: '메일 tenant 접근 권한이 없습니다.' })
+    }
+    const message = await repo.getMessage({
+      tenantId,
+      messageId,
+      userId: req.user.id,
+      isSiteAdmin: isSiteAdmin(req),
+    })
+    if (!message) return res.status(404).json({ error: '메일을 찾을 수 없습니다.' })
+    const savedSummary = await repo.getMessageSummary({
+      tenantId,
+      messageId,
+      userId: req.user.id,
+      targetLanguage,
+    })
+    const summaryPayload = serializeMessageSummary(savedSummary)
+    const automationStatus = savedSummary
+      ? null
+      : await getMailClawSummaryStatus({ tenantId, messageId })
+    res.json({ ...summaryPayload, automationStatus })
   } catch (err) {
     next(err)
   }
@@ -946,9 +1058,25 @@ router.post('/messages/:id/summary', async (req, res, next) => {
       return res.status(400).json({ error: '요약할 메일 내용이 없습니다.' })
     }
 
+    const imageResults = await analyzeMailImages({
+      tenantId,
+      attachments: await repo.listMessageAttachments({ tenantId, messageId }),
+      storage,
+      visionModel: req.body?.model,
+    })
+    const imageAnalysisText = formatImageAnalysisForSummary(imageResults)
+    if (imageAnalysisText) {
+      bodyText = [bodyText, imageAnalysisText].filter(Boolean).join('\n\n')
+    }
+
+    const threadMessages = await repo.listMessageThreadContext({
+      tenantId, userId: req.user.id, message, targetLanguage,
+    })
+
     const result = await summarizeMail({
       message,
       bodyText,
+      threadMessages,
       model: req.body?.model,
       targetLanguage,
     })
@@ -1003,7 +1131,6 @@ router.patch('/messages/:id/summary/action-items/:actionIndex/time', async (req,
     const date = String(req.body?.date || '').trim()
     const time = String(req.body?.time || '').trim()
     const isAllDay = req.body?.isAllDay === true || req.body?.isAllDay === 'true'
-    const createCalendarEvent = req.body?.createCalendarEvent !== false
 
     if (!messageId || !tenantId) return res.status(400).json({ error: 'messageId와 tenantId가 필요합니다.' })
     if (!Number.isInteger(actionIndex) || actionIndex < 0) {
@@ -1038,23 +1165,24 @@ router.patch('/messages/:id/summary/action-items/:actionIndex/time', async (req,
 
     const previousItem = summary.actionItems[actionIndex]
     const actionItem = typeof previousItem === 'string'
-      ? { task: previousItem, time: actionTime, timeSource: 'user', isAllDay }
-      : { ...previousItem, time: actionTime, timeSource: 'user', isAllDay }
+      ? {
+          task: previousItem, time: actionTime, date, clockTime: isAllDay ? null : time,
+          timeSource: 'user', isAllDay,
+          calendarCandidateKey: `mail_summary:${tenantId}:${messageId}:${actionIndex}`,
+        }
+      : {
+          ...previousItem, time: actionTime, date, clockTime: isAllDay ? null : time,
+          timeSource: 'user', isAllDay,
+          calendarCandidateKey: previousItem.calendarCandidateKey || `mail_summary:${tenantId}:${messageId}:${actionIndex}`,
+        }
 
     let calendarEvent = null
-    if (createCalendarEvent) {
+    if (actionItem.calendarEventId) {
       calendarEvent = await upsertMailSummaryActionCalendarEvent({
-        userId: req.user.id,
-        message,
-        summaryRow: savedSummary,
-        actionIndex,
-        actionItem,
-        date,
-        time,
-        isAllDay,
-        targetLanguage,
+        userId: req.user.id, message, summaryRow: savedSummary, actionIndex, actionItem,
+        date, time, isAllDay, targetLanguage,
       })
-      if (calendarEvent?.id) actionItem.calendarEventId = calendarEvent.id
+      actionItem.calendarEventId = calendarEvent.id
     }
     summary.actionItems[actionIndex] = actionItem
 
@@ -1082,6 +1210,93 @@ router.patch('/messages/:id/summary/action-items/:actionIndex/time', async (req,
   }
 })
 
+router.post('/messages/:id/summary/calendar-event', async (req, res, next) => {
+  try {
+    const messageId = String(req.params.id || '').trim()
+    const tenantId = String(req.body?.tenantId || '').trim()
+    const targetLanguage = normalizeLanguage(req.body?.targetLanguage || 'ko')
+    const actionIndex = Number(req.body?.actionIndex)
+    if (!messageId || !tenantId) return res.status(400).json({ error: 'messageId와 tenantId가 필요합니다.' })
+    if (!Number.isInteger(actionIndex) || actionIndex < 0) return res.status(400).json({ error: '액션 아이템 번호가 올바르지 않습니다.' })
+    if (!(await repo.canAccessTenant({ userId: req.user.id, tenantId, isSiteAdmin: isSiteAdmin(req) }))) {
+      return res.status(403).json({ error: '메일 tenant 접근 권한이 없습니다.' })
+    }
+    const message = await repo.getMessage({ tenantId, messageId, userId: req.user.id, isSiteAdmin: isSiteAdmin(req) })
+    if (!message) return res.status(404).json({ error: '메일을 찾을 수 없습니다.' })
+    const savedSummary = await repo.getMessageSummary({ tenantId, messageId, userId: req.user.id, targetLanguage })
+    if (!savedSummary?.summary_json) return res.status(404).json({ error: '저장된 요약을 찾을 수 없습니다.' })
+    const summary = JSON.parse(JSON.stringify(savedSummary.summary_json))
+    const previousItem = summary.actionItems?.[actionIndex]
+    if (!previousItem) return res.status(404).json({ error: '액션 아이템을 찾을 수 없습니다.' })
+    const actionItem = typeof previousItem === 'string' ? { task: previousItem, time: '' } : { ...previousItem }
+    const parsed = String(actionItem.time || '').match(/^(\d{4}-\d{2}-\d{2})(?:[ T](\d{2}:\d{2}))?/)
+    if (!parsed) return res.status(400).json({ error: '날짜를 먼저 지정해주세요.' })
+    const date = actionItem.date || parsed[1]
+    const time = actionItem.clockTime ?? parsed[2] ?? ''
+    const isAllDay = actionItem.isAllDay === true || !time
+    const calendarEvent = await upsertMailSummaryActionCalendarEvent({
+      userId: req.user.id, message, summaryRow: savedSummary, actionIndex, actionItem,
+      date, time, isAllDay, targetLanguage,
+    })
+    actionItem.date = date
+    actionItem.clockTime = isAllDay ? null : time
+    actionItem.isAllDay = isAllDay
+    actionItem.calendarEventId = calendarEvent.id
+    actionItem.calendarCandidateKey = calendarEvent.deduplicationKey
+    summary.actionItems[actionIndex] = actionItem
+    const updatedSummary = await repo.updateMessageSummaryJson({ tenantId, userId: req.user.id, messageId, targetLanguage, summary })
+    res.json({ ok: true, calendarEvent, created: true, deduplicationKey: calendarEvent.deduplicationKey, ...serializeMessageSummary(updatedSummary) })
+  } catch (err) {
+    if (err.message === 'INVALID_ACTION_ITEM_DATETIME') return res.status(400).json({ error: '날짜와 시간 형식이 올바르지 않습니다.' })
+    next(err)
+  }
+})
+
+router.patch('/messages/:id/summary/action-items/:actionIndex/task', async (req, res, next) => {
+  try {
+    const messageId = String(req.params.id || '').trim()
+    const actionIndex = Number(req.params.actionIndex)
+    const tenantId = String(req.body?.tenantId || '').trim()
+    const targetLanguage = normalizeLanguage(req.body?.targetLanguage || 'ko')
+    const task = String(req.body?.task || '').trim()
+    if (!messageId || !tenantId) return res.status(400).json({ error: 'messageId와 tenantId가 필요합니다.' })
+    if (!Number.isInteger(actionIndex) || actionIndex < 0) return res.status(400).json({ error: '액션 아이템 번호가 올바르지 않습니다.' })
+    if (!task) return res.status(400).json({ error: '액션 아이템 내용을 입력해주세요.' })
+    if (task.length > 500) return res.status(400).json({ error: '액션 아이템 내용은 500자 이내로 입력해주세요.' })
+    if (!(await repo.canAccessTenant({ userId: req.user.id, tenantId, isSiteAdmin: isSiteAdmin(req) }))) {
+      return res.status(403).json({ error: '메일 tenant 접근 권한이 없습니다.' })
+    }
+    const message = await repo.getMessage({ tenantId, messageId, userId: req.user.id, isSiteAdmin: isSiteAdmin(req) })
+    if (!message) return res.status(404).json({ error: '메일을 찾을 수 없습니다.' })
+    const savedSummary = await repo.getMessageSummary({ tenantId, messageId, userId: req.user.id, targetLanguage })
+    if (!savedSummary?.summary_json) return res.status(404).json({ error: '저장된 요약을 찾을 수 없습니다.' })
+    const summary = JSON.parse(JSON.stringify(savedSummary.summary_json))
+    const previousItem = summary.actionItems?.[actionIndex]
+    if (!previousItem) return res.status(404).json({ error: '액션 아이템을 찾을 수 없습니다.' })
+    const actionItem = typeof previousItem === 'string'
+      ? { task, time: '' }
+      : { ...previousItem, task }
+    summary.actionItems[actionIndex] = actionItem
+    const updatedSummary = await repo.updateMessageSummaryJson({ tenantId, userId: req.user.id, messageId, targetLanguage, summary })
+    let calendarEvent = null
+    if (actionItem.calendarEventId) {
+      const parsed = String(actionItem.time || '').match(/^(\d{4}-\d{2}-\d{2})(?:[ T](\d{2}:\d{2}))?/)
+      if (parsed) {
+        const date = actionItem.date || parsed[1]
+        const time = actionItem.clockTime ?? parsed[2] ?? ''
+        const isAllDay = actionItem.isAllDay === true || !time
+        calendarEvent = await upsertMailSummaryActionCalendarEvent({
+          userId: req.user.id, message, summaryRow: updatedSummary, actionIndex, actionItem,
+          date, time, isAllDay, targetLanguage,
+        })
+      }
+    }
+    res.json({ ok: true, messageId, actionIndex, calendarEvent, ...serializeMessageSummary(updatedSummary) })
+  } catch (err) {
+    next(err)
+  }
+})
+
 // 첨부 다운로드: object_key로 스토리지에서 읽어 스트리밍한다.
 router.get('/messages/:id/attachments/:attId', async (req, res, next) => {
   try {
@@ -1105,17 +1320,59 @@ router.get('/messages/:id/attachments/:attId', async (req, res, next) => {
 
     const buffer = await getMailStorage().getObject(att.object_key)
     const filename = att.filename || 'attachment'
-    // 비ASCII(한글) 파일명 안전 처리: RFC 5987 filename* + ASCII fallback
-    const asciiName = filename.replace(/[^\x20-\x7e]/g, '_').replace(/["\\]/g, '_')
-    const encodedName = encodeURIComponent(filename)
-    const disposition = /^(1|true|yes|on)$/i.test(String(req.query.inline || ''))
-      ? 'inline'
-      : 'attachment'
+    // 비ASCII(한글)·홑따옴표 등 예약문자를 RFC 5987/2231에 맞게 안전 처리 (content-disposition 라이브러리 사용)
     res.setHeader('Content-Type', att.content_type || 'application/octet-stream')
     res.setHeader('Content-Length', buffer.length)
-    res.setHeader('Content-Disposition', `${disposition}; filename="${asciiName}"; filename*=UTF-8''${encodedName}`)
+    res.setHeader('Content-Disposition', attachmentDisposition(filename, 'attachment'))
     res.setHeader('Cache-Control', 'private, max-age=3600')
+    res.setHeader('X-Content-Type-Options', 'nosniff')
     return res.end(buffer)
+  } catch (err) {
+    next(err)
+  }
+})
+
+// 첨부 미리보기: 실제 파일 signature와 크기를 검사해 안전한 형식만 inline으로 제공한다.
+router.get('/messages/:id/attachments/:attId/preview', async (req, res, next) => {
+  try {
+    const messageId = String(req.params.id || '').trim()
+    const attachmentId = String(req.params.attId || '').trim()
+    const tenantId = String(req.query.tenantId || '').trim()
+    if (!messageId || !attachmentId || !tenantId) {
+      return res.status(400).json({ error: 'tenantId, messageId, attachmentId가 필요합니다.' })
+    }
+    if (!(await repo.canAccessTenant({ userId: req.user.id, tenantId, isSiteAdmin: isSiteAdmin(req) }))) {
+      return res.status(403).json({ error: '메일 tenant 접근 권한이 없습니다.' })
+    }
+    const att = await repo.getMessageAttachment({
+      tenantId,
+      messageId,
+      attachmentId,
+      userId: req.user.id,
+      isSiteAdmin: isSiteAdmin(req),
+    })
+    if (!att) return res.status(404).json({ error: '첨부파일을 찾을 수 없습니다.' })
+
+    const buffer = await getMailStorage().getObject(att.object_key)
+    const preview = resolveAttachmentPreview({
+      buffer,
+      filename: att.filename,
+      declaredContentType: att.content_type,
+    })
+    if (!preview.allowed) {
+      return res.status(preview.status).json({ error: preview.reason, code: preview.code })
+    }
+
+    const filename = att.filename || 'attachment'
+    // 비ASCII(한글)·홑따옴표 등 예약문자를 RFC 5987/2231에 맞게 안전 처리 (content-disposition 라이브러리 사용)
+    res.setHeader('Content-Type', preview.contentType)
+    res.setHeader('Content-Length', preview.buffer.length)
+    res.setHeader('Content-Disposition', attachmentDisposition(filename, 'inline'))
+    res.setHeader('Cache-Control', 'private, no-store')
+    res.setHeader('X-Content-Type-Options', 'nosniff')
+    res.setHeader('Content-Security-Policy', "default-src 'none'; img-src 'self' blob: data:; style-src 'unsafe-inline'; sandbox")
+    res.setHeader('X-Mail-Attachment-Preview-Kind', preview.kind)
+    return res.end(preview.buffer)
   } catch (err) {
     next(err)
   }
@@ -1241,7 +1498,21 @@ async function performMessageDelete({ tenantId, messageId, userId }) {
   }
 
   // 프로바이더에서 실제 휴지통 이동(서버 원본 제거). skip되면(로컬 전용 등) 로컬 처리로 폴백.
-  const providerMove = await moveMessageOnProvider({ tenantId, account, message, targetFolder: trashFolder })
+  let providerMove
+  try {
+    providerMove = await moveMessageOnProvider({ tenantId, account, message, targetFolder: trashFolder })
+  } catch (err) {
+    if (err?.code === 'IMAP_MESSAGE_NOT_FOUND') {
+      console.warn('[mail delete] remote message missing; applying local fallback', {
+        tenantId,
+        userId,
+        messageId,
+        code: err.code,
+      })
+      return repo.deleteMessage({ tenantId, messageId, userId })
+    }
+    throw err
+  }
   if (providerMove?.skipped) {
     return repo.deleteMessage({ tenantId, messageId, userId })
   }
@@ -1265,6 +1536,33 @@ async function performMessageDelete({ tenantId, messageId, userId }) {
     trash_folder_id: trashFolder.id,
     soft_deleted: false,
   }
+}
+
+async function performLocalOrphanDelete({ tenantId, messageId, userId }) {
+  const message = await repo.getMessage({ tenantId, messageId, userId })
+  if (!message) return null
+  const account = await repo.getAccountForSync({ tenantId, accountId: message.account_id, userId })
+  if (!account) return null
+
+  const isCandidate = await isLocalOrphanCandidateOnProvider({ account, message })
+  if (!isCandidate) {
+    const err = new Error('현재 메일은 로컬 고아 삭제 조건을 만족하지 않습니다.')
+    err.code = 'NOT_LOCAL_ORPHAN'
+    err.statusCode = 409
+    throw err
+  }
+
+  const removed = await repo.softDeleteLocalOrphanMessage({ tenantId, messageId, userId })
+  if (removed) {
+    console.warn('[mail delete] local orphan removed', {
+      tenantId,
+      userId,
+      messageId,
+      reason: 'missing_source_mailbox_and_message_id',
+      remoteChanged: false,
+    })
+  }
+  return removed
 }
 
 // 스마트 폴더 아카이브(13.5): 각 메일을 "자기 계정 안의" 보관함(type='archive')으로 이동한다.
@@ -1350,12 +1648,58 @@ router.patch('/messages/bulk', async (req, res, next) => {
             messageId,
             userId: req.user.id,
           })
+        } else if (action === 'delete_local_orphan') {
+          if (req.body?.confirmation !== 'LOCAL_ONLY') {
+            return res.status(400).json({ error: '로컬 고아 메일 삭제 확인값이 필요합니다.' })
+          }
+          message = await performLocalOrphanDelete({
+            tenantId,
+            messageId,
+            userId: req.user.id,
+          })
         } else {
           return res.status(400).json({ error: '지원하지 않는 메일 작업입니다.' })
         }
+        if (action === 'delete' && !message) {
+          console.warn('[mail delete] failed', {
+            tenantId,
+            userId: req.user.id,
+            messageId,
+            code: 'message_not_found_or_not_deleted',
+            error: '메일을 찾을 수 없거나 삭제 결과가 반환되지 않았습니다.',
+          })
+        }
         results.push({ id: messageId, ok: !!message, message })
       } catch (err) {
-        results.push({ id: messageId, ok: false, error: err.message })
+        if (action === 'delete') {
+          console.warn('[mail delete] failed', {
+            tenantId,
+            userId: req.user.id,
+            messageId,
+            code: err?.code || 'delete_failed',
+            error: err?.message || '알 수 없는 삭제 오류',
+          })
+        }
+        results.push({
+          id: messageId,
+          ok: false,
+          error: err?.message || '알 수 없는 삭제 오류',
+          code: err?.code || 'delete_failed',
+          canDeleteLocally: err?.code === 'LOCAL_ORPHAN_CANDIDATE',
+        })
+      }
+    }
+
+    if (action === 'delete') {
+      const failed = results.filter(item => !item.ok)
+      if (failed.length > 0) {
+        console.warn('[mail delete] bulk completed', {
+          tenantId,
+          userId: req.user.id,
+          requested: results.length,
+          succeeded: results.length - failed.length,
+          failed: failed.length,
+        })
       }
     }
 

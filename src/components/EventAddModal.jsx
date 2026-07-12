@@ -128,7 +128,7 @@ function buildReminderDt(selection, customDt, allDay) {
 
 const selectCls = 'border border-gray-200 rounded-md px-1.5 py-1 text-xs text-gray-700 bg-white focus:outline-none focus:ring-1 focus:ring-indigo-400 cursor-pointer'
 
-function DateTimeRow({ label, dt, setDt, disabled }) {
+function DateTimeRow({ label, dt, setDt, disabled, timeDisabled = false }) {
   const years = Array.from({ length: 11 }, (_, i) => new Date().getFullYear() - 2 + i)
   const months = Array.from({ length: 12 }, (_, i) => i + 1)
   const days = Array.from({ length: getDaysInMonth(dt.year, dt.month) }, (_, i) => i + 1)
@@ -136,26 +136,26 @@ function DateTimeRow({ label, dt, setDt, disabled }) {
   const minutes = Array.from({ length: 12 }, (_, i) => i * 5)
 
   return (
-    <div className={`flex items-center gap-1.5 flex-wrap transition-opacity ${disabled ? 'opacity-30 pointer-events-none' : ''}`}>
+    <div className={`flex items-center gap-1.5 flex-wrap transition-opacity ${disabled ? 'opacity-30' : ''}`}>
       {label && <span className="text-xs text-gray-500 w-8 flex-shrink-0">{label}</span>}
-      <select value={dt.year} onChange={e => setDt({ ...dt, year: +e.target.value })} className={selectCls}>
+      <select disabled={disabled} value={dt.year} onChange={e => setDt({ ...dt, year: +e.target.value })} className={selectCls}>
         {years.map(y => <option key={y} value={y}>{y}년</option>)}
       </select>
-      <select value={dt.month} onChange={e => setDt({ ...dt, month: +e.target.value, day: 1 })} className={selectCls}>
+      <select disabled={disabled} value={dt.month} onChange={e => setDt({ ...dt, month: +e.target.value, day: 1 })} className={selectCls}>
         {months.map(m => <option key={m} value={m}>{m}월</option>)}
       </select>
-      <select value={dt.day} onChange={e => setDt({ ...dt, day: +e.target.value })} className={selectCls}>
+      <select disabled={disabled} value={dt.day} onChange={e => setDt({ ...dt, day: +e.target.value })} className={selectCls}>
         {days.map(d => <option key={d} value={d}>{d}일</option>)}
       </select>
-      <select value={dt.ampm} onChange={e => setDt({ ...dt, ampm: e.target.value })} className={selectCls}>
+      <select disabled={disabled || timeDisabled} value={dt.ampm} onChange={e => setDt({ ...dt, ampm: e.target.value })} className={`${selectCls} ${timeDisabled ? 'opacity-30 cursor-not-allowed' : ''}`}>
         <option value="오전">오전</option>
         <option value="오후">오후</option>
       </select>
-      <select value={dt.hour} onChange={e => setDt({ ...dt, hour: +e.target.value })} className={selectCls}>
+      <select disabled={disabled || timeDisabled} value={dt.hour} onChange={e => setDt({ ...dt, hour: +e.target.value })} className={`${selectCls} ${timeDisabled ? 'opacity-30 cursor-not-allowed' : ''}`}>
         {hours.map(h => <option key={h} value={h}>{String(h).padStart(2, '0')}</option>)}
       </select>
-      <span className="text-gray-400 text-sm">:</span>
-      <select value={dt.minute} onChange={e => setDt({ ...dt, minute: +e.target.value })} className={selectCls}>
+      <span className={`text-gray-400 text-sm ${timeDisabled ? 'opacity-30' : ''}`}>:</span>
+      <select disabled={disabled || timeDisabled} value={dt.minute} onChange={e => setDt({ ...dt, minute: +e.target.value })} className={`${selectCls} ${timeDisabled ? 'opacity-30 cursor-not-allowed' : ''}`}>
         {minutes.map(m => <option key={m} value={m}>{String(m).padStart(2, '0')}</option>)}
       </select>
     </div>
@@ -192,6 +192,7 @@ export default function EventAddModal({ onClose, onAdd, onSave, onDelete, event:
   const [title, setTitle] = useState(editEvent?.title ?? '')
   const [color, setColor] = useState(editEvent?.color ?? '#4f46e5')
   const [allDay, setAllDay] = useState(editEvent?.allDay ?? false)
+  const [dateError, setDateError] = useState('')
   const [startDt, setStartDt] = useState(editEvent?.startDt ?? initialStartDt ?? makeDefaultDt(0))
   const [endDt, setEndDt] = useState(editEvent?.endDt ?? initialEndDt ?? makeDefaultDt(1))
   const [repeat, setRepeat] = useState(editEvent?.repeat ?? 'none')
@@ -317,6 +318,13 @@ export default function EventAddModal({ onClose, onAdd, onSave, onDelete, event:
   function handleSubmit() {
     if (!canMutate) return
     if (!title.trim()) { titleRef.current?.focus(); return }
+    const startDate = new Date(startDt.year, startDt.month - 1, startDt.day)
+    const endDate = new Date(endDt.year, endDt.month - 1, endDt.day)
+    if (allDay && endDate < startDate) {
+      setDateError('종료 날짜는 시작 날짜보다 빠를 수 없습니다.')
+      return
+    }
+    setDateError('')
     if (isEditMode) {
       if (isRepeatSeries) {
         setShowRepeatSaveConfirm(true)
@@ -502,9 +510,10 @@ export default function EventAddModal({ onClose, onAdd, onSave, onDelete, event:
 
               {/* 4. 시간 */}
               <div className="space-y-2">
-                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block">시간</label>
-                <DateTimeRow label="시작" dt={startDt} setDt={setStartDt} disabled={!canMutate || allDay} />
-                <DateTimeRow label="종료" dt={endDt} setDt={setEndDt} disabled={!canMutate || allDay} />
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block">날짜 및 시간</label>
+                <DateTimeRow label="시작" dt={startDt} setDt={setStartDt} disabled={!canMutate} timeDisabled={allDay} />
+                <DateTimeRow label="종료" dt={endDt} setDt={setEndDt} disabled={!canMutate} timeDisabled={allDay} />
+                {dateError && <p className="text-xs text-red-500" role="alert">{dateError}</p>}
               </div>
 
               {/* 5. 반복 */}
@@ -633,7 +642,7 @@ export default function EventAddModal({ onClose, onAdd, onSave, onDelete, event:
                     onClick={e => openOriginalMailLinkInApp(e, originalMailLink)}
                     className="mt-2 inline-flex text-sm font-semibold text-indigo-600 underline decoration-indigo-300 underline-offset-4 hover:text-indigo-700"
                   >
-                    원본으로 이동
+                    원본으로 가기
                   </a>
                 )}
               </div>
