@@ -57,7 +57,7 @@ export const MAIL_TEXT = {
     noAccounts: '연결된 메일 계정이 없습니다.',
     clearSelection: '선택 해제',
     folders: {
-      all: '모든 편지함',
+      all: '미분류함',
       inbox: '받은 편지함',
       starred: '중요 편지함',
       drafts: '임시 보관함',

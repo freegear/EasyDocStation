@@ -95,6 +95,7 @@ export default function MailPage({ onBackToMain, initialMailLink = null, initial
   const mt = getMailText(language)
   const [tenants, setTenants] = useState([])
   const [accounts, setAccounts] = useState([])
+  const [unclassifiedCounts, setUnclassifiedCounts] = useState({ message_count: 0, unread_count: 0 })
   const [mailMetaLoading, setMailMetaLoading] = useState(false)
   const [mailMetaError, setMailMetaError] = useState('')
   const [activeKey, setActiveKey] = useState(`${UNIFIED_KEY_PREFIX}all`)
@@ -137,7 +138,6 @@ export default function MailPage({ onBackToMain, initialMailLink = null, initial
   const [smartFolderMenu, setSmartFolderMenu] = useState(null)
   const [mailClawRegistration, setMailClawRegistration] = useState(null)
   const [pendingEmptyTrash, setPendingEmptyTrash] = useState(null)
-  const [pendingLocalOrphanDelete, setPendingLocalOrphanDelete] = useState(null)
   // 폴더 삭제 확인 대기: { account, folder, message, danger }
   const [pendingDeleteFolder, setPendingDeleteFolder] = useState(null)
   const [folderNameDialog, setFolderNameDialog] = useState(null)
@@ -184,7 +184,6 @@ export default function MailPage({ onBackToMain, initialMailLink = null, initial
   // 통합 사이드바 ① 시스템 항목만 남긴다. 이름-집계 커스텀 폴더는 13장 스마트 폴더로 대치(제거). (MailService.md 13.2.1)
   const unifiedMenus = useMemo(() => {
     const totalsByType = new Map()
-    const allTotals = { message_count: 0, unread_count: 0 }
     // 별표됨은 폴더 타입이 아니라 교차 플래그(is_starred)이므로 모든 폴더의 별표 수를 합산한다.
     // (별표됨 목록은 휴지통을 제외하지 않으므로 여기서도 제외하지 않는다. MailService.md 13)
     const starredTotals = { message_count: 0, unread_count: 0 }
@@ -194,11 +193,6 @@ export default function MailPage({ onBackToMain, initialMailLink = null, initial
       for (const folder of account.folders || []) {
         const messageCount = Number(folder.message_count || 0)
         const unreadCount = Number(folder.unread_count || 0)
-        if (!isMailTrashFolder(folder)) {
-          allTotals.message_count += messageCount
-          allTotals.unread_count += unreadCount
-        }
-
         starredTotals.message_count += Number(folder.starred_count || 0)
         starredTotals.unread_count += Number(folder.starred_unread_count || 0)
 
@@ -214,7 +208,7 @@ export default function MailPage({ onBackToMain, initialMailLink = null, initial
 
     const systemMenus = UNIFIED_SYSTEM_FOLDERS.map(item => {
       const counts = item.key === 'all'
-        ? allTotals
+        ? unclassifiedCounts
         : item.key === 'starred'
           ? starredTotals
           : item.type
@@ -228,7 +222,7 @@ export default function MailPage({ onBackToMain, initialMailLink = null, initial
       label: mt.folders[item.labelKey] || item.key,
       color_key: unifiedFolderColors[`${currentTenantId}:${item.key}`] || '',
     }))
-  }, [accounts, currentTenantId, unifiedFolderColors, mt])
+  }, [accounts, currentTenantId, unifiedFolderColors, mt, unclassifiedCounts])
 
   // lg(≥1024px) 이상에서만 목록↔본문을 드래그로 리사이즈한다. 그 미만은 기존 세로 스택 유지.
   const [isDesktopSplit, setIsDesktopSplit] = useState(() =>
@@ -318,6 +312,37 @@ export default function MailPage({ onBackToMain, initialMailLink = null, initial
     return list
   }
 
+  async function reloadUnclassifiedCounts(tenantId = currentTenantId) {
+    if (!tenantId) return { message_count: 0, unread_count: 0 }
+    const counts = await apiFetch(`/mail/messages/unclassified-count?tenantId=${encodeURIComponent(tenantId)}`)
+    const normalized = {
+      message_count: Number(counts?.message_count || 0),
+      unread_count: Number(counts?.unread_count || 0),
+    }
+    setUnclassifiedCounts(normalized)
+    return normalized
+  }
+
+  useEffect(() => {
+    if (!currentTenantId) {
+      setUnclassifiedCounts({ message_count: 0, unread_count: 0 })
+      return undefined
+    }
+    let cancelled = false
+    apiFetch(`/mail/messages/unclassified-count?tenantId=${encodeURIComponent(currentTenantId)}`)
+      .then(counts => {
+        if (cancelled) return
+        setUnclassifiedCounts({
+          message_count: Number(counts?.message_count || 0),
+          unread_count: Number(counts?.unread_count || 0),
+        })
+      })
+      .catch(err => {
+        if (!cancelled) console.warn('[mail unclassified count] 조회 실패', err?.message || err)
+      })
+    return () => { cancelled = true }
+  }, [currentTenantId])
+
   // 스마트 폴더 로드 + 최초 1회 시드 마이그레이션(이름-집계 폴더 → 동명 스마트 폴더). tenant별 멱등.
   useEffect(() => {
     if (!currentTenantId) return
@@ -341,8 +366,17 @@ export default function MailPage({ onBackToMain, initialMailLink = null, initial
             if (typeof window !== 'undefined') window.localStorage.setItem(reconciledKey, '1')
           } catch { /* 정리 실패는 무시(다음 로드 때 재시도) */ }
         }
-        const rows = await apiFetch(`/mail/smart-folders?tenantId=${encodeURIComponent(currentTenantId)}`)
-        if (!cancelled) setSmartFolders(Array.isArray(rows) ? rows : [])
+        const [rows, counts] = await Promise.all([
+          apiFetch(`/mail/smart-folders?tenantId=${encodeURIComponent(currentTenantId)}`),
+          apiFetch(`/mail/messages/unclassified-count?tenantId=${encodeURIComponent(currentTenantId)}`),
+        ])
+        if (!cancelled) {
+          setSmartFolders(Array.isArray(rows) ? rows : [])
+          setUnclassifiedCounts({
+            message_count: Number(counts?.message_count || 0),
+            unread_count: Number(counts?.unread_count || 0),
+          })
+        }
       } catch { /* noop */ }
     })()
     return () => { cancelled = true }
@@ -1124,7 +1158,7 @@ export default function MailPage({ onBackToMain, initialMailLink = null, initial
       }
 
       for (const message of successTargets) {
-        const resultItem = resultById.get(message.id)
+        const resultItem = resultById.get(String(message.id))
         const targetFolderId = resultItem?.message?.trash_folder_id || resultItem?.message?.folder_id
         if (targetFolderId && targetFolderId !== message.folder_id && !resultItem?.message?.soft_deleted) {
           adjustFolderCounts({
@@ -1136,13 +1170,11 @@ export default function MailPage({ onBackToMain, initialMailLink = null, initial
         }
       }
       // 삭제/휴지통 이동은 스마트 폴더 태그 집계에서도 빠지므로 배지를 갱신한다. (MailService.md 13)
-      await reloadSmartFolders().catch(() => {})
-      const orphanTargets = failedTargets.filter(message => resultById.get(String(message.id))?.canDeleteLocally)
-      const ordinaryFailures = failedTargets.filter(message => !resultById.get(String(message.id))?.canDeleteLocally)
-      if (orphanTargets.length > 0) {
-        setPendingLocalOrphanDelete({ tenantId, targets: orphanTargets, loading: false })
-      }
-      setMessagesError(ordinaryFailures.length > 0 ? '일부 메일을 삭제하지 못했습니다.' : '')
+      await Promise.all([
+        reloadSmartFolders().catch(() => {}),
+        reloadUnclassifiedCounts().catch(() => {}),
+      ])
+      setMessagesError(failedTargets.length > 0 ? '일부 메일을 삭제하지 못했습니다.' : '')
     } catch (err) {
       setMessages(prev => restoreMessagesBySnapshot(prev, snapshotMessages, targetIds))
       setSelectedMessage(snapshotSelectedMessage)
@@ -1159,42 +1191,6 @@ export default function MailPage({ onBackToMain, initialMailLink = null, initial
     }
   }
 
-  async function confirmLocalOrphanDelete() {
-    const pending = pendingLocalOrphanDelete
-    if (!pending || pending.loading) return
-    setPendingLocalOrphanDelete(prev => ({ ...prev, loading: true }))
-    try {
-      const result = await apiFetch(`/mail/messages/bulk?tenantId=${encodeURIComponent(pending.tenantId)}`, {
-        method: 'PATCH',
-        body: JSON.stringify({
-          action: 'delete_local_orphan',
-          messageIds: pending.targets.map(item => item.id),
-          confirmation: 'LOCAL_ONLY',
-        }),
-      })
-      const okIds = new Set((result?.results || []).filter(item => item.ok).map(item => String(item.id)))
-      const removed = pending.targets.filter(item => okIds.has(String(item.id)))
-      setMessages(prev => prev.filter(item => !okIds.has(String(item.id))))
-      setSelectedMessage(prev => (prev && okIds.has(String(prev.id)) ? null : prev))
-      setSelectedMessageIds(prev => prev.filter(id => !okIds.has(String(id))))
-      for (const message of removed) {
-        adjustFolderCounts({
-          accountId: message.account_id,
-          folderId: message.folder_id,
-          totalDelta: -1,
-          unreadDelta: message.is_read ? 0 : -1,
-        })
-      }
-      await reloadSmartFolders().catch(() => {})
-      const failed = pending.targets.length - removed.length
-      setMessagesError(failed > 0 ? '일부 고아 메일을 로컬 목록에서 제거하지 못했습니다.' : '')
-      if (removed.length > 0) showToast({ message: `${removed.length}개 메일을 로컬 목록에서 제거했습니다.`, tone: 'success' })
-      setPendingLocalOrphanDelete(null)
-    } catch (err) {
-      setMessagesError(err.message || '고아 메일을 로컬 목록에서 제거하지 못했습니다.')
-      setPendingLocalOrphanDelete(prev => ({ ...prev, loading: false }))
-    }
-  }
 
   async function moveMessage(target, folder) {
     const active = resolveActiveFolder()
@@ -1384,14 +1380,23 @@ export default function MailPage({ onBackToMain, initialMailLink = null, initial
       // 리스트에 남아 있는(아카이브로 빠지지 않은) 메일에는 태그 칩을 낙관적으로 추가한다(18.5).
       const taggedSet = new Set(Array.isArray(data?.tagged) ? data.tagged : ids)
       const tagChip = { id: smartFolder.id, name: smartFolder.name, color_key: smartFolder.color_key ?? null }
+      const viewingUnclassified = activeKey === `${UNIFIED_KEY_PREFIX}all`
       setMessages(prev => prev.map(item => {
         if (!taggedSet.has(item.id) || archivedSet.has(item.id)) return item
         const existing = Array.isArray(item.tags) ? item.tags : []
         if (existing.some(tag => tag.id === tagChip.id)) return item
         return { ...item, tags: [...existing, tagChip] }
-      }))
+      }).filter(item => !viewingUnclassified || !taggedSet.has(item.id)))
+      if (viewingUnclassified) {
+        setLastSelectedMessageId(null)
+        setSelectedMessage(prev => (prev && taggedSet.has(prev.id) ? null : prev))
+        setSelectedMessageIds(prev => prev.filter(id => !taggedSet.has(id)))
+      }
       // 스마트 폴더 카운트 + (아카이브로 원 폴더가 줄었으면) 계정 폴더 카운트 갱신
-      await reloadSmartFolders().catch(() => {})
+      await Promise.all([
+        reloadSmartFolders().catch(() => {}),
+        reloadUnclassifiedCounts().catch(() => {}),
+      ])
       if (archivedSet.size > 0) await reloadMailAccounts().catch(() => {})
       const taggedCount = Array.isArray(data?.tagged) ? data.tagged.length : 0
       showToast?.({
@@ -1504,7 +1509,8 @@ export default function MailPage({ onBackToMain, initialMailLink = null, initial
     try {
       await apiFetch(`/mail/smart-folders/${folder.id}?tenantId=${encodeURIComponent(currentTenantId)}`, { method: 'DELETE' })
       if (activeKey === `${SMART_KEY_PREFIX}${folder.id}`) updateActiveKey(`${UNIFIED_KEY_PREFIX}all`)
-      await reloadSmartFolders()
+      await Promise.all([reloadSmartFolders(), reloadUnclassifiedCounts()])
+      if (activeKey === `${UNIFIED_KEY_PREFIX}all`) await loadActiveMessages()
     } catch (err) {
       setMessagesError(err.message || '스마트 폴더를 삭제하지 못했습니다.')
     }
@@ -1553,6 +1559,9 @@ export default function MailPage({ onBackToMain, initialMailLink = null, initial
       const rows = await apiFetch(`/mail/messages?${request.params.toString()}`)
       if (!isCurrentRequest()) return
       const list = Array.isArray(rows) ? rows : []
+      if (request.kind === 'unified' && activeKeyRef.current === `${UNIFIED_KEY_PREFIX}all`) {
+        reloadUnclassifiedCounts(request.tenantId).catch(() => {})
+      }
       const preserved = preserveSelectionOnNextLoadRef.current
       const nextList = preserved?.id
         ? (
@@ -2428,20 +2437,6 @@ export default function MailPage({ onBackToMain, initialMailLink = null, initial
           danger
           onConfirm={() => emptyTrashFolder(pendingEmptyTrash)}
           onCancel={() => setPendingEmptyTrash(null)}
-        />
-      )}
-      {pendingLocalOrphanDelete && (
-        <ConfirmDialog
-          title="불완전한 메일 로컬 제거"
-          message={`원본 메일함 정보를 확인할 수 없는 메일 ${pendingLocalOrphanDelete.targets.length}개입니다.\n메일 서버의 원본은 변경하지 않고 이 앱의 목록에서만 제거할까요?`}
-          confirmText="로컬 목록에서 제거"
-          cancelText={mt.cancel}
-          danger
-          loading={pendingLocalOrphanDelete.loading}
-          onConfirm={confirmLocalOrphanDelete}
-          onCancel={() => {
-            if (!pendingLocalOrphanDelete.loading) setPendingLocalOrphanDelete(null)
-          }}
         />
       )}
       {pendingDeleteFolder && (

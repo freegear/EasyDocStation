@@ -16,7 +16,7 @@ const { syncImapAccount, listImapFolders, syncImapFolder } = require('../mail/im
 const { decryptSecret } = require('../lib/secrets')
 const { enqueueMessageSynced } = require('../mail/agentic/worker')
 const { executeMailClawRuleForMessage, executeMailClawRuleForMessages, getMailClawSummaryStatus } = require('../mail/mailClaw')
-const { moveMessageOnProvider, isLocalOrphanCandidateOnProvider } = require('../mail/providerMove')
+const { moveMessageOnProvider } = require('../mail/providerMove')
 const { renameFolderOnProvider, deleteFolderOnProvider } = require('../mail/providerRename')
 const { summarizeMail, normalizeLanguage } = require('../mail/mailSummary')
 const { formatActionTime, upsertMailSummaryActionCalendarEvent } = require('../mail/calendarAction')
@@ -804,6 +804,19 @@ router.get('/mailclaw/logs', async (req, res, next) => {
   }
 })
 
+router.get('/messages/unclassified-count', async (req, res, next) => {
+  try {
+    const tenantId = String(req.query.tenantId || '').trim()
+    if (!tenantId) return res.status(400).json({ error: 'tenantId가 필요합니다.' })
+    if (!(await repo.canAccessTenant({ userId: req.user.id, tenantId, isSiteAdmin: isSiteAdmin(req) }))) {
+      return res.status(403).json({ error: '메일 tenant 접근 권한이 없습니다.' })
+    }
+    res.json(await repo.countUnclassifiedMessages({ tenantId, userId: req.user.id }))
+  } catch (err) {
+    next(err)
+  }
+})
+
 router.get('/messages', async (req, res, next) => {
   try {
     const tenantId = String(req.query.tenantId || '').trim()
@@ -1502,6 +1515,19 @@ async function performMessageDelete({ tenantId, messageId, userId }) {
   try {
     providerMove = await moveMessageOnProvider({ tenantId, account, message, targetFolder: trashFolder })
   } catch (err) {
+    if (err?.code === 'LOCAL_ORPHAN_CANDIDATE') {
+      const removed = await repo.softDeleteLocalOrphanMessage({ tenantId, messageId, userId })
+      if (removed) {
+        console.warn('[mail delete] local orphan removed automatically', {
+          tenantId,
+          userId,
+          messageId,
+          reason: 'missing_source_mailbox_and_message_id',
+          remoteChanged: false,
+        })
+      }
+      return removed
+    }
     if (err?.code === 'IMAP_MESSAGE_NOT_FOUND') {
       console.warn('[mail delete] remote message missing; applying local fallback', {
         tenantId,
@@ -1536,33 +1562,6 @@ async function performMessageDelete({ tenantId, messageId, userId }) {
     trash_folder_id: trashFolder.id,
     soft_deleted: false,
   }
-}
-
-async function performLocalOrphanDelete({ tenantId, messageId, userId }) {
-  const message = await repo.getMessage({ tenantId, messageId, userId })
-  if (!message) return null
-  const account = await repo.getAccountForSync({ tenantId, accountId: message.account_id, userId })
-  if (!account) return null
-
-  const isCandidate = await isLocalOrphanCandidateOnProvider({ account, message })
-  if (!isCandidate) {
-    const err = new Error('현재 메일은 로컬 고아 삭제 조건을 만족하지 않습니다.')
-    err.code = 'NOT_LOCAL_ORPHAN'
-    err.statusCode = 409
-    throw err
-  }
-
-  const removed = await repo.softDeleteLocalOrphanMessage({ tenantId, messageId, userId })
-  if (removed) {
-    console.warn('[mail delete] local orphan removed', {
-      tenantId,
-      userId,
-      messageId,
-      reason: 'missing_source_mailbox_and_message_id',
-      remoteChanged: false,
-    })
-  }
-  return removed
 }
 
 // 스마트 폴더 아카이브(13.5): 각 메일을 "자기 계정 안의" 보관함(type='archive')으로 이동한다.
@@ -1644,15 +1643,6 @@ router.patch('/messages/bulk', async (req, res, next) => {
           })
         } else if (action === 'delete') {
           message = await performMessageDelete({
-            tenantId,
-            messageId,
-            userId: req.user.id,
-          })
-        } else if (action === 'delete_local_orphan') {
-          if (req.body?.confirmation !== 'LOCAL_ONLY') {
-            return res.status(400).json({ error: '로컬 고아 메일 삭제 확인값이 필요합니다.' })
-          }
-          message = await performLocalOrphanDelete({
             tenantId,
             messageId,
             userId: req.user.id,

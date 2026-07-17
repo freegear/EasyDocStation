@@ -137,12 +137,13 @@
     "보존 기한": 3,
     "무제한보관": true
   },
-  "site_url": "http://218.237.25.214:5173/",
+  "site_url": "https://www.easystation.co.kr/",
   "contentFontScale": 110,
   "google": {
     "client_id": "",
     "client_secret": "",
-    "redirect_uri": "http://218.237.25.214:5173/api/mail/gmail/callback"
+    "redirect_uri": "https://www.easystation.co.kr/api/mail/gmail/callback",
+    "contactbook_redirect_uri": "https://www.easystation.co.kr/api/contactbook/oauth/google/callback"
   },
   "DATA_ENCRYPTION_KEY": ""
 }

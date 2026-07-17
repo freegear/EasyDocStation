@@ -27,6 +27,7 @@ export async function apiFetch(path, options = {}) {
     if (data.reason) err.reason = data.reason
     if (data.guide) err.guide = data.guide
     if (data.detail) err.detail = data.detail
+    if (data.current) err.current = data.current
     if (data.code === 'SESSION_INVALIDATED' && _sessionInvalidatedHandler) {
       _sessionInvalidatedHandler()
     }

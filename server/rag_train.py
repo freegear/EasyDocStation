@@ -415,6 +415,50 @@ def normalize_text(value):
     return txt.strip()
 
 
+DOCUMENT_KIND_RULES = (
+    ("business_registration", ("사업자등록증", "사업자 등록증", "법인사업자", "사업자등록번호")),
+    ("bankbook_copy", ("통장사본", "통장 사본", "예금종류", "계좌번호")),
+    ("shareholder_registry", ("주주명부",)),
+    ("articles_of_incorporation", ("정관", "제1장 총칙", "제 1 장 총 칙")),
+    ("quotation", ("견적서", "견 적 서", "견적금액")),
+    ("tax_invoice", ("세금계산서", "전자세금계산서", "공급받는자")),
+    ("invoice", ("청구서", "청구금액")),
+    ("transaction_statement", ("거래명세서", "거래 명세서")),
+)
+NON_AMOUNT_DOCUMENT_KINDS = {
+    "business_registration", "bankbook_copy", "shareholder_registry", "articles_of_incorporation",
+}
+AMOUNT_DOCUMENT_KINDS = {"quotation", "tax_invoice", "invoice", "transaction_statement"}
+SEARCH_TEXT_ALIASES = (
+    (re.compile(r"사\s*업\s*자\s*등\s*록\s*증"), "사업자등록증"),
+    (re.compile(r"사\s*업\s*자\s*등\s*록\s*번\s*호"), "사업자등록번호"),
+    (re.compile(r"법\s*인\s*등\s*록\s*번\s*호"), "법인등록번호"),
+    (re.compile(r"사\s*업\s*장\s*소\s*재\s*지"), "사업장 소재지"),
+)
+
+
+def detect_document_kind(file_name="", text=""):
+    haystack = re.sub(r"\s+", " ", f"{file_name or ''}\n{text or ''}").strip().lower()
+    compact = re.sub(r"\s+", "", haystack)
+    for kind, signals in DOCUMENT_KIND_RULES:
+        if any(signal.lower() in haystack or re.sub(r"\s+", "", signal.lower()) in compact for signal in signals):
+            return kind
+    return ""
+
+
+def enrich_search_text(text, document_kind=""):
+    """원본 OCR은 보존하고 임베딩용 본문에 확정적인 행정문서 표제 별칭만 보강한다."""
+    source = str(text or "").strip()
+    aliases = []
+    for pattern, canonical in SEARCH_TEXT_ALIASES:
+        if pattern.search(source) and canonical not in source:
+            aliases.append(canonical)
+    if document_kind == "business_registration" and "법인 사업자등록증" not in source:
+        aliases.append("법인 사업자등록증")
+    aliases = list(dict.fromkeys(aliases))
+    return f"{source}\n검색 표준어: {', '.join(aliases)}" if aliases else source
+
+
 def safe_name(value, default_value="unknown"):
     s = str(value or "").strip()
     if not s:
@@ -802,6 +846,13 @@ def extract_amount_fields(text):
 
 
 def apply_amount_meta(meta, text):
+    if meta.get("document_kind") in NON_AMOUNT_DOCUMENT_KINDS:
+        meta["amount_total"] = 0
+        meta["amount_subtotal"] = 0
+        meta["amount_vat"] = 0
+        meta["currency"] = ""
+        meta["amount_candidates"] = ""
+        return meta
     fields = extract_amount_fields(text)
     meta["amount_total"] = fields["amount_total"]
     meta["amount_subtotal"] = fields["amount_subtotal"]
@@ -1285,6 +1336,9 @@ def ingest_pdf(records, *, post_id, channel_id, attachment_id, comment_id, pdf_p
         print(f"[RAG] PDF 학습 건너뜀(추출 요소 없음): {os.path.basename(pdf_path)}", flush=True)
         return 0
 
+    document_text = "\n".join(str(el.get("text") or "") for el in elements)
+    document_kind = detect_document_kind(source_name, document_text)
+
     split_records = {"text": [], "table": [], "image": []}
     split_base_dir = build_file_training_dir(post_id, comment_id, attachment_id, source_name)
     amount_signal_texts = []
@@ -1332,6 +1386,7 @@ def ingest_pdf(records, *, post_id, channel_id, attachment_id, comment_id, pdf_p
                 file_hash=file_hash,
             )
             meta["type"] = "table"
+            meta["document_kind"] = document_kind
             meta["page_number"] = page_number
             meta["original_content"] = table_source
             meta["element_id"] = f"tbl-{page_number}-{idx}"
@@ -1368,6 +1423,7 @@ def ingest_pdf(records, *, post_id, channel_id, attachment_id, comment_id, pdf_p
                 file_hash=file_hash,
             )
             meta["type"] = "image"
+            meta["document_kind"] = document_kind
             meta["page_number"] = page_number
             meta["img_path"] = image_path
             meta["element_id"] = f"img-{page_number}-{idx}"
@@ -1384,6 +1440,7 @@ def ingest_pdf(records, *, post_id, channel_id, attachment_id, comment_id, pdf_p
     # 페이지 단위로 병합된 텍스트를 청킹 — 제목과 내용이 함께 임베딩됨
     for page_number, fragments in sorted(page_text_buckets.items()):
         merged = "\n".join(fragments)
+        search_merged = enrich_search_text(merged, document_kind)
         amount_signal_texts.append(merged)
         split_records["text"].append({
             "post_id": str(post_id or ""),
@@ -1394,7 +1451,7 @@ def ingest_pdf(records, *, post_id, channel_id, attachment_id, comment_id, pdf_p
             "type": "text",
             "page_number": page_number,
             "element_id": f"txt-p{page_number}",
-            "search_content": merged,
+            "search_content": search_merged,
             "file_hash": file_hash,
             "saved_at": DOC_VERSION,
         })
@@ -1408,20 +1465,24 @@ def ingest_pdf(records, *, post_id, channel_id, attachment_id, comment_id, pdf_p
             file_hash=file_hash,
         )
         meta["type"] = "text"
+        meta["document_kind"] = document_kind
         meta["page_number"] = page_number
         meta["element_id"] = f"txt-p{page_number}"
         apply_amount_meta(meta, merged)
-        local_chunks += append_text_chunks(records, merged, meta, chunk_prefix=meta["element_id"])
+        local_chunks += append_text_chunks(records, search_merged, meta, chunk_prefix=meta["element_id"])
 
     # 금액 질의 대응 강화를 위한 요약 청크 생성
     merged_amount_text = "\n".join(amount_signal_texts).strip()
     amount_fields = extract_amount_fields(merged_amount_text)
-    if (
-        amount_fields["amount_total"] > 0
-        or amount_fields["amount_subtotal"] > 0
-        or amount_fields["amount_vat"] > 0
-        or amount_fields["amount_candidates"]
-    ):
+    has_labeled_amount = any(amount_fields[key] > 0 for key in ("amount_subtotal", "amount_vat")) or bool(
+        re.search(r"(합\s*계|총\s*액|총\s*금\s*액|견\s*적\s*금\s*액|청\s*구\s*금\s*액)", merged_amount_text, re.IGNORECASE)
+    )
+    should_create_amount_summary = (
+        document_kind not in NON_AMOUNT_DOCUMENT_KINDS
+        and (document_kind in AMOUNT_DOCUMENT_KINDS or has_labeled_amount)
+        and amount_fields["amount_total"] > 0
+    )
+    if should_create_amount_summary:
         line_items = extract_line_items(merged_amount_text)
         item_lines = ""
         if line_items:
@@ -1447,6 +1508,7 @@ def ingest_pdf(records, *, post_id, channel_id, attachment_id, comment_id, pdf_p
             file_hash=file_hash,
         )
         meta["type"] = "amount_summary"
+        meta["document_kind"] = document_kind
         meta["page_number"] = 0
         meta["element_id"] = "amount-summary"
         meta["amount_total"] = amount_fields["amount_total"]

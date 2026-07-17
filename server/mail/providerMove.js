@@ -231,27 +231,6 @@ async function moveImapMessageOnProvider({ account, message, targetFolder }) {
   }
 }
 
-async function isLocalOrphanCandidateOnProvider({ account, message }) {
-  if (!isImapProvider(account?.provider) || String(message?.internet_message_id || '').trim()) return false
-  const password = decryptSecret(account.password_encrypted)
-  if (!password) throw new Error('메일 계정 암호가 저장되어 있지 않습니다.')
-
-  const parsed = parseImapProviderMessageId(message.provider_message_id)
-  const client = buildImapClient(account, password)
-  await client.connect()
-  try {
-    const mailboxes = await client.list()
-    const sourceFolder = {
-      provider_folder_id: parsed?.providerFolderId || message.folder_provider_id,
-      type: message.folder_type || 'custom',
-    }
-    return !resolveMailboxPath(mailboxes, sourceFolder)
-  } finally {
-    if (client.usable) await client.logout().catch(() => {})
-    else client.close()
-  }
-}
-
 async function appendImapMessageToProvider({ account, targetFolder, rawMessage, message }) {
   if (targetFolder.is_local) return { provider: 'imap', skipped: true, reason: 'local_folder' }
   const password = decryptSecret(account.password_encrypted)
@@ -447,7 +426,6 @@ async function moveMessagesToTrashOnProvider({ tenantId, account, messages, tras
 
 module.exports = {
   resolveMailboxPath,
-  isLocalOrphanCandidateOnProvider,
   moveMessageOnProvider,
   moveMessagesToTrashOnProvider,
 }

@@ -883,6 +883,20 @@ function isEnumerationQuery(query = '') {
   return /(핵심|포인트|항목|목록|가지|종류|설명|내용|특징|요소|이유|방법|단계|순서)/i.test(String(query || ''))
 }
 
+const DOCUMENT_QUERY_KINDS = [
+  { kind: 'business_registration', label: '사업자등록증', pattern: /사업자\s*등록증|사업자등록번호|법인\s*사업자/i },
+  { kind: 'bankbook_copy', label: '통장 사본', pattern: /통장\s*사본/i },
+  { kind: 'shareholder_registry', label: '주주명부', pattern: /주주\s*명부/i },
+  { kind: 'articles_of_incorporation', label: '정관', pattern: /(?:^|\s)정관(?:\s|$)/i },
+  { kind: 'quotation', label: '견적서', pattern: /견적서/i },
+  { kind: 'tax_invoice', label: '세금계산서', pattern: /세금\s*계산서/i },
+]
+
+function detectDocumentQuery(query = '') {
+  const source = String(query || '')
+  return DOCUMENT_QUERY_KINDS.find(item => item.pattern.test(source)) || null
+}
+
 function asNum(value) {
   const n = Number(value)
   return Number.isFinite(n) ? n : 0
@@ -943,6 +957,19 @@ function hasEnumerationSignal(doc) {
 
 function normalizeMatchToken(value = '') {
   return String(value || '').toLowerCase().replace(/[^a-z0-9가-힣]/g, '')
+}
+
+function documentQueryBonus(doc, documentQuery) {
+  if (!documentQuery) return 0
+  const meta = doc?.metadata || {}
+  const source = normalizeMatchToken(`${meta.file_name || ''} ${meta.source || ''}`)
+  const text = normalizeMatchToken(doc?.text || '')
+  const label = normalizeMatchToken(documentQuery.label)
+  let score = 0
+  if (String(meta.document_kind || '') === documentQuery.kind) score += 120
+  if (label && source.includes(label)) score += 100
+  if (label && text.includes(label)) score += 45
+  return score
 }
 
 function extractSourceHints(query = '', preferredSources = []) {
@@ -2023,6 +2050,7 @@ router.post('/search', requireAuth, async (req, res) => {
     const commandQuery = isCommandQuery(query)
     const temporalQuery = isTemporalQuery(query)
     const enumerationQuery = isEnumerationQuery(query)
+    const documentQuery = detectDocumentQuery(query)
     const sourceHints = extractSourceHints(query, preferredSources)
     const clientLimit = Math.max(1, Number(limit) || 3)
     const retrievalOptions = parseRetrievalOptions(retrievalRaw, clientLimit)
@@ -2064,6 +2092,8 @@ router.post('/search', requireAuth, async (req, res) => {
       ? Math.max(requestedLimit, 8)
       : enumerationQuery
       ? Math.max(requestedLimit, 8)
+      : documentQuery
+      ? Math.max(requestedLimit, 8)
       : requestedLimit
     const firstPassLimit = Math.max(
       retrievalOptions.fetchK,
@@ -2072,6 +2102,7 @@ router.post('/search', requireAuth, async (req, res) => {
       commandQuery ? 8 : 0,
       temporalQuery ? 12 : 0,
       enumerationQuery ? 12 : 0,
+      documentQuery ? 24 : 0,
     )
 
     const cfg = readConfig()
@@ -2125,7 +2156,7 @@ router.post('/search', requireAuth, async (req, res) => {
         matchedChannelIds: channelScope.matchedChannelIds,
         matches: channelScope.matches,
       },
-      query_flags: { amountQuery, commandQuery, temporalQuery, enumerationQuery },
+      query_flags: { amountQuery, commandQuery, temporalQuery, enumerationQuery, documentQuery: documentQuery?.kind || '' },
       source_hints: sourceHints,
     }
     const cached = await getCachedJson('rag_search', cachePayload, { ttlSec: 600 })
@@ -2199,6 +2230,18 @@ router.post('/search', requireAuth, async (req, res) => {
       }
     }
 
+    if (documentQuery) {
+      const baseResults = Array.isArray(results) ? results : []
+      const secondPassLimit = Math.max(effectiveRequestedLimit * 4, 24)
+      const documentHintQuery = `${query}\n${documentQuery.label} 문서 파일명 문서종류 주식회사 ㈜ 법인`
+      aiMetrics.recordGpuCall('rag_search', 2)
+      const [r2, r3] = await Promise.all([
+        callPythonSearch({ ...searchPayload, limit: secondPassLimit }),
+        callPythonSearch({ ...searchPayload, query: documentHintQuery, limit: secondPassLimit }),
+      ])
+      results = mergeUniqueResults(baseResults, r2, r3)
+    }
+
     if (!Array.isArray(results) || results.length === 0) {
       if (isEvidenceGatedScope(ragScope)) {
         return res.json(buildBlockedRagResponse({
@@ -2251,6 +2294,7 @@ router.post('/search', requireAuth, async (req, res) => {
       if (commandQuery) rankScore += commandDocBonus(item)
       if (temporalQuery) rankScore += temporalDocBonus(item)
       if (enumerationQuery) rankScore += enumerationDocBonus(item)
+      if (documentQuery) rankScore += documentQueryBonus(item, documentQuery)
       if (sourceHints.length > 0) rankScore += sourceHintBoost(item, sourceHints)
       return { ...item, _rank_score: rankScore }
     }).sort((a, b) => asNum(b?._rank_score) - asNum(a?._rank_score))

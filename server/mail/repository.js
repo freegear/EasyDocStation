@@ -1156,6 +1156,16 @@ async function listUnifiedMessages({ tenantId, userId, key, folderType, folderNa
       OR UPPER(COALESCE(mf.provider_folder_id, '')) = 'TRASH'
       OR LOWER(TRIM(COALESCE(mf.name, ''))) = '휴지통'
     )`)
+    filters.push(`NOT EXISTS (
+      SELECT 1
+      FROM mail_message_tags mt
+      JOIN mail_smart_folders sf ON sf.id = mt.smart_folder_id
+      WHERE mt.tenant_id = mm.tenant_id
+        AND mt.user_id = mm.user_id
+        AND mt.message_id = mm.id
+        AND sf.tenant_id = mm.tenant_id
+        AND sf.user_id = mm.user_id
+    )`)
   } else if (cleanKey === 'starred') {
     filters.push('mm.is_starred = true')
   } else if (['inbox', 'sent', 'drafts', 'trash'].includes(cleanKey) && !cleanType) {
@@ -1207,6 +1217,36 @@ async function listUnifiedMessages({ tenantId, userId, key, folderType, folderNa
     params,
   )
   return rows
+}
+
+async function countUnclassifiedMessages({ tenantId, userId }) {
+  const { rows } = await tenantQuery(
+    tenantId,
+    `SELECT COUNT(*)::int AS message_count,
+            COUNT(*) FILTER (WHERE mm.is_read = false)::int AS unread_count
+     FROM mail_messages mm
+     LEFT JOIN mail_folders mf ON mf.id = mm.folder_id
+     WHERE mm.tenant_id = $1
+       AND mm.user_id = $2
+       AND mm.deleted_at IS NULL
+       AND NOT (
+         mf.type = 'trash'
+         OR UPPER(COALESCE(mf.provider_folder_id, '')) = 'TRASH'
+         OR LOWER(TRIM(COALESCE(mf.name, ''))) = '휴지통'
+       )
+       AND NOT EXISTS (
+         SELECT 1
+         FROM mail_message_tags mt
+         JOIN mail_smart_folders sf ON sf.id = mt.smart_folder_id
+         WHERE mt.tenant_id = mm.tenant_id
+           AND mt.user_id = mm.user_id
+           AND mt.message_id = mm.id
+           AND sf.tenant_id = mm.tenant_id
+           AND sf.user_id = mm.user_id
+       )`,
+    [tenantId, userId],
+  )
+  return rows[0] || { message_count: 0, unread_count: 0 }
 }
 
 // ===== data plane: 스마트 폴더(태그 기반 통합) — MailService.md 13 ===========
@@ -2957,6 +2997,7 @@ module.exports = {
   deleteFolder,
   listMessages,
   listUnifiedMessages,
+  countUnclassifiedMessages,
   // smart folders (태그 기반 통합 — MailService.md 13)
   listSmartFolders,
   createSmartFolder,

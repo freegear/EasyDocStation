@@ -474,6 +474,7 @@ async function ensureMailDataSchema(client, { standalone = false } = {}) {
     CREATE INDEX IF NOT EXISTS idx_mail_smart_folders_tenant_user ON mail_smart_folders(tenant_id, user_id);
     CREATE INDEX IF NOT EXISTS idx_mail_message_tags_folder ON mail_message_tags(tenant_id, smart_folder_id);
     CREATE INDEX IF NOT EXISTS idx_mail_message_tags_message ON mail_message_tags(tenant_id, message_id);
+    CREATE INDEX IF NOT EXISTS idx_mail_message_tags_user_message ON mail_message_tags(tenant_id, user_id, message_id);
   `)
 
   await run(client, 'create mail agentic tables', `

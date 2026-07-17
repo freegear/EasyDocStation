@@ -137,6 +137,8 @@ function UserFormModal({ user, onClose, onSave, teams = [] }) {
   const [requiredFieldDialogMessage, setRequiredFieldDialogMessage] = useState('')
   const [telegramTestStatus, setTelegramTestStatus] = useState(null) // null | 'sending' | 'ok' | 'error'
   const [telegramTestError, setTelegramTestError] = useState('')
+  const [passwordVisible, setPasswordVisible] = useState(false)
+  const [confirmPasswordVisible, setConfirmPasswordVisible] = useState(false)
   const fileInputRef = useRef(null)
   const stampInputRef = useRef(null)
 
@@ -508,22 +510,29 @@ function UserFormModal({ user, onClose, onSave, teams = [] }) {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <FormField
                     label={t.admin.labelPasswordNew}
-                    type="password"
+                    type={passwordVisible ? 'text' : 'password'}
                     value={form.password}
                     onChange={v => set('password', v)}
                     placeholder={t.admin.placeholderPasswordNew}
                     required
+                    trailing={(
+                      <PasswordVisibilityButton
+                        visible={passwordVisible}
+                        onToggle={() => setPasswordVisible(visible => !visible)}
+                        labels={t.admin}
+                      />
+                    )}
                   />
                   <div>
                     <label className="block text-gray-500 text-xs font-medium mb-1.5">{t.admin.labelPasswordConfirm}</label>
                     <div className="relative">
                       <input
-                        type="password"
+                        type={confirmPasswordVisible ? 'text' : 'password'}
                         value={form.confirmPassword}
                         onChange={e => set('confirmPassword', e.target.value)}
                         placeholder={t.admin.placeholderPasswordConfirm}
                         required
-                        className={`w-full bg-gray-100 border rounded-xl px-4 py-2.5 text-gray-900 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 transition-all pr-10 ${pwEntered
+                        className={`w-full bg-gray-100 border rounded-xl px-4 py-2.5 text-gray-900 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 transition-all pr-20 ${pwEntered
                           ? pwMatch
                             ? 'border-green-500/50 focus:ring-green-500/30 focus:border-green-500/50'
                             : 'border-red-500/50 focus:ring-red-500/30 focus:border-red-500/50'
@@ -531,7 +540,7 @@ function UserFormModal({ user, onClose, onSave, teams = [] }) {
                         }`}
                       />
                       {pwEntered && (
-                        <span className="absolute right-3 top-1/2 -translate-y-1/2">
+                        <span className="absolute right-11 top-1/2 -translate-y-1/2">
                           {pwMatch ? (
                             <svg className="w-4 h-4 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
@@ -543,6 +552,11 @@ function UserFormModal({ user, onClose, onSave, teams = [] }) {
                           )}
                         </span>
                       )}
+                      <PasswordVisibilityButton
+                        visible={confirmPasswordVisible}
+                        onToggle={() => setConfirmPasswordVisible(visible => !visible)}
+                        labels={t.admin}
+                      />
                     </div>
                     {pwEntered && !pwMatch && <p className="text-red-400 text-xs mt-1.5 ml-1">{t.admin.pwMismatch}</p>}
                     {pwEntered && pwMatch && form.password.length > 0 && <p className="text-green-400 text-xs mt-1.5 ml-1">{t.admin.pwMatch}</p>}
@@ -553,21 +567,28 @@ function UserFormModal({ user, onClose, onSave, teams = [] }) {
               <div>
                 <FormField
                   label={t.admin.labelPasswordEdit}
-                  type="password"
+                  type={passwordVisible ? 'text' : 'password'}
                   value={form.password}
                   onChange={v => set('password', v)}
                   placeholder={t.admin.placeholderPasswordEdit}
+                  trailing={(
+                    <PasswordVisibilityButton
+                      visible={passwordVisible}
+                      onToggle={() => setPasswordVisible(visible => !visible)}
+                      labels={t.admin}
+                    />
+                  )}
                 />
                 {form.password.length > 0 && (
                   <div className="mt-4">
                     <label className="block text-gray-500 text-xs font-medium mb-1.5">{t.admin.labelPasswordConfirm}</label>
                     <div className="relative">
                       <input
-                        type="password"
+                        type={confirmPasswordVisible ? 'text' : 'password'}
                         value={form.confirmPassword}
                         onChange={e => set('confirmPassword', e.target.value)}
                         placeholder={t.admin.placeholderPasswordConfirm}
-                        className={`w-full bg-gray-100 border rounded-xl px-4 py-2.5 text-gray-900 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 transition-all pr-10 ${pwEntered
+                        className={`w-full bg-gray-100 border rounded-xl px-4 py-2.5 text-gray-900 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 transition-all pr-20 ${pwEntered
                           ? pwMatch
                             ? 'border-green-500/50 focus:ring-green-500/30 focus:border-green-500/50'
                             : 'border-red-500/50 focus:ring-red-500/30 focus:border-red-500/50'
@@ -575,7 +596,7 @@ function UserFormModal({ user, onClose, onSave, teams = [] }) {
                         }`}
                       />
                       {pwEntered && (
-                        <span className="absolute right-3 top-1/2 -translate-y-1/2">
+                        <span className="absolute right-11 top-1/2 -translate-y-1/2">
                           {pwMatch ? (
                             <svg className="w-4 h-4 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
@@ -587,6 +608,11 @@ function UserFormModal({ user, onClose, onSave, teams = [] }) {
                           )}
                         </span>
                       )}
+                      <PasswordVisibilityButton
+                        visible={confirmPasswordVisible}
+                        onToggle={() => setConfirmPasswordVisible(visible => !visible)}
+                        labels={t.admin}
+                      />
                     </div>
                     {pwEntered && !pwMatch && <p className="text-red-400 text-xs mt-1.5 ml-1">{t.admin.pwMismatch}</p>}
                     {pwEntered && pwMatch && form.password.length > 0 && <p className="text-green-400 text-xs mt-1.5 ml-1">{t.admin.pwMatch}</p>}
@@ -752,21 +778,52 @@ function UserFormModal({ user, onClose, onSave, teams = [] }) {
   )
 }
 
-function FormField({ label, type = 'text', value, onChange, placeholder, required, requiredMark = false }) {
+function PasswordVisibilityButton({ visible, onToggle, labels }) {
+  const label = visible
+    ? (labels.hidePassword || '비밀번호 숨기기')
+    : (labels.showPassword || '비밀번호 보기')
+
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md p-1 text-gray-400 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/40"
+      aria-label={label}
+      title={label}
+      aria-pressed={visible}
+    >
+      {visible ? (
+        <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M3 3l18 18M10.6 10.7a2 2 0 002.7 2.7M9.9 4.2A10.7 10.7 0 0112 4c5.5 0 9 5 9 5a16.8 16.8 0 01-2.1 2.5M6.2 6.2C4.2 7.5 3 9 3 9s3.5 5 9 5c1 0 2-.2 2.8-.5" />
+        </svg>
+      ) : (
+        <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M3 12s3.5-5 9-5 9 5 9 5-3.5 5-9 5-9-5-9-5z" />
+          <circle cx="12" cy="12" r="2.5" strokeWidth={1.8} />
+        </svg>
+      )}
+    </button>
+  )
+}
+
+function FormField({ label, type = 'text', value, onChange, placeholder, required, requiredMark = false, trailing = null }) {
   return (
     <div>
       <label className="block text-gray-500 text-xs font-medium mb-1.5">
         {label}
         {requiredMark && <span className="text-red-500 ml-1">(*)</span>}
       </label>
-      <input
-        type={type}
-        value={value}
-        onChange={e => onChange(e.target.value)}
-        placeholder={placeholder}
-        required={required}
-        className="w-full bg-gray-100 border border-gray-200 rounded-xl px-4 py-2.5 text-gray-900 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-300 transition-all"
-      />
+      <div className="relative">
+        <input
+          type={type}
+          value={value}
+          onChange={e => onChange(e.target.value)}
+          placeholder={placeholder}
+          required={required}
+          className={`w-full bg-gray-100 border border-gray-200 rounded-xl px-4 py-2.5 text-gray-900 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-300 transition-all ${trailing ? 'pr-12' : ''}`}
+        />
+        {trailing}
+      </div>
     </div>
   )
 }

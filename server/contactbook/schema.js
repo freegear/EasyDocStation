@@ -13,6 +13,11 @@ async function ensureContactBookSchema(client) {
       auth_type TEXT NOT NULL CHECK (auth_type IN ('OAUTH2','APP_PASSWORD','BASIC')),
       username TEXT,
       credential_encrypted TEXT NOT NULL,
+      oauth_access_token_encrypted TEXT,
+      oauth_refresh_token_encrypted TEXT,
+      oauth_token_expires_at TIMESTAMPTZ,
+      oauth_scopes TEXT[] NOT NULL DEFAULT '{}',
+      oauth_subject TEXT,
       status TEXT NOT NULL DEFAULT 'CONNECTED',
       auto_sync_enabled BOOLEAN NOT NULL DEFAULT true,
       last_sync_at TIMESTAMPTZ,
@@ -21,6 +26,19 @@ async function ensureContactBookSchema(client) {
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
       updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
       UNIQUE (user_id, id)
+    );
+
+    CREATE TABLE IF NOT EXISTS contact_oauth_states (
+      state TEXT PRIMARY KEY,
+      provider TEXT NOT NULL CHECK (provider IN ('GOOGLE')),
+      purpose TEXT NOT NULL CHECK (purpose IN ('CONTACTBOOK_CONNECT','CONTACTBOOK_REAUTHORIZE')),
+      tenant_id TEXT NOT NULL,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      account_id UUID REFERENCES contact_accounts(id) ON DELETE CASCADE,
+      pkce_verifier_encrypted TEXT NOT NULL,
+      expires_at TIMESTAMPTZ NOT NULL,
+      consumed_at TIMESTAMPTZ,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
 
     CREATE TABLE IF NOT EXISTS contact_addressbooks (
@@ -84,11 +102,17 @@ async function ensureContactBookSchema(client) {
     );
 
     CREATE INDEX IF NOT EXISTS idx_contact_accounts_owner ON contact_accounts(tenant_id, user_id);
+    CREATE INDEX IF NOT EXISTS idx_contact_oauth_states_expiry ON contact_oauth_states(expires_at);
     CREATE INDEX IF NOT EXISTS idx_contact_books_owner ON contact_addressbooks(tenant_id, user_id, account_id);
     CREATE INDEX IF NOT EXISTS idx_contact_resources_owner ON contact_resources(tenant_id, user_id, addressbook_id);
     CREATE INDEX IF NOT EXISTS idx_contacts_owner_name ON contacts(tenant_id, user_id, display_name);
     CREATE INDEX IF NOT EXISTS idx_contacts_owner_search ON contacts(tenant_id, user_id);
   `)
+  await client.query('ALTER TABLE contact_accounts ADD COLUMN IF NOT EXISTS oauth_access_token_encrypted TEXT')
+  await client.query('ALTER TABLE contact_accounts ADD COLUMN IF NOT EXISTS oauth_refresh_token_encrypted TEXT')
+  await client.query('ALTER TABLE contact_accounts ADD COLUMN IF NOT EXISTS oauth_token_expires_at TIMESTAMPTZ')
+  await client.query("ALTER TABLE contact_accounts ADD COLUMN IF NOT EXISTS oauth_scopes TEXT[] NOT NULL DEFAULT '{}'")
+  await client.query('ALTER TABLE contact_accounts ADD COLUMN IF NOT EXISTS oauth_subject TEXT')
 }
 
 module.exports = { ensureContactBookSchema }

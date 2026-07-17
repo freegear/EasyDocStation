@@ -48,7 +48,8 @@ function hasDeepLinkParams() {
     params.get('channelId') ||
     params.get('postId') ||
     params.get('mailMessageId') ||
-    params.get('mailTenantId')
+    params.get('mailTenantId') ||
+    params.get('open') === 'contactbook'
   )
 }
 
@@ -212,7 +213,10 @@ function MainLayout() {
   const [calendarFocusEvent, setCalendarFocusEvent] = useState(null)
   const [calendarAddEventRequest, setCalendarAddEventRequest] = useState(null)
   const [showMail, setShowMail] = useState(false)
-  const [showContactBook, setShowContactBook] = useState(false)
+  const [showContactBook, setShowContactBook] = useState(() => {
+    if (typeof window === 'undefined') return false
+    return new URL(window.location.href).searchParams.get('open') === 'contactbook'
+  })
   const [mailDeepLink, setMailDeepLink] = useState(null)
   const [mailInitialFolder, setMailInitialFolder] = useState(null)  // Welcome 보드 → 중요 편지함 등 진입 폴더
   const [showDM, setShowDM] = useState(false)
