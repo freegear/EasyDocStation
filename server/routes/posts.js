@@ -2764,6 +2764,67 @@ function scheduleDeletedItemsPurge() {
 }
 scheduleDeletedItemsPurge()
 
+// EasyPage subtree를 권한 확인 후 하나의 soft-delete transaction으로 처리한다.
+router.post('/easy-pages/bulk-delete', requireAuth, async (req, res, next) => {
+  try {
+    const channelId = String(req.body?.channelId || '')
+    const postIds = [...new Set((Array.isArray(req.body?.postIds) ? req.body.postIds : []).map(String).filter(Boolean))]
+    if (!channelId || postIds.length === 0) return res.status(400).json({ error: '삭제할 EasyPage가 없습니다.' })
+    if (postIds.length > 200) return res.status(400).json({ error: '한 번에 삭제할 수 있는 EasyPage는 200개까지입니다.' })
+    if (!isConnected()) return res.status(503).json({ error: 'Cassandra 연결이 필요합니다.' })
+
+    const targets = []
+    for (const id of postIds) {
+      const row = await findPostLocator(id)
+      if (!row || String(row.channel_id) !== channelId) {
+        return res.status(404).json({ error: '삭제할 EasyPage를 찾을 수 없습니다.' })
+      }
+      const isSiteAdmin = req.user.role === 'site_admin'
+      if (!isSiteAdmin && String(row.author_id) !== String(req.user.id)) {
+        return res.status(403).json({ error: '하위 EasyPage 중 삭제 권한이 없는 페이지가 있습니다.' })
+      }
+      const postRowRes = await client.execute(
+        'SELECT content FROM posts WHERE channel_id = ? AND created_at = ?',
+        [row.channel_id, row.created_at], { prepare: true },
+      )
+      const content = String(postRowRes.rows?.[0]?.content || '')
+      if (!content.trimStart().startsWith('<!--md-page-->')) {
+        return res.status(400).json({ error: 'EasyPage가 아닌 게시글은 일괄 삭제할 수 없습니다.' })
+      }
+      targets.push({ id, row, preview: buildPreview(content) })
+    }
+
+    await ensureSoftDeleteSchema()
+    const pg = await db.connect()
+    try {
+      await pg.query('BEGIN')
+      for (const target of targets) {
+        await pg.query(
+          `INSERT INTO deleted_items (item_type, item_id, channel_id, post_id, author_id, deleted_by, preview, deleted_at)
+           VALUES ('post', $1, $2, NULL, $3, $4, $5, NOW())
+           ON CONFLICT (item_type, item_id)
+           DO UPDATE SET deleted_at = NOW(), deleted_by = EXCLUDED.deleted_by, preview = EXCLUDED.preview`,
+          [target.id, channelId, target.row.author_id, req.user.id, target.preview],
+        )
+      }
+      await pg.query('COMMIT')
+    } catch (error) {
+      await pg.query('ROLLBACK')
+      throw error
+    } finally {
+      pg.release()
+    }
+
+    await Promise.all(targets.map(target => (
+      cancelSttJobsForPost(target.id, { reason: 'EasyPage subtree soft deleted', actorUserId: req.user.id })
+        .catch(error => console.error('[STT] EasyPage 일괄 삭제 중 취소 실패:', target.id, error?.message || error))
+    )))
+    res.json({ success: true, deletedIds: postIds, restoreWindowMs: RESTORE_WINDOW_MS })
+  } catch (err) {
+    next(err)
+  }
+})
+
 // ─── DELETE /api/posts/:id (소프트 삭제: 1분 내 복구 가능) ──────────
 router.delete('/:id', requireAuth, async (req, res, next) => {
   try {

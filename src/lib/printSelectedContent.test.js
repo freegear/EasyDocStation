@@ -30,3 +30,31 @@ test('print title is limited to 32 Unicode characters', () => {
   assert.equal(Array.from(truncatePrintTitle('😀'.repeat(40))).length, 32)
   assert.equal(truncatePrintTitle('  짧은 제목  '), '짧은 제목')
 })
+
+test('print CSS keeps images on one A4 page without enlarging small images', () => {
+  assert.match(PRINT_STYLE, /img,\s*svg\s*\{/)
+  assert.match(PRINT_STYLE, /width:\s*auto\s*!important/)
+  assert.match(PRINT_STYLE, /height:\s*auto\s*!important/)
+  assert.match(PRINT_STYLE, /max-width:\s*100%\s*!important/)
+  assert.match(PRINT_STYLE, /max-height:\s*267mm\s*!important/)
+  assert.match(PRINT_STYLE, /object-fit:\s*contain/)
+  assert.match(PRINT_STYLE, /page-break-inside:\s*avoid/)
+})
+
+test('print CSS visually separates code and text blocks', () => {
+  assert.match(PRINT_STYLE, /pre,\s*blockquote\s*\{/)
+  assert.match(PRINT_STYLE, /border:\s*1px solid #cbd5e1/)
+  assert.match(PRINT_STYLE, /background:\s*#f3f4f6\s*!important/)
+  assert.match(PRINT_STYLE, /:not\(pre\) > code/)
+  assert.match(PRINT_STYLE, /pre code\s*\{[\s\S]*background:\s*transparent\s*!important/)
+  assert.match(PRINT_STYLE, /page-break-inside:\s*auto/)
+})
+
+test('print CSS preserves explicit line breaks in normal paragraphs', () => {
+  assert.match(PRINT_STYLE, /\.easy-print-content p\s*\{[\s\S]*white-space:\s*pre-wrap/)
+  assert.match(PRINT_STYLE, /\.easy-print-content p\s*\{[\s\S]*overflow-wrap:\s*anywhere/)
+})
+
+test('print CSS excludes elements marked as print-only UI decorations', () => {
+  assert.match(PRINT_STYLE, /\[data-print-exclude="true"\][\s\S]*display:\s*none\s*!important/)
+})

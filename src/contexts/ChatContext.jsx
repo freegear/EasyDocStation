@@ -700,6 +700,40 @@ export function ChatProvider({ children }) {
     }
   }
 
+  async function deletePosts(channelId, postIds) {
+    const ids = [...new Set((postIds || []).map(String).filter(Boolean))]
+    if (ids.length === 0) return
+    const snapshots = asList(posts[channelId]).filter(post => ids.includes(String(post.id)))
+    setPosts(prev => ({
+      ...prev,
+      [channelId]: asList(prev[channelId]).filter(post => !ids.includes(String(post.id))),
+    }))
+    ids.forEach(postId => removePostDetail(channelId, postId))
+    try {
+      await apiFetch('/posts/easy-pages/bulk-delete', {
+        method: 'POST',
+        body: JSON.stringify({ channelId, postIds: ids }),
+      })
+      showToast({
+        message: `EasyPage ${ids.length}개를 삭제했습니다.`,
+        actionLabel: '복구',
+        duration: 10000,
+        onAction: () => Promise.all(ids.map(postId => restorePost(channelId, postId))).catch((err) => {
+          showToast({ message: `복구 실패: ${err.message}`, duration: 5000 })
+        }),
+      })
+    } catch (err) {
+      setPosts(prev => ({
+        ...prev,
+        [channelId]: sortByCreatedAt([
+          ...asList(prev[channelId]).filter(post => !ids.includes(String(post.id))),
+          ...snapshots,
+        ]),
+      }))
+      throw err
+    }
+  }
+
   // ─── 삭제한 게시글 복구 (1분 이내) ──────────────────────────
   async function restorePost(channelId, postId) {
     await apiFetch(`/posts/${postId}/restore`, { method: 'POST' })
@@ -1141,6 +1175,7 @@ export function ChatProvider({ children }) {
       addComment,
       incrementViews,
       deletePost,
+      deletePosts,
       restorePost,
       restoreComment,
       fetchDeletedItems,

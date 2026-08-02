@@ -10,6 +10,10 @@
 - A4 인쇄 여백은 상하좌우 약 1cm(`10mm`)로 적용한다.
 - 인쇄물의 본문·제목·메타데이터 글꼴은 기존 인쇄 크기보다 20% 작게 적용한다.
 - PDF 저장 시 사용되는 파일 제목은 최대 32자로 제한한다.
+- 이미지와 SVG 다이어그램은 원본이 한 페이지보다 작으면 원래 크기를 유지하고, 한 페이지보다 클 때만 비율을 유지해 한 페이지 안으로 축소한다.
+- 코드 블록과 인용·텍스트 블록은 회색 테두리와 옅은 회색 배경으로 본문과 구분한다.
+- 일반 문단에 입력된 명시적 줄바꿈과 연속 공백은 인쇄물에서도 그대로 보존한다.
+- 첨부 여부를 나타내는 클립 아이콘과 PDF·문서 등 파일 형식을 나타내는 아이콘은 인쇄에서 제외한다.
 
 이 문서에서 “게시글 클릭 시 팝업 메뉴”는 제공된 Safari 화면을 근거로 **게시글 우클릭(컨텍스트 클릭)** 으로 해석한다. 일반 좌클릭까지 메뉴 열기로 변경하면 현재의 “게시글 상세 열기” 동작과 충돌하므로 좌클릭은 기존 동작을 유지한다. 모바일에서 같은 기능이 필요하면 후속 단계에서 길게 누르기를 연결한다.
 
@@ -237,12 +241,39 @@ body {
   max-height: none !important;
   overflow: visible !important;
 }
-img { max-width: 100%; height: auto; break-inside: avoid; }
+img, svg {
+  width: auto !important;
+  height: auto !important;
+  max-width: 100% !important;
+  max-height: 267mm !important;
+  object-fit: contain;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
 table { width: 100%; border-collapse: collapse; break-inside: auto; }
 thead { display: table-header-group; }
 tr, blockquote { break-inside: avoid; }
 th, td { border: 1px solid #d1d5db; padding: 6px 8px; }
-pre { white-space: pre-wrap; overflow-wrap: anywhere; break-inside: auto; }
+pre, blockquote {
+  padding: 0.8em 1em;
+  border: 1px solid #cbd5e1;
+  border-radius: 5px;
+  background: #f3f4f6 !important;
+  color: #1f2937;
+  box-decoration-break: clone;
+}
+pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  break-inside: auto;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+:not(pre) > code {
+  padding: 0.12em 0.35em;
+  border: 1px solid #d1d5db;
+  border-radius: 3px;
+  background: #f3f4f6 !important;
+}
 a { color: inherit; text-decoration: underline; overflow-wrap: anywhere; }
 [data-print-exclude="true"], button, input, textarea, select, audio, video {
   display: none !important;
@@ -256,6 +287,14 @@ a { color: inherit; text-decoration: underline; overflow-wrap: anywhere; }
 화면용 `h-full`, `max-h-*`, `overflow-hidden`, `overflow-y-auto`가 인쇄 DOM에 남으면 브라우저는 스크롤 영역 밖의 내용을 없는 것으로 판단하여 미리보기를 1쪽으로 만들 수 있다. 따라서 인쇄 범위에서는 높이 제한을 `height: auto`, `max-height: none`, `overflow: visible`로 반드시 해제한다. 게시글 전체에 고정 높이를 지정하거나 전체 게시글을 `break-inside: avoid`로 묶지 않는다.
 
 표는 여러 페이지로 이어질 수 있게 하고 `thead`는 다음 페이지에서도 반복한다. 일반 행과 이미지는 가능하면 중간에서 잘리지 않게 하되, 긴 코드 블록과 문단은 다음 페이지로 정상 분할될 수 있어야 한다.
+
+A4 높이 `297mm`에서 문서 내부 여백 상하 `10mm`씩과 인쇄 엔진의 반올림 여유를 제외하여 이미지·SVG의 최대 높이는 `267mm`로 제한한다. `width`와 `height`는 `auto`, 최대 너비는 `100%`, `object-fit`은 `contain`으로 설정하므로 가로 또는 세로 중 먼저 한계에 도달하는 방향을 기준으로 종횡비를 유지해 축소된다. 최대값만 지정하므로 이보다 작은 이미지는 확대하지 않는다. `break-inside: avoid`로 이미지가 페이지 경계에서 두 장으로 나뉘는 것도 방지한다.
+
+코드 블록(`pre`)과 인용·텍스트 블록(`blockquote`)에는 `#cbd5e1` 테두리와 `#f3f4f6` 배경을 적용한다. 인라인 코드에도 더 작은 테두리와 같은 계열의 배경을 적용한다. `pre` 내부의 `code`에는 배경과 테두리를 중복 적용하지 않는다. 긴 코드 블록은 `break-inside: auto`를 유지하여 내용이 잘리지 않고 다음 페이지로 이어지며, `box-decoration-break: clone`으로 분할된 블록의 박스 표현을 유지한다.
+
+일반 Markdown 문단은 실제 `<br>` 대신 하나의 `<p>` 내부 줄바꿈 문자로 여러 줄을 표현할 수 있다. 화면의 Tailwind `whitespace-pre-wrap`에 의존하지 않도록 인쇄 CSS의 `.easy-print-content p`에도 `white-space: pre-wrap`을 직접 지정한다. `overflow-wrap: anywhere`를 함께 적용해 긴 URL이나 공백 없는 문자열이 인쇄 폭을 벗어나지 않게 한다.
+
+첨부파일 제목 옆의 클립 SVG와 `FileTypeIcon`은 본문 데이터가 아니라 화면용 상태·형식 표시 장식이다. 두 SVG에 `data-print-exclude="true"`를 지정하여 인쇄 DOM 복제 과정에서 제거한다. 실제 첨부 이미지, PDF 썸네일과 본문 Mermaid SVG에는 이 속성을 지정하지 않으므로 기존 인쇄 대상에 그대로 포함된다.
 
 ## 6. 특수 콘텐츠 처리
 
@@ -306,6 +345,10 @@ EasyPage는 별도 `MDPageViewer`를 사용하고 이미 인쇄 버튼과 PDF �
 - 팝업 차단 시 안내 문구가 표시된다.
 - 대화형 요소 제거 후 본문, 표, 링크와 첨부파일명이 남는다.
 - 32자를 넘는 한글·영문·이모지 제목이 Unicode 문자 기준 정확히 32자로 제한된다.
+- 작은 이미지가 확대되지 않고, 용지보다 큰 이미지 및 Mermaid SVG가 비율을 유지한 채 한 페이지 범위로 축소된다.
+- 코드 블록, 인라인 코드 및 인용·텍스트 블록에 회색 테두리와 옅은 회색 배경이 적용된다.
+- 일반 문단의 줄바꿈 문자가 공백으로 합쳐지지 않고 원본과 같은 줄 구성을 유지한다.
+- 첨부 클립과 파일 형식 아이콘은 제거되지만 실제 이미지·문서 썸네일과 Mermaid SVG는 유지된다.
 
 ### 브라우저/E2E 테스트
 
@@ -320,6 +363,10 @@ EasyPage는 별도 `MDPageViewer`를 사용하고 이미 인쇄 버튼과 PDF �
 9. 이미지 첨부, 이미지 로드 실패, PDF 및 동영상 첨부를 각각 확인한다.
 10. 작성 권한이 없는 사용자와 보관 채널에서도 읽을 수 있는 콘텐츠는 인쇄할 수 있다.
 11. Chrome과 macOS Safari에서 실제 인쇄 미리보기 및 PDF 저장을 확인한다.
+12. 세로로 긴 이미지와 Mermaid 흐름도가 두 페이지로 잘리지 않고 한 페이지 안에 축소되는지 확인한다.
+13. 코드 블록과 텍스트 블록이 인쇄물에서 테두리·옅은 회색 배경으로 구분되고 긴 코드가 다음 페이지까지 출력되는지 확인한다.
+14. 하나의 Markdown 문단 안에 여러 줄이 입력된 경우 인쇄물에서도 같은 위치에서 줄바꿈되는지 확인한다.
+15. 첨부 영역의 클립·파일 형식 아이콘은 인쇄되지 않고 첨부파일 이름과 실제 미리보기만 남는지 확인한다.
 
 ## 10. 구현 순서
 
@@ -353,6 +400,10 @@ EasyPage는 별도 `MDPageViewer`를 사용하고 이미 인쇄 버튼과 PDF �
 - 게시글이 한 페이지보다 길면 마지막 내용까지 필요한 페이지 수만큼 자동으로 나뉘어 출력된다.
 - 모든 페이지에 약 1cm 여백이 적용되고 인쇄 글꼴이 이전 크기보다 20% 작게 출력된다.
 - 32자를 넘는 게시글 제목은 인쇄 제목과 PDF 기본 파일명에서 32자로 제한된다.
+- 한 페이지보다 큰 이미지와 SVG 다이어그램은 종횡비를 유지해 한 페이지 안으로 축소되고 작은 이미지는 원래 크기를 유지한다.
+- 코드와 텍스트 블록은 회색 테두리와 옅은 회색 배경으로 일반 본문과 명확히 구분된다.
+- 일반 Markdown 문단의 명시적 줄바꿈은 인쇄에서도 원본과 동일하게 보존된다.
+- 화면 장식용 첨부·문서 형식 아이콘은 인쇄에서 제외된다.
 - 인쇄는 콘텐츠를 수정하지 않으며 추가 서버 권한이나 API를 요구하지 않는다.
 
 ## 13. 구현 결과
@@ -368,6 +419,10 @@ EasyPage는 별도 `MDPageViewer`를 사용하고 이미 인쇄 버튼과 PDF �
 - 앱의 화면용 스타일시트를 인쇄 창에 복사하지 않고 인쇄 전용 문서 CSS만 적용하여 페이지 분할을 방해하는 레이아웃 규칙을 차단한다.
 - 브라우저의 여백 설정과 관계없이 보이도록 인쇄 문서 본문에 `10mm` 내부 여백을 적용하고, 본문과 제목의 인쇄 글꼴을 기존 대비 80%로 축소했다.
 - 인쇄 창의 문서 제목과 PDF 기본 파일명은 Unicode 문자 기준 최대 32자로 제한했다.
+- 큰 이미지와 Mermaid SVG에 `267mm` 최대 높이와 `100%` 최대 너비를 적용하여 한 페이지 안에 비율대로 축소되도록 했다.
+- 코드 블록, 인라인 코드와 인용·텍스트 블록에 인쇄 전용 테두리·회색 배경 스타일을 추가했다.
+- 인쇄 문단에 `white-space: pre-wrap`을 적용하여 원본 화면의 여러 줄 구성을 보존하도록 수정했다.
+- 첨부 클립 SVG와 공통 `FileTypeIcon`에 인쇄 제외 표식을 추가하여 대형 아이콘이 출력되지 않도록 했다.
 - 버튼, 입력창, 메뉴, 오디오·비디오 조작부는 출력에서 제외한다.
 - 팝업 차단과 인쇄 준비 실패 안내를 한국어·영어·일본어 번역에 추가했다.
 - 보관 채널에서도 복사, 링크복사, 인쇄 등 읽기 작업 메뉴를 사용할 수 있고 변경 작업은 숨긴다.

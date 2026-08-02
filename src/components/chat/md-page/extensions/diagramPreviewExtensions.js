@@ -62,61 +62,136 @@ function sanitizeFilenamePart(text = '') {
 }
 
 async function downloadSvgAsPng(svgMarkup, filenameBase = 'mermaid-diagram', minWidth = 2000) {
-  const svgBlob = new Blob([svgMarkup], { type: 'image/svg+xml;charset=utf-8' })
-  const svgUrl = URL.createObjectURL(svgBlob)
-  try {
-    const img = new Image()
-    await new Promise((resolve, reject) => {
-      img.onload = resolve
-      img.onerror = reject
-      img.src = svgUrl
-    })
+  // An SVG loaded from a blob URL can make the destination canvas non-origin-clean
+  // when the SVG contains foreignObject or an external reference.  Use a data URL
+  // after sanitising the SVG instead. This also behaves consistently in Safari.
+  const safeSvg = sanitizeSvgForCanvas(svgMarkup)
+  const svgUrl = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(safeSvg)}`
+  const img = new Image()
+  img.crossOrigin = 'anonymous'
+  await new Promise((resolve, reject) => {
+    img.onload = resolve
+    img.onerror = () => reject(new Error('PNG 변환용 SVG 이미지를 불러오지 못했습니다.'))
+    img.src = svgUrl
+  })
 
-    const intrinsicWidth = Math.max(1, Math.ceil(img.width || 1200))
-    const intrinsicHeight = Math.max(1, Math.ceil(img.height || 800))
-    const targetWidth = Math.max(Number(minWidth) || 2000, intrinsicWidth)
-    const targetHeight = Math.max(1, Math.round((intrinsicHeight * targetWidth) / intrinsicWidth))
+  const intrinsicWidth = Math.max(1, Math.ceil(img.naturalWidth || img.width || 1200))
+  const intrinsicHeight = Math.max(1, Math.ceil(img.naturalHeight || img.height || 800))
+  const targetWidth = Math.max(Number(minWidth) || 2000, intrinsicWidth)
+  const targetHeight = Math.max(1, Math.round((intrinsicHeight * targetWidth) / intrinsicWidth))
 
-    const width = targetWidth
-    const height = targetHeight
-    const canvas = document.createElement('canvas')
-    canvas.width = width
-    canvas.height = height
-    const ctx = canvas.getContext('2d')
-    if (!ctx) throw new Error('canvas context를 생성할 수 없습니다.')
+  const width = targetWidth
+  const height = targetHeight
+  const canvas = document.createElement('canvas')
+  canvas.width = width
+  canvas.height = height
+  const ctx = canvas.getContext('2d')
+  if (!ctx) throw new Error('canvas context를 생성할 수 없습니다.')
 
-    ctx.fillStyle = '#ffffff'
-    ctx.fillRect(0, 0, width, height)
-    ctx.drawImage(img, 0, 0, width, height)
+  ctx.fillStyle = '#ffffff'
+  ctx.fillRect(0, 0, width, height)
+  ctx.drawImage(img, 0, 0, width, height)
 
-    const pngBlob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/png'))
-    if (!pngBlob) throw new Error('PNG 변환에 실패했습니다.')
-    const pngUrl = URL.createObjectURL(pngBlob)
-    const a = document.createElement('a')
-    a.href = pngUrl
-    a.download = `${filenameBase}.png`
-    document.body.appendChild(a)
-    a.click()
-    a.remove()
-    URL.revokeObjectURL(pngUrl)
-  } finally {
-    URL.revokeObjectURL(svgUrl)
-  }
+  const pngBlob = await new Promise((resolve, reject) => {
+    try {
+      canvas.toBlob(resolve, 'image/png')
+    } catch (error) {
+      reject(error)
+    }
+  })
+  if (!pngBlob) throw new Error('PNG 변환에 실패했습니다.')
+  const pngUrl = URL.createObjectURL(pngBlob)
+  const a = document.createElement('a')
+  a.href = pngUrl
+  a.download = `${filenameBase}.png`
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+  URL.revokeObjectURL(pngUrl)
 }
 
 function buildExportSafeMermaidSource(source = '') {
   const initDirective = '%%{init: {"securityLevel":"strict","flowchart":{"htmlLabels":false}}}%%'
-  const raw = String(source || '').trim()
+  // A document-level init directive can turn htmlLabels back on. Strip all init
+  // directives for export and prepend the known canvas-safe configuration.
+  const raw = String(source || '')
+    .replace(/%%\{\s*(?:init|initialize)\s*:[\s\S]*?\}%%/gi, '')
+    .trim()
   if (!raw) return initDirective
-  if (raw.startsWith('%%{init:') || raw.startsWith('%%{initialize:')) return raw
   return `${initDirective}\n${raw}`
 }
 
 function sanitizeSvgForCanvas(svgMarkup = '') {
-  // External url() / @import가 남아 있으면 canvas taint 가능성이 높아져 제거한다.
-  return String(svgMarkup || '')
-    .replace(/@import\s+url\([^)]+\)\s*;?/gi, '')
-    .replace(/url\(\s*['"]?https?:\/\/[^)'" ]+['"]?\s*\)/gi, 'none')
+  let svg = convertForeignObjectsToSvgText(String(svgMarkup || ''))
+    .replace(/<script\b[^>]*>[\s\S]*?<\/script\s*>/gi, '')
+    .replace(/@import\s+(?:url\()?[^;]+;?/gi, '')
+    .replace(/url\(\s*['"]?(?:https?:)?\/\/[^)]*\)/gi, 'none')
+    .replace(/\s(?:href|xlink:href)\s*=\s*(['"])(?:https?:)?\/\/.*?\1/gi, '')
+
+  // Mermaid normally emits the namespace, but it is required when the markup is
+  // loaded as a standalone image rather than inserted into the HTML document.
+  if (!/\sxmlns=/.test(svg)) {
+    svg = svg.replace(/<svg\b/, '<svg xmlns="http://www.w3.org/2000/svg"')
+  }
+  return svg
+}
+
+function parseSvgLength(value, fallback = 0) {
+  const parsed = Number.parseFloat(String(value || ''))
+  return Number.isFinite(parsed) ? parsed : fallback
+}
+
+function getForeignObjectLines(foreignObject) {
+  const lineElements = foreignObject.querySelectorAll('p, li')
+  const rawLines = lineElements.length > 0
+    ? Array.from(lineElements, (element) => element.textContent || '')
+    : String(foreignObject.textContent || '').split(/\r?\n/)
+  const lines = rawLines.map((line) => line.replace(/\s+/g, ' ').trim()).filter(Boolean)
+  return lines.length > 0 ? lines : ['']
+}
+
+function convertForeignObjectsToSvgText(svgMarkup = '') {
+  if (typeof DOMParser === 'undefined' || typeof XMLSerializer === 'undefined') {
+    return String(svgMarkup || '')
+      .replace(/<foreignObject\b[^>]*>[\s\S]*?<\/foreignObject\s*>/gi, '')
+  }
+
+  const parser = new DOMParser()
+  const documentNode = parser.parseFromString(String(svgMarkup || ''), 'image/svg+xml')
+  if (documentNode.querySelector('parsererror')) return String(svgMarkup || '')
+
+  const svgNamespace = 'http://www.w3.org/2000/svg'
+  documentNode.querySelectorAll('foreignObject').forEach((foreignObject) => {
+    const width = parseSvgLength(foreignObject.getAttribute('width'))
+    const height = parseSvgLength(foreignObject.getAttribute('height'))
+    const x = parseSvgLength(foreignObject.getAttribute('x'))
+    const y = parseSvgLength(foreignObject.getAttribute('y'))
+    const lines = getForeignObjectLines(foreignObject)
+    const lineHeight = 18
+    const firstLineY = y + (height / 2) - ((lines.length - 1) * lineHeight / 2)
+
+    const text = documentNode.createElementNS(svgNamespace, 'text')
+    text.setAttribute('x', String(x + (width / 2)))
+    text.setAttribute('y', String(firstLineY))
+    text.setAttribute('text-anchor', 'middle')
+    text.setAttribute('dominant-baseline', 'middle')
+    text.setAttribute('fill', 'currentColor')
+    text.setAttribute(
+      'style',
+      'font-family:"Malgun Gothic","Apple SD Gothic Neo","Noto Sans KR",Arial,sans-serif;font-size:16px;',
+    )
+
+    lines.forEach((line, index) => {
+      const tspan = documentNode.createElementNS(svgNamespace, 'tspan')
+      tspan.setAttribute('x', String(x + (width / 2)))
+      if (index > 0) tspan.setAttribute('dy', String(lineHeight))
+      tspan.textContent = line
+      text.appendChild(tspan)
+    })
+    foreignObject.replaceWith(text)
+  })
+
+  return new XMLSerializer().serializeToString(documentNode.documentElement)
 }
 
 async function renderMermaidSvgForExport(source = '') {

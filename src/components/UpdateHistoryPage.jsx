@@ -75,7 +75,15 @@ export default function UpdateHistoryPage({ onClose }) {
                     <h4 className="text-lg font-black text-gray-900">v{release.version}</h4>
                     {release.current && <span className="rounded-full bg-indigo-100 px-2.5 py-1 text-[11px] font-extrabold text-indigo-700">현재 버전</span>}
                   </div>
-                  <p className="whitespace-pre-line text-sm leading-7 text-gray-700">{release.description}</p>
+                  {release.descriptionType === 'list' && Array.isArray(release.descriptionItems) ? (
+                    <ul className="list-disc space-y-1.5 pl-5 text-sm leading-7 text-gray-700">
+                      {release.descriptionItems.map((item, index) => (
+                        <li key={`${release.version}-${index}`}>{item}</li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="whitespace-pre-line text-sm leading-7 text-gray-700">{release.description}</p>
+                  )}
                 </article>
               ))}
             </div>

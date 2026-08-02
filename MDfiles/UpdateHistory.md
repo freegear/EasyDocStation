@@ -60,19 +60,24 @@ EasyStation v0.5.8
 
 ```json
 {
-  "EasyDocStation Version": "0.5.8",
+  "EasyDocStation Version": "0.5.16",
+  "0.5.16": [
+    "게시글, 댓글 프린트 기능을 추가 함.",
+    "이미지 크기가 한 페이지를 넘기면 한 페이지에 맞게 조정함."
+  ],
   "0.5.8": "메일에서 주소 자동 완성 기능을 추가함",
   "0.5.7": "구글 주소록을 production state로 업데이트 함",
   "0.5.6": "주소록을 구현함.\niCloud,\nGoogle 주소록"
 }
 ```
 
-JSON 안에서 `\n`은 실제 줄바꿈을 나타내는 escape 문자다. 화면에서는 문자열을 HTML로 직접 삽입하지 않고 텍스트로 렌더링하면서 줄바꿈을 보존해야 한다.
+버전별 값은 기존 호환을 위한 문자열 또는 여러 변경 사항을 위한 문자열 배열을 사용할 수 있다. JSON 안에서 `\n`은 실제 줄바꿈을 나타내는 escape 문자다. 화면에서는 문자열을 HTML로 직접 삽입하지 않고 텍스트로 렌더링하면서 줄바꿈을 보존해야 한다. 배열은 입력 순서대로 글머리 목록으로 표시한다.
 
 React에서는 다음 중 하나를 사용한다.
 
 - 설명 영역에 CSS `white-space: pre-line` 적용
 - 문자열을 `\n`으로 분리해 각 줄을 안전한 텍스트 요소로 렌더링
+- 문자열 배열은 각 항목을 React `<li>` 텍스트 노드로 렌더링
 
 `dangerouslySetInnerHTML`로 변환하지 않는다. 향후 업데이트 설명에 외부 입력이 포함되더라도 HTML이나 script가 실행되지 않아야 한다.
 
@@ -95,7 +100,7 @@ EasyDocStation Version = 0.5.8
 
 ### 4.3 요청 구조의 한계
 
-현재 구조는 단순하고 관리하기 쉽지만 버전별 날짜, 분류, 여러 변경 항목, 링크를 구조화하기 어렵다. 이번 요구사항에는 충분하므로 그대로 사용한다. 향후 필요하면 별도의 schema version을 둔 배열 구조로 마이그레이션할 수 있다.
+현재 구조는 문자열과 문자열 배열로 여러 변경 항목까지 표현할 수 있지만 버전별 날짜, 분류와 링크를 구조화하기는 어렵다. 이번 요구사항에는 충분하므로 그대로 사용한다. 향후 필요하면 별도의 schema version을 둔 객체 배열 구조로 마이그레이션할 수 있다.
 
 ```json
 {
@@ -149,7 +154,8 @@ path.resolve(__dirname, '../UpdateHistory.json')
 - 현재 버전 형식 오류
 - 현재 버전에 해당하는 내역 누락
 - 잘못된 버전 key
-- 내역 값이 문자열이 아님
+- 내역 값이 문자열 또는 문자열 배열이 아님
+- 배열이 비어 있거나 배열 안에 빈 문자열·문자열이 아닌 값이 있음
 
 권장 정책은 서버 시작을 완전히 중단하기보다 명확한 오류를 로그에 남기고 다음 안전한 snapshot으로 실행하는 것이다.
 
@@ -197,16 +203,22 @@ GET /api/config/update-history
     {
       "version": "0.5.8",
       "description": "메일에서 주소 자동 완성 기능을 추가함",
+      "descriptionItems": ["메일에서 주소 자동 완성 기능을 추가함"],
+      "descriptionType": "text",
       "current": true
     },
     {
       "version": "0.5.7",
       "description": "구글 주소록을 production state로 업데이트 함",
+      "descriptionItems": ["구글 주소록을 production state로 업데이트 함"],
+      "descriptionType": "text",
       "current": false
     },
     {
       "version": "0.5.6",
       "description": "주소록을 구현함.\niCloud,\nGoogle 주소록",
+      "descriptionItems": ["주소록을 구현함.\niCloud,\nGoogle 주소록"],
+      "descriptionType": "text",
       "current": false
     }
   ]
@@ -214,6 +226,8 @@ GET /api/config/update-history
 ```
 
 프론트가 raw JSON object를 직접 해석하게 하기보다 서버가 검증·정렬한 배열을 반환하면 모든 클라이언트가 같은 순서를 사용한다.
+
+배열 입력은 API에서 `descriptionItems`에 그대로 보존하고 `descriptionType: "list"`로 표시한다. 기존 클라이언트 호환을 위해 `description`에도 항목을 줄바꿈으로 연결한 문자열을 함께 제공한다. 문자열 입력은 `descriptionType: "text"`가 된다.
 
 버전과 업데이트 내역은 비밀정보가 아니므로 현재 `/api/config/version`과 동일하게 로그인 전에도 공개할 수 있다. 업데이트 설명에 내부 보안 정보, 고객명, 취약점 악용 방법 또는 비밀 URL을 기록하지 않는다.
 

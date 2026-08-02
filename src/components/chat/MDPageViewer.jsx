@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useEditor, EditorContent } from '@tiptap/react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
@@ -34,6 +34,9 @@ import LinkBubbleMenu from './md-page/toolbar/LinkBubbleMenu'
 import TableBubbleMenu from './md-page/toolbar/TableBubbleMenu'
 import InternalLinkAutocomplete from './md-page/toolbar/InternalLinkAutocomplete'
 import EasyPageSlashLinkMenu from './md-page/toolbar/EasyPageSlashLinkMenu'
+import EasyPageNavigationPanel from './md-page/navigation/EasyPageNavigationPanel'
+import EasyPageDeleteDialog from './md-page/navigation/EasyPageDeleteDialog'
+import { appendEasyPageLinks, buildEasyPageTree, collectEasyPageSubtreeIds, removeEasyPageLink } from './md-page/navigation/easyPageTree'
 import { MermaidPreviewExtension, EchartsPreviewExtension } from './md-page/extensions/diagramPreviewExtensions'
 import { EasyDocClipboardExtension, getDomSelectedTextInsideElement, stopClipboardEvent, writeEasyDocClipboardData, pasteEasyDocClipboardData } from './md-page/extensions/clipboardExtension'
 import { TocNode } from './md-page/extensions/tocNode'
@@ -100,44 +103,12 @@ function getEventTargetElement(target) {
   return null
 }
 
-function getLinkHrefFromResolvedPos(resolvedPos) {
-  const marks = [
-    ...(resolvedPos.marks?.() || []),
-    ...(resolvedPos.nodeAfter?.marks || []),
-    ...(resolvedPos.nodeBefore?.marks || []),
-  ]
-  const linkMark = marks.find(mark => mark?.type?.name === 'link' && mark.attrs?.href)
-  return linkMark?.attrs?.href ? String(linkMark.attrs.href) : ''
-}
-
-function getEditorLinkHrefFromEvent(editor, event) {
+function getEditorLinkHrefFromEvent(event) {
   const target = getEventTargetElement(event?.target)
   const anchor = target?.closest?.('a[href]')
   if (anchor instanceof HTMLAnchorElement) {
     const href = String(anchor.getAttribute('href') || '').trim()
     if (href) return href
-  }
-
-  const view = editor?.view
-  if (!view?.posAtCoords || !event || typeof event.clientX !== 'number' || typeof event.clientY !== 'number') {
-    return ''
-  }
-
-  const found = view.posAtCoords({ left: event.clientX, top: event.clientY })
-  if (!found || !Number.isFinite(found.pos)) return ''
-
-  const { doc } = view.state
-  const docSize = doc.content.size
-  const positions = [found.pos, found.pos - 1, found.pos + 1]
-    .filter(pos => Number.isFinite(pos) && pos >= 0 && pos <= docSize)
-
-  for (const pos of positions) {
-    try {
-      const href = getLinkHrefFromResolvedPos(doc.resolve(pos))
-      if (href) return href
-    } catch {
-      // Try the adjacent editor positions; some clicks land on mark boundaries.
-    }
   }
   return ''
 }
@@ -148,7 +119,7 @@ function looksLikeInternalPostHref(href = '') {
 }
 
 export default function MDPageViewer({ post, channelId, onClose, onOpenPostLink }) {
-  const { updatePost, deletePost, addPost, addComment, deleteComment, posts, selectedChannel, togglePostPin, togglePostLike, toggleCommentLike } = useChat()
+  const { updatePost, deletePost, deletePosts, addPost, addComment, deleteComment, posts, selectedChannel, togglePostPin, togglePostLike, toggleCommentLike } = useChat()
   const { currentUser, maxAttachmentFileSize } = useAuth()
   const t = useT()
   const authToken = getToken() || ''
@@ -230,8 +201,13 @@ export default function MDPageViewer({ post, channelId, onClose, onOpenPostLink 
   useEffect(() => { savedImageMetaRef.current = savedImageMeta }, [savedImageMeta])
   useEffect(() => { modeRef.current = mode }, [mode])
 
-  const channelPosts = Array.isArray(posts[channelId]) ? posts[channelId] : []
-  const freshPost = channelPosts.find((p) => p.id === post.id) || post
+  const channelPosts = useMemo(() => (Array.isArray(posts[channelId]) ? posts[channelId] : []), [channelId, posts])
+  const freshPost = channelPosts.find((p) => String(p.id) === String(post.id)) || post
+  const easyPageTree = useMemo(() => buildEasyPageTree({
+    channelId,
+    currentPostId: post.id,
+    channelPosts,
+  }), [channelId, channelPosts, post.id])
   const comments = Array.isArray(freshPost.comments) ? freshPost.comments : []
   const isAuthor = String(freshPost.author?.id ?? '') === String(currentUser?.id ?? '')
   const canEdit = freshPost.can_edit != null ? Boolean(freshPost.can_edit) : isAuthor
@@ -243,7 +219,7 @@ export default function MDPageViewer({ post, channelId, onClose, onOpenPostLink 
     if (event?.button != null && event.button !== 0) return false
     const target = getEventTargetElement(event?.target)
     if (target?.closest?.('[data-easypage-slash-link-menu="true"]')) return false
-    const href = getEditorLinkHrefFromEvent(editorRef.current, event)
+    const href = getEditorLinkHrefFromEvent(event)
     if (!href) return false
 
     event.preventDefault()
@@ -758,6 +734,24 @@ export default function MDPageViewer({ post, channelId, onClose, onOpenPostLink 
     }
   }, [saveCurrentMdPage])
 
+  useEffect(() => {
+    function handleSaveShortcut(event) {
+      const isSaveShortcut = (event.metaKey || event.ctrlKey)
+        && !event.altKey
+        && String(event.key || '').toLowerCase() === 's'
+      if (!isSaveShortcut || !canEdit) return
+
+      // 브라우저의 "페이지 저장" 창 대신 EasyPage 저장을 실행한다.
+      event.preventDefault()
+      event.stopPropagation()
+      if (event.repeat || saving || !isChanged) return
+      void handleSave()
+    }
+
+    window.addEventListener('keydown', handleSaveShortcut, true)
+    return () => window.removeEventListener('keydown', handleSaveShortcut, true)
+  }, [canEdit, handleSave, isChanged, saving])
+
   const handleCreateChildPageFromSelection = useCallback(async () => {
     if (!editor || creatingChildPage) return
     const { from, to, empty } = editor.state.selection
@@ -835,6 +829,71 @@ export default function MDPageViewer({ post, channelId, onClose, onOpenPostLink 
       setDeleting(false)
     }
   }, [channelId, deletePost, onClose, post.id])
+
+  const directChildPages = useMemo(() => (
+    easyPageTree.directChildIds.map(id => easyPageTree.pageById.get(id)).filter(Boolean)
+  ), [easyPageTree])
+  const subtreeIds = useMemo(() => collectEasyPageSubtreeIds(easyPageTree, post.id), [easyPageTree, post.id])
+  const subtreeIdSet = useMemo(() => new Set(subtreeIds), [subtreeIds])
+  const subtreePages = useMemo(() => subtreeIds.map(id => easyPageTree.pageById.get(id)).filter(Boolean), [easyPageTree, subtreeIds])
+  const moveDestinations = useMemo(() => (
+    [...easyPageTree.pageById.values()]
+      .filter(page => !subtreeIdSet.has(page.postId))
+      .sort((a, b) => a.title.localeCompare(b.title, 'ko'))
+  ), [easyPageTree, subtreeIdSet])
+
+  const handleStructuredDelete = useCallback(async ({ strategy, destinationId }) => {
+    setDeleting(true)
+    try {
+      if (strategy === 'delete_subtree') {
+        await deletePosts(channelId, subtreeIds)
+        setShowDeleteDialog(false)
+        const parentId = easyPageTree.parentIdByChild.get(String(post.id))
+        if (parentId && typeof onOpenPostLink === 'function') onOpenPostLink(channelId, parentId)
+        else onClose()
+        return
+      }
+
+      if (strategy !== 'move_children') return
+      const destination = easyPageTree.pageById.get(String(destinationId))
+      if (!destination || subtreeIdSet.has(destination.postId)) throw new Error('이동할 부모 페이지가 올바르지 않습니다.')
+      const parentId = easyPageTree.parentIdByChild.get(String(post.id))
+      const originalContents = new Map()
+      const nextContents = new Map()
+
+      if (parentId) {
+        const parentPage = easyPageTree.pageById.get(parentId)
+        if (parentPage) {
+          originalContents.set(parentId, parentPage.post.content)
+          nextContents.set(parentId, removeEasyPageLink(parentPage.post.content, post.id))
+        }
+      }
+      if (!originalContents.has(destination.postId)) originalContents.set(destination.postId, destination.post.content)
+      const destinationBase = nextContents.get(destination.postId) ?? destination.post.content
+      nextContents.set(destination.postId, appendEasyPageLinks(destinationBase, directChildPages, channelId))
+
+      const updatedIds = []
+      try {
+        for (const [pageId, content] of nextContents) {
+          await updatePost(channelId, pageId, { content })
+          updatedIds.push(pageId)
+        }
+        await deletePost(channelId, post.id)
+      } catch (error) {
+        await Promise.allSettled(updatedIds.map(pageId => updatePost(channelId, pageId, { content: originalContents.get(pageId) })))
+        throw error
+      }
+
+      setShowDeleteDialog(false)
+      if (typeof onOpenPostLink === 'function') onOpenPostLink(channelId, destination.postId)
+      else onClose()
+    } catch (error) {
+      console.error('EasyPage 구조 삭제 실패:', error)
+      alert(`EasyPage 삭제에 실패했습니다: ${error?.message || error}`)
+    } finally {
+      setDeleting(false)
+    }
+  }, [channelId, deletePost, deletePosts, directChildPages, easyPageTree, onClose, onOpenPostLink, post.id, subtreeIdSet, subtreeIds, updatePost])
 
   // ESC 키 핸들러
   useEffect(() => {
@@ -1145,7 +1204,13 @@ export default function MDPageViewer({ post, channelId, onClose, onOpenPostLink 
         />
       )}
 
-      <div ref={splitAreaRef} className={`flex-1 min-h-0 flex ${showComments ? 'flex-row' : 'flex-col'}`}>
+      <div ref={splitAreaRef} className="flex-1 min-h-0 flex flex-row">
+        <EasyPageNavigationPanel
+          channelId={channelId}
+          currentPostId={post.id}
+          channelPosts={channelPosts}
+          onOpen={(targetChannelId, targetPostId) => onOpenPostLink?.(targetChannelId, targetPostId)}
+        />
         {/* ── Content area ── */}
         <div
           ref={printContentRef}
@@ -1415,7 +1480,7 @@ export default function MDPageViewer({ post, channelId, onClose, onOpenPostLink 
         />
       )}
 
-      {showDeleteDialog && (
+      {showDeleteDialog && directChildPages.length === 0 && (
         <ConfirmDialog
           title="삭제 확인"
           message={`${pageTitle} 페이지가 삭제 됩니다. 진행 하시겠습니까 ?`}
@@ -1427,6 +1492,19 @@ export default function MDPageViewer({ post, channelId, onClose, onOpenPostLink 
           onCancel={() => {
             if (deleting) return
             setShowDeleteDialog(false)
+          }}
+        />
+      )}
+      {showDeleteDialog && directChildPages.length > 0 && (
+        <EasyPageDeleteDialog
+          pageTitle={pageTitle}
+          directChildren={directChildPages}
+          subtreePages={subtreePages}
+          destinations={moveDestinations}
+          deleting={deleting}
+          onConfirm={handleStructuredDelete}
+          onCancel={() => {
+            if (!deleting) setShowDeleteDialog(false)
           }}
         />
       )}

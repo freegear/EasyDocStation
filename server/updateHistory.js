@@ -14,6 +14,19 @@ function compareVersionsDescending(a, b) {
   return 0
 }
 
+function normalizeDescription(version, value) {
+  const items = Array.isArray(value) ? value : [value]
+  if (items.length === 0 || items.some(item => typeof item !== 'string' || !item.trim())) {
+    throw new Error(`${version} 업데이트 내역은 비어 있지 않은 문자열 또는 문자열 배열이어야 합니다.`)
+  }
+  const descriptionItems = items.map(item => item.trim())
+  return {
+    description: descriptionItems.join('\n'),
+    descriptionItems,
+    descriptionType: Array.isArray(value) ? 'list' : 'text',
+  }
+}
+
 function normalizeUpdateHistory(raw) {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
     throw new Error('UpdateHistory.json의 루트는 JSON object여야 합니다.')
@@ -27,8 +40,11 @@ function normalizeUpdateHistory(raw) {
     .filter(([version]) => version !== VERSION_KEY)
     .map(([version, description]) => {
       if (!VERSION_PATTERN.test(version)) throw new Error(`잘못된 업데이트 버전입니다: ${version}`)
-      if (typeof description !== 'string') throw new Error(`${version} 업데이트 내역은 문자열이어야 합니다.`)
-      return { version, description, current: version === currentVersion }
+      return {
+        version,
+        ...normalizeDescription(version, description),
+        current: version === currentVersion,
+      }
     })
     .sort((a, b) => compareVersionsDescending(a.version, b.version))
 
@@ -48,4 +64,4 @@ function loadUpdateHistory(filePath = DEFAULT_PATH) {
   }
 }
 
-module.exports = { DEFAULT_PATH, VERSION_KEY, compareVersionsDescending, normalizeUpdateHistory, loadUpdateHistory }
+module.exports = { DEFAULT_PATH, VERSION_KEY, compareVersionsDescending, normalizeDescription, normalizeUpdateHistory, loadUpdateHistory }

@@ -20,7 +20,11 @@ const PRINT_STYLE = `
   .easy-print-header p { margin: 0; color: #6b7280; font-size: 7.2pt; }
   .easy-print-content { width: 100%; height: auto !important; max-height: none !important; overflow: visible !important; }
   .easy-print-content * { max-width: 100%; box-sizing: border-box; }
-  .easy-print-content p { margin: 0 0 0.65em; }
+  .easy-print-content p {
+    margin: 0 0 0.65em;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
   .easy-print-content h1 { margin: 1.2em 0 0.45em; font-size: 16pt; }
   .easy-print-content h2 { margin: 1.1em 0 0.4em; font-size: 12.8pt; }
   .easy-print-content h3 { margin: 1em 0 0.35em; font-size: 10.4pt; }
@@ -37,15 +41,54 @@ const PRINT_STYLE = `
     max-height: none !important;
     overflow: visible !important;
   }
-  img { max-width: 100% !important; height: auto !important; break-inside: avoid; }
+  img, svg {
+    width: auto !important;
+    height: auto !important;
+    max-width: 100% !important;
+    max-height: 267mm !important;
+    object-fit: contain;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
   table { width: 100%; border-collapse: collapse; break-inside: auto; }
   thead { display: table-header-group; }
   tfoot { display: table-footer-group; }
-  tr, blockquote { break-inside: avoid; page-break-inside: avoid; }
+  tr { break-inside: avoid; page-break-inside: avoid; }
   th, td { border: 1px solid #d1d5db; padding: 6px 8px; }
   p, li { orphans: 3; widows: 3; }
   h1, h2, h3, h4 { break-after: avoid; page-break-after: avoid; }
-  pre { white-space: pre-wrap; overflow-wrap: anywhere; break-inside: auto; }
+  pre, blockquote {
+    margin: 0.8em 0;
+    padding: 0.8em 1em;
+    border: 1px solid #cbd5e1;
+    border-radius: 5px;
+    background: #f3f4f6 !important;
+    color: #1f2937;
+    -webkit-box-decoration-break: clone;
+    box-decoration-break: clone;
+  }
+  pre {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    break-inside: auto;
+    page-break-inside: auto;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+    line-height: 1.55;
+  }
+  pre code {
+    padding: 0;
+    border: 0;
+    background: transparent !important;
+    color: inherit;
+  }
+  :not(pre) > code {
+    padding: 0.12em 0.35em;
+    border: 1px solid #d1d5db;
+    border-radius: 3px;
+    background: #f3f4f6 !important;
+    color: #374151;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  }
   a { color: inherit; text-decoration: underline; overflow-wrap: anywhere; }
   [data-print-exclude="true"], button, input, textarea, select, audio, video,
   [role="menu"], [role="dialog"] { display: none !important; }

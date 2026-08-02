@@ -264,3 +264,1952 @@
 [20260802-11:01:39][BE] [RAG] 학습 진행률: 100% (저장)
 [20260802-11:01:40][BE] [RAG] 댓글 학습 완료 — 1개 댓글 (6.1s)
 [20260802-11:04:55][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260802-11:14:58][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260802-11:24:57][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260802-11:34:56][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260802-11:44:54][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260802-11:54:54][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260802-12:05:01][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260802-12:14:55][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260802-12:24:56][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260802-12:34:56][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260802-12:37:27][BE] [link-preview-image] meta image failed, fallback screenshot: meta page fetch failed (401)
+[20260802-12:37:35][BE] [ATTACH-REF] sync ownerType=post ownerId=4921f2b0-b138-4cfe-bd68-ba88844e601b actorUserId=1 prev=0 next=1 add=1 remove=0
+[20260802-12:37:35][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
+[20260802-12:37:35][BE] /home/freegear/EasyDocStation/server/rag_train.py:125: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260802-12:37:35][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260802-12:37:38][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v3' already exists
+[20260802-12:37:38][BE] [RAG] post=4921f2b0-b138-4cfe-bd68-ba88844e601b text → 1청크
+[20260802-12:37:38][BE] [RAG] 학습 진행률: 30% (게시글 본문)
+[20260802-12:37:38][BE] [RAG] Word MarkItDown 학습 시작: Gemma4_심화건강검진_통합분석리포트_2025-2026 (1).docx
+[20260802-12:37:39][BE] [RAG] Word 학습 완료: Gemma4_심화건강검진_통합분석리포트_2025-2026 (1).docx (markitdown, 18청크)
+[20260802-12:37:39][BE] [RAG] 학습 진행률: 60% (게시글 Word)
+[20260802-12:37:39][BE] [RAG] 저장 완료 — 19청크 / 1개 게시글 / 0개 댓글 / 0개 폴더문서
+[20260802-12:37:39][BE] [RAG] 학습 진행률: 100% (저장)
+[20260802-12:37:40][BE] [RAG] 학습 완료
+[20260802-12:44:56][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260802-12:46:07][BE] [link-preview-image] meta image failed, fallback screenshot: fetch failed
+[20260802-12:46:07][BE] [link-preview-image] local render failed, try remote fallback: page.goto: net::ERR_SSL_PROTOCOL_ERROR at http://114.207.245.216/
+[20260802-12:46:07][BE] Call log:
+[20260802-12:46:07][BE] [2m  - navigating to "http://114.207.245.216/", waiting until "domcontentloaded"[22m
+[20260802-12:46:07][BE] 
+[20260802-12:46:46][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260802-12:46:46][BE] [link-preview-image] meta image failed, fallback screenshot: meta page fetch failed (404)
+[20260802-12:46:46][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260802-12:46:47][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260802-12:49:41][BE] [ATTACH-REF] sync ownerType=post ownerId=6f044afd-55a1-4659-8cfb-14fdaf9be08e actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260802-12:49:41][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
+[20260802-12:49:41][BE] /home/freegear/EasyDocStation/server/rag_train.py:125: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260802-12:49:41][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260802-12:49:44][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v3' already exists
+[20260802-12:49:44][BE] [RAG] post=6f044afd-55a1-4659-8cfb-14fdaf9be08e text → 1청크
+[20260802-12:49:44][BE] [RAG] 학습 진행률: 50% (게시글 본문)
+[20260802-12:49:44][BE] [RAG] 저장 완료 — 1청크 / 1개 게시글 / 0개 댓글 / 0개 폴더문서
+[20260802-12:49:44][BE] [RAG] 학습 진행률: 100% (저장)
+[20260802-12:49:45][BE] [RAG] 학습 완료
+[20260802-12:52:10][BE] [ATTACH-REF] sync ownerType=post ownerId=855cafa4-5c7c-4728-a1de-cca58bcb364d actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260802-12:52:10][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
+[20260802-12:52:10][BE] /home/freegear/EasyDocStation/server/rag_train.py:125: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260802-12:52:10][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260802-12:52:13][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v3' already exists
+[20260802-12:52:13][BE] [RAG] post=855cafa4-5c7c-4728-a1de-cca58bcb364d text → 3청크
+[20260802-12:52:13][BE] [RAG] 학습 진행률: 50% (게시글 본문)
+[20260802-12:52:13][BE] [RAG] 저장 완료 — 3청크 / 1개 게시글 / 0개 댓글 / 0개 폴더문서
+[20260802-12:52:13][BE] [RAG] 학습 진행률: 100% (저장)
+[20260802-12:52:14][BE] [RAG] 학습 완료
+[20260802-12:53:27][BE] [ATTACH-REF] sync ownerType=comment ownerId=c-f68fa2a4-5d97-43c7-97e1-ca11ae94cd9b actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260802-12:53:27][BE] [RAG] 댓글 학습 시작 — 1개 댓글 (제외: 0개)
+[20260802-12:53:27][BE] /home/freegear/EasyDocStation/server/rag_train.py:125: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260802-12:53:27][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260802-12:53:30][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v3' already exists
+[20260802-12:53:31][BE] [RAG] comment=c-f68fa2a4-5d97-43c7-97e1-ca11ae94cd9b post=855cafa4-5c7c-4728-a1de-cca58bcb364d text → 9청크
+[20260802-12:53:31][BE] [RAG] 학습 진행률: 50% (댓글 본문)
+[20260802-12:53:31][BE] [RAG] 저장 완료 — 9청크 / 0개 게시글 / 1개 댓글 / 0개 폴더문서
+[20260802-12:53:31][BE] [RAG] 학습 진행률: 100% (저장)
+[20260802-12:53:31][BE] [RAG] 댓글 학습 완료 — 1개 댓글 (4.0s)
+[20260802-12:54:56][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260802-12:55:48][BE] [ATTACH-REF] sync ownerType=comment ownerId=c-8b1614a0-5be6-4d6f-a43e-a43a82110191 actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260802-12:55:48][BE] [RAG] 댓글 학습 시작 — 1개 댓글 (제외: 0개)
+[20260802-12:55:48][BE] /home/freegear/EasyDocStation/server/rag_train.py:125: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260802-12:55:48][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260802-12:55:51][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v3' already exists
+[20260802-12:55:52][BE] [RAG] comment=c-8b1614a0-5be6-4d6f-a43e-a43a82110191 post=855cafa4-5c7c-4728-a1de-cca58bcb364d text → 9청크
+[20260802-12:55:52][BE] [RAG] 학습 진행률: 50% (댓글 본문)
+[20260802-12:55:52][BE] [RAG] 저장 완료 — 9청크 / 0개 게시글 / 1개 댓글 / 0개 폴더문서
+[20260802-12:55:52][BE] [RAG] 학습 진행률: 100% (저장)
+[20260802-12:55:52][BE] [RAG] 댓글 학습 완료 — 1개 댓글 (4.1s)
+[20260802-12:59:54][BE] [ATTACH-REF] sync ownerType=comment ownerId=c-62951436-68b6-4be0-b7b1-ca926ffb8e9f actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260802-12:59:54][BE] [RAG] 댓글 학습 시작 — 1개 댓글 (제외: 0개)
+[20260802-12:59:54][BE] /home/freegear/EasyDocStation/server/rag_train.py:125: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260802-12:59:54][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260802-12:59:57][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v3' already exists
+[20260802-12:59:57][BE] [RAG] comment=c-62951436-68b6-4be0-b7b1-ca926ffb8e9f post=855cafa4-5c7c-4728-a1de-cca58bcb364d text → 8청크
+[20260802-12:59:57][BE] [RAG] 학습 진행률: 50% (댓글 본문)
+[20260802-12:59:57][BE] [RAG] 저장 완료 — 8청크 / 0개 게시글 / 1개 댓글 / 0개 폴더문서
+[20260802-12:59:57][BE] [RAG] 학습 진행률: 100% (저장)
+[20260802-12:59:58][BE] [RAG] 댓글 학습 완료 — 1개 댓글 (4.0s)
+Terminated
+[20260802-13:03:07][BE] process exited with code 143. restarting in 2s...
+Terminated
+[20260802-13:03:07][BE] 
+[20260802-13:03:07][BE] > easydocstation-server@1.0.0 start
+[20260802-13:03:07][BE] > node index.js
+[20260802-13:03:07][BE] 
+[20260802-13:03:08][BE] [RAG] 초기화 — 학습 방식: immediate
+[20260802-13:03:08][BE] [RAG] 초기화 — PDF 파싱 모드: FAST
+[20260802-13:03:08][BE] [Mail sync] 자동 동기화 스케줄러 시작: interval=600s, startupDelay=300s
+[20260802-13:03:08][BE] ✅ EasyDocStation server running on http://localhost:3001
+[20260802-13:03:08][BE] ✅ [CONFIG] HF_TOKEN 확인됨 (hf_u****butv, 길이 37)
+[20260802-13:03:08][BE] ✅ Cassandra connected
+[20260802-13:03:08][BE] ✅ Cassandra schema initialized
+[20260802-13:03:08][BE] ✅ Database migration complete.
+
+> easydocstation@1.0.0 build
+> vite build
+
+vite v5.4.21 building for production...
+transforming...
+node_modules/@lexical/react/dist/LexicalErrorBoundary.prod.mjs (9:386): A comment
+
+"/*#__PURE__*/"
+
+in "node_modules/@lexical/react/dist/LexicalErrorBoundary.prod.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+node_modules/@lexical/react/dist/LexicalContentEditable.prod.mjs (9:1694): A comment
+
+"/*#__PURE__*/"
+
+in "node_modules/@lexical/react/dist/LexicalContentEditable.prod.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+✓ 5441 modules transformed.
+rendering chunks...
+[plugin:vite:reporter] [plugin vite:reporter] 
+(!) /home/freegear/EasyDocStation/node_modules/mermaid/dist/mermaid.core.mjs is dynamically imported by /home/freegear/EasyDocStation/src/components/markdown/MermaidBlock.jsx but also statically imported by /home/freegear/EasyDocStation/src/components/chat/md-page/extensions/diagramPreviewExtensions.js, dynamic import will not move module into another chunk.
+
+computing gzip size...
+dist/index.html                                            0.84 kB │ gzip:      0.40 kB
+dist/assets/KaTeX_Size3-Regular-CTq5MqoE.woff              4.42 kB
+dist/assets/KaTeX_Size4-Regular-Dl5lxZxV.woff2             4.93 kB
+dist/assets/KaTeX_Size2-Regular-Dy4dx90m.woff2             5.21 kB
+dist/assets/KaTeX_Size1-Regular-mCD8mA8B.woff2             5.47 kB
+dist/assets/KaTeX_Size4-Regular-BF-4gkZK.woff              5.98 kB
+dist/assets/KaTeX_Size2-Regular-oD1tc_U0.woff              6.19 kB
+dist/assets/KaTeX_Size1-Regular-C195tn64.woff              6.50 kB
+dist/assets/KaTeX_Caligraphic-Regular-Di6jR-x-.woff2       6.91 kB
+dist/assets/KaTeX_Caligraphic-Bold-Dq_IR9rO.woff2          6.91 kB
+dist/assets/KaTeX_Size3-Regular-DgpXs0kz.ttf               7.59 kB
+dist/assets/KaTeX_Caligraphic-Regular-CTRA-rTL.woff        7.66 kB
+dist/assets/KaTeX_Caligraphic-Bold-BEiXGLvX.woff           7.72 kB
+dist/assets/KaTeX_Script-Regular-D3wIWfF6.woff2            9.64 kB
+dist/assets/KaTeX_SansSerif-Regular-DDBCnlJ7.woff2        10.34 kB
+dist/assets/KaTeX_Size4-Regular-DWFBv043.ttf              10.36 kB
+dist/assets/KaTeX_Script-Regular-D5yQViql.woff            10.59 kB
+dist/assets/KaTeX_Fraktur-Regular-CTYiF6lA.woff2          11.32 kB
+dist/assets/KaTeX_Fraktur-Bold-CL6g_b3V.woff2             11.35 kB
+dist/assets/KaTeX_Size2-Regular-B7gKUWhC.ttf              11.51 kB
+dist/assets/KaTeX_SansSerif-Italic-C3H0VqGB.woff2         12.03 kB
+dist/assets/KaTeX_SansSerif-Bold-D1sUS0GD.woff2           12.22 kB
+dist/assets/KaTeX_Size1-Regular-Dbsnue_I.ttf              12.23 kB
+dist/assets/KaTeX_SansSerif-Regular-CS6fqUqJ.woff         12.32 kB
+dist/assets/KaTeX_Caligraphic-Regular-wX97UBjC.ttf        12.34 kB
+dist/assets/KaTeX_Caligraphic-Bold-ATXxdsX0.ttf           12.37 kB
+dist/assets/KaTeX_Fraktur-Regular-Dxdc4cR9.woff           13.21 kB
+dist/assets/KaTeX_Fraktur-Bold-BsDP51OF.woff              13.30 kB
+dist/assets/KaTeX_Typewriter-Regular-CO6r4hn1.woff2       13.57 kB
+dist/assets/KaTeX_SansSerif-Italic-DN2j7dab.woff          14.11 kB
+dist/assets/KaTeX_SansSerif-Bold-DbIhKOiC.woff            14.41 kB
+dist/assets/KaTeX_Typewriter-Regular-C0xS9mPB.woff        16.03 kB
+dist/assets/KaTeX_Math-BoldItalic-CZnvNsCZ.woff2          16.40 kB
+dist/assets/KaTeX_Math-Italic-t53AETM-.woff2              16.44 kB
+dist/assets/KaTeX_Script-Regular-C5JkGWo-.ttf             16.65 kB
+dist/assets/KaTeX_Main-BoldItalic-DxDJ3AOS.woff2          16.78 kB
+dist/assets/KaTeX_Main-Italic-NWA7e6Wa.woff2              16.99 kB
+dist/assets/KaTeX_Math-BoldItalic-iY-2wyZ7.woff           18.67 kB
+dist/assets/KaTeX_Math-Italic-DA0__PXp.woff               18.75 kB
+dist/assets/KaTeX_Main-BoldItalic-SpSLRI95.woff           19.41 kB
+dist/assets/KaTeX_SansSerif-Regular-BNo7hRIc.ttf          19.44 kB
+dist/assets/KaTeX_Fraktur-Regular-CB_wures.ttf            19.57 kB
+dist/assets/KaTeX_Fraktur-Bold-BdnERNNW.ttf               19.58 kB
+dist/assets/KaTeX_Main-Italic-BMLOBm91.woff               19.68 kB
+dist/assets/KaTeX_SansSerif-Italic-YYjJ1zSn.ttf           22.36 kB
+dist/assets/KaTeX_SansSerif-Bold-CFMepnvq.ttf             24.50 kB
+dist/assets/KaTeX_Main-Bold-Cx986IdX.woff2                25.32 kB
+dist/assets/KaTeX_Main-Regular-B22Nviop.woff2             26.27 kB
+dist/assets/KaTeX_Typewriter-Regular-D3Ib7_Hf.ttf         27.56 kB
+dist/assets/KaTeX_AMS-Regular-BQhdFMY1.woff2              28.08 kB
+dist/assets/KaTeX_Main-Bold-Jm3AIy58.woff                 29.91 kB
+dist/assets/KaTeX_Main-Regular-Dr94JaBh.woff              30.77 kB
+dist/assets/KaTeX_Math-BoldItalic-B3XSjfu4.ttf            31.20 kB
+dist/assets/KaTeX_Math-Italic-flOr_0UB.ttf                31.31 kB
+dist/assets/KaTeX_Main-BoldItalic-DzxPMmG6.ttf            32.97 kB
+dist/assets/KaTeX_AMS-Regular-DMm9YOAa.woff               33.52 kB
+dist/assets/KaTeX_Main-Italic-3WenGoN9.ttf                33.58 kB
+dist/assets/KaTeX_Main-Bold-waoOVXN0.ttf                  51.34 kB
+dist/assets/KaTeX_Main-Regular-ypZvNtVU.ttf               53.58 kB
+dist/assets/KaTeX_AMS-Regular-DRggAlZN.ttf                63.63 kB
+dist/assets/pdf.worker.min-iDqQPrd3.mjs                1,232.30 kB
+dist/assets/EasySheetViewer-Duz_WvKn.css                  84.51 kB │ gzip:     12.96 kB
+dist/assets/index-Dc2uJrac.css                           123.62 kB │ gzip:     24.12 kB
+dist/assets/clone-DM22BGYP.js                              0.09 kB │ gzip:      0.11 kB
+dist/assets/channel-BG5ESzuX.js                            0.11 kB │ gzip:      0.12 kB
+dist/assets/init-Gi6I4Gst.js                               0.15 kB │ gzip:      0.13 kB
+dist/assets/chunk-QZHKN3VN-CI9fhzqk.js                     0.19 kB │ gzip:      0.16 kB
+dist/assets/chunk-55IACEB6-DqlO3B8Z.js                     0.22 kB │ gzip:      0.20 kB
+dist/assets/chunk-4BX2VUAB-D_y0Zv06.js                     0.29 kB │ gzip:      0.20 kB
+dist/assets/stateDiagram-v2-QKLJ7IA2-Bg2VpJbk.js           0.36 kB │ gzip:      0.27 kB
+dist/assets/chunk-FMBD7UC4-B7P7GKMz.js                     0.36 kB │ gzip:      0.27 kB
+dist/assets/pa-C54UG8eN-EW_8hrTF.js                        0.41 kB │ gzip:      0.23 kB
+dist/assets/classDiagram-6PBFFD2Q-0CxzEyTC.js              0.43 kB │ gzip:      0.30 kB
+dist/assets/classDiagram-v2-HSJHXN6E-0CxzEyTC.js           0.43 kB │ gzip:      0.30 kB
+dist/assets/or-50rxpoq4-B_XNinj_.js                        0.44 kB │ gzip:      0.24 kB
+dist/assets/gu-Bjl0l-cf-Bb_OSiMJ.js                        0.45 kB │ gzip:      0.24 kB
+dist/assets/hi-DsAaTPCC-lc1bUHMk.js                        0.47 kB │ gzip:      0.25 kB
+dist/assets/mr-CjWJPVmH-BKMRnoAc.js                        0.47 kB │ gzip:      0.25 kB
+dist/assets/as-BPtSu6VN-CYxxmKqh.js                        0.48 kB │ gzip:      0.26 kB
+dist/assets/bn-NCLZcWHi-CsgykzQM.js                        0.48 kB │ gzip:      0.26 kB
+dist/assets/te-B5Spl2Jk-DYnT8Dmf.js                        0.48 kB │ gzip:      0.25 kB
+dist/assets/kn-C6Lov-DP-D7dHjlY1.js                        0.49 kB │ gzip:      0.26 kB
+dist/assets/chunk-EDXVE4YY-D4mDyIS1.js                     0.53 kB │ gzip:      0.37 kB
+dist/assets/ta-BcghgTbD-D3SGVeDl.js                        0.57 kB │ gzip:      0.25 kB
+dist/assets/min-DbqA1vLl.js                                0.62 kB │ gzip:      0.38 kB
+dist/assets/infoDiagram-42DDH7IO-BPVml0mj.js               0.63 kB │ gzip:      0.43 kB
+dist/assets/ml-2xLVYkVY-CBhOFsDv.js                        0.63 kB │ gzip:      0.30 kB
+dist/assets/pi-B9cgjyG1-v-IB86gp.js                        0.83 kB │ gzip:      0.35 kB
+dist/assets/_baseSet-DnTC-N8f.js                           0.88 kB │ gzip:      0.55 kB
+dist/assets/ordinal-Cboi1Yqb.js                            1.19 kB │ gzip:      0.57 kB
+dist/assets/zh-latn-pinyin-BdYb-Ey_-BpSBSv6m.js            1.28 kB │ gzip:      0.22 kB
+dist/assets/get-DhutjULL.js                                1.43 kB │ gzip:      0.78 kB
+dist/assets/eu-Ctv_kq9Z-DMhU9kwg.js                        1.51 kB │ gzip:      0.22 kB
+dist/assets/chunk-YZCP3GAM-DAoNjqjX.js                     1.85 kB │ gzip:      0.82 kB
+dist/assets/pt-Cum2_NUC-D8aZaPM_.js                        2.13 kB │ gzip:      0.31 kB
+dist/assets/id-DifDyWg9-1QUBE4o0.js                        2.52 kB │ gzip:      0.64 kB
+dist/assets/oc-P_i3-xLA-Cg0Gj-PC.js                        2.55 kB │ gzip:      0.68 kB
+dist/assets/kmr-Cfwhwuff-DNWs8Gbk.js                       2.70 kB │ gzip:      0.80 kB
+dist/assets/mul-ethi-D_CMSMEq-2TGBnG-Z.js                  2.78 kB │ gzip:      0.92 kB
+dist/assets/diagram-5BDNPKRD-zW4V0H_g.js                   2.81 kB │ gzip:      1.39 kB
+dist/assets/fi-RW5VB8Yp-C_52fTOR.js                        3.14 kB │ gzip:      0.78 kB
+dist/assets/la-DuvHjUWw-BcBNkSEh.js                        3.19 kB │ gzip:      0.63 kB
+dist/assets/pms-BRGfm5gS-DtZRgBhp.js                       3.38 kB │ gzip:      0.91 kB
+dist/assets/arc-BAojq6_K.js                                3.43 kB │ gzip:      1.48 kB
+dist/assets/it-Bt_Meacx-BwawXXgW.js                        3.63 kB │ gzip:      0.88 kB
+dist/assets/rm-C0MIK9N4-DeBfDBrx.js                        3.67 kB │ gzip:      0.95 kB
+dist/assets/tr-CIHIuzqc-ZkOY1dVp.js                        3.83 kB │ gzip:      0.34 kB
+dist/assets/fur-AC12wySk-Ulg0Fy5V.js                       3.90 kB │ gzip:      1.02 kB
+dist/assets/mn-cyrl-x-lmc-3aetruI8-mEBV16An.js             4.20 kB │ gzip:      1.21 kB
+dist/assets/el-monoton-D3aKqTz2-DpMW17GV.js                4.27 kB │ gzip:      0.89 kB
+dist/assets/diagram-TYMM5635-D7ZK8YiM.js                   4.29 kB │ gzip:      1.89 kB
+dist/assets/defaultLocale-DX6XiGOO.js                      4.69 kB │ gzip:      2.18 kB
+dist/assets/pieDiagram-DEJITSTG-BZf7OegM.js                5.37 kB │ gzip:      2.39 kB
+dist/assets/linear-Bqs3Clia.js                             5.65 kB │ gzip:      2.31 kB
+dist/assets/cop-C3sk0IUo-Cj8cOj0I.js                       5.84 kB │ gzip:      0.71 kB
+dist/assets/diagram-MMDJMWI5-BXUJch-C.js                   6.02 kB │ gzip:      2.54 kB
+dist/assets/ia-Cr4TJH0c-BcFKNbxH.js                        6.49 kB │ gzip:      1.83 kB
+dist/assets/ro-0fmdH0HA-1lLksn9e.js                        7.15 kB │ gzip:      2.14 kB
+dist/assets/_baseUniq-BratvQHm.js                          7.17 kB │ gzip:      3.00 kB
+dist/assets/ca-SUf6Y2Om-Dp4lcbPL.js                        7.42 kB │ gzip:      1.13 kB
+dist/assets/sa-CKY9c_Vq-DzgpFnfw.js                        8.28 kB │ gzip:      1.66 kB
+dist/assets/la-x-classic-yTyAOQEt-DuDJBVty.js              8.93 kB │ gzip:      2.31 kB
+dist/assets/graph-aIFFpJzQ.js                              9.40 kB │ gzip:      3.21 kB
+dist/assets/hy-e995ysyO-Cf-NYmW5.js                       10.30 kB │ gzip:      0.31 kB
+dist/assets/stateDiagram-FHFEXIEX-sm6qfGxY.js             10.44 kB │ gzip:      3.65 kB
+dist/assets/mn-cyrl-lHM4n0oC-QhYuXAWB.js                  10.62 kB │ gzip:      2.15 kB
+dist/assets/hr-DT1SBBes-CkK3TemH.js                       11.18 kB │ gzip:      0.95 kB
+dist/assets/dagre-KV5264BT-D0VxkCkt.js                    11.28 kB │ gzip:      4.21 kB
+dist/assets/sl-DpiklF-D-_46w5B9b.js                       12.49 kB │ gzip:      3.40 kB
+dist/assets/da-CCDXfXtG-C3O8h2wc.js                       12.65 kB │ gzip:      3.45 kB
+dist/assets/hsb-DC_ITc1e-C4pa9vvS.js                      13.89 kB │ gzip:      1.94 kB
+dist/assets/lt-BBe8DlDF-CObMPDIF.js                       14.49 kB │ gzip:      3.60 kB
+dist/assets/el-polyton-ogVWcTzh-BOWLBXgh.js               15.26 kB │ gzip:      2.87 kB
+dist/assets/diagram-G4DWMVQ6-DHUCboKg.js                  15.97 kB │ gzip:      5.72 kB
+dist/assets/tk-BMbKB10q-cqtw6prh.js                       16.30 kB │ gzip:      0.99 kB
+dist/assets/ishikawaDiagram-UXIWVN3A-C16CYaMi.js          17.53 kB │ gzip:      6.65 kB
+dist/assets/ka-jyoLzyDE-CZftRBZr.js                       20.46 kB │ gzip:      4.51 kB
+dist/assets/kanban-definition-6JOO6SKY-yJK_wR3V.js        20.66 kB │ gzip:      7.27 kB
+dist/assets/sankeyDiagram-XADWPNL6-Dz31h08P.js            22.20 kB │ gzip:      8.13 kB
+dist/assets/la-x-liturgic-CXeQb4FY-DNU_Uk5t.js            22.54 kB │ gzip:      5.72 kB
+dist/assets/ContactBookPage-B4M1SMJk.js                   22.92 kB │ gzip:      7.36 kB
+dist/assets/journeyDiagram-VCZTEJTY-CQY26bGv.js           23.55 kB │ gzip:      8.34 kB
+dist/assets/mindmap-definition-QFDTVHPH-CYmq_1pX.js       23.60 kB │ gzip:      7.98 kB
+dist/assets/fr-BC2onEz9-BGmqATrI.js                       23.93 kB │ gzip:      4.29 kB
+dist/assets/wardleyDiagram-NUSXRM2D-BuGfoS0u.js           24.86 kB │ gzip:      6.73 kB
+dist/assets/be-CrQ0smca-B2EeXxUh.js                       25.32 kB │ gzip:      2.23 kB
+dist/assets/erDiagram-SMLLAGMA-yx9xRYz7.js                26.93 kB │ gzip:      9.35 kB
+dist/assets/sr-cyrl-Dpzrbd0W-DKfS_grW.js                  27.37 kB │ gzip:      5.56 kB
+dist/assets/sh-cyrl-BpCRFOmq-Cv4-R-p6.js                  28.20 kB │ gzip:      5.45 kB
+dist/assets/layout-QEU_ncQK.js                            28.56 kB │ gzip:     10.20 kB
+dist/assets/sh-latn-sRy4Tuaj-DcyoDtEt.js                  29.28 kB │ gzip:      5.29 kB
+dist/assets/gitGraphDiagram-UUTBAWPF-BHxvNLEL.js          29.98 kB │ gzip:      8.91 kB
+dist/assets/sk-_iOeDNrQ-BXQc18Za.js                       31.09 kB │ gzip:      6.79 kB
+dist/assets/requirementDiagram-MS252O5E-wOiRNuDD.js       31.17 kB │ gzip:      9.79 kB
+dist/assets/timeline-definition-GMOUNBTQ-IReweGFu.js      31.32 kB │ gzip:     10.41 kB
+dist/assets/gl-DZGc-K_G-DLl5jmsP.js                       32.95 kB │ gzip:      4.26 kB
+dist/assets/quadrantDiagram-34T5L4WZ-CD5Q6f-e.js          34.28 kB │ gzip:     10.08 kB
+dist/assets/chunk-OYMX7WX6-BITNZZMv.js                    37.41 kB │ gzip:     12.16 kB
+dist/assets/cs-CmAteokq-TjIVgNl6.js                       38.89 kB │ gzip:      9.95 kB
+dist/assets/xychartDiagram-5P7HB3ND-C7Nf3RYa.js           40.35 kB │ gzip:     11.54 kB
+dist/assets/vennDiagram-DHZGUBPP-CCSiUXKM.js              41.80 kB │ gzip:     15.55 kB
+dist/assets/es-DcaaHPU_-sYKznHcq.js                       43.41 kB │ gzip:      6.27 kB
+dist/assets/pl-9fg-ESVt-DpPW5ISU.js                       45.33 kB │ gzip:      7.70 kB
+dist/assets/et-B_spaleu-BaO20FM2.js                       46.94 kB │ gzip:     11.42 kB
+dist/assets/chunk-4TB4RGXK-BIIezJuh.js                    47.32 kB │ gzip:     15.15 kB
+dist/assets/is-BT8UVRze-BXloJ18M.js                       47.51 kB │ gzip:     12.72 kB
+dist/assets/bg-CrQqGwni-Pt9yPLke.js                       50.17 kB │ gzip:      4.83 kB
+dist/assets/th-DWX5iPSo-BI_G36o8.js                       54.41 kB │ gzip:     13.26 kB
+dist/assets/CalendarView-DcE0Zl6z.js                      56.29 kB │ gzip:     15.34 kB
+dist/assets/sv-CFm5y56M-I8ncZ9Nb.js                       56.39 kB │ gzip:     14.42 kB
+dist/assets/uk-Dir3oxLs-BVEQM3Jf.js                       58.19 kB │ gzip:      8.64 kB
+dist/assets/flowDiagram-DWJPFMVM-DUnpRBHx.js              61.14 kB │ gzip:     19.49 kB
+dist/assets/grc-DOlGgO8T-C7K_Bcib.js                      63.10 kB │ gzip:      8.92 kB
+dist/assets/ganttDiagram-T4ZO3ILL-Qyyl9O2z.js             69.14 kB │ gzip:     23.27 kB
+dist/assets/c4Diagram-AHTNJAMY-4ogg3qPl.js                69.92 kB │ gzip:     19.62 kB
+dist/assets/blockDiagram-DXYQGD6D-DKM4Dad7.js             72.28 kB │ gzip:     20.60 kB
+dist/assets/ru-v4l-ayaq-BZkHNr9F.js                       75.71 kB │ gzip:     16.94 kB
+dist/assets/cy-BBPa6z2x-BONU7bVJ.js                       80.17 kB │ gzip:     19.05 kB
+dist/assets/ga-Cn6LkudM-WsF4_z3Y.js                       80.62 kB │ gzip:     20.04 kB
+dist/assets/cose-bilkent-S5V4N54A-B79toFVT.js             81.51 kB │ gzip:     22.42 kB
+dist/assets/en-gb-B7Al27b_-BFFr9zKP.js                   105.38 kB │ gzip:     26.11 kB
+dist/assets/lv-Q2BBHnzp-DRPSUjhQ.js                      108.90 kB │ gzip:     16.09 kB
+dist/assets/sequenceDiagram-FGHM5R23-DJEvCGma.js         117.02 kB │ gzip:     31.07 kB
+dist/assets/nl-BHQJ6Gvn-BMWl-SdQ.js                      138.42 kB │ gzip:     36.10 kB
+dist/assets/cu-CBUlrW6Y-BrxB2kb-.js                      149.27 kB │ gzip:     26.17 kB
+dist/assets/architectureDiagram-Q4EWVU46-CKsOVSmG.js     149.44 kB │ gzip:     42.24 kB
+dist/assets/index.es-mOViafa2.js                         150.69 kB │ gzip:     51.55 kB
+dist/assets/SiteAdminPage-BO6Y_DAL.js                    167.75 kB │ gzip:     34.84 kB
+dist/assets/af-DK_CjRn6-C81U6qP1.js                      179.76 kB │ gzip:     38.97 kB
+dist/assets/katex-C5jXJg4s.js                            258.49 kB │ gzip:     77.57 kB
+dist/assets/de-ch-1901-hVThVHVb-CC5Yf8hX.js              263.25 kB │ gzip:     70.50 kB
+dist/assets/de-1996-BL6awyxG-BSuIomZy.js                 265.88 kB │ gzip:     71.07 kB
+dist/assets/de-1901-CWoAOigE-yOXirf_M.js                 268.94 kB │ gzip:     71.86 kB
+dist/assets/no-B8ItS0F3-BlrHaK3Z.js                      340.51 kB │ gzip:     87.84 kB
+dist/assets/nb-DI8u59ch-S2a9vUN_.js                      340.53 kB │ gzip:     87.85 kB
+dist/assets/nn-ntZvarUK-cMBifkqM.js                      340.53 kB │ gzip:     87.85 kB
+dist/assets/cytoscape.esm-BQk4lpUV.js                    442.57 kB │ gzip:    141.98 kB
+dist/assets/MailPage-C-TcgWMb.js                         454.51 kB │ gzip:    140.32 kB
+dist/assets/pdf-DeWlx49F.js                              458.39 kB │ gzip:    135.97 kB
+dist/assets/wardley-RL74JXVD-DAL5PEQz.js                 492.93 kB │ gzip:    110.28 kB
+dist/assets/hu-DVk7Y_ka-CCTZJfqn.js                      748.41 kB │ gzip:    172.84 kB
+dist/assets/EasySheetViewer-BOFyfZl0.js                6,398.69 kB │ gzip:  1,812.09 kB
+dist/assets/index-03T6kBHd.js                         28,596.37 kB │ gzip: 19,258.83 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 19.56s
+
+> easydocstation@1.0.0 ollama:serve
+> node scripts/ollama-serve-safe.mjs
+
+[Ollama] already running on 127.0.0.1:11434, skipping duplicate serve.
+[20260802-13:03:30][BE] 
+[20260802-13:03:30][BE] > easydocstation-server@1.0.0 start
+[20260802-13:03:30][BE] > node index.js
+[20260802-13:03:30][BE] 
+[20260802-13:03:30][BE] [RAG] 초기화 — 학습 방식: immediate
+[20260802-13:03:30][BE] [RAG] 초기화 — PDF 파싱 모드: FAST
+[20260802-13:03:30][BE] [Mail sync] 자동 동기화 스케줄러 시작: interval=600s, startupDelay=300s
+[20260802-13:03:30][BE] [Frontend] 프로덕션 빌드 서비스: /home/freegear/EasyDocStation/dist
+[20260802-13:03:30][BE] ✅ EasyDocStation server running on http://localhost:3001
+[20260802-13:03:30][BE] ✅ [CONFIG] HF_TOKEN 확인됨 (hf_u****butv, 길이 37)
+[20260802-13:03:30][BE] ✅ EasyDocStation production frontend running on http://localhost:5173
+[20260802-13:03:30][BE] ✅ Cassandra connected
+[20260802-13:03:30][BE] ✅ Cassandra schema initialized
+[20260802-13:03:30][BE] ✅ Database migration complete.
+[20260802-13:03:33][BE] [RAG Server] [RAG Server] 임베딩 모델 로드 중 (device=cuda)...
+[20260802-13:03:47][BE] [RAG Server] [RAG Server] 임베딩 모델 로드 완료
+[20260802-13:03:47][BE] [RAG Server] [RAG Server] 포트 5001 에서 시작됨
+[20260802-13:06:42][BE] [ATTACH-REF] sync ownerType=post ownerId=292ee170-faa9-4fdf-ac55-507021ebb027 actorUserId=1 prev=0 next=2 add=2 remove=0
+[20260802-13:06:42][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
+[20260802-13:06:42][BE] /home/freegear/EasyDocStation/server/rag_train.py:125: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260802-13:06:42][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260802-13:06:45][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v3' already exists
+[20260802-13:06:46][BE] [RAG] post=292ee170-faa9-4fdf-ac55-507021ebb027 text → 1청크
+[20260802-13:06:46][BE] [RAG] 학습 진행률: 20% (게시글 본문)
+[20260802-13:06:46][BE] [RAG] 이미지 학습 시작: exec-b98df814-8bf4-473a-92b4-7a90cbd99b57.png
+[20260802-13:07:38][BE] [RAG] Gemma 이미지 설명 완료 (page=1, 52.3s): 2667자
+[20260802-13:07:38][BE] [RAG] 이미지 학습 완료: exec-b98df814-8bf4-473a-92b4-7a90cbd99b57.png (5청크)
+[20260802-13:07:38][BE] [RAG] 학습 진행률: 50% (게시글 이미지)
+[20260802-13:07:38][BE] [RAG] 이미지 학습 시작: ChatGPT Image 2026년 8월 2일 오후 01_06_28.png
+[20260802-13:08:09][BE] [SearchIndex] 이미지 첨부 인덱싱 완료: b4a0c225-51fa-41d4-aa16-e7b508b7a2f1 exec-b98df814-8bf4-473a-92b4-7a90cbd99b57.png
+[20260802-13:08:47][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260802-13:08:57][BE] [RAG] Gemma 이미지 설명 완료 (page=1, 78.5s): 3165자
+[20260802-13:08:57][BE] [RAG] 이미지 학습 완료: ChatGPT Image 2026년 8월 2일 오후 01_06_28.png (6청크)
+[20260802-13:08:57][BE] [RAG] 학습 진행률: 70% (게시글 이미지)
+[20260802-13:08:57][BE] [RAG] 저장 완료 — 12청크 / 1개 게시글 / 0개 댓글 / 0개 폴더문서
+[20260802-13:08:57][BE] [RAG] 학습 진행률: 100% (저장)
+[20260802-13:08:59][BE] [RAG] 학습 완료
+[20260802-13:09:28][BE] [SearchIndex] 이미지 첨부 인덱싱 완료: d07c507d-aee4-462f-8017-f1efebee6c96 ChatGPT Image 2026년 8월 2일 오후 01_06_28.png
+[20260802-13:13:47][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260802-13:15:30][BE] [ATTACH-REF] sync ownerType=comment ownerId=c-0ed9338f-8755-411c-91b2-572c657cf0f0 actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260802-13:15:30][BE] [RAG] 댓글 학습 시작 — 1개 댓글 (제외: 0개)
+[20260802-13:15:30][BE] /home/freegear/EasyDocStation/server/rag_train.py:125: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260802-13:15:30][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260802-13:15:33][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v3' already exists
+[20260802-13:15:33][BE] [RAG] comment=c-0ed9338f-8755-411c-91b2-572c657cf0f0 post=292ee170-faa9-4fdf-ac55-507021ebb027 text → 7청크
+[20260802-13:15:33][BE] [RAG] 학습 진행률: 50% (댓글 본문)
+[20260802-13:15:33][BE] [RAG] 저장 완료 — 7청크 / 0개 게시글 / 1개 댓글 / 0개 폴더문서
+[20260802-13:15:33][BE] [RAG] 학습 진행률: 100% (저장)
+[20260802-13:15:34][BE] [RAG] 댓글 학습 완료 — 1개 댓글 (4.0s)
+[20260802-13:20:22][BE] [UpdateHistory] 로드 실패: 0.5.16 업데이트 내역은 문자열이어야 합니다.
+[20260802-13:20:24][BE] [UpdateHistory] 로드 실패: 0.5.16 업데이트 내역은 문자열이어야 합니다.
+[20260802-13:20:24][BE] [UpdateHistory] 로드 실패: 0.5.16 업데이트 내역은 문자열이어야 합니다.
+[20260802-13:20:25][BE] [UpdateHistory] 로드 실패: 0.5.16 업데이트 내역은 문자열이어야 합니다.
+[20260802-13:20:25][BE] [UpdateHistory] 로드 실패: 0.5.16 업데이트 내역은 문자열이어야 합니다.
+[20260802-13:20:46][BE] [UpdateHistory] 로드 실패: 0.5.16 업데이트 내역은 문자열이어야 합니다.
+[20260802-13:20:47][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260802-13:20:47][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260802-13:20:48][BE] [link-preview-image] meta image failed, fallback screenshot: meta page fetch failed (404)
+[20260802-13:20:48][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260802-13:20:53][BE] [link-preview-image] meta image failed, fallback screenshot: meta page fetch failed (401)
+[20260802-13:23:22][BE] process exited with code 0. restarting in 2s...
+[20260802-13:23:24][BE] 
+[20260802-13:23:24][BE] > easydocstation-server@1.0.0 start
+[20260802-13:23:24][BE] > node index.js
+[20260802-13:23:24][BE] 
+[20260802-13:23:25][BE] [RAG] 초기화 — 학습 방식: immediate
+[20260802-13:23:25][BE] [RAG] 초기화 — PDF 파싱 모드: FAST
+[20260802-13:23:25][BE] [Mail sync] 자동 동기화 스케줄러 시작: interval=600s, startupDelay=300s
+[20260802-13:23:25][BE] [Frontend] 프로덕션 빌드 서비스: /home/freegear/EasyDocStation/dist
+[20260802-13:23:25][BE] ✅ EasyDocStation server running on http://localhost:3001
+[20260802-13:23:25][BE] ✅ [CONFIG] HF_TOKEN 확인됨 (hf_u****butv, 길이 37)
+[20260802-13:23:25][BE] ✅ EasyDocStation production frontend running on http://localhost:5173
+[20260802-13:23:25][BE] ✅ Cassandra connected
+[20260802-13:23:25][BE] ✅ Cassandra schema initialized
+[20260802-13:23:25][BE] ✅ Database migration complete.
+[20260802-13:24:29][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260802-13:28:43][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260802-13:33:42][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260802-13:42:38][BE] [ATTACH-REF] sync ownerType=post ownerId=973d42a9-4997-4c62-a28c-5af55ab28bc2 actorUserId=1 prev=0 next=2 add=2 remove=0
+[20260802-13:42:38][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
+[20260802-13:42:38][BE] /home/freegear/EasyDocStation/server/rag_train.py:125: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260802-13:42:38][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260802-13:42:41][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v3' already exists
+[20260802-13:42:41][BE] [RAG] post=973d42a9-4997-4c62-a28c-5af55ab28bc2 text → 1청크
+[20260802-13:42:41][BE] [RAG] 학습 진행률: 20% (게시글 본문)
+[20260802-13:42:41][BE] [RAG] PDF 학습 시작: (공고_제2026-484호)_2026년도_표준공정_기반_공정최적화_기술개발사업(공정최적화R&D)_시행계획_공고.pdf
+[20260802-13:42:42][BE] [RAG] PDF 파싱 시작 (Unstructured fast): (공고_제2026-484호)_2026년도_표준공정_기반_공정최적화_기술개발사업(공정최적화R&D)_시행계획_공고.pdf
+[20260802-13:42:50][BE] [RAG] PDF 학습 완료: (공고_제2026-484호)_2026년도_표준공정_기반_공정최적화_기술개발사업(공정최적화R&D)_시행계획_공고.pdf (109청크)
+[20260802-13:42:50][BE] [RAG] 분리 저장 완료: /home/freegear/EasyDocStation/Database/ObjectFile/FileTrainingData/973d42a9-4997-4c62-a28c-5af55ab28bc2/no_comment/afb2d292-c3b3-4efb-ac1c-6ed4cbc25fab/_공고_제2026-484호__2026년도_표준공정_기반_공정최적화_기술개발사업_공정최적화R_D__시행계획_공고.pdf
+[20260802-13:42:50][BE] [RAG] 학습 진행률: 50% (게시글 PDF)
+[20260802-13:42:50][BE] [RAG] PDF 학습 시작: 5.공정품질기술개발사업_발표 PT자료.pdf
+[20260802-13:42:50][BE] [RAG] PDF 파싱 시작 (Unstructured fast): 5.공정품질기술개발사업_발표 PT자료.pdf
+[20260802-13:43:09][BE] [RAG] PDF 학습 완료: 5.공정품질기술개발사업_발표 PT자료.pdf (71청크)
+[20260802-13:43:09][BE] [RAG] 분리 저장 완료: /home/freegear/EasyDocStation/Database/ObjectFile/FileTrainingData/973d42a9-4997-4c62-a28c-5af55ab28bc2/no_comment/7e2c7388-72af-40b7-a431-a33e8c8abfab/5.공정품질기술개발사업_발표_PT자료.pdf
+[20260802-13:43:09][BE] [RAG] 학습 진행률: 70% (게시글 PDF)
+[20260802-13:43:09][BE] [RAG] 저장 완료 — 181청크 / 1개 게시글 / 0개 댓글 / 0개 폴더문서
+[20260802-13:43:09][BE] [RAG] 학습 진행률: 100% (저장)
+[20260802-13:43:11][BE] [RAG] 학습 완료
+[20260802-13:43:41][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260802-13:46:57][BE] process exited with code 0. restarting in 2s...
+
+> easydocstation@1.0.0 build
+> vite build
+
+vite v5.4.21 building for production...
+transforming...
+node_modules/@lexical/react/dist/LexicalContentEditable.prod.mjs (9:1694): A comment
+
+"/*#__PURE__*/"
+
+in "node_modules/@lexical/react/dist/LexicalContentEditable.prod.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+node_modules/@lexical/react/dist/LexicalErrorBoundary.prod.mjs (9:386): A comment
+
+"/*#__PURE__*/"
+
+in "node_modules/@lexical/react/dist/LexicalErrorBoundary.prod.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+✓ 5441 modules transformed.
+rendering chunks...
+[plugin:vite:reporter] [plugin vite:reporter] 
+(!) /home/freegear/EasyDocStation/node_modules/mermaid/dist/mermaid.core.mjs is dynamically imported by /home/freegear/EasyDocStation/src/components/markdown/MermaidBlock.jsx but also statically imported by /home/freegear/EasyDocStation/src/components/chat/md-page/extensions/diagramPreviewExtensions.js, dynamic import will not move module into another chunk.
+
+computing gzip size...
+dist/index.html                                            0.84 kB │ gzip:      0.40 kB
+dist/assets/KaTeX_Size3-Regular-CTq5MqoE.woff              4.42 kB
+dist/assets/KaTeX_Size4-Regular-Dl5lxZxV.woff2             4.93 kB
+dist/assets/KaTeX_Size2-Regular-Dy4dx90m.woff2             5.21 kB
+dist/assets/KaTeX_Size1-Regular-mCD8mA8B.woff2             5.47 kB
+dist/assets/KaTeX_Size4-Regular-BF-4gkZK.woff              5.98 kB
+dist/assets/KaTeX_Size2-Regular-oD1tc_U0.woff              6.19 kB
+dist/assets/KaTeX_Size1-Regular-C195tn64.woff              6.50 kB
+dist/assets/KaTeX_Caligraphic-Regular-Di6jR-x-.woff2       6.91 kB
+dist/assets/KaTeX_Caligraphic-Bold-Dq_IR9rO.woff2          6.91 kB
+dist/assets/KaTeX_Size3-Regular-DgpXs0kz.ttf               7.59 kB
+dist/assets/KaTeX_Caligraphic-Regular-CTRA-rTL.woff        7.66 kB
+dist/assets/KaTeX_Caligraphic-Bold-BEiXGLvX.woff           7.72 kB
+dist/assets/KaTeX_Script-Regular-D3wIWfF6.woff2            9.64 kB
+dist/assets/KaTeX_SansSerif-Regular-DDBCnlJ7.woff2        10.34 kB
+dist/assets/KaTeX_Size4-Regular-DWFBv043.ttf              10.36 kB
+dist/assets/KaTeX_Script-Regular-D5yQViql.woff            10.59 kB
+dist/assets/KaTeX_Fraktur-Regular-CTYiF6lA.woff2          11.32 kB
+dist/assets/KaTeX_Fraktur-Bold-CL6g_b3V.woff2             11.35 kB
+dist/assets/KaTeX_Size2-Regular-B7gKUWhC.ttf              11.51 kB
+dist/assets/KaTeX_SansSerif-Italic-C3H0VqGB.woff2         12.03 kB
+dist/assets/KaTeX_SansSerif-Bold-D1sUS0GD.woff2           12.22 kB
+dist/assets/KaTeX_Size1-Regular-Dbsnue_I.ttf              12.23 kB
+dist/assets/KaTeX_SansSerif-Regular-CS6fqUqJ.woff         12.32 kB
+dist/assets/KaTeX_Caligraphic-Regular-wX97UBjC.ttf        12.34 kB
+dist/assets/KaTeX_Caligraphic-Bold-ATXxdsX0.ttf           12.37 kB
+dist/assets/KaTeX_Fraktur-Regular-Dxdc4cR9.woff           13.21 kB
+dist/assets/KaTeX_Fraktur-Bold-BsDP51OF.woff              13.30 kB
+dist/assets/KaTeX_Typewriter-Regular-CO6r4hn1.woff2       13.57 kB
+dist/assets/KaTeX_SansSerif-Italic-DN2j7dab.woff          14.11 kB
+dist/assets/KaTeX_SansSerif-Bold-DbIhKOiC.woff            14.41 kB
+dist/assets/KaTeX_Typewriter-Regular-C0xS9mPB.woff        16.03 kB
+dist/assets/KaTeX_Math-BoldItalic-CZnvNsCZ.woff2          16.40 kB
+dist/assets/KaTeX_Math-Italic-t53AETM-.woff2              16.44 kB
+dist/assets/KaTeX_Script-Regular-C5JkGWo-.ttf             16.65 kB
+dist/assets/KaTeX_Main-BoldItalic-DxDJ3AOS.woff2          16.78 kB
+dist/assets/KaTeX_Main-Italic-NWA7e6Wa.woff2              16.99 kB
+dist/assets/KaTeX_Math-BoldItalic-iY-2wyZ7.woff           18.67 kB
+dist/assets/KaTeX_Math-Italic-DA0__PXp.woff               18.75 kB
+dist/assets/KaTeX_Main-BoldItalic-SpSLRI95.woff           19.41 kB
+dist/assets/KaTeX_SansSerif-Regular-BNo7hRIc.ttf          19.44 kB
+dist/assets/KaTeX_Fraktur-Regular-CB_wures.ttf            19.57 kB
+dist/assets/KaTeX_Fraktur-Bold-BdnERNNW.ttf               19.58 kB
+dist/assets/KaTeX_Main-Italic-BMLOBm91.woff               19.68 kB
+dist/assets/KaTeX_SansSerif-Italic-YYjJ1zSn.ttf           22.36 kB
+dist/assets/KaTeX_SansSerif-Bold-CFMepnvq.ttf             24.50 kB
+dist/assets/KaTeX_Main-Bold-Cx986IdX.woff2                25.32 kB
+dist/assets/KaTeX_Main-Regular-B22Nviop.woff2             26.27 kB
+dist/assets/KaTeX_Typewriter-Regular-D3Ib7_Hf.ttf         27.56 kB
+dist/assets/KaTeX_AMS-Regular-BQhdFMY1.woff2              28.08 kB
+dist/assets/KaTeX_Main-Bold-Jm3AIy58.woff                 29.91 kB
+dist/assets/KaTeX_Main-Regular-Dr94JaBh.woff              30.77 kB
+dist/assets/KaTeX_Math-BoldItalic-B3XSjfu4.ttf            31.20 kB
+dist/assets/KaTeX_Math-Italic-flOr_0UB.ttf                31.31 kB
+dist/assets/KaTeX_Main-BoldItalic-DzxPMmG6.ttf            32.97 kB
+dist/assets/KaTeX_AMS-Regular-DMm9YOAa.woff               33.52 kB
+dist/assets/KaTeX_Main-Italic-3WenGoN9.ttf                33.58 kB
+dist/assets/KaTeX_Main-Bold-waoOVXN0.ttf                  51.34 kB
+dist/assets/KaTeX_Main-Regular-ypZvNtVU.ttf               53.58 kB
+dist/assets/KaTeX_AMS-Regular-DRggAlZN.ttf                63.63 kB
+dist/assets/pdf.worker.min-iDqQPrd3.mjs                1,232.30 kB
+dist/assets/EasySheetViewer-Duz_WvKn.css                  84.51 kB │ gzip:     12.96 kB
+dist/assets/index-Dc2uJrac.css                           123.62 kB │ gzip:     24.12 kB
+dist/assets/clone-CF0RjrCK.js                              0.09 kB │ gzip:      0.11 kB
+dist/assets/channel-BuRQ9VTI.js                            0.11 kB │ gzip:      0.12 kB
+dist/assets/init-Gi6I4Gst.js                               0.15 kB │ gzip:      0.13 kB
+dist/assets/chunk-QZHKN3VN-CMUfCNTo.js                     0.19 kB │ gzip:      0.16 kB
+dist/assets/chunk-55IACEB6-4lgcITE4.js                     0.22 kB │ gzip:      0.20 kB
+dist/assets/chunk-4BX2VUAB-BLd3EQb9.js                     0.29 kB │ gzip:      0.20 kB
+dist/assets/stateDiagram-v2-QKLJ7IA2-CotoBUFp.js           0.36 kB │ gzip:      0.27 kB
+dist/assets/chunk-FMBD7UC4-CMQhHFE8.js                     0.36 kB │ gzip:      0.27 kB
+dist/assets/pa-C54UG8eN-EW_8hrTF.js                        0.41 kB │ gzip:      0.23 kB
+dist/assets/classDiagram-6PBFFD2Q-Cl-imq0L.js              0.43 kB │ gzip:      0.30 kB
+dist/assets/classDiagram-v2-HSJHXN6E-Cl-imq0L.js           0.43 kB │ gzip:      0.30 kB
+dist/assets/or-50rxpoq4-B_XNinj_.js                        0.44 kB │ gzip:      0.24 kB
+dist/assets/gu-Bjl0l-cf-Bb_OSiMJ.js                        0.45 kB │ gzip:      0.24 kB
+dist/assets/hi-DsAaTPCC-lc1bUHMk.js                        0.47 kB │ gzip:      0.25 kB
+dist/assets/mr-CjWJPVmH-BKMRnoAc.js                        0.47 kB │ gzip:      0.25 kB
+dist/assets/as-BPtSu6VN-CYxxmKqh.js                        0.48 kB │ gzip:      0.26 kB
+dist/assets/bn-NCLZcWHi-CsgykzQM.js                        0.48 kB │ gzip:      0.26 kB
+dist/assets/te-B5Spl2Jk-DYnT8Dmf.js                        0.48 kB │ gzip:      0.25 kB
+dist/assets/kn-C6Lov-DP-D7dHjlY1.js                        0.49 kB │ gzip:      0.26 kB
+dist/assets/chunk-EDXVE4YY-GGHyT2ns.js                     0.53 kB │ gzip:      0.37 kB
+dist/assets/ta-BcghgTbD-D3SGVeDl.js                        0.57 kB │ gzip:      0.25 kB
+dist/assets/min-D3FgHKA0.js                                0.62 kB │ gzip:      0.39 kB
+dist/assets/infoDiagram-42DDH7IO-CsM7_5E7.js               0.63 kB │ gzip:      0.43 kB
+dist/assets/ml-2xLVYkVY-CBhOFsDv.js                        0.63 kB │ gzip:      0.30 kB
+dist/assets/pi-B9cgjyG1-v-IB86gp.js                        0.83 kB │ gzip:      0.35 kB
+dist/assets/_baseSet-C1gMdM3s.js                           0.88 kB │ gzip:      0.55 kB
+dist/assets/ordinal-Cboi1Yqb.js                            1.19 kB │ gzip:      0.57 kB
+dist/assets/zh-latn-pinyin-BdYb-Ey_-BpSBSv6m.js            1.28 kB │ gzip:      0.22 kB
+dist/assets/get-DfDqCT31.js                                1.43 kB │ gzip:      0.78 kB
+dist/assets/eu-Ctv_kq9Z-DMhU9kwg.js                        1.51 kB │ gzip:      0.22 kB
+dist/assets/chunk-YZCP3GAM-HUotj2pR.js                     1.85 kB │ gzip:      0.82 kB
+dist/assets/pt-Cum2_NUC-D8aZaPM_.js                        2.13 kB │ gzip:      0.31 kB
+dist/assets/id-DifDyWg9-1QUBE4o0.js                        2.52 kB │ gzip:      0.64 kB
+dist/assets/oc-P_i3-xLA-Cg0Gj-PC.js                        2.55 kB │ gzip:      0.68 kB
+dist/assets/kmr-Cfwhwuff-DNWs8Gbk.js                       2.70 kB │ gzip:      0.80 kB
+dist/assets/mul-ethi-D_CMSMEq-2TGBnG-Z.js                  2.78 kB │ gzip:      0.92 kB
+dist/assets/diagram-5BDNPKRD-DrdQrXeD.js                   2.81 kB │ gzip:      1.39 kB
+dist/assets/fi-RW5VB8Yp-C_52fTOR.js                        3.14 kB │ gzip:      0.78 kB
+dist/assets/la-DuvHjUWw-BcBNkSEh.js                        3.19 kB │ gzip:      0.63 kB
+dist/assets/pms-BRGfm5gS-DtZRgBhp.js                       3.38 kB │ gzip:      0.91 kB
+dist/assets/arc-C6hl09_t.js                                3.43 kB │ gzip:      1.48 kB
+dist/assets/it-Bt_Meacx-BwawXXgW.js                        3.63 kB │ gzip:      0.88 kB
+dist/assets/rm-C0MIK9N4-DeBfDBrx.js                        3.67 kB │ gzip:      0.95 kB
+dist/assets/tr-CIHIuzqc-ZkOY1dVp.js                        3.83 kB │ gzip:      0.34 kB
+dist/assets/fur-AC12wySk-Ulg0Fy5V.js                       3.90 kB │ gzip:      1.02 kB
+dist/assets/mn-cyrl-x-lmc-3aetruI8-mEBV16An.js             4.20 kB │ gzip:      1.21 kB
+dist/assets/el-monoton-D3aKqTz2-DpMW17GV.js                4.27 kB │ gzip:      0.89 kB
+dist/assets/diagram-TYMM5635-BQ_GdJzJ.js                   4.29 kB │ gzip:      1.89 kB
+dist/assets/defaultLocale-DX6XiGOO.js                      4.69 kB │ gzip:      2.18 kB
+dist/assets/pieDiagram-DEJITSTG-DVLh4jm9.js                5.37 kB │ gzip:      2.38 kB
+dist/assets/linear-OQ8QmHkr.js                             5.65 kB │ gzip:      2.31 kB
+dist/assets/cop-C3sk0IUo-Cj8cOj0I.js                       5.84 kB │ gzip:      0.71 kB
+dist/assets/diagram-MMDJMWI5-BGcg7Crt.js                   6.02 kB │ gzip:      2.54 kB
+dist/assets/ia-Cr4TJH0c-BcFKNbxH.js                        6.49 kB │ gzip:      1.83 kB
+dist/assets/ro-0fmdH0HA-1lLksn9e.js                        7.15 kB │ gzip:      2.14 kB
+dist/assets/_baseUniq-BS4is6N1.js                          7.17 kB │ gzip:      3.00 kB
+dist/assets/ca-SUf6Y2Om-Dp4lcbPL.js                        7.42 kB │ gzip:      1.13 kB
+dist/assets/sa-CKY9c_Vq-DzgpFnfw.js                        8.28 kB │ gzip:      1.66 kB
+dist/assets/la-x-classic-yTyAOQEt-DuDJBVty.js              8.93 kB │ gzip:      2.31 kB
+dist/assets/graph-KrnUEGbI.js                              9.40 kB │ gzip:      3.21 kB
+dist/assets/hy-e995ysyO-Cf-NYmW5.js                       10.30 kB │ gzip:      0.31 kB
+dist/assets/stateDiagram-FHFEXIEX-CGKHK1d2.js             10.44 kB │ gzip:      3.65 kB
+dist/assets/mn-cyrl-lHM4n0oC-QhYuXAWB.js                  10.62 kB │ gzip:      2.15 kB
+dist/assets/hr-DT1SBBes-CkK3TemH.js                       11.18 kB │ gzip:      0.95 kB
+dist/assets/dagre-KV5264BT-BHLrO-PC.js                    11.28 kB │ gzip:      4.21 kB
+dist/assets/sl-DpiklF-D-_46w5B9b.js                       12.49 kB │ gzip:      3.40 kB
+dist/assets/da-CCDXfXtG-C3O8h2wc.js                       12.65 kB │ gzip:      3.45 kB
+dist/assets/hsb-DC_ITc1e-C4pa9vvS.js                      13.89 kB │ gzip:      1.94 kB
+dist/assets/lt-BBe8DlDF-CObMPDIF.js                       14.49 kB │ gzip:      3.60 kB
+dist/assets/el-polyton-ogVWcTzh-BOWLBXgh.js               15.26 kB │ gzip:      2.87 kB
+dist/assets/diagram-G4DWMVQ6-rANIsONL.js                  15.97 kB │ gzip:      5.73 kB
+dist/assets/tk-BMbKB10q-cqtw6prh.js                       16.30 kB │ gzip:      0.99 kB
+dist/assets/ishikawaDiagram-UXIWVN3A-Cc2Z6X2a.js          17.53 kB │ gzip:      6.65 kB
+dist/assets/ka-jyoLzyDE-CZftRBZr.js                       20.46 kB │ gzip:      4.51 kB
+dist/assets/kanban-definition-6JOO6SKY-BHp2KRDM.js        20.66 kB │ gzip:      7.27 kB
+dist/assets/sankeyDiagram-XADWPNL6-BCrEcjhD.js            22.20 kB │ gzip:      8.13 kB
+dist/assets/la-x-liturgic-CXeQb4FY-DNU_Uk5t.js            22.54 kB │ gzip:      5.72 kB
+dist/assets/ContactBookPage-5VD9LhRH.js                   22.92 kB │ gzip:      7.36 kB
+dist/assets/journeyDiagram-VCZTEJTY-HAE0yvl1.js           23.55 kB │ gzip:      8.34 kB
+dist/assets/mindmap-definition-QFDTVHPH-wq7tDUcD.js       23.60 kB │ gzip:      7.98 kB
+dist/assets/fr-BC2onEz9-BGmqATrI.js                       23.93 kB │ gzip:      4.29 kB
+dist/assets/wardleyDiagram-NUSXRM2D-VvxAkq8-.js           24.86 kB │ gzip:      6.73 kB
+dist/assets/be-CrQ0smca-B2EeXxUh.js                       25.32 kB │ gzip:      2.23 kB
+dist/assets/erDiagram-SMLLAGMA-KC2SYT1u.js                26.93 kB │ gzip:      9.35 kB
+dist/assets/sr-cyrl-Dpzrbd0W-DKfS_grW.js                  27.37 kB │ gzip:      5.56 kB
+dist/assets/sh-cyrl-BpCRFOmq-Cv4-R-p6.js                  28.20 kB │ gzip:      5.45 kB
+dist/assets/layout-DZ6PJaSw.js                            28.56 kB │ gzip:     10.20 kB
+dist/assets/sh-latn-sRy4Tuaj-DcyoDtEt.js                  29.28 kB │ gzip:      5.29 kB
+dist/assets/gitGraphDiagram-UUTBAWPF-BPDQp7Oj.js          29.98 kB │ gzip:      8.91 kB
+dist/assets/sk-_iOeDNrQ-BXQc18Za.js                       31.09 kB │ gzip:      6.79 kB
+dist/assets/requirementDiagram-MS252O5E-B7skESIB.js       31.17 kB │ gzip:      9.79 kB
+dist/assets/timeline-definition-GMOUNBTQ-BSyWSLzN.js      31.32 kB │ gzip:     10.41 kB
+dist/assets/gl-DZGc-K_G-DLl5jmsP.js                       32.95 kB │ gzip:      4.26 kB
+dist/assets/quadrantDiagram-34T5L4WZ-xx1J85Yn.js          34.28 kB │ gzip:     10.09 kB
+dist/assets/chunk-OYMX7WX6-C3Bx0vNa.js                    37.41 kB │ gzip:     12.16 kB
+dist/assets/cs-CmAteokq-TjIVgNl6.js                       38.89 kB │ gzip:      9.95 kB
+dist/assets/xychartDiagram-5P7HB3ND-DNtZYhqr.js           40.35 kB │ gzip:     11.54 kB
+dist/assets/vennDiagram-DHZGUBPP-B1CXCKST.js              41.80 kB │ gzip:     15.55 kB
+dist/assets/es-DcaaHPU_-sYKznHcq.js                       43.41 kB │ gzip:      6.27 kB
+dist/assets/pl-9fg-ESVt-DpPW5ISU.js                       45.33 kB │ gzip:      7.70 kB
+dist/assets/et-B_spaleu-BaO20FM2.js                       46.94 kB │ gzip:     11.42 kB
+dist/assets/chunk-4TB4RGXK-CY7oqenG.js                    47.32 kB │ gzip:     15.15 kB
+dist/assets/is-BT8UVRze-BXloJ18M.js                       47.51 kB │ gzip:     12.72 kB
+dist/assets/bg-CrQqGwni-Pt9yPLke.js                       50.17 kB │ gzip:      4.83 kB
+dist/assets/th-DWX5iPSo-BI_G36o8.js                       54.41 kB │ gzip:     13.26 kB
+dist/assets/CalendarView-DTLx1lo1.js                      56.29 kB │ gzip:     15.34 kB
+dist/assets/sv-CFm5y56M-I8ncZ9Nb.js                       56.39 kB │ gzip:     14.42 kB
+dist/assets/uk-Dir3oxLs-BVEQM3Jf.js                       58.19 kB │ gzip:      8.64 kB
+dist/assets/flowDiagram-DWJPFMVM-Dr1C-trK.js              61.14 kB │ gzip:     19.49 kB
+dist/assets/grc-DOlGgO8T-C7K_Bcib.js                      63.10 kB │ gzip:      8.92 kB
+dist/assets/ganttDiagram-T4ZO3ILL-CpAB4WxK.js             69.14 kB │ gzip:     23.27 kB
+dist/assets/c4Diagram-AHTNJAMY-TNTUU3fU.js                69.92 kB │ gzip:     19.62 kB
+dist/assets/blockDiagram-DXYQGD6D-8E2iViTg.js             72.28 kB │ gzip:     20.59 kB
+dist/assets/ru-v4l-ayaq-BZkHNr9F.js                       75.71 kB │ gzip:     16.94 kB
+dist/assets/cy-BBPa6z2x-BONU7bVJ.js                       80.17 kB │ gzip:     19.05 kB
+dist/assets/ga-Cn6LkudM-WsF4_z3Y.js                       80.62 kB │ gzip:     20.04 kB
+dist/assets/cose-bilkent-S5V4N54A-Dkfyii1R.js             81.51 kB │ gzip:     22.42 kB
+dist/assets/en-gb-B7Al27b_-BFFr9zKP.js                   105.38 kB │ gzip:     26.11 kB
+dist/assets/lv-Q2BBHnzp-DRPSUjhQ.js                      108.90 kB │ gzip:     16.09 kB
+dist/assets/sequenceDiagram-FGHM5R23-CUkhXODn.js         117.02 kB │ gzip:     31.07 kB
+dist/assets/nl-BHQJ6Gvn-BMWl-SdQ.js                      138.42 kB │ gzip:     36.10 kB
+dist/assets/cu-CBUlrW6Y-BrxB2kb-.js                      149.27 kB │ gzip:     26.17 kB
+dist/assets/architectureDiagram-Q4EWVU46-CN4LDiTD.js     149.44 kB │ gzip:     42.24 kB
+dist/assets/index.es-CpahAnn_.js                         150.69 kB │ gzip:     51.55 kB
+dist/assets/SiteAdminPage-XUm4p5Jt.js                    167.75 kB │ gzip:     34.84 kB
+dist/assets/af-DK_CjRn6-C81U6qP1.js                      179.76 kB │ gzip:     38.97 kB
+dist/assets/katex-C5jXJg4s.js                            258.49 kB │ gzip:     77.57 kB
+dist/assets/de-ch-1901-hVThVHVb-CC5Yf8hX.js              263.25 kB │ gzip:     70.50 kB
+dist/assets/de-1996-BL6awyxG-BSuIomZy.js                 265.88 kB │ gzip:     71.07 kB
+dist/assets/de-1901-CWoAOigE-yOXirf_M.js                 268.94 kB │ gzip:     71.86 kB
+dist/assets/no-B8ItS0F3-BlrHaK3Z.js                      340.51 kB │ gzip:     87.84 kB
+dist/assets/nb-DI8u59ch-S2a9vUN_.js                      340.53 kB │ gzip:     87.85 kB
+dist/assets/nn-ntZvarUK-cMBifkqM.js                      340.53 kB │ gzip:     87.85 kB
+dist/assets/cytoscape.esm-BQk4lpUV.js                    442.57 kB │ gzip:    141.98 kB
+dist/assets/MailPage-jpWqUUSx.js                         454.51 kB │ gzip:    140.33 kB
+dist/assets/pdf-DeWlx49F.js                              458.39 kB │ gzip:    135.97 kB
+dist/assets/wardley-RL74JXVD-BFMrHMZh.js                 492.93 kB │ gzip:    110.28 kB
+dist/assets/hu-DVk7Y_ka-CCTZJfqn.js                      748.41 kB │ gzip:    172.84 kB
+dist/assets/EasySheetViewer-CKozKLI9.js                6,398.69 kB │ gzip:  1,812.10 kB
+dist/assets/index-DvIvJUQE.js                         28,597.59 kB │ gzip: 19,259.16 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 20.77s
+
+> easydocstation@1.0.0 ollama:serve
+> node scripts/ollama-serve-safe.mjs
+
+[Ollama] already running on 127.0.0.1:11434, skipping duplicate serve.
+[20260802-13:47:22][BE] 
+[20260802-13:47:22][BE] > easydocstation-server@1.0.0 start
+[20260802-13:47:22][BE] > node index.js
+[20260802-13:47:22][BE] 
+[20260802-13:47:22][BE] [RAG] 초기화 — 학습 방식: immediate
+[20260802-13:47:22][BE] [RAG] 초기화 — PDF 파싱 모드: FAST
+[20260802-13:47:22][BE] [Mail sync] 자동 동기화 스케줄러 시작: interval=600s, startupDelay=300s
+[20260802-13:47:22][BE] [Frontend] 프로덕션 빌드 서비스: /home/freegear/EasyDocStation/dist
+[20260802-13:47:22][BE] ✅ EasyDocStation server running on http://localhost:3001
+[20260802-13:47:22][BE] ✅ [CONFIG] HF_TOKEN 확인됨 (hf_u****butv, 길이 37)
+[20260802-13:47:22][BE] ✅ EasyDocStation production frontend running on http://localhost:5173
+[20260802-13:47:22][BE] ✅ Cassandra connected
+[20260802-13:47:22][BE] ✅ Cassandra schema initialized
+[20260802-13:47:22][BE] ✅ Database migration complete.
+[20260802-13:47:25][BE] [RAG Server] [RAG Server] 임베딩 모델 로드 중 (device=cuda)...
+[20260802-13:47:39][BE] [RAG Server] [RAG Server] 임베딩 모델 로드 완료
+[20260802-13:47:39][BE] [RAG Server] [RAG Server] 포트 5001 에서 시작됨
+[20260802-13:52:40][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260802-13:57:40][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260802-14:07:39][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260802-14:17:42][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260802-14:17:48][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260802-14:17:48][BE] [link-preview-image] meta image failed, fallback screenshot: meta page fetch failed (404)
+[20260802-14:17:49][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260802-14:17:49][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260802-14:27:39][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260802-14:37:40][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260802-14:47:40][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260802-14:57:05][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260802-14:57:06][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260802-14:57:06][BE] [link-preview-image] meta image failed, fallback screenshot: meta page fetch failed (404)
+[20260802-14:57:06][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260802-14:57:10][BE] [link-preview-image] meta image failed, fallback screenshot: meta page fetch failed (401)
+[20260802-14:57:39][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260802-15:07:38][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260802-15:17:38][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260802-15:27:38][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260802-15:37:41][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260802-15:47:40][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260802-15:57:39][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260802-16:07:40][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260802-16:10:46][BE] [link-preview-image] meta image failed, fallback screenshot: meta page fetch failed (401)
+[20260802-16:13:06][BE] [ATTACH-REF] sync ownerType=post ownerId=89b9ed6b-823b-46a1-af5a-a94e3a5dfe84 actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260802-16:13:06][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
+[20260802-16:13:07][BE] /home/freegear/EasyDocStation/server/rag_train.py:125: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260802-16:13:07][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260802-16:13:07][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260802-16:13:10][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v3' already exists
+[20260802-16:13:10][BE] [RAG] post=89b9ed6b-823b-46a1-af5a-a94e3a5dfe84 text → 8청크
+[20260802-16:13:10][BE] [RAG] 학습 진행률: 50% (게시글 본문)
+[20260802-16:13:10][BE] [RAG] 저장 완료 — 8청크 / 1개 게시글 / 0개 댓글 / 0개 폴더문서
+[20260802-16:13:10][BE] [RAG] 학습 진행률: 100% (저장)
+[20260802-16:13:11][BE] [RAG] 학습 완료
+[20260802-16:14:59][BE] [ATTACH-REF] sync ownerType=comment ownerId=c-e3ebedd2-d65c-4556-8c31-0257aeeb6e18 actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260802-16:14:59][BE] [RAG] 댓글 학습 시작 — 1개 댓글 (제외: 0개)
+[20260802-16:14:59][BE] /home/freegear/EasyDocStation/server/rag_train.py:125: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260802-16:14:59][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260802-16:15:02][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v3' already exists
+[20260802-16:15:02][BE] [RAG] comment=c-e3ebedd2-d65c-4556-8c31-0257aeeb6e18 post=89b9ed6b-823b-46a1-af5a-a94e3a5dfe84 text → 1청크
+[20260802-16:15:02][BE] [RAG] 학습 진행률: 50% (댓글 본문)
+[20260802-16:15:02][BE] [RAG] 저장 완료 — 1청크 / 0개 게시글 / 1개 댓글 / 0개 폴더문서
+[20260802-16:15:02][BE] [RAG] 학습 진행률: 100% (저장)
+[20260802-16:15:03][BE] [RAG] 댓글 학습 완료 — 1개 댓글 (3.9s)
+[20260802-16:15:49][BE] [ATTACH-REF] sync ownerType=post ownerId=e29f598b-16f3-4e04-9be4-566702d3515a actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260802-16:15:49][BE] [RAG] 학습 제외 (게시글): e29f598b-16f3-4e04-9be4-566702d3515a — 첨부파일 없음, 43자
+[20260802-16:15:49][BE] [RAG] 학습 제외 후 학습할 게시글이 없습니다.
+[20260802-16:16:46][BE] [ATTACH-REF] sync ownerType=post ownerId=e29f598b-16f3-4e04-9be4-566702d3515a actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260802-16:16:46][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
+[20260802-16:16:46][BE] /home/freegear/EasyDocStation/server/rag_train.py:125: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260802-16:16:46][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260802-16:16:49][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v3' already exists
+[20260802-16:16:49][BE] [RAG] 기존 청크 삭제 완료: post_id=e29f598b-16f3-4e04-9be4-566702d3515a
+[20260802-16:16:59][BE] [RAG] post=e29f598b-16f3-4e04-9be4-566702d3515a text → 9청크
+[20260802-16:16:59][BE] [RAG] 학습 진행률: 50% (게시글 본문)
+[20260802-16:16:59][BE] [RAG] 저장 완료 — 9청크 / 1개 게시글 / 0개 댓글 / 0개 폴더문서
+[20260802-16:16:59][BE] [RAG] 학습 진행률: 100% (저장)
+[20260802-16:17:00][BE] [RAG] 학습 완료
+[20260802-16:17:39][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260802-16:22:59][BE] [ATTACH-REF] sync ownerType=post ownerId=e29f598b-16f3-4e04-9be4-566702d3515a actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260802-16:22:59][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
+[20260802-16:22:59][BE] /home/freegear/EasyDocStation/server/rag_train.py:125: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260802-16:22:59][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260802-16:23:02][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v3' already exists
+[20260802-16:23:02][BE] [RAG] 기존 청크 삭제 완료: post_id=e29f598b-16f3-4e04-9be4-566702d3515a
+[20260802-16:23:07][BE] [ATTACH-REF] sync ownerType=comment ownerId=c-f7f10ef6-35b5-4a27-b7ae-2595aaa18320 actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260802-16:23:07][BE] [RAG] 댓글 학습 시작 — 1개 댓글 (제외: 0개)
+[20260802-16:23:07][BE] /home/freegear/EasyDocStation/server/rag_train.py:125: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260802-16:23:07][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260802-16:23:08][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260802-16:23:11][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v3' already exists
+[20260802-16:23:20][BE] [RAG] post=e29f598b-16f3-4e04-9be4-566702d3515a text → 19청크
+[20260802-16:23:20][BE] [RAG] 학습 진행률: 50% (게시글 본문)
+[20260802-16:23:20][BE] [RAG] 저장 완료 — 19청크 / 1개 게시글 / 0개 댓글 / 0개 폴더문서
+[20260802-16:23:20][BE] [RAG] 학습 진행률: 100% (저장)
+[20260802-16:23:20][BE] [RAG] comment=c-f7f10ef6-35b5-4a27-b7ae-2595aaa18320 post=89b9ed6b-823b-46a1-af5a-a94e3a5dfe84 text → 10청크
+[20260802-16:23:20][BE] [RAG] 학습 진행률: 50% (댓글 본문)
+[20260802-16:23:20][BE] [RAG] 저장 완료 — 10청크 / 0개 게시글 / 1개 댓글 / 0개 폴더문서
+[20260802-16:23:20][BE] [RAG] 학습 진행률: 100% (저장)
+[20260802-16:23:21][BE] [RAG] 학습 완료
+[20260802-16:23:21][BE] [RAG] 댓글 학습 완료 — 1개 댓글 (14.4s)
+[20260802-16:27:50][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260802-16:29:03][BE] [UpdateHistory] 로드 실패: Expected ',' or '}' after property value in JSON at position 129 (line 6 column 3)
+[20260802-16:29:03][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260802-16:29:04][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260802-16:29:04][BE] [link-preview-image] meta image failed, fallback screenshot: meta page fetch failed (404)
+[20260802-16:29:04][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260802-16:31:43][BE] [UpdateHistory] 로드 실패: Expected ',' or '}' after property value in JSON at position 129 (line 6 column 3)
+[20260802-16:37:38][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260802-16:47:39][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260802-16:57:43][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260802-17:07:38][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260802-17:17:38][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260802-17:27:40][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260802-17:37:40][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260802-17:47:38][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260802-17:57:40][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260802-18:05:51][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260802-18:05:51][BE] [link-preview-image] meta image failed, fallback screenshot: meta page fetch failed (401)
+[20260802-18:06:20][BE] [ATTACH-REF] sync ownerType=post ownerId=f254aa85-ca88-49d2-a965-a50ef8a75387 actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260802-18:06:20][BE] [RAG] 학습 제외 (게시글): f254aa85-ca88-49d2-a965-a50ef8a75387 — 첨부파일 없음, 28자
+[20260802-18:06:20][BE] [RAG] 학습 제외 후 학습할 게시글이 없습니다.
+[20260802-18:06:20][BE] [ATTACH-REF] sync ownerType=post ownerId=e29f598b-16f3-4e04-9be4-566702d3515a actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260802-18:06:20][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
+[20260802-18:06:20][BE] /home/freegear/EasyDocStation/server/rag_train.py:125: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260802-18:06:20][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260802-18:06:23][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v3' already exists
+[20260802-18:06:23][BE] [RAG] 기존 청크 삭제 완료: post_id=e29f598b-16f3-4e04-9be4-566702d3515a
+[20260802-18:06:29][BE] [ATTACH-REF] sync ownerType=post ownerId=f254aa85-ca88-49d2-a965-a50ef8a75387 actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260802-18:06:29][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
+[20260802-18:06:29][BE] /home/freegear/EasyDocStation/server/rag_train.py:125: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260802-18:06:29][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260802-18:06:34][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v3' already exists
+[20260802-18:06:34][BE] [RAG] 기존 청크 삭제 완료: post_id=f254aa85-ca88-49d2-a965-a50ef8a75387
+[20260802-18:06:41][BE] [RAG] post=e29f598b-16f3-4e04-9be4-566702d3515a text → 19청크
+[20260802-18:06:41][BE] [RAG] 학습 진행률: 50% (게시글 본문)
+[20260802-18:06:41][BE] [RAG] 저장 완료 — 19청크 / 1개 게시글 / 0개 댓글 / 0개 폴더문서
+[20260802-18:06:41][BE] [RAG] 학습 진행률: 100% (저장)
+[20260802-18:06:41][BE] [RAG] post=f254aa85-ca88-49d2-a965-a50ef8a75387 text → 3청크
+[20260802-18:06:41][BE] [RAG] 학습 진행률: 50% (게시글 본문)
+[20260802-18:06:41][BE] [RAG] 저장 완료 — 3청크 / 1개 게시글 / 0개 댓글 / 0개 폴더문서
+[20260802-18:06:41][BE] [RAG] 학습 진행률: 100% (저장)
+[20260802-18:06:41][BE] [RAG] 학습 완료
+[20260802-18:06:42][BE] [RAG] 학습 완료
+[20260802-18:07:38][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260802-18:07:44][BE] [ATTACH-REF] sync ownerType=post ownerId=50d105cb-57bc-4c90-aec2-2f5735f23bd0 actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260802-18:07:44][BE] [RAG] 학습 제외 (게시글): 50d105cb-57bc-4c90-aec2-2f5735f23bd0 — 첨부파일 없음, 28자
+[20260802-18:07:44][BE] [RAG] 학습 제외 후 학습할 게시글이 없습니다.
+[20260802-18:07:44][BE] [ATTACH-REF] sync ownerType=post ownerId=e29f598b-16f3-4e04-9be4-566702d3515a actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260802-18:07:44][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
+[20260802-18:07:44][BE] /home/freegear/EasyDocStation/server/rag_train.py:125: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260802-18:07:44][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260802-18:07:47][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v3' already exists
+[20260802-18:07:47][BE] [RAG] 기존 청크 삭제 완료: post_id=e29f598b-16f3-4e04-9be4-566702d3515a
+[20260802-18:08:04][BE] [ATTACH-REF] sync ownerType=post ownerId=50d105cb-57bc-4c90-aec2-2f5735f23bd0 actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260802-18:08:04][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
+[20260802-18:08:04][BE] /home/freegear/EasyDocStation/server/rag_train.py:125: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260802-18:08:04][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260802-18:08:05][BE] [RAG] post=e29f598b-16f3-4e04-9be4-566702d3515a text → 19청크
+[20260802-18:08:05][BE] [RAG] 학습 진행률: 50% (게시글 본문)
+[20260802-18:08:05][BE] [RAG] 저장 완료 — 19청크 / 1개 게시글 / 0개 댓글 / 0개 폴더문서
+[20260802-18:08:05][BE] [RAG] 학습 진행률: 100% (저장)
+[20260802-18:08:05][BE] [RAG] 학습 완료
+[20260802-18:08:07][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v3' already exists
+[20260802-18:08:07][BE] [RAG] 기존 청크 삭제 완료: post_id=50d105cb-57bc-4c90-aec2-2f5735f23bd0
+[20260802-18:08:08][BE] [RAG] post=50d105cb-57bc-4c90-aec2-2f5735f23bd0 text → 3청크
+[20260802-18:08:08][BE] [RAG] 학습 진행률: 50% (게시글 본문)
+[20260802-18:08:08][BE] [RAG] 저장 완료 — 3청크 / 1개 게시글 / 0개 댓글 / 0개 폴더문서
+[20260802-18:08:08][BE] [RAG] 학습 진행률: 100% (저장)
+[20260802-18:08:08][BE] [RAG] 학습 완료
+[20260802-18:16:48][BE] [ATTACH-REF] sync ownerType=post ownerId=381a3828-78ff-4a36-939a-e234c77aafd6 actorUserId=1 prev=0 next=1 add=1 remove=0
+[20260802-18:16:48][BE] [RAG] 학습 제외 (게시글): 381a3828-78ff-4a36-939a-e234c77aafd6 — 첨부파일 없음, 55자
+[20260802-18:16:48][BE] [RAG] 학습 제외 후 학습할 게시글이 없습니다.
+[20260802-18:17:38][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260802-18:27:15][BE] [ATTACH-REF] sync ownerType=post ownerId=5a12cab1-21ef-48c2-867d-0d8f0760aea1 actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260802-18:27:15][BE] [RAG] 학습 제외 (게시글): 5a12cab1-21ef-48c2-867d-0d8f0760aea1 — 첨부파일 없음, 99자
+[20260802-18:27:15][BE] [RAG] 학습 제외 후 학습할 게시글이 없습니다.
+[20260802-18:27:15][BE] [ATTACH-REF] sync ownerType=post ownerId=e29f598b-16f3-4e04-9be4-566702d3515a actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260802-18:27:15][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
+[20260802-18:27:15][BE] /home/freegear/EasyDocStation/server/rag_train.py:125: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260802-18:27:15][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260802-18:27:19][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v3' already exists
+[20260802-18:27:19][BE] [RAG] 기존 청크 삭제 완료: post_id=e29f598b-16f3-4e04-9be4-566702d3515a
+[20260802-18:27:21][BE] [ATTACH-REF] sync ownerType=post ownerId=5a12cab1-21ef-48c2-867d-0d8f0760aea1 actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260802-18:27:21][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
+[20260802-18:27:21][BE] /home/freegear/EasyDocStation/server/rag_train.py:125: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260802-18:27:21][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260802-18:27:26][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v3' already exists
+[20260802-18:27:26][BE] [RAG] 기존 청크 삭제 완료: post_id=5a12cab1-21ef-48c2-867d-0d8f0760aea1
+[20260802-18:27:36][BE] [RAG] post=e29f598b-16f3-4e04-9be4-566702d3515a text → 21청크
+[20260802-18:27:36][BE] [RAG] 학습 진행률: 50% (게시글 본문)
+[20260802-18:27:36][BE] [RAG] 저장 완료 — 21청크 / 1개 게시글 / 0개 댓글 / 0개 폴더문서
+[20260802-18:27:36][BE] [RAG] 학습 진행률: 100% (저장)
+[20260802-18:27:36][BE] [RAG] post=5a12cab1-21ef-48c2-867d-0d8f0760aea1 text → 1청크
+[20260802-18:27:36][BE] [RAG] 학습 진행률: 50% (게시글 본문)
+[20260802-18:27:36][BE] [RAG] 저장 완료 — 1청크 / 1개 게시글 / 0개 댓글 / 0개 폴더문서
+[20260802-18:27:36][BE] [RAG] 학습 진행률: 100% (저장)
+[20260802-18:27:37][BE] [RAG] 학습 완료
+[20260802-18:27:37][BE] [RAG] 학습 완료
+[20260802-18:27:38][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260802-18:27:40][BE] [ATTACH-REF] sync ownerType=post ownerId=5a12cab1-21ef-48c2-867d-0d8f0760aea1 actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260802-18:27:40][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
+[20260802-18:27:40][BE] /home/freegear/EasyDocStation/server/rag_train.py:125: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260802-18:27:40][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260802-18:27:44][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v3' already exists
+[20260802-18:27:44][BE] [RAG] 기존 청크 삭제 완료: post_id=5a12cab1-21ef-48c2-867d-0d8f0760aea1
+[20260802-18:27:44][BE] [RAG] post=5a12cab1-21ef-48c2-867d-0d8f0760aea1 text → 3청크
+[20260802-18:27:44][BE] [RAG] 학습 진행률: 50% (게시글 본문)
+[20260802-18:27:44][BE] [RAG] 저장 완료 — 3청크 / 1개 게시글 / 0개 댓글 / 0개 폴더문서
+[20260802-18:27:44][BE] [RAG] 학습 진행률: 100% (저장)
+[20260802-18:27:45][BE] [RAG] 학습 완료
+[20260802-18:34:54][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260802-18:34:54][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260802-18:34:54][BE] [link-preview-image] meta image failed, fallback screenshot: meta page fetch failed (404)
+[20260802-18:34:55][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260802-18:35:09][BE] [STT] post stt jobs canceled | postId=5a12cab1-21ef-48c2-867d-0d8f0760aea1 canceled=0 terminated=0 reason=post soft deleted
+[20260802-18:36:00][BE] [ATTACH-REF] sync ownerType=post ownerId=e29f598b-16f3-4e04-9be4-566702d3515a actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260802-18:36:00][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
+[20260802-18:36:00][BE] /home/freegear/EasyDocStation/server/rag_train.py:125: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260802-18:36:00][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260802-18:36:03][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v3' already exists
+[20260802-18:36:03][BE] [RAG] 기존 청크 삭제 완료: post_id=e29f598b-16f3-4e04-9be4-566702d3515a
+[20260802-18:36:04][BE] [RAG] post=e29f598b-16f3-4e04-9be4-566702d3515a text → 18청크
+[20260802-18:36:04][BE] [RAG] 학습 진행률: 50% (게시글 본문)
+[20260802-18:36:04][BE] [RAG] 저장 완료 — 18청크 / 1개 게시글 / 0개 댓글 / 0개 폴더문서
+[20260802-18:36:04][BE] [RAG] 학습 진행률: 100% (저장)
+[20260802-18:36:05][BE] [RAG] 학습 완료
+[20260802-18:36:52][BE] [STT] post stt jobs canceled | postId=5a12cab1-21ef-48c2-867d-0d8f0760aea1 canceled=0 terminated=0 reason=post hard deleted
+[20260802-18:36:52][BE] [ATTACH-REF] sync ownerType=post ownerId=5a12cab1-21ef-48c2-867d-0d8f0760aea1 actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260802-18:36:52][BE] [휴지통] 1건 영구 삭제 완료
+[20260802-18:37:40][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260802-18:39:40][BE] [ATTACH-REF] sync ownerType=post ownerId=e29f598b-16f3-4e04-9be4-566702d3515a actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260802-18:39:40][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
+[20260802-18:39:40][BE] /home/freegear/EasyDocStation/server/rag_train.py:125: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260802-18:39:40][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260802-18:39:43][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v3' already exists
+[20260802-18:39:43][BE] [RAG] 기존 청크 삭제 완료: post_id=e29f598b-16f3-4e04-9be4-566702d3515a
+[20260802-18:39:51][BE] [ATTACH-REF] sync ownerType=post ownerId=44f31efd-fde6-4c11-bbdc-83ad6f98a4d2 actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260802-18:39:51][BE] [RAG] 학습 제외 (게시글): 44f31efd-fde6-4c11-bbdc-83ad6f98a4d2 — 첨부파일 없음, 33자
+[20260802-18:39:51][BE] [RAG] 학습 제외 후 학습할 게시글이 없습니다.
+[20260802-18:39:51][BE] [ATTACH-REF] sync ownerType=post ownerId=e29f598b-16f3-4e04-9be4-566702d3515a actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260802-18:39:51][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
+[20260802-18:39:52][BE] /home/freegear/EasyDocStation/server/rag_train.py:125: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260802-18:39:52][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260802-18:39:56][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v3' already exists
+[20260802-18:39:56][BE] [RAG] 기존 청크 삭제 완료: post_id=e29f598b-16f3-4e04-9be4-566702d3515a
+[20260802-18:40:01][BE] [RAG] post=e29f598b-16f3-4e04-9be4-566702d3515a text → 19청크
+[20260802-18:40:01][BE] [RAG] 학습 진행률: 50% (게시글 본문)
+[20260802-18:40:01][BE] [RAG] 저장 완료 — 19청크 / 1개 게시글 / 0개 댓글 / 0개 폴더문서
+[20260802-18:40:01][BE] [RAG] 학습 진행률: 100% (저장)
+[20260802-18:40:02][BE] [RAG] 학습 완료
+[20260802-18:40:18][BE] [RAG] post=e29f598b-16f3-4e04-9be4-566702d3515a text → 19청크
+[20260802-18:40:18][BE] [RAG] 학습 진행률: 50% (게시글 본문)
+[20260802-18:40:18][BE] [RAG] 저장 완료 — 19청크 / 1개 게시글 / 0개 댓글 / 0개 폴더문서
+[20260802-18:40:18][BE] [RAG] 학습 진행률: 100% (저장)
+[20260802-18:40:19][BE] [RAG] 학습 완료
+[20260802-18:40:22][BE] [ATTACH-REF] sync ownerType=post ownerId=f6c49f1e-c5a3-4f21-a928-2339829fefdc actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260802-18:40:22][BE] [RAG] 학습 제외 (게시글): f6c49f1e-c5a3-4f21-a928-2339829fefdc — 첨부파일 없음, 42자
+[20260802-18:40:22][BE] [RAG] 학습 제외 후 학습할 게시글이 없습니다.
+[20260802-18:40:22][BE] [ATTACH-REF] sync ownerType=post ownerId=e29f598b-16f3-4e04-9be4-566702d3515a actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260802-18:40:22][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
+[20260802-18:40:22][BE] /home/freegear/EasyDocStation/server/rag_train.py:125: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260802-18:40:22][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260802-18:40:25][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v3' already exists
+[20260802-18:40:25][BE] [RAG] 기존 청크 삭제 완료: post_id=e29f598b-16f3-4e04-9be4-566702d3515a
+[20260802-18:40:38][BE] [ATTACH-REF] sync ownerType=post ownerId=f6c49f1e-c5a3-4f21-a928-2339829fefdc actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260802-18:40:38][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
+[20260802-18:40:38][BE] /home/freegear/EasyDocStation/server/rag_train.py:125: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260802-18:40:38][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260802-18:40:42][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v3' already exists
+[20260802-18:40:42][BE] [RAG] 기존 청크 삭제 완료: post_id=f6c49f1e-c5a3-4f21-a928-2339829fefdc
+[20260802-18:40:43][BE] [ATTACH-REF] sync ownerType=post ownerId=6c106a1e-1b48-4801-80ac-e2b77f983397 actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260802-18:40:43][BE] [RAG] 학습 제외 (게시글): 6c106a1e-1b48-4801-80ac-e2b77f983397 — 첨부파일 없음, 33자
+[20260802-18:40:43][BE] [RAG] 학습 제외 후 학습할 게시글이 없습니다.
+[20260802-18:40:43][BE] [ATTACH-REF] sync ownerType=post ownerId=f6c49f1e-c5a3-4f21-a928-2339829fefdc actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260802-18:40:43][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
+[20260802-18:40:43][BE] /home/freegear/EasyDocStation/server/rag_train.py:125: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260802-18:40:43][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260802-18:40:43][BE] [RAG] post=e29f598b-16f3-4e04-9be4-566702d3515a text → 19청크
+[20260802-18:40:43][BE] [RAG] 학습 진행률: 50% (게시글 본문)
+[20260802-18:40:43][BE] [RAG] 저장 완료 — 19청크 / 1개 게시글 / 0개 댓글 / 0개 폴더문서
+[20260802-18:40:43][BE] [RAG] 학습 진행률: 100% (저장)
+[20260802-18:40:44][BE] [RAG] 학습 완료
+[20260802-18:40:45][BE] [RAG] post=f6c49f1e-c5a3-4f21-a928-2339829fefdc text → 3청크
+[20260802-18:40:45][BE] [RAG] 학습 진행률: 50% (게시글 본문)
+[20260802-18:40:45][BE] [RAG] 저장 완료 — 3청크 / 1개 게시글 / 0개 댓글 / 0개 폴더문서
+[20260802-18:40:45][BE] [RAG] 학습 진행률: 100% (저장)
+[20260802-18:40:46][BE] [RAG] 학습 완료
+[20260802-18:40:46][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v3' already exists
+[20260802-18:40:46][BE] [RAG] 기존 청크 삭제 완료: post_id=f6c49f1e-c5a3-4f21-a928-2339829fefdc
+[20260802-18:40:48][BE] [RAG] post=f6c49f1e-c5a3-4f21-a928-2339829fefdc text → 3청크
+[20260802-18:40:48][BE] [RAG] 학습 진행률: 50% (게시글 본문)
+[20260802-18:40:48][BE] [RAG] 저장 완료 — 3청크 / 1개 게시글 / 0개 댓글 / 0개 폴더문서
+[20260802-18:40:48][BE] [RAG] 학습 진행률: 100% (저장)
+[20260802-18:40:49][BE] [RAG] 학습 완료
+[20260802-18:41:03][BE] [ATTACH-REF] sync ownerType=post ownerId=6c106a1e-1b48-4801-80ac-e2b77f983397 actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260802-18:41:03][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
+[20260802-18:41:03][BE] /home/freegear/EasyDocStation/server/rag_train.py:125: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260802-18:41:03][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260802-18:41:06][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v3' already exists
+[20260802-18:41:06][BE] [RAG] 기존 청크 삭제 완료: post_id=6c106a1e-1b48-4801-80ac-e2b77f983397
+[20260802-18:41:06][BE] [RAG] post=6c106a1e-1b48-4801-80ac-e2b77f983397 text → 3청크
+[20260802-18:41:06][BE] [RAG] 학습 진행률: 50% (게시글 본문)
+[20260802-18:41:06][BE] [RAG] 저장 완료 — 3청크 / 1개 게시글 / 0개 댓글 / 0개 폴더문서
+[20260802-18:41:06][BE] [RAG] 학습 진행률: 100% (저장)
+[20260802-18:41:07][BE] [RAG] 학습 완료
+[20260802-18:41:16][BE] [ATTACH-REF] sync ownerType=post ownerId=1c9bdd34-46df-4e46-9cc3-e79963f9bdd9 actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260802-18:41:16][BE] [RAG] 학습 제외 (게시글): 1c9bdd34-46df-4e46-9cc3-e79963f9bdd9 — 첨부파일 없음, 28자
+[20260802-18:41:16][BE] [RAG] 학습 제외 후 학습할 게시글이 없습니다.
+[20260802-18:41:16][BE] [ATTACH-REF] sync ownerType=post ownerId=f6c49f1e-c5a3-4f21-a928-2339829fefdc actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260802-18:41:16][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
+[20260802-18:41:16][BE] /home/freegear/EasyDocStation/server/rag_train.py:125: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260802-18:41:16][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260802-18:41:19][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v3' already exists
+[20260802-18:41:19][BE] [RAG] 기존 청크 삭제 완료: post_id=f6c49f1e-c5a3-4f21-a928-2339829fefdc
+[20260802-18:41:20][BE] [RAG] post=f6c49f1e-c5a3-4f21-a928-2339829fefdc text → 3청크
+[20260802-18:41:20][BE] [RAG] 학습 진행률: 50% (게시글 본문)
+[20260802-18:41:20][BE] [RAG] 저장 완료 — 3청크 / 1개 게시글 / 0개 댓글 / 0개 폴더문서
+[20260802-18:41:20][BE] [RAG] 학습 진행률: 100% (저장)
+[20260802-18:41:21][BE] [RAG] 학습 완료
+[20260802-18:41:30][BE] [ATTACH-REF] sync ownerType=post ownerId=1c9bdd34-46df-4e46-9cc3-e79963f9bdd9 actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260802-18:41:30][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
+[20260802-18:41:30][BE] /home/freegear/EasyDocStation/server/rag_train.py:125: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260802-18:41:30][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260802-18:41:33][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v3' already exists
+[20260802-18:41:33][BE] [RAG] 기존 청크 삭제 완료: post_id=1c9bdd34-46df-4e46-9cc3-e79963f9bdd9
+[20260802-18:41:33][BE] [RAG] post=1c9bdd34-46df-4e46-9cc3-e79963f9bdd9 text → 3청크
+[20260802-18:41:33][BE] [RAG] 학습 진행률: 50% (게시글 본문)
+[20260802-18:41:33][BE] [RAG] 저장 완료 — 3청크 / 1개 게시글 / 0개 댓글 / 0개 폴더문서
+[20260802-18:41:33][BE] [RAG] 학습 진행률: 100% (저장)
+[20260802-18:41:34][BE] [RAG] 학습 완료
+[20260802-18:41:40][BE] [ATTACH-REF] sync ownerType=post ownerId=504dea01-3598-4d22-a7f5-4b16da900421 actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260802-18:41:40][BE] [RAG] 학습 제외 (게시글): 504dea01-3598-4d22-a7f5-4b16da900421 — 첨부파일 없음, 24자
+[20260802-18:41:40][BE] [RAG] 학습 제외 후 학습할 게시글이 없습니다.
+[20260802-18:41:40][BE] [ATTACH-REF] sync ownerType=post ownerId=f6c49f1e-c5a3-4f21-a928-2339829fefdc actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260802-18:41:40][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
+[20260802-18:41:41][BE] /home/freegear/EasyDocStation/server/rag_train.py:125: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260802-18:41:41][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260802-18:41:44][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v3' already exists
+[20260802-18:41:44][BE] [RAG] 기존 청크 삭제 완료: post_id=f6c49f1e-c5a3-4f21-a928-2339829fefdc
+[20260802-18:41:45][BE] [RAG] post=f6c49f1e-c5a3-4f21-a928-2339829fefdc text → 3청크
+[20260802-18:41:45][BE] [RAG] 학습 진행률: 50% (게시글 본문)
+[20260802-18:41:45][BE] [RAG] 저장 완료 — 3청크 / 1개 게시글 / 0개 댓글 / 0개 폴더문서
+[20260802-18:41:45][BE] [RAG] 학습 진행률: 100% (저장)
+[20260802-18:41:46][BE] [RAG] 학습 완료
+[20260802-18:41:55][BE] [ATTACH-REF] sync ownerType=post ownerId=504dea01-3598-4d22-a7f5-4b16da900421 actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260802-18:41:55][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
+[20260802-18:41:55][BE] /home/freegear/EasyDocStation/server/rag_train.py:125: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260802-18:41:55][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260802-18:41:58][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v3' already exists
+[20260802-18:41:58][BE] [RAG] 기존 청크 삭제 완료: post_id=504dea01-3598-4d22-a7f5-4b16da900421
+[20260802-18:41:58][BE] [RAG] post=504dea01-3598-4d22-a7f5-4b16da900421 text → 3청크
+[20260802-18:41:58][BE] [RAG] 학습 진행률: 50% (게시글 본문)
+[20260802-18:41:58][BE] [RAG] 저장 완료 — 3청크 / 1개 게시글 / 0개 댓글 / 0개 폴더문서
+[20260802-18:41:58][BE] [RAG] 학습 진행률: 100% (저장)
+[20260802-18:41:59][BE] [RAG] 학습 완료
+[20260802-18:42:09][BE] [ATTACH-REF] sync ownerType=post ownerId=bf5e7d50-06a6-41ac-a0a0-098acd0b29e3 actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260802-18:42:09][BE] [RAG] 학습 제외 (게시글): bf5e7d50-06a6-41ac-a0a0-098acd0b29e3 — 첨부파일 없음, 56자
+[20260802-18:42:09][BE] [RAG] 학습 제외 후 학습할 게시글이 없습니다.
+[20260802-18:42:09][BE] [ATTACH-REF] sync ownerType=post ownerId=f6c49f1e-c5a3-4f21-a928-2339829fefdc actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260802-18:42:09][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
+[20260802-18:42:10][BE] /home/freegear/EasyDocStation/server/rag_train.py:125: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260802-18:42:10][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260802-18:42:13][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v3' already exists
+[20260802-18:42:13][BE] [RAG] 기존 청크 삭제 완료: post_id=f6c49f1e-c5a3-4f21-a928-2339829fefdc
+[20260802-18:42:13][BE] [RAG] post=f6c49f1e-c5a3-4f21-a928-2339829fefdc text → 3청크
+[20260802-18:42:13][BE] [RAG] 학습 진행률: 50% (게시글 본문)
+[20260802-18:42:13][BE] [RAG] 저장 완료 — 3청크 / 1개 게시글 / 0개 댓글 / 0개 폴더문서
+[20260802-18:42:13][BE] [RAG] 학습 진행률: 100% (저장)
+[20260802-18:42:14][BE] [RAG] 학습 완료
+[20260802-18:42:19][BE] [ATTACH-REF] sync ownerType=post ownerId=bf5e7d50-06a6-41ac-a0a0-098acd0b29e3 actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260802-18:42:19][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
+[20260802-18:42:19][BE] /home/freegear/EasyDocStation/server/rag_train.py:125: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260802-18:42:19][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260802-18:42:22][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v3' already exists
+[20260802-18:42:22][BE] [RAG] 기존 청크 삭제 완료: post_id=bf5e7d50-06a6-41ac-a0a0-098acd0b29e3
+[20260802-18:42:22][BE] [RAG] post=bf5e7d50-06a6-41ac-a0a0-098acd0b29e3 text → 3청크
+[20260802-18:42:22][BE] [RAG] 학습 진행률: 50% (게시글 본문)
+[20260802-18:42:22][BE] [RAG] 저장 완료 — 3청크 / 1개 게시글 / 0개 댓글 / 0개 폴더문서
+[20260802-18:42:22][BE] [RAG] 학습 진행률: 100% (저장)
+[20260802-18:42:23][BE] [RAG] 학습 완료
+[20260802-18:43:56][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260802-18:44:02][BE] [link-preview-image] meta image failed, fallback screenshot: meta page fetch failed (401)
+[20260802-18:44:13][BE] [ATTACH-REF] sync ownerType=post ownerId=e29f598b-16f3-4e04-9be4-566702d3515a actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260802-18:44:13][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
+[20260802-18:44:13][BE] /home/freegear/EasyDocStation/server/rag_train.py:125: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260802-18:44:13][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260802-18:44:15][BE] [ATTACH-REF] sync ownerType=post ownerId=e29f598b-16f3-4e04-9be4-566702d3515a actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260802-18:44:15][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
+[20260802-18:44:15][BE] /home/freegear/EasyDocStation/server/rag_train.py:125: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260802-18:44:15][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260802-18:44:16][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v3' already exists
+[20260802-18:44:16][BE] [RAG] 기존 청크 삭제 완료: post_id=e29f598b-16f3-4e04-9be4-566702d3515a
+[20260802-18:44:19][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v3' already exists
+[20260802-18:44:19][BE] [RAG] 기존 청크 삭제 완료: post_id=e29f598b-16f3-4e04-9be4-566702d3515a
+[20260802-18:44:33][BE] [RAG] post=e29f598b-16f3-4e04-9be4-566702d3515a text → 19청크
+[20260802-18:44:33][BE] [RAG] 학습 진행률: 50% (게시글 본문)
+[20260802-18:44:33][BE] [RAG] 저장 완료 — 19청크 / 1개 게시글 / 0개 댓글 / 0개 폴더문서
+[20260802-18:44:33][BE] [RAG] 학습 진행률: 100% (저장)
+[20260802-18:44:35][BE] [RAG] 학습 완료
+[20260802-18:44:51][BE] [RAG] post=e29f598b-16f3-4e04-9be4-566702d3515a text → 19청크
+[20260802-18:44:51][BE] [RAG] 학습 진행률: 50% (게시글 본문)
+[20260802-18:44:51][BE] [RAG] 저장 완료 — 19청크 / 1개 게시글 / 0개 댓글 / 0개 폴더문서
+[20260802-18:44:51][BE] [RAG] 학습 진행률: 100% (저장)
+[20260802-18:44:52][BE] [RAG] 학습 완료
+[20260802-18:45:08][BE] [ATTACH-REF] sync ownerType=post ownerId=e29f598b-16f3-4e04-9be4-566702d3515a actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260802-18:45:08][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
+[20260802-18:45:08][BE] /home/freegear/EasyDocStation/server/rag_train.py:125: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260802-18:45:08][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260802-18:45:11][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v3' already exists
+[20260802-18:45:11][BE] [RAG] 기존 청크 삭제 완료: post_id=e29f598b-16f3-4e04-9be4-566702d3515a
+[20260802-18:45:13][BE] [ATTACH-REF] sync ownerType=post ownerId=e29f598b-16f3-4e04-9be4-566702d3515a actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260802-18:45:13][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
+[20260802-18:45:13][BE] /home/freegear/EasyDocStation/server/rag_train.py:125: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260802-18:45:13][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260802-18:45:18][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v3' already exists
+[20260802-18:45:18][BE] [RAG] 기존 청크 삭제 완료: post_id=e29f598b-16f3-4e04-9be4-566702d3515a
+[20260802-18:45:19][BE] [ATTACH-REF] sync ownerType=post ownerId=e29f598b-16f3-4e04-9be4-566702d3515a actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260802-18:45:19][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
+[20260802-18:45:19][BE] /home/freegear/EasyDocStation/server/rag_train.py:125: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260802-18:45:19][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260802-18:45:23][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v3' already exists
+[20260802-18:45:23][BE] [RAG] 기존 청크 삭제 완료: post_id=e29f598b-16f3-4e04-9be4-566702d3515a
+[20260802-18:45:29][BE] [RAG] post=e29f598b-16f3-4e04-9be4-566702d3515a text → 19청크
+[20260802-18:45:29][BE] [RAG] 학습 진행률: 50% (게시글 본문)
+[20260802-18:45:29][BE] [RAG] 저장 완료 — 19청크 / 1개 게시글 / 0개 댓글 / 0개 폴더문서
+[20260802-18:45:29][BE] [RAG] 학습 진행률: 100% (저장)
+[20260802-18:45:30][BE] [RAG] 학습 완료
+[20260802-18:45:46][BE] [RAG] post=e29f598b-16f3-4e04-9be4-566702d3515a text → 19청크
+[20260802-18:45:46][BE] [RAG] 학습 진행률: 50% (게시글 본문)
+[20260802-18:45:46][BE] [RAG] 저장 완료 — 19청크 / 1개 게시글 / 0개 댓글 / 0개 폴더문서
+[20260802-18:45:46][BE] [RAG] 학습 진행률: 100% (저장)
+[20260802-18:45:48][BE] [RAG] 학습 완료
+[20260802-18:45:54][BE] [ATTACH-REF] sync ownerType=post ownerId=a87b3dfe-ecbf-4df2-8fd1-7c615e24432f actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260802-18:45:54][BE] [RAG] 학습 제외 (게시글): a87b3dfe-ecbf-4df2-8fd1-7c615e24432f — 첨부파일 없음, 44자
+[20260802-18:45:54][BE] [RAG] 학습 제외 후 학습할 게시글이 없습니다.
+[20260802-18:45:54][BE] [ATTACH-REF] sync ownerType=post ownerId=e29f598b-16f3-4e04-9be4-566702d3515a actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260802-18:45:54][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
+[20260802-18:45:55][BE] /home/freegear/EasyDocStation/server/rag_train.py:125: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260802-18:45:55][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260802-18:45:59][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v3' already exists
+[20260802-18:45:59][BE] [RAG] 기존 청크 삭제 완료: post_id=e29f598b-16f3-4e04-9be4-566702d3515a
+[20260802-18:46:04][BE] [RAG] post=e29f598b-16f3-4e04-9be4-566702d3515a text → 18청크
+[20260802-18:46:04][BE] [RAG] 학습 진행률: 50% (게시글 본문)
+[20260802-18:46:04][BE] [RAG] 저장 완료 — 18청크 / 1개 게시글 / 0개 댓글 / 0개 폴더문서
+[20260802-18:46:04][BE] [RAG] 학습 진행률: 100% (저장)
+[20260802-18:46:06][BE] [RAG] 학습 완료
+[20260802-18:46:22][BE] [RAG] post=e29f598b-16f3-4e04-9be4-566702d3515a text → 19청크
+[20260802-18:46:22][BE] [RAG] 학습 진행률: 50% (게시글 본문)
+[20260802-18:46:22][BE] [RAG] 저장 완료 — 19청크 / 1개 게시글 / 0개 댓글 / 0개 폴더문서
+[20260802-18:46:22][BE] [RAG] 학습 진행률: 100% (저장)
+[20260802-18:46:23][BE] [RAG] 학습 완료
+[20260802-18:46:32][BE] [ATTACH-REF] sync ownerType=post ownerId=e29f598b-16f3-4e04-9be4-566702d3515a actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260802-18:46:32][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
+[20260802-18:46:33][BE] /home/freegear/EasyDocStation/server/rag_train.py:125: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260802-18:46:33][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260802-18:46:36][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v3' already exists
+[20260802-18:46:36][BE] [RAG] 기존 청크 삭제 완료: post_id=e29f598b-16f3-4e04-9be4-566702d3515a
+[20260802-18:46:49][BE] [ATTACH-REF] sync ownerType=post ownerId=4a626538-133e-467b-bbc3-d97bd71b5636 actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260802-18:46:49][BE] [RAG] 학습 제외 (게시글): 4a626538-133e-467b-bbc3-d97bd71b5636 — 첨부파일 없음, 39자
+[20260802-18:46:49][BE] [RAG] 학습 제외 후 학습할 게시글이 없습니다.
+[20260802-18:46:49][BE] [ATTACH-REF] sync ownerType=post ownerId=e29f598b-16f3-4e04-9be4-566702d3515a actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260802-18:46:49][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
+[20260802-18:46:49][BE] /home/freegear/EasyDocStation/server/rag_train.py:125: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260802-18:46:49][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260802-18:46:53][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v3' already exists
+[20260802-18:46:53][BE] [RAG] 기존 청크 삭제 완료: post_id=e29f598b-16f3-4e04-9be4-566702d3515a
+[20260802-18:46:53][BE] [RAG] post=e29f598b-16f3-4e04-9be4-566702d3515a text → 18청크
+[20260802-18:46:53][BE] [RAG] 학습 진행률: 50% (게시글 본문)
+[20260802-18:46:53][BE] [RAG] 저장 완료 — 18청크 / 1개 게시글 / 0개 댓글 / 0개 폴더문서
+[20260802-18:46:53][BE] [RAG] 학습 진행률: 100% (저장)
+[20260802-18:46:55][BE] [RAG] 학습 완료
+[20260802-18:47:01][BE] [ATTACH-REF] sync ownerType=post ownerId=e29f598b-16f3-4e04-9be4-566702d3515a actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260802-18:47:01][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
+[20260802-18:47:01][BE] /home/freegear/EasyDocStation/server/rag_train.py:125: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260802-18:47:01][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260802-18:47:04][BE] [ATTACH-REF] sync ownerType=post ownerId=4a626538-133e-467b-bbc3-d97bd71b5636 actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260802-18:47:04][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
+[20260802-18:47:04][BE] /home/freegear/EasyDocStation/server/rag_train.py:125: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260802-18:47:04][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260802-18:47:06][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v3' already exists
+[20260802-18:47:06][BE] [RAG] 기존 청크 삭제 완료: post_id=e29f598b-16f3-4e04-9be4-566702d3515a
+[20260802-18:47:08][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v3' already exists
+[20260802-18:47:08][BE] [RAG] 기존 청크 삭제 완료: post_id=4a626538-133e-467b-bbc3-d97bd71b5636
+[20260802-18:47:11][BE] [RAG] post=e29f598b-16f3-4e04-9be4-566702d3515a text → 18청크
+[20260802-18:47:11][BE] [RAG] 학습 진행률: 50% (게시글 본문)
+[20260802-18:47:11][BE] [RAG] 저장 완료 — 18청크 / 1개 게시글 / 0개 댓글 / 0개 폴더문서
+[20260802-18:47:11][BE] [RAG] 학습 진행률: 100% (저장)
+[20260802-18:47:13][BE] [RAG] 학습 완료
+[20260802-18:47:24][BE] [ATTACH-REF] sync ownerType=post ownerId=23b3ef84-a3af-4bf4-8a56-0f348a01139e actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260802-18:47:24][BE] [RAG] 학습 제외 (게시글): 23b3ef84-a3af-4bf4-8a56-0f348a01139e — 첨부파일 없음, 30자
+[20260802-18:47:24][BE] [RAG] 학습 제외 후 학습할 게시글이 없습니다.
+[20260802-18:47:24][BE] [ATTACH-REF] sync ownerType=post ownerId=e29f598b-16f3-4e04-9be4-566702d3515a actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260802-18:47:24][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
+[20260802-18:47:24][BE] /home/freegear/EasyDocStation/server/rag_train.py:125: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260802-18:47:24][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260802-18:47:28][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v3' already exists
+[20260802-18:47:28][BE] [RAG] 기존 청크 삭제 완료: post_id=e29f598b-16f3-4e04-9be4-566702d3515a
+[20260802-18:47:29][BE] [RAG] post=e29f598b-16f3-4e04-9be4-566702d3515a text → 17청크
+[20260802-18:47:29][BE] [RAG] 학습 진행률: 50% (게시글 본문)
+[20260802-18:47:29][BE] [RAG] 저장 완료 — 17청크 / 1개 게시글 / 0개 댓글 / 0개 폴더문서
+[20260802-18:47:29][BE] [RAG] 학습 진행률: 100% (저장)
+[20260802-18:47:30][BE] [RAG] post=4a626538-133e-467b-bbc3-d97bd71b5636 text → 3청크
+[20260802-18:47:30][BE] [RAG] 학습 진행률: 50% (게시글 본문)
+[20260802-18:47:30][BE] [RAG] 저장 완료 — 3청크 / 1개 게시글 / 0개 댓글 / 0개 폴더문서
+[20260802-18:47:30][BE] [RAG] 학습 진행률: 100% (저장)
+[20260802-18:47:30][BE] [RAG] 학습 완료
+[20260802-18:47:32][BE] [RAG] 학습 완료
+[20260802-18:47:33][BE] [ATTACH-REF] sync ownerType=post ownerId=e29f598b-16f3-4e04-9be4-566702d3515a actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260802-18:47:33][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
+[20260802-18:47:33][BE] /home/freegear/EasyDocStation/server/rag_train.py:125: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260802-18:47:33][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260802-18:47:36][BE] [ATTACH-REF] sync ownerType=post ownerId=23b3ef84-a3af-4bf4-8a56-0f348a01139e actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260802-18:47:36][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
+[20260802-18:47:36][BE] /home/freegear/EasyDocStation/server/rag_train.py:125: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260802-18:47:36][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260802-18:47:37][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v3' already exists
+[20260802-18:47:38][BE] [RAG] 기존 청크 삭제 완료: post_id=e29f598b-16f3-4e04-9be4-566702d3515a
+[20260802-18:47:40][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v3' already exists
+[20260802-18:47:40][BE] [RAG] 기존 청크 삭제 완료: post_id=23b3ef84-a3af-4bf4-8a56-0f348a01139e
+[20260802-18:47:42][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260802-18:47:48][BE] [RAG] post=e29f598b-16f3-4e04-9be4-566702d3515a text → 17청크
+[20260802-18:47:48][BE] [RAG] 학습 진행률: 50% (게시글 본문)
+[20260802-18:47:48][BE] [RAG] 저장 완료 — 17청크 / 1개 게시글 / 0개 댓글 / 0개 폴더문서
+[20260802-18:47:48][BE] [RAG] 학습 진행률: 100% (저장)
+[20260802-18:47:50][BE] [RAG] 학습 완료
+[20260802-18:48:06][BE] [RAG] post=e29f598b-16f3-4e04-9be4-566702d3515a text → 16청크
+[20260802-18:48:06][BE] [RAG] 학습 진행률: 50% (게시글 본문)
+[20260802-18:48:06][BE] [RAG] 저장 완료 — 16청크 / 1개 게시글 / 0개 댓글 / 0개 폴더문서
+[20260802-18:48:06][BE] [RAG] 학습 진행률: 100% (저장)
+[20260802-18:48:06][BE] [RAG] post=23b3ef84-a3af-4bf4-8a56-0f348a01139e text → 3청크
+[20260802-18:48:06][BE] [RAG] 학습 진행률: 50% (게시글 본문)
+[20260802-18:48:06][BE] [RAG] 저장 완료 — 3청크 / 1개 게시글 / 0개 댓글 / 0개 폴더문서
+[20260802-18:48:06][BE] [RAG] 학습 진행률: 100% (저장)
+[20260802-18:48:07][BE] [RAG] 학습 완료
+[20260802-18:48:07][BE] [RAG] 학습 완료
+[20260802-18:48:10][BE] [ATTACH-REF] sync ownerType=post ownerId=e29f598b-16f3-4e04-9be4-566702d3515a actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260802-18:48:10][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
+[20260802-18:48:10][BE] /home/freegear/EasyDocStation/server/rag_train.py:125: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260802-18:48:10][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260802-18:48:13][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v3' already exists
+[20260802-18:48:13][BE] [RAG] 기존 청크 삭제 완료: post_id=e29f598b-16f3-4e04-9be4-566702d3515a
+[20260802-18:48:14][BE] [ATTACH-REF] sync ownerType=post ownerId=a87b3dfe-ecbf-4df2-8fd1-7c615e24432f actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260802-18:48:14][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
+[20260802-18:48:14][BE] /home/freegear/EasyDocStation/server/rag_train.py:125: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260802-18:48:14][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260802-18:48:19][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v3' already exists
+[20260802-18:48:19][BE] [RAG] 기존 청크 삭제 완료: post_id=a87b3dfe-ecbf-4df2-8fd1-7c615e24432f
+[20260802-18:48:31][BE] [RAG] post=e29f598b-16f3-4e04-9be4-566702d3515a text → 16청크
+[20260802-18:48:31][BE] [RAG] 학습 진행률: 50% (게시글 본문)
+[20260802-18:48:31][BE] [RAG] 저장 완료 — 16청크 / 1개 게시글 / 0개 댓글 / 0개 폴더문서
+[20260802-18:48:31][BE] [RAG] 학습 진행률: 100% (저장)
+[20260802-18:48:31][BE] [RAG] post=a87b3dfe-ecbf-4df2-8fd1-7c615e24432f text → 3청크
+[20260802-18:48:31][BE] [RAG] 학습 진행률: 50% (게시글 본문)
+[20260802-18:48:31][BE] [RAG] 저장 완료 — 3청크 / 1개 게시글 / 0개 댓글 / 0개 폴더문서
+[20260802-18:48:31][BE] [RAG] 학습 진행률: 100% (저장)
+[20260802-18:48:32][BE] [RAG] 학습 완료
+[20260802-18:48:32][BE] [RAG] 학습 완료
+[20260802-18:48:33][BE] [ATTACH-REF] sync ownerType=post ownerId=a87b3dfe-ecbf-4df2-8fd1-7c615e24432f actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260802-18:48:33][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
+[20260802-18:48:33][BE] /home/freegear/EasyDocStation/server/rag_train.py:125: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260802-18:48:33][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260802-18:48:37][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v3' already exists
+[20260802-18:48:37][BE] [RAG] 기존 청크 삭제 완료: post_id=a87b3dfe-ecbf-4df2-8fd1-7c615e24432f
+[20260802-18:48:38][BE] [RAG] post=a87b3dfe-ecbf-4df2-8fd1-7c615e24432f text → 3청크
+[20260802-18:48:38][BE] [RAG] 학습 진행률: 50% (게시글 본문)
+[20260802-18:48:38][BE] [RAG] 저장 완료 — 3청크 / 1개 게시글 / 0개 댓글 / 0개 폴더문서
+[20260802-18:48:38][BE] [RAG] 학습 진행률: 100% (저장)
+[20260802-18:48:39][BE] [RAG] 학습 완료
+[20260802-18:48:40][BE] [ATTACH-REF] sync ownerType=post ownerId=d5b69d39-5141-4baf-8373-55db216fa015 actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260802-18:48:40][BE] [RAG] 학습 제외 (게시글): d5b69d39-5141-4baf-8373-55db216fa015 — 첨부파일 없음, 32자
+[20260802-18:48:40][BE] [RAG] 학습 제외 후 학습할 게시글이 없습니다.
+[20260802-18:48:40][BE] [ATTACH-REF] sync ownerType=post ownerId=a87b3dfe-ecbf-4df2-8fd1-7c615e24432f actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260802-18:48:40][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
+[20260802-18:48:40][BE] /home/freegear/EasyDocStation/server/rag_train.py:125: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260802-18:48:40][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260802-18:48:43][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v3' already exists
+[20260802-18:48:43][BE] [RAG] 기존 청크 삭제 완료: post_id=a87b3dfe-ecbf-4df2-8fd1-7c615e24432f
+[20260802-18:48:44][BE] [ATTACH-REF] sync ownerType=post ownerId=0062b4c4-5511-4bd9-90df-97b4d7cd5d04 actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260802-18:48:44][BE] [RAG] 학습 제외 (게시글): 0062b4c4-5511-4bd9-90df-97b4d7cd5d04 — 첨부파일 없음, 28자
+[20260802-18:48:44][BE] [RAG] 학습 제외 후 학습할 게시글이 없습니다.
+[20260802-18:48:44][BE] [ATTACH-REF] sync ownerType=post ownerId=a87b3dfe-ecbf-4df2-8fd1-7c615e24432f actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260802-18:48:44][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
+[20260802-18:48:44][BE] /home/freegear/EasyDocStation/server/rag_train.py:125: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260802-18:48:44][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260802-18:48:44][BE] [RAG] post=a87b3dfe-ecbf-4df2-8fd1-7c615e24432f text → 3청크
+[20260802-18:48:44][BE] [RAG] 학습 진행률: 50% (게시글 본문)
+[20260802-18:48:44][BE] [RAG] 저장 완료 — 3청크 / 1개 게시글 / 0개 댓글 / 0개 폴더문서
+[20260802-18:48:44][BE] [RAG] 학습 진행률: 100% (저장)
+[20260802-18:48:45][BE] [RAG] 학습 완료
+[20260802-18:48:47][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v3' already exists
+[20260802-18:48:47][BE] [RAG] 기존 청크 삭제 완료: post_id=a87b3dfe-ecbf-4df2-8fd1-7c615e24432f
+[20260802-18:48:48][BE] [RAG] post=a87b3dfe-ecbf-4df2-8fd1-7c615e24432f text → 3청크
+[20260802-18:48:48][BE] [RAG] 학습 진행률: 50% (게시글 본문)
+[20260802-18:48:48][BE] [RAG] 저장 완료 — 3청크 / 1개 게시글 / 0개 댓글 / 0개 폴더문서
+[20260802-18:48:48][BE] [RAG] 학습 진행률: 100% (저장)
+[20260802-18:48:49][BE] [ATTACH-REF] sync ownerType=post ownerId=a87b3dfe-ecbf-4df2-8fd1-7c615e24432f actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260802-18:48:49][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
+[20260802-18:48:49][BE] /home/freegear/EasyDocStation/server/rag_train.py:125: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260802-18:48:49][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260802-18:48:49][BE] [RAG] 학습 완료
+[20260802-18:48:52][BE] [ATTACH-REF] sync ownerType=post ownerId=0062b4c4-5511-4bd9-90df-97b4d7cd5d04 actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260802-18:48:52][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
+[20260802-18:48:52][BE] /home/freegear/EasyDocStation/server/rag_train.py:125: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260802-18:48:52][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260802-18:48:52][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v3' already exists
+[20260802-18:48:52][BE] [RAG] 기존 청크 삭제 완료: post_id=a87b3dfe-ecbf-4df2-8fd1-7c615e24432f
+[20260802-18:48:53][BE] [RAG] post=a87b3dfe-ecbf-4df2-8fd1-7c615e24432f text → 3청크
+[20260802-18:48:53][BE] [RAG] 학습 진행률: 50% (게시글 본문)
+[20260802-18:48:53][BE] [RAG] 저장 완료 — 3청크 / 1개 게시글 / 0개 댓글 / 0개 폴더문서
+[20260802-18:48:53][BE] [RAG] 학습 진행률: 100% (저장)
+[20260802-18:48:54][BE] [RAG] 학습 완료
+[20260802-18:48:55][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v3' already exists
+[20260802-18:48:55][BE] [RAG] 기존 청크 삭제 완료: post_id=0062b4c4-5511-4bd9-90df-97b4d7cd5d04
+[20260802-18:48:56][BE] [RAG] post=0062b4c4-5511-4bd9-90df-97b4d7cd5d04 text → 3청크
+[20260802-18:48:56][BE] [RAG] 학습 진행률: 50% (게시글 본문)
+[20260802-18:48:56][BE] [RAG] 저장 완료 — 3청크 / 1개 게시글 / 0개 댓글 / 0개 폴더문서
+[20260802-18:48:56][BE] [RAG] 학습 진행률: 100% (저장)
+[20260802-18:48:56][BE] [RAG] 학습 완료
+[20260802-18:49:01][BE] [ATTACH-REF] sync ownerType=post ownerId=a87b3dfe-ecbf-4df2-8fd1-7c615e24432f actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260802-18:49:01][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
+[20260802-18:49:01][BE] /home/freegear/EasyDocStation/server/rag_train.py:125: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260802-18:49:01][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260802-18:49:04][BE] [ATTACH-REF] sync ownerType=post ownerId=d5b69d39-5141-4baf-8373-55db216fa015 actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260802-18:49:04][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
+[20260802-18:49:04][BE] /home/freegear/EasyDocStation/server/rag_train.py:125: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260802-18:49:04][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260802-18:49:04][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v3' already exists
+[20260802-18:49:04][BE] [RAG] 기존 청크 삭제 완료: post_id=a87b3dfe-ecbf-4df2-8fd1-7c615e24432f
+[20260802-18:49:05][BE] [RAG] post=a87b3dfe-ecbf-4df2-8fd1-7c615e24432f text → 3청크
+[20260802-18:49:05][BE] [RAG] 학습 진행률: 50% (게시글 본문)
+[20260802-18:49:05][BE] [RAG] 저장 완료 — 3청크 / 1개 게시글 / 0개 댓글 / 0개 폴더문서
+[20260802-18:49:05][BE] [RAG] 학습 진행률: 100% (저장)
+[20260802-18:49:06][BE] [RAG] 학습 완료
+[20260802-18:49:07][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v3' already exists
+[20260802-18:49:07][BE] [RAG] 기존 청크 삭제 완료: post_id=d5b69d39-5141-4baf-8373-55db216fa015
+[20260802-18:49:07][BE] [RAG] post=d5b69d39-5141-4baf-8373-55db216fa015 text → 3청크
+[20260802-18:49:07][BE] [RAG] 학습 진행률: 50% (게시글 본문)
+[20260802-18:49:07][BE] [RAG] 저장 완료 — 3청크 / 1개 게시글 / 0개 댓글 / 0개 폴더문서
+[20260802-18:49:07][BE] [RAG] 학습 진행률: 100% (저장)
+[20260802-18:49:08][BE] [RAG] 학습 완료
+[20260802-18:49:25][BE] [ATTACH-REF] sync ownerType=post ownerId=e29f598b-16f3-4e04-9be4-566702d3515a actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260802-18:49:25][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
+[20260802-18:49:25][BE] /home/freegear/EasyDocStation/server/rag_train.py:125: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260802-18:49:25][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260802-18:49:28][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v3' already exists
+[20260802-18:49:28][BE] [RAG] 기존 청크 삭제 완료: post_id=e29f598b-16f3-4e04-9be4-566702d3515a
+[20260802-18:49:28][BE] [ATTACH-REF] sync ownerType=post ownerId=220a3807-6f20-4e4b-8168-16fab9f63673 actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260802-18:49:29][BE] [RAG] 학습 제외 (게시글): 220a3807-6f20-4e4b-8168-16fab9f63673 — 첨부파일 없음, 45자
+[20260802-18:49:29][BE] [RAG] 학습 제외 후 학습할 게시글이 없습니다.
+[20260802-18:49:29][BE] [ATTACH-REF] sync ownerType=post ownerId=e29f598b-16f3-4e04-9be4-566702d3515a actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260802-18:49:29][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
+[20260802-18:49:29][BE] /home/freegear/EasyDocStation/server/rag_train.py:125: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260802-18:49:29][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260802-18:49:33][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v3' already exists
+[20260802-18:49:33][BE] [RAG] 기존 청크 삭제 완료: post_id=e29f598b-16f3-4e04-9be4-566702d3515a
+[20260802-18:49:38][BE] [ATTACH-REF] sync ownerType=post ownerId=e29f598b-16f3-4e04-9be4-566702d3515a actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260802-18:49:38][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
+[20260802-18:49:38][BE] /home/freegear/EasyDocStation/server/rag_train.py:125: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260802-18:49:38][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260802-18:49:41][BE] [ATTACH-REF] sync ownerType=post ownerId=220a3807-6f20-4e4b-8168-16fab9f63673 actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260802-18:49:41][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
+[20260802-18:49:41][BE] /home/freegear/EasyDocStation/server/rag_train.py:125: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260802-18:49:41][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260802-18:49:42][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v3' already exists
+[20260802-18:49:43][BE] [RAG] 기존 청크 삭제 완료: post_id=e29f598b-16f3-4e04-9be4-566702d3515a
+[20260802-18:49:45][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v3' already exists
+[20260802-18:49:45][BE] [RAG] 기존 청크 삭제 완료: post_id=220a3807-6f20-4e4b-8168-16fab9f63673
+[20260802-18:49:46][BE] [RAG] post=e29f598b-16f3-4e04-9be4-566702d3515a text → 16청크
+[20260802-18:49:46][BE] [RAG] 학습 진행률: 50% (게시글 본문)
+[20260802-18:49:46][BE] [RAG] 저장 완료 — 16청크 / 1개 게시글 / 0개 댓글 / 0개 폴더문서
+[20260802-18:49:46][BE] [RAG] 학습 진행률: 100% (저장)
+[20260802-18:49:47][BE] [ATTACH-REF] sync ownerType=post ownerId=2d3b0e39-7b78-4d42-8859-e7520e423520 actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260802-18:49:47][BE] [RAG] 학습 제외 (게시글): 2d3b0e39-7b78-4d42-8859-e7520e423520 — 첨부파일 없음, 40자
+[20260802-18:49:47][BE] [RAG] 학습 제외 후 학습할 게시글이 없습니다.
+[20260802-18:49:47][BE] [ATTACH-REF] sync ownerType=post ownerId=e29f598b-16f3-4e04-9be4-566702d3515a actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260802-18:49:47][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
+[20260802-18:49:47][BE] /home/freegear/EasyDocStation/server/rag_train.py:125: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260802-18:49:47][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260802-18:49:47][BE] [RAG] 학습 완료
+[20260802-18:49:52][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v3' already exists
+[20260802-18:49:52][BE] [RAG] 기존 청크 삭제 완료: post_id=e29f598b-16f3-4e04-9be4-566702d3515a
+[20260802-18:49:53][BE] [ATTACH-REF] sync ownerType=post ownerId=e29f598b-16f3-4e04-9be4-566702d3515a actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260802-18:49:53][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
+[20260802-18:49:53][BE] /home/freegear/EasyDocStation/server/rag_train.py:125: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260802-18:49:53][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260802-18:49:56][BE] [ATTACH-REF] sync ownerType=post ownerId=2d3b0e39-7b78-4d42-8859-e7520e423520 actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260802-18:49:56][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
+[20260802-18:49:56][BE] /home/freegear/EasyDocStation/server/rag_train.py:125: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260802-18:49:56][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260802-18:49:57][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v3' already exists
+[20260802-18:49:57][BE] [RAG] 기존 청크 삭제 완료: post_id=e29f598b-16f3-4e04-9be4-566702d3515a
+[20260802-18:50:00][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v3' already exists
+[20260802-18:50:01][BE] [RAG] 기존 청크 삭제 완료: post_id=2d3b0e39-7b78-4d42-8859-e7520e423520
+[20260802-18:50:04][BE] [RAG] post=e29f598b-16f3-4e04-9be4-566702d3515a text → 16청크
+[20260802-18:50:04][BE] [RAG] 학습 진행률: 50% (게시글 본문)
+[20260802-18:50:04][BE] [RAG] 저장 완료 — 16청크 / 1개 게시글 / 0개 댓글 / 0개 폴더문서
+[20260802-18:50:04][BE] [RAG] 학습 진행률: 100% (저장)
+[20260802-18:50:04][BE] [ATTACH-REF] sync ownerType=post ownerId=03f7b6eb-a29c-4747-94dd-6865d5e7299d actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260802-18:50:04][BE] [RAG] 학습 제외 (게시글): 03f7b6eb-a29c-4747-94dd-6865d5e7299d — 첨부파일 없음, 36자
+[20260802-18:50:04][BE] [RAG] 학습 제외 후 학습할 게시글이 없습니다.
+[20260802-18:50:05][BE] [ATTACH-REF] sync ownerType=post ownerId=e29f598b-16f3-4e04-9be4-566702d3515a actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260802-18:50:05][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
+[20260802-18:50:05][BE] /home/freegear/EasyDocStation/server/rag_train.py:125: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260802-18:50:05][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260802-18:50:05][BE] [RAG] 학습 완료
+[20260802-18:50:08][BE] [ATTACH-REF] sync ownerType=post ownerId=03f7b6eb-a29c-4747-94dd-6865d5e7299d actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260802-18:50:08][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
+[20260802-18:50:08][BE] /home/freegear/EasyDocStation/server/rag_train.py:125: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260802-18:50:08][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260802-18:50:09][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v3' already exists
+[20260802-18:50:09][BE] [RAG] 기존 청크 삭제 완료: post_id=e29f598b-16f3-4e04-9be4-566702d3515a
+[20260802-18:50:12][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v3' already exists
+[20260802-18:50:12][BE] [RAG] 기존 청크 삭제 완료: post_id=03f7b6eb-a29c-4747-94dd-6865d5e7299d
+[20260802-18:50:13][BE] [ATTACH-REF] sync ownerType=post ownerId=d0da828a-c7ce-4719-ab86-f80121daa246 actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260802-18:50:13][BE] [RAG] 학습 제외 (게시글): d0da828a-c7ce-4719-ab86-f80121daa246 — 첨부파일 없음, 21자
+[20260802-18:50:13][BE] [RAG] 학습 제외 후 학습할 게시글이 없습니다.
+[20260802-18:50:13][BE] [ATTACH-REF] sync ownerType=post ownerId=e29f598b-16f3-4e04-9be4-566702d3515a actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260802-18:50:13][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
+[20260802-18:50:13][BE] /home/freegear/EasyDocStation/server/rag_train.py:125: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260802-18:50:13][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260802-18:50:17][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v3' already exists
+[20260802-18:50:17][BE] [RAG] 기존 청크 삭제 완료: post_id=e29f598b-16f3-4e04-9be4-566702d3515a
+[20260802-18:50:20][BE] [RAG] post=e29f598b-16f3-4e04-9be4-566702d3515a text → 15청크
+[20260802-18:50:20][BE] [RAG] 학습 진행률: 50% (게시글 본문)
+[20260802-18:50:20][BE] [RAG] 저장 완료 — 15청크 / 1개 게시글 / 0개 댓글 / 0개 폴더문서
+[20260802-18:50:20][BE] [RAG] 학습 진행률: 100% (저장)
+[20260802-18:50:21][BE] [RAG] post=220a3807-6f20-4e4b-8168-16fab9f63673 text → 3청크
+[20260802-18:50:21][BE] [RAG] 학습 진행률: 50% (게시글 본문)
+[20260802-18:50:21][BE] [RAG] 저장 완료 — 3청크 / 1개 게시글 / 0개 댓글 / 0개 폴더문서
+[20260802-18:50:21][BE] [RAG] 학습 진행률: 100% (저장)
+[20260802-18:50:22][BE] [RAG] 학습 완료
+[20260802-18:50:23][BE] [RAG] 학습 완료
+[20260802-18:50:30][BE] [ATTACH-REF] sync ownerType=post ownerId=e29f598b-16f3-4e04-9be4-566702d3515a actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260802-18:50:30][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
+[20260802-18:50:30][BE] /home/freegear/EasyDocStation/server/rag_train.py:125: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260802-18:50:30][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260802-18:50:35][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v3' already exists
+[20260802-18:50:35][BE] [RAG] 기존 청크 삭제 완료: post_id=e29f598b-16f3-4e04-9be4-566702d3515a
+[20260802-18:50:36][BE] [ATTACH-REF] sync ownerType=post ownerId=e29f598b-16f3-4e04-9be4-566702d3515a actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260802-18:50:36][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
+[20260802-18:50:36][BE] /home/freegear/EasyDocStation/server/rag_train.py:125: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260802-18:50:36][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260802-18:50:38][BE] [RAG] post=e29f598b-16f3-4e04-9be4-566702d3515a text → 15청크
+[20260802-18:50:38][BE] [RAG] 학습 진행률: 50% (게시글 본문)
+[20260802-18:50:38][BE] [RAG] 저장 완료 — 15청크 / 1개 게시글 / 0개 댓글 / 0개 폴더문서
+[20260802-18:50:38][BE] [RAG] 학습 진행률: 100% (저장)
+[20260802-18:50:39][BE] [ATTACH-REF] sync ownerType=post ownerId=d0da828a-c7ce-4719-ab86-f80121daa246 actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260802-18:50:40][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
+[20260802-18:50:40][BE] /home/freegear/EasyDocStation/server/rag_train.py:125: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260802-18:50:40][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260802-18:50:40][BE] [RAG] 학습 완료
+[20260802-18:50:41][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v3' already exists
+[20260802-18:50:41][BE] [RAG] 기존 청크 삭제 완료: post_id=e29f598b-16f3-4e04-9be4-566702d3515a
+[20260802-18:50:44][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v3' already exists
+[20260802-18:50:44][BE] [RAG] 기존 청크 삭제 완료: post_id=d0da828a-c7ce-4719-ab86-f80121daa246
+[20260802-18:50:53][BE] [RAG] post=e29f598b-16f3-4e04-9be4-566702d3515a text → 14청크
+[20260802-18:50:53][BE] [RAG] 학습 진행률: 50% (게시글 본문)
+[20260802-18:50:53][BE] [RAG] 저장 완료 — 14청크 / 1개 게시글 / 0개 댓글 / 0개 폴더문서
+[20260802-18:50:53][BE] [RAG] 학습 진행률: 100% (저장)
+[20260802-18:50:55][BE] [RAG] 학습 완료
+[20260802-18:50:55][BE] [RAG] post=2d3b0e39-7b78-4d42-8859-e7520e423520 text → 3청크
+[20260802-18:50:55][BE] [RAG] 학습 진행률: 50% (게시글 본문)
+[20260802-18:50:55][BE] [RAG] 저장 완료 — 3청크 / 1개 게시글 / 0개 댓글 / 0개 폴더문서
+[20260802-18:50:55][BE] [RAG] 학습 진행률: 100% (저장)
+[20260802-18:50:56][BE] [RAG] 학습 완료
+[20260802-18:51:10][BE] [RAG Server] [RAG Server] 임베딩 오류: [Errno 32] Broken pipe
+[20260802-18:51:10][BE] [RAG Server ERR] ----------------------------------------
+[20260802-18:51:10][BE] Exception occurred during processing of request from ('127.0.0.1', 37880)
+[20260802-18:51:10][BE] [RAG Server ERR] Traceback (most recent call last):
+[20260802-18:51:10][BE] [RAG Server ERR]   File "/home/freegear/EasyDocStation/server/rag_server.py", line 214, in do_POST
+[20260802-18:51:10][BE]     self._respond(200, {"vectors": vectors.tolist()})
+[20260802-18:51:10][BE]   File "/home/freegear/EasyDocStation/server/rag_server.py", line 363, in _respond
+[20260802-18:51:10][BE]     self.wfile.write(body)
+[20260802-18:51:10][BE]   File "/usr/lib/python3.12/socketserver.py", line 840, in write
+[20260802-18:51:10][BE]     self._sock.sendall(b)
+[20260802-18:51:10][BE] BrokenPipeError: [Errno 32] Broken pipe
+[20260802-18:51:10][BE] 
+[20260802-18:51:10][BE] During handling of the above exception, another exception occurred:
+[20260802-18:51:10][BE] 
+[20260802-18:51:10][BE] Traceback (most recent call last):
+[20260802-18:51:10][BE]   File "/usr/lib/python3.12/socketserver.py", line 692, in process_request_thread
+[20260802-18:51:10][BE]     self.finish_request(request, client_address)
+[20260802-18:51:10][BE]   File "/usr/lib/python3.12/socketserver.py", line 362, in finish_request
+[20260802-18:51:10][BE]     self.RequestHandlerClass(request, client_address, self)
+[20260802-18:51:10][BE] [RAG Server ERR]   File "/usr/lib/python3.12/socketserver.py", line 761, in __init__
+[20260802-18:51:10][BE]     self.handle()
+[20260802-18:51:10][BE]   File "/usr/lib/python3.12/http/server.py", line 436, in handle
+[20260802-18:51:10][BE]     self.handle_one_request()
+[20260802-18:51:10][BE]   File "/usr/lib/python3.12/http/server.py", line 424, in handle_one_request
+[20260802-18:51:10][BE]     method()
+[20260802-18:51:10][BE]   File "/home/freegear/EasyDocStation/server/rag_server.py", line 217, in do_POST
+[20260802-18:51:10][BE]     self._respond(500, {"error": str(e)})
+[20260802-18:51:10][BE]   File "/home/freegear/EasyDocStation/server/rag_server.py", line 362, in _respond
+[20260802-18:51:10][BE]     self.end_headers()
+[20260802-18:51:10][BE]   File "/usr/lib/python3.12/http/server.py", line 538, in end_headers
+[20260802-18:51:10][BE]     self.flush_headers()
+[20260802-18:51:10][BE]   File "/usr/lib/python3.12/http/server.py", line 542, in flush_headers
+[20260802-18:51:10][BE]     self.wfile.write(b"".join(self._headers_buffer))
+[20260802-18:51:10][BE]   File "/usr/lib/python3.12/socketserver.py", line 840, in write
+[20260802-18:51:10][BE]     self._sock.sendall(b)
+[20260802-18:51:10][BE] BrokenPipeError: [Errno 32] Broken pipe
+[20260802-18:51:10][BE] ----------------------------------------
+[20260802-18:51:11][BE] [RAG] post=03f7b6eb-a29c-4747-94dd-6865d5e7299d text → 3청크
+[20260802-18:51:11][BE] [RAG] 학습 진행률: 50% (게시글 본문)
+[20260802-18:51:11][BE] [RAG] 저장 완료 — 3청크 / 1개 게시글 / 0개 댓글 / 0개 폴더문서
+[20260802-18:51:11][BE] [RAG] 학습 진행률: 100% (저장)
+[20260802-18:51:12][BE] [RAG] 학습 완료
+[20260802-18:51:26][BE] [RAG Server] [RAG Server] 임베딩 오류: [Errno 32] Broken pipe
+[20260802-18:51:26][BE] [RAG Server ERR] ----------------------------------------
+[20260802-18:51:26][BE] Exception occurred during processing of request from ('127.0.0.1', 58196)
+[20260802-18:51:26][BE] Traceback (most recent call last):
+[20260802-18:51:26][BE] [RAG Server ERR]   File "/home/freegear/EasyDocStation/server/rag_server.py", line 214, in do_POST
+[20260802-18:51:26][BE]     self._respond(200, {"vectors": vectors.tolist()})
+[20260802-18:51:26][BE]   File "/home/freegear/EasyDocStation/server/rag_server.py", line 363, in _respond
+[20260802-18:51:26][BE]     self.wfile.write(body)
+[20260802-18:51:26][BE]   File "/usr/lib/python3.12/socketserver.py", line 840, in write
+[20260802-18:51:26][BE]     self._sock.sendall(b)
+[20260802-18:51:26][BE] BrokenPipeError: [Errno 32] Broken pipe
+[20260802-18:51:26][BE] 
+[20260802-18:51:26][BE] During handling of the above exception, another exception occurred:
+[20260802-18:51:26][BE] 
+[20260802-18:51:26][BE] Traceback (most recent call last):
+[20260802-18:51:26][BE]   File "/usr/lib/python3.12/socketserver.py", line 692, in process_request_thread
+[20260802-18:51:26][BE]     self.finish_request(request, client_address)
+[20260802-18:51:26][BE]   File "/usr/lib/python3.12/socketserver.py", line 362, in finish_request
+[20260802-18:51:26][BE]     self.RequestHandlerClass(request, client_address, self)
+[20260802-18:51:26][BE]   File "/usr/lib/python3.12/socketserver.py", line 761, in __init__
+[20260802-18:51:26][BE]     self.handle()
+[20260802-18:51:26][BE]   File "/usr/lib/python3.12/http/server.py", line 436, in handle
+[20260802-18:51:26][BE]     self.handle_one_request()
+[20260802-18:51:26][BE]   File "/usr/lib/python3.12/http/server.py", line 424, in handle_one_request
+[20260802-18:51:26][BE]     method()
+[20260802-18:51:26][BE]   File "/home/freegear/EasyDocStation/server/rag_server.py", line 217, in do_POST
+[20260802-18:51:26][BE]     self._respond(500, {"error": str(e)})
+[20260802-18:51:26][BE]   File "/home/freegear/EasyDocStation/server/rag_server.py", line 362, in _respond
+[20260802-18:51:26][BE]     self.end_headers()
+[20260802-18:51:26][BE] [RAG Server ERR]   File "/usr/lib/python3.12/http/server.py", line 538, in end_headers
+[20260802-18:51:26][BE]     self.flush_headers()
+[20260802-18:51:26][BE]   File "/usr/lib/python3.12/http/server.py", line 542, in flush_headers
+[20260802-18:51:26][BE]     self.wfile.write(b"".join(self._headers_buffer))
+[20260802-18:51:26][BE]   File "/usr/lib/python3.12/socketserver.py", line 840, in write
+[20260802-18:51:26][BE]     self._sock.sendall(b)
+[20260802-18:51:26][BE] BrokenPipeError: [Errno 32] Broken pipe
+[20260802-18:51:26][BE] ----------------------------------------
+[20260802-18:51:42][BE] [RAG Server] [RAG Server] 임베딩 오류: [Errno 32] Broken pipe
+[20260802-18:51:42][BE] [RAG Server ERR] ----------------------------------------
+[20260802-18:51:42][BE] Exception occurred during processing of request from ('127.0.0.1', 49702)
+[20260802-18:51:42][BE] [RAG Server ERR] Traceback (most recent call last):
+[20260802-18:51:42][BE]   File "/home/freegear/EasyDocStation/server/rag_server.py", line 214, in do_POST
+[20260802-18:51:42][BE]     self._respond(200, {"vectors": vectors.tolist()})
+[20260802-18:51:42][BE]   File "/home/freegear/EasyDocStation/server/rag_server.py", line 363, in _respond
+[20260802-18:51:42][BE]     self.wfile.write(body)
+[20260802-18:51:42][BE]   File "/usr/lib/python3.12/socketserver.py", line 840, in write
+[20260802-18:51:42][BE]     self._sock.sendall(b)
+[20260802-18:51:42][BE] BrokenPipeError: [Errno 32] Broken pipe
+[20260802-18:51:42][BE] 
+[20260802-18:51:42][BE] During handling of the above exception, another exception occurred:
+[20260802-18:51:42][BE] 
+[20260802-18:51:42][BE] Traceback (most recent call last):
+[20260802-18:51:42][BE] [RAG Server ERR]   File "/usr/lib/python3.12/socketserver.py", line 692, in process_request_thread
+[20260802-18:51:42][BE]     self.finish_request(request, client_address)
+[20260802-18:51:42][BE]   File "/usr/lib/python3.12/socketserver.py", line 362, in finish_request
+[20260802-18:51:42][BE]     self.RequestHandlerClass(request, client_address, self)
+[20260802-18:51:42][BE]   File "/usr/lib/python3.12/socketserver.py", line 761, in __init__
+[20260802-18:51:42][BE]     self.handle()
+[20260802-18:51:42][BE]   File "/usr/lib/python3.12/http/server.py", line 436, in handle
+[20260802-18:51:42][BE]     self.handle_one_request()
+[20260802-18:51:42][BE]   File "/usr/lib/python3.12/http/server.py", line 424, in handle_one_request
+[20260802-18:51:42][BE]     method()
+[20260802-18:51:42][BE]   File "/home/freegear/EasyDocStation/server/rag_server.py", line 217, in do_POST
+[20260802-18:51:42][BE]     self._respond(500, {"error": str(e)})
+[20260802-18:51:42][BE]   File "/home/freegear/EasyDocStation/server/rag_server.py", line 362, in _respond
+[20260802-18:51:42][BE]     self.end_headers()
+[20260802-18:51:42][BE]   File "/usr/lib/python3.12/http/server.py", line 538, in end_headers
+[20260802-18:51:42][BE]     self.flush_headers()
+[20260802-18:51:42][BE] [RAG Server ERR]   File "/usr/lib/python3.12/http/server.py", line 542, in flush_headers
+[20260802-18:51:42][BE]     self.wfile.write(b"".join(self._headers_buffer))
+[20260802-18:51:42][BE]   File "/usr/lib/python3.12/socketserver.py", line 840, in write
+[20260802-18:51:42][BE]     self._sock.sendall(b)
+[20260802-18:51:42][BE] BrokenPipeError: [Errno 32] Broken pipe
+[20260802-18:51:42][BE] ----------------------------------------
+[20260802-18:51:52][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260802-18:51:52][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260802-18:51:57][BE] [RAG Server] [RAG Server] 임베딩 오류: [Errno 32] Broken pipe
+[20260802-18:51:57][BE] [RAG Server ERR] ----------------------------------------
+[20260802-18:51:57][BE] Exception occurred during processing of request from ('127.0.0.1', 49712)
+[20260802-18:51:57][BE] [RAG Server ERR] Traceback (most recent call last):
+[20260802-18:51:57][BE] [RAG Server ERR]   File "/home/freegear/EasyDocStation/server/rag_server.py", line 214, in do_POST
+[20260802-18:51:57][BE]     self._respond(200, {"vectors": vectors.tolist()})
+[20260802-18:51:57][BE]   File "/home/freegear/EasyDocStation/server/rag_server.py", line 363, in _respond
+[20260802-18:51:57][BE]     self.wfile.write(body)
+[20260802-18:51:57][BE]   File "/usr/lib/python3.12/socketserver.py", line 840, in write
+[20260802-18:51:57][BE]     self._sock.sendall(b)
+[20260802-18:51:57][BE] BrokenPipeError: [Errno 32] Broken pipe
+[20260802-18:51:57][BE] 
+[20260802-18:51:57][BE] During handling of the above exception, another exception occurred:
+[20260802-18:51:57][BE] 
+[20260802-18:51:57][BE] Traceback (most recent call last):
+[20260802-18:51:57][BE] [RAG Server ERR]   File "/usr/lib/python3.12/socketserver.py", line 692, in process_request_thread
+[20260802-18:51:57][BE]     self.finish_request(request, client_address)
+[20260802-18:51:58][BE]   File "/usr/lib/python3.12/socketserver.py", line 362, in finish_request
+[20260802-18:51:58][BE]     self.RequestHandlerClass(request, client_address, self)
+[20260802-18:51:58][BE]   File "/usr/lib/python3.12/socketserver.py", line 761, in __init__
+[20260802-18:51:58][BE]     self.handle()
+[20260802-18:51:58][BE]   File "/usr/lib/python3.12/http/server.py", line 436, in handle
+[20260802-18:51:58][BE]     self.handle_one_request()
+[20260802-18:51:58][BE]   File "/usr/lib/python3.12/http/server.py", line 424, in handle_one_request
+[20260802-18:51:58][BE]     method()
+[20260802-18:51:58][BE]   File "/home/freegear/EasyDocStation/server/rag_server.py", line 217, in do_POST
+[20260802-18:51:58][BE]     self._respond(500, {"error": str(e)})
+[20260802-18:51:58][BE]   File "/home/freegear/EasyDocStation/server/rag_server.py", line 362, in _respond
+[20260802-18:51:58][BE]     self.end_headers()
+[20260802-18:51:58][BE]   File "/usr/lib/python3.12/http/server.py", line 538, in end_headers
+[20260802-18:51:58][BE]     self.flush_headers()
+[20260802-18:51:58][BE]   File "/usr/lib/python3.12/http/server.py", line 542, in flush_headers
+[20260802-18:51:58][BE]     self.wfile.write(b"".join(self._headers_buffer))
+[20260802-18:51:58][BE]   File "/usr/lib/python3.12/socketserver.py", line 840, in write
+[20260802-18:51:58][BE]     self._sock.sendall(b)
+[20260802-18:51:58][BE] BrokenPipeError: [Errno 32] Broken pipe
+[20260802-18:51:58][BE] ----------------------------------------
+[20260802-18:51:58][BE] [RAG Server] [RAG Server] 임베딩 오류: [Errno 32] Broken pipe
+[20260802-18:51:58][BE] [RAG Server ERR] ----------------------------------------
+[20260802-18:51:58][BE] Exception occurred during processing of request from ('127.0.0.1', 49724)
+[20260802-18:51:58][BE] [RAG Server ERR] Traceback (most recent call last):
+[20260802-18:51:58][BE] [RAG Server ERR]   File "/home/freegear/EasyDocStation/server/rag_server.py", line 214, in do_POST
+[20260802-18:51:58][BE]     self._respond(200, {"vectors": vectors.tolist()})
+[20260802-18:51:58][BE]   File "/home/freegear/EasyDocStation/server/rag_server.py", line 363, in _respond
+[20260802-18:51:58][BE]     self.wfile.write(body)
+[20260802-18:51:58][BE]   File "/usr/lib/python3.12/socketserver.py", line 840, in write
+[20260802-18:51:58][BE]     self._sock.sendall(b)
+[20260802-18:51:58][BE] BrokenPipeError: [Errno 32] Broken pipe
+[20260802-18:51:58][BE] [RAG Server ERR] 
+[20260802-18:51:58][BE] During handling of the above exception, another exception occurred:
+[20260802-18:51:58][BE] 
+[20260802-18:51:58][BE] Traceback (most recent call last):
+[20260802-18:51:58][BE] [RAG Server ERR]   File "/usr/lib/python3.12/socketserver.py", line 692, in process_request_thread
+[20260802-18:51:58][BE]     self.finish_request(request, client_address)
+[20260802-18:51:58][BE]   File "/usr/lib/python3.12/socketserver.py", line 362, in finish_request
+[20260802-18:51:58][BE]     self.RequestHandlerClass(request, client_address, self)
+[20260802-18:51:58][BE] [RAG Server ERR]   File "/usr/lib/python3.12/socketserver.py", line 761, in __init__
+[20260802-18:51:58][BE]     self.handle()
+[20260802-18:51:58][BE]   File "/usr/lib/python3.12/http/server.py", line 436, in handle
+[20260802-18:51:58][BE]     self.handle_one_request()
+[20260802-18:51:58][BE] [RAG Server ERR]   File "/usr/lib/python3.12/http/server.py", line 424, in handle_one_request
+[20260802-18:51:58][BE]     method()
+[20260802-18:51:58][BE]   File "/home/freegear/EasyDocStation/server/rag_server.py", line 217, in do_POST
+[20260802-18:51:58][BE]     self._respond(500, {"error": str(e)})
+[20260802-18:51:58][BE] [RAG Server ERR]   File "/home/freegear/EasyDocStation/server/rag_server.py", line 362, in _respond
+[20260802-18:51:58][BE]     self.end_headers()
+[20260802-18:51:58][BE]   File "/usr/lib/python3.12/http/server.py", line 538, in end_headers
+[20260802-18:51:58][BE]     self.flush_headers()
+[20260802-18:51:58][BE]   File "/usr/lib/python3.12/http/server.py", line 542, in flush_headers
+[20260802-18:51:58][BE]     self.wfile.write(b"".join(self._headers_buffer))
+[20260802-18:51:58][BE] [RAG Server ERR]   File "/usr/lib/python3.12/socketserver.py", line 840, in write
+[20260802-18:51:58][BE]     self._sock.sendall(b)
+[20260802-18:51:58][BE] BrokenPipeError: [Errno 32] Broken pipe
+[20260802-18:51:58][BE] [RAG Server ERR] ----------------------------------------
+[20260802-18:52:13][BE] [RAG Server] [RAG Server] 임베딩 오류: [Errno 32] Broken pipe
+[20260802-18:52:13][BE] [RAG Server ERR] ----------------------------------------
+[20260802-18:52:13][BE] Exception occurred during processing of request from ('127.0.0.1', 57526)
+[20260802-18:52:13][BE] [RAG Server ERR] Traceback (most recent call last):
+[20260802-18:52:13][BE]   File "/home/freegear/EasyDocStation/server/rag_server.py", line 214, in do_POST
+[20260802-18:52:13][BE]     self._respond(200, {"vectors": vectors.tolist()})
+[20260802-18:52:13][BE]   File "/home/freegear/EasyDocStation/server/rag_server.py", line 363, in _respond
+[20260802-18:52:13][BE]     self.wfile.write(body)
+[20260802-18:52:13][BE]   File "/usr/lib/python3.12/socketserver.py", line 840, in write
+[20260802-18:52:13][BE]     self._sock.sendall(b)
+[20260802-18:52:13][BE] BrokenPipeError: [Errno 32] Broken pipe
+[20260802-18:52:13][BE] [RAG Server ERR] 
+[20260802-18:52:13][BE] During handling of the above exception, another exception occurred:
+[20260802-18:52:13][BE] 
+[20260802-18:52:13][BE] Traceback (most recent call last):
+[20260802-18:52:13][BE] [RAG Server ERR]   File "/usr/lib/python3.12/socketserver.py", line 692, in process_request_thread
+[20260802-18:52:13][BE]     self.finish_request(request, client_address)
+[20260802-18:52:13][BE]   File "/usr/lib/python3.12/socketserver.py", line 362, in finish_request
+[20260802-18:52:13][BE]     self.RequestHandlerClass(request, client_address, self)
+[20260802-18:52:13][BE]   File "/usr/lib/python3.12/socketserver.py", line 761, in __init__
+[20260802-18:52:13][BE]     self.handle()
+[20260802-18:52:13][BE]   File "/usr/lib/python3.12/http/server.py", line 436, in handle
+[20260802-18:52:13][BE]     self.handle_one_request()
+[20260802-18:52:13][BE]   File "/usr/lib/python3.12/http/server.py", line 424, in handle_one_request
+[20260802-18:52:13][BE]     method()
+[20260802-18:52:13][BE]   File "/home/freegear/EasyDocStation/server/rag_server.py", line 217, in do_POST
+[20260802-18:52:13][BE]     self._respond(500, {"error": str(e)})
+[20260802-18:52:13][BE]   File "/home/freegear/EasyDocStation/server/rag_server.py", line 362, in _respond
+[20260802-18:52:13][BE]     self.end_headers()
+[20260802-18:52:13][BE]   File "/usr/lib/python3.12/http/server.py", line 538, in end_headers
+[20260802-18:52:13][BE]     self.flush_headers()
+[20260802-18:52:13][BE]   File "/usr/lib/python3.12/http/server.py", line 542, in flush_headers
+[20260802-18:52:13][BE]     self.wfile.write(b"".join(self._headers_buffer))
+[20260802-18:52:13][BE]   File "/usr/lib/python3.12/socketserver.py", line 840, in write
+[20260802-18:52:13][BE]     self._sock.sendall(b)
+[20260802-18:52:13][BE] BrokenPipeError: [Errno 32] Broken pipe
+[20260802-18:52:13][BE] ----------------------------------------
+[20260802-18:52:29][BE] [RAG Server] [RAG Server] 임베딩 오류: [Errno 32] Broken pipe
+[20260802-18:52:29][BE] [RAG Server ERR] ----------------------------------------
+[20260802-18:52:29][BE] Exception occurred during processing of request from ('127.0.0.1', 55398)
+[20260802-18:52:29][BE] [RAG Server ERR] Traceback (most recent call last):
+[20260802-18:52:29][BE] [RAG Server ERR]   File "/home/freegear/EasyDocStation/server/rag_server.py", line 214, in do_POST
+[20260802-18:52:29][BE]     self._respond(200, {"vectors": vectors.tolist()})
+[20260802-18:52:29][BE]   File "/home/freegear/EasyDocStation/server/rag_server.py", line 363, in _respond
+[20260802-18:52:29][BE]     self.wfile.write(body)
+[20260802-18:52:29][BE]   File "/usr/lib/python3.12/socketserver.py", line 840, in write
+[20260802-18:52:29][BE]     self._sock.sendall(b)
+[20260802-18:52:29][BE] BrokenPipeError: [Errno 32] Broken pipe
+[20260802-18:52:29][BE] 
+[20260802-18:52:29][BE] During handling of the above exception, another exception occurred:
+[20260802-18:52:29][BE] 
+[20260802-18:52:29][BE] Traceback (most recent call last):
+[20260802-18:52:29][BE]   File "/usr/lib/python3.12/socketserver.py", line 692, in process_request_thread
+[20260802-18:52:29][BE]     self.finish_request(request, client_address)
+[20260802-18:52:29][BE]   File "/usr/lib/python3.12/socketserver.py", line 362, in finish_request
+[20260802-18:52:29][BE]     self.RequestHandlerClass(request, client_address, self)
+[20260802-18:52:29][BE]   File "/usr/lib/python3.12/socketserver.py", line 761, in __init__
+[20260802-18:52:29][BE]     self.handle()
+[20260802-18:52:29][BE]   File "/usr/lib/python3.12/http/server.py", line 436, in handle
+[20260802-18:52:29][BE]     self.handle_one_request()
+[20260802-18:52:29][BE]   File "/usr/lib/python3.12/http/server.py", line 424, in handle_one_request
+[20260802-18:52:29][BE]     method()
+[20260802-18:52:29][BE] [RAG Server ERR]   File "/home/freegear/EasyDocStation/server/rag_server.py", line 217, in do_POST
+[20260802-18:52:29][BE]     self._respond(500, {"error": str(e)})
+[20260802-18:52:29][BE]   File "/home/freegear/EasyDocStation/server/rag_server.py", line 362, in _respond
+[20260802-18:52:29][BE]     self.end_headers()
+[20260802-18:52:29][BE]   File "/usr/lib/python3.12/http/server.py", line 538, in end_headers
+[20260802-18:52:29][BE]     self.flush_headers()
+[20260802-18:52:29][BE]   File "/usr/lib/python3.12/http/server.py", line 542, in flush_headers
+[20260802-18:52:29][BE]     self.wfile.write(b"".join(self._headers_buffer))
+[20260802-18:52:29][BE]   File "/usr/lib/python3.12/socketserver.py", line 840, in write
+[20260802-18:52:29][BE]     self._sock.sendall(b)
+[20260802-18:52:29][BE] BrokenPipeError: [Errno 32] Broken pipe
+[20260802-18:52:29][BE] ----------------------------------------
+[20260802-18:52:44][BE] [RAG Server] [RAG Server] 임베딩 오류: [Errno 32] Broken pipe
+[20260802-18:52:44][BE] [RAG Server ERR] ----------------------------------------
+[20260802-18:52:44][BE] Exception occurred during processing of request from ('127.0.0.1', 42174)
+[20260802-18:52:44][BE] [RAG Server ERR] Traceback (most recent call last):
+[20260802-18:52:44][BE]   File "/home/freegear/EasyDocStation/server/rag_server.py", line 214, in do_POST
+[20260802-18:52:44][BE]     self._respond(200, {"vectors": vectors.tolist()})
+[20260802-18:52:44][BE]   File "/home/freegear/EasyDocStation/server/rag_server.py", line 363, in _respond
+[20260802-18:52:44][BE]     self.wfile.write(body)
+[20260802-18:52:44][BE]   File "/usr/lib/python3.12/socketserver.py", line 840, in write
+[20260802-18:52:44][BE]     self._sock.sendall(b)
+[20260802-18:52:44][BE] BrokenPipeError: [Errno 32] Broken pipe
+[20260802-18:52:44][BE] 
+[20260802-18:52:44][BE] During handling of the above exception, another exception occurred:
+[20260802-18:52:44][BE] 
+[20260802-18:52:44][BE] Traceback (most recent call last):
+[20260802-18:52:44][BE] [RAG Server ERR]   File "/usr/lib/python3.12/socketserver.py", line 692, in process_request_thread
+[20260802-18:52:44][BE]     self.finish_request(request, client_address)
+[20260802-18:52:44][BE]   File "/usr/lib/python3.12/socketserver.py", line 362, in finish_request
+[20260802-18:52:44][BE]     self.RequestHandlerClass(request, client_address, self)
+[20260802-18:52:44][BE]   File "/usr/lib/python3.12/socketserver.py", line 761, in __init__
+[20260802-18:52:44][BE]     self.handle()
+[20260802-18:52:44][BE] [RAG Server ERR]   File "/usr/lib/python3.12/http/server.py", line 436, in handle
+[20260802-18:52:44][BE]     self.handle_one_request()
+[20260802-18:52:44][BE]   File "/usr/lib/python3.12/http/server.py", line 424, in handle_one_request
+[20260802-18:52:44][BE]     method()
+[20260802-18:52:44][BE]   File "/home/freegear/EasyDocStation/server/rag_server.py", line 217, in do_POST
+[20260802-18:52:44][BE]     self._respond(500, {"error": str(e)})
+[20260802-18:52:44][BE]   File "/home/freegear/EasyDocStation/server/rag_server.py", line 362, in _respond
+[20260802-18:52:44][BE]     self.end_headers()
+[20260802-18:52:44][BE]   File "/usr/lib/python3.12/http/server.py", line 538, in end_headers
+[20260802-18:52:44][BE]     self.flush_headers()
+[20260802-18:52:44][BE] [RAG Server ERR]   File "/usr/lib/python3.12/http/server.py", line 542, in flush_headers
+[20260802-18:52:44][BE]     self.wfile.write(b"".join(self._headers_buffer))
+[20260802-18:52:44][BE] [RAG Server ERR]   File "/usr/lib/python3.12/socketserver.py", line 840, in write
+[20260802-18:52:44][BE]     self._sock.sendall(b)
+[20260802-18:52:44][BE] BrokenPipeError: [Errno 32] Broken pipe
+[20260802-18:52:44][BE] ----------------------------------------
+[20260802-18:53:00][BE] [RAG Server] [RAG Server] 임베딩 오류: [Errno 32] Broken pipe
+[20260802-18:53:00][BE] [RAG Server ERR] ----------------------------------------
+[20260802-18:53:00][BE] [RAG Server ERR] Exception occurred during processing of request from ('127.0.0.1', 42186)
+[20260802-18:53:00][BE] [RAG Server ERR] Traceback (most recent call last):
+[20260802-18:53:00][BE] [RAG Server ERR]   File "/home/freegear/EasyDocStation/server/rag_server.py", line 214, in do_POST
+[20260802-18:53:00][BE]     self._respond(200, {"vectors": vectors.tolist()})
+[20260802-18:53:00][BE]   File "/home/freegear/EasyDocStation/server/rag_server.py", line 363, in _respond
+[20260802-18:53:00][BE]     self.wfile.write(body)
+[20260802-18:53:00][BE]   File "/usr/lib/python3.12/socketserver.py", line 840, in write
+[20260802-18:53:00][BE]     self._sock.sendall(b)
+[20260802-18:53:00][BE] BrokenPipeError: [Errno 32] Broken pipe
+[20260802-18:53:00][BE] 
+[20260802-18:53:00][BE] During handling of the above exception, another exception occurred:
+[20260802-18:53:00][BE] 
+[20260802-18:53:00][BE] Traceback (most recent call last):
+[20260802-18:53:00][BE] [RAG Server ERR]   File "/usr/lib/python3.12/socketserver.py", line 692, in process_request_thread
+[20260802-18:53:00][BE]     self.finish_request(request, client_address)
+[20260802-18:53:00][BE]   File "/usr/lib/python3.12/socketserver.py", line 362, in finish_request
+[20260802-18:53:00][BE]     self.RequestHandlerClass(request, client_address, self)
+[20260802-18:53:00][BE]   File "/usr/lib/python3.12/socketserver.py", line 761, in __init__
+[20260802-18:53:00][BE]     self.handle()
+[20260802-18:53:00][BE]   File "/usr/lib/python3.12/http/server.py", line 436, in handle
+[20260802-18:53:00][BE]     self.handle_one_request()
+[20260802-18:53:00][BE]   File "/usr/lib/python3.12/http/server.py", line 424, in handle_one_request
+[20260802-18:53:00][BE]     method()
+[20260802-18:53:00][BE]   File "/home/freegear/EasyDocStation/server/rag_server.py", line 217, in do_POST
+[20260802-18:53:00][BE]     self._respond(500, {"error": str(e)})
+[20260802-18:53:00][BE]   File "/home/freegear/EasyDocStation/server/rag_server.py", line 362, in _respond
+[20260802-18:53:00][BE]     self.end_headers()
+[20260802-18:53:00][BE]   File "/usr/lib/python3.12/http/server.py", line 538, in end_headers
+[20260802-18:53:00][BE]     self.flush_headers()
+[20260802-18:53:00][BE]   File "/usr/lib/python3.12/http/server.py", line 542, in flush_headers
+[20260802-18:53:00][BE]     self.wfile.write(b"".join(self._headers_buffer))
+[20260802-18:53:00][BE]   File "/usr/lib/python3.12/socketserver.py", line 840, in write
+[20260802-18:53:00][BE]     self._sock.sendall(b)
+[20260802-18:53:00][BE] BrokenPipeError: [Errno 32] Broken pipe
+[20260802-18:53:00][BE] ----------------------------------------
+[20260802-18:53:00][BE] [RAG Server] [RAG Server] 임베딩 오류: [Errno 32] Broken pipe
+[20260802-18:53:00][BE] [RAG Server ERR] ----------------------------------------
+[20260802-18:53:00][BE] Exception occurred during processing of request from ('127.0.0.1', 33740)
+[20260802-18:53:00][BE] [RAG Server ERR] Traceback (most recent call last):
+[20260802-18:53:00][BE]   File "/home/freegear/EasyDocStation/server/rag_server.py", line 214, in do_POST
+[20260802-18:53:00][BE]     self._respond(200, {"vectors": vectors.tolist()})
+[20260802-18:53:00][BE]   File "/home/freegear/EasyDocStation/server/rag_server.py", line 363, in _respond
+[20260802-18:53:00][BE]     self.wfile.write(body)
+[20260802-18:53:00][BE]   File "/usr/lib/python3.12/socketserver.py", line 840, in write
+[20260802-18:53:00][BE]     self._sock.sendall(b)
+[20260802-18:53:00][BE] BrokenPipeError: [Errno 32] Broken pipe
+[20260802-18:53:00][BE] [RAG Server ERR] 
+[20260802-18:53:00][BE] During handling of the above exception, another exception occurred:
+[20260802-18:53:00][BE] 
+[20260802-18:53:00][BE] Traceback (most recent call last):
+[20260802-18:53:00][BE] [RAG Server ERR]   File "/usr/lib/python3.12/socketserver.py", line 692, in process_request_thread
+[20260802-18:53:00][BE]     self.finish_request(request, client_address)
+[20260802-18:53:00][BE]   File "/usr/lib/python3.12/socketserver.py", line 362, in finish_request
+[20260802-18:53:00][BE]     self.RequestHandlerClass(request, client_address, self)
+[20260802-18:53:00][BE]   File "/usr/lib/python3.12/socketserver.py", line 761, in __init__
+[20260802-18:53:00][BE]     self.handle()
+[20260802-18:53:00][BE]   File "/usr/lib/python3.12/http/server.py", line 436, in handle
+[20260802-18:53:00][BE]     self.handle_one_request()
+[20260802-18:53:00][BE]   File "/usr/lib/python3.12/http/server.py", line 424, in handle_one_request
+[20260802-18:53:00][BE]     method()
+[20260802-18:53:00][BE]   File "/home/freegear/EasyDocStation/server/rag_server.py", line 217, in do_POST
+[20260802-18:53:00][BE]     self._respond(500, {"error": str(e)})
+[20260802-18:53:00][BE]   File "/home/freegear/EasyDocStation/server/rag_server.py", line 362, in _respond
+[20260802-18:53:00][BE]     self.end_headers()
+[20260802-18:53:00][BE]   File "/usr/lib/python3.12/http/server.py", line 538, in end_headers
+[20260802-18:53:00][BE]     self.flush_headers()
+[20260802-18:53:00][BE]   File "/usr/lib/python3.12/http/server.py", line 542, in flush_headers
+[20260802-18:53:00][BE]     self.wfile.write(b"".join(self._headers_buffer))
+[20260802-18:53:00][BE]   File "/usr/lib/python3.12/socketserver.py", line 840, in write
+[20260802-18:53:00][BE]     self._sock.sendall(b)
+[20260802-18:53:00][BE] [RAG Server ERR] BrokenPipeError: [Errno 32] Broken pipe
+[20260802-18:53:00][BE] ----------------------------------------
+[20260802-18:53:10][BE] [RAG] 임베딩 서버 호출 실패, 로컬 fallback 사용: HTTPConnectionPool(host='127.0.0.1', port=5001): Read timed out. (read timeout=60.0)
+[20260802-18:53:10][BE] [RAG] (fallback) 로컬 임베딩 모델 로드 중: BAAI/bge-m3 (device=cuda) ...
+[20260802-18:53:13][BE] Loading weights:   0%|          | 0/391 [00:00<?, ?it/s]Loading weights: 100%|██████████| 391/391 [00:00<00:00, 32165.16it/s]
+[20260802-18:53:16][BE] [RAG Server] [RAG Server] 임베딩 오류: [Errno 32] Broken pipe
+[20260802-18:53:16][BE] [RAG Server ERR] ----------------------------------------
+[20260802-18:53:16][BE] Exception occurred during processing of request from ('127.0.0.1', 32902)
+[20260802-18:53:16][BE] [RAG Server ERR] Traceback (most recent call last):
+[20260802-18:53:16][BE]   File "/home/freegear/EasyDocStation/server/rag_server.py", line 214, in do_POST
+[20260802-18:53:16][BE]     self._respond(200, {"vectors": vectors.tolist()})
+[20260802-18:53:16][BE]   File "/home/freegear/EasyDocStation/server/rag_server.py", line 363, in _respond
+[20260802-18:53:16][BE]     self.wfile.write(body)
+[20260802-18:53:16][BE]   File "/usr/lib/python3.12/socketserver.py", line 840, in write
+[20260802-18:53:16][BE]     self._sock.sendall(b)
+[20260802-18:53:16][BE] [RAG Server ERR] BrokenPipeError: [Errno 32] Broken pipe
+[20260802-18:53:16][BE] 
+[20260802-18:53:16][BE] During handling of the above exception, another exception occurred:
+[20260802-18:53:16][BE] 
+[20260802-18:53:16][BE] Traceback (most recent call last):
+[20260802-18:53:16][BE] [RAG Server ERR]   File "/usr/lib/python3.12/socketserver.py", line 692, in process_request_thread
+[20260802-18:53:16][BE]     self.finish_request(request, client_address)
+[20260802-18:53:16][BE] [RAG Server ERR]   File "/usr/lib/python3.12/socketserver.py", line 362, in finish_request
+[20260802-18:53:16][BE]     self.RequestHandlerClass(request, client_address, self)
+[20260802-18:53:16][BE]   File "/usr/lib/python3.12/socketserver.py", line 761, in __init__
+[20260802-18:53:16][BE]     self.handle()
+[20260802-18:53:16][BE]   File "/usr/lib/python3.12/http/server.py", line 436, in handle
+[20260802-18:53:16][BE]     self.handle_one_request()
+[20260802-18:53:16][BE]   File "/usr/lib/python3.12/http/server.py", line 424, in handle_one_request
+[20260802-18:53:16][BE]     method()
+[20260802-18:53:16][BE] [RAG Server ERR]   File "/home/freegear/EasyDocStation/server/rag_server.py", line 217, in do_POST
+[20260802-18:53:16][BE]     self._respond(500, {"error": str(e)})
+[20260802-18:53:16][BE]   File "/home/freegear/EasyDocStation/server/rag_server.py", line 362, in _respond
+[20260802-18:53:16][BE]     self.end_headers()
+[20260802-18:53:16][BE]   File "/usr/lib/python3.12/http/server.py", line 538, in end_headers
+[20260802-18:53:16][BE]     self.flush_headers()
+[20260802-18:53:16][BE]   File "/usr/lib/python3.12/http/server.py", line 542, in flush_headers
+[20260802-18:53:16][BE]     self.wfile.write(b"".join(self._headers_buffer))
+[20260802-18:53:16][BE]   File "/usr/lib/python3.12/socketserver.py", line 840, in write
+[20260802-18:53:16][BE]     self._sock.sendall(b)
+[20260802-18:53:16][BE] [RAG Server ERR] BrokenPipeError: [Errno 32] Broken pipe
+[20260802-18:53:16][BE] ----------------------------------------
+[20260802-18:53:19][BE] [RAG] 임베딩 서버 호출 실패, 로컬 fallback 사용: HTTPConnectionPool(host='127.0.0.1', port=5001): Read timed out. (read timeout=60.0)
+[20260802-18:53:19][BE] [RAG] (fallback) 로컬 임베딩 모델 로드 중: BAAI/bge-m3 (device=cuda) ...
+[20260802-18:53:21][BE] Loading weights:   0%|          | 0/391 [00:00<?, ?it/s]Loading weights: 100%|██████████| 391/391 [00:00<00:00, 45782.44it/s]
+[20260802-18:53:29][BE] [RAG] (fallback) 로컬 임베딩 모델 로드 완료 (device=cuda)
+[20260802-18:53:36][BE] [RAG] 임베딩 서버 호출 실패, 로컬 fallback 사용: HTTPConnectionPool(host='127.0.0.1', port=5001): Read timed out. (read timeout=60.0)
+[20260802-18:53:36][BE] [RAG] (fallback) 로컬 임베딩 모델 로드 중: BAAI/bge-m3 (device=cuda) ...
+[20260802-18:53:38][BE] [RAG] (fallback) 로컬 임베딩 모델 로드 완료 (device=cuda)
+[20260802-18:53:38][BE] Loading weights:   0%|          | 0/391 [00:00<?, ?it/s]Loading weights: 100%|██████████| 391/391 [00:00<00:00, 26612.57it/s]
+[20260802-18:53:39][BE] [RAG Server] [RAG Server] 임베딩 오류: [Errno 32] Broken pipe
+[20260802-18:53:39][BE] [RAG Server ERR] ----------------------------------------
+[20260802-18:53:39][BE] Exception occurred during processing of request from ('127.0.0.1', 36016)
+[20260802-18:53:39][BE] [RAG Server ERR] Traceback (most recent call last):
+[20260802-18:53:39][BE] [RAG Server ERR]   File "/home/freegear/EasyDocStation/server/rag_server.py", line 214, in do_POST
+[20260802-18:53:39][BE]     self._respond(200, {"vectors": vectors.tolist()})
+[20260802-18:53:39][BE]   File "/home/freegear/EasyDocStation/server/rag_server.py", line 363, in _respond
+[20260802-18:53:39][BE]     self.wfile.write(body)
+[20260802-18:53:39][BE] [RAG Server ERR]   File "/usr/lib/python3.12/socketserver.py", line 840, in write
+[20260802-18:53:39][BE]     self._sock.sendall(b)
+[20260802-18:53:39][BE] BrokenPipeError: [Errno 32] Broken pipe
+[20260802-18:53:39][BE] [RAG Server ERR] 
+[20260802-18:53:39][BE] During handling of the above exception, another exception occurred:
+[20260802-18:53:39][BE] 
+[20260802-18:53:39][BE] Traceback (most recent call last):
+[20260802-18:53:39][BE] [RAG Server ERR]   File "/usr/lib/python3.12/socketserver.py", line 692, in process_request_thread
+[20260802-18:53:39][BE]     self.finish_request(request, client_address)
+[20260802-18:53:39][BE]   File "/usr/lib/python3.12/socketserver.py", line 362, in finish_request
+[20260802-18:53:39][BE]     self.RequestHandlerClass(request, client_address, self)
+[20260802-18:53:39][BE]   File "/usr/lib/python3.12/socketserver.py", line 761, in __init__
+[20260802-18:53:39][BE]     self.handle()
+[20260802-18:53:39][BE]   File "/usr/lib/python3.12/http/server.py", line 436, in handle
+[20260802-18:53:39][BE]     self.handle_one_request()
+[20260802-18:53:39][BE]   File "/usr/lib/python3.12/http/server.py", line 424, in handle_one_request
+[20260802-18:53:39][BE]     method()
+[20260802-18:53:39][BE]   File "/home/freegear/EasyDocStation/server/rag_server.py", line 217, in do_POST
+[20260802-18:53:39][BE]     self._respond(500, {"error": str(e)})
+[20260802-18:53:39][BE]   File "/home/freegear/EasyDocStation/server/rag_server.py", line 362, in _respond
+[20260802-18:53:39][BE]     self.end_headers()
+[20260802-18:53:39][BE]   File "/usr/lib/python3.12/http/server.py", line 538, in end_headers
+[20260802-18:53:39][BE]     self.flush_headers()
+[20260802-18:53:39][BE]   File "/usr/lib/python3.12/http/server.py", line 542, in flush_headers
+[20260802-18:53:39][BE]     self.wfile.write(b"".join(self._headers_buffer))
+[20260802-18:53:39][BE]   File "/usr/lib/python3.12/socketserver.py", line 840, in write
+[20260802-18:53:39][BE]     self._sock.sendall(b)
+[20260802-18:53:39][BE] BrokenPipeError: [Errno 32] Broken pipe
+[20260802-18:53:39][BE] ----------------------------------------
+[20260802-18:53:42][BE] [RAG] 임베딩 서버 호출 실패, 로컬 fallback 사용: HTTPConnectionPool(host='127.0.0.1', port=5001): Read timed out. (read timeout=60.0)
+[20260802-18:53:42][BE] [RAG] (fallback) 로컬 임베딩 모델 로드 중: BAAI/bge-m3 (device=cuda) ...
+[20260802-18:53:45][BE] Loading weights:   0%|          | 0/391 [00:00<?, ?it/s]Loading weights: 100%|██████████| 391/391 [00:00<00:00, 46113.28it/s]
+[20260802-18:53:46][BE] [RAG] 임베딩 서버 호출 실패, 로컬 fallback 사용: HTTPConnectionPool(host='127.0.0.1', port=5001): Read timed out. (read timeout=60.0)
+[20260802-18:53:46][BE] [RAG] (fallback) 로컬 임베딩 모델 로드 중: BAAI/bge-m3 (device=cuda) ...
+[20260802-18:53:48][BE] Loading weights:   0%|          | 0/391 [00:00<?, ?it/s]Loading weights: 100%|██████████| 391/391 [00:00<00:00, 39886.49it/s]
+[20260802-18:53:58][BE] [RAG] (fallback) 로컬 임베딩 모델 로드 완료 (device=cuda)
+[20260802-18:54:06][BE] [RAG] (fallback) 로컬 임베딩 모델 로드 완료 (device=cuda)
+[20260802-18:54:11][BE] [RAG] (fallback) 로컬 임베딩 모델 로드 완료 (device=cuda)
+[20260802-18:54:14][BE] [RAG] post=d0da828a-c7ce-4719-ab86-f80121daa246 text → 3청크
+[20260802-18:54:14][BE] [RAG] 학습 진행률: 50% (게시글 본문)
+[20260802-18:54:14][BE] [RAG] 저장 완료 — 3청크 / 1개 게시글 / 0개 댓글 / 0개 폴더문서
+[20260802-18:54:14][BE] [RAG] 학습 진행률: 100% (저장)
+[20260802-18:54:16][BE] [RAG] 학습 완료
+[20260802-18:55:26][BE] [RAG Server] [RAG Server] 임베딩 오류: [Errno 32] Broken pipe
+[20260802-18:55:26][BE] [RAG Server ERR] ----------------------------------------
+[20260802-18:55:26][BE] Exception occurred during processing of request from ('127.0.0.1', 44968)
+[20260802-18:55:26][BE] [RAG Server ERR] Traceback (most recent call last):
+[20260802-18:55:26][BE] [RAG Server ERR]   File "/home/freegear/EasyDocStation/server/rag_server.py", line 214, in do_POST
+[20260802-18:55:26][BE]     self._respond(200, {"vectors": vectors.tolist()})
+[20260802-18:55:26][BE]   File "/home/freegear/EasyDocStation/server/rag_server.py", line 363, in _respond
+[20260802-18:55:26][BE]     self.wfile.write(body)
+[20260802-18:55:26][BE]   File "/usr/lib/python3.12/socketserver.py", line 840, in write
+[20260802-18:55:26][BE]     self._sock.sendall(b)
+[20260802-18:55:26][BE] [RAG Server ERR] BrokenPipeError: [Errno 32] Broken pipe
+[20260802-18:55:26][BE] [RAG Server ERR] 
+[20260802-18:55:26][BE] During handling of the above exception, another exception occurred:
+[20260802-18:55:26][BE] 
+[20260802-18:55:26][BE] Traceback (most recent call last):
+[20260802-18:55:26][BE] [RAG Server ERR]   File "/usr/lib/python3.12/socketserver.py", line 692, in process_request_thread
+[20260802-18:55:26][BE]     self.finish_request(request, client_address)
+[20260802-18:55:26][BE]   File "/usr/lib/python3.12/socketserver.py", line 362, in finish_request
+[20260802-18:55:26][BE]     self.RequestHandlerClass(request, client_address, self)
+[20260802-18:55:26][BE]   File "/usr/lib/python3.12/socketserver.py", line 761, in __init__
+[20260802-18:55:26][BE]     self.handle()
+[20260802-18:55:26][BE]   File "/usr/lib/python3.12/http/server.py", line 436, in handle
+[20260802-18:55:26][BE]     self.handle_one_request()
+[20260802-18:55:26][BE] [RAG Server ERR]   File "/usr/lib/python3.12/http/server.py", line 424, in handle_one_request
+[20260802-18:55:26][BE]     method()
+[20260802-18:55:26][BE]   File "/home/freegear/EasyDocStation/server/rag_server.py", line 217, in do_POST
+[20260802-18:55:26][BE]     self._respond(500, {"error": str(e)})
+[20260802-18:55:26][BE]   File "/home/freegear/EasyDocStation/server/rag_server.py", line 362, in _respond
+[20260802-18:55:26][BE]     self.end_headers()
+[20260802-18:55:26][BE]   File "/usr/lib/python3.12/http/server.py", line 538, in end_headers
+[20260802-18:55:26][BE]     self.flush_headers()
+[20260802-18:55:26][BE]   File "/usr/lib/python3.12/http/server.py", line 542, in flush_headers
+[20260802-18:55:26][BE]     self.wfile.write(b"".join(self._headers_buffer))
+[20260802-18:55:26][BE]   File "/usr/lib/python3.12/socketserver.py", line 840, in write
+[20260802-18:55:26][BE]     self._sock.sendall(b)
+[20260802-18:55:26][BE] [RAG Server ERR] BrokenPipeError: [Errno 32] Broken pipe
+[20260802-18:55:26][BE] ----------------------------------------

@@ -28,4 +28,36 @@ test('preserves newline descriptions', () => {
     '0.5.8': 'line one\nline two',
   })
   assert.equal(result.releases[0].description, 'line one\nline two')
+  assert.deepEqual(result.releases[0].descriptionItems, ['line one\nline two'])
+  assert.equal(result.releases[0].descriptionType, 'text')
+})
+
+test('accepts an array of release notes and preserves item order', () => {
+  const result = normalizeUpdateHistory({
+    'EasyDocStation Version': '0.5.16',
+    '0.5.16': [
+      '게시글, 댓글 프린트 기능을 추가 함.',
+      '이미지가 한 페이지를 넘기면 한 페이지에 맞춤.',
+      '테스트용 글',
+    ],
+    '0.5.15': '이전 버전',
+  })
+  assert.equal(result.releases[0].descriptionType, 'list')
+  assert.deepEqual(result.releases[0].descriptionItems, [
+    '게시글, 댓글 프린트 기능을 추가 함.',
+    '이미지가 한 페이지를 넘기면 한 페이지에 맞춤.',
+    '테스트용 글',
+  ])
+  assert.equal(result.releases[0].description, '게시글, 댓글 프린트 기능을 추가 함.\n이미지가 한 페이지를 넘기면 한 페이지에 맞춤.\n테스트용 글')
+})
+
+test('rejects empty or non-string release note array items', () => {
+  assert.throws(() => normalizeUpdateHistory({
+    'EasyDocStation Version': '0.5.16',
+    '0.5.16': ['정상 항목', '  '],
+  }), /문자열 또는 문자열 배열/)
+  assert.throws(() => normalizeUpdateHistory({
+    'EasyDocStation Version': '0.5.16',
+    '0.5.16': ['정상 항목', 123],
+  }), /문자열 또는 문자열 배열/)
 })

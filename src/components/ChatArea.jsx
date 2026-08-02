@@ -329,7 +329,7 @@ function FileTypeIcon({ category, className = 'w-5 h-5' }) {
   }
   const { color, path } = icons[category] || icons.file
   return (
-    <svg className={`${className} ${color} flex-shrink-0`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <svg data-print-exclude="true" aria-hidden="true" className={`${className} ${color} flex-shrink-0`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d={path} />
     </svg>
   )
@@ -1262,7 +1262,7 @@ function AttachmentList({ attachments, compact = false, pendingOpenAttachmentId 
 
       <div className="mt-6 border-t border-gray-200 pt-5">
         <h4 className="text-gray-500 text-xs font-semibold uppercase tracking-widest mb-3 flex items-center gap-1.5">
-          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <svg data-print-exclude="true" aria-hidden="true" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
           </svg>
           {t.chat.attachmentsCount(attachments.length)}
