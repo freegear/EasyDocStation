@@ -11,6 +11,7 @@ const { runManualTraining, reloadRagConfig, getState: getRagState } = require('.
 const ragRouter = require('./rag')
 const { getDatabasePath, resolveAppBasePath } = require('../databasePaths')
 const { getPostgresDatabaseName } = require('../runtimeDbConfig')
+const { getCassandraDataDirectory, getCassandraLoad } = require('../cassandraStats')
 const { getPythonExecutable } = require('../pythonRuntime')
 const { getAiOptimizationConfig, saveAiOptimizationConfig } = require('../aiOptimization')
 const { pingRedis } = require('../redisClient')
@@ -465,15 +466,12 @@ router.get('/stats', async (req, res) => {
     const dbLocation = await getDbLocationSafe(configuredPgPath)
 
     const uploadPath = getDatabasePath(config, 'ObjectFile Path')
-    const cassandraPath = getDatabasePath(config, 'Cassandra Database Path')
+    const configuredCassandraPath = getDatabasePath(config, 'Cassandra Database Path')
+    const cassandraPath = getCassandraDataDirectory(configuredCassandraPath)
     const lancedbPath = getDatabasePath(config, 'lancedb Database Path')
 
     if (!fs.existsSync(uploadPath)) {
       fs.mkdirSync(uploadPath, { recursive: true })
-    }
-
-    if (!fs.existsSync(cassandraPath)) {
-      fs.mkdirSync(cassandraPath, { recursive: true })
     }
 
     if (!fs.existsSync(lancedbPath)) {
@@ -481,7 +479,8 @@ router.get('/stats', async (req, res) => {
     }
 
     const uploadSizeBytes = getDirSize(uploadPath)
-    const cassandraSizeBytes = getDirSize(cassandraPath)
+    const cassandraLoad = await getCassandraLoad()
+    const cassandraSize = cassandraLoad || formatBytes(getDirSize(cassandraPath))
     const lancedbSizeBytes = getDirSize(lancedbPath)
 
     res.json({
@@ -491,7 +490,7 @@ router.get('/stats', async (req, res) => {
       },
       cassandra: {
         location: cassandraPath,
-        size: formatBytes(cassandraSizeBytes),
+        size: cassandraSize,
       },
       objects: {
         location: uploadPath,
@@ -527,11 +526,13 @@ router.get('/stats', async (req, res) => {
       const configPath = path.resolve(__dirname, '../../config.json')
       const config = JSON.parse(fs.readFileSync(configPath, 'utf8'))
       const uploadPath = getDatabasePath(config, 'ObjectFile Path')
-      const cassandraPath = getDatabasePath(config, 'Cassandra Database Path')
+      const configuredCassandraPath = getDatabasePath(config, 'Cassandra Database Path')
+      const cassandraPath = getCassandraDataDirectory(configuredCassandraPath)
       const lancedbPath = getDatabasePath(config, 'lancedb Database Path')
       
       const uploadSizeBytes = getDirSize(uploadPath)
-      const cassandraSizeBytes = getDirSize(cassandraPath)
+      const cassandraLoad = await getCassandraLoad()
+      const cassandraSize = cassandraLoad || formatBytes(getDirSize(cassandraPath))
       const lancedbSizeBytes = getDirSize(lancedbPath)
       
       res.json({
@@ -541,7 +542,7 @@ router.get('/stats', async (req, res) => {
         },
         cassandra: {
           location: cassandraPath,
-          size: formatBytes(cassandraSizeBytes),
+          size: cassandraSize,
         },
         objects: {
           location: uploadPath,

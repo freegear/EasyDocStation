@@ -432,6 +432,8 @@ async function initDb() {
           updated_at      TIMESTAMPTZ  NOT NULL DEFAULT NOW()
         );
         CREATE INDEX IF NOT EXISTS idx_dm_msg_conv ON dm_messages(conversation_id);
+        CREATE INDEX IF NOT EXISTS idx_dm_msg_conv_created ON dm_messages(conversation_id, created_at DESC);
+        CREATE INDEX IF NOT EXISTS idx_dm_msg_conv_updated ON dm_messages(conversation_id, updated_at);
         CREATE INDEX IF NOT EXISTS idx_dm_msg_sender ON dm_messages(sender_id);
       `)
       // dm_messages read_by 컬럼 추가 (읽음 추적)

@@ -222,6 +222,8 @@ async function upsertGmailAccountTx(client, oauthState, fields) {
        token_expires_at = EXCLUDED.token_expires_at,
        status = 'connected',
        sync_status = 'idle',
+       sync_failure_count = 0,
+       sync_retry_after = NULL,
        updated_at = NOW()
      RETURNING id`,
     [
@@ -413,6 +415,8 @@ async function upsertImapAccountTx(client, accountState, fields) {
        smtp_security = EXCLUDED.smtp_security,
        status = 'connected',
        sync_status = 'idle',
+       sync_failure_count = 0,
+       sync_retry_after = NULL,
        updated_at = NOW()
      RETURNING id`,
     [
@@ -491,6 +495,8 @@ async function updateImapAccount({ tenantId, accountId, userId, fields }) {
          smtp_security = $9,
          status = 'connected',
          sync_status = 'idle',
+         sync_failure_count = 0,
+         sync_retry_after = NULL,
          updated_at = NOW()
          ${passwordSql}
      WHERE tenant_id = $10
@@ -572,9 +578,13 @@ async function listAccounts({ userId, isSiteAdmin, tenantId }) {
                 ma.imap_host, ma.imap_port, ma.imap_security,
                 ma.smtp_host, ma.smtp_port, ma.smtp_security,
                 ma.scopes, ma.status, ma.sync_status,
-                ma.last_synced_at, ma.created_at, ma.updated_at,
+                ma.last_synced_at, ma.last_sync_attempt_at,
+                ma.sync_failure_count, ma.sync_retry_after,
+                mss.last_error, mss.updated_at AS sync_error_updated_at,
+                ma.created_at, ma.updated_at,
                 ${ACCOUNT_FOLDERS_SUBQUERY}
          FROM mail_accounts ma
+         LEFT JOIN mail_sync_state mss ON mss.account_id = ma.id
          WHERE ma.tenant_id = $1
            AND ma.user_id = $2
          ORDER BY ma.email_address ASC`,
@@ -613,10 +623,16 @@ async function listAccounts({ userId, isSiteAdmin, tenantId }) {
             ma.status,
             ma.sync_status,
             ma.last_synced_at,
+            ma.last_sync_attempt_at,
+            ma.sync_failure_count,
+            ma.sync_retry_after,
+            mss.last_error,
+            mss.updated_at AS sync_error_updated_at,
             ma.created_at,
             ma.updated_at,
             ${ACCOUNT_FOLDERS_SUBQUERY}
      FROM mail_accounts ma
+     LEFT JOIN mail_sync_state mss ON mss.account_id = ma.id
      JOIN mail_tenants mt ON mt.id = ma.tenant_id
      LEFT JOIN mail_tenant_members mtm
        ON mtm.tenant_id = ma.tenant_id AND mtm.user_id = $1
@@ -643,6 +659,7 @@ async function listSyncableAccounts() {
                 username, password_encrypted, imap_host, imap_port, imap_security,
                 smtp_host, smtp_port, smtp_security,
                 access_token_encrypted, refresh_token_encrypted, token_expires_at, status
+                , sync_failure_count, sync_retry_after, last_sync_attempt_at
          FROM mail_accounts
          WHERE tenant_id = $1
            AND status = 'connected'
@@ -763,6 +780,64 @@ async function setAccountSyncStatus({ tenantId, accountId, syncStatus, lastSynce
       [lastError, accountId],
     )
   }
+}
+
+async function markAccountSyncAttempt({ tenantId, accountId, attemptedAt = new Date() }) {
+  await tenantQuery(
+    tenantId,
+    `UPDATE mail_accounts
+     SET sync_status = 'syncing',
+         last_sync_attempt_at = $1,
+         updated_at = NOW()
+     WHERE id = $2`,
+    [attemptedAt, accountId],
+  )
+}
+
+async function markAccountSyncSuccess({ tenantId, accountId, syncedAt = new Date() }) {
+  await tenantQuery(
+    tenantId,
+    `UPDATE mail_accounts
+     SET sync_status = 'idle',
+         status = 'connected',
+         last_synced_at = $1,
+         sync_failure_count = 0,
+         sync_retry_after = NULL,
+         updated_at = NOW()
+     WHERE id = $2`,
+    [syncedAt, accountId],
+  )
+  await tenantQuery(
+    tenantId,
+    `UPDATE mail_sync_state SET last_error = NULL, updated_at = NOW() WHERE account_id = $1`,
+    [accountId],
+  )
+}
+
+async function markAccountSyncFailure({
+  tenantId,
+  accountId,
+  failureCount,
+  retryAfter,
+  lastError,
+  status,
+}) {
+  await tenantQuery(
+    tenantId,
+    `UPDATE mail_accounts
+     SET sync_status = 'error',
+         sync_failure_count = $1,
+         sync_retry_after = $2,
+         status = COALESCE($3, status),
+         updated_at = NOW()
+     WHERE id = $4`,
+    [failureCount, retryAfter || null, status || null, accountId],
+  )
+  await tenantQuery(
+    tenantId,
+    `UPDATE mail_sync_state SET last_error = $1, updated_at = NOW() WHERE account_id = $2`,
+    [lastError || null, accountId],
+  )
 }
 
 // 이미 적재된 provider_message_id 집합을 반환한다. (신규 메시지만 받기 위함)
@@ -2516,6 +2591,8 @@ function normalizeMailClawFields(fields = {}) {
     enabled: fields.enabled !== false,
     sender_check_enabled: !!fields.sender_check_enabled,
     sender_conditions: normalizeStringArray(fields.sender_conditions),
+    recipient_check_enabled: !!fields.recipient_check_enabled,
+    recipient_conditions: normalizeStringArray(fields.recipient_conditions),
     cc_check_enabled: !!fields.cc_check_enabled,
     cc_conditions: normalizeStringArray(fields.cc_conditions),
     keyword_check_enabled: !!fields.keyword_check_enabled,
@@ -2670,6 +2747,8 @@ async function listMailClawRules({ tenantId, userId, isSiteAdmin }) {
             mcr.enabled,
             mcr.sender_check_enabled,
             mcr.sender_conditions,
+            mcr.recipient_check_enabled,
+            mcr.recipient_conditions,
             mcr.cc_check_enabled,
             mcr.cc_conditions,
             mcr.keyword_check_enabled,
@@ -2708,6 +2787,8 @@ async function listEnabledMailClawRules({ tenantId }) {
             enabled,
             sender_check_enabled,
             sender_conditions,
+            recipient_check_enabled,
+            recipient_conditions,
             cc_check_enabled,
             cc_conditions,
             keyword_check_enabled,
@@ -2740,6 +2821,8 @@ async function getMailClawRule({ tenantId, id, userId, isSiteAdmin }) {
             enabled,
             sender_check_enabled,
             sender_conditions,
+            recipient_check_enabled,
+            recipient_conditions,
             cc_check_enabled,
             cc_conditions,
             keyword_check_enabled,
@@ -2770,13 +2853,14 @@ async function createMailClawRule({ tenantId, ownerUserId, fields }) {
     `INSERT INTO mailclaw_rules (
        tenant_id, owner_user_id, name, enabled,
        sender_check_enabled, sender_conditions,
+       recipient_check_enabled, recipient_conditions,
        cc_check_enabled, cc_conditions,
        keyword_check_enabled, keyword_conditions,
        ai_analysis_enabled, important_mail_enabled, forward_enabled, forward_addresses,
        move_folder_enabled, target_folder_id,
        tag_smart_folder_enabled, tag_smart_folder_id, tag_archive_enabled
      )
-     VALUES ($1,$2,$3,$4,$5,$6::jsonb,$7,$8::jsonb,$9,$10::jsonb,$11,$12,$13,$14::jsonb,$15,$16,$17,$18,$19)
+     VALUES ($1,$2,$3,$4,$5,$6::jsonb,$7,$8::jsonb,$9,$10::jsonb,$11,$12::jsonb,$13,$14,$15,$16::jsonb,$17,$18,$19,$20,$21)
      RETURNING *`,
     [
       tenantId,
@@ -2785,6 +2869,8 @@ async function createMailClawRule({ tenantId, ownerUserId, fields }) {
       f.enabled,
       f.sender_check_enabled,
       JSON.stringify(f.sender_conditions),
+      f.recipient_check_enabled,
+      JSON.stringify(f.recipient_conditions),
       f.cc_check_enabled,
       JSON.stringify(f.cc_conditions),
       f.keyword_check_enabled,
@@ -2812,23 +2898,25 @@ async function updateMailClawRule({ tenantId, id, ownerUserId, isSiteAdmin, fiel
          enabled = $5,
          sender_check_enabled = $6,
          sender_conditions = $7::jsonb,
-         cc_check_enabled = $8,
-         cc_conditions = $9::jsonb,
-         keyword_check_enabled = $10,
-         keyword_conditions = $11::jsonb,
-         ai_analysis_enabled = $12,
-         important_mail_enabled = $13,
-         forward_enabled = $14,
-         forward_addresses = $15::jsonb,
-         move_folder_enabled = $16,
-         target_folder_id = $17,
-         tag_smart_folder_enabled = $19,
-         tag_smart_folder_id = $20,
-         tag_archive_enabled = $21,
+         recipient_check_enabled = $8,
+         recipient_conditions = $9::jsonb,
+         cc_check_enabled = $10,
+         cc_conditions = $11::jsonb,
+         keyword_check_enabled = $12,
+         keyword_conditions = $13::jsonb,
+         ai_analysis_enabled = $14,
+         important_mail_enabled = $15,
+         forward_enabled = $16,
+         forward_addresses = $17::jsonb,
+         move_folder_enabled = $18,
+         target_folder_id = $19,
+         tag_smart_folder_enabled = $21,
+         tag_smart_folder_id = $22,
+         tag_archive_enabled = $23,
          updated_at = NOW()
      WHERE tenant_id = $1
        AND id = $2
-       AND ($3::boolean = true OR owner_user_id = $18)
+       AND ($3::boolean = true OR owner_user_id = $20)
      RETURNING *`,
     [
       tenantId,
@@ -2838,6 +2926,8 @@ async function updateMailClawRule({ tenantId, id, ownerUserId, isSiteAdmin, fiel
       f.enabled,
       f.sender_check_enabled,
       JSON.stringify(f.sender_conditions),
+      f.recipient_check_enabled,
+      JSON.stringify(f.recipient_conditions),
       f.cc_check_enabled,
       JSON.stringify(f.cc_conditions),
       f.keyword_check_enabled,
@@ -2979,6 +3069,9 @@ module.exports = {
   deleteAccount,
   updateAccountTokens,
   setAccountSyncStatus,
+  markAccountSyncAttempt,
+  markAccountSyncSuccess,
+  markAccountSyncFailure,
   getExistingProviderMessageIds,
   getExistingInternetMessageIds,
   countSyncedImapMessages,

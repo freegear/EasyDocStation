@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useLayoutEffect, useRef } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { apiFetch, getToken } from '../lib/api'
 import { useT } from '../i18n/useT'
@@ -79,7 +79,7 @@ function renderTextWithLinks(text, isMine) {
               <a
                 key={`part-${lineIdx}-${idx}`}
                 href={part}
-                className={linkClass}
+                className={`${linkClass} break-all`}
               >
                 {part}
               </a>
@@ -100,7 +100,8 @@ function isMessageEditable(createdAtIso, nowMs = Date.now()) {
   return (nowMs - createdAtMs) <= (10 * 60 * 1000)
 }
 
-const MESSAGE_SYNC_INTERVAL_MS = 1500
+const MESSAGE_SYNC_INTERVAL_MS = 3000
+const INITIAL_MESSAGE_LIMIT = 30
 const COMPOSER_MIN_HEIGHT = 72
 const COMPOSER_DEFAULT_HEIGHT = 88
 const COMPOSER_MAX_HEIGHT_RATIO = 0.55
@@ -155,35 +156,6 @@ function getHalfPreviewSize(att = {}, displayConfig = DEFAULT_DISPLAY_CONFIG) {
   const width = Math.max(120, Math.round((Number(base?.width) || 480) / 2))
   const height = Math.max(80, Math.round((Number(base?.height) || 270) / 2))
   return { width, height, kind }
-}
-
-function sameReadBy(a, b) {
-  const arrA = Array.isArray(a) ? a : []
-  const arrB = Array.isArray(b) ? b : []
-  if (arrA.length !== arrB.length) return false
-  for (let i = 0; i < arrA.length; i += 1) {
-    if (arrA[i] !== arrB[i]) return false
-  }
-  return true
-}
-
-function sameMessages(prev, next) {
-  if (!Array.isArray(prev) || !Array.isArray(next)) return false
-  if (prev.length !== next.length) return false
-  for (let i = 0; i < prev.length; i += 1) {
-    const a = prev[i]
-    const b = next[i]
-    if (a.id !== b.id) return false
-    if (a.content !== b.content) return false
-    if (a.is_edited !== b.is_edited) return false
-    if (a.is_deleted !== b.is_deleted) return false
-    if (a.deleted_at !== b.deleted_at) return false
-    if (a.updated_at !== b.updated_at) return false
-    if (Number(a.likeCount || 0) !== Number(b.likeCount || 0)) return false
-    if (Boolean(a.likedByMe) !== Boolean(b.likedByMe)) return false
-    if (!sameReadBy(a.read_by, b.read_by)) return false
-  }
-  return true
 }
 
 function Avatar({ name, imageUrl, size = 8 }) {
@@ -614,16 +586,16 @@ function MessageBubble({
   const senderName = msg.sender?.display_name || msg.sender?.username || '?'
 
   return (
-    <div className={`flex gap-2 mb-3 ${isMine ? 'flex-row-reverse' : 'flex-row'}`}>
+    <div className={`flex min-w-0 gap-2 mb-3 ${isMine ? 'flex-row-reverse' : 'flex-row'}`}>
       {!isMine && <Avatar name={senderName} imageUrl={msg.sender?.image_url} size={8} />}
-      <div className={`flex flex-col max-w-[70%] ${isMine ? 'items-end' : 'items-start'}`}>
+      <div className={`flex min-w-0 max-w-[70%] flex-col ${isMine ? 'items-end' : 'items-start'}`}>
         <div className={`flex items-center gap-2 mb-1 ${isMine ? 'flex-row-reverse' : ''}`}>
           <span className="text-xs font-semibold text-gray-600">{senderName}</span>
           <span className="text-[10px] text-gray-300">{formatTime(msg.created_at)}</span>
           {msg.is_edited && <span className="text-[10px] text-gray-300">(수정됨)</span>}
         </div>
 
-        <div className="flex items-end gap-1.5">
+        <div className="flex min-w-0 max-w-full items-end gap-1.5">
           {isMine && (
             <div className="flex flex-col items-end gap-0.5">
               <span className="text-[11px] font-semibold text-indigo-700 bg-indigo-50 border border-indigo-200 rounded-full px-2 py-0.5 whitespace-nowrap shadow-sm">
@@ -636,10 +608,10 @@ function MessageBubble({
               )}
             </div>
           )}
-          <div className="relative">
+          <div className="relative min-w-0 max-w-full">
             <div
               onClick={handleBubbleClick}
-              className={`rounded-2xl px-4 py-2.5 text-sm shadow-sm ${
+              className={`min-w-0 max-w-full overflow-hidden rounded-2xl px-4 py-2.5 text-sm shadow-sm ${
                 isMine
                   ? 'bg-indigo-600 text-white rounded-tr-sm cursor-pointer'
                   : 'bg-white text-gray-800 border border-gray-100 rounded-tl-sm'
@@ -667,7 +639,7 @@ function MessageBubble({
                     {deletedMessageLabel}
                   </p>
                 ) : (
-                  msg.content && <p className="whitespace-pre-wrap break-words select-text allow-copy">{renderTextWithLinks(msg.content, isMine)}</p>
+                  msg.content && <p className="whitespace-pre-wrap break-words [overflow-wrap:anywhere] select-text allow-copy">{renderTextWithLinks(msg.content, isMine)}</p>
                 )}
                 {msg.attachments?.length > 0 && (
                   <div className={`flex flex-col gap-1 ${msg.content ? 'mt-2' : ''}`}>
@@ -676,8 +648,6 @@ function MessageBubble({
                         const { width, height, kind } = getHalfPreviewSize(att, displayConfig)
                         const previewable = !!kind
                         const url = dmAttachmentUrl(att)
-                        const previewUrl = (kind === 'ppt' || kind === 'pptx') ? dmPreviewPdfUrl(att) : url
-
                         if (!previewable) {
                           return (
                             <button
@@ -708,6 +678,8 @@ function MessageBubble({
                               <img
                                 src={url}
                                 alt={att.filename}
+                                loading="lazy"
+                                decoding="async"
                                 onClick={(e) => { e.stopPropagation(); setPreviewAtt(att) }}
                                 className="cursor-zoom-in"
                                 style={{ width, height, maxWidth: '100%', objectFit: 'cover' }}
@@ -717,16 +689,26 @@ function MessageBubble({
                               <video
                                 src={url}
                                 controls
-                                preload="metadata"
+                                preload="none"
                                 style={{ width, height, maxWidth: '100%', background: '#000' }}
                               />
                             )}
                             {(kind === 'pdf' || kind === 'html' || kind === 'txt' || kind === 'ppt' || kind === 'pptx') && (
-                              <iframe
-                                src={previewUrl}
-                                title={att.filename}
-                                style={{ width, height, maxWidth: '100%', border: 'none', background: '#fff' }}
-                              />
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  setPreviewAtt(att)
+                                }}
+                                className={`flex items-center justify-center font-semibold ${
+                                  isMine
+                                    ? 'bg-white/10 text-white hover:bg-white/20'
+                                    : 'bg-gray-50 text-indigo-600 hover:bg-indigo-50'
+                                }`}
+                                style={{ width, height, maxWidth: '100%' }}
+                              >
+                                미리보기
+                              </button>
                             )}
                             <div className={`flex items-center gap-1.5 px-2 py-1 ${
                               isMine ? 'bg-white/10 text-white' : 'bg-gray-50 text-gray-600'
@@ -835,11 +817,21 @@ function MessageBubble({
               className="relative max-w-[90vw] max-h-[90vh] flex flex-col items-center"
               onClick={(e) => e.stopPropagation()}
             >
-              <img
-                src={dmAttachmentUrl(previewAtt)}
-                alt={previewAtt.filename}
-                className="max-w-[90vw] max-h-[80vh] rounded-2xl object-contain shadow-2xl"
-              />
+              {getPreviewKind(previewAtt) === 'image' ? (
+                <img
+                  src={dmAttachmentUrl(previewAtt)}
+                  alt={previewAtt.filename}
+                  className="max-w-[90vw] max-h-[80vh] rounded-2xl object-contain shadow-2xl"
+                />
+              ) : (
+                <iframe
+                  src={(getPreviewKind(previewAtt) === 'ppt' || getPreviewKind(previewAtt) === 'pptx')
+                    ? dmPreviewPdfUrl(previewAtt)
+                    : dmAttachmentUrl(previewAtt)}
+                  title={previewAtt.filename}
+                  className="w-[80vw] h-[75vh] rounded-2xl bg-white shadow-2xl"
+                />
+              )}
               <div className="mt-3 flex items-center gap-3">
                 <span className="text-gray-300 text-xs">{previewAtt.filename}</span>
                 <button
@@ -873,6 +865,9 @@ export default function DirectMessageView({ conversation, onClose, onConversatio
   const { currentUser } = useAuth()
   const t = useT()
   const [messages, setMessages] = useState([])
+  const [hasOlderMessages, setHasOlderMessages] = useState(false)
+  const [olderCursor, setOlderCursor] = useState(null)
+  const [loadingOlderMessages, setLoadingOlderMessages] = useState(false)
   const [input, setInput] = useState('')
   const [pendingFiles, setPendingFiles] = useState([]) // [{file, name}]
   const [displayConfig, setDisplayConfig] = useState(DEFAULT_DISPLAY_CONFIG)
@@ -888,10 +883,25 @@ export default function DirectMessageView({ conversation, onClose, onConversatio
   const dragCounterRef = useRef(0)
   const rootRef = useRef(null)
   const messagesEndRef = useRef(null)
+  const messagesViewportRef = useRef(null)
+  const messagesRef = useRef([])
   const fileInputRef = useRef(null)
+  const initialLoadRef = useRef(true)
+  const loadingMessagesRef = useRef(false)
+  const pendingScrollRestoreRef = useRef(null)
+  const syncCursorRef = useRef(null)
 
   useEffect(() => {
-    if (conversation?.id) loadMessages()
+    messagesRef.current = messages
+  }, [messages])
+
+  useEffect(() => {
+    messagesRef.current = []
+    syncCursorRef.current = null
+    initialLoadRef.current = true
+    if (conversation?.id) loadInitialMessages()
+    // conversation.id가 바뀔 때만 새 대화의 첫 페이지를 요청한다.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [conversation?.id])
 
   useEffect(() => {
@@ -918,13 +928,25 @@ export default function DirectMessageView({ conversation, onClose, onConversatio
   useEffect(() => {
     if (!conversation?.id) return
     const timer = setInterval(() => {
-      loadMessages()
+      loadNewMessages()
     }, MESSAGE_SYNC_INTERVAL_MS)
     return () => clearInterval(timer)
+    // 폴링 함수는 refs로 최신 메시지/커서를 읽으므로 대화 ID만 의존한다.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [conversation?.id])
 
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  useLayoutEffect(() => {
+    const viewport = messagesViewportRef.current
+    const pending = pendingScrollRestoreRef.current
+    if (viewport && pending) {
+      viewport.scrollTop = viewport.scrollHeight - pending.scrollHeight + pending.scrollTop
+      pendingScrollRestoreRef.current = null
+      return
+    }
+    if (initialLoadRef.current && messages.length > 0) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'auto' })
+      initialLoadRef.current = false
+    }
   }, [messages])
 
   useEffect(() => {
@@ -972,16 +994,125 @@ export default function DirectMessageView({ conversation, onClose, onConversatio
     return () => window.removeEventListener('keydown', onKey)
   }, [onClose, showRename, showAddParticipant, removingParticipant, showDeleteConversationDialog])
 
-  async function loadMessages() {
+  function responseMessages(data) {
+    const items = Array.isArray(data) ? data : (Array.isArray(data?.messages) ? data.messages : [])
+    const participantById = new Map(
+      (conversation?.participant_details || []).map(participant => [String(participant.id), participant])
+    )
+    return items.map(message => ({
+      ...message,
+      sender: {
+        ...(message.sender || {}),
+        image_url: message.sender?.image_url
+          || participantById.get(String(message.sender_id))?.image_url
+          || null,
+      },
+    }))
+  }
+
+  function toExclusiveSyncCursor(value) {
+    if (!value) return null
+    const time = new Date(value).getTime()
+    return Number.isFinite(time) ? new Date(time + 1).toISOString() : null
+  }
+
+  function mergeMessages(previous, incoming) {
+    const byId = new Map(previous.map(message => [String(message.id), message]))
+    incoming.forEach(message => byId.set(String(message.id), message))
+    return [...byId.values()].sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
+  }
+
+  function hasUnreadMessages(items) {
+    const userId = currentUser?.id
+    if (!userId) return false
+    return items.some(message => (
+      String(message.sender_id) !== String(userId)
+      && !(Array.isArray(message.read_by) && message.read_by.map(String).includes(String(userId)))
+    ))
+  }
+
+  async function loadInitialMessages() {
+    if (loadingMessagesRef.current) return
+    loadingMessagesRef.current = true
+    setMessages([])
+    setHasOlderMessages(false)
+    setOlderCursor(null)
     try {
-      const data = await apiFetch(`/dm/conversations/${conversation.id}/messages`)
-      const nextMessages = Array.isArray(data) ? data : []
-      setMessages(prev => sameMessages(prev, nextMessages) ? prev : nextMessages)
-      // 불러오는 즉시 읽음 처리
-      markAsRead()
+      const data = await apiFetch(`/dm/conversations/${conversation.id}/messages?limit=${INITIAL_MESSAGE_LIMIT}`)
+      const nextMessages = responseMessages(data)
+      setMessages(nextMessages)
+      const latestUpdatedAt = nextMessages.reduce((latest, message) => {
+        const value = message.updated_at || message.created_at
+        return !latest || new Date(value) > new Date(latest) ? value : latest
+      }, null)
+      syncCursorRef.current = toExclusiveSyncCursor(latestUpdatedAt)
+      setHasOlderMessages(Boolean(data?.hasMore))
+      setOlderCursor(data?.nextCursor || nextMessages[0]?.created_at || null)
+      if (Number(conversation?.unread_count || 0) > 0 || hasUnreadMessages(nextMessages)) markAsRead()
     } catch (e) {
       console.error('메시지 로드 실패', { conversationId: conversation?.id, error: e })
+    } finally {
+      loadingMessagesRef.current = false
     }
+  }
+
+  async function loadNewMessages() {
+    const currentMessages = messagesRef.current
+    if (loadingMessagesRef.current || currentMessages.length === 0) return
+    const newest = currentMessages[currentMessages.length - 1]
+    const syncCursor = syncCursorRef.current || newest?.updated_at || newest?.created_at
+    if (!syncCursor) return
+    loadingMessagesRef.current = true
+    try {
+      const data = await apiFetch(
+        `/dm/conversations/${conversation.id}/messages?limit=100&changedAfter=${encodeURIComponent(syncCursor)}`
+      )
+      const incoming = responseMessages(data)
+      if (incoming.length === 0) return
+      const latestUpdatedAt = incoming.reduce((latest, message) => {
+        const value = message.updated_at || message.created_at
+        return !latest || new Date(value) > new Date(latest) ? value : latest
+      }, syncCursor)
+      syncCursorRef.current = toExclusiveSyncCursor(latestUpdatedAt)
+      setMessages(prev => mergeMessages(prev, incoming))
+      if (hasUnreadMessages(incoming)) markAsRead()
+    } catch (e) {
+      console.error('신규 메시지 동기화 실패', { conversationId: conversation?.id, error: e })
+    } finally {
+      loadingMessagesRef.current = false
+    }
+  }
+
+  async function loadOlderMessages() {
+    if (!hasOlderMessages || !olderCursor || loadingOlderMessages || loadingMessagesRef.current) return
+    const viewport = messagesViewportRef.current
+    if (viewport) {
+      pendingScrollRestoreRef.current = {
+        scrollHeight: viewport.scrollHeight,
+        scrollTop: viewport.scrollTop,
+      }
+    }
+    setLoadingOlderMessages(true)
+    loadingMessagesRef.current = true
+    try {
+      const data = await apiFetch(
+        `/dm/conversations/${conversation.id}/messages?limit=${INITIAL_MESSAGE_LIMIT}&before=${encodeURIComponent(olderCursor)}`
+      )
+      const older = responseMessages(data)
+      setMessages(prev => mergeMessages(older, prev))
+      setHasOlderMessages(Boolean(data?.hasMore))
+      setOlderCursor(data?.nextCursor || older[0]?.created_at || null)
+    } catch (e) {
+      pendingScrollRestoreRef.current = null
+      console.error('이전 메시지 로드 실패', { conversationId: conversation?.id, error: e })
+    } finally {
+      setLoadingOlderMessages(false)
+      loadingMessagesRef.current = false
+    }
+  }
+
+  function handleMessagesScroll(event) {
+    if (event.currentTarget.scrollTop <= 120) loadOlderMessages()
   }
 
   function markAsRead() {
@@ -1231,7 +1362,7 @@ export default function DirectMessageView({ conversation, onClose, onConversatio
   const isOwner = currentUser?.id === conversation?.created_by
 
   return (
-    <div ref={rootRef} className="flex flex-col flex-1 min-h-0 bg-gray-50">
+    <div ref={rootRef} className="flex min-w-0 flex-col flex-1 min-h-0 overflow-x-hidden bg-gray-50">
       {/* ── Header: 창 이름 / 참여자 / 닫기 ── */}
       <div className="flex items-center gap-3 px-5 py-3 bg-white border-b border-gray-100 shadow-sm flex-shrink-0">
 
@@ -1325,7 +1456,14 @@ export default function DirectMessageView({ conversation, onClose, onConversatio
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-5 py-4">
+      <div
+        ref={messagesViewportRef}
+        onScroll={handleMessagesScroll}
+        className="min-w-0 flex-1 overflow-x-hidden overflow-y-auto px-5 py-4"
+      >
+        {loadingOlderMessages && (
+          <div className="pb-3 text-center text-xs font-medium text-gray-400">이전 메시지를 불러오는 중...</div>
+        )}
         {messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-gray-300 gap-2">
             <svg className="w-12 h-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1336,22 +1474,23 @@ export default function DirectMessageView({ conversation, onClose, onConversatio
           </div>
         ) : (
           messages.map(msg => (
-            <MessageBubble
-              key={msg.id}
-              msg={msg}
-              isMine={msg.sender_id === currentUser?.id}
-              onToggleLike={handleToggleLike}
-              onEdit={handleEdit}
-              onDelete={handleDelete}
-              totalParticipants={participantIds.length}
-              participantNameById={participantNameById}
-              readLabel={readLabel}
-              readCountLabel={readCountLabel}
-              unreadLabel={unreadLabel}
-              readAccountsLabel={readAccountsLabel}
-              deletedMessageLabel={deletedMessageLabel}
-              displayConfig={displayConfig}
-            />
+            <div key={msg.id}>
+              <MessageBubble
+                msg={msg}
+                isMine={msg.sender_id === currentUser?.id}
+                onToggleLike={handleToggleLike}
+                onEdit={handleEdit}
+                onDelete={handleDelete}
+                totalParticipants={participantIds.length}
+                participantNameById={participantNameById}
+                readLabel={readLabel}
+                readCountLabel={readCountLabel}
+                unreadLabel={unreadLabel}
+                readAccountsLabel={readAccountsLabel}
+                deletedMessageLabel={deletedMessageLabel}
+                displayConfig={displayConfig}
+              />
+            </div>
           ))
         )}
         <div ref={messagesEndRef} />

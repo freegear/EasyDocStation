@@ -13,6 +13,7 @@ const repo = require('../mail/repository')
 const { ACCESS_DENIED_MESSAGE, canAccessChannel } = require('../lib/channelAccess')
 const { syncGmailAccount, discoverGmailFolders, syncGmailFolder } = require('../mail/gmailSync')
 const { syncImapAccount, listImapFolders, syncImapFolder } = require('../mail/imapSync')
+const { describeMailSyncError } = require('../mail/syncError')
 const { decryptSecret } = require('../lib/secrets')
 const { enqueueMessageSynced } = require('../mail/agentic/worker')
 const { executeMailClawRuleForMessage, executeMailClawRuleForMessages, getMailClawSummaryStatus } = require('../mail/mailClaw')
@@ -103,10 +104,34 @@ function parseAddressInput(value) {
   if (Array.isArray(value)) {
     return value.map(item => String(item || '').trim()).filter(Boolean)
   }
-  return String(value || '')
-    .split(/[,\n;]/)
-    .map(item => item.trim())
-    .filter(Boolean)
+  const parts = []
+  let current = ''
+  let quoted = false
+  let escaped = false
+  let angleDepth = 0
+  for (const char of String(value || '')) {
+    if (escaped) {
+      current += char
+      escaped = false
+      continue
+    }
+    if (quoted && char === '\\') {
+      current += char
+      escaped = true
+      continue
+    }
+    if (char === '"') quoted = !quoted
+    if (!quoted && char === '<') angleDepth += 1
+    if (!quoted && char === '>' && angleDepth > 0) angleDepth -= 1
+    if (!quoted && angleDepth === 0 && (char === ',' || char === ';' || char === '\n')) {
+      if (current.trim()) parts.push(current.trim())
+      current = ''
+    } else {
+      current += char
+    }
+  }
+  if (current.trim()) parts.push(current.trim())
+  return parts
 }
 
 function parseAddressObjects(value) {
@@ -114,7 +139,7 @@ function parseAddressObjects(value) {
     const match = String(item).match(/^(.*?)<([^<>]+)>$/)
     if (match) {
       return {
-        name: match[1].replace(/^"|"$/g, '').trim(),
+        name: match[1].replace(/^"|"$/g, '').replace(/\\(["\\])/g, '$1').trim(),
         email: match[2].trim(),
       }
     }
@@ -2467,17 +2492,28 @@ router.post('/accounts/:id/sync', async (req, res, next) => {
       })
       res.json({ ok: true, ...summary })
     } catch (syncErr) {
+      const errorMessage = describeMailSyncError(syncErr)
       await repo.setAccountSyncStatus({
         tenantId,
         accountId,
         syncStatus: 'error',
-        lastError: syncErr.message,
+        lastError: errorMessage,
         status: syncErr.code === 'MAIL_REAUTH_REQUIRED' ? 'error' : undefined,
       })
       if (syncErr.code === 'MAIL_REAUTH_REQUIRED') {
-        return res.status(409).json({ error: syncErr.message, code: 'MAIL_REAUTH_REQUIRED' })
+        return res.status(409).json({
+          error: errorMessage,
+          code: 'MAIL_REAUTH_REQUIRED',
+          accountId: account.id,
+          emailAddress: account.email_address,
+        })
       }
-      throw syncErr
+      return res.status(502).json({
+        error: errorMessage,
+        code: 'MAIL_SYNC_FAILED',
+        accountId: account.id,
+        emailAddress: account.email_address,
+      })
     }
   } catch (err) {
     next(err)
@@ -2525,11 +2561,12 @@ router.post('/accounts/:id/folders/:folderId/sync', async (req, res, next) => {
       await repo.setAccountSyncStatus({ tenantId, accountId, syncStatus: 'idle', lastSyncedAt: new Date(), lastError: null, status: 'connected' })
       res.json({ ok: true, folder: { id: folder.id, name: folder.name }, ...summary })
     } catch (syncErr) {
-      await repo.setAccountSyncStatus({ tenantId, accountId, syncStatus: 'error', lastError: syncErr.message, status: syncErr.code === 'MAIL_REAUTH_REQUIRED' ? 'error' : undefined })
+      const errorMessage = describeMailSyncError(syncErr)
+      await repo.setAccountSyncStatus({ tenantId, accountId, syncStatus: 'error', lastError: errorMessage, status: syncErr.code === 'MAIL_REAUTH_REQUIRED' ? 'error' : undefined })
       if (syncErr.code === 'MAIL_REAUTH_REQUIRED') {
-        return res.status(409).json({ error: syncErr.message, code: 'MAIL_REAUTH_REQUIRED' })
+        return res.status(409).json({ error: errorMessage, code: 'MAIL_REAUTH_REQUIRED', accountId: account.id, emailAddress: account.email_address })
       }
-      throw syncErr
+      return res.status(502).json({ error: errorMessage, code: 'MAIL_SYNC_FAILED', accountId: account.id, emailAddress: account.email_address })
     }
   } catch (err) {
     next(err)
@@ -2581,14 +2618,21 @@ router.post('/sync-all', async (req, res, next) => {
         })
         summaries.push({ accountId: account.id, provider: account.provider, ok: true, ...summary })
       } catch (err) {
+        const errorMessage = describeMailSyncError(err)
         await repo.setAccountSyncStatus({
           tenantId: account.tenant_id,
           accountId: account.id,
           syncStatus: 'error',
-          lastError: err.message,
+          lastError: errorMessage,
           status: err.code === 'MAIL_REAUTH_REQUIRED' ? 'error' : undefined,
         })
-        summaries.push({ accountId: account.id, provider: account.provider, ok: false, error: err.message })
+        summaries.push({
+          accountId: account.id,
+          emailAddress: account.email_address,
+          provider: account.provider,
+          ok: false,
+          error: errorMessage,
+        })
       }
     }
 

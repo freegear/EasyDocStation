@@ -73,6 +73,34 @@ function buildLocateMessage(references = [], intent = {}) {
   return [header, '', ...lines].join('\n')
 }
 
+function locateReferenceKey(ref = {}) {
+  return [
+    ref.postId || ref.post_id || '',
+    ref.commentId || ref.comment_id || '',
+    ref.attachmentId || ref.attachment_id || '',
+    ref.type || ref.source_type || '',
+  ].join(':')
+}
+
+function mergeLocateReferences(primary = [], secondary = [], limit = 10) {
+  const merged = []
+  const seen = new Set()
+  const primaryQuota = Math.max(1, Math.ceil(limit / 2))
+  const ordered = [
+    ...primary.slice(0, primaryQuota),
+    ...secondary,
+    ...primary.slice(primaryQuota),
+  ]
+  for (const ref of ordered) {
+    const key = locateReferenceKey(ref)
+    if (!key || seen.has(key)) continue
+    seen.add(key)
+    merged.push(ref)
+    if (merged.length >= limit) break
+  }
+  return merged
+}
+
 class HandleUserQuestionUseCase {
   constructor({
     parser = new RuleBasedIntentParser(),
@@ -105,20 +133,23 @@ class HandleUserQuestionUseCase {
     }
 
     if (intent.action === ACTIONS.LOCATE) {
-      let located = await this.postRepository.locateReferences({
+      const locateLimit = 10
+      const keywordLocated = await this.postRepository.locateReferences({
         channelId: intent.channelId,
         target: intent.target,
         keywords: intent.keywords,
         matchMode: intent.matchMode,
-        limit: 10,
+        limit: locateLimit,
       }, user)
-      if (located.length === 0) {
-        located = await locateWithRagFallback({
-          channelId: intent.channelId,
-          keywords: intent.keywords,
-          limit: 10,
-        }, user)
-      }
+      // 키워드 검색은 같은 게시물의 본문이 모든 첨부에 적용되어 관련 없는
+      // 첨부가 상위 limit를 채울 수 있다. OCR/문서 본문을 검색하는 RAG 결과를
+      // 항상 함께 조회하고 의미 검색 결과를 우선 배치한다.
+      const ragLocated = await locateWithRagFallback({
+        channelId: intent.channelId,
+        keywords: intent.keywords,
+        limit: locateLimit,
+      }, user)
+      const located = mergeLocateReferences(ragLocated, keywordLocated, locateLimit)
       const references = located.map((ref) => ({
         ...ref,
         link: buildFrontendLink({

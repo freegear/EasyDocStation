@@ -1,8 +1,8 @@
-const { ImapFlow } = require('imapflow')
 const { simpleParser } = require('mailparser')
 const repo = require('./repository')
 const { getMailStorage, buildMailObjectKey } = require('./storage')
 const { decryptSecret } = require('../lib/secrets')
+const { withImapClient } = require('./imapClient')
 const { buildSnippet } = require('./textPreview')
 const { decodeHeaderText, getRawHeader, detectFallbackCharset } = require('./mimeHeaderDecode')
 const { parseAddressList, normalizeInternetMessageId } = require('./messageParser')
@@ -34,16 +34,6 @@ const FETCH_BATCH = 100
 // 증분 동기화: 매 폴링마다 메일함 전체(1:*)를 스캔하지 않고 최근 UID 윈도우만 본다.
 // 새 메일은 항상 가장 높은 UID로 들어오므로 (uidNext-WINDOW):* 범위면 충분히 잡힌다.
 const INCREMENTAL_WINDOW = 500
-
-function buildImapClient(account, password) {
-  return new ImapFlow({
-    host: account.imap_host,
-    port: Number(account.imap_port),
-    secure: account.imap_security !== 'starttls' && account.imap_security !== 'none',
-    auth: { user: account.username || account.email_address, pass: password },
-    logger: false,
-  })
-}
 
 // IMAP 메일함을 내부 폴더 타입으로 분류한다.
 function classifyMailbox(box) {
@@ -93,9 +83,7 @@ function normalizeFolderIdentity(box) {
 async function listImapFolders(account) {
   const password = decryptSecret(account.password_encrypted)
   if (!password) throw new Error('메일 계정 암호가 저장되어 있지 않습니다.')
-  const client = buildImapClient(account, password)
-  await client.connect()
-  try {
+  return withImapClient(account, password, async client => {
     const boxes = await client.list()
     const folders = []
     for (const box of boxes) {
@@ -103,10 +91,7 @@ async function listImapFolders(account) {
       folders.push(normalizeFolderIdentity(box))
     }
     return folders
-  } finally {
-    if (client.usable) await client.logout().catch(() => {})
-    else client.close()
-  }
+  })
 }
 
 // 특정 폴더 1개의 메시지를 on-demand로 동기화한다.
@@ -126,9 +111,7 @@ async function syncImapFolder({ tenantId, account, folder, limit = 50, full = fa
 
   const password = decryptSecret(account.password_encrypted)
   if (!password) throw new Error('메일 계정 암호가 저장되어 있지 않습니다.')
-  const client = buildImapClient(account, password)
-  await client.connect()
-  try {
+  return withImapClient(account, password, async client => {
     const storage = getMailStorage()
     const folderMap = await repo.getFolderMap({ tenantId, accountId: account.id })
     let mailboxPath = folder.provider_folder_id
@@ -161,10 +144,7 @@ async function syncImapFolder({ tenantId, account, folder, limit = 50, full = fa
     }
     await repo.recomputeUsage({ tenantId, accountId: account.id, userId: account.user_id })
     return result
-  } finally {
-    if (client.usable) await client.logout().catch(() => {})
-    else client.close()
-  }
+  })
 }
 
 function pickSentMailbox(mailboxes) {
@@ -433,10 +413,7 @@ async function syncImapAccount({ tenantId, account, limit = 50, full = false }) 
   if (!password) throw new Error('메일 계정 암호가 저장되어 있지 않습니다.')
   if (!account.imap_host || !account.imap_port) throw new Error('IMAP 서버 설정이 없습니다.')
 
-  const client = buildImapClient(account, password)
-
-  await client.connect()
-  try {
+  return withImapClient(account, password, async client => {
     const mailboxes = await client.list()
 
     const storage = getMailStorage()
@@ -479,13 +456,7 @@ async function syncImapAccount({ tenantId, account, limit = 50, full = false }) 
       },
       errors: [...inbox.errors, ...sent.errors].slice(0, 10),
     }
-  } finally {
-    if (client.usable) {
-      await client.logout().catch(() => {})
-    } else {
-      client.close()
-    }
-  }
+  })
 }
 
 module.exports = {

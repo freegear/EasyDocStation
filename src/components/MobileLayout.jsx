@@ -3,10 +3,9 @@ import { useChat } from '../contexts/ChatContext'
 import { apiFetch } from '../lib/api'
 import Sidebar from './Sidebar'
 import ChatArea from './ChatArea'
-import CalendarView from './CalendarView'
 import DirectMessageView, { NewConversationModal } from './DirectMessageView'
 import GroqPanel from './GroqPanel'
-import MailPage from '../features/mail/MailPage'
+import LazyServiceBoundary, { LazyCalendarView, LazyMailPage } from './LazyServiceBoundary'
 
 // ─── Bottom tab bar icons ─────────────────────────────────────
 function HashIcon({ className = 'w-5 h-5' }) {
@@ -177,7 +176,7 @@ function AiBottomSheet({ onClose }) {
   )
 }
 
-export default function MobileLayout({ onOpenServicePage }) {
+export default function MobileLayout({ onOpenServicePage, onOpenUpdateHistory }) {
   const { teams, selectedTeam, selectedChannel, pendingOpenPostId } = useChat()
 
   // 'channels' | 'dm' | 'calendar'
@@ -232,11 +231,15 @@ export default function MobileLayout({ onOpenServicePage }) {
       {/* 콘텐츠 영역 (flex-col: ChatArea의 flex-1 / Sidebar·Calendar의 h-full 모두 채워지도록) */}
       <div className="flex-1 min-h-0 min-w-0 overflow-hidden flex flex-col">
         {tab === 'calendar' && (
-          <CalendarView onClose={() => setTab('channels')} />
+          <LazyServiceBoundary>
+            <LazyCalendarView onClose={() => setTab('channels')} />
+          </LazyServiceBoundary>
         )}
 
         {tab === 'mail' && (
-          <MailPage onBackToMain={() => setTab('channels')} />
+          <LazyServiceBoundary>
+            <LazyMailPage onBackToMain={() => setTab('channels')} />
+          </LazyServiceBoundary>
         )}
 
         {tab === 'dm' && (
@@ -272,6 +275,7 @@ export default function MobileLayout({ onOpenServicePage }) {
               onOpenDM={(conv) => { setActiveDMConv(conv); setTab('dm') }}
               onNewDM={() => { setShowNewDM(true); setTab('dm') }}
               onOpenServicePage={onOpenServicePage}
+              onOpenUpdateHistory={onOpenUpdateHistory}
               onOpenMail={() => setTab('mail')}
               activeDMConvId={activeDMConv?.id}
               onCloseMobile={() => setChannelView('channel')}

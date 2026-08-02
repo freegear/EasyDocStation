@@ -155,6 +155,9 @@ async function ensureMailDataSchema(client, { standalone = false } = {}) {
       status                   TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'connected', 'error', 'disabled')),
       sync_status              TEXT NOT NULL DEFAULT 'idle' CHECK (sync_status IN ('idle', 'syncing', 'error')),
       last_synced_at           TIMESTAMPTZ,
+      sync_failure_count       INTEGER NOT NULL DEFAULT 0,
+      sync_retry_after         TIMESTAMPTZ,
+      last_sync_attempt_at     TIMESTAMPTZ,
       created_at               TIMESTAMPTZ NOT NULL DEFAULT NOW(),
       updated_at               TIMESTAMPTZ NOT NULL DEFAULT NOW(),
       UNIQUE (tenant_id, user_id, provider, email_address)
@@ -181,6 +184,15 @@ async function ensureMailDataSchema(client, { standalone = false } = {}) {
       ADD COLUMN IF NOT EXISTS smtp_port INTEGER;
     ALTER TABLE mail_accounts
       ADD COLUMN IF NOT EXISTS smtp_security TEXT;
+  `)
+
+  await run(client, 'mail account sync backoff columns', `
+    ALTER TABLE mail_accounts
+      ADD COLUMN IF NOT EXISTS sync_failure_count INTEGER NOT NULL DEFAULT 0;
+    ALTER TABLE mail_accounts
+      ADD COLUMN IF NOT EXISTS sync_retry_after TIMESTAMPTZ;
+    ALTER TABLE mail_accounts
+      ADD COLUMN IF NOT EXISTS last_sync_attempt_at TIMESTAMPTZ;
   `)
 
   await run(client, 'create mail folders messages attachments', `
@@ -397,6 +409,8 @@ async function ensureMailDataSchema(client, { standalone = false } = {}) {
       enabled               BOOLEAN NOT NULL DEFAULT true,
       sender_check_enabled  BOOLEAN NOT NULL DEFAULT false,
       sender_conditions     JSONB NOT NULL DEFAULT '[]',
+      recipient_check_enabled BOOLEAN NOT NULL DEFAULT false,
+      recipient_conditions  JSONB NOT NULL DEFAULT '[]',
       cc_check_enabled      BOOLEAN NOT NULL DEFAULT false,
       cc_conditions         JSONB NOT NULL DEFAULT '[]',
       keyword_check_enabled BOOLEAN NOT NULL DEFAULT false,
@@ -429,6 +443,13 @@ async function ensureMailDataSchema(client, { standalone = false } = {}) {
     CREATE INDEX IF NOT EXISTS idx_mailclaw_rules_enabled ON mailclaw_rules(tenant_id, enabled);
     CREATE INDEX IF NOT EXISTS idx_mailclaw_logs_rule ON mailclaw_execution_logs(rule_id, created_at DESC);
     CREATE INDEX IF NOT EXISTS idx_mailclaw_logs_message ON mailclaw_execution_logs(message_id);
+  `)
+
+  await run(client, 'mailclaw recipient condition columns', `
+    ALTER TABLE mailclaw_rules
+      ADD COLUMN IF NOT EXISTS recipient_check_enabled BOOLEAN NOT NULL DEFAULT false;
+    ALTER TABLE mailclaw_rules
+      ADD COLUMN IF NOT EXISTS recipient_conditions JSONB NOT NULL DEFAULT '[]';
   `)
 
   // MailClaw 규칙에 "스마트 폴더 태그 부여" 액션(+각 계정 내 아카이브 옵션)을 추가한다. (MailService.md 13.6)

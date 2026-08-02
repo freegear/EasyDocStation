@@ -1,6 +1,6 @@
-const { ImapFlow } = require('imapflow')
 const repo = require('./repository')
 const { decryptSecret, encryptSecret } = require('../lib/secrets')
+const { withImapClient } = require('./imapClient')
 const {
   refreshAccessToken,
   gmailPatchLabel,
@@ -8,17 +8,6 @@ const {
 } = require('./gmailOAuth')
 
 const TOKEN_SKEW_MS = 60 * 1000
-
-// providerMove.js와 동일한 클라이언트/토큰 헬퍼를 미러링한다.
-function buildImapClient(account, password) {
-  return new ImapFlow({
-    host: account.imap_host,
-    port: Number(account.imap_port),
-    secure: account.imap_security !== 'starttls' && account.imap_security !== 'none',
-    auth: { user: account.username || account.email_address, pass: password },
-    logger: false,
-  })
-}
 
 async function ensureGmailAccessToken({ tenantId, account }) {
   const expiresAt = account.token_expires_at ? new Date(account.token_expires_at).getTime() : 0
@@ -86,9 +75,7 @@ async function renameImapMailbox({ account, folder, newName }) {
   const password = decryptSecret(account.password_encrypted)
   if (!password) throw new Error('메일 계정 암호가 저장되어 있지 않습니다.')
 
-  const client = buildImapClient(account, password)
-  await client.connect()
-  try {
+  return withImapClient(account, password, async client => {
     const mailboxes = await client.list()
     const currentPath = folder.provider_folder_id
     const current = mailboxes.find(box => String(box.path) === String(currentPath))
@@ -115,10 +102,7 @@ async function renameImapMailbox({ account, folder, newName }) {
     const info = await client.mailboxRename(currentPath, newPath)
     const finalPath = info?.newPath || newPath
     return { provider: 'imap', providerFolderId: finalPath, name: newName }
-  } finally {
-    if (client.usable) await client.logout().catch(() => {})
-    else client.close()
-  }
+  })
 }
 
 // 폴더 이름을 프로바이더에 반영한다. 로컬 전용 폴더는 호출 전 라우트에서 걸러진다.
@@ -169,9 +153,7 @@ async function deleteImapMailbox({ account, folder }) {
   const password = decryptSecret(account.password_encrypted)
   if (!password) throw new Error('메일 계정 암호가 저장되어 있지 않습니다.')
 
-  const client = buildImapClient(account, password)
-  await client.connect()
-  try {
+  return withImapClient(account, password, async client => {
     const mailboxes = await client.list()
     const currentPath = folder.provider_folder_id
     const current = mailboxes.find(box => String(box.path) === String(currentPath))
@@ -214,10 +196,7 @@ async function deleteImapMailbox({ account, folder }) {
       throw err
     }
     return { provider: 'imap', destructive: true }
-  } finally {
-    if (client.usable) await client.logout().catch(() => {})
-    else client.close()
-  }
+  })
 }
 
 // 폴더를 프로바이더에서 삭제한다. 로컬 전용 폴더는 호출 전 라우트에서 걸러진다.

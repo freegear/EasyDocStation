@@ -11,6 +11,7 @@ const { canAccessChannel, ACCESS_DENIED_MESSAGE } = require('../lib/channelAcces
 const { getDatabasePath } = require('../databasePaths')
 const { getPythonExecutable } = require('../pythonRuntime')
 const flags = require('../sttFeatureFlags')
+const { dedupeOverlappingSegments } = require('../lib/meetingSttContext')
 
 const router = express.Router()
 
@@ -504,6 +505,7 @@ function runPythonStt(audioPath, options = {}, onProgress = null, context = {}) 
   return new Promise((resolve, reject) => {
     const jobId = String(context.jobId || '')
     const postId = String(context.postId || '')
+    const overlapSec = Number(options.chunkContextOverlapSec ?? options.contextOverlapSec ?? options.overlapSec ?? 3)
     const payload = {
       audioPath,
       language: options.language || 'ko',
@@ -511,6 +513,7 @@ function runPythonStt(audioPath, options = {}, onProgress = null, context = {}) 
       diarizationRequired: options.diarizationRequired === true,
       modelId: MODEL_ID,
       hfToken: getHfToken(),
+      chunkContextOverlapSec: overlapSec,
     }
     const payloadPath = path.join(os.tmpdir(), `stt-payload-${Date.now()}-${Math.random().toString(16).slice(2)}.json`)
     fs.writeFileSync(payloadPath, JSON.stringify(payload), 'utf8')
@@ -1131,6 +1134,9 @@ async function queueWorkerTick() {
     const speakerEmbeddings = sttResult.speaker_embeddings || {}
     let mappedSegments = await applySpeakerMapping(job.channel_id, sttResult.segments || [])
     mappedSegments = await autoMatchSpeakersByEmbedding(job.channel_id, mappedSegments, speakerEmbeddings)
+    mappedSegments = dedupeOverlappingSegments(mappedSegments, {
+      overlapSec: Number(parsedOptions.chunkContextOverlapSec ?? parsedOptions.contextOverlapSec ?? parsedOptions.overlapSec ?? 3),
+    })
     sttLog('speaker mapping applied', {
       jobId: job.id,
       originalSegments: Array.isArray(sttResult.segments) ? sttResult.segments.length : 0,
@@ -1562,6 +1568,62 @@ router.post('/jobs', requireAuth, async (req, res, next) => {
   }
 })
 
+// Programmatic job creation helper (usable from other server modules)
+async function createSttJob({ postId, attachmentId, options = {}, user }) {
+  sttActorUserId = String(user?.id || '')
+  await ensureTables()
+
+  if (!postId || !attachmentId) throw new Error('postId, attachmentId are required')
+  const post = await findPostLocator(String(postId))
+  if (!post) throw new Error('post not found')
+  const allowed = await canAccessChannel(db, user, String(post.channel_id))
+  if (!allowed) throw new Error(ACCESS_DENIED_MESSAGE)
+
+  const attachment = await findAttachmentRow(String(attachmentId))
+  if (!attachment) throw new Error('attachment not found')
+  if (String(attachment.status || '').toUpperCase() !== 'COMPLETED') throw new Error('attachment not ready')
+
+  const optionsHash = hashOptions(options)
+  const idempotencyKey = buildIdempotencyKey({ postId: String(postId), attachmentId: String(attachmentId), modelVersion: MODEL_VERSION, optionsHash })
+
+  const activeForPost = await db.query(
+    `SELECT id, status, progress, attachment_id, created_at
+     FROM stt_jobs
+     WHERE post_id = $1
+       AND status IN ('queued', 'processing')
+     ORDER BY created_at ASC
+     LIMIT 1`,
+    [String(postId)],
+  )
+  if (activeForPost.rowCount > 0) return { jobId: activeForPost.rows[0].id, status: activeForPost.rows[0].status, joinedActive: true }
+
+  const exists = await db.query(`SELECT id, status FROM stt_jobs WHERE idempotency_key = $1 LIMIT 1`, [idempotencyKey])
+  if (exists.rowCount > 0) {
+    const existing = exists.rows[0]
+    if (['queued', 'processing', 'done'].includes(String(existing.status))) return { jobId: existing.id, status: existing.status, deduplicated: true }
+  }
+
+  const inserted = await db.query(
+    `INSERT INTO stt_jobs (
+      id, post_id, channel_id, attachment_id,
+      idempotency_key, model_version, options_json, options_hash,
+      status, progress, created_by
+    ) VALUES (
+      gen_random_uuid(), $1, $2, $3,
+      $4, $5, $6::jsonb, $7,
+      'queued', 0, $8
+    )
+    RETURNING id, status`,
+    [String(postId), String(post.channel_id), String(attachmentId), idempotencyKey, MODEL_VERSION, JSON.stringify(options || {}), optionsHash, user?.id || null],
+  )
+
+  const job = inserted.rows[0]
+  await db.query(`DELETE FROM stt_speaker_mappings WHERE channel_id = $1`, [String(post.channel_id)]).catch(() => {})
+  // trigger worker
+  try { queueWorkerTick().catch(() => {}) } catch (_) {}
+  return { jobId: job.id, status: job.status }
+}
+
 router.get('/jobs/:id', requireAuth, async (req, res, next) => {
   try {
     sttActorUserId = String(req.user?.id || '')
@@ -1677,3 +1739,5 @@ router.post('/jobs/:id/retry', requireAuth, async (req, res, next) => {
 module.exports = router
 module.exports.cancelSttJobsForPost = cancelSttJobsForPost
 module.exports.terminateSttProcess = terminateSttProcess
+module.exports.createSttJob = createSttJob
+module.exports.queueWorkerTick = queueWorkerTick

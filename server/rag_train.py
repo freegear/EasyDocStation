@@ -1535,19 +1535,80 @@ def load_word(file_path):
         return ""
 
 
-def ingest_word(records, *, post_id, channel_id, attachment_id, comment_id, word_path, file_name):
+def ingest_word(
+    records,
+    *,
+    post_id,
+    channel_id,
+    attachment_id,
+    comment_id,
+    word_path,
+    file_name,
+    archive_id="",
+    archive_file_path="",
+):
     if not word_path or not os.path.isfile(word_path):
         if word_path:
             print(f"[RAG] Word 파일 없음: {word_path}", file=sys.stderr)
         return 0
 
-    print(f"[RAG] Word 학습 시작: {os.path.basename(word_path)}", flush=True)
-    text = load_word(word_path)
+    print(f"[RAG] Word MarkItDown 학습 시작: {os.path.basename(word_path)}", flush=True)
+    text = load_markitdown_text(word_path)
+    converted_by = "markitdown"
+    converted_format = "markdown"
+    parser_version = markitdown_version()
+    if not text:
+        print(
+            f"[RAG] Word MarkItDown 결과 없음, docx2txt fallback: {os.path.basename(word_path)}",
+            flush=True,
+        )
+        text = load_word(word_path)
+        converted_by = "docx2txt"
+        converted_format = "text"
+        try:
+            import importlib.metadata
+            parser_version = importlib.metadata.version("docx2txt")
+        except Exception:
+            parser_version = ""
     if not text:
         return 0
 
     source_name = file_name or os.path.basename(word_path)
     file_hash = calc_file_hash(word_path)
+    split_base_dir = build_file_training_dir(post_id, comment_id, attachment_id, source_name)
+    os.makedirs(split_base_dir, exist_ok=True)
+    converted_name = "converted_markitdown.md" if converted_by == "markitdown" else "converted_docx2txt.txt"
+    converted_path = os.path.join(split_base_dir, converted_name)
+    try:
+        with open(converted_path, "w", encoding="utf-8") as f:
+            f.write(text)
+    except Exception as e:
+        print(f"[RAG] Word 변환 결과 저장 실패 ({converted_path}): {e}", file=sys.stderr)
+
+    ext = os.path.splitext(source_name)[1].replace(".", "").lower()
+    split_records = {
+        "text": [{
+            "post_id": str(post_id or ""),
+            "comment_id": str(comment_id or ""),
+            "attachment_id": str(attachment_id or ""),
+            "source": source_name,
+            "file_name": source_name,
+            "type": "word",
+            "document_kind": "word",
+            "source_ext": ext,
+            "converted_by": converted_by,
+            "converted_format": converted_format,
+            "parser_version": parser_version,
+            "archive_id": archive_id,
+            "archive_file_path": archive_file_path,
+            "search_content": text,
+            "file_hash": file_hash,
+            "saved_at": DOC_VERSION,
+        }],
+        "table": [],
+        "image": [],
+    }
+    persist_split_results(split_base_dir, split_records)
 
     meta = metadata_base(
         post_id=post_id,
@@ -1561,9 +1622,23 @@ def ingest_word(records, *, post_id, channel_id, attachment_id, comment_id, word
     meta["type"] = "word"
     meta["page_number"] = 0
     meta["element_id"] = f"word-{attachment_id or post_id or comment_id}"
+    meta["original_content"] = text[:4000]
+    if RAG_SCHEMA_VERSION >= 2:
+        meta["document_kind"] = "word"
+        meta["source_ext"] = ext
+        meta["converted_by"] = converted_by
+        meta["converted_format"] = converted_format
+        meta["parser_version"] = parser_version
+        meta["archive_id"] = str(archive_id or "")
+        meta["archive_file_path"] = str(archive_file_path or "")
+        meta["inner_source_ext"] = ext if archive_id else ""
 
     count = append_text_chunks(records, text, meta, chunk_prefix=meta["element_id"])
-    print(f"[RAG] Word 학습 완료: {os.path.basename(word_path)} ({count}청크)", flush=True)
+    print(
+        f"[RAG] Word 학습 완료: {os.path.basename(word_path)} "
+        f"({converted_by}, {count}청크)",
+        flush=True,
+    )
     return count
 
 
@@ -1639,6 +1714,8 @@ def document_kind_from_ext(ext):
         return "excel"
     if e in ("ppt", "pptx"):
         return "presentation"
+    if e in ("doc", "docx"):
+        return "word"
     if e == "xml":
         return "structured_xml"
     if e in ("html", "htm"):
@@ -1761,6 +1838,7 @@ def ingest_zip(records, *, post_id, channel_id, attachment_id, comment_id, zip_p
     max_files = int(os.getenv("EASYDOC_ZIP_MAX_FILES", "100"))
     max_total_size = int(os.getenv("EASYDOC_ZIP_MAX_TOTAL_SIZE", str(200 * 1024 * 1024)))
     supported_markitdown = {"xls", "xlsx", "ppt", "pptx", "xml", "html", "htm", "csv"}
+    supported_word = {"doc", "docx"}
     supported_text = {"txt", "md", "json", "log"}
     local_chunks = 0
     tmp_dir = ""
@@ -1791,7 +1869,19 @@ def ingest_zip(records, *, post_id, channel_id, attachment_id, comment_id, zip_p
                     shutil.copyfileobj(src, dst)
 
                 item_id = f"{attachment_id or post_id or comment_id}:{member}"
-                if ext in supported_markitdown:
+                if ext in supported_word:
+                    local_chunks += ingest_word(
+                        records,
+                        post_id=post_id,
+                        channel_id=channel_id,
+                        attachment_id=item_id,
+                        comment_id=comment_id,
+                        word_path=target_path,
+                        file_name=member,
+                        archive_id=attachment_id or "",
+                        archive_file_path=member,
+                    )
+                elif ext in supported_markitdown:
                     local_chunks += ingest_markitdown_document(
                         records,
                         post_id=post_id,

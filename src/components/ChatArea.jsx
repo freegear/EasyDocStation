@@ -9,10 +9,24 @@ import { findDuplicateFileNames } from '../lib/fileNameValidation'
 import { getPastedImageFiles } from '../lib/clipboardFiles'
 import { useSelectionClickGuard } from '../hooks/useSelectionClickGuard'
 import { getContentFontStyle, normalizeContentFontScale } from '../lib/contentFont'
+import { useMeetingRecording } from '../contexts/MeetingRecordingContext'
 import { normalizeBrokenOrderedListItems } from '../lib/markdownNormalize'
+import {
+  clearMeetingChunks,
+  deleteMeetingChunk,
+  deleteMeetingSession,
+  getMeetingSession,
+  listMeetingChunks,
+  saveMeetingChunk,
+  saveMeetingSession,
+} from '../lib/meetingRecordingStore'
 import config from '../config.json'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
+import remarkMath from 'remark-math'
+import rehypeKatex from 'rehype-katex'
+import MarkdownPreBlock from './markdown/MarkdownPreBlock'
+import { normalizeLatexDelimiters } from '../lib/markdownMath'
 import ChannelManageModal from './ChannelManageModal'
 import RecentlyDeletedModal from './RecentlyDeletedModal'
 import ConfirmDialog from './ConfirmDialog'
@@ -740,6 +754,80 @@ function VideoPlayer({ file, fileUrl, onClose }) {
   )
 }
 
+function ServerRenderedPdfViewer({ fileId, onFallback }) {
+  const [pageCount, setPageCount] = useState(0)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    if (!fileId) {
+      onFallback?.()
+      return undefined
+    }
+    let cancelled = false
+
+    fetch(`/api/files/pdf-preview/${fileId}/manifest`, { credentials: 'include' })
+      .then(resp => {
+        if (!resp.ok) throw new Error('PDF preview manifest failed')
+        return resp.json()
+      })
+      .then(data => {
+        if (cancelled) return
+        const count = Number(data?.pageCount)
+        if (!Number.isInteger(count) || count < 1) throw new Error('Invalid PDF page count')
+        setPageCount(count)
+        setLoading(false)
+      })
+      .catch(() => {
+        if (!cancelled) onFallback?.()
+      })
+
+    return () => { cancelled = true }
+  }, [fileId, onFallback])
+
+  if (loading) {
+    return (
+      <div className="h-full flex items-center justify-center bg-gray-100">
+        <div className="w-6 h-6 border-2 border-gray-300 border-t-red-400 rounded-full animate-spin" />
+      </div>
+    )
+  }
+
+  return (
+    <div className="h-full overflow-auto bg-gray-100 p-4">
+      <div className="mx-auto max-w-[1100px] space-y-4">
+        {Array.from({ length: pageCount }, (_, index) => {
+          const page = index + 1
+          return (
+            <figure key={page} className="m-0">
+              <img
+                src={`/api/files/pdf-preview/${fileId}/pages/${page}`}
+                alt={`PDF ${page}페이지`}
+                loading={page === 1 ? 'eager' : 'lazy'}
+                decoding="async"
+                className="block w-full h-auto rounded border border-gray-200 bg-white shadow-sm"
+                onError={onFallback}
+              />
+              {pageCount > 1 && (
+                <figcaption className="pt-1 text-center text-xs text-gray-500">
+                  {page} / {pageCount}
+                </figcaption>
+              )}
+            </figure>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+function PdfPreviewViewer({ fileId, onClose }) {
+  const [usePdfJs, setUsePdfJs] = useState(false)
+  const fallbackToPdfJs = useCallback(() => setUsePdfJs(true), [])
+
+  if (usePdfJs) return <PdfModalViewer fileId={fileId} onClose={onClose} />
+  return <ServerRenderedPdfViewer fileId={fileId} onFallback={fallbackToPdfJs} />
+}
+
 function PdfModalViewer({ fileId, sourceUrl, onClose }) {
   const canvasRef = useRef(null)
   const [pdfDoc, setPdfDoc] = useState(null)
@@ -971,7 +1059,7 @@ function FilePreviewModal({ file, fileUrl, onClose }) {
           </div>
         </div>
         {isPdf ? (
-          <PdfModalViewer fileId={file?.id} onClose={onClose} />
+          <PdfPreviewViewer fileId={file?.id} onClose={onClose} />
         ) : isTxt ? (
           <div className="h-[calc(85vh-44px)] overflow-auto bg-gray-50">
             {txtLoading ? (
@@ -1927,9 +2015,19 @@ function canShowMeetingActionButtons(statusType = 'idle') {
 }
 
 function ContentRenderer({ text = '', sttPostId = '', sttChannelId = '', contentFontStyle = null }) {
+  const meetingRecording = useMeetingRecording()
   const isAiMeetingNote = String(text || '').includes('<!--ai-meeting-note-->')
   const isMailPostContent = isMailCardContent(text)
   const [isRecording, setIsRecording] = useState(false)
+  const [isRecordingPaused, setIsRecordingPaused] = useState(false)
+  const [availableMics, setAvailableMics] = useState([])
+  const [selectedMicId, setSelectedMicId] = useState('')
+  const [volumeLevel, setVolumeLevel] = useState(0)
+  const [recordingElapsedMs, setRecordingElapsedMs] = useState(0)
+  const [meetingId, setMeetingId] = useState('')
+  const [meetingPendingChunks, setMeetingPendingChunks] = useState(0)
+  const [meetingStatus, setMeetingStatus] = useState('')
+  const [meetingDownload, setMeetingDownload] = useState(null)
   const [sttUploading, setSttUploading] = useState(false)
   const [sttStatus, setSttStatus] = useState('')
   const [sttStatusType, setSttStatusType] = useState('idle') // idle | processing | done | failed
@@ -1942,13 +2040,24 @@ function ContentRenderer({ text = '', sttPostId = '', sttChannelId = '', content
   const [featureFlags, setFeatureFlags] = useState({ USE_SPEAKER_REGISTRATION: true, USE_SPEAKER_CORRECTION: true })
   const mediaRecorderRef = useRef(null)
   const mediaStreamRef = useRef(null)
+  const audioContextRef = useRef(null)
+  const analyserRef = useRef(null)
+  const meterRafRef = useRef(null)
+  const bcRef = useRef(null)
+  const meetingIdRef = useRef('')
+  const meetingSequenceRef = useRef(0)
+  const meetingStartedAtRef = useRef(0)
+  const meetingUploadChainRef = useRef(Promise.resolve())
+  const meetingChunkTasksRef = useRef(new Set())
+  const meetingElapsedTimerRef = useRef(null)
+  const meetingFinalizeRef = useRef(false)
   const sttFileInputRef = useRef(null)
   const sttPollTimerRef = useRef(null)
   const sttJobIdRef = useRef('')
   const activeSttPostIdRef = useRef('')
   const sttPollScopeRef = useRef({ postId: '', jobId: '' })
 
-  const normalized = normalizeBrokenOrderedListItems(
+  const normalized = normalizeLatexDelimiters(normalizeBrokenOrderedListItems(
     normalizeDashNumberedLists(
       normalizeMarkdownCodeFence(
         String(text || '')
@@ -1957,7 +2066,7 @@ function ContentRenderer({ text = '', sttPostId = '', sttChannelId = '', content
           .replace('[새회의록작성]', '')
       )
     )
-  )
+  ))
   const links = isMailPostContent ? [] : extractHttpUrls(text || '')
 
   useEffect(() => {
@@ -1967,20 +2076,17 @@ function ContentRenderer({ text = '', sttPostId = '', sttChannelId = '', content
   }, [])
 
   useEffect(() => {
+    enumerateAudioDevices().catch(() => {})
+  }, [])
+
+  useEffect(() => {
     return () => {
       if (sttPollTimerRef.current) {
         clearInterval(sttPollTimerRef.current)
         sttPollTimerRef.current = null
       }
-      try {
-        mediaRecorderRef.current?.stop?.()
-      } catch (_) {}
-      const tracks = mediaStreamRef.current?.getTracks?.() || []
-      tracks.forEach(track => {
-        try { track.stop() } catch (_) {}
-      })
-      mediaRecorderRef.current = null
-      mediaStreamRef.current = null
+      // 녹음 객체의 이벤트 핸들러가 업로드와 종료 처리를 계속 소유한다.
+      // 게시글/서비스 화면 전환만으로 활성 녹음을 중단하지 않는다.
     }
   }, [])
 
@@ -1995,6 +2101,202 @@ function ContentRenderer({ text = '', sttPostId = '', sttChannelId = '', content
     return () => clearInterval(timer)
   }, [sttStatusType])
 
+  function pickRecordingMimeType() {
+    const candidates = [
+      'audio/webm;codecs=opus',
+      'audio/webm',
+      'audio/ogg;codecs=opus',
+      'audio/mp4',
+    ]
+    return candidates.find((type) => globalThis.MediaRecorder?.isTypeSupported?.(type)) || ''
+  }
+
+  function formatRecordingTime(ms) {
+    const total = Math.max(0, Math.floor(Number(ms || 0) / 1000))
+    const hh = String(Math.floor(total / 3600)).padStart(2, '0')
+    const mm = String(Math.floor((total % 3600) / 60)).padStart(2, '0')
+    const ss = String(total % 60).padStart(2, '0')
+    return `${hh}:${mm}:${ss}`
+  }
+
+  async function blobSha256(blob) {
+    const data = await blob.arrayBuffer()
+    const digest = await globalThis.crypto.subtle.digest('SHA-256', data)
+    return Array.from(new Uint8Array(digest)).map((b) => b.toString(16).padStart(2, '0')).join('')
+  }
+
+  async function enumerateAudioDevices() {
+    try {
+      if (!navigator?.mediaDevices?.enumerateDevices) return
+      const list = await navigator.mediaDevices.enumerateDevices()
+      const mics = list.filter((d) => d.kind === 'audioinput')
+      setAvailableMics(mics)
+      if (!selectedMicId && mics[0]) setSelectedMicId(mics[0].deviceId)
+    } catch (_) {}
+  }
+
+  async function requestRecordingWakeLock() {
+    try {
+      if (!('wakeLock' in navigator)) return null
+      const w = await navigator.wakeLock.request('screen')
+      return w
+    } catch (_) { return null }
+  }
+
+  async function uploadMeetingChunk(id, chunk) {
+    const form = new FormData()
+    form.append('audio', chunk.blob, `chunk-${String(chunk.sequence).padStart(6, '0')}.webm`)
+    form.append('sequence', String(chunk.sequence))
+    form.append('started_at_ms', String(chunk.startedAtMs))
+    form.append('duration_ms', String(chunk.durationMs))
+    form.append('sha256', chunk.sha256)
+    const response = await fetch(`/api/meetings/${id}/audio-chunks`, {
+      method: 'POST',
+      body: form,
+      credentials: 'include',
+    })
+    const data = await response.json().catch(() => ({}))
+    if (!response.ok) {
+      const error = new Error(data.error || `음성 조각 업로드 실패 (${response.status})`)
+      error.status = response.status
+      throw error
+    }
+    await deleteMeetingChunk(id, chunk.sequence)
+    return data
+  }
+
+  async function persistAndQueueMeetingChunk(blob) {
+    const id = meetingIdRef.current
+    if (!id || !blob?.size) return
+    const sequence = meetingSequenceRef.current
+    meetingSequenceRef.current += 1
+    const startedAtMs = sequence * 20_000
+    const elapsed = Math.max(1, Date.now() - meetingStartedAtRef.current)
+    const durationMs = Math.min(20_000, Math.max(1, elapsed - startedAtMs))
+    const digest = await blobSha256(blob)
+    const chunk = { meetingId: id, sequence, blob, startedAtMs, durationMs, sha256: digest }
+    await saveMeetingChunk(chunk)
+    await saveMeetingSession({
+      postId: String(sttPostId), meetingId: id, nextSequence: meetingSequenceRef.current,
+      elapsedMs: elapsed, contentType: blob.type || 'audio/webm', updatedAt: Date.now(),
+    })
+    setMeetingPendingChunks((v) => v + 1)
+    meetingRecording.setRecordingState({ pendingChunks: meetingPendingChunks + 1, status: '음성 조각 저장 중' })
+    meetingUploadChainRef.current = meetingUploadChainRef.current
+      .then(() => uploadMeetingChunk(id, chunk))
+      .then(() => setMeetingPendingChunks((v) => {
+        const next = Math.max(0, v - 1)
+        meetingRecording.setRecordingState({ pendingChunks: next, status: '서버 자동 저장 정상' })
+        return next
+      }))
+      .catch((err) => {
+        setMeetingStatus(`전송 대기: ${err.message}`)
+        throw err
+      })
+    // 다음 조각 업로드가 이전 실패 뒤에도 재개되도록 체인을 복구한다.
+    meetingUploadChainRef.current = meetingUploadChainRef.current.catch(() => {})
+  }
+
+  function startMeter(stream) {
+    try {
+      if (!stream) return
+      audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)()
+      const src = audioContextRef.current.createMediaStreamSource(stream)
+      const analyser = audioContextRef.current.createAnalyser()
+      analyser.fftSize = 256
+      src.connect(analyser)
+      analyserRef.current = analyser
+      const data = new Uint8Array(analyser.frequencyBinCount)
+      const tick = () => {
+        analyser.getByteFrequencyData(data)
+        let values = 0
+        for (let i = 0; i < data.length; i++) values += data[i]
+        const avg = values / data.length / 255
+        setVolumeLevel(Math.min(1, avg))
+        meterRafRef.current = requestAnimationFrame(tick)
+      }
+      tick()
+    } catch (_) {}
+  }
+
+  function stopMeter() {
+    try {
+      if (meterRafRef.current) cancelAnimationFrame(meterRafRef.current)
+      meterRafRef.current = null
+      if (analyserRef.current) analyserRef.current.disconnect()
+      analyserRef.current = null
+      if (audioContextRef.current) audioContextRef.current.close().catch(() => {})
+      audioContextRef.current = null
+    } catch (_) {}
+  }
+
+  async function createSttForMeeting(id, attachmentId) {
+    updateSttUiState(sttPostId, { status: 'STT 작업 생성중...', statusType: 'processing', errorReason: '' })
+    const job = await apiFetch('/ai/stt/jobs', {
+      method: 'POST',
+      body: JSON.stringify({
+        postId: sttPostId,
+        attachmentId,
+        options: { diarization: true, diarizationRequired: false, language: 'ko', chunkContextOverlapSec: 3 },
+      }),
+    })
+    await apiFetch(`/meetings/${id}/stt-job`, {
+      method: 'PATCH',
+      body: JSON.stringify({ stt_job_id: job.jobId }),
+    }).catch(() => {})
+    updateSttUiState(sttPostId, {
+      status: job?.deduplicated ? '기존 STT 작업 재사용중...' : 'STT 처리 대기중...',
+      statusType: 'processing', errorReason: '', jobId: String(job.jobId || ''),
+    })
+    startSttPolling(sttPostId, job.jobId)
+  }
+
+  async function finalizeMeetingRecording() {
+    if (meetingFinalizeRef.current) return
+    meetingFinalizeRef.current = true
+    const id = meetingIdRef.current
+    try {
+      setMeetingStatus('미전송 음성 확인 중...')
+      await Promise.all(Array.from(meetingChunkTasksRef.current))
+      await meetingUploadChainRef.current
+      const pending = await listMeetingChunks(id)
+      for (const chunk of pending) await uploadMeetingChunk(id, chunk)
+      const lastSequence = meetingSequenceRef.current - 1
+      if (lastSequence < 0) throw new Error('녹음된 음성이 없습니다.')
+      setMeetingPendingChunks(0)
+      setMeetingStatus('통합 음성 파일 생성 중...')
+      const finished = await apiFetch(`/meetings/${id}/finish`, {
+        method: 'POST',
+        body: JSON.stringify({
+          last_sequence: lastSequence,
+          total_duration_ms: Math.max(1, Date.now() - meetingStartedAtRef.current),
+        }),
+      })
+      await clearMeetingChunks(id)
+      await deleteMeetingSession(sttPostId)
+      setMeetingDownload({
+        meetingId: id,
+        fileName: finished.downloadFileName || '회의녹음.mp3',
+        size: Number(finished.downloadSize || 0),
+      })
+      meetingRecording.setMeetingDownload({
+        meetingId: id,
+        fileName: finished.downloadFileName || '회의녹음.mp3',
+        size: Number(finished.downloadSize || 0),
+      })
+      setMeetingStatus('통합 음성 생성 완료 · STT 처리 대기 중')
+      await createSttForMeeting(id, finished.attachmentId)
+    } catch (err) {
+      setMeetingStatus(`녹음 처리 실패: ${err.message}`)
+      meetingRecording.setRecordingState({ status: `녹음 처리 실패: ${err.message}`, error: String(err?.message || err) })
+      updateSttUiState(sttPostId, {
+        status: '회의록 작성 실패', statusType: 'failed', errorReason: String(err?.message || err),
+      })
+    } finally {
+      meetingFinalizeRef.current = false
+    }
+  }
+
   async function handleStartMeetingRecording() {
     if (isRecording) return
     if (!navigator?.mediaDevices?.getUserMedia) {
@@ -2005,22 +2307,128 @@ function ContentRenderer({ text = '', sttPostId = '', sttChannelId = '', content
       return
     }
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-      const recorder = new MediaRecorder(stream)
+      // request specific device if selected
+      const constraints = selectedMicId ? { audio: { deviceId: { exact: selectedMicId } } } : { audio: true }
+      const stream = await navigator.mediaDevices.getUserMedia(constraints)
       mediaStreamRef.current = stream
+      const mimeType = pickRecordingMimeType()
+      const created = await apiFetch('/meetings', {
+        method: 'POST',
+        body: JSON.stringify({
+          post_id: sttPostId,
+          recording_content_type: mimeType || 'audio/webm',
+          force_new: true,
+        }),
+      })
+      const recorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream)
+      meetingIdRef.current = String(created.meetingId)
+      meetingSequenceRef.current = 0
+      meetingStartedAtRef.current = Date.now()
+      meetingUploadChainRef.current = Promise.resolve()
+      meetingChunkTasksRef.current = new Set()
+      meetingFinalizeRef.current = false
+      setMeetingId(String(created.meetingId))
+      setMeetingDownload(null)
+      setMeetingPendingChunks(0)
+      setMeetingStatus('서버 자동 저장 정상')
+      meetingRecording.startRecording({
+        meetingId: String(created.meetingId),
+        postId: String(sttPostId),
+        title: '회의 녹음',
+        status: '녹음 중',
+        elapsedMs: 0,
+        pendingChunks: 0,
+        error: null,
+      })
+      setRecordingElapsedMs(0)
+      await saveMeetingSession({
+        postId: String(sttPostId), meetingId: String(created.meetingId), nextSequence: 0,
+        elapsedMs: 0, contentType: recorder.mimeType || mimeType, updatedAt: Date.now(),
+      })
       mediaRecorderRef.current = recorder
+      // start audio meter
+      startMeter(stream)
+      // try to acquire BroadcastChannel ownership to avoid duplicate recordings across tabs
+      try {
+        if (!bcRef.current) bcRef.current = new BroadcastChannel('easystation_meeting_record')
+        let ownerPresent = false
+        const ownerCheck = (e) => {
+          if (e?.data?.type === 'owner-present') ownerPresent = true
+        }
+        bcRef.current.addEventListener('message', ownerCheck)
+        bcRef.current.postMessage({ type: 'request-owner' })
+        await new Promise((r) => setTimeout(r, 120))
+        bcRef.current.removeEventListener('message', ownerCheck)
+        if (ownerPresent) {
+          alert('다른 탭에서 이미 녹음 중입니다. 해당 탭을 확인하세요.')
+          try { recorder.stop() } catch (_) {}
+          stopMeter()
+          return
+        }
+        const respondToOwnerRequest = (event) => {
+          if (event?.data?.type === 'request-owner' && recorder.state !== 'inactive') {
+            bcRef.current?.postMessage({ type: 'owner-present', meetingId: String(created.meetingId) })
+          }
+        }
+        bcRef.current.addEventListener('message', respondToOwnerRequest)
+        recorder.addEventListener('stop', () => {
+          bcRef.current?.removeEventListener('message', respondToOwnerRequest)
+        }, { once: true })
+        bcRef.current.postMessage({ type: 'owner-present' })
+      } catch (_) {}
+
+      // request wake lock
+      try {
+        const w = await requestRecordingWakeLock()
+        if (w) {
+          w.addEventListener('release', () => {})
+        }
+      } catch (_) {}
+      recorder.ondataavailable = (event) => {
+        if (!event.data?.size) return
+        const task = persistAndQueueMeetingChunk(event.data).catch((err) => {
+          setMeetingStatus(`로컬 임시 저장 실패: ${err.message}`)
+        }).finally(() => {
+          meetingChunkTasksRef.current.delete(task)
+        })
+        meetingChunkTasksRef.current.add(task)
+      }
       recorder.onstop = () => {
         setIsRecording(false)
+        meetingRecording.stopRecording({ status: '처리 중', pendingChunks: 0 })
+        setIsRecordingPaused(false)
+        if (meetingElapsedTimerRef.current) clearInterval(meetingElapsedTimerRef.current)
         const tracks = mediaStreamRef.current?.getTracks?.() || []
         tracks.forEach(track => {
           try { track.stop() } catch (_) {}
         })
         mediaStreamRef.current = null
         mediaRecorderRef.current = null
+        stopMeter()
+        try { bcRef.current?.postMessage({ type: 'owner-released' }) } catch (_) {}
+        finalizeMeetingRecording()
       }
-      recorder.start()
+      recorder.onpause = () => {
+        setIsRecordingPaused(true)
+        meetingRecording.setRecordingState({ isPaused: true, status: '일시정지' })
+      }
+      recorder.onresume = () => {
+        setIsRecordingPaused(false)
+        meetingRecording.setRecordingState({ isPaused: false, status: '녹음 중' })
+      }
+      recorder.start(Number(created.chunkDurationMs || 20_000))
       setIsRecording(true)
+      meetingElapsedTimerRef.current = setInterval(() => {
+        const elapsedMs = Date.now() - meetingStartedAtRef.current
+        setRecordingElapsedMs(elapsedMs)
+        meetingRecording.setRecordingState({ elapsedMs })
+      }, 1000)
     } catch (err) {
+      const tracks = mediaStreamRef.current?.getTracks?.() || []
+      tracks.forEach((track) => {
+        try { track.stop() } catch (_) { /* 장치 정리는 최선 노력으로 수행 */ }
+      })
+      mediaStreamRef.current = null
       const name = String(err?.name || '')
       if (name === 'NotAllowedError' || name === 'SecurityError') {
         alert('마이크 권한이 차단되었습니다.\n브라우저 주소창의 권한 설정에서 마이크를 허용해주세요.')
@@ -2041,6 +2449,108 @@ function ContentRenderer({ text = '', sttPostId = '', sttChannelId = '', content
       alert(`녹음을 시작하지 못했습니다.\n(${name || 'UnknownError'})`)
     }
   }
+
+  function handlePauseMeetingRecording() {
+    const recorder = mediaRecorderRef.current
+    if (!recorder) return
+    if (recorder.state === 'recording') recorder.pause()
+    else if (recorder.state === 'paused') recorder.resume()
+  }
+
+  function handleStopMeetingRecording() {
+    const recorder = mediaRecorderRef.current
+    if (!recorder || recorder.state === 'inactive') return
+    setMeetingStatus('마지막 음성 조각 저장 중...')
+    recorder.stop()
+  }
+
+  async function handleAddMarker(type = 'important') {
+    try {
+      const id = meetingIdRef.current
+      if (!id) return
+      const offset = Math.max(0, Date.now() - meetingStartedAtRef.current)
+      await apiFetch(`/meetings/${id}/markers`, {
+        method: 'POST',
+        body: JSON.stringify({ offset_ms: offset, type }),
+      })
+      setMeetingStatus('중요 발언 타임스탬프 저장됨')
+    } catch (err) {
+      setMeetingStatus(`마커 저장 실패: ${err.message}`)
+    }
+  }
+
+  useEffect(() => meetingRecording.registerControls({
+    togglePause: handlePauseMeetingRecording,
+    stop: handleStopMeetingRecording,
+    addMarker: handleAddMarker,
+  }), [meetingRecording.registerControls, sttPostId])
+
+  async function handleRecoverMeetingRecording() {
+    const session = await getMeetingSession(sttPostId).catch(() => null)
+    if (!session?.meetingId) return
+    meetingIdRef.current = String(session.meetingId)
+    meetingSequenceRef.current = Math.max(0, Number(session.nextSequence || 0))
+    meetingStartedAtRef.current = Date.now() - Math.max(1, Number(session.elapsedMs || 0))
+    meetingUploadChainRef.current = Promise.resolve()
+    meetingChunkTasksRef.current = new Set()
+    meetingFinalizeRef.current = false
+    setMeetingId(String(session.meetingId))
+    await finalizeMeetingRecording()
+  }
+
+  async function handleDownloadMeetingAudio() {
+    const id = meetingDownload?.meetingId || meetingId
+    if (!id) return
+    triggerBrowserDownload(`/api/meetings/${id}/audio/download`, meetingDownload?.fileName || '회의녹음.mp3')
+  }
+
+  useEffect(() => {
+    if (!isAiMeetingNote || !sttPostId) return undefined
+    let canceled = false
+    ;(async () => {
+      const session = await getMeetingSession(sttPostId).catch(() => null)
+      if (!session?.meetingId || canceled) {
+        const latest = await apiFetch(`/meetings/post/${sttPostId}/latest`).catch(() => null)
+        if (!latest || canceled) return
+        setMeetingId(latest.meetingId)
+        meetingIdRef.current = latest.meetingId
+        if (latest.downloadReady) {
+          setMeetingDownload({ meetingId: latest.meetingId, fileName: latest.downloadFileName, size: latest.downloadSize })
+        } else if (latest.error?.message) {
+          setMeetingStatus(`녹음 처리 실패: ${latest.error.message}`)
+        }
+        return
+      }
+      const remote = await apiFetch(`/meetings/${session.meetingId}`).catch(() => null)
+      if (!remote || canceled) {
+        await clearMeetingChunks(session.meetingId).catch(() => {})
+        await deleteMeetingSession(sttPostId).catch(() => {})
+        return
+      }
+      setMeetingId(session.meetingId)
+      meetingIdRef.current = session.meetingId
+      if (remote.downloadReady) {
+        setMeetingDownload({ meetingId: session.meetingId, fileName: remote.downloadFileName, size: remote.downloadSize })
+        await clearMeetingChunks(session.meetingId).catch(() => {})
+        await deleteMeetingSession(sttPostId).catch(() => {})
+      } else {
+        const pending = await listMeetingChunks(session.meetingId).catch(() => [])
+        setMeetingPendingChunks(pending.length)
+        setMeetingStatus(pending.length ? `복구 가능한 미전송 조각 ${pending.length}개` : '중단된 녹음 세션이 있습니다.')
+      }
+    })()
+    return () => { canceled = true }
+  }, [isAiMeetingNote, sttPostId])
+
+  useEffect(() => {
+    if (!isRecording) return undefined
+    const warn = (event) => {
+      event.preventDefault()
+      event.returnValue = ''
+    }
+    window.addEventListener('beforeunload', warn)
+    return () => window.removeEventListener('beforeunload', warn)
+  }, [isRecording])
 
   function stopSttPolling() {
     if (sttPollTimerRef.current) {
@@ -2315,20 +2825,39 @@ function ContentRenderer({ text = '', sttPostId = '', sttChannelId = '', content
       style={contentFontStyle || undefined}
     >
       {isAiMeetingNote && (
-        <div className="mb-3 flex items-center gap-2">
+        <div className="mb-3 flex flex-wrap items-center gap-2">
+          <label className="text-xs text-gray-500" htmlFor={`meeting-mic-${sttPostId}`}>마이크</label>
+          <select
+            id={`meeting-mic-${sttPostId}`}
+            value={selectedMicId}
+            onChange={(e) => setSelectedMicId(e.target.value)}
+            onFocus={enumerateAudioDevices}
+            disabled={isRecording}
+            className="max-w-48 rounded-md border border-gray-300 px-2 py-1 text-xs disabled:opacity-60"
+          >
+            {availableMics.length === 0 && <option value="">기본 마이크</option>}
+            {availableMics.map((mic) => (
+              <option key={mic.deviceId} value={mic.deviceId}>{mic.label || '마이크'}</option>
+            ))}
+          </select>
+          {isRecording && (
+            <div className="h-2 w-20 overflow-hidden rounded bg-gray-200" title="마이크 입력 음량">
+              <div className="h-full bg-emerald-500 transition-[width]" style={{ width: `${Math.round(volumeLevel * 100)}%` }} />
+            </div>
+          )}
           {canShowMeetingActionButtons(sttStatusType) && (
             <>
               <button
                 type="button"
                 onClick={handleStartMeetingRecording}
-                disabled={isRecording}
+                disabled={isRecording || meetingPendingChunks > 0}
                 className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${
-                  isRecording
+                  isRecording || meetingPendingChunks > 0
                     ? 'bg-red-50 text-red-600 border-red-200 cursor-not-allowed'
                     : 'bg-indigo-600 text-white border-indigo-600 hover:bg-indigo-700'
                 }`}
               >
-                새회의록작성
+                웹 녹음 시작
               </button>
               <button
                 type="button"
@@ -2352,7 +2881,59 @@ function ContentRenderer({ text = '', sttPostId = '', sttChannelId = '', content
               if (f) handleUploadRecordingFile(f)
             }}
           />
-          {isRecording && <span className="text-xs text-red-500">녹음 중...</span>}
+          {isRecording && (
+            <>
+              <span className="text-xs font-semibold text-red-600">
+                🔴 {isRecordingPaused ? '일시정지' : '녹음 중'} {formatRecordingTime(recordingElapsedMs)}
+              </span>
+              <button
+                type="button"
+                onClick={handlePauseMeetingRecording}
+                className="px-2 py-1 rounded-md text-[11px] font-semibold border border-amber-300 bg-amber-50 text-amber-700 hover:bg-amber-100"
+              >
+                {isRecordingPaused ? '녹음 재개' : '일시정지'}
+              </button>
+              <button
+                type="button"
+                onClick={() => handleAddMarker('important')}
+                className="px-2 py-1 rounded-md text-[11px] font-semibold border border-yellow-300 bg-yellow-50 text-yellow-700 hover:bg-yellow-100"
+              >
+                중요 발언
+              </button>
+              <button
+                type="button"
+                onClick={handleStopMeetingRecording}
+                className="px-2 py-1 rounded-md text-[11px] font-semibold border border-red-300 bg-red-50 text-red-700 hover:bg-red-100"
+              >
+                녹음 종료
+              </button>
+              <span className="text-[11px] text-gray-500">
+                {meetingStatus || '서버 자동 저장 중'}{meetingPendingChunks > 0 ? ` · 미전송 ${meetingPendingChunks}개` : ''}
+              </span>
+            </>
+          )}
+          {!isRecording && meetingStatus && (
+            <span className="text-[11px] text-gray-500">{meetingStatus}</span>
+          )}
+          {!isRecording && meetingPendingChunks > 0 && (
+            <button
+              type="button"
+              onClick={handleRecoverMeetingRecording}
+              className="px-2 py-1 rounded-md text-[11px] font-semibold border border-violet-300 bg-violet-50 text-violet-700 hover:bg-violet-100"
+            >
+              미전송 녹음 복구
+            </button>
+          )}
+          {meetingDownload?.meetingId && (
+            <button
+              type="button"
+              onClick={handleDownloadMeetingAudio}
+              className="px-2 py-1 rounded-md text-[11px] font-semibold border border-sky-300 bg-sky-50 text-sky-700 hover:bg-sky-100"
+              title={meetingDownload.fileName || '통합 음성 파일'}
+            >
+              통합 음성 다운로드
+            </button>
+          )}
           {!isRecording && sttStatus && (
             <span
               className={`text-xs font-semibold ${
@@ -2421,7 +3002,8 @@ function ContentRenderer({ text = '', sttPostId = '', sttChannelId = '', content
         />
       )}
       <ReactMarkdown
-        remarkPlugins={[remarkGfm, remarkDisableSetextHeadings]}
+        remarkPlugins={[remarkGfm, remarkMath, remarkDisableSetextHeadings]}
+        rehypePlugins={[rehypeKatex]}
         components={{
           p: ({ children }) => <p className="my-1.5 text-gray-700 leading-relaxed whitespace-pre-wrap break-words" style={{ fontSize: 'inherit' }}>{applyMentionColor(children)}</p>,
           h1: ({ children }) => <h1 className="mt-4 mb-2 text-gray-900 font-bold text-lg">{applyMentionColor(children)}</h1>,
@@ -2441,17 +3023,14 @@ function ContentRenderer({ text = '', sttPostId = '', sttChannelId = '', content
           tr: ({ children }) => <tr className="border-b border-gray-200">{children}</tr>,
           th: ({ children }) => <th className="px-3 py-2 text-left font-semibold">{applyMentionColor(children)}</th>,
           td: ({ children }) => <td className="px-3 py-2 text-gray-700">{applyMentionColor(children)}</td>,
+          pre: ({ children }) => <MarkdownPreBlock>{children}</MarkdownPreBlock>,
           code: ({ className, children }) => {
             const text = String(children ?? '')
             const isBlock = /language-/.test(String(className || '')) || text.includes('\n')
             if (!isBlock) {
               return <code className="bg-gray-200 text-indigo-600 px-1 rounded text-xs font-mono">{children}</code>
             }
-            return (
-              <pre className="bg-gray-900 text-gray-100 rounded-xl p-3 my-2 overflow-x-auto border border-gray-700">
-                <code className={`font-mono text-xs leading-relaxed ${className || ''}`.trim()}>{children}</code>
-              </pre>
-            )
+            return <code className={`font-mono text-xs leading-relaxed ${className || ''}`.trim()}>{children}</code>
           },
         }}
       >
@@ -2975,7 +3554,7 @@ function ComposeBar({ onSubmit, isArchived, channelId, contentFontScale = 100 })
 
 // ─── Post List ────────────────────────────────────────────────
 
-function PostList({ posts, onSelect, onSubmit, selectedPostId, onOpenDocumentList, contentFontScale = 100 }) {
+function PostList({ posts, onSelect, onOpenActionMenu, onSubmit, selectedPostId, onOpenDocumentList, contentFontScale = 100 }) {
   const t = useT()
   const {
     selectedChannel,
@@ -3171,6 +3750,7 @@ function PostList({ posts, onSelect, onSubmit, selectedPostId, onOpenDocumentLis
           key={row.key}
           post={row.item}
           onSelect={handleSelectPost}
+          onOpenActionMenu={onOpenActionMenu}
           isSelected={row.item.id === selectedPostId}
           contentFontScale={contentFontScale}
         />
@@ -3228,7 +3808,7 @@ function PostList({ posts, onSelect, onSubmit, selectedPostId, onOpenDocumentLis
                       <PinIcon /><span>{t.chat.pinnedPost}</span>
                     </div>
                     <div className="flex flex-col gap-2 max-h-[38vh] overflow-y-auto pr-1">
-                      {pinnedPosts.map(p => <PostCard key={p.id} post={p} onSelect={handleSelectPost} pinned isSelected={p.id === selectedPostId} contentFontScale={contentFontScale} />)}
+                      {pinnedPosts.map(p => <PostCard key={p.id} post={p} onSelect={handleSelectPost} onOpenActionMenu={onOpenActionMenu} pinned isSelected={p.id === selectedPostId} contentFontScale={contentFontScale} />)}
                     </div>
                   </div>
                 )}
@@ -3568,7 +4148,7 @@ function PostCardPreview({ post, rawForParsing = '', isTemplate = false, isMailC
   )
 }
 
-function PostCard({ post, onSelect, pinned, isSelected, contentFontScale = 100 }) {
+function PostCard({ post, onSelect, onOpenActionMenu, pinned, isSelected, contentFontScale = 100 }) {
   const t = useT()
   const isTemplate = isTemplateContent(post.content)
   const isMd = isMdPage(post.content)
@@ -3682,6 +4262,13 @@ function PostCard({ post, onSelect, pinned, isSelected, contentFontScale = 100 }
         onMouseUp={handleCardMouseUp}
         onClickCapture={handleClickCapture}
         onClick={handleCardClick}
+        onContextMenu={(event) => {
+          if (event.target?.closest?.('a, button, input, textarea, select, [data-attachment]')) return
+          event.preventDefault()
+          event.stopPropagation()
+          setCopyToast(null)
+          onOpenActionMenu?.(event, post)
+        }}
         onKeyDown={handleCardKeyDown}
         className={`w-full text-left px-5 py-3 rounded-2xl border transition-all group cursor-pointer ${
           isSelected
@@ -3794,6 +4381,7 @@ export default function ChatArea({ autoOpenPostId, isMobile = false, onExitChann
   const [leftWidth, setLeftWidth] = useState(42) // percent
   const [resizing, setResizing] = useState(false)
   const [contentFontScale, setContentFontScale] = useState(100)
+  const [pendingPostActionMenu, setPendingPostActionMenu] = useState(null)
   const containerRef = useRef(null)
   const selectedPostRef = useRef(null)
   const selectedChannelRef = useRef(null)
@@ -3987,11 +4575,28 @@ export default function ChatArea({ autoOpenPostId, isMobile = false, onExitChann
 
   const handleSelectPost = useCallback((post) => {
     clearEasyPageNavigationStack()
+    setPendingPostActionMenu(null)
     setSelectedPost(post)
   }, [clearEasyPageNavigationStack])
 
+  const handleOpenPostActionMenu = useCallback((event, post) => {
+    clearEasyPageNavigationStack()
+    setSelectedPost(post)
+    setPendingPostActionMenu({
+      postId: post.id,
+      x: event.clientX,
+      y: event.clientY,
+      requestId: Date.now(),
+    })
+  }, [clearEasyPageNavigationStack])
+
+  const consumePostActionMenu = useCallback((requestId) => {
+    setPendingPostActionMenu(current => current?.requestId === requestId ? null : current)
+  }, [])
+
   const handleCloseSelectedPost = useCallback(() => {
     clearEasyPageNavigationStack()
+    setPendingPostActionMenu(null)
     setSelectedPost(null)
   }, [clearEasyPageNavigationStack])
 
@@ -4052,6 +4657,7 @@ export default function ChatArea({ autoOpenPostId, isMobile = false, onExitChann
     if (!pendingOpenPostId) {
       setSelectedPost(null) 
     }
+    setPendingPostActionMenu(null)
     setShowDocumentList(false)
   }, [selectedChannel?.id])
 
@@ -4159,6 +4765,8 @@ export default function ChatArea({ autoOpenPostId, isMobile = false, onExitChann
               onClose={handleCloseSelectedPost}
               pendingOpenCommentId={pendingOpenCommentId}
               pendingOpenAttachmentId={pendingOpenAttachmentId}
+              pendingActionMenu={pendingPostActionMenu}
+              onConsumeActionMenu={consumePostActionMenu}
               onConsumePendingOpen={clearPendingPost}
               helpers={postDetailHelpers}
               isMobile
@@ -4169,6 +4777,7 @@ export default function ChatArea({ autoOpenPostId, isMobile = false, onExitChann
               posts={channelPosts}
               selectedPostId={selectedPost?.id}
               onSelect={handleSelectPost}
+              onOpenActionMenu={handleOpenPostActionMenu}
               onSubmit={handleNewPost}
               onOpenDocumentList={() => { handleCloseSelectedPost(); setShowDocumentList(true) }}
               contentFontScale={contentFontScale}
@@ -4222,6 +4831,7 @@ export default function ChatArea({ autoOpenPostId, isMobile = false, onExitChann
           posts={channelPosts}
           selectedPostId={selectedPost?.id}
           onSelect={handleSelectPost}
+          onOpenActionMenu={handleOpenPostActionMenu}
           onSubmit={handleNewPost}
           onOpenDocumentList={() => {
             handleCloseSelectedPost()
@@ -4250,6 +4860,8 @@ export default function ChatArea({ autoOpenPostId, isMobile = false, onExitChann
           onClose={handleCloseSelectedPost}
           pendingOpenCommentId={pendingOpenCommentId}
           pendingOpenAttachmentId={pendingOpenAttachmentId}
+          pendingActionMenu={pendingPostActionMenu}
+          onConsumeActionMenu={consumePostActionMenu}
           onConsumePendingOpen={clearPendingPost}
           helpers={postDetailHelpers}
           contentFontScale={contentFontScale}

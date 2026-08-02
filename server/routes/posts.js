@@ -21,6 +21,7 @@ const {
 } = require('../trainingStatus')
 const { ACCESS_DENIED_MESSAGE, canAccessChannel, getAccessibleChannelIds } = require('../lib/channelAccess')
 const { cancelSttJobsForPost } = require('./stt')
+const { purgeMeetingRecordingsForPost } = require('./meetings')
 const STORAGE_BASE = getDatabasePath(config, 'ObjectFile Path')
 const STORAGE_BASE_ABS = path.resolve(STORAGE_BASE)
 const postSearchService = new PostSearchService()
@@ -2570,6 +2571,9 @@ router.post('/', requireAuth, async (req, res, next) => {
 async function purgePostHard(id, actorUserId = null) {
   await cancelSttJobsForPost(id, { reason: 'post hard deleted', actorUserId }).catch((e) => {
     console.error('[STT] 게시글 영구삭제 중 STT 작업 취소 실패:', id, e?.message || e)
+  })
+  await purgeMeetingRecordingsForPost(id).catch((e) => {
+    console.error('[Meeting] 게시글 영구삭제 중 녹음 데이터 삭제 실패:', id, e?.message || e)
   })
 
   const row = isConnected() ? await findPostLocator(id) : null

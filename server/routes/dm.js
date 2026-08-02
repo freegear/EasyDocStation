@@ -563,7 +563,7 @@ router.delete('/conversations/:id/participants/:participantId', async (req, res)
 })
 
 // 메시지 목록 조회
-// GET /api/dm/conversations/:id/messages
+// GET /api/dm/conversations/:id/messages?limit=30&before=<ISO>&after=<ISO>&changedAfter=<ISO>
 router.get('/conversations/:id/messages', async (req, res) => {
   const userId = req.user.id
   const { id } = req.params
@@ -575,24 +575,71 @@ router.get('/conversations/:id/messages', async (req, res) => {
   if (!conv[0]) return res.status(404).json({ error: '대화를 찾을 수 없습니다.' })
 
   try {
+    const paginationRequested = (
+      req.query.limit != null
+      || req.query.before != null
+      || req.query.after != null
+      || req.query.changedAfter != null
+    )
+    const limit = Math.min(Math.max(Number.parseInt(req.query.limit, 10) || 30, 1), 100)
+    const before = req.query.before ? new Date(req.query.before) : null
+    const after = req.query.after ? new Date(req.query.after) : null
+    const changedAfter = req.query.changedAfter ? new Date(req.query.changedAfter) : null
+    if (
+      (before && Number.isNaN(before.getTime()))
+      || (after && Number.isNaN(after.getTime()))
+      || (changedAfter && Number.isNaN(changedAfter.getTime()))
+    ) {
+      return res.status(400).json({ error: '잘못된 메시지 커서입니다.' })
+    }
+
+    const params = [id]
+    let cursorClause = ''
+    let order = 'DESC'
+    if (before) {
+      params.push(before)
+      cursorClause = `AND m.created_at < $${params.length}`
+    } else if (changedAfter) {
+      params.push(changedAfter)
+      cursorClause = `AND m.updated_at > $${params.length}`
+      order = 'ASC'
+    } else if (after) {
+      params.push(after)
+      cursorClause = `AND m.created_at > $${params.length}`
+      order = 'ASC'
+    }
+    if (paginationRequested) params.push(limit + 1)
+
     const { rows } = await db.query(
       `SELECT m.*,
-         json_build_object('id', u.id, 'username', u.username, 'display_name', u.display_name, 'image_url', u.image_url) AS sender
+         json_build_object('id', u.id, 'username', u.username, 'display_name', u.display_name) AS sender
        FROM dm_messages m
        JOIN users u ON u.id = m.sender_id
        WHERE m.conversation_id = $1
-       ORDER BY m.created_at ASC`,
-      [id]
+       ${cursorClause}
+       ORDER BY ${changedAfter ? 'm.updated_at' : 'm.created_at'} ${paginationRequested ? order : 'ASC'}
+       ${paginationRequested ? `LIMIT $${params.length}` : ''}`,
+      params
     )
-    const likeMap = await getDmMessageLikeMap(rows.map(row => row.id), userId)
-    res.json(rows.map(row => {
+    const hasMore = paginationRequested && rows.length > limit
+    const pageRows = hasMore ? rows.slice(0, limit) : rows
+    if (paginationRequested && !after) pageRows.reverse()
+    const likeMap = await getDmMessageLikeMap(pageRows.map(row => row.id), userId)
+    const messages = pageRows.map(row => {
       const likeInfo = likeMap.get(String(row.id)) || { likeCount: 0, likedByMe: false }
       return {
         ...row,
         likeCount: likeInfo.likeCount || 0,
         likedByMe: Boolean(likeInfo.likedByMe),
       }
-    }))
+    })
+
+    if (!paginationRequested) return res.json(messages)
+    res.json({
+      messages,
+      hasMore: before || !after ? hasMore : false,
+      nextCursor: messages.length > 0 ? messages[0].created_at : null,
+    })
   } catch (err) {
     console.error(err)
     res.status(500).json({ error: '서버 오류' })
@@ -614,10 +661,12 @@ router.post('/conversations/:id/read', async (req, res) => {
   // 본인이 아직 read_by에 없는 메시지만 업데이트
   await db.query(
     `UPDATE dm_messages
-     SET read_by = read_by || $1::jsonb
+     SET read_by = read_by || $1::jsonb,
+         updated_at = NOW()
      WHERE conversation_id = $2
+       AND sender_id <> $3
        AND NOT (read_by @> $1::jsonb)`,
-    [JSON.stringify([userId]), id]
+    [JSON.stringify([userId]), id, userId]
   )
   res.json({ success: true })
 })
@@ -784,6 +833,8 @@ router.post('/conversations/:convId/messages/:msgId/like', async (req, res) => {
         [msgId, userId],
       )
     }
+    // 증분 동기화가 좋아요 변경도 감지할 수 있도록 메시지 변경 시각을 갱신한다.
+    await db.query('UPDATE dm_messages SET updated_at = NOW() WHERE id = $1', [msgId])
 
     const countRes = await db.query(
       'SELECT COUNT(*)::int AS like_count FROM dm_message_likes WHERE message_id = $1',

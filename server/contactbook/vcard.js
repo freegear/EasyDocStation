@@ -99,9 +99,14 @@ function parseVCard(raw) {
   }).filter(item => item.value)
   const emails = typed('email')
   const phones = typed('tel')
+  const kind = (first('kind') || first('x-addressbookserver-kind') || 'individual').toLowerCase()
+  const members = [
+    ...component.getAllProperties('member'),
+    ...component.getAllProperties('x-addressbookserver-member'),
+  ].map(property => cleanValue(property.getFirstValue())).filter(Boolean)
   const displayName = first('fn') || [structuredName[1], structuredName[0]].filter(Boolean).join(' ') || emails[0]?.value || ''
   const result = {
-    uid: first('uid'), displayName,
+    uid: first('uid'), displayName, kind, members,
     givenName: structuredName[1] || '', familyName: structuredName[0] || '',
     nickname: first('nickname'), organization: org[0] || '', department: org[1] || '',
     jobTitle: first('title'), birthday: first('bday'), note: first('note'),

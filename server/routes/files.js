@@ -38,6 +38,10 @@ const PREVIEW_BASE = path.join(STORAGE_BASE, 'previews')
 if (!fs.existsSync(PREVIEW_BASE)) {
   fs.mkdirSync(PREVIEW_BASE, { recursive: true })
 }
+const PDF_PAGE_PREVIEW_BASE = path.join(PREVIEW_BASE, 'pdf-pages')
+if (!fs.existsSync(PDF_PAGE_PREVIEW_BASE)) {
+  fs.mkdirSync(PDF_PAGE_PREVIEW_BASE, { recursive: true })
+}
 const LINK_PREVIEW_BASE = path.join(PREVIEW_BASE, 'link-previews')
 if (!fs.existsSync(LINK_PREVIEW_BASE)) {
   fs.mkdirSync(LINK_PREVIEW_BASE, { recursive: true })
@@ -285,6 +289,48 @@ function execFileAsync(command, args, options = {}) {
   })
 }
 
+async function findAttachmentById(id) {
+  let file = null
+  if (isConnected()) {
+    const result = await client.execute('SELECT * FROM attachments WHERE id = ?', [id], { prepare: true })
+    if (result.rowCount > 0) file = result.rows[0]
+  }
+  if (!file) {
+    const result = await db.query('SELECT * FROM attachments WHERE id = $1', [id])
+    if (result.rowCount > 0) file = result.rows[0]
+  }
+  return file
+}
+
+async function getPdfPreviewSource(id) {
+  const file = await findAttachmentById(id)
+  if (!file) return null
+
+  const fullPath = path.join(STORAGE_BASE, file.storage_path)
+  const ext = path.extname(file.filename || file.storage_path || '').toLowerCase()
+  const isPdf = ext === '.pdf' || String(file.content_type || '').toLowerCase() === 'application/pdf'
+  if (!isPdf || !fs.existsSync(fullPath)) return null
+
+  return { file, fullPath, stat: fs.statSync(fullPath) }
+}
+
+async function readPdfPageCount(fullPath) {
+  const { stdout } = await execFileAsync('pdfinfo', [fullPath], {
+    timeout: 30000,
+    maxBuffer: 1024 * 1024,
+    env: { ...process.env, LC_ALL: 'C' },
+  })
+  const match = String(stdout || '').match(/^Pages:\s+(\d+)\s*$/m)
+  const pages = Number(match?.[1])
+  if (!Number.isInteger(pages) || pages < 1) throw new Error('PDF page count unavailable')
+  return pages
+}
+
+function pdfPageCachePath(id, stat, page) {
+  const version = `${Math.floor(stat.mtimeMs)}-${stat.size}`
+  return path.join(PDF_PAGE_PREVIEW_BASE, String(id), version, `page-${page}.png`)
+}
+
 async function convertWithLibreOfficeToPdf(inputPath, outDir) {
   const ext = path.extname(inputPath).toLowerCase()
   const preferredFilter = (
@@ -429,6 +475,67 @@ async function convertOfficeToPdf(fileUuid, fullPath) {
     return null
   }
 }
+
+// PDF 페이지를 서버에서 완성된 이미지로 렌더링한다. 브라우저 PDF 엔진마다
+// 다르게 처리되는 스캔 이미지 마스크/특수 폰트도 Poppler 결과로 일관되게 보인다.
+router.get('/pdf-preview/:id/manifest', requireAuth, async (req, res, next) => {
+  try {
+    const source = await getPdfPreviewSource(req.params.id)
+    if (!source) return res.status(404).json({ error: 'PDF 파일을 찾을 수 없습니다.' })
+
+    const pageCount = await readPdfPageCount(source.fullPath)
+    res.setHeader('Cache-Control', 'private, max-age=300')
+    res.json({ pageCount, width: 1800, format: 'png' })
+  } catch (err) {
+    console.error('[pdf-preview/manifest] failed:', err?.stderr || err?.message || err)
+    next(err)
+  }
+})
+
+router.get('/pdf-preview/:id/pages/:page', requireAuth, async (req, res, next) => {
+  try {
+    const source = await getPdfPreviewSource(req.params.id)
+    if (!source) return res.status(404).send('PDF 파일을 찾을 수 없습니다.')
+
+    const page = Number(req.params.page)
+    if (!Number.isInteger(page) || page < 1) return res.status(400).send('잘못된 페이지입니다.')
+
+    const pageCount = await readPdfPageCount(source.fullPath)
+    if (page > pageCount) return res.status(404).send('PDF 페이지를 찾을 수 없습니다.')
+
+    const outputPath = pdfPageCachePath(req.params.id, source.stat, page)
+    if (!fs.existsSync(outputPath)) {
+      fs.mkdirSync(path.dirname(outputPath), { recursive: true })
+      const tmpBase = path.join(path.dirname(outputPath), `render-${page}-${crypto.randomUUID()}`)
+      const tmpPath = `${tmpBase}.png`
+      try {
+        await execFileAsync('pdftoppm', [
+          '-png', '-singlefile', '-f', String(page), '-l', String(page),
+          '-scale-to-x', '1800', '-scale-to-y', '-1', source.fullPath, tmpBase,
+        ], { timeout: 120000, maxBuffer: 8 * 1024 * 1024 })
+        if (!fs.existsSync(tmpPath)) throw new Error('PDF page image was not created')
+        try {
+          fs.renameSync(tmpPath, outputPath)
+        } catch (err) {
+          if (!fs.existsSync(outputPath)) throw err
+          fs.rmSync(tmpPath, { force: true })
+        }
+      } finally {
+        fs.rmSync(tmpPath, { force: true })
+      }
+    }
+
+    const stat = fs.statSync(outputPath)
+    res.setHeader('Content-Type', 'image/png')
+    res.setHeader('Content-Length', String(stat.size))
+    res.setHeader('Cache-Control', 'private, max-age=86400')
+    res.setHeader('X-Content-Type-Options', 'nosniff')
+    fs.createReadStream(outputPath).pipe(res)
+  } catch (err) {
+    console.error('[pdf-preview/page] failed:', err?.stderr || err?.message || err)
+    next(err)
+  }
+})
 
 /**
  * 단계 1 & 2: Mock Presigned URL 생성 (Upload)

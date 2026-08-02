@@ -1,7 +1,7 @@
-const { ImapFlow } = require('imapflow')
 const repo = require('./repository')
 const { getMailStorage } = require('./storage')
 const { decryptSecret, encryptSecret } = require('../lib/secrets')
+const { withImapClient } = require('./imapClient')
 const {
   refreshAccessToken,
   gmailModifyMessage,
@@ -9,16 +9,6 @@ const {
 } = require('./gmailOAuth')
 
 const TOKEN_SKEW_MS = 60 * 1000
-
-function buildImapClient(account, password) {
-  return new ImapFlow({
-    host: account.imap_host,
-    port: Number(account.imap_port),
-    secure: account.imap_security !== 'starttls' && account.imap_security !== 'none',
-    auth: { user: account.username || account.email_address, pass: password },
-    logger: false,
-  })
-}
 
 async function ensureGmailAccessToken({ tenantId, account }) {
   const expiresAt = account.token_expires_at ? new Date(account.token_expires_at).getTime() : 0
@@ -186,9 +176,7 @@ async function moveImapMessageOnProvider({ account, message, targetFolder }) {
   // 아니면(형식 깨짐/UID 없음) 메시지의 folder 정보 + Message-ID 검색으로 폴백한다.
   const parsed = parseImapProviderMessageId(message.provider_message_id)
 
-  const client = buildImapClient(account, password)
-  await client.connect()
-  try {
+  return withImapClient(account, password, async client => {
     const mailboxes = await client.list()
     const sourceFolder = {
       provider_folder_id: parsed?.providerFolderId || message.folder_provider_id,
@@ -225,10 +213,7 @@ async function moveImapMessageOnProvider({ account, message, targetFolder }) {
     } finally {
       lock.release()
     }
-  } finally {
-    if (client.usable) await client.logout().catch(() => {})
-    else client.close()
-  }
+  })
 }
 
 async function appendImapMessageToProvider({ account, targetFolder, rawMessage, message }) {
@@ -236,9 +221,7 @@ async function appendImapMessageToProvider({ account, targetFolder, rawMessage, 
   const password = decryptSecret(account.password_encrypted)
   if (!password) throw new Error('대상 메일 계정 암호가 저장되어 있지 않습니다.')
 
-  const client = buildImapClient(account, password)
-  await client.connect()
-  try {
+  return withImapClient(account, password, async client => {
     const mailboxes = await client.list()
     const targetMailbox = resolveMailboxPath(mailboxes, targetFolder)
     if (!targetMailbox) throw new Error('IMAP 복사 대상 메일함을 찾지 못했습니다.')
@@ -265,10 +248,7 @@ async function appendImapMessageToProvider({ account, targetFolder, rawMessage, 
       target: targetMailbox,
       providerMessageId: `imap:${targetFolder.provider_folder_id}:${idPart}`,
     }
-  } finally {
-    if (client.usable) await client.logout().catch(() => {})
-    else client.close()
-  }
+  })
 }
 
 async function moveMessageAcrossAccounts({ tenantId, account, message, targetFolder }) {
@@ -368,9 +348,7 @@ async function moveMessagesToTrashOnProvider({ tenantId, account, messages, tras
     return out
   }
 
-  const client = buildImapClient(account, password)
-  await client.connect()
-  try {
+  return withImapClient(account, password, async client => {
     const mailboxes = await client.list()
     const targetMailbox = resolveMailboxPath(mailboxes, trashFolder)
     if (!targetMailbox) {
@@ -418,10 +396,7 @@ async function moveMessagesToTrashOnProvider({ tenantId, account, messages, tras
       }
     }
     return out
-  } finally {
-    if (client.usable) await client.logout().catch(() => {})
-    else client.close()
-  }
+  })
 }
 
 module.exports = {

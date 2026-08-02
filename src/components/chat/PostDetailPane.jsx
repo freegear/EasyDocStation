@@ -14,22 +14,24 @@ import useMentionAutocomplete from '../../hooks/useMentionAutocomplete'
 import MentionDropdown from '../MentionDropdown'
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels'
 import { useOutsideMouseDown } from '../../hooks/useOutsideMouseDown'
+import { printSelectedContent } from '../../lib/printSelectedContent'
 
 const EMPTY_COMMENTS = []
 
-function ActionMenu({ type, canEdit, canDelete, canPin, pinned, labels, position, onAction }) {
+function ActionMenu({ type, canEdit, canDelete, canPin, pinned, readOnly = false, labels, position, onAction }) {
   const itemClass = 'flex min-h-10 w-full items-center rounded-lg px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 focus:bg-gray-100 focus:outline-none'
   const item = (key, label, tone = '') => <button key={key} type="button" role="menuitem" onClick={() => onAction(key)} className={`${itemClass} ${tone}`}>{label}</button>
   return <div role="menu" aria-label={type === 'post' ? '게시글 작업 메뉴' : '댓글 작업 메뉴'} style={{ left: position.x, top: position.y }} className="fixed z-[90] w-60 rounded-xl border border-gray-200 bg-white p-2 shadow-2xl">
-    {canEdit && item('edit', `✎ ${labels.edit || '수정'}`)}
-    {canDelete && item('delete', `🗑 ${labels.delete || '삭제'}`, 'text-red-600 hover:bg-red-50 focus:bg-red-50')}
-    <div className="my-1 border-t border-gray-100" />
+    {!readOnly && canEdit && item('edit', `✎ ${labels.edit || '수정'}`)}
+    {!readOnly && canDelete && item('delete', `🗑 ${labels.delete || '삭제'}`, 'text-red-600 hover:bg-red-50 focus:bg-red-50')}
+    {!readOnly && (canEdit || canDelete) && <div className="my-1 border-t border-gray-100" />}
     {item('copy', `⧉ ${labels.copy}`)}
     {item('copy-link', `🔗 ${labels.copyLink}`)}
-    {type === 'post' && canPin && <><div className="my-1 border-t border-gray-100" />{item('pin', `📌 ${pinned ? '핀 해제' : '핀 고정'}`)}</>}
-    <div className="my-1 border-t border-gray-100" />
-    {item('transfer-copy', '⇥ 다른 채널로 복사', 'text-indigo-600')}
-    {canDelete && item('transfer-move', '➜ 다른 채널로 이동', 'text-amber-600')}
+    {item('print', `🖨 ${labels.print || '인쇄'}`)}
+    {!readOnly && type === 'post' && canPin && <><div className="my-1 border-t border-gray-100" />{item('pin', `📌 ${pinned ? '핀 해제' : '핀 고정'}`)}</>}
+    {!readOnly && <div className="my-1 border-t border-gray-100" />}
+    {!readOnly && item('transfer-copy', '⇥ 다른 채널로 복사', 'text-indigo-600')}
+    {!readOnly && canDelete && item('transfer-move', '➜ 다른 채널로 이동', 'text-amber-600')}
     <div className="my-1 border-t border-gray-100" />
     {item('agentic', `⚡ ${labels.agentic}`, 'text-sky-600')}
     {item('dm', `💬 ${labels.dm}`, 'text-indigo-600')}
@@ -170,6 +172,8 @@ function PostDetailPane({
   onClose,
   pendingOpenCommentId = null,
   pendingOpenAttachmentId = null,
+  pendingActionMenu = null,
+  onConsumeActionMenu = null,
   onConsumePendingOpen = null,
   helpers = {},
   isMobile = false,
@@ -236,6 +240,7 @@ function PostDetailPane({
   const commentSubmittingRef = useRef(false)
   const commentsEndRef = useRef(null)
   const commentItemRefs = useRef(new Map())
+  const postPrintRef = useRef(null)
   const [highlightCommentId, setHighlightCommentId] = useState(null)
   const commentTextareaRef = useRef(null)
   const mention = useMentionAutocomplete(channelId)
@@ -455,6 +460,19 @@ function PostDetailPane({
     })
     setActionMenuOpen(true)
   }
+
+  useEffect(() => {
+    if (!pendingActionMenu || String(pendingActionMenu.postId) !== String(post.id)) return
+    setSelectedTarget({ type: 'post', postId: post.id, id: post.id })
+    const menuWidth = 240
+    const menuHeight = 440
+    setActionMenuPosition({
+      x: Math.max(8, Math.min(pendingActionMenu.x, window.innerWidth - menuWidth - 8)),
+      y: Math.max(8, Math.min(pendingActionMenu.y, window.innerHeight - menuHeight - 8)),
+    })
+    setActionMenuOpen(true)
+    onConsumeActionMenu?.(pendingActionMenu.requestId)
+  }, [onConsumeActionMenu, pendingActionMenu, post.id])
   const contentFontStyle = getContentFontStyle(contentFontScale)
   const postTextStyle = contentFontStyle
   const commentTextStyle = contentFontStyle
@@ -726,6 +744,34 @@ function PostDetailPane({
     await copyTextContent(selectedContent, selectedCopyKey)
   }
 
+  function getPrintTitle() {
+    if (activeTargetType === 'comment') return '댓글'
+    const firstLine = String(selectedContent || '').split('\n').map(line => line.trim()).find(Boolean)
+    return (firstLine || '게시글').slice(0, 120)
+  }
+
+  async function handlePrintSelected() {
+    const isComment = activeTargetType === 'comment' && selectedComment
+    const targetNode = isComment
+      ? commentItemRefs.current.get(String(selectedComment.id))
+      : postPrintRef.current
+    try {
+      await printSelectedContent({
+        type: isComment ? 'comment' : 'post',
+        title: getPrintTitle(),
+        channelName: selectedChannel?.name || '',
+        author: isComment ? selectedComment.author?.name : freshPost.author?.name,
+        username: isComment ? selectedComment.author?.username : freshPost.author?.username,
+        createdAt: formatFull(isComment ? selectedComment.createdAt : freshPost.createdAt),
+        contentNode: targetNode,
+        popupBlockedMessage: t.chat.printPopupBlocked,
+        failedMessage: t.chat.printFailed,
+      })
+    } catch (error) {
+      setCommentErrorDialog(error?.message || t.chat.printFailed || '인쇄 준비 중 오류가 발생했습니다.')
+    }
+  }
+
   function openTransferDialog(operation) {
     const isComment = activeTargetType === 'comment' && selectedComment
     const firstTarget = (teams || []).flatMap(team => (team.channels || []).map(channel => ({ team, channel })))
@@ -935,21 +981,23 @@ function PostDetailPane({
         )}
       </div>
 
-      {actionMenuOpen && !isEditingPost && !selectedChannel?.is_archived && <div ref={actionMenuRef}>
+      {actionMenuOpen && !isEditingPost && <div ref={actionMenuRef}>
         <ActionMenu
           type={activeTargetType}
           canEdit={canEditSelected}
           canDelete={canDeleteSelected}
           canPin={canPinSelected}
           pinned={Boolean(freshPost.pinned)}
+          readOnly={Boolean(selectedChannel?.is_archived)}
           position={actionMenuPosition}
-          labels={{ edit: t.chat.edit, delete: t.chat.delete, copy: t.ai.copy || '복사', copyLink: t.chat.copyLink || '링크복사', agentic: t.chat.sendToAgenticAI || 'AgenticAI로 보내기', dm: t.chat.sendToDM }}
+          labels={{ edit: t.chat.edit, delete: t.chat.delete, copy: t.ai.copy || '복사', copyLink: t.chat.copyLink || '링크복사', print: t.chat.print || '인쇄', agentic: t.chat.sendToAgenticAI || 'AgenticAI로 보내기', dm: t.chat.sendToDM }}
           onAction={(action) => {
             setActionMenuOpen(false)
             if (action === 'edit') handleSelectedEdit()
             else if (action === 'delete') handleSelectedDelete()
             else if (action === 'copy') handleSelectedCopyContent()
             else if (action === 'copy-link') handleSelectedCopyLink()
+            else if (action === 'print') handlePrintSelected()
             else if (action === 'pin') handleTogglePin()
             else if (action === 'transfer-copy') openTransferDialog('COPY')
             else if (action === 'transfer-move') openTransferDialog('MOVE')
@@ -1107,6 +1155,7 @@ function PostDetailPane({
       >
         <Panel defaultSize={isMobile ? 82 : 72} minSize={25} className="overflow-hidden">
       <div
+        ref={postPrintRef}
         onContextMenu={(event) => {
           if (event.target?.closest?.('[data-comment-card="true"]')) return
           openContextActionMenu(event, { type: 'post' })
@@ -1312,7 +1361,7 @@ function PostDetailPane({
 
         {/* Comments list — 스크롤 영역 안 */}
         {!isEditingPost && (
-        <div className="border-t border-gray-200 pt-6 mt-6 pb-4">
+        <div data-print-exclude="true" className="border-t border-gray-200 pt-6 mt-6 pb-4">
           <h3 className="text-gray-900 font-semibold text-sm mb-4">{t.chat.commentCount(detailCommentCount)}</h3>
           {commentsLoading ? (
             <p className="text-gray-400 text-sm">댓글을 불러오는 중...</p>

@@ -9,17 +9,21 @@ import GroqPanel from './components/GroqPanel'
 import MobileLayout from './components/MobileLayout'
 import LoginScreen from './components/LoginScreen'
 import UserProfileModal from './components/UserProfileModal'
-import SiteAdminPage from './components/SiteAdminPage'
 import SearchResultsArea from './components/SearchResultsArea'
-import CalendarView from './components/CalendarView'
 import DirectMessageView, { NewConversationModal } from './components/DirectMessageView'
 import ConfirmDialog from './components/ConfirmDialog'
 import SelectionGuardPlaywrightFixture from './components/dev/SelectionGuardPlaywrightFixture'
-import MailPage from './features/mail/MailPage'
-import ContactBookPage from './features/contactbook/ContactBookPage'
+import LazyServiceBoundary, {
+  LazyCalendarView,
+  LazyContactBookPage,
+  LazyMailPage,
+  LazySiteAdminPage,
+} from './components/LazyServiceBoundary'
+import UpdateHistoryPage from './components/UpdateHistoryPage'
 import { WELCOME_BOARD_TEMPLATE } from './templates/formTemplates'
 import { apiFetch } from './lib/api'
 import { getRecentPosts } from './lib/recentPosts'
+import { MeetingRecordingProvider, useMeetingRecording } from './contexts/MeetingRecordingContext'
 
 // 서버 실행 옵션 --showWelcomeBoard (VITE_SHOW_WELCOME_BOARD)로 노출되는 빌드타임 플래그.
 const SHOW_WELCOME_BOARD = import.meta.env.VITE_SHOW_WELCOME_BOARD === '1'
@@ -201,6 +205,43 @@ function PanelServicePage({ service, onClose, onNavigate, injectType, injectData
   )
 }
 
+function MeetingRecordingBar() {
+  const { isRecording, isPaused, status, elapsedMs, meetingId, title, download, pendingChunks, error, invokeControl } = useMeetingRecording()
+  if (!isRecording && !download && !meetingId && !error) return null
+
+  return (
+    <div className="fixed bottom-4 right-4 z-[1200] w-[min(22rem,calc(100vw-2rem))] rounded-lg border border-slate-200 bg-white/95 p-3 shadow-xl backdrop-blur">
+      <div className="flex items-center gap-2 text-sm font-semibold text-slate-700">
+        <span className={`inline-flex h-2.5 w-2.5 rounded-full ${isRecording ? 'bg-red-500 animate-pulse' : 'bg-slate-400'}`} />
+        <span>{title}</span>
+      </div>
+      <div className="mt-2 text-xs text-slate-600">{status}</div>
+      <div className="mt-1 flex items-center justify-between text-[11px] text-slate-500">
+        <span>{isPaused ? '일시정지' : '진행 중'}</span>
+        <span>{new Date(Math.max(0, elapsedMs)).toISOString().slice(11, 19)}</span>
+      </div>
+      {pendingChunks > 0 && <div className="mt-2 text-[11px] text-amber-600">미전송 조각 {pendingChunks}개</div>}
+      {error && <div className="mt-2 text-[11px] text-red-600">{error}</div>}
+      {download && (
+        <div className="mt-2 text-[11px] text-emerald-700">다운로드 준비 완료: {download.fileName}</div>
+      )}
+      {isRecording && (
+        <div className="mt-3 flex flex-wrap gap-2">
+          <button type="button" onClick={() => invokeControl('togglePause')} className="rounded-md border border-slate-300 px-2.5 py-1.5 text-xs text-slate-700 hover:bg-slate-50">
+            {isPaused ? '재개' : '일시정지'}
+          </button>
+          <button type="button" onClick={() => invokeControl('addMarker', 'important')} className="rounded-md border border-amber-300 px-2.5 py-1.5 text-xs text-amber-700 hover:bg-amber-50">
+            중요 발언
+          </button>
+          <button type="button" onClick={() => invokeControl('stop')} className="rounded-md bg-red-600 px-2.5 py-1.5 text-xs text-white hover:bg-red-700">
+            녹음 종료
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
+
 function MainLayout() {
   const SIDEBAR_STORAGE_KEY = 'ui.sidebar.visible'
   const accessDeniedMessage = '당신은 권한이 없습니다. 필요하시면 채널관리자/팀 관리자/채널관리자 에게 연락하여 주시기바랍니다.'
@@ -223,6 +264,7 @@ function MainLayout() {
   const [activeDMConv, setActiveDMConv] = useState(null)
   const [showNewDM, setShowNewDM] = useState(false)
   const [showAccessDeniedDialog, setShowAccessDeniedDialog] = useState(false)
+  const [showUpdateHistory, setShowUpdateHistory] = useState(false)
   const [fullscreenService, setFullscreenService] = useState(null)
   const [welcomeService, setWelcomeService] = useState(null)  // 가운데 패널 인패널 서비스 (WelcomeBoard.md 8절)
   const [welcomeBoardData, setWelcomeBoardData] = useState(null)  // Welcome 보드 카드 주입 데이터 (WelcomeBoard.md 12절)
@@ -718,16 +760,18 @@ function MainLayout() {
         onToggleAgenticPanel={() => setShowAgenticPanel(v => !v)}
         isMobileLayout={isMobileLayout}
       />
-      <div ref={mainRef} className="flex flex-1 min-h-0">
+      <div ref={mainRef} className="flex flex-1 min-h-0 min-w-0">
         {isMobileLayout ? (
-          <MobileLayout onOpenServicePage={setFullscreenService} />
+          <MobileLayout onOpenServicePage={setFullscreenService} onOpenUpdateHistory={() => setShowUpdateHistory(true)} />
         ) : (
           <>
             {showContactBook ? (
-              <ContactBookPage onBackToMain={() => setShowContactBook(false)} />
+              <LazyServiceBoundary>
+                <LazyContactBookPage onBackToMain={() => setShowContactBook(false)} />
+              </LazyServiceBoundary>
             ) : showMail ? (
-              <>
-                <MailPage
+              <LazyServiceBoundary>
+                <LazyMailPage
                   onBackToMain={() => setShowMail(false)}
                   initialMailLink={mailDeepLink}
                   initialFolder={mailInitialFolder}
@@ -750,7 +794,7 @@ function MainLayout() {
                     <GroqPanel width={groqWidth} />
                   </>
                 )}
-              </>
+              </LazyServiceBoundary>
             ) : (
               <>
                 {showSidebar && (
@@ -769,18 +813,21 @@ function MainLayout() {
                       setActiveDMConv(null)
                     }}
                     onCloseWelcome={() => setWelcomeService(null)}
+                    onOpenUpdateHistory={() => setShowUpdateHistory(true)}
                     activeDMConvId={activeDMConv?.id}
                     isMobile={false}
                   />
                 )}
 
                 {showCalendar ? (
-                  <CalendarView
-                    onClose={() => setShowCalendar(false)}
-                    focusEvent={calendarFocusEvent}
-                    addEventRequest={calendarAddEventRequest}
-                    onAddEventRequestHandled={() => setCalendarAddEventRequest(null)}
-                  />
+                  <LazyServiceBoundary>
+                    <LazyCalendarView
+                      onClose={() => setShowCalendar(false)}
+                      focusEvent={calendarFocusEvent}
+                      addEventRequest={calendarAddEventRequest}
+                      onAddEventRequestHandled={() => setCalendarAddEventRequest(null)}
+                    />
+                  </LazyServiceBoundary>
                 ) : showDM && activeDMConv ? (
                   <DirectMessageView
                     conversation={activeDMConv}
@@ -869,10 +916,12 @@ function MainLayout() {
         />
       )}
       {showSiteAdmin && (
-        <SiteAdminPage
-          initialTab={siteAdminInitialTab}
-          onClose={() => setShowSiteAdmin(false)}
-        />
+        <LazyServiceBoundary>
+          <LazySiteAdminPage
+            initialTab={siteAdminInitialTab}
+            onClose={() => setShowSiteAdmin(false)}
+          />
+        </LazyServiceBoundary>
       )}
       {showNewDM && (
         <NewConversationModal
@@ -887,6 +936,7 @@ function MainLayout() {
           onClose={() => setFullscreenService(null)}
         />
       )}
+      {showUpdateHistory && <UpdateHistoryPage onClose={() => setShowUpdateHistory(false)} />}
       {showProfileSavedDialog && (
         <ConfirmDialog
           title="확인"
@@ -933,7 +983,10 @@ function AppContent() {
   return (
     <ToastProvider>
       <ChatProvider>
-        <MainLayout />
+        <MeetingRecordingProvider>
+          <MainLayout />
+          <MeetingRecordingBar />
+        </MeetingRecordingProvider>
       </ChatProvider>
     </ToastProvider>
   )

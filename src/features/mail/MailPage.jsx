@@ -123,6 +123,7 @@ export default function MailPage({ onBackToMain, initialMailLink = null, initial
   const [hasMoreMessages, setHasMoreMessages] = useState(false)
   const [loadingMore, setLoadingMore] = useState(false)
   const [refreshLoading, setRefreshLoading] = useState(false)
+  const [syncErrorDialog, setSyncErrorDialog] = useState(null)
   const [composeMode, setComposeMode] = useState(false)
   const [composeDraft, setComposeDraft] = useState(null)
   const [selectedMessage, setSelectedMessage] = useState(null)
@@ -152,6 +153,28 @@ export default function MailPage({ onBackToMain, initialMailLink = null, initial
   const preserveSelectionOnNextLoadRef = useRef(null)
   const messageLoadSeqRef = useRef(0)
   const loadMoreSeqRef = useRef(0)
+  const shownSyncErrorsRef = useRef(new Set())
+
+  function showAccountSyncErrors(accountRows, { force = false } = {}) {
+    const failures = (Array.isArray(accountRows) ? accountRows : [])
+      .filter(account => account && (account.ok === false || account.sync_status === 'error'))
+      .map(account => ({
+        accountId: account.accountId || account.id,
+        emailAddress: account.emailAddress || account.email_address || '알 수 없는 계정',
+        error: account.error || account.last_error || '메일 동기화에 실패했습니다.',
+      }))
+      .filter(item => {
+        const signature = `${item.accountId}:${item.error}`
+        if (!force && shownSyncErrorsRef.current.has(signature)) return false
+        shownSyncErrorsRef.current.add(signature)
+        return true
+      })
+    if (failures.length > 0) setSyncErrorDialog(failures)
+  }
+
+  useEffect(() => {
+    showAccountSyncErrors(accounts)
+  }, [accounts])
 
   const displayedMessages = useMemo(() => {
     const query = mailSearchQuery.trim().toLowerCase()
@@ -1671,10 +1694,11 @@ export default function MailPage({ onBackToMain, initialMailLink = null, initial
     setRefreshLoading(true)
     setMessagesError('')
     try {
-      await apiFetch('/mail/sync-all', {
+      const syncResult = await apiFetch('/mail/sync-all', {
         method: 'POST',
         body: JSON.stringify({ full: true }),
       })
+      showAccountSyncErrors(syncResult?.accounts, { force: true })
       const nextAccounts = await reloadMailAccounts()
       await loadActiveMessages(nextAccounts, { silent: true, resetSelection: false })
     } catch (err) {
@@ -1899,18 +1923,20 @@ export default function MailPage({ onBackToMain, initialMailLink = null, initial
 
   useEffect(() => {
     if (!messageMenu) return undefined
-    function closeMenu() {
+    function closeOnOutsidePointer(event) {
+      if (event.target instanceof Element && event.target.closest('[data-mail-message-context-menu]')) return
       setMessageMenu(null)
     }
     function closeOnEscape(event) {
-      if (event.key === 'Escape') closeMenu()
+      if (event.key === 'Escape') setMessageMenu(null)
     }
-    window.addEventListener('click', closeMenu)
-    window.addEventListener('contextmenu', closeMenu)
+    // 캡처 단계에서 감지해 다른 화면 요소가 이벤트 전파를 막더라도 바깥 클릭으로 메뉴가 닫히게 한다.
+    document.addEventListener('pointerdown', closeOnOutsidePointer, true)
+    window.addEventListener('contextmenu', closeOnOutsidePointer)
     window.addEventListener('keydown', closeOnEscape)
     return () => {
-      window.removeEventListener('click', closeMenu)
-      window.removeEventListener('contextmenu', closeMenu)
+      document.removeEventListener('pointerdown', closeOnOutsidePointer, true)
+      window.removeEventListener('contextmenu', closeOnOutsidePointer)
       window.removeEventListener('keydown', closeOnEscape)
     }
   }, [messageMenu])
@@ -2437,6 +2463,18 @@ export default function MailPage({ onBackToMain, initialMailLink = null, initial
           danger
           onConfirm={() => emptyTrashFolder(pendingEmptyTrash)}
           onCancel={() => setPendingEmptyTrash(null)}
+        />
+      )}
+      {syncErrorDialog && (
+        <ConfirmDialog
+          title="메일 동기화 오류"
+          message="다음 계정의 메일을 동기화하지 못했습니다. 계정 설정을 확인해주세요."
+          highlightItems={syncErrorDialog.map(item => `${item.emailAddress} — ${item.error}`)}
+          confirmText={mt.ok}
+          hideCancel
+          danger
+          onConfirm={() => setSyncErrorDialog(null)}
+          onCancel={() => setSyncErrorDialog(null)}
         />
       )}
       {pendingDeleteFolder && (

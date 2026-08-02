@@ -40,6 +40,7 @@ export default function Sidebar({
   onOpenServicePage,
   onOpenServiceInPanel,
   onCloseWelcome,
+  onOpenUpdateHistory,
   activeDMConvId,
   isMobile = false,
   onCloseMobile,
@@ -118,7 +119,7 @@ export default function Sidebar({
   }
 
   useEffect(() => {
-    apiFetch('/config/version')
+    apiFetch('/config/version', { cache: 'no-store' })
       .then(data => setAppVersion(data.version || ''))
       .catch(() => {})
   }, [])
@@ -478,9 +479,15 @@ export default function Sidebar({
 
       {/* Version */}
       <div className="px-4 py-2 border-t border-gray-100">
-        <p className="text-blue-800 font-extrabold text-xs text-center tracking-widest">
+        <button
+          type="button"
+          onClick={() => { onOpenUpdateHistory?.(); closeMobileIfNeeded() }}
+          title="EasyStation 업데이트 내역 보기"
+          aria-label={`EasyStation ${appVersion ? `버전 ${appVersion}` : ''} 업데이트 내역 보기`}
+          className="w-full rounded-lg px-2 py-1 text-center text-xs font-extrabold tracking-widest text-blue-800 transition-colors hover:bg-blue-50 hover:text-blue-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+        >
           EasyStation {appVersion && `v${appVersion}`}
-        </p>
+        </button>
       </div>
 
       {showTeamModal && (

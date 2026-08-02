@@ -1,0 +1,47 @@
+[restart] EasyDocStation 관련 프로세스 정리 중...
+[restart] 재기동합니다...
+
+> easydocstation@1.0.0 dev
+> concurrently -p "[{name}]" -n "Ollama,FE,BE" -c "cyan,magenta,green" "npm run ollama:serve" "npm run dev:frontend" "npm run dev:backend"
+
+[FE] 
+[FE] > easydocstation@1.0.0 dev:frontend
+[FE] > vite
+[FE] 
+[Ollama] 
+[Ollama] > easydocstation@1.0.0 ollama:serve
+[Ollama] > node scripts/ollama-serve-safe.mjs
+[Ollama] 
+[BE] 
+[BE] > easydocstation@1.0.0 dev:backend
+[BE] > PYTHON_BIN=${PYTHON_BIN:-$PWD/.venv/bin/python3} npm run dev --prefix server
+[BE] 
+[Ollama] [Ollama] already running on 127.0.0.1:11434, skipping duplicate serve.
+[Ollama] npm run ollama:serve exited with code 0
+[BE] 
+[BE] > easydocstation-server@1.0.0 dev
+[BE] > nodemon index.js
+[BE] 
+[FE] 
+[FE]   VITE v5.4.21  ready in 93 ms
+[FE] 
+[FE]   ➜  Local:   http://localhost:5173/
+[FE]   ➜  Network: http://10.0.0.194:5173/
+[BE] [33m[nodemon] 3.1.14[39m
+[BE] [33m[nodemon] to restart at any time, enter `rs`[39m
+[BE] [33m[nodemon] watching path(s): *.*[39m
+[BE] [33m[nodemon] watching extensions: js,mjs,cjs,json[39m
+[BE] [32m[nodemon] starting `node index.js`[39m
+[BE] [RAG] 초기화 — 학습 방식: immediate
+[BE] [RAG] 초기화 — PDF 파싱 모드: FAST
+[BE] [Mail sync] 자동 동기화 스케줄러 시작: interval=600s
+[BE] ✅ EasyDocStation server running on http://localhost:3001
+[BE] ✅ [CONFIG] HF_TOKEN 확인됨 (hf_u****butv, 길이 37)
+[BE] ✅ Cassandra connected
+[BE] ✅ Cassandra schema initialized
+[BE] ✅ Database migration complete.
+[BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[BE] Terminated
+[BE] npm run dev:backend exited with code 143
+Terminated
+[FE] npm run dev:frontend exited with code SIGTERM

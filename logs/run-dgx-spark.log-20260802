@@ -1,0 +1,719 @@
+[20260801-00:06:46][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260801-00:16:47][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260801-00:26:48][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260801-00:36:44][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260801-00:46:45][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260801-00:56:45][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260801-01:06:45][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260801-01:16:47][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260801-01:26:46][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260801-01:36:47][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260801-01:46:50][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260801-01:56:45][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260801-02:06:50][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260801-02:16:46][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260801-02:26:46][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260801-02:36:47][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260801-02:46:47][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260801-02:56:45][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260801-03:06:45][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260801-03:16:48][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+Files in the public directory are served at the root path.
+Instead of /public/.env, use /.env.
+[20260801-03:26:48][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260801-03:36:45][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260801-03:46:48][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260801-03:56:46][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260801-04:06:46][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260801-04:16:47][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260801-04:26:50][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260801-04:36:45][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260801-04:46:48][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260801-04:56:48][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260801-05:06:48][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260801-05:16:45][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260801-05:26:50][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260801-05:36:48][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260801-05:46:45][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260801-05:56:46][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260801-06:06:46][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260801-06:16:47][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260801-06:26:47][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260801-06:36:44][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260801-06:46:48][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260801-06:56:45][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260801-07:06:44][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260801-07:16:49][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260801-07:26:46][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260801-07:36:47][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260801-07:46:48][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260801-07:56:48][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260801-08:06:44][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260801-08:16:46][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260801-08:26:45][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260801-08:36:46][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260801-08:46:48][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260801-08:56:48][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260801-09:06:47][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260801-09:16:47][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260801-09:26:49][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260801-09:36:45][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260801-09:46:47][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260801-09:56:47][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260801-10:06:44][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260801-10:16:44][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260801-10:26:44][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260801-10:36:49][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260801-10:46:48][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260801-10:56:48][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260801-11:06:45][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260801-11:16:44][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260801-11:26:46][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260801-11:36:48][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260801-11:46:46][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260801-11:56:45][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260801-12:06:44][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260801-12:16:44][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260801-12:26:46][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+The request url "/proc/self/environ" is outside of Vite serving allow list.
+The request url "/proc/self/environ" is outside of Vite serving allow list.
+[20260801-12:36:48][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260801-12:46:46][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260801-12:56:46][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260801-13:06:46][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260801-13:16:46][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260801-13:26:45][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260801-13:36:45][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260801-13:46:49][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260801-13:50:27][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260801-13:50:27][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260801-13:50:27][BE] [link-preview-image] meta image failed, fallback screenshot: meta page fetch failed (404)
+[20260801-13:50:28][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260801-13:52:39][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260801-13:55:55][BE] [ATTACH-REF] sync ownerType=post ownerId=c93ea5a0-5793-4e3f-b164-3da1e226488a actorUserId=1 prev=0 next=1 add=1 remove=0
+[20260801-13:55:55][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
+[20260801-13:55:55][BE] /home/freegear/EasyDocStation/server/rag_train.py:125: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260801-13:55:55][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260801-13:55:58][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v3' already exists
+[20260801-13:55:58][BE] [RAG] post=c93ea5a0-5793-4e3f-b164-3da1e226488a text → 1청크
+[20260801-13:55:58][BE] [RAG] 학습 진행률: 30% (게시글 본문)
+[20260801-13:55:58][BE] [RAG] 이미지 학습 시작: ChatGPT Image 2026년 8월 1일 오후 01_50_19.png
+[20260801-13:56:46][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260801-13:56:51][BE] [RAG] Gemma 이미지 설명 완료 (page=1, 52.8s): 3696자
+[20260801-13:56:51][BE] [RAG] 이미지 학습 완료: ChatGPT Image 2026년 8월 1일 오후 01_50_19.png (7청크)
+[20260801-13:56:51][BE] [RAG] 학습 진행률: 60% (게시글 이미지)
+[20260801-13:56:51][BE] [RAG] 저장 완료 — 8청크 / 1개 게시글 / 0개 댓글 / 0개 폴더문서
+[20260801-13:56:51][BE] [RAG] 학습 진행률: 100% (저장)
+[20260801-13:56:53][BE] [RAG] 학습 완료
+[20260801-13:57:22][BE] [SearchIndex] 이미지 첨부 인덱싱 완료: 4aefa74e-e2eb-45ce-a143-51621ca428b7 ChatGPT Image 2026년 8월 1일 오후 01_50_19.png
+[20260801-13:59:17][BE] [ATTACH-REF] sync ownerType=comment ownerId=c-65bc3629-2760-45ed-ac83-f1bb01bffffe actorUserId=1 prev=0 next=1 add=1 remove=0
+[20260801-13:59:17][BE] [RAG] 댓글 학습 시작 — 1개 댓글 (제외: 0개)
+[20260801-13:59:17][BE] /home/freegear/EasyDocStation/server/rag_train.py:125: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260801-13:59:17][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260801-13:59:21][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v3' already exists
+[20260801-13:59:21][BE] [RAG] comment=c-65bc3629-2760-45ed-ac83-f1bb01bffffe post=c93ea5a0-5793-4e3f-b164-3da1e226488a text → 1청크
+[20260801-13:59:21][BE] [RAG] 학습 진행률: 30% (댓글 본문)
+[20260801-13:59:21][BE] [RAG] 이미지 학습 시작: ChatGPT Image 2026년 8월 1일 오후 01_59_08.png
+[20260801-13:59:51][BE] [SearchIndex] 이미지 첨부 인덱싱 완료: 201926ca-266d-4e8c-82bd-d8ff0d1a4940 ChatGPT Image 2026년 8월 1일 오후 01_59_08.png
+[20260801-14:00:42][BE] [RAG] Gemma 이미지 설명 완료 (page=1, 80.9s): 3344자
+[20260801-14:00:42][BE] [RAG] 이미지 학습 완료: ChatGPT Image 2026년 8월 1일 오후 01_59_08.png (6청크)
+[20260801-14:00:42][BE] [RAG] 학습 진행률: 60% (댓글 이미지)
+[20260801-14:00:42][BE] [RAG] 저장 완료 — 7청크 / 0개 게시글 / 1개 댓글 / 0개 폴더문서
+[20260801-14:00:42][BE] [RAG] 학습 진행률: 100% (저장)
+[20260801-14:00:43][BE] [RAG] 댓글 학습 완료 — 1개 댓글 (85.7s)
+[20260801-14:06:45][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260801-14:16:44][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260801-14:19:07][BE] [ATTACH-REF] sync ownerType=comment ownerId=c-20e68374-7f79-486c-af76-1a29d60b770e actorUserId=1 prev=0 next=1 add=1 remove=0
+[20260801-14:19:07][BE] [RAG] 댓글 학습 시작 — 1개 댓글 (제외: 0개)
+[20260801-14:19:07][BE] /home/freegear/EasyDocStation/server/rag_train.py:125: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260801-14:19:07][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260801-14:19:10][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v3' already exists
+[20260801-14:19:10][BE] [RAG] comment=c-20e68374-7f79-486c-af76-1a29d60b770e post=c93ea5a0-5793-4e3f-b164-3da1e226488a text → 1청크
+[20260801-14:19:10][BE] [RAG] 학습 진행률: 30% (댓글 본문)
+[20260801-14:19:10][BE] [RAG] 이미지 학습 시작: ChatGPT Image 2026년 8월 1일 오후 02_18_59.png
+[20260801-14:19:59][BE] [RAG] Gemma 이미지 설명 완료 (page=1, 49.1s): 3194자
+[20260801-14:19:59][BE] [RAG] 이미지 학습 완료: ChatGPT Image 2026년 8월 1일 오후 02_18_59.png (5청크)
+[20260801-14:19:59][BE] [RAG] 학습 진행률: 60% (댓글 이미지)
+[20260801-14:19:59][BE] [RAG] 저장 완료 — 6청크 / 0개 게시글 / 1개 댓글 / 0개 폴더문서
+[20260801-14:19:59][BE] [RAG] 학습 진행률: 100% (저장)
+[20260801-14:20:02][BE] [RAG] 댓글 학습 완료 — 1개 댓글 (54.8s)
+[20260801-14:20:38][BE] [SearchIndex] 이미지 첨부 인덱싱 완료: 1af9415f-b9d3-433b-afcb-2901375eba5b ChatGPT Image 2026년 8월 1일 오후 02_18_59.png
+[20260801-14:25:27][BE] [ATTACH-REF] sync ownerType=post ownerId=2b518fb2-f26f-4345-b04c-2b2be9deacee actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260801-14:25:27][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
+[20260801-14:25:27][BE] /home/freegear/EasyDocStation/server/rag_train.py:125: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260801-14:25:27][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260801-14:25:30][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v3' already exists
+[20260801-14:25:30][BE] [RAG] post=2b518fb2-f26f-4345-b04c-2b2be9deacee text → 4청크
+[20260801-14:25:30][BE] [RAG] 학습 진행률: 50% (게시글 본문)
+[20260801-14:25:30][BE] [RAG] 저장 완료 — 4청크 / 1개 게시글 / 0개 댓글 / 0개 폴더문서
+[20260801-14:25:30][BE] [RAG] 학습 진행률: 100% (저장)
+[20260801-14:25:31][BE] [RAG] 학습 완료
+[20260801-14:26:46][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260801-14:29:01][BE] [ATTACH-REF] sync ownerType=comment ownerId=c-5c763c41-e102-4045-b3c8-3f7892a75999 actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260801-14:29:01][BE] [RAG] 댓글 학습 시작 — 1개 댓글 (제외: 0개)
+[20260801-14:29:01][BE] /home/freegear/EasyDocStation/server/rag_train.py:125: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260801-14:29:01][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260801-14:29:02][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260801-14:29:04][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v3' already exists
+[20260801-14:29:04][BE] [RAG] comment=c-5c763c41-e102-4045-b3c8-3f7892a75999 post=2b518fb2-f26f-4345-b04c-2b2be9deacee text → 8청크
+[20260801-14:29:04][BE] [RAG] 학습 진행률: 50% (댓글 본문)
+[20260801-14:29:04][BE] [RAG] 저장 완료 — 8청크 / 0개 게시글 / 1개 댓글 / 0개 폴더문서
+[20260801-14:29:04][BE] [RAG] 학습 진행률: 100% (저장)
+[20260801-14:29:05][BE] [RAG] 댓글 학습 완료 — 1개 댓글 (4.2s)
+[20260801-14:36:48][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260801-14:46:47][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260801-14:47:51][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260801-14:47:51][BE] [link-preview-image] meta image failed, fallback screenshot: meta page fetch failed (404)
+[20260801-14:47:52][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260801-14:47:52][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260801-14:47:57][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260801-14:48:01][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260801-14:48:09][BE] [ATTACH-REF] sync ownerType=comment ownerId=c-983afa32-ca62-4b8a-81c7-4454068779dc actorUserId=1 prev=0 next=1 add=1 remove=0
+[20260801-14:48:09][BE] [RAG] 댓글 학습 시작 — 1개 댓글 (제외: 0개)
+[20260801-14:48:09][BE] /home/freegear/EasyDocStation/server/rag_train.py:125: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260801-14:48:09][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260801-14:48:12][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v3' already exists
+[20260801-14:48:12][BE] [RAG] comment=c-983afa32-ca62-4b8a-81c7-4454068779dc post=c93ea5a0-5793-4e3f-b164-3da1e226488a text → 1청크
+[20260801-14:48:12][BE] [RAG] 학습 진행률: 30% (댓글 본문)
+[20260801-14:48:12][BE] [RAG] 이미지 학습 시작: ChatGPT Image 2026년 8월 1일 오후 02_47_36.png
+[20260801-14:48:46][BE] [SearchIndex] 이미지 첨부 인덱싱 완료: e122adfd-bb52-4491-ba70-68323d23e134 ChatGPT Image 2026년 8월 1일 오후 02_47_36.png
+[20260801-14:49:36][BE] [RAG] Gemma 이미지 설명 완료 (page=1, 83.8s): 3591자
+[20260801-14:49:36][BE] [RAG] 이미지 학습 완료: ChatGPT Image 2026년 8월 1일 오후 02_47_36.png (6청크)
+[20260801-14:49:36][BE] [RAG] 학습 진행률: 60% (댓글 이미지)
+[20260801-14:49:36][BE] [RAG] 저장 완료 — 7청크 / 0개 게시글 / 1개 댓글 / 0개 폴더문서
+[20260801-14:49:36][BE] [RAG] 학습 진행률: 100% (저장)
+[20260801-14:49:37][BE] [RAG] 댓글 학습 완료 — 1개 댓글 (87.9s)
+[20260801-14:50:35][BE] [ATTACH-REF] sync ownerType=comment ownerId=c-3e86cffd-a4df-4231-be42-5258691d7ced actorUserId=1 prev=0 next=1 add=1 remove=0
+[20260801-14:50:35][BE] [RAG] 댓글 학습 시작 — 1개 댓글 (제외: 0개)
+[20260801-14:50:35][BE] /home/freegear/EasyDocStation/server/rag_train.py:125: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260801-14:50:35][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260801-14:50:38][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v3' already exists
+[20260801-14:50:38][BE] [RAG] comment=c-3e86cffd-a4df-4231-be42-5258691d7ced post=c93ea5a0-5793-4e3f-b164-3da1e226488a text → 1청크
+[20260801-14:50:38][BE] [RAG] 학습 진행률: 30% (댓글 본문)
+[20260801-14:50:38][BE] [RAG] 이미지 학습 시작: ChatGPT Image 2026년 8월 1일 오후 02_50_27.png
+[20260801-14:51:10][BE] [SearchIndex] 이미지 첨부 인덱싱 완료: 3d76640d-7d27-4d2b-a532-eaad19641cb7 ChatGPT Image 2026년 8월 1일 오후 02_50_27.png
+[20260801-14:51:59][BE] [RAG] Gemma 이미지 설명 완료 (page=1, 81.3s): 4032자
+[20260801-14:51:59][BE] [RAG] 이미지 학습 완료: ChatGPT Image 2026년 8월 1일 오후 02_50_27.png (7청크)
+[20260801-14:51:59][BE] [RAG] 학습 진행률: 60% (댓글 이미지)
+[20260801-14:51:59][BE] [RAG] 저장 완료 — 8청크 / 0개 게시글 / 1개 댓글 / 0개 폴더문서
+[20260801-14:51:59][BE] [RAG] 학습 진행률: 100% (저장)
+[20260801-14:52:00][BE] [RAG] 댓글 학습 완료 — 1개 댓글 (85.5s)
+[20260801-14:52:39][BE] [ATTACH-REF] sync ownerType=comment ownerId=c-eb2f228e-440d-45eb-8f35-6453d3f7ff9d actorUserId=1 prev=0 next=1 add=1 remove=0
+[20260801-14:52:39][BE] [RAG] 댓글 학습 시작 — 1개 댓글 (제외: 0개)
+[20260801-14:52:39][BE] /home/freegear/EasyDocStation/server/rag_train.py:125: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260801-14:52:39][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260801-14:52:43][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v3' already exists
+[20260801-14:52:43][BE] [RAG] comment=c-eb2f228e-440d-45eb-8f35-6453d3f7ff9d post=c93ea5a0-5793-4e3f-b164-3da1e226488a text → 1청크
+[20260801-14:52:43][BE] [RAG] 학습 진행률: 30% (댓글 본문)
+[20260801-14:52:43][BE] [RAG] 이미지 학습 시작: ChatGPT Image 2026년 8월 1일 오후 02_52_32.png
+[20260801-14:53:18][BE] [SearchIndex] 이미지 첨부 인덱싱 완료: 1c19e087-cb50-4018-82e2-f508bb93a157 ChatGPT Image 2026년 8월 1일 오후 02_52_32.png
+[20260801-14:55:01][BE] [ATTACH-REF] sync ownerType=comment ownerId=c-13e9c265-6b2a-4ba1-a32b-ee147d2cad83 actorUserId=1 prev=0 next=1 add=1 remove=0
+[20260801-14:55:01][BE] [RAG] 댓글 학습 시작 — 1개 댓글 (제외: 0개)
+[20260801-14:55:01][BE] /home/freegear/EasyDocStation/server/rag_train.py:125: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260801-14:55:01][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260801-14:55:06][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v3' already exists
+[20260801-14:55:06][BE] [RAG] comment=c-13e9c265-6b2a-4ba1-a32b-ee147d2cad83 post=c93ea5a0-5793-4e3f-b164-3da1e226488a text → 1청크
+[20260801-14:55:06][BE] [RAG] 학습 진행률: 30% (댓글 본문)
+[20260801-14:55:06][BE] [RAG] 이미지 학습 시작: ChatGPT Image 2026년 8월 1일 오후 02_54_53.png
+[20260801-14:56:33][BE] [SearchIndex] 이미지 Vision 분석 실패, OCR만 사용: This operation was aborted
+[20260801-14:56:33][BE] [SearchIndex] 이미지 첨부 인덱싱 완료: e50f2145-e714-4395-96de-82a43841f3dd ChatGPT Image 2026년 8월 1일 오후 02_54_53.png
+[20260801-14:56:45][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260801-14:57:43][BE] [RAG] Gemma 이미지 설명 실패 (page=1, 300.1s): HTTPConnectionPool(host='127.0.0.1', port=11434): Read timed out. (read timeout=300)
+[20260801-14:57:43][BE] [RAG] 이미지 학습 완료: ChatGPT Image 2026년 8월 1일 오후 02_52_32.png (1청크)
+[20260801-14:57:43][BE] [RAG] 학습 진행률: 60% (댓글 이미지)
+[20260801-14:57:43][BE] [RAG] 저장 완료 — 2청크 / 0개 게시글 / 1개 댓글 / 0개 폴더문서
+[20260801-14:57:43][BE] [RAG] 학습 진행률: 100% (저장)
+[20260801-14:57:45][BE] [RAG] 댓글 학습 완료 — 1개 댓글 (306.3s)
+[20260801-14:58:29][BE] [RAG] Gemma 이미지 설명 완료 (page=1, 202.8s): 2848자
+[20260801-14:58:29][BE] [RAG] 이미지 학습 완료: ChatGPT Image 2026년 8월 1일 오후 02_54_53.png (5청크)
+[20260801-14:58:29][BE] [RAG] 학습 진행률: 60% (댓글 이미지)
+[20260801-14:58:29][BE] [RAG] 저장 완료 — 6청크 / 0개 게시글 / 1개 댓글 / 0개 폴더문서
+[20260801-14:58:29][BE] [RAG] 학습 진행률: 100% (저장)
+[20260801-14:58:30][BE] [RAG] 댓글 학습 완료 — 1개 댓글 (209.0s)
+[20260801-15:00:22][BE] [ATTACH-REF] sync ownerType=comment ownerId=c-0c39162d-15e0-4018-a8e5-d640824bcd57 actorUserId=1 prev=0 next=1 add=1 remove=0
+[20260801-15:00:22][BE] [RAG] 댓글 학습 시작 — 1개 댓글 (제외: 0개)
+[20260801-15:00:22][BE] /home/freegear/EasyDocStation/server/rag_train.py:125: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260801-15:00:22][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260801-15:00:26][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v3' already exists
+[20260801-15:00:26][BE] [RAG] comment=c-0c39162d-15e0-4018-a8e5-d640824bcd57 post=c93ea5a0-5793-4e3f-b164-3da1e226488a text → 1청크
+[20260801-15:00:26][BE] [RAG] 학습 진행률: 30% (댓글 본문)
+[20260801-15:00:26][BE] [RAG] 이미지 학습 시작: ChatGPT Image 2026년 8월 1일 오후 03_00_01.png
+[20260801-15:01:10][BE] [RAG] Gemma 이미지 설명 완료 (page=1, 44.4s): 2493자
+[20260801-15:01:10][BE] [RAG] 이미지 학습 완료: ChatGPT Image 2026년 8월 1일 오후 03_00_01.png (4청크)
+[20260801-15:01:10][BE] [RAG] 학습 진행률: 60% (댓글 이미지)
+[20260801-15:01:10][BE] [RAG] 저장 완료 — 5청크 / 0개 게시글 / 1개 댓글 / 0개 폴더문서
+[20260801-15:01:10][BE] [RAG] 학습 진행률: 100% (저장)
+[20260801-15:01:13][BE] [RAG] 댓글 학습 완료 — 1개 댓글 (50.2s)
+[20260801-15:01:51][BE] [SearchIndex] 이미지 첨부 인덱싱 완료: f76b7eb9-d43b-4423-82b3-7924f30edc6f ChatGPT Image 2026년 8월 1일 오후 03_00_01.png
+[20260801-15:03:14][BE] [ATTACH-REF] sync ownerType=comment ownerId=c-5f8bc3dc-44ac-40c9-8492-dd58ffbcfee9 actorUserId=1 prev=0 next=1 add=1 remove=0
+[20260801-15:03:14][BE] [RAG] 댓글 학습 시작 — 1개 댓글 (제외: 0개)
+[20260801-15:03:14][BE] /home/freegear/EasyDocStation/server/rag_train.py:125: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260801-15:03:14][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260801-15:03:17][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v3' already exists
+[20260801-15:03:17][BE] [RAG] comment=c-5f8bc3dc-44ac-40c9-8492-dd58ffbcfee9 post=c93ea5a0-5793-4e3f-b164-3da1e226488a text → 1청크
+[20260801-15:03:17][BE] [RAG] 학습 진행률: 30% (댓글 본문)
+[20260801-15:03:17][BE] [RAG] 이미지 학습 시작: ChatGPT Image 2026년 8월 1일 오후 03_03_06.png
+[20260801-15:03:58][BE] [SearchIndex] 이미지 첨부 인덱싱 완료: baf1ad50-4ce7-43b7-90e7-a4e1ab818a97 ChatGPT Image 2026년 8월 1일 오후 03_03_06.png
+[20260801-15:04:52][BE] [RAG] Gemma 이미지 설명 완료 (page=1, 95.1s): 2580자
+[20260801-15:04:53][BE] [RAG] 이미지 학습 완료: ChatGPT Image 2026년 8월 1일 오후 03_03_06.png (5청크)
+[20260801-15:04:53][BE] [RAG] 학습 진행률: 60% (댓글 이미지)
+[20260801-15:04:53][BE] [RAG] 저장 완료 — 6청크 / 0개 게시글 / 1개 댓글 / 0개 폴더문서
+[20260801-15:04:53][BE] [RAG] 학습 진행률: 100% (저장)
+[20260801-15:04:53][BE] [RAG] 댓글 학습 완료 — 1개 댓글 (99.3s)
+[20260801-15:04:59][BE] [ATTACH-REF] sync ownerType=comment ownerId=c-987444cb-f1c3-43e6-b54a-8a2bf5f5b1a6 actorUserId=1 prev=0 next=1 add=1 remove=0
+[20260801-15:04:59][BE] [RAG] 댓글 학습 시작 — 1개 댓글 (제외: 0개)
+[20260801-15:05:00][BE] /home/freegear/EasyDocStation/server/rag_train.py:125: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260801-15:05:00][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260801-15:05:04][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v3' already exists
+[20260801-15:05:04][BE] [RAG] comment=c-987444cb-f1c3-43e6-b54a-8a2bf5f5b1a6 post=c93ea5a0-5793-4e3f-b164-3da1e226488a text → 1청크
+[20260801-15:05:04][BE] [RAG] 학습 진행률: 30% (댓글 본문)
+[20260801-15:05:04][BE] [RAG] 이미지 학습 시작: ChatGPT Image 2026년 8월 1일 오후 03_04_50.png
+[20260801-15:05:28][BE] [SearchIndex] 이미지 첨부 인덱싱 완료: e61058b4-349d-4d7f-a2f8-310d4f9d2792 ChatGPT Image 2026년 8월 1일 오후 03_04_50.png
+[20260801-15:06:10][BE] [RAG] Gemma 이미지 설명 완료 (page=1, 65.9s): 2468자
+[20260801-15:06:10][BE] [RAG] 이미지 학습 완료: ChatGPT Image 2026년 8월 1일 오후 03_04_50.png (4청크)
+[20260801-15:06:10][BE] [RAG] 학습 진행률: 60% (댓글 이미지)
+[20260801-15:06:10][BE] [RAG] 저장 완료 — 5청크 / 0개 게시글 / 1개 댓글 / 0개 폴더문서
+[20260801-15:06:10][BE] [RAG] 학습 진행률: 100% (저장)
+[20260801-15:06:10][BE] [RAG] 댓글 학습 완료 — 1개 댓글 (70.9s)
+[20260801-15:06:47][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260801-15:16:23][BE] [ATTACH-REF] sync ownerType=post ownerId=266bb609-40fd-48ac-9958-b27eab0bffda actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260801-15:16:23][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
+[20260801-15:16:23][BE] /home/freegear/EasyDocStation/server/rag_train.py:125: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260801-15:16:23][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260801-15:16:23][BE] [link-preview-image] meta image failed, fallback screenshot: meta page fetch failed (401)
+[20260801-15:16:26][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v3' already exists
+[20260801-15:16:27][BE] [RAG] post=266bb609-40fd-48ac-9958-b27eab0bffda text → 12청크
+[20260801-15:16:27][BE] [RAG] 학습 진행률: 50% (게시글 본문)
+[20260801-15:16:27][BE] [RAG] 저장 완료 — 12청크 / 1개 게시글 / 0개 댓글 / 0개 폴더문서
+[20260801-15:16:27][BE] [RAG] 학습 진행률: 100% (저장)
+[20260801-15:16:27][BE] [RAG] 학습 완료
+[20260801-15:16:46][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260801-15:21:08][BE] [ATTACH-REF] sync ownerType=comment ownerId=c-4fa430f8-1dd8-438b-9d62-85e63ffb526e actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260801-15:21:08][BE] [RAG] 댓글 학습 시작 — 1개 댓글 (제외: 0개)
+[20260801-15:21:08][BE] /home/freegear/EasyDocStation/server/rag_train.py:125: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260801-15:21:08][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260801-15:21:11][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v3' already exists
+[20260801-15:21:11][BE] [RAG] comment=c-4fa430f8-1dd8-438b-9d62-85e63ffb526e post=266bb609-40fd-48ac-9958-b27eab0bffda text → 10청크
+[20260801-15:21:11][BE] [RAG] 학습 진행률: 50% (댓글 본문)
+[20260801-15:21:11][BE] [RAG] 저장 완료 — 10청크 / 0개 게시글 / 1개 댓글 / 0개 폴더문서
+[20260801-15:21:11][BE] [RAG] 학습 진행률: 100% (저장)
+[20260801-15:21:12][BE] [RAG] 댓글 학습 완료 — 1개 댓글 (4.1s)
+[20260801-15:26:46][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260801-15:36:46][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260801-15:46:47][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260801-15:56:48][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260801-16:06:46][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260801-16:14:01][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260801-16:14:01][BE] [link-preview-image] meta image failed, fallback screenshot: meta page fetch failed (404)
+[20260801-16:14:02][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260801-16:14:02][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260801-16:16:45][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260801-16:16:51][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260801-16:17:06][BE] [link-preview-image] meta image failed, fallback screenshot: fetch failed
+[20260801-16:17:06][BE] [link-preview-image] local render failed, try remote fallback: page.goto: net::ERR_SSL_PROTOCOL_ERROR at http://114.207.245.216/
+[20260801-16:17:06][BE] Call log:
+[20260801-16:17:06][BE] [2m  - navigating to "http://114.207.245.216/", waiting until "domcontentloaded"[22m
+[20260801-16:17:06][BE] 
+[20260801-16:18:19][BE] [ATTACH-REF] sync ownerType=post ownerId=3f4dfcc6-5493-467e-9d29-f62fd5d4736b actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260801-16:18:19][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
+[20260801-16:18:19][BE] /home/freegear/EasyDocStation/server/rag_train.py:125: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260801-16:18:19][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260801-16:18:23][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v3' already exists
+[20260801-16:18:23][BE] [RAG] post=3f4dfcc6-5493-467e-9d29-f62fd5d4736b text → 1청크
+[20260801-16:18:23][BE] [RAG] 학습 진행률: 50% (게시글 본문)
+[20260801-16:18:23][BE] [RAG] 저장 완료 — 1청크 / 1개 게시글 / 0개 댓글 / 0개 폴더문서
+[20260801-16:18:23][BE] [RAG] 학습 진행률: 100% (저장)
+[20260801-16:18:23][BE] [RAG] 학습 완료
+[20260801-16:19:04][BE] [ATTACH-REF] sync ownerType=comment ownerId=c-63102af9-5361-4458-9cef-96aa0a0e8375 actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260801-16:19:04][BE] [RAG] 학습 제외 (댓글): c-63102af9-5361-4458-9cef-96aa0a0e8375 — 첨부파일 없음, 45자
+[20260801-16:19:04][BE] [RAG] 학습 제외 후 학습할 댓글이 없습니다.
+[20260801-16:24:23][BE] [ATTACH-REF] sync ownerType=post ownerId=baf71933-5e67-45d9-8b93-2e0e08262489 actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260801-16:24:23][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
+[20260801-16:24:23][BE] /home/freegear/EasyDocStation/server/rag_train.py:125: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260801-16:24:23][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260801-16:24:26][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v3' already exists
+[20260801-16:24:26][BE] [RAG] post=baf71933-5e67-45d9-8b93-2e0e08262489 text → 9청크
+[20260801-16:24:26][BE] [RAG] 학습 진행률: 50% (게시글 본문)
+[20260801-16:24:26][BE] [RAG] 저장 완료 — 9청크 / 1개 게시글 / 0개 댓글 / 0개 폴더문서
+[20260801-16:24:26][BE] [RAG] 학습 진행률: 100% (저장)
+[20260801-16:24:27][BE] [RAG] 학습 완료
+[20260801-16:26:46][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260801-16:36:45][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260801-16:38:13][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260801-16:38:14][BE] [link-preview-image] 내부망 주소는 미리보기를 지원하지 않습니다.
+[20260801-16:38:14][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260801-16:46:47][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260801-16:56:46][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260801-17:06:46][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260801-17:14:34][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260801-17:14:34][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260801-17:14:34][BE] [link-preview-image] meta image failed, fallback screenshot: meta page fetch failed (404)
+[20260801-17:14:35][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260801-17:14:38][BE] [link-preview-image] meta image failed, fallback screenshot: meta page fetch failed (401)
+[20260801-17:16:46][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260801-17:21:19][BE] [ATTACH-REF] sync ownerType=comment ownerId=c-96924f7e-363c-48c5-aacf-b6ecb1863ce2 actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260801-17:21:19][BE] [RAG] 댓글 학습 시작 — 1개 댓글 (제외: 0개)
+[20260801-17:21:19][BE] /home/freegear/EasyDocStation/server/rag_train.py:125: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260801-17:21:19][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260801-17:21:22][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v3' already exists
+[20260801-17:21:22][BE] [RAG] comment=c-96924f7e-363c-48c5-aacf-b6ecb1863ce2 post=266bb609-40fd-48ac-9958-b27eab0bffda text → 5청크
+[20260801-17:21:22][BE] [RAG] 학습 진행률: 50% (댓글 본문)
+[20260801-17:21:22][BE] [RAG] 저장 완료 — 5청크 / 0개 게시글 / 1개 댓글 / 0개 폴더문서
+[20260801-17:21:22][BE] [RAG] 학습 진행률: 100% (저장)
+[20260801-17:21:23][BE] [RAG] 댓글 학습 완료 — 1개 댓글 (4.0s)
+[20260801-17:22:44][BE] [ATTACH-REF] sync ownerType=comment ownerId=c-5b7d378e-03f1-4fe7-97f1-5b5a205c9fcf actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260801-17:22:44][BE] [RAG] 댓글 학습 시작 — 1개 댓글 (제외: 0개)
+[20260801-17:22:44][BE] /home/freegear/EasyDocStation/server/rag_train.py:125: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260801-17:22:44][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260801-17:22:47][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v3' already exists
+[20260801-17:22:48][BE] [RAG] comment=c-5b7d378e-03f1-4fe7-97f1-5b5a205c9fcf post=266bb609-40fd-48ac-9958-b27eab0bffda text → 8청크
+[20260801-17:22:48][BE] [RAG] 학습 진행률: 50% (댓글 본문)
+[20260801-17:22:48][BE] [RAG] 저장 완료 — 8청크 / 0개 게시글 / 1개 댓글 / 0개 폴더문서
+[20260801-17:22:48][BE] [RAG] 학습 진행률: 100% (저장)
+[20260801-17:22:48][BE] [RAG] 댓글 학습 완료 — 1개 댓글 (4.0s)
+[20260801-17:25:49][BE] [ATTACH-REF] sync ownerType=comment ownerId=c-aad85c18-f66a-400b-98b3-c6f50f5b02f8 actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260801-17:25:49][BE] [RAG] 댓글 학습 시작 — 1개 댓글 (제외: 0개)
+[20260801-17:25:49][BE] /home/freegear/EasyDocStation/server/rag_train.py:125: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260801-17:25:49][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260801-17:25:52][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v3' already exists
+[20260801-17:25:52][BE] [RAG] comment=c-aad85c18-f66a-400b-98b3-c6f50f5b02f8 post=266bb609-40fd-48ac-9958-b27eab0bffda text → 5청크
+[20260801-17:25:52][BE] [RAG] 학습 진행률: 50% (댓글 본문)
+[20260801-17:25:52][BE] [RAG] 저장 완료 — 5청크 / 0개 게시글 / 1개 댓글 / 0개 폴더문서
+[20260801-17:25:52][BE] [RAG] 학습 진행률: 100% (저장)
+[20260801-17:25:53][BE] [RAG] 댓글 학습 완료 — 1개 댓글 (3.9s)
+[20260801-17:26:45][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260801-17:27:20][BE] [ATTACH-REF] sync ownerType=comment ownerId=c-241cd67f-2da6-4860-935a-6e879b838d60 actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260801-17:27:20][BE] [RAG] 댓글 학습 시작 — 1개 댓글 (제외: 0개)
+[20260801-17:27:20][BE] /home/freegear/EasyDocStation/server/rag_train.py:125: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260801-17:27:20][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260801-17:27:24][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v3' already exists
+[20260801-17:27:24][BE] [RAG] comment=c-241cd67f-2da6-4860-935a-6e879b838d60 post=266bb609-40fd-48ac-9958-b27eab0bffda text → 3청크
+[20260801-17:27:24][BE] [RAG] 학습 진행률: 50% (댓글 본문)
+[20260801-17:27:24][BE] [RAG] 저장 완료 — 3청크 / 0개 게시글 / 1개 댓글 / 0개 폴더문서
+[20260801-17:27:24][BE] [RAG] 학습 진행률: 100% (저장)
+[20260801-17:27:24][BE] [RAG] 댓글 학습 완료 — 1개 댓글 (3.9s)
+5:35:04 PM [vite] hmr update /src/components/ChatArea.jsx, /src/index.css
+5:35:04 PM [vite] hmr update /src/components/chat/MDPageViewer.jsx, /src/index.css
+5:35:04 PM [vite] hmr update /src/index.css
+5:35:31 PM [vite] hmr update /src/components/markdown/MarkdownPreBlock.jsx, /src/index.css
+5:35:31 PM [vite] hmr update /src/index.css
+5:36:34 PM [vite] hmr update /src/components/markdown/MermaidBlock.jsx, /src/index.css
+5:36:34 PM [vite] hmr update /src/components/markdown/MarkdownPreBlock.jsx, /src/index.css
+5:36:35 PM [vite] hmr invalidate /src/components/markdown/MermaidBlock.jsx Could not Fast Refresh (export removed)
+5:36:35 PM [vite] hmr update /src/index.css, /src/components/markdown/MarkdownPreBlock.jsx
+[20260801-17:36:46][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260801-17:46:47][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260801-17:56:47][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260801-17:59:54][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260801-17:59:54][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260801-17:59:54][BE] [link-preview-image] meta image failed, fallback screenshot: meta page fetch failed (404)
+[20260801-17:59:55][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260801-18:00:01][BE] [link-preview-image] meta image failed, fallback screenshot: meta page fetch failed (401)
+6:01:10 PM [vite] hmr update /src/components/markdown/MermaidBlock.jsx, /src/index.css
+[20260801-18:06:50][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+6:07:49 PM [vite] hmr update /src/components/GroqPanel.jsx, /src/index.css
+6:07:49 PM [vite] hmr update /src/components/markdown/MermaidBlock.jsx, /src/index.css
+[20260801-18:16:48][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260801-18:21:53][BE] [ATTACH-REF] sync ownerType=post ownerId=7c6a58b4-aade-4202-ad6d-62e48c2e6b15 actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260801-18:21:53][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
+[20260801-18:21:53][BE] /home/freegear/EasyDocStation/server/rag_train.py:125: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260801-18:21:53][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260801-18:21:56][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v3' already exists
+[20260801-18:21:57][BE] [RAG] post=7c6a58b4-aade-4202-ad6d-62e48c2e6b15 text → 7청크
+[20260801-18:21:57][BE] [RAG] 학습 진행률: 50% (게시글 본문)
+[20260801-18:21:57][BE] [RAG] 저장 완료 — 7청크 / 1개 게시글 / 0개 댓글 / 0개 폴더문서
+[20260801-18:21:57][BE] [RAG] 학습 진행률: 100% (저장)
+[20260801-18:21:57][BE] [RAG] 학습 완료
+[20260801-18:26:46][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260801-18:32:58][BE] [ATTACH-REF] sync ownerType=comment ownerId=c-151d56e3-361c-43af-96dd-3c1939b16aaa actorUserId=1 prev=0 next=1 add=1 remove=0
+[20260801-18:32:58][BE] [RAG] 댓글 학습 시작 — 1개 댓글 (제외: 0개)
+[20260801-18:32:59][BE] /home/freegear/EasyDocStation/server/rag_train.py:125: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260801-18:32:59][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260801-18:33:02][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v3' already exists
+[20260801-18:33:02][BE] [RAG] comment=c-151d56e3-361c-43af-96dd-3c1939b16aaa post=c93ea5a0-5793-4e3f-b164-3da1e226488a text → 1청크
+[20260801-18:33:02][BE] [RAG] 학습 진행률: 30% (댓글 본문)
+[20260801-18:33:02][BE] [RAG] 이미지 학습 시작: ChatGPT Image 2026년 8월 1일 오후 06_32_45.png
+[20260801-18:33:52][BE] [RAG] Gemma 이미지 설명 완료 (page=1, 50.5s): 4078자
+[20260801-18:33:52][BE] [RAG] 이미지 학습 완료: ChatGPT Image 2026년 8월 1일 오후 06_32_45.png (7청크)
+[20260801-18:33:52][BE] [RAG] 학습 진행률: 60% (댓글 이미지)
+[20260801-18:33:52][BE] [RAG] 저장 완료 — 8청크 / 0개 게시글 / 1개 댓글 / 0개 폴더문서
+[20260801-18:33:52][BE] [RAG] 학습 진행률: 100% (저장)
+[20260801-18:33:55][BE] [RAG] 댓글 학습 완료 — 1개 댓글 (56.5s)
+[20260801-18:34:24][BE] [SearchIndex] 이미지 첨부 인덱싱 완료: 8544e3bb-5980-4763-8b9d-1682dac9a514 ChatGPT Image 2026년 8월 1일 오후 06_32_45.png
+[20260801-18:36:45][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260801-18:46:47][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260801-18:56:46][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260801-19:06:45][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260801-19:16:46][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260801-19:26:47][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260801-19:36:47][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260801-19:46:46][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260801-19:49:06][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260801-19:49:06][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260801-19:49:06][BE] [link-preview-image] meta image failed, fallback screenshot: meta page fetch failed (404)
+[20260801-19:49:07][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260801-19:56:47][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260801-20:06:44][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260801-20:16:46][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260801-20:26:45][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260801-20:36:47][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260801-20:43:44][BE] [ATTACH-REF] sync ownerType=post ownerId=1210a5e0-8282-4fad-86a5-c9d6ee1b58b3 actorUserId=1 prev=0 next=10 add=10 remove=0
+[20260801-20:43:44][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
+[20260801-20:43:44][BE] /home/freegear/EasyDocStation/server/rag_train.py:125: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260801-20:43:44][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260801-20:43:47][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v3' already exists
+[20260801-20:43:48][BE] [RAG] post=1210a5e0-8282-4fad-86a5-c9d6ee1b58b3 text → 1청크
+[20260801-20:43:48][BE] [RAG] 이미지 학습 시작: ChatGPT Image 2026년 8월 1일 오후 02_18_59.png
+[20260801-20:43:54][BE] [ATTACH-REF] sync ownerType=post ownerId=fec0dc11-60cd-4520-92d1-9fec4e515b4c actorUserId=1 prev=0 next=8 add=8 remove=0
+[20260801-20:43:54][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
+[20260801-20:43:54][BE] /home/freegear/EasyDocStation/server/rag_train.py:125: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260801-20:43:54][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260801-20:43:59][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v3' already exists
+[20260801-20:43:59][BE] [RAG] post=fec0dc11-60cd-4520-92d1-9fec4e515b4c text → 1청크
+[20260801-20:43:59][BE] [RAG] 학습 진행률: 10% (게시글 본문)
+[20260801-20:43:59][BE] [RAG] 이미지 학습 시작: ChatGPT Image 2026년 8월 1일 오후 03_04_50.png
+[20260801-20:44:04][BE] [ATTACH-REF] sync ownerType=post ownerId=0fab7215-f877-409a-8f16-1bf08aad1495 actorUserId=1 prev=0 next=4 add=4 remove=0
+[20260801-20:44:04][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
+[20260801-20:44:05][BE] /home/freegear/EasyDocStation/server/rag_train.py:125: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260801-20:44:05][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260801-20:44:10][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v3' already exists
+[20260801-20:44:10][BE] [RAG] post=0fab7215-f877-409a-8f16-1bf08aad1495 text → 1청크
+[20260801-20:44:10][BE] [RAG] 학습 진행률: 10% (게시글 본문)
+[20260801-20:44:10][BE] [RAG] 이미지 학습 시작: exec-f0935f66-9a3e-4527-9991-9b5ae9d6d39b.png
+[20260801-20:44:36][BE] [RAG] Gemma 이미지 설명 완료 (page=1, 48.2s): 3194자
+[20260801-20:44:36][BE] [RAG] 이미지 학습 완료: ChatGPT Image 2026년 8월 1일 오후 02_18_59.png (5청크)
+[20260801-20:44:36][BE] [RAG] 학습 진행률: 10% (게시글 이미지)
+[20260801-20:44:36][BE] [RAG] 이미지 학습 시작: ChatGPT Image 2026년 8월 1일 오후 01_50_19.png
+[20260801-20:45:07][BE] [SearchIndex] 이미지 첨부 인덱싱 완료: 39d7b691-b3f0-40ef-95d9-ba7739c06b24 ChatGPT Image 2026년 8월 1일 오후 01_50_19.png
+[20260801-20:45:25][BE] [SearchIndex] 이미지 Vision 분석 실패, OCR만 사용: This operation was aborted
+[20260801-20:45:25][BE] [SearchIndex] 이미지 첨부 인덱싱 완료: 65708129-f8d3-40c9-923b-a44156093935 ChatGPT Image 2026년 8월 1일 오후 03_04_50.png
+[20260801-20:45:35][BE] [SearchIndex] 이미지 Vision 분석 실패, OCR만 사용: This operation was aborted
+[20260801-20:45:35][BE] [SearchIndex] 이미지 첨부 인덱싱 완료: 1858aaed-40f4-4762-b740-934b7a3585ce d2694559fb683f539ecb98ee95736d186ca81c008505cd7d0d9f7c2b2fdb4dfc.png
+[20260801-20:46:07][BE] [RAG] Gemma 이미지 설명 완료 (page=1, 127.8s): 2468자
+[20260801-20:46:07][BE] [RAG] 이미지 학습 완료: ChatGPT Image 2026년 8월 1일 오후 03_04_50.png (4청크)
+[20260801-20:46:07][BE] [RAG] 학습 진행률: 20% (게시글 이미지)
+[20260801-20:46:07][BE] [RAG] 이미지 학습 시작: ChatGPT Image 2026년 8월 1일 오후 06_27_20.png
+[20260801-20:46:39][BE] [SearchIndex] 이미지 Vision 분석 실패, OCR만 사용: This operation was aborted
+[20260801-20:46:39][BE] [SearchIndex] 이미지 첨부 인덱싱 완료: c5e50607-70e0-4cde-9fd5-e64afe6fc6e8 ChatGPT Image 2026년 8월 1일 오후 01_59_08.png
+[20260801-20:46:46][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260801-20:46:49][BE] [RAG] Gemma 이미지 설명 완료 (page=1, 159.0s): 2262자
+[20260801-20:46:49][BE] [RAG] 이미지 학습 완료: exec-f0935f66-9a3e-4527-9991-9b5ae9d6d39b.png (4청크)
+[20260801-20:46:49][BE] [RAG] 학습 진행률: 30% (게시글 이미지)
+[20260801-20:46:49][BE] [RAG] 이미지 학습 시작: d2694559fb683f539ecb98ee95736d186ca81c008505cd7d0d9f7c2b2fdb4dfc.png
+[20260801-20:46:58][BE] [SearchIndex] 이미지 Vision 분석 실패, OCR만 사용: This operation was aborted
+[20260801-20:46:58][BE] [SearchIndex] 이미지 첨부 인덱싱 완료: 3d44b999-230f-4931-b18a-06ac0314b67b ChatGPT Image 2026년 8월 1일 오후 06_27_20.png
+[20260801-20:47:07][BE] [SearchIndex] 이미지 Vision 분석 실패, OCR만 사용: This operation was aborted
+[20260801-20:47:07][BE] [SearchIndex] 이미지 첨부 인덱싱 완료: f48e3506-47b3-4936-bd02-d032208d7e25 exec-af86a625-0fd1-4994-a59c-c0fb51b49f3f (1).png
+[20260801-20:47:41][BE] [RAG] Gemma 이미지 설명 완료 (page=1, 184.5s): 3866자
+[20260801-20:47:41][BE] [RAG] 이미지 학습 완료: ChatGPT Image 2026년 8월 1일 오후 01_50_19.png (6청크)
+[20260801-20:47:41][BE] [RAG] 학습 진행률: 20% (게시글 이미지)
+[20260801-20:47:41][BE] [RAG] 이미지 학습 시작: ChatGPT Image 2026년 8월 1일 오후 01_59_08.png
+[20260801-20:48:12][BE] [SearchIndex] 이미지 Vision 분석 실패, OCR만 사용: This operation was aborted
+[20260801-20:48:12][BE] [SearchIndex] 이미지 첨부 인덱싱 완료: 2660e52d-71b9-43ca-a256-3ebfb2f1bbcf ChatGPT Image 2026년 8월 1일 오후 02_18_59.png
+[20260801-20:48:30][BE] [RAG] Gemma 이미지 설명 완료 (page=1, 143.1s): 4461자
+[20260801-20:48:30][BE] [RAG] 이미지 학습 완료: ChatGPT Image 2026년 8월 1일 오후 06_27_20.png (9청크)
+[20260801-20:48:30][BE] [RAG] 학습 진행률: 30% (게시글 이미지)
+[20260801-20:48:30][BE] [RAG] 이미지 학습 시작: ChatGPT Image 2026년 8월 1일 오후 06_32_45.png
+[20260801-20:48:32][BE] [SearchIndex] 이미지 Vision 분석 실패, OCR만 사용: This operation was aborted
+[20260801-20:48:32][BE] [SearchIndex] 이미지 첨부 인덱싱 완료: b58861cf-7358-435f-835e-151359604e7d ChatGPT Image 2026년 8월 1일 오후 06_32_45.png
+[20260801-20:48:40][BE] [SearchIndex] 이미지 Vision 분석 실패, OCR만 사용: This operation was aborted
+[20260801-20:48:40][BE] [SearchIndex] 이미지 첨부 인덱싱 완료: 99665146-f624-4107-8d3a-1dd3b56bd374 exec-af86a625-0fd1-4994-a59c-c0fb51b49f3f.png
+[20260801-20:49:04][BE] [RAG] Gemma 이미지 설명 완료 (page=1, 135.7s): 2236자
+[20260801-20:49:05][BE] [RAG] 이미지 학습 완료: d2694559fb683f539ecb98ee95736d186ca81c008505cd7d0d9f7c2b2fdb4dfc.png (4청크)
+[20260801-20:49:05][BE] [RAG] 학습 진행률: 50% (게시글 이미지)
+[20260801-20:49:05][BE] [RAG] 이미지 학습 시작: exec-af86a625-0fd1-4994-a59c-c0fb51b49f3f (1).png
+[20260801-20:49:45][BE] [SearchIndex] 이미지 Vision 분석 실패, OCR만 사용: This operation was aborted
+[20260801-20:49:45][BE] [SearchIndex] 이미지 첨부 인덱싱 완료: fab4ddf3-d61c-468b-8f9e-6fad289e4788 ChatGPT Image 2026년 8월 1일 오후 02_47_36.png
+[20260801-20:49:56][BE] [RAG] Gemma 이미지 설명 완료 (page=1, 134.9s): 3254자
+[20260801-20:49:56][BE] [RAG] 이미지 학습 완료: ChatGPT Image 2026년 8월 1일 오후 01_59_08.png (6청크)
+[20260801-20:49:56][BE] [RAG] 학습 진행률: 30% (게시글 이미지)
+[20260801-20:49:56][BE] [RAG] 이미지 학습 시작: ChatGPT Image 2026년 8월 1일 오후 02_47_36.png
+[20260801-20:50:04][BE] [SearchIndex] 이미지 Vision 분석 실패, OCR만 사용: This operation was aborted
+[20260801-20:50:04][BE] [SearchIndex] 이미지 첨부 인덱싱 완료: e2c122df-32bb-49ed-8aee-756c8adbc4eb ChatGPT Image 2026년 8월 1일 오후 07_04_42.png
+[20260801-20:50:11][BE] [SearchIndex] 이미지 Vision 분석 실패, OCR만 사용: This operation was aborted
+[20260801-20:50:11][BE] [SearchIndex] 이미지 첨부 인덱싱 완료: f424622f-e537-495a-8c88-3bcffcb201d3 exec-f0935f66-9a3e-4527-9991-9b5ae9d6d39b.png
+[20260801-20:50:52][BE] [RAG] Gemma 이미지 설명 완료 (page=1, 141.3s): 4115자
+[20260801-20:50:52][BE] [RAG] 이미지 학습 완료: ChatGPT Image 2026년 8월 1일 오후 06_32_45.png (7청크)
+[20260801-20:50:52][BE] [RAG] 학습 진행률: 40% (게시글 이미지)
+[20260801-20:50:52][BE] [RAG] 이미지 학습 시작: ChatGPT Image 2026년 8월 1일 오후 07_04_42.png
+[20260801-20:51:17][BE] [SearchIndex] 이미지 Vision 분석 실패, OCR만 사용: This operation was aborted
+[20260801-20:51:17][BE] [SearchIndex] 이미지 첨부 인덱싱 완료: 5bf43d48-6337-4e5d-a0f6-441237326890 ChatGPT Image 2026년 8월 1일 오후 02_47_37.png
+[20260801-20:51:33][BE] [RAG] Gemma 이미지 설명 완료 (page=1, 148.3s): 2183자
+[20260801-20:51:33][BE] [RAG] 이미지 학습 완료: exec-af86a625-0fd1-4994-a59c-c0fb51b49f3f (1).png (3청크)
+[20260801-20:51:33][BE] [RAG] 학습 진행률: 60% (게시글 이미지)
+[20260801-20:51:33][BE] [RAG] 이미지 학습 시작: exec-af86a625-0fd1-4994-a59c-c0fb51b49f3f.png
+[20260801-20:51:35][BE] [SearchIndex] 이미지 Vision 분석 실패, OCR만 사용: This operation was aborted
+[20260801-20:51:35][BE] [SearchIndex] 이미지 첨부 인덱싱 완료: df5c39f4-fad2-4f22-bc24-c6a8c8c37068 ChatGPT Image 2026년 8월 1일 오후 07_33_10.png
+[20260801-20:52:19][BE] [RAG] Gemma 이미지 설명 완료 (page=1, 142.8s): 3267자
+[20260801-20:52:19][BE] [RAG] 이미지 학습 완료: ChatGPT Image 2026년 8월 1일 오후 02_47_36.png (6청크)
+[20260801-20:52:19][BE] [RAG] 학습 진행률: 40% (게시글 이미지)
+[20260801-20:52:19][BE] [RAG] 이미지 학습 시작: ChatGPT Image 2026년 8월 1일 오후 02_47_37.png
+[20260801-20:52:51][BE] [SearchIndex] 이미지 Vision 분석 실패, OCR만 사용: This operation was aborted
+[20260801-20:52:52][BE] [SearchIndex] 이미지 첨부 인덱싱 완료: b02699c1-e1c2-4484-bfd3-9e60bcd63f28 ChatGPT Image 2026년 8월 1일 오후 02_50_27.png
+[20260801-20:53:02][BE] [RAG] Gemma 이미지 설명 완료 (page=1, 130.2s): 3019자
+[20260801-20:53:02][BE] [RAG] 이미지 학습 완료: ChatGPT Image 2026년 8월 1일 오후 07_04_42.png (5청크)
+[20260801-20:53:02][BE] [RAG] 학습 진행률: 50% (게시글 이미지)
+[20260801-20:53:02][BE] [RAG] 이미지 학습 시작: ChatGPT Image 2026년 8월 1일 오후 07_33_10.png
+[20260801-20:53:08][BE] [SearchIndex] 이미지 Vision 분석 실패, OCR만 사용: This operation was aborted
+[20260801-20:53:08][BE] [SearchIndex] 이미지 첨부 인덱싱 완료: 5bae4253-728d-40d0-900d-fa05896c3bfb ChatGPT Image 2026년 8월 1일 오후 08_07_28.png
+[20260801-20:53:43][BE] [RAG] Gemma 이미지 설명 완료 (page=1, 130.3s): 2183자
+[20260801-20:53:43][BE] [RAG] 이미지 학습 완료: exec-af86a625-0fd1-4994-a59c-c0fb51b49f3f.png (3청크)
+[20260801-20:53:43][BE] [RAG] 학습 진행률: 80% (게시글 이미지)
+[20260801-20:53:43][BE] [RAG] 저장 완료 — 15청크 / 1개 게시글 / 0개 댓글 / 0개 폴더문서
+[20260801-20:53:43][BE] [RAG] 학습 진행률: 100% (저장)
+[20260801-20:53:46][BE] [RAG] 학습 완료
+[20260801-20:54:23][BE] [SearchIndex] 이미지 Vision 분석 실패, OCR만 사용: This operation was aborted
+[20260801-20:54:24][BE] [SearchIndex] 이미지 첨부 인덱싱 완료: 080996de-f51b-4d45-8535-e7ae973b3cb3 ChatGPT Image 2026년 8월 1일 오후 02_52_32.png
+[20260801-20:54:29][BE] [RAG] Gemma 이미지 설명 완료 (page=1, 130.2s): 3267자
+[20260801-20:54:29][BE] [RAG] 이미지 학습 완료: ChatGPT Image 2026년 8월 1일 오후 02_47_37.png (6청크)
+[20260801-20:54:29][BE] [RAG] 학습 진행률: 50% (게시글 이미지)
+[20260801-20:54:29][BE] [RAG] 이미지 학습 시작: ChatGPT Image 2026년 8월 1일 오후 02_50_27.png
+[20260801-20:54:40][BE] [SearchIndex] 이미지 Vision 분석 실패, OCR만 사용: This operation was aborted
+[20260801-20:54:40][BE] [SearchIndex] 이미지 첨부 인덱싱 완료: bd0cebb5-7bd7-4e8f-b42a-e7682e193b7f ChatGPT Image 2026년 8월 1일 오후 08_11_14.png
+[20260801-20:55:16][BE] [RAG] Gemma 이미지 설명 완료 (page=1, 133.9s): 3604자
+[20260801-20:55:17][BE] [RAG] 이미지 학습 완료: ChatGPT Image 2026년 8월 1일 오후 07_33_10.png (6청크)
+[20260801-20:55:17][BE] [RAG] 학습 진행률: 60% (게시글 이미지)
+[20260801-20:55:17][BE] [RAG] 이미지 학습 시작: ChatGPT Image 2026년 8월 1일 오후 08_07_28.png
+[20260801-20:55:45][BE] [SearchIndex] 이미지 첨부 인덱싱 완료: 26619cd1-f2f5-4ee8-93da-9e688d25f97a ChatGPT Image 2026년 8월 1일 오후 02_54_53.png
+[20260801-20:56:13][BE] [SearchIndex] 이미지 Vision 분석 실패, OCR만 사용: This operation was aborted
+[20260801-20:56:13][BE] [SearchIndex] 이미지 첨부 인덱싱 완료: 4e5b4690-7b84-4d4c-bcd0-2e18d6ee6b14 ChatGPT Image 2026년 8월 1일 오후 08_13_29.png
+[20260801-20:56:32][BE] [RAG] Gemma 이미지 설명 완료 (page=1, 123.4s): 3926자
+[20260801-20:56:33][BE] [RAG] 이미지 학습 완료: ChatGPT Image 2026년 8월 1일 오후 02_50_27.png (6청크)
+[20260801-20:56:33][BE] [RAG] 이미지 학습 시작: ChatGPT Image 2026년 8월 1일 오후 02_52_32.png
+[20260801-20:56:47][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260801-20:57:18][BE] [SearchIndex] 이미지 Vision 분석 실패, OCR만 사용: This operation was aborted
+[20260801-20:57:18][BE] [SearchIndex] 이미지 첨부 인덱싱 완료: 6b0d9d75-3844-4519-9ded-d7803ebe6af6 ChatGPT Image 2026년 8월 1일 오후 03_00_01.png
+[20260801-20:57:21][BE] [RAG] Gemma 이미지 설명 완료 (page=1, 124.5s): 2549자
+[20260801-20:57:21][BE] [RAG] 이미지 학습 완료: ChatGPT Image 2026년 8월 1일 오후 08_07_28.png (5청크)
+[20260801-20:57:21][BE] [RAG] 학습 진행률: 70% (게시글 이미지)
+[20260801-20:57:21][BE] [RAG] 이미지 학습 시작: ChatGPT Image 2026년 8월 1일 오후 08_11_14.png
+[20260801-20:58:08][BE] [RAG] Gemma 이미지 설명 완료 (page=1, 95.7s): 3071자
+[20260801-20:58:09][BE] [RAG] 이미지 학습 완료: ChatGPT Image 2026년 8월 1일 오후 02_52_32.png (5청크)
+[20260801-20:58:09][BE] [RAG] 학습 진행률: 60% (게시글 이미지)
+[20260801-20:58:09][BE] [RAG] 이미지 학습 시작: ChatGPT Image 2026년 8월 1일 오후 02_54_53.png
+[20260801-20:58:41][BE] [SearchIndex] 이미지 첨부 인덱싱 완료: 498bcfe6-5055-41b3-b6ff-bcf42a912b05 ChatGPT Image 2026년 8월 1일 오후 03_03_06.png
+[20260801-20:59:29][BE] [RAG] Gemma 이미지 설명 완료 (page=1, 127.7s): 3548자
+[20260801-20:59:29][BE] [RAG] 이미지 학습 완료: ChatGPT Image 2026년 8월 1일 오후 08_11_14.png (7청크)
+[20260801-20:59:29][BE] [RAG] 학습 진행률: 80% (게시글 이미지)
+[20260801-20:59:29][BE] [RAG] 이미지 학습 시작: ChatGPT Image 2026년 8월 1일 오후 08_13_29.png
+[20260801-21:00:19][BE] [RAG] Gemma 이미지 설명 완료 (page=1, 130.8s): 3060자
+[20260801-21:00:20][BE] [RAG] 이미지 학습 완료: ChatGPT Image 2026년 8월 1일 오후 02_54_53.png (6청크)
+[20260801-21:00:20][BE] [RAG] 학습 진행률: 70% (게시글 이미지)
+[20260801-21:00:20][BE] [RAG] 이미지 학습 시작: ChatGPT Image 2026년 8월 1일 오후 03_00_01.png
+[20260801-21:01:04][BE] [RAG] Gemma 이미지 설명 완료 (page=1, 94.7s): 2486자
+[20260801-21:01:04][BE] [RAG] 이미지 학습 완료: ChatGPT Image 2026년 8월 1일 오후 08_13_29.png (5청크)
+[20260801-21:01:04][BE] [RAG] 학습 진행률: 90% (게시글 이미지)
+[20260801-21:01:04][BE] [RAG] 저장 완료 — 49청크 / 1개 게시글 / 0개 댓글 / 0개 폴더문서
+[20260801-21:01:04][BE] [RAG] 학습 진행률: 100% (저장)
+[20260801-21:01:07][BE] [RAG] 학습 완료
+[20260801-21:01:53][BE] [RAG] Gemma 이미지 설명 완료 (page=1, 93.8s): 2976자
+[20260801-21:01:54][BE] [RAG] 이미지 학습 완료: ChatGPT Image 2026년 8월 1일 오후 03_00_01.png (5청크)
+[20260801-21:01:54][BE] [RAG] 학습 진행률: 80% (게시글 이미지)
+[20260801-21:01:54][BE] [RAG] 이미지 학습 시작: ChatGPT Image 2026년 8월 1일 오후 03_03_06.png
+[20260801-21:02:43][BE] [RAG] Gemma 이미지 설명 완료 (page=1, 49.0s): 2788자
+[20260801-21:02:43][BE] [RAG] 이미지 학습 완료: ChatGPT Image 2026년 8월 1일 오후 03_03_06.png (5청크)
+[20260801-21:02:43][BE] [RAG] 학습 진행률: 90% (게시글 이미지)
+[20260801-21:02:43][BE] [RAG] 저장 완료 — 57청크 / 1개 게시글 / 0개 댓글 / 0개 폴더문서
+[20260801-21:02:43][BE] [RAG] 학습 진행률: 100% (저장)
+[20260801-21:02:43][BE] [RAG] 학습 완료
+[20260801-21:06:45][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260801-21:16:47][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260801-21:18:58][BE] [ATTACH-REF] sync ownerType=post ownerId=b51442de-256b-48c9-af72-740f8fdbf99b actorUserId=1 prev=0 next=2 add=2 remove=0
+[20260801-21:18:58][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
+[20260801-21:18:58][BE] /home/freegear/EasyDocStation/server/rag_train.py:125: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260801-21:18:58][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260801-21:19:01][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v3' already exists
+[20260801-21:19:01][BE] [RAG] post=b51442de-256b-48c9-af72-740f8fdbf99b text → 1청크
+[20260801-21:19:01][BE] [RAG] 학습 진행률: 30% (게시글 본문)
+[20260801-21:19:01][BE] [RAG] PDF 학습 시작: Label_MountingTemplate_QNS-FC_5M_outline.pdf
+[20260801-21:19:02][BE] [RAG] PDF 파싱 시작 (Unstructured fast): Label_MountingTemplate_QNS-FC_5M_outline.pdf
+[20260801-21:19:02][BE] [RAG] Tesseract OCR fallback 시작: lang=kor+eng, pages=2
+[20260801-21:19:02][BE] [RAG] Tesseract OCR 진행: 1/2
+[20260801-21:19:02][BE] [RAG] Tesseract OCR 진행: 2/2
+[20260801-21:19:03][BE] [RAG] Tesseract OCR fallback 완료: 추출 페이지 2/2
+[20260801-21:19:03][BE] [RAG] PDF 학습 완료: Label_MountingTemplate_QNS-FC_5M_outline.pdf (2청크)
+[20260801-21:19:03][BE] [RAG] 분리 저장 완료: /home/freegear/EasyDocStation/Database/ObjectFile/FileTrainingData/b51442de-256b-48c9-af72-740f8fdbf99b/no_comment/91f024a9-6be7-4dbe-a8be-044b00d794e7/Label_MountingTemplate_QNS-FC_5M_outline.pdf
+[20260801-21:19:03][BE] [RAG] 학습 진행률: 60% (게시글 PDF)
+[20260801-21:19:03][BE] [RAG] 저장 완료 — 3청크 / 1개 게시글 / 0개 댓글 / 0개 폴더문서
+[20260801-21:19:03][BE] [RAG] 학습 진행률: 100% (저장)
+[20260801-21:19:04][BE] [RAG] 학습 완료
+[20260801-21:19:06][BE] [ATTACH-REF] sync ownerType=post ownerId=c344aedb-c4f1-4e6a-b60d-c7cc112097db actorUserId=1 prev=0 next=2 add=2 remove=0
+[20260801-21:19:06][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
+[20260801-21:19:06][BE] /home/freegear/EasyDocStation/server/rag_train.py:125: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260801-21:19:06][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260801-21:19:09][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v3' already exists
+[20260801-21:19:09][BE] [RAG] post=c344aedb-c4f1-4e6a-b60d-c7cc112097db text → 1청크
+[20260801-21:19:09][BE] [RAG] 학습 진행률: 30% (게시글 본문)
+[20260801-21:19:09][BE] [RAG] PDF 학습 시작: Manual_QNS-FC_5M_Jp (2).pdf
+[20260801-21:19:10][BE] [RAG] PDF 파싱 시작 (Unstructured fast): Manual_QNS-FC_5M_Jp (2).pdf
+[20260801-21:19:11][BE] [RAG] PDF 학습 완료: Manual_QNS-FC_5M_Jp (2).pdf (14청크)
+[20260801-21:19:11][BE] [RAG] 분리 저장 완료: /home/freegear/EasyDocStation/Database/ObjectFile/FileTrainingData/c344aedb-c4f1-4e6a-b60d-c7cc112097db/no_comment/c7035412-1d3b-4a74-a0fa-bc0db6088513/Manual_QNS-FC_5M_Jp_2_.pdf
+[20260801-21:19:11][BE] [RAG] 학습 진행률: 60% (게시글 PDF)
+[20260801-21:19:11][BE] [RAG] 저장 완료 — 15청크 / 1개 게시글 / 0개 댓글 / 0개 폴더문서
+[20260801-21:19:11][BE] [RAG] 학습 진행률: 100% (저장)
+[20260801-21:19:12][BE] [RAG] 학습 완료
+[20260801-21:19:43][BE] [ATTACH-REF] sync ownerType=post ownerId=777cd773-1482-405b-a635-d5a657d21de2 actorUserId=1 prev=0 next=6 add=6 remove=0
+[20260801-21:19:43][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
+[20260801-21:19:43][BE] /home/freegear/EasyDocStation/server/rag_train.py:125: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260801-21:19:43][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260801-21:19:46][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v3' already exists
+[20260801-21:19:46][BE] [RAG] post=777cd773-1482-405b-a635-d5a657d21de2 text → 1청크
+[20260801-21:19:46][BE] [RAG] 학습 진행률: 10% (게시글 본문)
+[20260801-21:19:46][BE] [RAG] 이미지 학습 시작: KakaoTalk_Photo_2026-08-01-21-19-32 004.png
+[20260801-21:20:19][BE] [RAG] Gemma 이미지 설명 완료 (page=1, 32.5s): 1918자
+[20260801-21:20:19][BE] [RAG] 이미지 학습 완료: KakaoTalk_Photo_2026-08-01-21-19-32 004.png (3청크)
+[20260801-21:20:19][BE] [RAG] 학습 진행률: 20% (게시글 이미지)
+[20260801-21:20:19][BE] [RAG] 이미지 학습 시작: KakaoTalk_Photo_2026-08-01-21-19-32 001.png
+[20260801-21:20:35][BE] [SearchIndex] 이미지 첨부 인덱싱 완료: c5fa17bd-4260-4b95-a6a5-7fd5386a2ac5 KakaoTalk_Photo_2026-08-01-21-19-32 001.png
+[20260801-21:21:02][BE] [RAG] Gemma 이미지 설명 완료 (page=1, 42.7s): 1950자
+[20260801-21:21:02][BE] [RAG] 이미지 학습 완료: KakaoTalk_Photo_2026-08-01-21-19-32 001.png (3청크)
+[20260801-21:21:02][BE] [RAG] 학습 진행률: 30% (게시글 이미지)
+[20260801-21:21:02][BE] [RAG] 이미지 학습 시작: KakaoTalk_Photo_2026-08-01-21-19-32 002.png
+[20260801-21:21:17][BE] [SearchIndex] 이미지 첨부 인덱싱 완료: d8074a6f-df7e-49a5-9f21-31b7890217b7 KakaoTalk_Photo_2026-08-01-21-19-32 002.png
+[20260801-21:21:49][BE] [RAG] Gemma 이미지 설명 완료 (page=1, 47.2s): 2103자
+[20260801-21:21:49][BE] [RAG] 이미지 학습 완료: KakaoTalk_Photo_2026-08-01-21-19-32 002.png (4청크)
+[20260801-21:21:49][BE] [RAG] 학습 진행률: 50% (게시글 이미지)
+[20260801-21:21:49][BE] [RAG] 이미지 학습 시작: KakaoTalk_Photo_2026-08-01-21-19-32 003.png
+[20260801-21:22:06][BE] [SearchIndex] 이미지 첨부 인덱싱 완료: 2ee61611-442b-4253-944f-ac7638de2c84 KakaoTalk_Photo_2026-08-01-21-19-32 003.png
+[20260801-21:22:34][BE] [RAG] Gemma 이미지 설명 완료 (page=1, 45.1s): 1885자
+[20260801-21:22:34][BE] [RAG] 이미지 학습 완료: KakaoTalk_Photo_2026-08-01-21-19-32 003.png (4청크)
+[20260801-21:22:34][BE] [RAG] 학습 진행률: 60% (게시글 이미지)
+[20260801-21:22:34][BE] [RAG] 이미지 학습 시작: KakaoTalk_Photo_2026-08-01-21-19-32 005.png
+[20260801-21:22:49][BE] [SearchIndex] 이미지 첨부 인덱싱 완료: 873ec8eb-b127-4ffe-918a-30d67edc420a KakaoTalk_Photo_2026-08-01-21-19-32 004.png
+[20260801-21:23:30][BE] [RAG] Gemma 이미지 설명 완료 (page=1, 55.8s): 2983자
+[20260801-21:23:30][BE] [RAG] 이미지 학습 완료: KakaoTalk_Photo_2026-08-01-21-19-32 005.png (5청크)
+[20260801-21:23:30][BE] [RAG] 학습 진행률: 70% (게시글 이미지)
+[20260801-21:23:30][BE] [RAG] 이미지 학습 시작: KakaoTalk_Photo_2026-08-01-21-19-32 006.png
+[20260801-21:23:50][BE] [SearchIndex] 이미지 첨부 인덱싱 완료: 2fe088d5-4533-42f1-9212-fda9f1e4b9fb KakaoTalk_Photo_2026-08-01-21-19-32 005.png
+[20260801-21:24:26][BE] [RAG] Gemma 이미지 설명 완료 (page=1, 56.1s): 2723자
+[20260801-21:24:27][BE] [RAG] 이미지 학습 완료: KakaoTalk_Photo_2026-08-01-21-19-32 006.png (5청크)
+[20260801-21:24:27][BE] [RAG] 학습 진행률: 80% (게시글 이미지)
+[20260801-21:24:27][BE] [RAG] 저장 완료 — 25청크 / 1개 게시글 / 0개 댓글 / 0개 폴더문서
+[20260801-21:24:27][BE] [RAG] 학습 진행률: 100% (저장)
+[20260801-21:24:29][BE] [RAG] 학습 완료
+[20260801-21:24:46][BE] [SearchIndex] 이미지 첨부 인덱싱 완료: b0a898d1-21b0-4077-91f0-ee4f18eb5f5a KakaoTalk_Photo_2026-08-01-21-19-32 006.png
+[20260801-21:26:45][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260801-21:36:44][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260801-21:46:46][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260801-21:56:46][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260801-22:06:47][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260801-22:09:29][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260801-22:09:29][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260801-22:09:29][BE] [link-preview-image] meta image failed, fallback screenshot: meta page fetch failed (404)
+[20260801-22:09:30][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260801-22:09:31][BE] [link-preview-image] meta image failed, fallback screenshot: fetch failed
+[20260801-22:09:31][BE] [link-preview-image] local render failed, try remote fallback: page.goto: net::ERR_SSL_PROTOCOL_ERROR at http://114.207.245.216/
+[20260801-22:09:31][BE] Call log:
+[20260801-22:09:31][BE] [2m  - navigating to "http://114.207.245.216/", waiting until "domcontentloaded"[22m
+[20260801-22:09:31][BE] 
+[20260801-22:16:48][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260801-22:26:45][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260801-22:36:48][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260801-22:46:48][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260801-22:56:44][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260801-23:06:47][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260801-23:16:47][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260801-23:26:46][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260801-23:36:46][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260801-23:46:46][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260801-23:56:47][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0

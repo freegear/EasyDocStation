@@ -7,6 +7,7 @@ const { getMailStorage } = require('./storage')
 const { decryptSecret } = require('../lib/secrets')
 const { moveMessageOnProvider } = require('./providerMove')
 const { summarizeMail } = require('./mailSummary')
+const { matchRule } = require('./mailClawMatching')
 
 const CONFIG_PATH = path.resolve(__dirname, '../../config.json')
 
@@ -16,47 +17,6 @@ function normalize(value) {
 
 function asArray(value) {
   return Array.isArray(value) ? value : []
-}
-
-function addressEmails(value) {
-  return asArray(value).map(item => normalize(item?.email || item)).filter(Boolean)
-}
-
-function oneOfContains(haystack, needles) {
-  const source = normalize(haystack)
-  return asArray(needles).some(item => {
-    const needle = normalize(item)
-    return needle && source.includes(needle)
-  })
-}
-
-function anyAddressMatches(addresses, conditions) {
-  const normalizedAddresses = addresses.map(normalize).filter(Boolean)
-  const normalizedConditions = asArray(conditions).map(normalize).filter(Boolean)
-  if (!normalizedConditions.length) return false
-  return normalizedAddresses.some(address => (
-    normalizedConditions.some(condition => address === condition || address.includes(condition))
-  ))
-}
-
-function matchRule(rule, message) {
-  const activeConditions = [
-    rule.sender_check_enabled,
-    rule.cc_check_enabled,
-    rule.keyword_check_enabled,
-  ].filter(Boolean).length
-  if (activeConditions === 0) return false
-
-  if (rule.sender_check_enabled) {
-    if (!anyAddressMatches([message.from_email], rule.sender_conditions)) return false
-  }
-  if (rule.cc_check_enabled) {
-    if (!anyAddressMatches(addressEmails(message.cc_json), rule.cc_conditions)) return false
-  }
-  if (rule.keyword_check_enabled) {
-    if (!oneOfContains(message.subject, rule.keyword_conditions)) return false
-  }
-  return true
 }
 
 async function loadObjectText(key) {

@@ -1,0 +1,80 @@
+
+> easydocstation@1.0.0 dev:frontend
+> vite
+
+
+  VITE v5.4.21  ready in 92 ms
+
+  ➜  Local:   http://localhost:5173/
+  ➜  Network: http://10.0.0.194:5173/
+Files in the public directory are served at the root path.
+Instead of /public/vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php, use /vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php.
+Files in the public directory are served at the root path.
+Instead of /public/index.php?s=/index/\think\app/invokefunction&function=call_user_func_array&vars[0]=md5&vars[1][]=Hello, use /index.php?s=/index/\think\app/invokefunction&function=call_user_func_array&vars[0]=md5&vars[1][]=Hello.
+1:17:20 AM [vite] http proxy error: /api/dm/conversations/7f6e0ab6-5311-43ba-b4d2-7ca5be1ec4f6/messages?limit=100&changedAfter=2026-07-27T11%3A57%3A08.348Z
+Error: connect ECONNREFUSED 127.0.0.1:3001
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+1:17:21 AM [vite] http proxy error: /api/dm/conversations
+Error: connect ECONNREFUSED 127.0.0.1:3001
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+1:17:21 AM [vite] http proxy error: /api/posts?channelId=ch-1776440801214&limit=10
+Error: connect ECONNREFUSED 127.0.0.1:3001
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+8:38:56 AM [vite] http proxy error: /api/posts?channelId=ch-1777254160747&limit=10
+Error: connect ECONNREFUSED 127.0.0.1:3001
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+9:01:35 AM [vite] http proxy error: /api/auth/me
+Error: connect ECONNREFUSED 127.0.0.1:3001
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+9:09:17 AM [vite] Internal server error: Failed to parse source for import analysis because the content contains invalid JS syntax. If you are using JSX, make sure to name the file with the .jsx or .tsx extension.
+  Plugin: vite:import-analysis
+  File: /home/freegear/EasyDocStation/.git/index
+      at TransformPluginContext._formatError (file:///home/freegear/EasyDocStation/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:49258:41)
+      at TransformPluginContext.error (file:///home/freegear/EasyDocStation/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:49253:16)
+      at TransformPluginContext.transform (file:///home/freegear/EasyDocStation/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:64259:14)
+      at async PluginContainer.transform (file:///home/freegear/EasyDocStation/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:49099:18)
+      at async loadAndTransform (file:///home/freegear/EasyDocStation/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:51978:27)
+Files in the public directory are served at the root path.
+Instead of /public/config.js, use /config.js.
+Files in the public directory are served at the root path.
+Instead of /public/js/config.js, use /js/config.js.
+9:18:37 AM [vite] http proxy error: /api/auth/me
+Error: connect ECONNREFUSED 127.0.0.1:3001
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+9:24:17 AM [vite] http proxy error: /api/auth/me
+Error: connect ECONNREFUSED 127.0.0.1:3001
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+1:04:42 PM [vite] Internal server error: Failed to parse source for import analysis because the content contains invalid JS syntax. If you are using JSX, make sure to name the file with the .jsx or .tsx extension.
+  Plugin: vite:import-analysis
+  File: /home/freegear/EasyDocStation/.git/index
+      at TransformPluginContext._formatError (file:///home/freegear/EasyDocStation/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:49258:41)
+      at TransformPluginContext.error (file:///home/freegear/EasyDocStation/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:49253:16)
+      at TransformPluginContext.transform (file:///home/freegear/EasyDocStation/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:64259:14)
+      at async PluginContainer.transform (file:///home/freegear/EasyDocStation/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:49099:18)
+      at async loadAndTransform (file:///home/freegear/EasyDocStation/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:51978:27)
+      at async viteTransformMiddleware (file:///home/freegear/EasyDocStation/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:62106:24)
+Files in the public directory are served at the root path.
+Instead of /public/config.js, use /config.js.
+Files in the public directory are served at the root path.
+Instead of /public/js/config.js, use /js/config.js.
+5:02:09 PM [vite] http proxy error: /api/posts?channelId=ch-1780265739236&limit=10
+Error: connect ECONNREFUSED 127.0.0.1:3001
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+5:15:22 PM [vite] http proxy error: /api/dm/conversations
+Error: connect ECONNREFUSED 127.0.0.1:3001
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+5:15:22 PM [vite] http proxy error: /api/posts?channelId=ch-1776440801214&limit=10
+Error: connect ECONNREFUSED 127.0.0.1:3001
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+5:21:03 PM [vite] http proxy error: /api/channels/unread
+Error: connect ECONNREFUSED 127.0.0.1:3001
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+5:21:03 PM [vite] http proxy error: /api/posts?channelId=ch-1776440801214&limit=10
+Error: connect ECONNREFUSED 127.0.0.1:3001
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+5:38:00 PM [vite] http proxy error: /api/posts?channelId=ch-1776440801214&limit=10
+Error: connect ECONNREFUSED 127.0.0.1:3001
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+5:38:00 PM [vite] http proxy error: /api/channels/unread
+Error: connect ECONNREFUSED 127.0.0.1:3001
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)

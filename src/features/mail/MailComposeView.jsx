@@ -19,6 +19,7 @@ import { DEFAULT_ATTACH_POLICY, fileExtOf, isPreviewableImageFile, normalizeAtta
 import { getAccountLabel } from './mailAccountUtils'
 import { formatFileSize } from './mailFormatUtils'
 import { MAIL_TEXT } from './mailText'
+import { formatAddress, isValidEmailAddress, parseAddressInput, serializeAddressInput } from './mailAddressUtils'
 
 function ComposeToolbarButton({ active = false, onClick, children, title, disabled = false }) {
   return (
@@ -362,14 +363,209 @@ function MailComposeEditor({ onChange, initialHtml = '', focusEmptyTop = false }
   )
 }
 
+function RecipientAutocomplete({ label, recipients, onChange, excludedEmails, onError, cv }) {
+  const [query, setQuery] = useState('')
+  const [suggestions, setSuggestions] = useState([])
+  const [activeIndex, setActiveIndex] = useState(-1)
+  const [loading, setLoading] = useState(false)
+  const [open, setOpen] = useState(false)
+  const composingRef = useRef(false)
+
+  useEffect(() => {
+    const term = query.trim()
+    if (!term) return undefined
+    const controller = new AbortController()
+    const timer = window.setTimeout(() => {
+      setLoading(true)
+      apiFetch(`/contactbook/recipient-suggestions?q=${encodeURIComponent(term)}&limit=10`, { signal: controller.signal })
+        .then(data => {
+          const rows = Array.isArray(data?.suggestions) ? data.suggestions : []
+          setSuggestions(rows)
+          setActiveIndex(rows.length ? 0 : -1)
+          setOpen(true)
+        })
+        .catch(error => {
+          if (error?.name !== 'AbortError') {
+            setSuggestions([])
+            setActiveIndex(-1)
+            setOpen(true)
+          }
+        })
+        .finally(() => setLoading(false))
+    }, 200)
+    return () => {
+      window.clearTimeout(timer)
+      controller.abort()
+    }
+  }, [query])
+
+  function addRecipient(candidate) {
+    const email = String(candidate?.email || '').trim()
+    if (!isValidEmailAddress(email)) {
+      onError?.(cv.invalidRecipient)
+      return false
+    }
+    const key = email.toLowerCase()
+    const existsHere = recipients.some(item => String(item.email || '').toLowerCase() === key)
+    if (existsHere || excludedEmails.has(key)) {
+      onError?.(cv.duplicateRecipient)
+      setQuery('')
+      setOpen(false)
+      return false
+    }
+    onError?.('')
+    onChange([...recipients, { name: String(candidate?.name || '').trim(), email }])
+    setQuery('')
+    setSuggestions([])
+    setOpen(false)
+    return true
+  }
+
+  function commitQuery() {
+    const parsed = parseAddressInput(query)
+    if (parsed.length) {
+      let next = recipients
+      const occupied = new Set([...excludedEmails, ...recipients.map(item => String(item.email || '').toLowerCase())])
+      let duplicate = false
+      for (const item of parsed) {
+        const key = item.email.toLowerCase()
+        if (occupied.has(key)) { duplicate = true; continue }
+        occupied.add(key)
+        next = [...next, item]
+      }
+      if (next !== recipients) onChange(next)
+      onError?.(duplicate ? cv.duplicateRecipient : '')
+      setQuery('')
+      setOpen(false)
+      return true
+    }
+    if (query.trim()) onError?.(cv.invalidRecipient)
+    return false
+  }
+
+  function handleKeyDown(event) {
+    if (composingRef.current || event.nativeEvent?.isComposing) return
+    if (open && suggestions.length && event.key === 'ArrowDown') {
+      event.preventDefault()
+      setActiveIndex(index => (index + 1) % suggestions.length)
+      return
+    }
+    if (open && suggestions.length && event.key === 'ArrowUp') {
+      event.preventDefault()
+      setActiveIndex(index => (index <= 0 ? suggestions.length - 1 : index - 1))
+      return
+    }
+    if (event.key === 'Escape') {
+      setOpen(false)
+      return
+    }
+    if (event.key === 'Enter') {
+      event.preventDefault()
+      if (open && activeIndex >= 0 && suggestions[activeIndex]) addRecipient(suggestions[activeIndex])
+      else commitQuery()
+      return
+    }
+    if ((event.key === ',' || event.key === ';') && query.trim()) {
+      event.preventDefault()
+      commitQuery()
+      return
+    }
+    if (event.key === 'Backspace' && !query && recipients.length) {
+      onChange(recipients.slice(0, -1))
+    }
+  }
+
+  function handlePaste(event) {
+    const pasted = event.clipboardData?.getData('text') || ''
+    if (!/[;,\n]/.test(pasted)) return
+    const parsed = parseAddressInput(pasted)
+    if (!parsed.length) return
+    event.preventDefault()
+    const occupied = new Set([...excludedEmails, ...recipients.map(item => String(item.email || '').toLowerCase())])
+    const additions = parsed.filter(item => {
+      const key = item.email.toLowerCase()
+      if (occupied.has(key)) return false
+      occupied.add(key)
+      return true
+    })
+    onChange([...recipients, ...additions])
+    onError?.(additions.length < parsed.length ? cv.duplicateRecipient : '')
+  }
+
+  return (
+    <div className="relative grid gap-2 text-sm font-bold text-gray-600 md:grid-cols-[96px_1fr] md:items-start">
+      <span className="pt-2.5">{label}</span>
+      <div>
+        <div
+          className="flex min-h-10 flex-wrap items-center gap-1 rounded-lg border border-gray-200 bg-white px-2 py-1 outline-none focus-within:border-indigo-400 focus-within:ring-2 focus-within:ring-indigo-100"
+        >
+          {recipients.map((recipient, index) => (
+            <span key={`${recipient.email}-${index}`} className="inline-flex max-w-full items-center gap-1 rounded-md bg-indigo-50 px-2 py-1 text-xs font-semibold text-indigo-800">
+              <span className="truncate">{formatAddress(recipient)}</span>
+              <button type="button" onClick={() => onChange(recipients.filter((_, i) => i !== index))} className="text-indigo-400 hover:text-indigo-700" aria-label={`${formatAddress(recipient)} ${cv.removeRecipient}`}>×</button>
+            </span>
+          ))}
+          <input
+            value={query}
+            onChange={event => {
+              const value = event.target.value
+              setQuery(value)
+              if (!value.trim()) {
+                setSuggestions([])
+                setActiveIndex(-1)
+                setOpen(false)
+                setLoading(false)
+              }
+            }}
+            onKeyDown={handleKeyDown}
+            onPaste={handlePaste}
+            onCompositionStart={() => { composingRef.current = true }}
+            onCompositionEnd={event => { composingRef.current = false; setQuery(event.currentTarget.value) }}
+            onFocus={() => { if (query.trim()) setOpen(true) }}
+            onBlur={() => { commitQuery(); setOpen(false) }}
+            placeholder={recipients.length ? '' : 'name@example.com'}
+            className="h-7 min-w-[180px] flex-1 border-0 px-1 text-sm font-normal text-gray-800 outline-none"
+            role="combobox"
+            aria-expanded={open}
+            aria-autocomplete="list"
+            aria-controls={`recipient-${label}-listbox`}
+            aria-activedescendant={activeIndex >= 0 ? `recipient-${label}-${activeIndex}` : undefined}
+          />
+        </div>
+        {open && (
+          <div id={`recipient-${label}-listbox`} role="listbox" className="absolute left-0 right-0 z-50 mt-1 max-h-64 overflow-y-auto rounded-lg border border-gray-200 bg-white py-1 shadow-xl md:left-[104px]">
+            {loading ? <div className="px-3 py-2 text-xs font-normal text-gray-400">{cv.recipientSearching}</div>
+              : suggestions.length === 0 ? <div className="px-3 py-2 text-xs font-normal text-gray-400">{cv.noRecipientSuggestions}</div>
+                : suggestions.map((suggestion, index) => (
+                  <button
+                    id={`recipient-${label}-${index}`}
+                    key={`${suggestion.normalizedEmail}-${index}`}
+                    type="button"
+                    role="option"
+                    aria-selected={index === activeIndex}
+                    onMouseDown={event => { event.preventDefault(); addRecipient(suggestion) }}
+                    onMouseEnter={() => setActiveIndex(index)}
+                    className={`flex w-full items-center justify-between gap-3 px-3 py-2 text-left ${index === activeIndex ? 'bg-indigo-50' : 'hover:bg-gray-50'}`}
+                  >
+                    <span className="min-w-0"><span className="block truncate text-sm font-semibold text-gray-800">{suggestion.name || suggestion.email}</span><span className="block truncate text-xs font-normal text-gray-500">{suggestion.email}</span></span>
+                    <span className="flex-shrink-0 text-[11px] font-normal text-gray-400">{suggestion.emailType || suggestion.organization || ''}</span>
+                  </button>
+                ))}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 function MailComposeView({ accounts, defaultAccountId, initialDraft, onCancel, onSent, onDraftSaved, mt = MAIL_TEXT.ko }) {
   const cv = mt.composeView
   const selectableAccounts = accounts.filter(account => account?.id && account?.tenant_id)
   const [accountId, setAccountId] = useState(initialDraft?.accountId || defaultAccountId || selectableAccounts[0]?.id || '')
   const [draftId, setDraftId] = useState(initialDraft?.draftId || '')
-  const [to, setTo] = useState(initialDraft?.to || '')
-  const [cc, setCc] = useState(initialDraft?.cc || '')
-  const [bcc, setBcc] = useState(initialDraft?.bcc || '')
+  const [toRecipients, setToRecipients] = useState(() => parseAddressInput(initialDraft?.to || ''))
+  const [ccRecipients, setCcRecipients] = useState(() => parseAddressInput(initialDraft?.cc || ''))
+  const [bccRecipients, setBccRecipients] = useState(() => parseAddressInput(initialDraft?.bcc || ''))
   const [subject, setSubject] = useState(initialDraft?.subject || '')
   const [body, setBody] = useState({ html: initialDraft?.html || '', text: initialDraft?.text || '' })
   const [sending, setSending] = useState(false)
@@ -396,6 +592,12 @@ function MailComposeView({ accounts, defaultAccountId, initialDraft, onCancel, o
   }, [attachmentPreviews])
   // 첨부 정책(용량/개수/차단 확장자)은 서버에서 로드한다. (MailService.md 10.8)
   const [attachPolicy, setAttachPolicy] = useState(DEFAULT_ATTACH_POLICY)
+  const to = useMemo(() => serializeAddressInput(toRecipients), [toRecipients])
+  const cc = useMemo(() => serializeAddressInput(ccRecipients), [ccRecipients])
+  const bcc = useMemo(() => serializeAddressInput(bccRecipients), [bccRecipients])
+  const toExcluded = useMemo(() => new Set([...ccRecipients, ...bccRecipients].map(item => item.email.toLowerCase())), [ccRecipients, bccRecipients])
+  const ccExcluded = useMemo(() => new Set([...toRecipients, ...bccRecipients].map(item => item.email.toLowerCase())), [toRecipients, bccRecipients])
+  const bccExcluded = useMemo(() => new Set([...toRecipients, ...ccRecipients].map(item => item.email.toLowerCase())), [toRecipients, ccRecipients])
 
   useEffect(() => {
     let alive = true
@@ -576,35 +778,11 @@ function MailComposeView({ accounts, defaultAccountId, initialDraft, onCancel, o
             </select>
           </label>
 
-          <label className="grid gap-2 text-sm font-bold text-gray-600 md:grid-cols-[96px_1fr] md:items-center">
-            <span>{cv.to}</span>
-            <input
-              value={to}
-              onChange={event => setTo(event.target.value)}
-              placeholder="name@example.com, another@example.com"
-              className="h-10 rounded-lg border border-gray-200 px-3 text-sm text-gray-800 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
-            />
-          </label>
+          <RecipientAutocomplete label={cv.to} recipients={toRecipients} onChange={setToRecipients} excludedEmails={toExcluded} onError={setError} cv={cv} />
 
           <div className="grid gap-3 lg:grid-cols-2">
-            <label className="grid gap-2 text-sm font-bold text-gray-600 md:grid-cols-[96px_1fr] md:items-center">
-              <span>{cv.cc}</span>
-              <input
-                value={cc}
-                onChange={event => setCc(event.target.value)}
-                placeholder="cc@example.com"
-                className="h-10 rounded-lg border border-gray-200 px-3 text-sm text-gray-800 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
-              />
-            </label>
-            <label className="grid gap-2 text-sm font-bold text-gray-600 md:grid-cols-[96px_1fr] md:items-center">
-              <span>{cv.bcc}</span>
-              <input
-                value={bcc}
-                onChange={event => setBcc(event.target.value)}
-                placeholder="bcc@example.com"
-                className="h-10 rounded-lg border border-gray-200 px-3 text-sm text-gray-800 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
-              />
-            </label>
+            <RecipientAutocomplete label={cv.cc} recipients={ccRecipients} onChange={setCcRecipients} excludedEmails={ccExcluded} onError={setError} cv={cv} />
+            <RecipientAutocomplete label={cv.bcc} recipients={bccRecipients} onChange={setBccRecipients} excludedEmails={bccExcluded} onError={setError} cv={cv} />
           </div>
 
           <label className="grid gap-2 text-sm font-bold text-gray-600 md:grid-cols-[96px_1fr] md:items-center">

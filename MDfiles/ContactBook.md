@@ -124,6 +124,26 @@ Microsoft 365나 LDAP를 CardDAV 서버라고 가정하지 않는다. 해당 공
 
 원본에 없는 필드를 빈 문자열로 만들거나 서버에 덮어쓰지 않는다. 여러 값과 사용자 지정 유형을 지원하고, 알 수 없는 vCard 속성도 원본 보존 영역에서 유실되지 않게 한다.
 
+#### 연락처 삭제 버튼
+
+연락처 상세 화면 상단의 `편집` 버튼 오른쪽에 `삭제` 버튼을 배치한다. `삭제`는 파괴적 동작임을 알 수 있도록 편집 버튼과 구분되는 빨간색 계열로 표시한다.
+
+```text
+[편집] [삭제]
+```
+
+- 현재 사용자가 소유하고 쓰기 가능한 iCloud 또는 Google 연락처에서만 삭제 버튼을 활성화한다.
+- 읽기 전용 주소록, 인증이 만료된 계정 또는 이미 삭제 대기 중인 연락처에서는 버튼을 비활성화하고 이유를 표시한다.
+- 사용자가 삭제 버튼을 누르면 연락처 이름, 공급자와 주소록을 포함한 확인 창을 표시한다.
+- 확인 문구는 `이 연락처를 Google/iCloud 주소록에서도 삭제합니다. 계속할까요?`처럼 외부 원본도 삭제된다는 사실을 명확히 알린다.
+- 사용자가 확인하면 해당 연락처를 즉시 기본 목록과 상세 화면에서 숨기고 `삭제 대기` 상태로 전환한다.
+- 사용자가 취소하면 어떤 로컬·외부 데이터도 변경하지 않는다.
+- 삭제 요청을 반복해서 눌러도 동일 resource에 DELETE 작업이 중복 생성되지 않게 한다.
+
+삭제 대상은 현재 상세 화면에서 선택한 외부 연락처 resource 한 건이다. 같은 전화번호 또는 이메일 주소로 연결된 다른 iCloud·Google 연락처까지 함께 삭제하지 않는다. 예를 들어 Google 연락처에서 삭제를 실행하면 연결된 iCloud 연락처는 유지한다.
+
+연결된 다른 연락처가 남아 있으면 통합 `Person`과 공유 사진도 유지한다. 마지막 외부 연락처를 삭제한 경우에도 사진을 즉시 제거하지 않고 복구 가능 기간 동안 `Person`, 사진, raw vCard와 tombstone을 보존한다. 보존 기간 이후의 자동 삭제 또는 로컬 사람 카드 유지 여부는 개인정보 보존 정책에 따른다.
+
 ### 4.3 계정 관리
 
 계정 관리 화면에서는 다음 기능을 제공한다.
@@ -404,6 +424,316 @@ Person
 
 `contacts`는 외부 원본의 projection이고 `people`은 EasyStation 내부의 사람 개념이다. 두 개를 같은 table로 합치지 않아야 외부 동기화와 AI 연결이 서로의 데이터를 손상시키지 않는다.
 
+### 6.6 통합 사람 사진 관리
+
+ContactBook의 사진은 외부 연락처 resource에 종속시키지 않고 EasyStation의 통합 사람인 `people`에 연결한다. iCloud와 Google에 각각 존재하는 연락처가 같은 사람으로 연결되면 두 연락처는 EasyStation 안에서 같은 사진 목록을 사용한다.
+
+```text
+EasyStation Person
+  ├─ iCloud Contact Resource
+  ├─ Google Contact Resource
+  ├─ 정규화된 전화번호
+  └─ Person Photos
+      ├─ 대표 사진
+      ├─ 일반 사진
+      └─ 외부 주소록에서 가져온 사진
+```
+
+사진의 원본 저장소는 EasyStation으로 한다. DB에는 사진 바이너리를 직접 저장하지 않고 object storage의 key, 크기, 형식, checksum, 출처 등 메타데이터를 저장한다. 목록과 상세 화면에서는 별도의 thumbnail을 사용한다.
+
+사진 개수에는 애플리케이션 차원의 고정 상한을 두지 않는다. 다만 실제 운영에서는 한 파일의 최대 크기, 허용 형식, 최대 해상도, 사용자 또는 tenant별 저장 용량, 업로드 속도 및 보존 정책을 적용한다. 사용자에게는 사진 개수 제한 없음으로 제공할 수 있지만 물리적인 저장 공간까지 무제한임을 의미하지 않는다.
+
+#### `person_contact_links`
+
+통합 사람과 외부 연락처의 연결을 관리한다.
+
+```text
+id
+tenant_id
+user_id
+person_id
+contact_id
+link_type                AUTO_PHONE | AUTO_EMAIL | MANUAL
+matched_value            일치한 정규화 전화번호 또는 이메일 주소
+match_status             CONFIRMED | REVIEW_REQUIRED | REJECTED
+created_at
+updated_at
+```
+
+- 외부 연락처를 실제로 병합하거나 한쪽 원본을 삭제하지 않고 연결 관계만 저장한다.
+- 자동 연결, 사용자 확인 연결, 사용자가 거부한 연결을 구분한다.
+- 사용자가 분리하거나 거부한 연락처 조합은 이후 동기화에서 자동으로 다시 연결하지 않는다.
+- 연결은 반드시 같은 `tenant_id + user_id` 안에서만 수행한다. 서로 다른 EasyStation 사용자의 연락처와 사진을 전화번호나 이메일 주소만으로 공유하지 않는다.
+
+#### `contact_phone_numbers`
+
+전화번호 비교를 위해 원본 표시값과 정규화된 값을 별도로 관리한다.
+
+```text
+id
+tenant_id
+user_id
+contact_id
+raw_number
+normalized_number        가능한 경우 E.164 형식
+country_code
+extension
+type
+is_primary
+created_at
+updated_at
+```
+
+전화번호 정규화에는 사용자의 기본 국가 설정을 사용한다. 예를 들어 한국 번호 `010-1234-5678`, `+82 10 1234 5678`, `821012345678`은 비교 시 `+821012345678`로 정규화할 수 있다. 원본 번호는 화면 표시와 외부 주소록 재저장을 위해 그대로 보존한다.
+
+#### `contact_email_addresses`
+
+이메일 주소 비교를 위해 원본 표시값과 정규화된 비교값을 별도로 관리한다.
+
+```text
+id
+tenant_id
+user_id
+contact_id
+raw_email
+normalized_email
+type
+is_primary
+created_at
+updated_at
+```
+
+이메일 주소는 앞뒤 공백을 제거하고 domain 부분을 소문자로 정규화한다. 동일인 비교 시에는 일반적인 iCloud·Google 주소의 대소문자 차이로 인한 누락을 피하기 위해 전체 주소를 소문자로 비교한다. 다만 `.` 제거, `+tag` 제거, Gmail 별칭 치환처럼 공급자 정책에 의존하는 변환은 서로 다른 실제 주소를 합칠 수 있으므로 적용하지 않는다. 원본 이메일은 화면 표시와 외부 주소록 재저장을 위해 그대로 보존한다.
+
+#### `person_photos`
+
+통합 사람 한 명에 여러 사진을 연결한다.
+
+```text
+id
+tenant_id
+user_id
+person_id
+object_key
+thumbnail_object_key
+mime_type
+byte_size
+width
+height
+sha256
+source                   LOCAL | ICLOUD | GOOGLE
+source_contact_id
+is_primary
+caption
+taken_at
+created_at
+updated_at
+deleted_at
+```
+
+- 한 사람에게 여러 사진을 저장할 수 있다.
+- 한 사람의 활성 대표 사진은 하나만 허용한다.
+- 동일 checksum의 사진은 중복 업로드 여부를 확인할 수 있게 한다.
+- 외부 주소록에서 가져온 사진은 공급자와 원본 연락처를 추적한다.
+- 삭제는 즉시 object를 제거하지 않고 짧은 복구 기간을 둘 수 있으며, 보존 기간이 끝나면 원본과 thumbnail을 함께 삭제한다.
+
+### 6.7 전화번호 또는 이메일 주소 기반 동일인 연결 정책
+
+iCloud와 Google의 연락처는 다음 조건 중 하나라도 충족하면 같은 사람 후보로 판단한다.
+
+1. 정규화된 전화번호가 하나 이상 정확히 일치한다.
+2. 정규화된 이메일 주소가 하나 이상 정확히 일치한다.
+
+즉 전화번호와 이메일 주소가 모두 같을 필요는 없다. 둘 중 하나만 같아도 같은 주소록 인물로 판단하여 동일한 `Person`에 연결하고 사진을 공유한다.
+
+자동 연결은 다음 원칙을 따른다.
+
+1. 현재 로그인 사용자의 `tenant_id + user_id` 범위 안에서만 비교한다.
+2. 전화번호는 유효한 정규화 전체 번호가 정확히 일치할 때만 사용한다. 일부 자리만 같거나 국가 코드를 확정할 수 없는 번호는 자동 연결에 사용하지 않는다.
+3. 이메일은 정규화된 전체 주소가 정확히 일치할 때만 사용한다. domain만 같거나 local part 일부만 같은 경우에는 연결하지 않는다.
+4. 전화번호 또는 이메일 중 하나가 일치하면 자동 연결할 수 있으며, 두 항목이 모두 일치하면 같은 사람이라는 근거가 더 강한 것으로 기록한다.
+5. 전화번호는 같지만 이메일이 서로 다르거나, 이메일은 같지만 전화번호가 서로 다른 경우에도 새 규칙에 따라 같은 사람으로 연결한다. 화면에서는 어떤 값으로 연결되었는지 출처를 확인할 수 있게 한다.
+6. 하나의 전화번호나 이메일 주소가 여러 사람 또는 여러 이름에 공용으로 사용되면 오병합 가능성을 표시하고 사용자가 분리할 수 있게 한다.
+7. 대표번호, 가족 공용번호, 재사용된 번호, 공용 메일함, 그룹 메일 주소는 오병합 가능성이 있으므로 수동 분리를 지원한다.
+8. 사용자가 연결을 분리하거나 거부한 조합은 전화번호 또는 이메일이 계속 일치하더라도 이후 동기화에서 자동으로 다시 연결하지 않는다.
+9. 연결 근거가 된 전화번호나 이메일이 변경·삭제되어도 이미 사용자가 확인한 연결은 즉시 해제하지 않고 재검토 상태로 전환한다.
+10. 유효한 전화번호와 이메일 주소가 모두 없는 연락처는 자동 연결하지 않으며 사용자가 직접 기존 사람에 연결할 수 있게 한다.
+
+전화번호 또는 이메일 일치만으로 외부 vCard를 하나로 합치거나 한쪽 원본을 삭제하지 않는다. 연결 결과는 EasyStation의 통합 표시와 사진 공유에 사용하고, iCloud와 Google의 원본 연락처 및 동기화 식별자는 각각 유지한다.
+
+### 6.8 사진과 외부 주소록의 동기화 범위
+
+EasyStation의 다중 사진 목록과 외부 주소록의 대표 연락처 사진을 구분한다.
+
+#### EasyStation 내부 사진 공유
+
+- 사용자가 iCloud 연락처 화면 또는 Google 연락처 화면에서 사진을 추가하더라도 실제 저장 대상은 연결된 `Person`이다.
+- 같은 전화번호 또는 이메일 주소로 연결된 iCloud와 Google 연락처는 동일한 `Person`의 사진 목록을 표시한다.
+- 사진 추가, 삭제, 대표 사진 변경은 연결된 모든 연락처 화면에 즉시 동일하게 보인다.
+- 한 외부 계정의 연결이 해제되어도 다른 연락처와 연결된 `Person` 및 로컬 사진의 보존 여부를 별도 정책으로 결정한다.
+
+#### iCloud 및 Google 대표 사진 연동
+
+외부 주소록은 EasyStation의 여러 사진 전체를 보관하는 사진 갤러리로 사용하지 않는다. 공급자별 제약을 고려하여 EasyStation의 대표 사진 한 장만 외부 연락처의 대표 사진으로 선택적으로 반영한다.
+
+- 로컬 사진 전체: EasyStation object storage에 저장
+- 대표 사진 한 장: 사용자 설정에 따라 연결된 iCloud 및 Google 연락처에 전파 가능
+- 외부에서 변경된 사진: 검증 후 EasyStation으로 가져오고 출처 표시
+- 외부의 기존 사진과 로컬 대표 사진이 동시에 변경된 경우: 자동 덮어쓰기하지 않고 충돌 상태로 표시
+- 외부 쓰기가 실패한 경우: 로컬 사진 추가는 유지하고 해당 공급자의 동기화 상태만 실패로 기록
+
+대표 사진을 외부로 전파할 때 각 연락처 resource의 최신 ETag와 쓰기 capability를 확인한다. iCloud 반영 성공 후 Google 반영이 실패하는 부분 성공도 허용하고, 공급자별 결과를 별도로 기록하여 재시도할 수 있게 한다.
+
+초기 제공 범위는 EasyStation 내부 다중 사진 공유와 외부 대표 사진 가져오기로 제한하는 것이 안전하다. 외부 주소록에 대표 사진을 쓰는 기능은 공급자별 호환성, 크기 제한, ETag 충돌 및 삭제 정책을 검증한 뒤 단계적으로 제공한다.
+
+### 6.9 iCloud 주소록 그룹 구조 보존
+
+EasyStation은 iCloud의 그룹을 단순한 로컬 태그로 변환하지 않고 CardDAV의 독립된 그룹 vCard resource로 보존한다. 이미지의 `5B2U`, `가족`, `개인 메일`과 같은 그룹 이름은 iCloud에 저장된 이름과 동일하게 표시하고, 그룹에 속한 연락처 목록도 iCloud의 멤버십을 기준으로 구성한다.
+
+#### 기본 원칙
+
+- 그룹 이름, 그룹 UID, 원격 href, ETag, 원본 vCard와 멤버 참조를 보존한다.
+- 같은 이름의 그룹이 여러 iCloud 계정이나 주소록에 있어도 하나로 합치지 않는다.
+- 그룹의 소유 범위는 `tenant_id + user_id + account_id + addressbook_id`이다.
+- 그룹 이름을 EasyStation에서 임의로 번역·정규화하거나 연락처 회사명으로 대체하지 않는다.
+- iCloud 그룹과 Google label은 공급자별 원본으로 각각 보존한다. 이름이 같다는 이유만으로 자동 병합하지 않는다.
+- 통합 `Person`과 외부 그룹 멤버십을 분리한다. 그룹에는 `Person`이 아니라 원본 외부 연락처 resource가 속한다.
+
+#### iCloud 그룹 vCard 판별
+
+vCard 4.0 표준에서는 그룹 resource를 `KIND:group`으로 구분하고 `MEMBER` 속성으로 멤버를 참조할 수 있다. iCloud가 vCard 3.0 호환 형식을 반환하는 경우에는 다음 Apple/CardDAV 호환 확장을 함께 인식한다.
+
+```text
+BEGIN:VCARD
+VERSION:3.0
+UID:<group-uid>
+FN:5B2U
+X-ADDRESSBOOKSERVER-KIND:group
+X-ADDRESSBOOKSERVER-MEMBER:urn:uuid:<contact-uid-1>
+X-ADDRESSBOOKSERVER-MEMBER:urn:uuid:<contact-uid-2>
+END:VCARD
+```
+
+파서는 다음 속성을 동등한 논리 필드로 읽는다.
+
+| 논리 필드 | vCard 4.0 | iCloud/vCard 3.0 호환 |
+|---|---|---|
+| resource 종류 | `KIND:group` | `X-ADDRESSBOOKSERVER-KIND:group` |
+| 멤버 | `MEMBER` | `X-ADDRESSBOOKSERVER-MEMBER` |
+| 그룹 이름 | `FN` | `FN`, 필요한 경우 `N` fallback |
+| 안정 식별자 | `UID` | `UID` |
+
+`CATEGORIES`가 개별 연락처에 포함되어 있더라도 그룹 vCard의 멤버 목록을 우선적인 원본으로 사용한다. `CATEGORIES`는 호환성 확인 또는 누락 진단에 활용하되 그룹 vCard와 충돌할 때 자동으로 그룹 멤버십을 덮어쓰지 않는다.
+
+실제 iCloud 응답의 속성명과 값 형식은 계정 및 vCard 버전에 따라 다를 수 있으므로 최초 연결 시 수신한 원본을 보존하고 capability와 샘플 resource를 기준으로 adapter 동작을 결정한다.
+
+#### 데이터 모델
+
+그룹 resource와 멤버십을 다음과 같이 분리한다.
+
+```text
+contact_groups
+  id
+  tenant_id
+  user_id
+  account_id
+  addressbook_id
+  contact_resource_id       그룹 vCard의 contact_resources 행
+  remote_uid
+  display_name
+  group_kind                ICLOUD_GROUP | GOOGLE_LABEL | GENERIC_GROUP
+  etag
+  raw_vcard_encrypted
+  content_hash
+  deleted_at
+  created_at
+  updated_at
+
+contact_group_members
+  id
+  tenant_id
+  user_id
+  group_id
+  member_resource_id          개인 연락처 또는 하위 그룹 resource
+  member_kind                 CONTACT | GROUP | EXTERNAL
+  member_reference_raw      원본 MEMBER 값
+  member_uid_normalized
+  resolution_status         RESOLVED | MISSING | EXTERNAL | INVALID
+  sort_order
+  created_at
+  updated_at
+```
+
+- `member_reference_raw`에는 `urn:uuid:...`, `mailto:...` 등 원본 값을 그대로 저장한다.
+- `member_uid_normalized`는 비교를 위해 `urn:uuid:` prefix와 대소문자를 안전하게 정규화한 값이다.
+- 멤버 연결은 같은 계정과 주소록의 `remote_uid`를 우선 사용하고, href나 이메일은 명시적인 fallback 정책이 있을 때만 사용한다.
+- 아직 동기화되지 않았거나 삭제된 UID는 멤버십에서 제거하지 않고 `MISSING` 상태로 유지한다.
+- 하나의 연락처는 여러 그룹에 속할 수 있으며 그룹 내 중복 멤버는 원본을 보존하되 화면에서는 한 번만 표시한다.
+- 멤버 UID가 다른 그룹 resource를 가리키면 하위 그룹 관계로 보존하고 임의로 평탄화하지 않는다.
+
+#### 그룹 계층과 순환 참조
+
+iCloud가 그룹 안에 다른 그룹을 멤버로 제공하면 `parent_group → child_group` 관계를 그대로 저장하고 화면에서도 tree로 표시한다. 다만 계정이나 iCloud 버전에 따라 그룹이 평면 목록으로만 제공될 수 있으므로 서버 원본에 없는 부모·자식 관계를 이름이나 접두어만으로 추론하지 않는다.
+
+- 같은 하위 그룹이 여러 상위 그룹에 포함되는 경우 하나의 tree node를 복제 생성하지 않고 동일 group resource를 참조한다.
+- 그룹 간 순환 참조가 발견되면 동기화를 실패시키지 않고 해당 edge를 `INVALID_CYCLE`로 표시한다.
+- 그룹 확장 조회에는 최대 깊이와 최대 총 멤버 수를 적용하여 무한 순회와 과도한 응답을 방지한다.
+- 하위 그룹을 선택했을 때는 직접 멤버와 재귀 포함 멤버를 UI에서 구분할 수 있게 한다.
+- iCloud의 스마트 그룹이나 로컬 Mac 전용 그룹이 CardDAV resource로 내려오지 않으면 EasyStation에서 임의로 생성하지 않고 `CardDAV에서 동기화되지 않는 그룹`으로 지원 범위를 안내한다.
+
+#### 동기화 순서
+
+최초 및 전체 동기화는 다음 두 단계로 처리한다.
+
+1. 모든 CardDAV resource를 가져와 개인 연락처와 그룹 vCard를 분류하고 UID index를 만든다.
+2. 그룹의 `MEMBER` 또는 `X-ADDRESSBOOKSERVER-MEMBER`를 UID index에 연결하여 멤버십을 확정한다.
+
+그룹을 먼저 파싱했을 때 멤버 연락처가 아직 저장되지 않았다는 이유로 멤버를 삭제하지 않는다. 모든 batch 저장이 끝난 뒤 멤버 참조를 해석하며, 전체 resource 수와 그룹/개인 연락처 수가 맞는지 검증한 후 sync token을 확정한다.
+
+증분 동기화에서는 다음 규칙을 적용한다.
+
+- 그룹 vCard ETag 변경: 해당 그룹의 이름과 전체 멤버 목록을 새 snapshot으로 교체한다.
+- 개인 연락처 변경: UID가 유지되면 기존 그룹 멤버십을 유지한다.
+- 개인 연락처 삭제: 멤버십을 즉시 hard delete하지 않고 원격 그룹 vCard 갱신 여부를 확인할 때까지 `MISSING`으로 표시한다.
+- 그룹 삭제: 그룹을 soft delete하고 기본 그룹 목록에서 숨긴다. 멤버 연락처 자체는 삭제하지 않는다.
+- sync token 만료: 그룹을 포함해 해당 collection을 전체 재동기화한다.
+
+#### 사용자 화면
+
+ContactBook 왼쪽 메뉴의 iCloud 계정 아래에 iCloud의 그룹 목록을 원본 이름 그대로 표시한다.
+
+```text
+iCloud · freegear@me.com
+  ├─ 모든 연락처
+  ├─ 5B2U
+  ├─ 가족
+  │   └─ 친척
+  ├─ 개인 메일
+  └─ ...
+```
+
+- 그룹을 선택하면 가운데 목록에는 해당 iCloud 그룹의 멤버 연락처만 표시한다.
+- 그룹명 옆에는 해석된 멤버 수를 표시한다.
+- 연락처 상세에는 현재 연락처가 속한 iCloud 그룹 이름과 출처 계정을 표시한다.
+- 통합 연락처가 iCloud와 Google 양쪽에 있어도 iCloud 그룹 화면에는 그 그룹이 참조하는 iCloud 원본 연락처만 표시한다.
+- `모든 연락처` 화면에서는 통합 `Person`을 사용할 수 있지만 그룹 필터 결과와 원본 멤버십의 관계를 잃지 않는다.
+- 같은 이름의 그룹은 계정명 또는 공급자 badge로 구분한다.
+
+#### 그룹 편집 및 양방향 반영
+
+첫 단계에서는 그룹 조회와 필터만 제공한다. 그룹 생성, 이름 변경, 멤버 추가·제거, 그룹 삭제는 iCloud의 실제 group vCard 쓰기 동작을 검증한 뒤 활성화한다.
+
+쓰기 기능을 제공할 때는 다음 원칙을 따른다.
+
+- 그룹 이름 변경은 기존 group vCard의 `FN`을 patch하고 알 수 없는 속성은 보존한다.
+- 멤버 추가·제거는 그룹 vCard의 member 속성만 변경하며 개인 연락처 vCard를 다시 만들지 않는다.
+- `If-Match: <group-etag>` 조건부 PUT을 사용한다.
+- `412` 충돌 시 최신 그룹 vCard를 다시 가져와 로컬 변경과 원격 변경을 비교한다.
+- 그룹 삭제는 group resource만 DELETE하고 소속 연락처는 삭제하지 않는다.
+- 부분 실패 시 로컬에서 성공한 것처럼 확정하지 않고 그룹별 pending/conflict 상태를 표시한다.
+
+Google Contacts와 함께 사용할 경우 Google label을 iCloud 그룹 vCard로 자동 복제하지 않는다. 사용자가 명시적으로 그룹/label 연결을 선택하는 후속 기능을 제공할 수 있지만, 이때도 양쪽 원본 식별자와 멤버십을 별도로 유지한다.
+
 ## 7. 동기화 설계
 
 ### 7.1 최초 동기화
@@ -456,6 +786,12 @@ API는 다음 책임 단위로 구성한다. 아래 경로는 개념 예시이�
 - 수동 동기화 요청과 상태 조회
 - 연락처 목록, 검색, 상세 조회
 - 같은 사람 후보 확인, 연결, 연결 해제
+- 통합 사람 상세 조회와 연결된 외부 연락처 조회
+- 통합 사람 사진 목록, 업로드, 삭제, 대표 사진 설정
+- 외부 대표 사진 가져오기와 공급자별 전파 상태 조회
+- 계정·주소록별 그룹 목록과 그룹 멤버 연락처 조회
+- 그룹 동기화 상태, 해석되지 않은 멤버와 충돌 조회
+- 후속 단계의 그룹 생성, 이름 변경, 멤버 추가·제거와 삭제
 - 후속 단계의 연락처 생성, 수정, 삭제
 
 인증 callback의 `state`는 로그인 사용자와 연결 시도를 묶는 일회용 값으로 검증한다. API 응답에는 access token, refresh token, 앱 전용 암호, 내부 secret 참조값, raw remote credential을 포함하지 않는다.
@@ -478,6 +814,9 @@ callback 경로 자체는 Google redirect를 받을 수 있도록 세션 유무�
 - 앱 전용 암호와 token은 암호화하고 log, 오류 메시지, telemetry에서 제거한다.
 - vCard와 사진은 신뢰할 수 없는 외부 입력으로 취급한다.
 - vCard 크기, 속성 수, 한 속성의 길이, 사진 크기, redirect 수, XML 응답 크기에 상한을 둔다.
+- 업로드 사진은 확장자가 아니라 실제 content signature를 검사하고 허용된 image 형식만 저장한다.
+- 업로드 원본은 이미지 decoder로 검증하고 pixel 수와 압축 해제 후 메모리 사용량을 제한하여 image bomb을 차단한다.
+- 사진 조회 API는 `tenant_id + user_id + person_id` 소유권을 확인하고 object storage의 내부 경로를 직접 노출하지 않는다.
 - XML parser의 외부 entity와 DTD 처리를 비활성화하여 XXE를 차단한다.
 - vCard의 note, URL, 이름은 HTML로 직접 렌더링하지 않고 escape한다.
 - 외부 사진 URL을 브라우저가 직접 읽게 하지 않으며, 허용 정책과 크기 검사를 거쳐 object storage에 보관한다.
@@ -513,6 +852,8 @@ callback 경로 자체는 Google redirect를 받을 수 있도록 세션 유무�
 - sync는 background job으로 실행하고 HTTP 요청에서 전체 주소록 동기화를 기다리지 않는다.
 - 대용량 multistatus XML과 vCard는 가능한 경우 streaming 또는 batch로 처리한다.
 - 연락처 사진은 별도 object storage에 저장하고 크기 제한 thumbnail을 사용한다.
+- 사진 업로드와 thumbnail 생성은 연락처 동기화 transaction과 분리하고 실패 시 재시도 가능한 작업으로 처리한다.
+- 원본 사진과 thumbnail의 orphan object를 주기적으로 탐지하고 안전한 유예 기간 후 정리한다.
 - metrics는 성공/실패 횟수, 동기화 시간, 변경 resource 수, rate limit, token 초기화, queue 지연을 계정 정보가 노출되지 않는 형태로 수집한다.
 - 백업과 복구에서도 tenant/user 경계를 유지하고 암호화 credential의 별도 복구 정책을 둔다.
 
@@ -537,13 +878,38 @@ callback 경로 자체는 Google redirect를 받을 수 있도록 세션 유무�
 - 생성, 변경, 삭제, ETag 충돌, 중복 UID를 확인한다.
 - XML 숫자 문자 참조 `&#13;`, `&#10;`, `&#xD;`, `&#xA;`가 vCard 파싱 전에 실제 줄바꿈으로 복원되는지 확인한다.
 - 이름 없는 연락처, 이메일만 있는 연락처, 전화번호만 있는 연락처도 동기화되는지 확인한다.
+- 동일 사용자의 iCloud와 Google 연락처에서 같은 전화번호가 동일 `Person`으로 연결되는지 확인한다.
+- 동일 사용자의 iCloud와 Google 연락처에서 같은 이메일 주소가 동일 `Person`으로 연결되는지 확인한다.
+- 전화번호만 같고 이메일이 다른 경우와 이메일만 같고 전화번호가 다른 경우 모두 동일 `Person`으로 연결되는지 확인한다.
+- 전화번호와 이메일이 모두 다른 경우에는 서로 다른 `Person`으로 유지되는지 확인한다.
+- 서로 다른 사용자의 같은 전화번호가 서로 연결되거나 사진을 공유하지 않는지 확인한다.
+- 서로 다른 사용자의 같은 이메일 주소가 서로 연결되거나 사진을 공유하지 않는지 확인한다.
+- 국가 코드와 표시 형식이 다른 같은 전화번호가 올바르게 정규화되는지 확인한다.
+- 대소문자와 앞뒤 공백이 다른 같은 이메일 주소가 올바르게 정규화되는지 확인한다.
+- 이메일의 `+tag` 또는 `.`을 임의로 제거하여 서로 다른 주소를 오병합하지 않는지 확인한다.
+- 공용 대표번호, 내선번호, 재사용 번호 및 하나의 번호를 여러 연락처가 사용하는 경우 자동 오병합을 막는지 확인한다.
+- 사용자가 분리하거나 거부한 연락처가 다음 동기화에서 자동으로 다시 연결되지 않는지 확인한다.
 - Apple의 grouped property와 `X-ABLabel`, 복수 `TYPE`, `VALUE=uri`, quoted-printable 및 charset을 확인한다.
+- iCloud의 `X-ADDRESSBOOKSERVER-KIND:group`과 `X-ADDRESSBOOKSERVER-MEMBER` 그룹 vCard를 개인 연락처와 구분하는지 확인한다.
+- vCard 4.0의 `KIND:group`과 `MEMBER`도 같은 논리 그룹 모델로 처리하는지 확인한다.
+- 그룹명, UID, href, ETag, 원본 vCard와 멤버 순서가 전체·증분 동기화 후에도 보존되는지 확인한다.
+- 같은 이름의 그룹이 서로 다른 계정이나 주소록에 있을 때 합쳐지지 않는지 확인한다.
+- 그룹 resource가 멤버 연락처보다 먼저 처리되어도 전체 batch 완료 후 UID로 정상 연결되는지 확인한다.
+- 존재하지 않는 UID, 삭제된 연락처, `mailto:` 멤버 참조를 유실하지 않고 resolution 상태로 관리하는지 확인한다.
+- 하위 그룹 참조를 원본 계층으로 보존하고 순환 그룹 참조에서 무한 순회하지 않는지 확인한다.
+- 그룹 삭제가 멤버 연락처 삭제로 전파되지 않는지 확인한다.
+- iCloud 그룹 필터에서 해당 iCloud 원본 멤버만 표시하고 통합된 Google 연락처를 임의로 멤버로 추가하지 않는지 확인한다.
 - 100개 및 1,000개 이상 주소록에서 전체 건수, 페이지 추가 조회, 검색 결과 건수가 일치하는지 확인한다.
 
 ### 12.3 보안 및 장애
 
 - 사용자 지정 URL의 SSRF, redirect 우회, DNS rebinding 방어를 확인한다.
 - XXE, 과대 XML/vCard, 과대 사진, 악성 URL, HTML 문자열을 확인한다.
+- 한 사람에게 여러 사진을 추가·삭제하고 대표 사진을 변경해도 연결된 iCloud와 Google 연락처 화면에서 같은 목록이 보이는지 확인한다.
+- 사진 개수에 고정 상한이 없어도 pagination, thumbnail 및 지연 로딩으로 대량 사진을 안정적으로 조회하는지 확인한다.
+- 위조된 MIME, 손상된 이미지, 과도한 pixel 수, 중복 사진 및 다른 사용자의 사진 ID 접근을 거부하는지 확인한다.
+- iCloud와 Google 대표 사진 전파의 전체 성공, 부분 성공, ETag 충돌 및 재시도를 각각 확인한다.
+- 계정 연결 해제, 사용자 탈퇴 및 보존 기간 만료 시 사진과 thumbnail이 정책대로 유지 또는 삭제되는지 확인한다.
 - timeout, 401/403/404/412/429/5xx와 부분 실패 후 재시도를 확인한다.
 - 중복 job이 동일 연락처를 이중 생성하지 않는지 확인한다.
 - 대량 삭제 보호와 계정 연결 해제 후 secret 폐기를 확인한다.
@@ -566,7 +932,10 @@ callback 경로 자체는 Google redirect를 받을 수 있도록 세션 유무�
 - sync token fallback, 재시도, token 초기화
 - 상태/오류 UI와 감사 log
 - 대용량 주소록 성능 개선
-- 같은 사람 후보 탐지
+- 전화번호 국제 형식 및 이메일 주소 정규화와 같은 사람 후보 탐지
+- 통합 `Person`과 외부 연락처 연결 및 수동 분리
+- 자체 object storage 기반 다중 사진과 대표 사진 관리
+- iCloud 그룹 vCard 판별, 원본 보존, 멤버 UID 연결과 그룹별 필터
 
 ### 3단계: 양방향 동기화
 
@@ -578,6 +947,9 @@ callback 경로 자체는 Google redirect를 받을 수 있도록 세션 유무�
 ### 4단계: People Hub
 
 - 사용자 확인 기반 사람 엔티티 연결
+- iCloud와 Google의 기존 대표 사진 가져오기
+- 공급자별 capability 검증 후 대표 사진 선택적 전파
+- 검증된 공급자에서 그룹 이름 변경과 멤버 추가·제거의 조건부 양방향 동기화
 - 메일 참여자, 문서 작성자, 회의 참석자, 프로젝트 구성원 연결
 - 사람 중심 활동 timeline
 - 권한과 출처를 보존하는 Agentic AI 검색
@@ -589,11 +961,18 @@ callback 경로 자체는 Google redirect를 받을 수 있도록 세션 유무�
 - discovery 결과를 사용하며 공급자 URL을 내부 구조로 고정하지 않는다.
 - 최초 동기화 후 sync token 또는 ETag/CTag fallback으로 변경분을 반영한다.
 - 생성, 변경, 삭제가 중복 없이 로컬에 반영되고 부분 실패를 재시도할 수 있다.
+- 연락처 상세 화면의 편집 버튼 오른쪽에서 선택한 외부 연락처 한 건을 안전하게 삭제할 수 있고, 연결된 다른 공급자의 연락처와 공유 사진은 유지된다.
 - 모든 계층에서 tenant/user 권한 검사가 적용된다.
 - 인증 정보와 연락처 개인정보가 log나 API 응답에 노출되지 않는다.
 - Google 사용자는 token을 직접 입력하지 않고 동의 화면으로 연결하며, access token 만료 후에도 refresh token으로 동기화가 지속된다.
 - Google OAuth state는 사용자·tenant에 귀속되고 일회용으로 소비되며, 인증 철회 시 `인증 필요` 상태와 재연결 동작이 일치한다.
 - 계정 연결 해제, 사용자 탈퇴, 데이터 삭제 정책이 화면과 서버 동작에서 일치한다.
+- 같은 사용자의 iCloud와 Google 연락처가 정규화된 전화번호 또는 이메일 주소 중 하나라도 같으면 안전하게 한 `Person`에 연결된다.
+- 연결된 연락처는 EasyStation 안에서 동일한 다중 사진 목록과 대표 사진을 공유한다.
+- 사진 개수에 고정 상한을 두지 않으면서 파일 크기, 저장 용량, 보안 검사와 thumbnail 정책을 적용한다.
+- 외부 주소록의 다중 사진과 EasyStation 사진 목록을 동일한 기능으로 간주하지 않고, 외부에는 대표 사진 한 장만 선택적으로 동기화한다.
+- iCloud 그룹 이름과 멤버십이 group vCard 원본 구조, 계정 및 주소록 경계를 유지한 채 표시된다.
+- 같은 이름의 그룹과 다른 공급자의 label을 자동 병합하지 않으며 그룹 삭제가 멤버 연락처 삭제를 일으키지 않는다.
 - 후속 People Hub가 외부 연락처 원본을 손상시키지 않고 사람 엔티티를 연결할 수 있다.
 
 ## 15. 참고 표준 및 공식 문서
@@ -795,7 +1174,7 @@ If-Match: <base_etag>을 포함한 PUT
 
 삭제는 즉시 hard delete하지 않는다.
 
-1. 사용자가 삭제 대상, 외부 계정과 주소록을 확인한다.
+1. 사용자가 상세 화면의 `편집` 오른쪽에 있는 `삭제` 버튼을 누르고 삭제 대상, 외부 계정과 주소록을 확인한다.
 2. 로컬에 tombstone과 DELETE outbox를 저장하고 기본 목록에서는 숨긴다.
 3. worker가 `If-Match: <base_etag>`을 포함하여 DELETE를 요청한다.
 4. `2xx` 또는 이미 존재하지 않는 것이 확인된 `404/410`이면 적용 완료로 처리한다.
@@ -803,6 +1182,8 @@ If-Match: <base_etag>을 포함한 PUT
 6. 보존 기간 동안 raw vCard와 감사 정보를 유지한 뒤 정책에 따라 purge한다.
 
 계정 전체 또는 대량 연락처 삭제는 일반 단건 삭제와 분리한다. 일정 개수 또는 주소록의 일정 비율을 넘으면 외부 전송을 중지하고 추가 확인을 요구한다. `계정 연결 삭제`는 기본적으로 외부 연락처 삭제를 의미하지 않는다.
+
+같은 `Person`에 여러 외부 연락처가 연결되어 있어도 DELETE outbox에는 사용자가 선택한 `contact_resource_id` 하나만 기록한다. 나머지 연결은 유지하고 삭제된 연락처의 `person_contact_links`만 적용 완료 후 해제한다. 마지막 연결이 삭제되더라도 통합 사람과 사진은 tombstone 보존 기간이 끝나기 전에 hard delete하지 않는다.
 
 ### 17.8 충돌 탐지와 병합
 
@@ -857,7 +1238,8 @@ Remote  412 발생 후 다시 가져온 최신 vCard
 
 - 연락처 생성 요청과 대상 주소록 선택
 - 연락처 수정 요청과 클라이언트가 확인한 revision/ETag 전달
-- 연락처 삭제 요청과 복구 가능 기간 안내
+- 연락처 삭제 요청, 삭제할 외부 resource 식별자와 클라이언트가 확인한 revision/ETag 전달
+- 삭제 대기 상태와 복구 가능 기간 안내
 - pending/failed/conflict 작업 목록과 상태 조회
 - 실패 작업 재시도 또는 취소
 - 충돌 상세 조회와 해결안 제출
@@ -920,6 +1302,11 @@ Remote  412 발생 후 다시 가져온 최신 vCard
 - 읽기 전용 collection, 철회된 인증, scope 부족, `429`, `5xx`를 각각 확인한다.
 - 알 수 없는 vCard 속성, 사진, 그룹, 사용자 지정 label이 수정 후에도 보존되는지 비교한다.
 - 삭제 후 복구 기간, 원격 `404`, 대량 삭제 차단과 계정 연결 해제를 검증한다.
+- 상세 화면에서 삭제 버튼이 편집 버튼 오른쪽에 표시되고, 읽기 전용 연락처에서는 비활성화되는지 확인한다.
+- 삭제 확인을 취소하면 로컬 상태, outbox와 외부 연락처가 변경되지 않는지 확인한다.
+- 삭제 확인 후 연락처가 즉시 기본 목록에서 숨겨지고 DELETE outbox가 정확히 한 건 생성되는지 확인한다.
+- 같은 전화번호 또는 이메일로 연결된 Google·iCloud 연락처 중 하나를 삭제해도 다른 공급자의 연락처와 공유 사진이 유지되는지 확인한다.
+- 마지막 연결 연락처를 삭제한 경우 복구 기간 동안 `Person`, 사진, raw vCard와 tombstone이 유지되는지 확인한다.
 - 사용자 A의 작업이 사용자 B의 계정이나 연락처에 절대 적용되지 않는지 확인한다.
 
 ### 17.15 양방향 편집 완료 조건

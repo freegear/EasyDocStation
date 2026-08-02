@@ -1,4 +1,5 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useId, useRef } from 'react'
+import { createPortal } from 'react-dom'
 
 export default function ConfirmDialog({
   title = '확인',
@@ -15,6 +16,7 @@ export default function ConfirmDialog({
   onCancel,
 }) {
   const confirmRef = useRef(null)
+  const titleId = useId()
 
   useEffect(() => {
     confirmRef.current?.focus()
@@ -25,15 +27,15 @@ export default function ConfirmDialog({
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [onCancel, loading])
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/45 px-4">
-      <div className="w-full max-w-sm rounded-2xl bg-white border border-gray-200 shadow-2xl p-5">
+      <div role="dialog" aria-modal="true" aria-labelledby={titleId} className="w-full max-w-sm rounded-2xl bg-white border border-gray-200 shadow-2xl p-5">
         {titleTone === 'blue' ? (
           <div className="-mx-5 -mt-5 mb-4 rounded-t-2xl border-b border-indigo-100 bg-indigo-50 px-5 py-3">
-            <h3 className="text-indigo-700 font-bold text-base text-center">{title}</h3>
+            <h3 id={titleId} className="text-indigo-700 font-bold text-base text-center">{title}</h3>
           </div>
         ) : (
-          <h3 className="text-gray-900 font-bold text-base">{title}</h3>
+          <h3 id={titleId} className="text-gray-900 font-bold text-base">{title}</h3>
         )}
         {message ? (
           <p className="text-gray-600 text-sm mt-2 whitespace-pre-wrap leading-relaxed">{message}</p>
@@ -78,6 +80,7 @@ export default function ConfirmDialog({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }

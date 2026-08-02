@@ -176,6 +176,8 @@ const EMPTY_MAILCLAW_FORM = {
   enabled: true,
   sender_check_enabled: false,
   sender_conditions_text: '',
+  recipient_check_enabled: false,
+  recipient_conditions_text: '',
   cc_check_enabled: false,
   cc_conditions_text: '',
   keyword_check_enabled: false,
@@ -209,6 +211,8 @@ function mailClawRuleToForm(rule) {
     enabled: rule.enabled !== false,
     sender_check_enabled: !!rule.sender_check_enabled,
     sender_conditions_text: joinLines(rule.sender_conditions),
+    recipient_check_enabled: !!rule.recipient_check_enabled,
+    recipient_conditions_text: joinLines(rule.recipient_conditions),
     cc_check_enabled: !!rule.cc_check_enabled,
     cc_conditions_text: joinLines(rule.cc_conditions),
     keyword_check_enabled: !!rule.keyword_check_enabled,
@@ -232,6 +236,8 @@ function mailClawFormToPayload(form, tenantId) {
     enabled: form.enabled !== false,
     sender_check_enabled: !!form.sender_check_enabled,
     sender_conditions: splitLines(form.sender_conditions_text),
+    recipient_check_enabled: !!form.recipient_check_enabled,
+    recipient_conditions: splitLines(form.recipient_conditions_text),
     cc_check_enabled: !!form.cc_check_enabled,
     cc_conditions: splitLines(form.cc_conditions_text),
     keyword_check_enabled: !!form.keyword_check_enabled,
@@ -461,6 +467,7 @@ function MailAccountManageModal({ accounts, tenants = [], activeFolder, activeUn
 
   function validateMailClawPayload(payload) {
     if (payload.sender_check_enabled && payload.sender_conditions.length === 0) throw new Error('발신자 조건을 입력해주세요.')
+    if (payload.recipient_check_enabled && payload.recipient_conditions.length === 0) throw new Error('수신자 조건을 입력해주세요.')
     if (payload.cc_check_enabled && payload.cc_conditions.length === 0) throw new Error('참조자 조건을 입력해주세요.')
     if (payload.keyword_check_enabled && payload.keyword_conditions.length === 0) throw new Error('키워드 조건을 입력해주세요.')
     if (payload.forward_enabled && payload.forward_addresses.length === 0) throw new Error('전달할 메일 주소를 입력해주세요.')
@@ -1225,7 +1232,7 @@ function MailAccountManageModal({ accounts, tenants = [], activeFolder, activeUn
                       <button type="button" onClick={() => editMailClawRule(rule)} className="min-w-0 flex-1 text-left">
                         <span className="block truncate text-sm font-extrabold text-gray-900">{rule.name}</span>
                         <span className="mt-1 block truncate text-xs text-gray-500">
-                          {[rule.sender_check_enabled ? '발신자' : '', rule.cc_check_enabled ? '참조자' : '', rule.keyword_check_enabled ? '키워드' : ''].filter(Boolean).join(' AND ') || '조건 없음'}
+                          {[rule.sender_check_enabled ? '발신자' : '', rule.recipient_check_enabled ? '수신자' : '', rule.cc_check_enabled ? '참조자' : '', rule.keyword_check_enabled ? '키워드' : ''].filter(Boolean).join(' AND ') || '조건 없음'}
                           {' / '}
                           {[rule.ai_analysis_enabled ? 'AI 요약 자동 생성' : '', rule.important_mail_enabled ? '중요 메일 등록' : '', rule.forward_enabled ? '원본 전달' : '', rule.move_folder_enabled ? '폴더 이동' : '', rule.tag_smart_folder_enabled ? '스마트 폴더 태그' : ''].filter(Boolean).join(' → ') || '동작 없음'}
                         </span>
@@ -1297,6 +1304,7 @@ function MailAccountManageModal({ accounts, tenants = [], activeFolder, activeUn
                 <h3 className="text-sm font-extrabold text-gray-900">조건</h3>
                 {[
                   ['sender_check_enabled', 'sender_conditions_text', '발신자 체크', '발신자 이메일을 줄바꿈 또는 쉼표로 입력'],
+                  ['recipient_check_enabled', 'recipient_conditions_text', '수신자 체크', '수신자 이메일을 줄바꿈 또는 쉼표로 입력'],
                   ['cc_check_enabled', 'cc_conditions_text', '참조자 체크', '참조자 이메일을 줄바꿈 또는 쉼표로 입력'],
                   ['keyword_check_enabled', 'keyword_conditions_text', '키워드 체크', '메일 제목 키워드를 줄바꿈 또는 쉼표로 입력'],
                 ].map(([enabledKey, textKey, label, placeholder]) => (

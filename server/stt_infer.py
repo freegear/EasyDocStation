@@ -518,6 +518,8 @@ def main():
     diarization_on = bool(payload.get("diarization", True))
     diarization_required = bool(payload.get("diarizationRequired", False))
     model_id = payload.get("modelId", "google/gemma-4-E4B-it")
+    overlap_sec = float(payload.get("chunkContextOverlapSec", payload.get("contextOverlapSec", 3.0)) or 3.0)
+    overlap_sec = max(0.0, overlap_sec)
     hf_token = payload.get("hfToken")
 
     try:
@@ -542,7 +544,7 @@ def main():
 
     diarized_for_embedding = diarized  # None이면 embedding 생략
     if diarized is None:
-        diarized = chunk_segments(duration, chunk_sec=25.0, overlap_sec=2.5)
+        diarized = chunk_segments(duration, chunk_sec=25.0, overlap_sec=overlap_sec)
 
     # Voice embedding: 실제 diarization 결과가 있을 때만 계산
     speaker_embeddings: Dict = {}

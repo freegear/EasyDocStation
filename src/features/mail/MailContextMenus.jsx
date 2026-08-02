@@ -30,6 +30,7 @@ function MailMessageContextMenu({ menu, folders, onClose, onDelete, onMarkUnread
   return (
     <div
       ref={ref}
+      data-mail-message-context-menu
       className="fixed z-50 min-w-[300px] whitespace-nowrap rounded-lg border border-gray-200 bg-white py-1 text-sm font-bold text-gray-700 shadow-xl shadow-gray-900/10"
       style={style}
       onClick={event => event.stopPropagation()}

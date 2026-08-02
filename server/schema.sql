@@ -214,6 +214,61 @@ CREATE INDEX IF NOT EXISTS idx_channel_members_ch   ON channel_members(channel_i
 CREATE INDEX IF NOT EXISTS idx_posts_channel        ON posts(channel_id);
 CREATE INDEX IF NOT EXISTS idx_attachments_post     ON attachments(post_id);
 
+-- 웹 회의 녹음 세션과 20초 단위 조각. 실제 음성 파일은 ObjectFile/meeting-recordings 아래 저장한다.
+CREATE TABLE IF NOT EXISTS meeting_recordings (
+  id                    UUID PRIMARY KEY,
+  post_id               TEXT NOT NULL,
+  channel_id            TEXT NOT NULL,
+  owner_id              INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  status                TEXT NOT NULL DEFAULT 'created',
+  content_type          TEXT NOT NULL DEFAULT 'audio/webm',
+  chunk_duration_ms     INTEGER NOT NULL DEFAULT 20000,
+  context_overlap_ms    INTEGER NOT NULL DEFAULT 3000,
+  last_sequence         INTEGER,
+  total_duration_ms     BIGINT,
+  attachment_id         TEXT,
+  stt_job_id            UUID,
+  download_file_name    TEXT,
+  download_content_type TEXT,
+  download_storage_path TEXT,
+  download_size         BIGINT,
+  download_sha256       TEXT,
+  error_code            TEXT,
+  error_message         TEXT,
+  created_at            TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  started_at            TIMESTAMPTZ,
+  finished_at           TIMESTAMPTZ,
+  updated_at            TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_meeting_recordings_post ON meeting_recordings(post_id);
+
+CREATE TABLE IF NOT EXISTS meeting_audio_chunks (
+  meeting_id      UUID NOT NULL REFERENCES meeting_recordings(id) ON DELETE CASCADE,
+  sequence        INTEGER NOT NULL,
+  started_at_ms   BIGINT NOT NULL,
+  duration_ms     INTEGER NOT NULL,
+  core_start_ms   BIGINT NOT NULL,
+  core_end_ms     BIGINT NOT NULL,
+  context_start_ms BIGINT NOT NULL,
+  context_end_ms  BIGINT NOT NULL,
+  content_type    TEXT NOT NULL,
+  size            BIGINT NOT NULL,
+  sha256          TEXT NOT NULL,
+  storage_path    TEXT NOT NULL,
+  status          TEXT NOT NULL DEFAULT 'verified',
+  created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  PRIMARY KEY (meeting_id, sequence)
+);
+
+CREATE TABLE IF NOT EXISTS meeting_download_audit (
+  id         BIGSERIAL PRIMARY KEY,
+  meeting_id UUID,
+  post_id    TEXT,
+  user_id    INTEGER,
+  action     TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
 -- ─── Welcome board recent post views ─────────────────────────
 CREATE TABLE IF NOT EXISTS recent_post_views (
   user_id       INTEGER     NOT NULL REFERENCES users(id) ON DELETE CASCADE,

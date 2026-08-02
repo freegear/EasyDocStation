@@ -2,6 +2,10 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { useEditor, EditorContent } from '@tiptap/react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
+import remarkMath from 'remark-math'
+import rehypeKatex from 'rehype-katex'
+import MarkdownPreBlock from '../markdown/MarkdownPreBlock'
+import { normalizeLatexDelimiters } from '../../lib/markdownMath'
 import StarterKit from '@tiptap/starter-kit'
 import Placeholder from '@tiptap/extension-placeholder'
 import Dropcursor from '@tiptap/extension-dropcursor'
@@ -1276,14 +1280,16 @@ export default function MDPageViewer({ post, channelId, onClose, onOpenPostLink 
                           </div>
                           <div className="eds-markdown text-gray-800 whitespace-pre-wrap break-words" style={contentFontStyle}>
                             <ReactMarkdown
-                              remarkPlugins={[remarkGfm]}
+                              remarkPlugins={[remarkGfm, remarkMath]}
+                              rehypePlugins={[rehypeKatex]}
                               components={{
                                 a: ({ ...props }) => <a {...props} target="_blank" rel="noreferrer noopener" />,
                                 ul: ({ children }) => <ul className="list-disc pl-9 my-1.5 space-y-1">{children}</ul>,
                                 ol: ({ children, ...props }) => <ol {...props} className="list-decimal pl-5 my-1.5 space-y-1">{children}</ol>,
+                                pre: ({ children }) => <MarkdownPreBlock>{children}</MarkdownPreBlock>,
                               }}
                             >
-                              {normalizeBrokenOrderedListItems(String(comment?.content || ''))}
+                              {normalizeLatexDelimiters(normalizeBrokenOrderedListItems(String(comment?.content || '')))}
                             </ReactMarkdown>
                           </div>
                           {Array.isArray(comment?.attachments) && comment.attachments.length > 0 && (

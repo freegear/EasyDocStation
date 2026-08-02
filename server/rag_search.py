@@ -101,10 +101,39 @@ def with_folder_group_filter(where_clause, meta_subfields, folder_group_ids):
         return group_clause
     return "(" + where_clause + ") AND " + group_clause
 
+
+def with_target_filter(where_clause, meta_subfields, target_filter):
+    """현재 게시글/댓글/이미지처럼 명시적으로 지정된 대상을 벡터 검색 전에 제한한다."""
+    if not isinstance(target_filter, dict):
+        return where_clause
+    clauses = []
+    field_map = {
+        "post_id": "post_id",
+        "comment_id": "comment_id",
+        "attachment_id": "attachment_id",
+        "channel_id": "channel_id",
+    }
+    for key, field in field_map.items():
+        value = str(target_filter.get(key) or "").strip()
+        if value and field in (meta_subfields or []):
+            clauses.append("metadata." + field + " = " + sql_quote(value))
+    types = target_filter.get("type")
+    if not isinstance(types, list):
+        types = [types] if types else []
+    types = normalize_id_list(types)
+    if types and "type" in (meta_subfields or []):
+        clauses.append("metadata.type IN (" + ", ".join(sql_quote(v) for v in types) + ")")
+    if not clauses:
+        return where_clause
+    target_clause = " AND ".join(clauses)
+    return "(" + where_clause + ") AND " + target_clause if where_clause else target_clause
+
 allowed_channel_ids = normalize_id_list(payload.get("allowed_channel_ids", []))
 scope_ctx = payload.get("scope_context") or {}
 has_scope_ctx = bool(str(scope_ctx.get("user_id") or "").strip() or scope_ctx.get("team_ids"))
 folder_group_ids = normalize_id_list(payload.get("folder_group_ids", []))
+target_filter = payload.get("target_filter") or {}
+has_exact_target = any(str(target_filter.get(k) or "").strip() for k in ("post_id", "comment_id", "attachment_id"))
 
 def default_lancedb_path():
     env_lancedb = os.getenv("EASYDOC_LANCEDB_PATH", "").strip()
@@ -182,6 +211,7 @@ meta_subfields = [sf.name for sf in meta_field.type] if meta_field else []
 
 query_vec = embed_model.encode(query, show_progress_bar=False).tolist()
 where_clause = build_acl_clause(meta_subfields, allowed_channel_ids, scope_ctx if has_scope_ctx else None)
+where_clause = with_target_filter(where_clause, meta_subfields, target_filter)
 # 형제 문서 확장(23.3): folder_group_id 필터를 ACL 위에 AND 결합
 where_clause = with_folder_group_filter(where_clause, meta_subfields, folder_group_ids)
 search = apply_acl(table.search(query_vec), where_clause)
@@ -193,7 +223,7 @@ results = search.limit(limit).to_list()
 output = []
 for r in results:
     distance = float(r.get("_distance", 0))
-    if distance >= MAX_VECTOR_DISTANCE:
+    if distance >= MAX_VECTOR_DISTANCE and not has_exact_target:
         continue
     meta = r.get("metadata") or {}
     output.append({

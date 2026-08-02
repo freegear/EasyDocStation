@@ -1162,6 +1162,30 @@ function applyVectorDistanceCeiling(results = []) {
   })
 }
 
+function hasExactEvidenceTarget(scope = '', filter = {}) {
+  if (scope === 'post_scope') return Boolean(String(filter?.post_id || '').trim())
+  if (scope === 'comment_scope') {
+    return Boolean(String(filter?.comment_id || filter?.post_id || '').trim())
+  }
+  if (scope === 'image_scope') {
+    return Boolean(String(filter?.post_id || '').trim())
+  }
+  return false
+}
+
+function applyScopedDistanceCeiling(results = [], scope = '', filter = {}) {
+  return hasExactEvidenceTarget(scope, filter)
+    ? (Array.isArray(results) ? results : [])
+    : applyVectorDistanceCeiling(results)
+}
+
+async function resolvePostChannelId(postId = '') {
+  const id = String(postId || '').trim()
+  if (!id) return ''
+  const { rows } = await db.query('SELECT channel_id FROM posts WHERE id=$1 LIMIT 1', [id])
+  return String(rows[0]?.channel_id || '').trim()
+}
+
 function normalizeRagScope(value = '') {
   const scope = String(value || '').trim().toLowerCase()
   return ['image_scope', 'post_scope', 'comment_scope', 'channel_scope', 'global_scope'].includes(scope)
@@ -2059,7 +2083,18 @@ router.post('/search', requireAuth, async (req, res) => {
       req.body?.channel_search_mode || retrievalRaw?.channel_search_mode || retrievalRaw?.channelSearchMode || '',
     ).trim().toLowerCase()
     const filteredChannelId = String(retrievalOptions?.filter?.channel_id || '').trim()
-    const channelScope = filteredChannelId
+    const scopedPostId = ['post_scope', 'comment_scope', 'image_scope'].includes(ragScope)
+      ? String(retrievalOptions?.filter?.post_id || '').trim()
+      : ''
+    const postChannelId = scopedPostId ? await resolvePostChannelId(scopedPostId) : ''
+    const channelScope = postChannelId && allowedChannelIds.includes(postChannelId)
+      ? {
+          channelIds: [postChannelId],
+          matchedChannelIds: [postChannelId],
+          matches: [{ channelId: postChannelId, source: 'post_id' }],
+          mode: 'post_id',
+        }
+      : filteredChannelId
       ? {
           channelIds: allowedChannelIds.includes(filteredChannelId) ? [filteredChannelId] : [],
           matchedChannelIds: [],
@@ -2129,6 +2164,10 @@ router.post('/search', requireAuth, async (req, res) => {
         security_level: Number(req.user?.security_level || 0),
         is_site_admin: req.user?.role === 'site_admin',
       },
+      // 명시된 게시글/댓글/이미지 범위는 ANN 검색 후가 아니라 LanceDB 검색 전에 제한한다.
+      target_filter: hasExactEvidenceTarget(ragScope, retrievalOptions.filter)
+        ? retrievalOptions.filter
+        : {},
     }
 
     const cachePayload = {
@@ -2257,7 +2296,7 @@ router.post('/search', requireAuth, async (req, res) => {
 
     // init 레코드 제외
     let validResults = mergeUniqueResults(results.filter(r => r.text !== '__init__'))
-    validResults = applyVectorDistanceCeiling(validResults)
+    validResults = applyScopedDistanceCeiling(validResults, ragScope, retrievalOptions.filter)
     validResults = applyChannelAccessFilter(validResults, searchChannelIds)
     validResults = applyMetadataFilter(validResults, retrievalOptions.filter)
     validResults = applyChannelAccessFilter(validResults, searchChannelIds)
@@ -2301,6 +2340,11 @@ router.post('/search', requireAuth, async (req, res) => {
     let finalResults = retrievalOptions.searchType === 'mmr'
       ? selectByMmr(rankedResults.slice(0, retrievalOptions.fetchK), effectiveRequestedLimit, retrievalOptions.mmrLambda)
       : rankedResults.slice(0, effectiveRequestedLimit)
+    // 사용자가 URL/선택 상태로 게시글을 정확히 지정한 경우에는 일부 상위 청크만 고르지 않는다.
+    // 해당 게시글의 본문·댓글·첨부 이미지 청크 전체가 답변 근거이므로 모두 컨텍스트 후보로 유지한다.
+    if (hasExactEvidenceTarget(ragScope, retrievalOptions.filter)) {
+      finalResults = rankedResults
+    }
     if (temporalQuery) {
       finalResults = expandTemporalNeighbors(finalResults, rankedResults)
       finalResults = expandTemporalNeighborsFromTrainingData(finalResults)
@@ -2320,7 +2364,7 @@ router.post('/search', requireAuth, async (req, res) => {
 
     // 벡터 검색 결과에서 누락된 같은 페이지 내용을 text.json으로 보강 (재학습 없이 즉시 효과)
     finalResults = mergeUniqueResults(expandPageContextFromTrainingData(finalResults))
-    finalResults = applyVectorDistanceCeiling(finalResults)
+    finalResults = applyScopedDistanceCeiling(finalResults, ragScope, retrievalOptions.filter)
     finalResults = applyChannelAccessFilter(finalResults, searchChannelIds, payload.scope_context)
     if (isEvidenceGatedScope(ragScope)) {
       finalResults = applyMetadataFilter(finalResults, retrievalOptions.filter)

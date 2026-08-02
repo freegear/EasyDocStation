@@ -10,10 +10,51 @@ export function normalizeAddressList(value) {
 
 export function formatAddress(address) {
   if (!address?.email) return address?.name || ''
-  return address.name ? `${address.name} <${address.email}>` : address.email
+  if (!address.name) return address.email
+  const name = /[,;"<>]/.test(address.name)
+    ? `"${String(address.name).replace(/(["\\])/g, '\\$1')}"`
+    : address.name
+  return `${name} <${address.email}>`
 }
 
 export function addressListToInput(value) {
+  return normalizeAddressList(value).map(formatAddress).join(', ')
+}
+
+export function isValidEmailAddress(value) {
+  const email = String(value || '').trim()
+  return /^[^\s<>@]+@[^\s<>@]+\.[^\s<>@]+$/.test(email)
+}
+
+// 쉼표가 들어간 quoted display name과 <address>를 보존하면서 주소 목록을 나눈다.
+export function parseAddressInput(value) {
+  const text = String(value || '')
+  const parts = []
+  let current = ''
+  let quoted = false
+  let angleDepth = 0
+  for (const char of text) {
+    if (char === '"') quoted = !quoted
+    if (!quoted && char === '<') angleDepth += 1
+    if (!quoted && char === '>' && angleDepth > 0) angleDepth -= 1
+    if (!quoted && angleDepth === 0 && (char === ',' || char === ';' || char === '\n')) {
+      if (current.trim()) parts.push(current.trim())
+      current = ''
+    } else {
+      current += char
+    }
+  }
+  if (current.trim()) parts.push(current.trim())
+
+  return parts.map(part => {
+    const match = part.match(/^(.*?)<([^<>]+)>$/)
+    const name = match ? match[1].trim().replace(/^"|"$/g, '') : ''
+    const email = (match ? match[2] : part).trim()
+    return { name, email }
+  }).filter(item => isValidEmailAddress(item.email))
+}
+
+export function serializeAddressInput(value) {
   return normalizeAddressList(value).map(formatAddress).join(', ')
 }
 

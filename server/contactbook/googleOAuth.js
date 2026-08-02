@@ -2,13 +2,7 @@ const crypto = require('crypto')
 const fs = require('fs')
 const path = require('path')
 const { getGoogleOAuthConfig } = require('../mail/settings')
-
-const GOOGLE_CARDDAV_SCOPES = [
-  'openid',
-  'email',
-  'profile',
-  'https://www.googleapis.com/auth/carddav',
-]
+const { GOOGLE_CARDDAV_SCOPES, GOOGLE_CARDDAV_SCOPE, normalizeGrantedScopes, validateGoogleContactScopes } = require('./googleScopes')
 
 function readProjectConfig() {
   try { return JSON.parse(fs.readFileSync(path.resolve(__dirname, '../../config.json'), 'utf8')) } catch { return {} }
@@ -100,7 +94,8 @@ async function revokeGoogleToken(token) {
 }
 
 module.exports = {
-  GOOGLE_CARDDAV_SCOPES,
+  GOOGLE_CARDDAV_SCOPES, GOOGLE_CARDDAV_SCOPE,
+  normalizeGrantedScopes, validateGoogleContactScopes,
   createPkce,
   buildGoogleContactAuthUrl,
   exchangeGoogleContactCode,

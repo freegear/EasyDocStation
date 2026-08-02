@@ -1,18 +1,23 @@
 const express = require('express')
 const crypto = require('crypto')
+const multer = require('multer')
 const pool = require('../db')
 const requireAuth = require('../middleware/auth')
 const { encryptSecret, decryptSecret } = require('../lib/secrets')
-const { discover, listResources, updateResource, getResource } = require('../contactbook/carddav')
+const { discover, listResources, updateResource, getResource, deleteResource } = require('../contactbook/carddav')
 const { parseVCard, updateVCard } = require('../contactbook/vcard')
 const { canEditContact, validateContactEdit } = require('../contactbook/editPolicy')
+const { reconcileContactPerson, ensurePeopleForUser } = require('../contactbook/people')
+const { resolveAddressbookGroups } = require('../contactbook/groups')
+const { savePhoto, resolvePhoto, deletePhoto } = require('../contactbook/photoStorage')
 const {
   createPkce, buildGoogleContactAuthUrl, exchangeGoogleContactCode,
-  refreshGoogleContactToken, getGoogleIdentity, revokeGoogleToken,
+  refreshGoogleContactToken, getGoogleIdentity, revokeGoogleToken, validateGoogleContactScopes,
 } = require('../contactbook/googleOAuth')
 
 const router = express.Router()
 const refreshLocks = new Map()
+const photoUpload = multer({ storage: multer.memoryStorage(), limits: { files: 1, fileSize: 10 * 1024 * 1024 } })
 
 const tenantFor = userId => `personal:${userId}`
 function safeAccount(row) {
@@ -21,12 +26,24 @@ function safeAccount(row) {
 }
 function safeContact(row) {
   const { remote_uid, ...contact } = row
-  return { ...contact, editable: canEditContact(row) }
+  return {
+    ...contact,
+    primary_photo_url: row.primary_photo_id ? `/api/contactbook/photos/${row.primary_photo_id}/content` : null,
+    editable: canEditContact(row),
+  }
 }
-function oauthRedirect(res, status, error = '') {
+function oauthRedirect(res, status, error = '', accountId = '') {
   const params = new URLSearchParams({ open: 'contactbook', contactbook_oauth: status })
   if (error) params.set('contactbook_error', error)
+  if (accountId) params.set('contactbook_account', accountId)
   return res.redirect(`/?${params}`)
+}
+function safeGoogleOAuthErrorCode(error) {
+  if (error?.code === 'GOOGLE_CONTACT_SCOPE_MISSING') return 'scope_missing'
+  if (error?.oauthCode === 'access_denied') return 'access_denied'
+  if (error?.oauthCode === 'invalid_grant') return 'authorization_expired'
+  if (error?.status === 403) return 'permission_denied'
+  return 'google_callback_failed'
 }
 function tokenExpiry(tokens) {
   return new Date(Date.now() + Math.max(60, Number(tokens.expires_in) || 3600) * 1000)
@@ -79,6 +96,7 @@ async function persistContactSnapshot({ contactId, resourceId, userId, provider,
       parsed.jobTitle, parsed.birthday, parsed.note, JSON.stringify(parsed.emails), JSON.stringify(parsed.phones),
       JSON.stringify(parsed.addresses), JSON.stringify(parsed.urls), parsed.searchText, contactId, userId,
     ])
+    await reconcileContactPerson(client, { tenantId: tenantFor(userId), userId, contactId, displayName: parsed.displayName, phones: parsed.phones, emails: parsed.emails })
     await client.query('COMMIT')
     return safeContact({ ...updated.rows[0], etag, remote_uid: remoteUid, provider, account_name: accountName, addressbook_name: addressbookName })
   } catch (error) { await client.query('ROLLBACK'); throw error } finally { client.release() }
@@ -97,6 +115,7 @@ router.get('/oauth/google/callback', asyncRoute(async (req, res) => {
   try {
     const tokens = await exchangeGoogleContactCode(code, decryptSecret(oauthState.pkce_verifier_encrypted))
     if (!tokens.access_token) throw new Error('Google OAuth 응답에 access token이 없습니다.')
+    const grantedScopes = validateGoogleContactScopes(tokens.scope)
     const identity = await getGoogleIdentity(tokens.access_token)
     if (!identity.id || !identity.email) throw new Error('Google 계정 정보를 확인하지 못했습니다.')
     const candidate = {
@@ -105,6 +124,7 @@ router.get('/oauth/google/callback', asyncRoute(async (req, res) => {
     }
     const found = await discover(candidate)
     const client = await pool.connect()
+    let connectedAccountId = ''
     try {
       await client.query('BEGIN')
       let existing
@@ -125,7 +145,7 @@ router.get('/oauth/google/callback', asyncRoute(async (req, res) => {
           oauth_access_token_encrypted=$5,oauth_refresh_token_encrypted=$6,oauth_token_expires_at=$7,
           oauth_scopes=$8,oauth_subject=$9,status='CONNECTED',last_error_message_safe=NULL,updated_at=NOW()
           WHERE id=$10 RETURNING *`, [identity.email, candidate.discovery_url, found.principalUrl, found.homeUrl,
-          accessEncrypted, refreshEncrypted, tokenExpiry(tokens), String(tokens.scope || '').split(/\s+/).filter(Boolean), identity.id, existing.rows[0].id])
+          accessEncrypted, refreshEncrypted, tokenExpiry(tokens), grantedScopes, identity.id, existing.rows[0].id])
       } else {
         account = await client.query(`INSERT INTO contact_accounts
           (tenant_id,user_id,provider,display_name,account_identifier,discovery_url,principal_url,addressbook_home_url,
@@ -133,7 +153,7 @@ router.get('/oauth/google/callback', asyncRoute(async (req, res) => {
            oauth_token_expires_at,oauth_scopes,oauth_subject,status)
           VALUES ($1,$2,'GOOGLE',$3,$3,$4,$5,$6,'OAUTH2',$3,$7,$7,$8,$9,$10,$11,'CONNECTED') RETURNING *`, [
           oauthState.tenant_id, oauthState.user_id, identity.email, candidate.discovery_url, found.principalUrl, found.homeUrl,
-          accessEncrypted, refreshEncrypted, tokenExpiry(tokens), String(tokens.scope || '').split(/\s+/).filter(Boolean), identity.id,
+          accessEncrypted, refreshEncrypted, tokenExpiry(tokens), grantedScopes, identity.id,
         ])
       }
       for (const book of found.books) {
@@ -145,9 +165,10 @@ router.get('/oauth/google/callback', asyncRoute(async (req, res) => {
           ctag=COALESCE(EXCLUDED.ctag,contact_addressbooks.ctag),updated_at=NOW()`, [oauthState.tenant_id, oauthState.user_id,
           account.rows[0].id, book.remoteUrl, book.displayName, Boolean(book.syncToken), book.syncToken || null, book.ctag || null])
       }
+      connectedAccountId = account.rows[0].id
       await client.query('COMMIT')
     } catch (error) { await client.query('ROLLBACK'); throw error } finally { client.release() }
-    return oauthRedirect(res, 'connected')
+    return oauthRedirect(res, 'connected', '', connectedAccountId)
   } catch (error) {
     console.error('[ContactBook Google OAuth]', {
       message: error?.message || String(error),
@@ -158,7 +179,7 @@ router.get('/oauth/google/callback', asyncRoute(async (req, res) => {
       authenticate: error?.carddavAuthenticate || null,
       response: error?.carddavResponse || null,
     })
-    return oauthRedirect(res, 'error', 'google_callback_failed')
+    return oauthRedirect(res, 'error', safeGoogleOAuthErrorCode(error))
   }
 }))
 
@@ -280,19 +301,36 @@ router.post('/accounts/:id/sync', asyncRoute(async (req, res) => {
             ON CONFLICT (addressbook_id,remote_href) DO UPDATE SET remote_uid=EXCLUDED.remote_uid,etag=EXCLUDED.etag,
               raw_vcard_encrypted=EXCLUDED.raw_vcard_encrypted,content_hash=EXCLUDED.content_hash,deleted_at=NULL,last_seen_at=NOW(),updated_at=NOW()
             RETURNING id`, [account.tenant_id, req.user.id, account.id, book.id, item.href, parsed.uid || null, item.etag || null, encryptSecret(item.vcard), hash])
-          await client.query(`INSERT INTO contacts
+          if (parsed.kind === 'group') {
+            await client.query('DELETE FROM contacts WHERE contact_resource_id=$1 AND user_id=$2', [resource.rows[0].id, req.user.id])
+            await client.query(`INSERT INTO contact_groups
+              (tenant_id,user_id,account_id,addressbook_id,contact_resource_id,remote_uid,display_name,group_kind,deleted_at)
+              VALUES ($1,$2,$3,$4,$5,$6,$7,$8,NULL)
+              ON CONFLICT (contact_resource_id) DO UPDATE SET remote_uid=EXCLUDED.remote_uid,
+                display_name=EXCLUDED.display_name,group_kind=EXCLUDED.group_kind,deleted_at=NULL,updated_at=NOW()`, [
+              account.tenant_id, req.user.id, account.id, book.id, resource.rows[0].id, parsed.uid || null,
+              parsed.displayName || '(이름 없는 그룹)', account.provider === 'APPLE' ? 'ICLOUD_GROUP' : account.provider === 'GOOGLE' ? 'GOOGLE_LABEL' : 'GENERIC_GROUP',
+            ])
+            seen.push(item.href); imported += 1
+            continue
+          }
+          await client.query('DELETE FROM contact_groups WHERE contact_resource_id=$1 AND user_id=$2', [resource.rows[0].id, req.user.id])
+          const contact = await client.query(`INSERT INTO contacts
             (tenant_id,user_id,contact_resource_id,display_name,given_name,family_name,nickname,organization,department,job_title,birthday,note,emails,phones,addresses,urls,search_text)
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)
             ON CONFLICT (contact_resource_id) DO UPDATE SET display_name=EXCLUDED.display_name,given_name=EXCLUDED.given_name,
               family_name=EXCLUDED.family_name,nickname=EXCLUDED.nickname,organization=EXCLUDED.organization,department=EXCLUDED.department,
               job_title=EXCLUDED.job_title,birthday=EXCLUDED.birthday,note=EXCLUDED.note,emails=EXCLUDED.emails,phones=EXCLUDED.phones,
-              addresses=EXCLUDED.addresses,urls=EXCLUDED.urls,search_text=EXCLUDED.search_text,updated_at=NOW()`, [
+              addresses=EXCLUDED.addresses,urls=EXCLUDED.urls,search_text=EXCLUDED.search_text,updated_at=NOW()
+            RETURNING id`, [
             account.tenant_id, req.user.id, resource.rows[0].id, parsed.displayName, parsed.givenName, parsed.familyName, parsed.nickname,
             parsed.organization, parsed.department, parsed.jobTitle, parsed.birthday, parsed.note,
             JSON.stringify(parsed.emails), JSON.stringify(parsed.phones), JSON.stringify(parsed.addresses), JSON.stringify(parsed.urls), parsed.searchText,
           ])
+          await reconcileContactPerson(client, { tenantId: account.tenant_id, userId: req.user.id, contactId: contact.rows[0].id, displayName: parsed.displayName, phones: parsed.phones, emails: parsed.emails })
           seen.push(item.href); imported += 1
         }
+        await resolveAddressbookGroups(client, { tenantId: account.tenant_id, userId: req.user.id, addressbookId: book.id })
         if (seen.length) await client.query(`UPDATE contact_resources SET deleted_at=NOW(),updated_at=NOW()
           WHERE addressbook_id=$1 AND user_id=$2 AND deleted_at IS NULL AND NOT (remote_href = ANY($3::text[]))`, [book.id, req.user.id, seen])
         else await client.query('UPDATE contact_resources SET deleted_at=NOW(),updated_at=NOW() WHERE addressbook_id=$1 AND user_id=$2 AND deleted_at IS NULL', [book.id, req.user.id])
@@ -309,21 +347,124 @@ router.post('/accounts/:id/sync', asyncRoute(async (req, res) => {
   }
 }))
 
+router.get('/groups', asyncRoute(async (req, res) => {
+  const { rows } = await pool.query(`SELECT g.id,g.display_name,g.group_kind,g.account_id,g.addressbook_id,
+      a.provider,a.display_name AS account_name,b.remote_display_name AS addressbook_name,
+      COUNT(DISTINCT CASE WHEN gm.member_kind='CONTACT' AND gm.resolution_status='RESOLVED' THEN gm.member_resource_id END)::int AS member_count,
+      ARRAY_REMOVE(ARRAY_AGG(DISTINCT parent.id),NULL) AS parent_group_ids
+    FROM contact_groups g
+    JOIN contact_resources r ON r.id=g.contact_resource_id AND r.deleted_at IS NULL
+    JOIN contact_accounts a ON a.id=g.account_id JOIN contact_addressbooks b ON b.id=g.addressbook_id
+    LEFT JOIN contact_group_members gm ON gm.group_id=g.id
+    LEFT JOIN contact_group_members parent_link ON parent_link.member_resource_id=g.contact_resource_id
+      AND parent_link.member_kind='GROUP' AND parent_link.resolution_status='RESOLVED'
+    LEFT JOIN contact_groups parent ON parent.id=parent_link.group_id AND parent.deleted_at IS NULL
+    WHERE g.user_id=$1 AND g.tenant_id=$2 AND g.deleted_at IS NULL
+    GROUP BY g.id,a.provider,a.display_name,a.created_at,b.remote_display_name
+    ORDER BY a.created_at,LOWER(g.display_name) COLLATE "C",g.created_at`, [req.user.id, tenantFor(req.user.id)])
+  res.json(rows)
+}))
+
+// 메일 작성 To/Cc/Bcc용 경량 주소록 자동완성.
+// 연락처 한 건의 여러 이메일을 각각 후보로 펼치고, 동일 이메일은 한 번만 반환한다.
+router.get('/recipient-suggestions', asyncRoute(async (req, res) => {
+  await ensurePeopleForUser(pool, { tenantId: tenantFor(req.user.id), userId: req.user.id })
+  const q = String(req.query.q || '').trim().toLowerCase().slice(0, 200)
+  const limit = Math.min(20, Math.max(1, Number(req.query.limit) || 10))
+  if (!q) return res.json({ suggestions: [] })
+
+  const { rows } = await pool.query(`
+    WITH matches AS (
+      SELECT
+        c.id AS contact_id, l.person_id, c.display_name AS name,
+        ea.raw_email AS email, ea.normalized_email, ea.type AS email_type,
+        c.organization, ea.is_primary,
+        CASE
+          WHEN ea.normalized_email = $3 THEN 0
+          WHEN LEFT(ea.normalized_email, LENGTH($3)) = $3 THEN 1
+          WHEN LOWER(c.display_name) = $3 THEN 2
+          WHEN LEFT(LOWER(c.display_name), LENGTH($3)) = $3 THEN 3
+          WHEN POSITION($3 IN ea.normalized_email) > 0 THEN 4
+          WHEN POSITION($3 IN LOWER(c.display_name)) > 0 THEN 5
+          WHEN POSITION($3 IN LOWER(c.given_name)) > 0 OR POSITION($3 IN LOWER(c.family_name)) > 0
+            OR POSITION($3 IN LOWER(c.nickname)) > 0 THEN 6
+          ELSE 7
+        END AS match_rank
+      FROM contact_email_addresses ea
+      JOIN contacts c ON c.id=ea.contact_id AND c.user_id=ea.user_id AND c.tenant_id=ea.tenant_id
+      JOIN contact_resources r ON r.id=c.contact_resource_id AND r.deleted_at IS NULL
+      LEFT JOIN person_contact_links l ON l.contact_id=c.id AND l.user_id=c.user_id
+      WHERE ea.user_id=$1 AND ea.tenant_id=$2
+        AND (
+          POSITION($3 IN ea.normalized_email) > 0
+          OR POSITION($3 IN LOWER(c.display_name)) > 0
+          OR POSITION($3 IN LOWER(c.given_name)) > 0
+          OR POSITION($3 IN LOWER(c.family_name)) > 0
+          OR POSITION($3 IN LOWER(c.nickname)) > 0
+          OR POSITION($3 IN LOWER(c.organization)) > 0
+        )
+    ), ranked AS (
+      SELECT matches.*,
+        ROW_NUMBER() OVER (
+          PARTITION BY normalized_email
+          ORDER BY match_rank, is_primary DESC, LOWER(name), contact_id
+        ) AS duplicate_rank
+      FROM matches
+    )
+    SELECT * FROM ranked
+    WHERE duplicate_rank=1
+    ORDER BY match_rank, is_primary DESC, LOWER(name), normalized_email
+    LIMIT $4
+  `, [req.user.id, tenantFor(req.user.id), q, limit])
+
+  const suggestions = rows.map(row => ({
+      contactId: row.contact_id,
+      personId: row.person_id || null,
+      name: row.name || '',
+      email: row.email,
+      normalizedEmail: row.normalized_email,
+      emailType: row.email_type || '',
+      organization: row.organization || '',
+      primary: Boolean(row.is_primary),
+    }))
+  res.json({ suggestions })
+}))
+
 router.get('/contacts', asyncRoute(async (req, res) => {
+  await ensurePeopleForUser(pool, { tenantId: tenantFor(req.user.id), userId: req.user.id })
   const q = String(req.query.q || '').trim().toLowerCase()
   const limit = Math.min(200, Math.max(1, Number(req.query.limit) || 100))
   const offset = Math.max(0, Number(req.query.offset) || 0)
   const values = [req.user.id, tenantFor(req.user.id)]
   let filter = ''
   if (q) { values.push(`%${q}%`); filter = ` AND c.search_text LIKE $${values.length}` }
+  const groupId = String(req.query.groupId || '').trim()
+  if (groupId) {
+    values.push(groupId)
+    filter += ` AND c.contact_resource_id IN (
+      WITH RECURSIVE group_tree AS (
+        SELECT g.id,g.contact_resource_id FROM contact_groups g JOIN contact_resources gr ON gr.id=g.contact_resource_id AND gr.deleted_at IS NULL
+        WHERE g.id=$${values.length} AND g.user_id=$1 AND g.tenant_id=$2 AND g.deleted_at IS NULL
+        UNION
+        SELECT child.id,child.contact_resource_id FROM group_tree tree
+        JOIN contact_group_members nested ON nested.group_id=tree.id AND nested.member_kind='GROUP' AND nested.resolution_status='RESOLVED'
+        JOIN contact_groups child ON child.contact_resource_id=nested.member_resource_id AND child.deleted_at IS NULL
+      )
+      SELECT member.member_resource_id FROM group_tree tree JOIN contact_group_members member ON member.group_id=tree.id
+      WHERE member.member_kind='CONTACT' AND member.resolution_status='RESOLVED'
+    )`
+  }
   const countValues = [...values]
   const countResult = await pool.query(`SELECT COUNT(*)::int AS total
     FROM contacts c JOIN contact_resources r ON r.id=c.contact_resource_id AND r.deleted_at IS NULL
     WHERE c.user_id=$1 AND c.tenant_id=$2${filter}`, countValues)
   values.push(limit, offset)
-  const { rows } = await pool.query(`SELECT c.*,r.etag,r.remote_uid,a.provider, a.display_name AS account_name, b.remote_display_name AS addressbook_name
+  const { rows } = await pool.query(`SELECT c.*,r.etag,r.remote_uid,a.provider, a.display_name AS account_name, b.remote_display_name AS addressbook_name,
+      l.person_id,p.primary_photo_id
     FROM contacts c JOIN contact_resources r ON r.id=c.contact_resource_id AND r.deleted_at IS NULL
     JOIN contact_accounts a ON a.id=r.account_id JOIN contact_addressbooks b ON b.id=r.addressbook_id
+    LEFT JOIN person_contact_links l ON l.contact_id=c.id AND l.user_id=c.user_id
+    LEFT JOIN people p ON p.id=l.person_id AND p.user_id=c.user_id
     WHERE c.user_id=$1 AND c.tenant_id=$2${filter}
     ORDER BY CASE
       WHEN NULLIF(BTRIM(COALESCE(NULLIF(c.family_name,''),c.display_name)),'') IS NULL THEN 3
@@ -339,12 +480,138 @@ router.get('/contacts', asyncRoute(async (req, res) => {
 }))
 
 router.get('/contacts/:id', asyncRoute(async (req, res) => {
-  const { rows } = await pool.query(`SELECT c.*,r.etag,r.remote_uid,a.provider,a.display_name AS account_name,b.remote_display_name AS addressbook_name
+  await ensurePeopleForUser(pool, { tenantId: tenantFor(req.user.id), userId: req.user.id })
+  const { rows } = await pool.query(`SELECT c.*,r.etag,r.remote_uid,a.provider,a.display_name AS account_name,b.remote_display_name AS addressbook_name,
+      l.person_id,p.primary_photo_id
     FROM contacts c JOIN contact_resources r ON r.id=c.contact_resource_id AND r.deleted_at IS NULL
     JOIN contact_accounts a ON a.id=r.account_id JOIN contact_addressbooks b ON b.id=r.addressbook_id
+    LEFT JOIN person_contact_links l ON l.contact_id=c.id AND l.user_id=c.user_id
+    LEFT JOIN people p ON p.id=l.person_id AND p.user_id=c.user_id
     WHERE c.id=$1 AND c.user_id=$2 AND c.tenant_id=$3`, [req.params.id, req.user.id, tenantFor(req.user.id)])
   if (!rows[0]) return res.status(404).json({ error: '연락처를 찾을 수 없습니다.' })
   res.json(safeContact(rows[0]))
+}))
+
+async function ownedPersonForContact(userId, contactId) {
+  await ensurePeopleForUser(pool, { tenantId: tenantFor(userId), userId })
+  const { rows } = await pool.query(`SELECT l.person_id FROM person_contact_links l
+    JOIN contacts c ON c.id=l.contact_id JOIN contact_resources r ON r.id=c.contact_resource_id AND r.deleted_at IS NULL
+    WHERE c.id=$1 AND c.user_id=$2 AND c.tenant_id=$3 AND l.user_id=$2`, [contactId, userId, tenantFor(userId)])
+  if (!rows[0]) { const error = new Error('연락처를 찾을 수 없습니다.'); error.status = 404; throw error }
+  return rows[0].person_id
+}
+
+function safePhoto(row) {
+  return { ...row, byte_size: Number(row.byte_size), url: `/api/contactbook/photos/${row.id}/content` }
+}
+
+router.get('/contacts/:id/photos', asyncRoute(async (req, res) => {
+  const personId = await ownedPersonForContact(req.user.id, req.params.id)
+  const { rows } = await pool.query(`SELECT id,mime_type,byte_size,width,height,sha256,source,is_primary,caption,taken_at,created_at
+    FROM person_photos WHERE person_id=$1 AND user_id=$2 AND tenant_id=$3 AND deleted_at IS NULL
+    ORDER BY is_primary DESC,created_at DESC`, [personId, req.user.id, tenantFor(req.user.id)])
+  res.json({ personId, photos: rows.map(safePhoto) })
+}))
+
+router.post('/contacts/:id/photos', photoUpload.single('photo'), asyncRoute(async (req, res) => {
+  if (!req.file?.buffer?.length) return res.status(400).json({ error: '업로드할 사진을 선택해 주세요.' })
+  const personId = await ownedPersonForContact(req.user.id, req.params.id)
+  const stored = await savePhoto(req.file.buffer, req.user.id)
+  try {
+    const { rows } = await pool.query(`INSERT INTO person_photos
+      (tenant_id,user_id,person_id,object_key,mime_type,byte_size,width,height,sha256,source,source_contact_id,caption)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,'LOCAL',$10,$11)
+      RETURNING id,mime_type,byte_size,width,height,sha256,source,is_primary,caption,taken_at,created_at`, [
+      tenantFor(req.user.id), req.user.id, personId, stored.objectKey, stored.mimeType, req.file.buffer.length,
+      stored.width, stored.height, stored.sha256, req.params.id, String(req.body?.caption || '').trim().slice(0, 500),
+    ])
+    res.status(201).json(safePhoto(rows[0]))
+  } catch (error) { await deletePhoto(stored.objectKey); throw error }
+}))
+
+router.get('/photos/:id/content', asyncRoute(async (req, res) => {
+  const { rows } = await pool.query(`SELECT ph.object_key,ph.mime_type FROM person_photos ph
+    JOIN people p ON p.id=ph.person_id WHERE ph.id=$1 AND ph.user_id=$2 AND ph.tenant_id=$3
+    AND ph.deleted_at IS NULL AND p.user_id=$2 AND p.tenant_id=$3`, [req.params.id, req.user.id, tenantFor(req.user.id)])
+  if (!rows[0]) return res.status(404).json({ error: '사진을 찾을 수 없습니다.' })
+  res.setHeader('Content-Type', rows[0].mime_type)
+  res.setHeader('Cache-Control', 'private, max-age=3600')
+  res.setHeader('X-Content-Type-Options', 'nosniff')
+  res.sendFile(resolvePhoto(rows[0].object_key))
+}))
+
+router.patch('/photos/:id/primary', asyncRoute(async (req, res) => {
+  const client = await pool.connect()
+  try {
+    await client.query('BEGIN')
+    const found = await client.query(`SELECT ph.id,ph.person_id FROM person_photos ph JOIN people p ON p.id=ph.person_id
+      WHERE ph.id=$1 AND ph.user_id=$2 AND ph.tenant_id=$3 AND ph.deleted_at IS NULL
+      AND p.user_id=$2 AND p.tenant_id=$3 FOR UPDATE`, [req.params.id, req.user.id, tenantFor(req.user.id)])
+    if (!found.rows[0]) { const error = new Error('사진을 찾을 수 없습니다.'); error.status = 404; throw error }
+    await client.query('UPDATE person_photos SET is_primary=false,updated_at=NOW() WHERE person_id=$1 AND user_id=$2', [found.rows[0].person_id, req.user.id])
+    await client.query('UPDATE person_photos SET is_primary=true,updated_at=NOW() WHERE id=$1', [req.params.id])
+    await client.query('UPDATE people SET primary_photo_id=$1,updated_at=NOW() WHERE id=$2 AND user_id=$3', [req.params.id, found.rows[0].person_id, req.user.id])
+    await client.query('COMMIT')
+    res.json({ ok: true, photoId: req.params.id })
+  } catch (error) { await client.query('ROLLBACK'); throw error } finally { client.release() }
+}))
+
+router.delete('/photos/:id', asyncRoute(async (req, res) => {
+  const client = await pool.connect()
+  let objectKey = ''
+  try {
+    await client.query('BEGIN')
+    const found = await client.query(`SELECT ph.id,ph.person_id,ph.object_key,ph.is_primary FROM person_photos ph JOIN people p ON p.id=ph.person_id
+      WHERE ph.id=$1 AND ph.user_id=$2 AND ph.tenant_id=$3 AND ph.deleted_at IS NULL
+      AND p.user_id=$2 AND p.tenant_id=$3 FOR UPDATE`, [req.params.id, req.user.id, tenantFor(req.user.id)])
+    if (!found.rows[0]) { const error = new Error('사진을 찾을 수 없습니다.'); error.status = 404; throw error }
+    objectKey = found.rows[0].object_key
+    await client.query('UPDATE person_photos SET deleted_at=NOW(),is_primary=false,updated_at=NOW() WHERE id=$1', [req.params.id])
+    if (found.rows[0].is_primary) await client.query('UPDATE people SET primary_photo_id=NULL,updated_at=NOW() WHERE id=$1 AND user_id=$2', [found.rows[0].person_id, req.user.id])
+    await client.query('COMMIT')
+  } catch (error) { await client.query('ROLLBACK'); throw error } finally { client.release() }
+  await deletePhoto(objectKey)
+  res.json({ ok: true })
+}))
+
+router.delete('/contacts/:id', asyncRoute(async (req, res) => {
+  const result = await pool.query(`SELECT c.id,c.display_name,c.contact_resource_id,r.remote_href,r.remote_uid,r.etag,r.account_id,
+      b.remote_url,b.remote_display_name AS addressbook_name,a.provider,a.display_name AS account_name,
+      a.user_id,a.tenant_id
+    FROM contacts c JOIN contact_resources r ON r.id=c.contact_resource_id AND r.deleted_at IS NULL
+    JOIN contact_addressbooks b ON b.id=r.addressbook_id JOIN contact_accounts a ON a.id=r.account_id
+    WHERE c.id=$1 AND c.user_id=$2 AND c.tenant_id=$3`, [req.params.id, req.user.id, tenantFor(req.user.id)])
+  const row = result.rows[0]
+  if (!row) return res.status(404).json({ error: '연락처를 찾을 수 없습니다.' })
+  if (!canEditContact(row)) return res.status(403).json({ error: 'Google 또는 iCloud 주소록의 저장된 연락처만 삭제할 수 있습니다.', code: 'CONTACT_DELETE_NOT_ALLOWED' })
+  const submittedEtag = String(req.body?.etag || '').trim()
+  if (!submittedEtag || submittedEtag !== row.etag) return res.status(409).json({ error: '연락처가 변경되었습니다. 새로고침 후 다시 시도해 주세요.', code: 'CONTACT_ETAG_STALE' })
+  const resourceUrl = new URL(row.remote_href, row.remote_url).toString()
+  let account = await ownedAccount(req.user.id, row.account_id)
+  const remove = async () => deleteResource(account, resourceUrl, row.etag)
+  try {
+    await remove()
+  } catch (error) {
+    if (row.provider === 'GOOGLE' && error.status === 401) {
+      account = await refreshOwnedGoogleAccount(account, true)
+      await remove()
+    } else if (error.status === 412) {
+      return res.status(409).json({
+        error: `${row.provider === 'APPLE' ? 'iCloud' : 'Google'} 주소록에서 같은 연락처가 먼저 변경되었습니다. 동기화 후 다시 삭제해 주세요.`,
+        code: 'CONTACT_DELETE_CONFLICT',
+      })
+    } else throw error
+  }
+  const client = await pool.connect()
+  try {
+    await client.query('BEGIN')
+    const deleted = await client.query(`UPDATE contact_resources SET deleted_at=NOW(),updated_at=NOW()
+      WHERE id=$1 AND user_id=$2 AND tenant_id=$3 AND deleted_at IS NULL`, [row.contact_resource_id, req.user.id, tenantFor(req.user.id)])
+    if (!deleted.rowCount) { const error = new Error('연락처가 이미 삭제되었습니다.'); error.status = 404; throw error }
+    await client.query('DELETE FROM person_contact_links WHERE contact_id=$1 AND user_id=$2 AND tenant_id=$3', [row.id, req.user.id, tenantFor(req.user.id)])
+    await client.query('COMMIT')
+  } catch (error) { await client.query('ROLLBACK'); throw error } finally { client.release() }
+  res.json({ ok: true, contactId: row.id })
 }))
 
 router.patch('/contacts/:id', asyncRoute(async (req, res) => {
@@ -389,8 +656,10 @@ router.patch('/contacts/:id', asyncRoute(async (req, res) => {
 
 router.use((error, _req, res, _next) => {
   console.error('[ContactBook]', error?.message || error)
-  const status = Number(error?.status) || 500
-  const safeMessage = status >= 500 ? 'ContactBook 처리 중 오류가 발생했습니다.' : error.message
+  const status = error?.code === 'LIMIT_FILE_SIZE' ? 413 : Number(error?.status) || 500
+  const safeMessage = error?.code === 'LIMIT_FILE_SIZE'
+    ? '사진은 한 장당 10MB까지 업로드할 수 있습니다.'
+    : status >= 500 ? 'ContactBook 처리 중 오류가 발생했습니다.' : error.message
   res.status(status).json({ error: safeMessage })
 })
 

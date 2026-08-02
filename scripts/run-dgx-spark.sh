@@ -326,6 +326,19 @@ if [[ "$SHOW_WELCOME_BOARD" == "1" ]]; then
   log "Welcome 보드 Service 섹션 활성화"
 fi
 
+log "프론트엔드 프로덕션 빌드 생성 중"
+if ! env VITE_CONSTRUCT_SAFE_KANBAN_TEMPLATE="$CONSTRUCT_SAFE_KANBAN_TEMPLATE" \
+  VITE_EASY_CODE_GENERATION_TEMPLATE="$EASY_CODE_GENERATION_TEMPLATE" \
+  VITE_SHOW_WELCOME_BOARD="$SHOW_WELCOME_BOARD" \
+  npm run build >> "$LOG_FILE" 2>&1; then
+  log "프론트엔드 빌드 실패. 로그를 확인하세요: $LOG_FILE"
+  exit 1
+fi
+if [[ ! -f "$ROOT_DIR/dist/index.html" ]]; then
+  log "프론트엔드 빌드 산출물이 없습니다: $ROOT_DIR/dist/index.html"
+  exit 1
+fi
+
 setsid env ROOT_DIR="$ROOT_DIR" LOG_FILE="$LOG_FILE" bash -c \
   'cd "$ROOT_DIR" && npm run ollama:serve >> "$LOG_FILE" 2>&1 < /dev/null' \
   >/dev/null 2>&1 &
@@ -333,24 +346,17 @@ ollama_pid=$!
 disown "$ollama_pid" >/dev/null 2>&1 || true
 echo "$ollama_pid" > "$OLLAMA_PID_FILE"
 
-setsid env ROOT_DIR="$ROOT_DIR" LOG_FILE="$LOG_FILE" VITE_CONSTRUCT_SAFE_KANBAN_TEMPLATE="$CONSTRUCT_SAFE_KANBAN_TEMPLATE" VITE_EASY_CODE_GENERATION_TEMPLATE="$EASY_CODE_GENERATION_TEMPLATE" VITE_SHOW_WELCOME_BOARD="$SHOW_WELCOME_BOARD" bash -c \
-  'cd "$ROOT_DIR" && npm run dev:frontend >> "$LOG_FILE" 2>&1 < /dev/null' \
-  >/dev/null 2>&1 &
-fe_pid=$!
-disown "$fe_pid" >/dev/null 2>&1 || true
-echo "$fe_pid" > "$FE_PID_FILE"
-
-setsid env ROOT_DIR="$ROOT_DIR" LOG_FILE="$LOG_FILE" bash -c \
+setsid env ROOT_DIR="$ROOT_DIR" LOG_FILE="$LOG_FILE" NODE_ENV="production" SERVE_FRONTEND_DIST="1" SERVE_FRONTEND_PORT="5173" bash -c \
   'cd "$ROOT_DIR" && bash scripts/backend-loop-dgx.sh >> "$LOG_FILE" 2>&1 < /dev/null' \
   >/dev/null 2>&1 &
 be_pid=$!
 disown "$be_pid" >/dev/null 2>&1 || true
 echo "$be_pid" > "$BE_PID_FILE"
-echo "$fe_pid" > "$PID_FILE"
+echo "$be_pid" > "$PID_FILE"
 
 sleep 1
-if kill -0 "$fe_pid" 2>/dev/null && kill -0 "$be_pid" 2>/dev/null; then
-  log "실행 성공 (FE PID: $fe_pid, BE PID: $be_pid)"
+if kill -0 "$be_pid" 2>/dev/null; then
+  log "실행 성공 (프로덕션 FE: 5173, API: 3001, PID: $be_pid)"
   log "종료 명령: bash scripts/run-dgx-spark.sh --stop"
   exit 0
 fi

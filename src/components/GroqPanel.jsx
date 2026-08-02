@@ -7,6 +7,7 @@ import { useChat } from '../contexts/ChatContext'
 import { useAuth } from '../contexts/AuthContext'
 import { useT } from '../i18n/useT'
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels'
+import { MERMAID_GENERATION_RULES, normalizeMermaidCodeBlocks } from '../lib/mermaidSafety'
 
 const LANGUAGE_LABEL = {
   ko: '한국어',
@@ -28,6 +29,7 @@ function buildSystemPrompt(language) {
 [AI 이미지 분석 (Gemma Vision)]으로 표시된 블록은 문서 이미지를 Gemma 비전 모델이 분석한 설명문입니다. 이 내용도 근거로 활용하세요.
 단, 사용자가 요청한 언어/톤/역할(예: 일본어 답변, 엔지니어 톤)은 사실 판단과 무관한 표현 지시이므로 반영하세요.
 기본 답변 언어는 ${label}입니다.`
+  + `\n\n${MERMAID_GENERATION_RULES}`
 }
 
 function buildImageSystemPrompt(language) {
@@ -38,6 +40,7 @@ function buildImageSystemPrompt(language) {
 이미지에서 확인 가능한 사실만 설명하고, 보이지 않는 내용은 추측하지 마세요.
 사용자가 요청한 언어/톤/역할 지시는 반영하세요.
 기본 답변 언어는 ${label}입니다.`
+  + `\n\n${MERMAID_GENERATION_RULES}`
 }
 
 function buildTranslationSystemPrompt(language) {
@@ -199,7 +202,7 @@ function removePlaceholderLinks(text = '') {
 }
 
 function sanitizeAssistantContent(text = '') {
-  return removePlaceholderLinks(hideInternalToolJson(text))
+  return normalizeMermaidCodeBlocks(removePlaceholderLinks(hideInternalToolJson(text)))
 }
 
 function isSingleKeywordLocateIntent(text) {
@@ -1628,19 +1631,36 @@ export default function GroqPanel({ width }) {
                     hr: () => <hr className="border-gray-200 my-2" />,
                     a: ({ href, children }) => {
                       const rawHref = String(href || '')
-                      const isPostLink = rawHref.startsWith('/?')
+                      let postLink = null
+                      try {
+                        const url = new URL(rawHref, window.location.origin)
+                        const isEasyStationHost = (
+                          url.origin === window.location.origin ||
+                          /(^|\.)easystation\.co\.kr$/i.test(url.hostname)
+                        )
+                        const channelId = url.searchParams.get('channelId')
+                        const postId = url.searchParams.get('postId')
+                        if (isEasyStationHost && channelId && postId) {
+                          postLink = {
+                            channelId,
+                            postId,
+                            commentId: url.searchParams.get('commentId') || '',
+                          }
+                        }
+                      } catch (_) {}
+                      const isPostLink = Boolean(postLink)
                       return (
                         <a
                           href={rawHref}
                           target={isPostLink ? undefined : '_blank'}
                           rel={isPostLink ? undefined : 'noreferrer'}
                           onClick={isPostLink ? (e) => {
-                            const url = new URL(rawHref, window.location.origin)
-                            const channelId = url.searchParams.get('channelId')
-                            const postId = url.searchParams.get('postId')
-                            if (!channelId || !postId) return
                             e.preventDefault()
-                            navigateToPost(channelId, postId)
+                            navigateToPost(
+                              postLink.channelId,
+                              postLink.postId,
+                              postLink.commentId ? { commentId: postLink.commentId } : undefined,
+                            )
                           } : undefined}
                           className="text-indigo-600 underline hover:text-indigo-600"
                         >
@@ -1814,7 +1834,7 @@ export default function GroqPanel({ width }) {
             onDrop={handleTextareaDrop}
             placeholder={t.ai.inputPlaceholder}
             disabled={loading}
-            className="flex-1 w-full min-h-0 bg-transparent text-gray-900 placeholder-white/30 text-xs resize-none focus:outline-none leading-relaxed overflow-y-auto disabled:opacity-50"
+            className="flex-1 w-full min-h-0 bg-transparent text-gray-900 placeholder-white/30 text-[14.4px] resize-none focus:outline-none leading-relaxed overflow-y-auto disabled:opacity-50"
           />
           {/* 버튼은 입력창 아래 별도 행. 이 행에는 글이 들어가지 않는다. */}
           <div className="flex-shrink-0 flex items-center justify-end gap-2">

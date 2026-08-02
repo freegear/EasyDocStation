@@ -152,4 +152,14 @@ async function getResource(account, resourceUrl) {
   return request(account, resourceUrl, { method: 'GET', depth: '0', contentType: 'text/vcard; charset=utf-8' })
 }
 
-module.exports = { discover, listResources, updateResource, getResource, decodeXmlCharacterReferences }
+async function deleteResource(account, resourceUrl, etag) {
+  if (!etag) { const error = new Error('연락처 ETag가 없어 안전하게 삭제할 수 없습니다.'); error.status = 409; throw error }
+  try {
+    return await request(account, resourceUrl, { method: 'DELETE', depth: '0', headers: { 'If-Match': etag } })
+  } catch (error) {
+    if ([404, 410].includes(error.status)) return { status: error.status, alreadyDeleted: true }
+    throw error
+  }
+}
+
+module.exports = { discover, listResources, updateResource, getResource, deleteResource, decodeXmlCharacterReferences }

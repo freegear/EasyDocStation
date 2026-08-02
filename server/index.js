@@ -52,6 +52,7 @@ const ragRouter    = require('./routes/rag')
 const aiRouter = require('./routes/ai')
 const questionsRouter = require('./routes/questions')
 const sttRouter = require('./routes/stt')
+const meetingsRouter = require('./routes/meetings')
 const eventsRouter = require('./routes/events')
 const expenseRouter = require('./routes/expense')
 const tripRouter = require('./routes/trip')
@@ -65,11 +66,13 @@ const folderDatasetsRouter = require('./routes/folderDatasets')
 const contactbookRouter = require('./routes/contactbook')
 const { initCassandra } = require('./cassandra')
 const { initRag } = require('./rag')
-const { startMailSyncScheduler } = require('./mail/scheduler')
+const { startMailSyncScheduler, stopMailSyncScheduler } = require('./mail/scheduler')
 const { startAgenticMailWorker } = require('./mail/agentic/worker')
+const { loadUpdateHistory } = require('./updateHistory')
 
 const app = express()
 const PORT = process.env.PORT || 3001
+const FRONTEND_PORT = Number(process.env.SERVE_FRONTEND_PORT || 0)
 
 function normalizeAgenticAiConfig(ai = {}) {
   const language = ['ko', 'ja', 'en', 'zh'].includes(ai?.language) ? ai.language : 'ko'
@@ -140,6 +143,7 @@ app.use('/api/rag',    ragRouter)
 app.use('/api/ai', aiRouter)
 app.use('/api/questions', questionsRouter)
 app.use('/api/ai/stt', sttRouter)
+app.use('/api/meetings', meetingsRouter)
 app.use('/api/events', eventsRouter)
 app.use('/api/expense', expenseRouter)
 app.use('/api/trip', tripRouter)
@@ -156,15 +160,14 @@ app.get('/api/health', (_req, res) => res.json({ ok: true }))
 
 // 공용 설정 API (관리자 설정값 조회용)
 app.get('/api/config/version', (req, res) => {
-  try {
-    const fs = require('fs')
-    const path = require('path')
-    const configPath = path.resolve(__dirname, '../config.json')
-    const config = JSON.parse(fs.readFileSync(configPath, 'utf8'))
-    res.json({ version: config['EasyDocStation Version'] || '0.0.1' })
-  } catch (e) {
-    res.json({ version: '0.0.1' })
-  }
+  const updateHistory = loadUpdateHistory()
+  res.setHeader('Cache-Control', 'no-store, max-age=0')
+  res.json({ version: updateHistory.currentVersion, available: updateHistory.available })
+})
+
+app.get('/api/config/update-history', (req, res) => {
+  res.setHeader('Cache-Control', 'no-store, max-age=0')
+  res.json(loadUpdateHistory())
 })
 
 app.get('/api/config/display', (req, res) => {
@@ -264,6 +267,36 @@ app.get('/api/config/company', (req, res) => {
   }
 })
 
+app.use('/api', (_req, res) => {
+  res.status(404).json({ error: 'API 경로를 찾을 수 없습니다.' })
+})
+
+if (process.env.NODE_ENV === 'production' || String(process.env.SERVE_FRONTEND_DIST || '0') === '1') {
+  const distDir = path.resolve(__dirname, '../dist')
+  const fs = require('fs')
+  const indexPath = path.join(distDir, 'index.html')
+
+  if (!fs.existsSync(indexPath)) {
+    console.error(`[Frontend] 프로덕션 빌드를 찾을 수 없습니다: ${indexPath}`)
+  } else {
+    app.use(express.static(distDir, {
+      index: false,
+      setHeaders(res, filePath) {
+        if (filePath.includes(`${path.sep}assets${path.sep}`)) {
+          res.setHeader('Cache-Control', 'public, max-age=31536000, immutable')
+        } else if (path.basename(filePath) === 'sw.js') {
+          res.setHeader('Cache-Control', 'no-cache')
+        }
+      },
+    }))
+    app.get('*', (_req, res) => {
+      res.setHeader('Cache-Control', 'no-cache')
+      res.sendFile(indexPath)
+    })
+    console.log(`[Frontend] 프로덕션 빌드 서비스: ${distDir}`)
+  }
+}
+
 app.use((err, req, res, next) => {
   console.error(err)
   res.status(500).json({ error: '서버 오류가 발생했습니다.' })
@@ -291,6 +324,12 @@ const server = app.listen(PORT, () => {
   }
 })
 
+const frontendServer = FRONTEND_PORT && FRONTEND_PORT !== Number(PORT)
+  ? app.listen(FRONTEND_PORT, () => {
+    console.log(`✅ EasyDocStation production frontend running on http://localhost:${FRONTEND_PORT}`)
+  })
+  : null
+
 server.on('error', (err) => {
   if (err.code === 'EADDRINUSE') {
     console.error(`❌ 포트 ${PORT} 이미 사용 중입니다. run 스크립트에서 선정리 후 다시 실행하세요.`)
@@ -299,3 +338,20 @@ server.on('error', (err) => {
     throw err
   }
 })
+
+frontendServer?.on('error', (err) => {
+  if (err.code === 'EADDRINUSE') {
+    console.error(`❌ 프론트엔드 포트 ${FRONTEND_PORT} 이미 사용 중입니다.`)
+    process.exit(1)
+  }
+  throw err
+})
+
+function shutdown() {
+  stopMailSyncScheduler()
+  frontendServer?.close()
+  server.close(() => process.exit(0))
+}
+
+process.once('SIGTERM', shutdown)
+process.once('SIGINT', shutdown)
