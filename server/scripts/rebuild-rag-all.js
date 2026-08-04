@@ -3,6 +3,7 @@
 const fs = require('fs')
 const path = require('path')
 const http = require('http')
+const https = require('https')
 const { spawn } = require('child_process')
 
 const ROOT_DIR = path.resolve(__dirname, '../..')
@@ -101,19 +102,38 @@ async function notifyTelegram(text, { force = false } = {}) {
 
   for (const chatId of chatIds) {
     try {
-      const res = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+      await new Promise((resolve, reject) => {
+        const body = JSON.stringify({
           chat_id: chatId,
           text,
           disable_web_page_preview: true,
-        }),
+        })
+        const req = https.request({
+          hostname: 'api.telegram.org',
+          path: `/bot${botToken}/sendMessage`,
+          method: 'POST',
+          family: 4,
+          timeout: 15000,
+          headers: {
+            'Content-Type': 'application/json',
+            'Content-Length': Buffer.byteLength(body),
+          },
+        }, res => {
+          let raw = ''
+          res.on('data', chunk => { raw += chunk })
+          res.on('end', () => {
+            let parsed = {}
+            try { parsed = raw ? JSON.parse(raw) : {} } catch (_) {}
+            if ((res.statusCode || 500) >= 400 || parsed.ok === false) {
+              reject(new Error(parsed.description || `HTTP ${res.statusCode}`))
+            } else resolve(parsed)
+          })
+        })
+        req.on('timeout', () => req.destroy(new Error('Telegram request timeout')))
+        req.on('error', reject)
+        req.write(body)
+        req.end()
       })
-      const data = await res.json().catch(() => ({}))
-      if (!res.ok || data.ok === false) {
-        log(`텔레그램 전송 실패: chat_id=${chatId} ${data.description || res.status}`)
-      }
     } catch (e) {
       log(`텔레그램 전송 오류: chat_id=${chatId} ${e.message}`)
     }
@@ -135,6 +155,22 @@ function overallPercent(done = trainingProgress) {
   return formatPercent((current / total) * 100)
 }
 
+function completedTrainingUnits(done = trainingProgress) {
+  return Math.min(
+    totalTrainingUnits(),
+    done.postsDone + done.commentsDone + done.attachmentsDone,
+  )
+}
+
+function progressSummaryText(done = trainingProgress) {
+  return [
+    `전체 학습 필요 데이터량: ${totalTrainingUnits()}건`,
+    `학습 완료된 데이터량: ${completedTrainingUnits(done)}건`,
+    `학습 진행률: ${overallPercent(done)}`,
+    `완료 상세: 게시글 ${done.postsDone}/${trainingSummary.posts}, 댓글 ${done.commentsDone}/${trainingSummary.comments}, 첨부 ${done.attachmentsDone}/${trainingSummary.attachments}`,
+  ].join('\n')
+}
+
 function countTrainerAttachments(items = []) {
   return items.reduce((n, item) => (
     n
@@ -151,13 +187,19 @@ function countTrainerAttachments(items = []) {
 
 function extractTrainerFileProgress(line = '') {
   const text = String(line || '').trim()
-  const match = text.match(/\[RAG\]\s+(PDF|Word|TXT|이미지)\s+학습\s+(시작|완료):\s+(.+?)(?:\s+\(|$)/)
-  if (!match) return null
-  return {
-    type: match[1],
-    status: match[2],
-    fileName: match[3].trim(),
+  const legacy = text.match(/\[RAG\]\s+(PDF|Word|TXT|이미지)\s+학습\s+(시작|완료):\s+(.+?)(?:\s+\(|$)/)
+  if (legacy) {
+    return { type: legacy[1], status: legacy[2], fileName: legacy[3].trim() }
   }
+  const converterStart = text.match(/\[RAG\]\s+(docling|markitdown)\s+학습\s+시작:\s+(.+?)(?:\s+\(([^)]+)\)|$)/i)
+  if (converterStart) {
+    return { type: converterStart[3] || converterStart[1], status: '시작', fileName: converterStart[2].trim() }
+  }
+  const converterDone = text.match(/\[RAG\]\s+문서\s+학습\s+완료:\s+(.+?)(?:\s+\(([^,]+),|$)/)
+  if (converterDone) {
+    return { type: converterDone[2] || '문서', status: '완료', fileName: converterDone[1].trim() }
+  }
+  return null
 }
 
 function readConfig() {
@@ -191,6 +233,10 @@ function buildTrainerConfig(cfg, ragCfg) {
     trainer_timeout_sec: ragCfg.trainer_timeout_sec ?? 0,
     pdf_parse_strategy: ragCfg.pdf_parse_strategy ?? 'auto',
     pdf_parse_timeout_sec: ragCfg.pdf_parse_timeout_sec ?? 180,
+    document_converter: ragCfg.document_converter ?? 'docling',
+    docling_shadow_compare: ragCfg.docling_shadow_compare ?? false,
+    docling_fallback_to_markitdown: ragCfg.docling_fallback_to_markitdown ?? true,
+    document_convert_max_file_size: ragCfg.document_convert_max_file_size ?? 500 * 1024 * 1024,
   }
 }
 
@@ -610,6 +656,7 @@ async function trainInBatches({ posts, comments, trainerConfig, timeoutMs }) {
     const start = trainingProgress.postsDone + 1
     const end = trainingProgress.postsDone + batch.length
     const batchAttachmentCount = countTrainerAttachments(batch)
+    const attachmentsBeforeBatch = trainingProgress.attachmentsDone
     const currentPercent = overallPercent({
       ...trainingProgress,
       postsDone: end,
@@ -620,26 +667,35 @@ async function trainInBatches({ posts, comments, trainerConfig, timeoutMs }) {
 단계: 게시글 학습
 게시글: 총 ${trainingSummary.posts}건 중 ${start}-${end}건 학습 중
 이번 배치: 게시글 ${batch.length}건, 첨부 ${batchAttachmentCount}건
-전체 진행률: ${currentPercent}
+예상 진행률(현재 배치 포함): ${currentPercent}
+
+${progressSummaryText()}
 
 전체 대상: 게시글 ${trainingSummary.posts}건, 댓글 ${trainingSummary.comments}건, 첨부 ${trainingSummary.attachments}건`, { force: true })
     await callPythonTrainer({ config: trainerConfig, posts: batch, comments: [] }, timeoutMs, line => {
       const fileProgress = extractTrainerFileProgress(line)
       if (!fileProgress) return
-      if (fileProgress.status === '완료') trainingProgress.attachmentsDone += 1
+      if (fileProgress.status === '완료') {
+        trainingProgress.attachmentsDone = Math.min(trainingSummary.attachments, trainingProgress.attachmentsDone + 1)
+      }
       notifyTelegram(`EasyDocStation RAG 파일 학습 ${fileProgress.status}
 
 단계: 게시글 첨부
 파일: ${fileProgress.fileName}
 형식: ${fileProgress.type}
 첨부: 총 ${trainingSummary.attachments}건 중 ${Math.min(trainingProgress.attachmentsDone + (fileProgress.status === '시작' ? 1 : 0), trainingSummary.attachments)}건 처리 중
-전체 진행률: ${overallPercent()}`, { force: true }).catch(() => {})
+${progressSummaryText()}`, { force: false }).catch(() => {})
     })
+    // 파일별 로그가 없는 빈/미지원 문서도 배치가 성공하면 처리 완료로 계산한다.
+    trainingProgress.attachmentsDone = Math.min(
+      trainingSummary.attachments,
+      Math.max(trainingProgress.attachmentsDone, attachmentsBeforeBatch + batchAttachmentCount),
+    )
     trainingProgress.postsDone = end
     await notifyTelegram(`EasyDocStation RAG 게시글 배치 완료
 
 게시글: 총 ${trainingSummary.posts}건 중 ${trainingProgress.postsDone}건 완료
-전체 진행률: ${overallPercent()}`, { force: true })
+${progressSummaryText()}`, { force: true })
   }
 
   for (let i = 0; i < commentBatches.length; i += 1) {
@@ -647,6 +703,7 @@ async function trainInBatches({ posts, comments, trainerConfig, timeoutMs }) {
     const start = trainingProgress.commentsDone + 1
     const end = trainingProgress.commentsDone + batch.length
     const batchAttachmentCount = countTrainerAttachments(batch)
+    const attachmentsBeforeBatch = trainingProgress.attachmentsDone
     const currentPercent = overallPercent({
       ...trainingProgress,
       commentsDone: end,
@@ -657,26 +714,34 @@ async function trainInBatches({ posts, comments, trainerConfig, timeoutMs }) {
 단계: 댓글 학습
 댓글: 총 ${trainingSummary.comments}건 중 ${start}-${end}건 학습 중
 이번 배치: 댓글 ${batch.length}건, 첨부 ${batchAttachmentCount}건
-전체 진행률: ${currentPercent}
+예상 진행률(현재 배치 포함): ${currentPercent}
+
+${progressSummaryText()}
 
 전체 대상: 게시글 ${trainingSummary.posts}건, 댓글 ${trainingSummary.comments}건, 첨부 ${trainingSummary.attachments}건`, { force: true })
     await callPythonTrainer({ config: trainerConfig, posts: [], comments: batch }, timeoutMs, line => {
       const fileProgress = extractTrainerFileProgress(line)
       if (!fileProgress) return
-      if (fileProgress.status === '완료') trainingProgress.attachmentsDone += 1
+      if (fileProgress.status === '완료') {
+        trainingProgress.attachmentsDone = Math.min(trainingSummary.attachments, trainingProgress.attachmentsDone + 1)
+      }
       notifyTelegram(`EasyDocStation RAG 파일 학습 ${fileProgress.status}
 
 단계: 댓글 첨부
 파일: ${fileProgress.fileName}
 형식: ${fileProgress.type}
 첨부: 총 ${trainingSummary.attachments}건 중 ${Math.min(trainingProgress.attachmentsDone + (fileProgress.status === '시작' ? 1 : 0), trainingSummary.attachments)}건 처리 중
-전체 진행률: ${overallPercent()}`, { force: true }).catch(() => {})
+${progressSummaryText()}`, { force: false }).catch(() => {})
     })
+    trainingProgress.attachmentsDone = Math.min(
+      trainingSummary.attachments,
+      Math.max(trainingProgress.attachmentsDone, attachmentsBeforeBatch + batchAttachmentCount),
+    )
     trainingProgress.commentsDone = end
     await notifyTelegram(`EasyDocStation RAG 댓글 배치 완료
 
 댓글: 총 ${trainingSummary.comments}건 중 ${trainingProgress.commentsDone}건 완료
-전체 진행률: ${overallPercent()}`, { force: true })
+${progressSummaryText()}`, { force: true })
   }
 }
 
@@ -705,6 +770,14 @@ Python: ${getPythonExecutable()}
   log(`배치 학습 시간 제한: ${timeoutMs > 0 ? `${Math.round(timeoutMs / 1000)}초` : '없음'}`)
 
   await ensureRagServerForEmbedding()
+
+  const activeTable = ragCfg.active_table || ragCfg.table_name || 'my_rag_table'
+  if (
+    trainerConfig.table_name === activeTable
+    && String(process.env.EASYDOC_RAG_REBUILD_ALLOW_ACTIVE_TABLE || '').trim() !== '1'
+  ) {
+    throw new Error(`활성 RAG 테이블 재학습 차단: target=${trainerConfig.table_name}. 별도 버전 테이블을 지정하세요.`)
+  }
 
   if (String(process.env.EASYDOC_RAG_REBUILD_RESET_TABLE || '1') !== '0') {
     log(`RAG 대상 테이블 초기화: ${trainerConfig.table_name}`)
@@ -744,13 +817,20 @@ Python: ${getPythonExecutable()}
 댓글: ${comments.length}건
 첨부: ${postAttachmentCount + commentAttachmentCount}건`, { force: true })
 
+  await notifyTelegram(`EasyDocStation RAG 전체 재학습 진행률
+
+${progressSummaryText()}`, { force: true })
+
   await trainInBatches({ posts, comments, trainerConfig, timeoutMs })
+  trainingProgress = { ...trainingSummary, postsDone: trainingSummary.posts, commentsDone: trainingSummary.comments, attachmentsDone: trainingSummary.attachments }
   log('전체 RAG 재학습 워커 완료')
   await notifyTelegram(`EasyDocStation RAG 전체 재학습 워커 완료
 
 게시글: ${trainingSummary.posts}건
 댓글: ${trainingSummary.comments}건
-첨부: ${trainingSummary.attachments}건`, { force: true })
+첨부: ${trainingSummary.attachments}건
+
+${progressSummaryText()}`, { force: true })
 }
 
 main()

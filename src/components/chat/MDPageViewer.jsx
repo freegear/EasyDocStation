@@ -36,7 +36,7 @@ import InternalLinkAutocomplete from './md-page/toolbar/InternalLinkAutocomplete
 import EasyPageSlashLinkMenu from './md-page/toolbar/EasyPageSlashLinkMenu'
 import EasyPageNavigationPanel from './md-page/navigation/EasyPageNavigationPanel'
 import EasyPageDeleteDialog from './md-page/navigation/EasyPageDeleteDialog'
-import { appendEasyPageLinks, buildEasyPageTree, collectEasyPageSubtreeIds, removeEasyPageLink } from './md-page/navigation/easyPageTree'
+import { appendEasyPageLinks, buildEasyPageTree, collectEasyPageSubtreeIds, extractEasyPagePostLinks, removeEasyPageLink } from './md-page/navigation/easyPageTree'
 import { MermaidPreviewExtension, EchartsPreviewExtension } from './md-page/extensions/diagramPreviewExtensions'
 import { EasyDocClipboardExtension, getDomSelectedTextInsideElement, stopClipboardEvent, writeEasyDocClipboardData, pasteEasyDocClipboardData } from './md-page/extensions/clipboardExtension'
 import { TocNode } from './md-page/extensions/tocNode'
@@ -119,7 +119,7 @@ function looksLikeInternalPostHref(href = '') {
 }
 
 export default function MDPageViewer({ post, channelId, onClose, onOpenPostLink }) {
-  const { updatePost, deletePost, deletePosts, addPost, addComment, deleteComment, posts, selectedChannel, togglePostPin, togglePostLike, toggleCommentLike } = useChat()
+  const { updatePost, deletePost, deletePosts, fetchPost, addPost, addComment, deleteComment, posts, selectedChannel, togglePostPin, togglePostLike, toggleCommentLike } = useChat()
   const { currentUser, maxAttachmentFileSize } = useAuth()
   const t = useT()
   const authToken = getToken() || ''
@@ -149,6 +149,7 @@ export default function MDPageViewer({ post, channelId, onClose, onOpenPostLink 
   const showSaveDialogRef = useRef(false)
   const imageInputRef = useRef(null)
   const printContentRef = useRef(null)
+  const navigationFetchAttemptedRef = useRef(new Set())
   const imageMetaRef = useRef(imageMeta)
   const savedContentRef = useRef(savedContent)
   const savedImageMetaRef = useRef(savedImageMeta)
@@ -208,6 +209,36 @@ export default function MDPageViewer({ post, channelId, onClose, onOpenPostLink 
     currentPostId: post.id,
     channelPosts,
   }), [channelId, channelPosts, post.id])
+
+  useEffect(() => {
+    navigationFetchAttemptedRef.current.clear()
+  }, [channelId])
+
+  useEffect(() => {
+    const loadedIds = new Set(channelPosts.map(item => String(item?.id || '')).filter(Boolean))
+    const missingIds = []
+    for (const page of channelPosts) {
+      for (const link of extractEasyPagePostLinks(page?.content)) {
+        if (String(link.channelId) !== String(channelId)) continue
+        if (loadedIds.has(link.postId) || navigationFetchAttemptedRef.current.has(link.postId)) continue
+        navigationFetchAttemptedRef.current.add(link.postId)
+        missingIds.push(link.postId)
+      }
+    }
+    if (missingIds.length === 0) return
+
+    let cancelled = false
+    Promise.allSettled(missingIds.map(postId => fetchPost(channelId, postId)))
+      .then(results => {
+        if (cancelled) return
+        results.forEach((result, index) => {
+          if (result.status === 'rejected') {
+            console.warn('EasyPage Navigation 링크 대상 조회 실패:', missingIds[index], result.reason)
+          }
+        })
+      })
+    return () => { cancelled = true }
+  }, [channelId, channelPosts, fetchPost])
   const comments = Array.isArray(freshPost.comments) ? freshPost.comments : []
   const isAuthor = String(freshPost.author?.id ?? '') === String(currentUser?.id ?? '')
   const canEdit = freshPost.can_edit != null ? Boolean(freshPost.can_edit) : isAuthor

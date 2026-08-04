@@ -3091,6 +3091,7 @@ export default function SiteAdminPage({ onClose, initialTab = 'users' }) {
                           <th className="px-3 py-2 text-left">항목</th>
                           <th className="px-3 py-2 text-left min-w-44">LibreOffice - PDF</th>
                           <th className="px-3 py-2 text-left min-w-44">MarkItDown</th>
+                          <th className="px-3 py-2 text-left min-w-44">Docling</th>
                           <th className="px-3 py-2 text-left min-w-36">추천</th>
                         </tr>
                       </thead>
@@ -3098,21 +3099,23 @@ export default function SiteAdminPage({ onClose, initialTab = 'users' }) {
                         {ragPptCompareResults.map(result => {
                           const pdf = result.libreoffice_pdf || {}
                           const mark = result.markitdown || {}
+                          const docling = result.docling || {}
                           const rows = [
-                            ['처리 상태', pdf.status || 'failed', mark.status || 'failed'],
-                            ['처리 시간', `${pdf.processing_time_sec ?? '-'}초`, `${mark.processing_time_sec ?? '-'}초`],
-                            ['추출 글자 수', (pdf.text_length ?? 0).toLocaleString(), (mark.text_length ?? 0).toLocaleString()],
-                            ['빈 슬라이드/페이지 수', pdf.empty_page_count ?? '-', mark.empty_slide_count ?? '-'],
-                            ['제목 보존', pdf.title_preservation || '-', mark.title_preservation || '-'],
-                            ['표 보존', pdf.table_preservation || '-', mark.table_preservation || '-'],
-                            ['한글 깨짐', pdf.has_hangul_broken ? '있음' : '없음', mark.has_hangul_broken ? '있음' : '없음'],
-                            ['금액/날짜 단서', `${pdf.amount_count ?? 0}/${pdf.date_count ?? 0}`, `${mark.amount_count ?? 0}/${mark.date_count ?? 0}`],
+                            ['처리 상태', pdf.status || 'failed', mark.status || 'failed', docling.status || 'failed'],
+                            ['처리 시간', `${pdf.processing_time_sec ?? '-'}초`, `${mark.processing_time_sec ?? '-'}초`, `${docling.processing_time_sec ?? '-'}초`],
+                            ['추출 글자 수', (pdf.text_length ?? 0).toLocaleString(), (mark.text_length ?? 0).toLocaleString(), (docling.text_length ?? 0).toLocaleString()],
+                            ['빈 슬라이드/페이지 수', pdf.empty_page_count ?? '-', mark.empty_slide_count ?? '-', docling.empty_slide_count ?? '-'],
+                            ['제목 보존', pdf.title_preservation || '-', mark.title_preservation || '-', docling.title_preservation || '-'],
+                            ['표 보존', pdf.table_preservation || '-', mark.table_preservation || '-', docling.table_preservation || '-'],
+                            ['한글 깨짐', pdf.has_hangul_broken ? '있음' : '없음', mark.has_hangul_broken ? '있음' : '없음', docling.has_hangul_broken ? '있음' : '없음'],
+                            ['금액/날짜 단서', `${pdf.amount_count ?? 0}/${pdf.date_count ?? 0}`, `${mark.amount_count ?? 0}/${mark.date_count ?? 0}`, `${docling.amount_count ?? 0}/${docling.date_count ?? 0}`],
                           ]
                           if (result.status === 'failed') {
-                            rows.push(['오류', result.error || '-', '-'])
+                            rows.push(['오류', result.error || '-', '-', '-'])
                           } else {
-                            if (pdf.error) rows.push(['PDF 오류', pdf.error, '-'])
-                            if (mark.error) rows.push(['MarkItDown 오류', '-', mark.error])
+                            if (pdf.error) rows.push(['PDF 오류', pdf.error, '-', '-'])
+                            if (mark.error) rows.push(['MarkItDown 오류', '-', mark.error, '-'])
+                            if (docling.error) rows.push(['Docling 오류', '-', '-', docling.error])
                           }
                           return rows.map((row, idx) => (
                             <tr key={`${result.id || result.file_name}-${idx}`} className="border-b border-gray-200 last:border-b-0">
@@ -3126,6 +3129,7 @@ export default function SiteAdminPage({ onClose, initialTab = 'users' }) {
                               <td className="px-3 py-2 text-gray-500">{row[0]}</td>
                               <td className="px-3 py-2 text-gray-700 max-w-96 break-words">{row[1]}</td>
                               <td className="px-3 py-2 text-gray-700 max-w-96 break-words">{row[2]}</td>
+                              <td className="px-3 py-2 text-gray-700 max-w-96 break-words">{row[3]}</td>
                               {idx === 0 && (
                                 <td rowSpan={rows.length} className="px-3 py-2 align-top">
                                   <div className="font-bold text-sky-700">{result.recommended_pipeline || '-'}</div>

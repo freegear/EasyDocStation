@@ -56,6 +56,10 @@ function buildTrainerConfig(cfg, ragCfg) {
     trainer_timeout_sec: ragCfg.trainer_timeout_sec ?? 1800,
     pdf_parse_strategy: ragCfg.pdf_parse_strategy ?? 'auto',
     pdf_parse_timeout_sec: ragCfg.pdf_parse_timeout_sec ?? 180,
+    document_converter: ragCfg.document_converter ?? 'docling',
+    docling_shadow_compare: ragCfg.docling_shadow_compare ?? false,
+    docling_fallback_to_markitdown: ragCfg.docling_fallback_to_markitdown ?? true,
+    document_convert_max_file_size: ragCfg.document_convert_max_file_size ?? 500 * 1024 * 1024,
   }
 }
 
@@ -304,38 +308,35 @@ function qualityLabel(value, goodAt = 3, okAt = 1) {
   return '나쁨'
 }
 
-function buildPptCompareRecommendation(pdfMetrics, markMetrics) {
-  if (pdfMetrics.error && markMetrics.error) {
-    return { recommended_pipeline: 'none', reason: '두 파이프라인 모두 실패했습니다.' }
+function buildPptCompareRecommendation(pdfMetrics, markMetrics, doclingMetrics) {
+  const score = metric => metric?.error ? -Infinity : (
+    Math.min(metric?.text_length || 0, 20000) / 1000
+    + (metric?.page_count || 0)
+    + (metric?.heading_count || 0) * 2
+    + (metric?.bullet_count || 0)
+    + (metric?.table_line_count || 0)
+    + (metric?.amount_count || 0) * 2
+    + (metric?.date_count || 0)
+    - (metric?.empty_page_count || metric?.empty_slide_count || 0) * 2
+    - (metric?.has_hangul_broken ? 5 : 0)
+  )
+  const candidates = [
+    ['docling', doclingMetrics],
+    ['markitdown', markMetrics],
+    ['libreoffice_pdf', pdfMetrics],
+  ].map(([name, metric]) => ({ name, value: score(metric) }))
+    .filter(item => Number.isFinite(item.value))
+    .sort((a, b) => b.value - a.value)
+  if (candidates.length === 0) {
+    return { recommended_pipeline: 'none', reason: '세 파이프라인 모두 실패했습니다.' }
   }
-  if (pdfMetrics.error) {
-    return { recommended_pipeline: 'markitdown', reason: '기존 PDF 파이프라인이 실패했고 MarkItDown 변환은 성공했습니다.' }
+  if (candidates.length > 1 && Math.abs(candidates[0].value - candidates[1].value) < 3) {
+    return { recommended_pipeline: 'hybrid', reason: '상위 파이프라인의 품질 지표가 비슷해 실제 검색 질문으로 추가 검증이 필요합니다.' }
   }
-  if (markMetrics.error) {
-    return { recommended_pipeline: 'libreoffice_pdf', reason: 'MarkItDown 변환이 실패했고 기존 PDF 파이프라인은 성공했습니다.' }
+  return {
+    recommended_pipeline: candidates[0].name,
+    reason: `${candidates[0].name}의 구조 보존 및 핵심 정보 추출 지표가 가장 높습니다.`,
   }
-  const pdfScore =
-    Math.min(pdfMetrics.text_length || 0, 20000) / 1000
-    + (pdfMetrics.page_count || 0)
-    + (pdfMetrics.amount_count || 0) * 2
-    + (pdfMetrics.date_count || 0)
-    - (pdfMetrics.empty_page_count || 0) * 2
-    - (pdfMetrics.has_hangul_broken ? 5 : 0)
-  const markScore =
-    Math.min(markMetrics.text_length || 0, 20000) / 1000
-    + (markMetrics.heading_count || 0) * 2
-    + (markMetrics.bullet_count || 0)
-    + (markMetrics.table_line_count || 0)
-    + (markMetrics.amount_count || 0) * 2
-    + (markMetrics.date_count || 0)
-    - (markMetrics.has_hangul_broken ? 5 : 0)
-  if (Math.abs(markScore - pdfScore) < 3) {
-    return { recommended_pipeline: 'hybrid', reason: '두 파이프라인의 품질 지표가 비슷해 상호 보완 검증이 필요합니다.' }
-  }
-  if (markScore > pdfScore) {
-    return { recommended_pipeline: 'markitdown', reason: 'MarkItDown의 구조 보존 지표와 핵심 정보 추출 지표가 더 높습니다.' }
-  }
-  return { recommended_pipeline: 'libreoffice_pdf', reason: '기존 PDF 파이프라인의 추출량과 페이지 기반 출처 추적 지표가 더 높습니다.' }
 }
 
 async function convertPptDatasetToPdf(sourcePath, outDir) {
@@ -405,6 +406,22 @@ print(json.dumps({"ok": True, "text": text}, ensure_ascii=False))
   return runPythonJson(['-c', code, sourcePath, outputMdPath], null, { timeoutMs: 180000 })
 }
 
+async function convertWithDoclingForCompare(sourcePath, outputMdPath, outputJsonPath) {
+  const code = `
+import json, sys
+from pathlib import Path
+from docling.document_converter import DocumentConverter
+src, md_out, json_out = sys.argv[1:4]
+result = DocumentConverter().convert(src, raises_on_error=False)
+doc = result.document
+text = doc.export_to_markdown() if doc else ""
+Path(md_out).write_text(text, encoding="utf-8")
+Path(json_out).write_text(json.dumps(doc.export_to_dict(), ensure_ascii=False, indent=2) if doc else "{}", encoding="utf-8")
+print(json.dumps({"ok": bool(text.strip()), "status": str(result.status), "text": text}, ensure_ascii=False))
+`
+  return runPythonJson(['-c', code, sourcePath, outputMdPath, outputJsonPath], null, { timeoutMs: 300000 })
+}
+
 async function comparePptDataset(item) {
   if (!isPresentationDataset(item)) {
     throw new Error(`${getDisplayFilename(item)} 파일은 PPT/PPTX 형식이 아닙니다.`)
@@ -431,6 +448,13 @@ async function comparePptDataset(item) {
     text_length: 0,
   }
   const markMetric = {
+    status: 'failed',
+    error: '',
+    processing_time_sec: 0,
+    empty_slide_count: 0,
+    text_length: 0,
+  }
+  const doclingMetric = {
     status: 'failed',
     error: '',
     processing_time_sec: 0,
@@ -479,7 +503,29 @@ async function comparePptDataset(item) {
     markMetric.processing_time_sec = Number(((Date.now() - markStarted) / 1000).toFixed(2))
   }
 
-  const recommendation = buildPptCompareRecommendation(pdfMetric, markMetric)
+  const doclingStarted = Date.now()
+  try {
+    const mdPath = path.join(baseDir, 'converted_docling.md')
+    const jsonPath = path.join(baseDir, 'converted_docling.json')
+    const doclingResult = await convertWithDoclingForCompare(absPath, mdPath, jsonPath)
+    const stats = textStats(doclingResult.text || '')
+    if (!stats.text_length) throw new Error(`Docling 변환 결과 없음 (${doclingResult.status || 'unknown'})`)
+    Object.assign(doclingMetric, stats, {
+      status: 'success',
+      error: '',
+      empty_slide_count: 0,
+      processing_time_sec: Number(((Date.now() - doclingStarted) / 1000).toFixed(2)),
+      output_path: mdPath,
+      json_path: jsonPath,
+      title_preservation: qualityLabel(stats.heading_count, 2, 1),
+      table_preservation: qualityLabel(stats.table_line_count, 3, 1),
+    })
+  } catch (e) {
+    doclingMetric.error = e.message || String(e)
+    doclingMetric.processing_time_sec = Number(((Date.now() - doclingStarted) / 1000).toFixed(2))
+  }
+
+  const recommendation = buildPptCompareRecommendation(pdfMetric, markMetric, doclingMetric)
   const report = {
     file_name: fileName,
     attachment_id: item.id,
@@ -487,6 +533,7 @@ async function comparePptDataset(item) {
     comment_id: '',
     libreoffice_pdf: pdfMetric,
     markitdown: markMetric,
+    docling: doclingMetric,
     search_eval: {
       top3_hit_rate: null,
       top5_hit_rate: null,

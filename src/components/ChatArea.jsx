@@ -4193,7 +4193,7 @@ function PostCard({ post, onSelect, onOpenActionMenu, pinned, isSelected, conten
           })()
         : '📄 양식 템플릿')
     : isMd
-      ? `📝 ${getMdPageTitle(post.content, t.mdPage.title).slice(0, 100)}`
+      ? getMdPageTitle(post.content, t.mdPage.title).slice(0, 100)
       : isSheet
         ? `📊 ${getEasySheetTitle(post.content, t.easySheet?.title || 'EasySheet').slice(0, 100)}`
         : (String(post.content || '').includes('<!--ai-meeting-note-->') && post.title)
@@ -4290,6 +4290,19 @@ function PostCard({ post, onSelect, onOpenActionMenu, pinned, isSelected, conten
               />
             )}
             {pinned && <PinIcon />}
+            {isMd && (
+              <span
+                title="EasyPage"
+                aria-label="EasyPage 문서"
+                className="inline-flex flex-shrink-0 items-center gap-1 rounded-md border border-indigo-200 bg-indigo-100 px-1.5 py-0.5 text-[10px] font-bold leading-none text-indigo-700"
+              >
+                <svg className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 3h9l3 3v15H6z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 3v4h4M9 11h6M9 15h6" />
+                </svg>
+                EasyPage
+              </span>
+            )}
             {leadLine && (
               <p className="text-gray-800 font-semibold leading-tight group-hover:text-indigo-600 transition-colors overflow-hidden text-ellipsis whitespace-nowrap select-text allow-copy cursor-text" style={{ ...contentFontStyle, fontSize: 'calc(0.875rem * var(--content-font-scale))' }}>
                 {renderPostPreviewTokens(leadLine, `lead-${post.id}`)}

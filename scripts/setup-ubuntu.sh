@@ -236,6 +236,7 @@ required = [
     "langchain_community",
     "langchain_text_splitters",
     "markitdown",
+    "docling",
     "pytesseract",
 ]
 missing = []

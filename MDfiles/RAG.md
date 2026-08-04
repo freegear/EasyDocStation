@@ -60,9 +60,338 @@ LanceDB 벡터 검색의 `score`는 유사도가 아니라 `_distance` 값이다
 
 주의: `score_threshold` 옵션은 relevance threshold이고, `score`는 distance이므로 둘을 혼동하지 않는다. distance 컷오프는 항상 적용하고, `similarity_score_threshold`는 추가 필터로만 사용한다.
 
-# 1. MakeItDown을 설치
+# 1. MarkItDown에서 Docling으로 전환
 
-# 2. RAG 학습 사용
+## 1.1 목적과 현재 상태
+
+현재 운영 코드는 `server/rag_train.py`의 `load_markitdown_text()`와
+`ingest_markitdown_document()`를 통해 Word, Excel, PPT/PPTX, XML, HTML, CSV를
+Markdown으로 변환한다. Word는 MarkItDown 실패 시 `docx2txt`, PPT/PPTX는 실패 시
+`LibreOffice -> PDF -> 기존 PDF 파서`를 fallback으로 사용한다.
+
+Docling 전환의 목적은 단순히 Markdown 변환 라이브러리를 바꾸는 것이 아니다.
+Docling의 통합 문서 모델(`DoclingDocument`)을 이용해 제목 계층, 페이지/슬라이드,
+표의 행·열 관계, 그림과 provenance를 더 구조적으로 보존하고 이를 RAG 청킹과
+메타데이터에 반영하는 것이 목표다.
+
+이 장의 1차 전환 구현은 `server/document_conversion.py`와
+`server/rag_train.py`에 반영되어 있다. 기본 변환기는 Docling이며, 설정으로
+MarkItDown을 선택하거나 Docling 실패 시 MarkItDown으로 fallback할 수 있다. 다만
+기존 LanceDB 레코드는 자동으로 바뀌지 않으므로 3장의 버전드 재학습과 active table
+전환은 별도 운영 작업으로 수행해야 한다. 2장에 남아 있는 MarkItDown 설명은 전환 전
+운영 기준선과 fallback/rollback 기준으로 본다.
+
+## 1.2 지원 형식 차이와 전환 범위
+
+Docling 공식 지원 형식을 기준으로 다음과 같이 적용한다.
+
+| 파일 유형 | Docling 전환 방안 | 주의사항 |
+| --- | --- | --- |
+| DOCX | Docling 기본 변환 | 기존 `docx2txt`를 최종 fallback으로 유지 |
+| DOC | Docling 변환 | 구형 Office 형식이므로 LibreOffice 설치 필요 |
+| XLSX | Docling 기본 변환 | 시트명, 병합 셀, 수식 결과, 숨김 행/열 회귀 검증 필요 |
+| XLS | Docling 변환 | 구형 Office 형식이므로 LibreOffice 설치 필요 |
+| PPTX | Docling 기본 변환 | 슬라이드 순서, 표, 노트, 도형 내 텍스트 검증 필요 |
+| PPT | Docling 변환 | 구형 Office 형식이므로 LibreOffice 설치 필요 |
+| HTML/HTM | Docling 기본 변환 | 메뉴·스크립트·스타일 제거 품질 비교 필요 |
+| CSV | Docling 기본 변환 | 인코딩, delimiter, 큰 행 수에 대한 별도 제한 필요 |
+| XML | 선별 적용 | 일반 XML 전체가 아니라 DocLang, USPTO, JATS, XBRL 등 지원 스키마 중심 |
+| PDF/이미지 | 2차 전환 후보 | 현재 PDF/OCR 파이프라인과 GPU 스케줄링 영향 검증 후 결정 |
+| ZIP | 직접 변환하지 않음 | 기존처럼 안전하게 해제한 뒤 내부 파일별로 분기 |
+
+초기 전환 범위는 `DOC/DOCX`, `XLS/XLSX`, `PPT/PPTX`, `HTML/HTM`, `CSV`로
+제한한다. 일반 XML은 Docling이 임의의 XML 스키마를 범용 Markdown으로 바꾸는
+도구라고 가정하면 안 된다. 지원 스키마를 판별할 수 없는 XML은 기존 MarkItDown
+또는 안전한 XML 구조 텍스트 추출기를 fallback으로 사용한다.
+
+PDF와 이미지도 Docling이 지원하지만 1차 전환에 포함하지 않는다. 기존 PDF
+파이프라인에는 OCR, 문서 종류 분류, 페이지 단위 메타데이터, 이미지 처리와 금액
+오분류 방지 로직이 연결되어 있으므로 동일 품질이 검증되기 전에 함께 교체하면
+회귀 범위가 지나치게 커진다.
+
+## 1.3 설치와 실행 환경
+
+1. `server/requirements.txt`에 버전을 고정한 `docling` 의존성을 추가한다.
+2. 전환 기간에는 `markitdown[all]`을 제거하지 않는다. Docling 운영 검증과
+   rollback 기간이 끝난 뒤 제거한다.
+3. 실제 서버가 사용하는 Python은 `server/pythonRuntime.js`의
+   `getPythonExecutable()`로 결정되므로, 일반 셸의 `python3`가 아니라 **그 실행
+   환경**에 Docling을 설치하고 import 테스트를 수행한다.
+4. DOC/XLS/PPT를 계속 지원하려면 LibreOffice 설치 여부와 실행 권한을 점검한다.
+5. 폐쇄망 또는 재시작 지연을 피해야 하는 환경에서는 필요한 모델 artifact를
+   설치 단계에서 미리 다운로드하고 로컬 `artifacts_path`를 지정한다.
+6. 운영 시작 전에 Docling 버전, 모델 artifact 버전/해시, Python 버전을 기록한다.
+
+개발 예시는 다음과 같다. 실제 배포에서는 무버전 설치가 아니라 검증된 버전을
+고정한다.
+
+```bash
+python -m pip install docling
+python -c "from docling.document_converter import DocumentConverter; print('docling ok')"
+```
+
+Docling은 설정에 따라 OCR, layout, table 모델을 초기화하거나 artifact를 내려받을
+수 있다. 따라서 애플리케이션 요청 중 최초 다운로드가 발생하지 않게 하고,
+외부 서비스 호출과 외부 plugin은 명시적으로 필요한 경우가 아니면 비활성화한다.
+
+## 1.4 코드 변경 방법
+
+### 1.4.1 변환 adapter 추가
+
+`server/rag_train.py`에 Docling 전용 adapter를 추가한다.
+
+```python
+from docling.document_converter import DocumentConverter
+
+_docling_converter = None
+
+def get_docling_converter():
+    global _docling_converter
+    if _docling_converter is None:
+        _docling_converter = DocumentConverter()
+    return _docling_converter
+
+def load_docling_document(file_path):
+    result = get_docling_converter().convert(file_path)
+    document = result.document
+    return {
+        "markdown": document.export_to_markdown().strip(),
+        "json": document.export_to_dict(),
+        "status": str(result.status),
+    }
+```
+
+위 코드는 방향을 보여 주는 예시다. 실제 구현에서는 다음을 추가한다.
+
+- 파일 크기, 페이지 수, 처리 시간 제한
+- 변환 status의 성공, 부분 성공, 실패 구분
+- 예외와 빈 Markdown 처리
+- 지원 확장자 allowlist와 실제 파일 형식 검증
+- 프로세스 재사용 시 converter와 pipeline 초기화 비용 측정
+- 동시 변환 수 제한
+- 필요 시 형식별 `format_options`와 OCR/table 옵션 분리
+
+### 1.4.2 인제스트 함수 일반화
+
+MarkItDown 이름이 박힌 `ingest_markitdown_document()`를 즉시 삭제하지 말고 다음
+순서로 일반화한다.
+
+1. 공통 저장·메타데이터·청킹 부분을 `ingest_converted_document()`로 분리한다.
+2. 변환기 adapter는 `load_docling_document()`와 `load_markitdown_text()`로 나눈다.
+3. 기능 플래그로 변환기 우선순위를 선택한다.
+4. Docling 성공 시 공통 인제스트 함수에 Markdown과 구조화 JSON을 전달한다.
+5. 실패 시 파일 유형별 fallback을 실행한다.
+
+권장 기능 플래그 예:
+
+```json
+{
+  "rag": {
+    "document_converter": "docling",
+    "docling_shadow_compare": true,
+    "docling_fallback_to_markitdown": true
+  }
+}
+```
+
+환경변수를 사용할 경우에도 동일한 세 값을 지원하되, 설정 파일과 환경변수의
+우선순위를 한 곳에서 결정한다. 요청마다 임의로 변환기를 바꾸지 않는다.
+
+### 1.4.3 산출물 저장
+
+Docling 변환 결과는 기존 파일을 덮어쓰지 않고 다음처럼 별도로 저장한다.
+
+```txt
+FileTrainingData/.../converted_docling.md
+FileTrainingData/.../converted_docling.json
+FileTrainingData/.../conversion_report.json
+```
+
+`converted_docling.md`는 검색/검토용이고, `converted_docling.json`은 표 구조,
+provenance와 계층 정보를 잃지 않는 재청킹용 원본이다. Markdown만 저장하면
+Docling으로 교체하는 핵심 이점의 상당 부분을 잃는다. JSON 산출물은 크기가 클 수
+있으므로 보존 기간, 압축, 최대 크기 정책을 둔다.
+
+`conversion_report.json`에는 최소한 아래 항목을 남긴다.
+
+- 원본 파일 해시와 크기
+- 변환기와 버전
+- 변환 status와 처리 시간
+- Markdown/JSON 산출물 경로와 크기
+- 추출된 페이지, 표, 그림, 텍스트 항목 수
+- warning과 실패 사유
+- fallback 사용 여부와 사용한 파이프라인
+
+### 1.4.4 메타데이터 변경
+
+신규 청크에는 다음 값을 사용한다.
+
+- `converted_by`: `docling`
+- `converted_format`: 기본 `markdown`, 구조 청크는 `docling_json`
+- `parser_version`: 설치된 Docling 버전
+- `conversion_status`: `success`, `partial_success`, `failure`
+- `fallback_used`: fallback 사용 여부
+- `fallback_pipeline`: `markitdown`, `docx2txt`, `libreoffice_pdf`,
+  `xml_structured_text` 등
+- `page_number`, `sheet_name`, `slide_number`, `row_range`, `heading_path`:
+  Docling document의 provenance에서 얻을 수 있는 범위만 저장
+
+필드가 없을 때 추측한 페이지/슬라이드/행 번호를 만들지 않는다. 기존
+`converted_by=markitdown` 레코드를 값만 `docling`으로 갱신해서도 안 된다. 원본을
+Docling으로 다시 변환하고 재청킹·재임베딩해야 한다.
+
+### 1.4.5 호출부와 관리 기능 변경
+
+다음 위치를 함께 변경한다.
+
+- `server/rag_train.py`
+  - `load_docling_document()`와 공통 인제스트 함수 추가
+  - 게시글, 댓글, 폴더, ZIP 내부 파일의 Docling 분기 적용
+  - 파일별 timeout, 부분 성공, fallback 처리
+- `server/requirements.txt`
+  - 검증된 Docling 버전 고정
+- `server/routes/rag.js`
+  - 기존 PPT 비교 API를 `Docling / MarkItDown / LibreOffice-PDF` 비교로 확장
+  - 업로드 파일의 MIME/확장자/실제 형식 검증
+- `server/rag.js`, `server/scripts/rebuild-rag-all.js`
+  - 기존 `markitdown_files` payload 명칭은 호환을 위해 당분간 유지하거나
+    `convertible_files`로 버전드 전환
+- `src/components/SiteAdminPage.jsx`
+  - Docling 변환 시간, 추출량, 오류, fallback과 품질 비교 표시
+- 설치 스크립트
+  - Docling 및 모델 artifact 사전 설치, LibreOffice 점검 추가
+
+내부 payload의 `markitdown_files`를 한 번에 이름 변경하면 구버전 API나 재학습
+스크립트가 깨질 수 있다. 먼저 `convertible_files`를 추가하고 두 키를 읽는 호환
+기간을 둔 뒤 제거한다.
+
+## 1.5 파일 유형별 fallback 정책
+
+권장 우선순위는 다음과 같다.
+
+| 파일 유형 | 기본 | 1차 fallback | 최종 fallback |
+| --- | --- | --- | --- |
+| DOCX | Docling | MarkItDown | docx2txt |
+| DOC | Docling + LibreOffice | MarkItDown | 파일 메타데이터만 학습 |
+| XLSX | Docling | MarkItDown | CSV/스프레드시트 직접 추출 또는 메타데이터 |
+| XLS | Docling + LibreOffice | MarkItDown | 메타데이터만 학습 |
+| PPTX | Docling | MarkItDown | LibreOffice -> PDF -> PDF 파서 |
+| PPT | Docling + LibreOffice | MarkItDown | LibreOffice -> PDF -> PDF 파서 |
+| HTML/HTM | Docling | MarkItDown | BeautifulSoup 본문 추출 |
+| CSV | Docling | MarkItDown | CSV parser 행 단위 추출 |
+| 지원 XML | Docling | MarkItDown | XML 구조 텍스트 추출 |
+| 일반 XML | XML 구조 텍스트 추출 | MarkItDown | 메타데이터만 학습 |
+
+fallback 결과가 성공하더라도 `converted_by=docling`으로 기록하지 않는다. 실제로
+성공한 변환기를 기록하고 `fallback_used=true`로 남긴다.
+
+## 1.6 예상 문제점
+
+### 1.6.1 설치 용량과 의존성 충돌
+
+Docling은 MarkItDown보다 문서 구조 분석 기능이 많고 선택한 pipeline에 따라 ML,
+OCR 및 문서 처리 의존성이 추가된다. 설치 이미지와 빌드 시간이 커질 수 있고,
+PyTorch/NumPy/Pydantic 등 기존 RAG 환경과 버전 충돌이 발생할 수 있다. 기존 서버
+환경에 바로 설치하지 말고 동일 lock file로 재현 가능한 별도 검증 환경에서 먼저
+설치한다.
+
+### 1.6.2 최초 실행과 오프라인 배포
+
+필요한 모델 artifact가 없으면 최초 변환 때 다운로드 또는 초기화 지연이 발생할 수
+있다. 폐쇄망에서는 변환 자체가 실패할 수 있다. 배포 단계에서 artifact를 미리
+준비하고 자동 다운로드를 금지한 상태로 cold-start 테스트를 수행한다.
+
+### 1.6.3 CPU/GPU와 메모리 사용량
+
+OCR, layout, table structure 또는 VLM 기능을 켜면 변환 시간이 늘고 RAM/VRAM을
+추가로 사용한다. 현재 검색용 bge-m3와 Ollama가 GPU를 사용하는 구조에서는 Docling
+GPU 처리가 5장의 GPU 스케줄링 정책을 우회하면 검색 지연 또는 OOM을 일으킬 수
+있다. 1차 Office/HTML/CSV 변환은 CPU 기준으로 측정하고, GPU 기능이 필요하면 GPU
+브로커의 low-priority training 작업으로 편입한다.
+
+### 1.6.4 처리 속도와 동시성
+
+문서마다 `DocumentConverter`와 pipeline을 새로 초기화하면 대량 재학습이 느려질 수
+있다. 반대로 하나의 converter를 무제한 동시 공유하는 것도 thread/process 안전성과
+메모리 사용량을 검증하지 않으면 위험하다. 프로세스당 converter 재사용, 제한된
+worker 수, 파일별 timeout과 큐 backpressure를 적용한다.
+
+### 1.6.5 Markdown만 사용할 때의 정보 손실
+
+Docling 내부 모델에 표 셀 병합, 위치와 provenance가 있어도
+`export_to_markdown()` 결과만 기존 문자 수 기준 청커에 넣으면 해당 정보가
+평탄화된다. 품질 향상을 얻으려면 Docling JSON을 보존하고 제목/표/페이지 경계를
+인식하는 청커를 추가해야 한다. 초기에는 기존 청커와 구조 청커를 비교하고 같은
+문서를 이중으로 운영 테이블에 넣지 않는다.
+
+### 1.6.6 형식별 추출 품질 회귀
+
+- Excel: 수식 자체와 계산 결과, 병합 셀, 다중 시트, 숨김 데이터가 달라질 수 있다.
+- PPT/PPTX: 읽기 순서, 도형 그룹, SmartArt, 차트, 발표자 노트가 누락되거나 순서가
+  달라질 수 있다.
+- Word: 머리말/꼬리말, 각주, 텍스트 상자, 추적 변경 내용 처리 결과가 달라질 수 있다.
+- HTML: navigation과 본문의 구분 및 동적 JavaScript 렌더링은 별도 문제다.
+- CSV: 인코딩과 delimiter 자동 판별 오류로 열이 합쳐질 수 있다.
+- XML: 지원 스키마가 아닌 일반 업무 XML은 변환 대상에서 빠질 수 있다.
+
+따라서 “Docling이 더 구조적이다”라는 이유만으로 모든 파일에서 검색 품질이 자동으로
+좋아진다고 판단하지 않는다.
+
+### 1.6.7 보안과 리소스 고갈
+
+업로드 문서는 신뢰할 수 없는 입력이다. 최대 파일 크기, 페이지/행 수, 변환 시간,
+압축 해제 크기, 동시 작업 수를 제한한다. 외부 URL을 변환 입력으로 허용하지 않고,
+remote service와 외부 plugin은 기본 비활성화한다. LibreOffice 변환과 Docling
+변환은 권한을 제한한 worker/container에서 실행하는 것이 바람직하다.
+
+### 1.6.8 기존 데이터와 캐시 불일치
+
+코드만 바꾸면 기존 LanceDB에는 MarkItDown 청크가 남는다. Docling 전환 후에는
+원본 파일 해시와 변환기 버전을 기준으로 전체 대상 파일을 재학습하고, 새 테이블을
+검증한 뒤 active table을 전환해야 한다. 검색 캐시도 전환 시점에 무효화한다.
+
+## 1.7 단계별 전환 절차
+
+1. **기준선 수집**: 대표 DOCX/XLSX/PPTX/HTML/CSV/XML과 실패 파일 세트를 고정하고
+   현재 MarkItDown 결과, 청크, 검색 질문, 처리 시간과 메모리를 저장한다.
+2. **Docling shadow 변환**: 운영 벡터에는 쓰지 않고 `converted_docling.*`와 비교
+   리포트만 생성한다.
+3. **형식별 판정**: 텍스트 누락률, 표 구조, 읽기 순서, 메타데이터, 처리 시간,
+   실패율과 RAG 검색 정확도를 비교한다.
+4. **canary 적용**: 기능 플래그로 DOCX 또는 PPTX 한 형식부터 Docling을 기본으로
+   적용하고 MarkItDown fallback을 유지한다.
+5. **새 테이블 재학습**: 기존 active table을 덮어쓰지 않고 새 버전 테이블에 전체
+   대상 문서를 재학습한다.
+6. **검색 A/B 검증**: 문서 찾기, 표 값, 금액, 날짜, 슬라이드 제목과 출처 이동을
+   포함한 질문 세트로 기존/신규 테이블을 비교한다.
+7. **운영 전환**: 품질과 처리 용량 기준을 통과하면 active table을 전환한다.
+8. **안정화 후 정리**: 관찰 기간이 끝난 후에만 MarkItDown 의존성, 호환 payload와
+   비교용 코드를 제거한다.
+
+## 1.8 검증 및 승인 기준
+
+- 대표 파일의 본문 누락률과 핵심 검색 정확도가 MarkItDown 기준보다 낮지 않다.
+- Excel/CSV의 헤더와 값 관계, PPT의 슬라이드 순서, Word의 제목 계층이 보존된다.
+- `post_id`, `comment_id`, `attachment_id`, `channel_id`, 원본 파일명이 유지된다.
+- 페이지/시트/슬라이드 provenance가 실제 원본과 일치한다.
+- 부분 성공과 실패가 성공으로 오인되지 않고 fallback 경로가 기록된다.
+- 손상 파일 하나가 전체 배치 재학습을 중단시키지 않는다.
+- cold-start, 평균 및 P95 변환 시간과 peak RAM/VRAM이 운영 한도 안에 있다.
+- 네트워크가 차단된 운영 환경에서도 필요한 형식이 변환된다.
+- 새 테이블 장애 시 기존 MarkItDown 테이블과 설정으로 즉시 rollback할 수 있다.
+
+Docling 전환은 위 조건을 파일 유형별로 통과한 경우에만 완료로 판단한다. 모든 형식을
+한 번에 전환하지 않으며, MarkItDown 제거는 마지막 단계다.
+
+## 1.9 공식 참고자료
+
+- [Docling 설치](https://docling-project.github.io/docling/getting_started/installation/)
+- [지원 입력·출력 형식](https://docling-project.github.io/docling/usage/supported_formats/)
+- [DocumentConverter API](https://docling-project.github.io/docling/reference/document_converter/)
+- [Pipeline options](https://docling-project.github.io/docling/reference/pipeline_options/)
+- [문서 직렬화와 Markdown/JSON 출력](https://docling-project.github.io/docling/concepts/serialization/)
+
+# 2. 기존 MarkItDown 기반 RAG 학습 기준 및 fallback
 
 # 2.1 excel을 학습
 
@@ -414,7 +743,8 @@ ZIP은 컨테이너와 내부 파일 관계가 중요하므로 v2 스키마에�
 
 # 3. 버전드 마이그레이션 방식
 
-상용화를 고려하면 MarkItDown 기반 문서 학습은 기존 LanceDB 메타데이터 스키마에 임시로 끼워 넣는 방식보다 버전드 마이그레이션 방식으로 진행한다.
+상용화를 고려하면 Docling을 포함한 문서 변환 기반 학습은 기존 LanceDB 메타데이터
+스키마에 임시로 끼워 넣는 방식보다 버전드 마이그레이션 방식으로 진행한다.
 
 기존 `my_rag_table`을 바로 overwrite하면 기존 게시글, 댓글, 첨부 파일 학습 데이터가 사라지고 재학습 중 RAG 검색 품질이 떨어질 수 있다. 따라서 새 테이블을 만들고 백그라운드에서 전체 재학습을 완료한 뒤 전환한다.
 
@@ -422,7 +752,9 @@ ZIP은 컨테이너와 내부 파일 관계가 중요하므로 v2 스키마에�
 
 1. 기존 `my_rag_table`은 유지한다.
 2. 새 스키마를 가진 `my_rag_table_v2`를 생성한다.
-3. MarkItDown 기반 Excel, PPT/PPTX, XML, HTML, CSV, ZIP 파이프라인은 v2 테이블을 대상으로 먼저 구현한다.
+3. Docling 기반 Office, HTML, CSV 파이프라인은 새 테이블을 대상으로 먼저 구현하고,
+   MarkItDown은 검증 기간의 fallback으로 유지한다. XML과 ZIP은 1장의 분기 정책을
+   따른다.
 4. 전체 게시글, 댓글, 첨부 파일을 백그라운드로 재학습한다.
 5. v2 검색 품질을 검증한다.
 6. 검증이 끝나면 RAG 검색 테이블 포인터를 v2로 전환한다.
@@ -435,7 +767,7 @@ v2 스키마에는 기존 필드에 더해 아래 필드를 추가한다.
 - `schema_version`: RAG 스키마 버전
 - `document_kind`: `pdf`, `excel`, `presentation`, `xml`, `html`, `table`, `archive`, `text`
 - `source_ext`: 원본 확장자
-- `converted_by`: `markitdown`, `pdfplumber`, `unstructured`, `docx2txt`, `manual_text` 등
+- `converted_by`: `docling`, `markitdown`, `pdfplumber`, `unstructured`, `docx2txt`, `manual_text` 등
 - `converted_format`: `markdown`, `text`, `json`, `pdf`
 - `parser_version`: 변환 도구 버전
 - `fallback_used`: fallback 사용 여부
@@ -494,12 +826,14 @@ v2 재학습과 검증이 끝나면 아래와 같이 전환한다.
 
 | 파일 유형 | v2 기본 파이프라인 | fallback |
 | --- | --- | --- |
-| PDF | 기존 PDF 파이프라인 | MarkItDown PDF 또는 OCR fallback |
-| Excel | MarkItDown | 메타데이터 학습 |
-| PPT/PPTX | MarkItDown | LibreOffice -> PDF -> PDF 파서 |
-| XML | MarkItDown | XML 구조 텍스트 직접 추출 |
-| HTML | MarkItDown | BeautifulSoup 본문 추출 |
-| CSV | MarkItDown | CSV 파서 기반 행 단위 추출 |
+| PDF | 기존 PDF 파이프라인 | 기존 OCR fallback; Docling은 별도 비교 후 결정 |
+| Excel | Docling | MarkItDown -> 직접 추출 또는 메타데이터 학습 |
+| PPT/PPTX | Docling | MarkItDown -> LibreOffice -> PDF -> PDF 파서 |
+| Word | Docling | MarkItDown -> docx2txt |
+| 지원 XML 스키마 | Docling | MarkItDown -> XML 구조 텍스트 직접 추출 |
+| 일반 XML | XML 구조 텍스트 직접 추출 | MarkItDown -> 메타데이터 학습 |
+| HTML | Docling | MarkItDown -> BeautifulSoup 본문 추출 |
+| CSV | Docling | MarkItDown -> CSV 파서 기반 행 단위 추출 |
 | ZIP | 내부 파일별 분기 | ZIP 메타데이터만 학습 |
 
 ## 3.6 검증 기준
@@ -521,9 +855,9 @@ v2 전환 전에 아래 항목을 검증한다.
 즉, 최종 방향은 다음과 같다.
 
 ```txt
-개발/검증: 기존 my_rag_table 유지 + MarkItDown 산출물 저장
-상용화 준비: my_rag_table_v2 생성 + 확장 메타데이터 반영
-운영 전환: v2 백그라운드 재학습 완료 후 active_table 전환
+개발/검증: 기존 active table 유지 + Docling shadow 산출물/비교 리포트 저장
+상용화 준비: 새 버전 테이블 생성 + Docling 확장 메타데이터 반영
+운영 전환: 새 테이블 백그라운드 재학습 완료 후 active_table 전환
 장애 대응: previous_table로 즉시 rollback
 ```
 

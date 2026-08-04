@@ -23,6 +23,15 @@ import shutil
 import zipfile
 from datetime import datetime, timezone
 
+from document_conversion import (
+    ConversionResult,
+    convert_document,
+    convert_with_docling,
+    convert_with_markitdown,
+    package_version,
+    write_conversion_outputs,
+)
+
 # ─── 입력 파싱 ────────────────────────────────────────────────
 try:
     payload = json.loads(sys.stdin.read())
@@ -90,6 +99,24 @@ OCR_MAX_PAGES = int(cfg.get("ocr_max_pages", os.getenv("EASYDOC_OCR_MAX_PAGES", 
 OCR_LANG      = cfg.get("ocr_lang") or os.getenv("EASYDOC_OCR_LANG", "kor+eng")
 PDF_PARSE_STRATEGY = str(cfg.get("pdf_parse_strategy", os.getenv("EASYDOC_PDF_PARSE_STRATEGY", "auto"))).strip().lower()
 PDF_PARSE_TIMEOUT_SEC = int(cfg.get("pdf_parse_timeout_sec", os.getenv("EASYDOC_PDF_PARSE_TIMEOUT_SEC", "180")))
+DOCUMENT_CONVERTER = str(
+    cfg.get("document_converter", os.getenv("EASYDOC_DOCUMENT_CONVERTER", "docling"))
+).strip().lower()
+DOCLING_FALLBACK_TO_MARKITDOWN = str(
+    cfg.get(
+        "docling_fallback_to_markitdown",
+        os.getenv("EASYDOC_DOCLING_FALLBACK_TO_MARKITDOWN", "1"),
+    )
+).strip().lower() not in ("0", "false", "no", "off")
+DOCLING_SHADOW_COMPARE = str(
+    cfg.get("docling_shadow_compare", os.getenv("EASYDOC_DOCLING_SHADOW_COMPARE", "0"))
+).strip().lower() in ("1", "true", "yes", "on")
+DOCUMENT_CONVERT_MAX_FILE_SIZE = int(
+    cfg.get(
+        "document_convert_max_file_size",
+        os.getenv("EASYDOC_DOCUMENT_CONVERT_MAX_FILE_SIZE", str(500 * 1024 * 1024)),
+    )
+)
 AUTO_COMPLEX_TEXT_THRESHOLD = int(
     cfg.get(
         "auto_complex_text_threshold",
@@ -1552,22 +1579,36 @@ def ingest_word(
             print(f"[RAG] Word 파일 없음: {word_path}", file=sys.stderr)
         return 0
 
-    print(f"[RAG] Word MarkItDown 학습 시작: {os.path.basename(word_path)}", flush=True)
-    text = load_markitdown_text(word_path)
-    converted_by = "markitdown"
+    print(f"[RAG] Word {DOCUMENT_CONVERTER} 학습 시작: {os.path.basename(word_path)}", flush=True)
+    conversion = convert_rag_document(word_path)
+    text = conversion.text
+    converted_by = conversion.converter
     converted_format = "markdown"
-    parser_version = markitdown_version()
+    parser_version = conversion.version
     if not text:
         print(
-            f"[RAG] Word MarkItDown 결과 없음, docx2txt fallback: {os.path.basename(word_path)}",
+            f"[RAG] Word 문서 변환 결과 없음, docx2txt fallback: {os.path.basename(word_path)}",
             flush=True,
         )
         text = load_word(word_path)
         converted_by = "docx2txt"
         converted_format = "text"
+        conversion = ConversionResult(
+            text=text,
+            converter="docx2txt",
+            status="success" if text else "failure",
+            fallback_used=True,
+            fallback_pipeline="docx2txt",
+            attempts=(conversion.attempts or []) + [{
+                "converter": "docx2txt",
+                "status": "success" if text else "failure",
+                "text_length": len(text or ""),
+            }],
+        )
         try:
             import importlib.metadata
             parser_version = importlib.metadata.version("docx2txt")
+            conversion.version = parser_version
         except Exception:
             parser_version = ""
     if not text:
@@ -1577,13 +1618,16 @@ def ingest_word(
     file_hash = calc_file_hash(word_path)
     split_base_dir = build_file_training_dir(post_id, comment_id, attachment_id, source_name)
     os.makedirs(split_base_dir, exist_ok=True)
-    converted_name = "converted_markitdown.md" if converted_by == "markitdown" else "converted_docx2txt.txt"
-    converted_path = os.path.join(split_base_dir, converted_name)
     try:
-        with open(converted_path, "w", encoding="utf-8") as f:
-            f.write(text)
+        write_conversion_outputs(
+            split_base_dir,
+            conversion,
+            source_path=word_path,
+            file_hash=file_hash,
+        )
+        persist_shadow_conversion(split_base_dir, word_path)
     except Exception as e:
-        print(f"[RAG] Word 변환 결과 저장 실패 ({converted_path}): {e}", file=sys.stderr)
+        print(f"[RAG] Word 변환 결과 저장 실패 ({split_base_dir}): {e}", file=sys.stderr)
 
     ext = os.path.splitext(source_name)[1].replace(".", "").lower()
     split_records = {
@@ -1599,6 +1643,9 @@ def ingest_word(
             "converted_by": converted_by,
             "converted_format": converted_format,
             "parser_version": parser_version,
+            "conversion_status": conversion.status,
+            "fallback_used": conversion.fallback_used,
+            "fallback_pipeline": conversion.fallback_pipeline,
             "archive_id": archive_id,
             "archive_file_path": archive_file_path,
             "search_content": text,
@@ -1629,6 +1676,8 @@ def ingest_word(
         meta["converted_by"] = converted_by
         meta["converted_format"] = converted_format
         meta["parser_version"] = parser_version
+        meta["fallback_used"] = bool(conversion.fallback_used)
+        meta["fallback_pipeline"] = str(conversion.fallback_pipeline or "")
         meta["archive_id"] = str(archive_id or "")
         meta["archive_file_path"] = str(archive_file_path or "")
         meta["inner_source_ext"] = ext if archive_id else ""
@@ -1691,21 +1740,41 @@ def ingest_txt(records, *, post_id, channel_id, attachment_id, comment_id, txt_p
 
 
 def markitdown_version():
-    try:
-        import importlib.metadata
-        return importlib.metadata.version("markitdown")
-    except Exception:
-        return ""
+    return package_version("markitdown")
 
 
 def load_markitdown_text(file_path):
-    try:
-        from markitdown import MarkItDown
-        result = MarkItDown().convert(file_path)
-        return (getattr(result, "text_content", "") or "").strip()
-    except Exception as e:
-        print(f"[RAG] MarkItDown 변환 실패 ({file_path}): {e}", file=sys.stderr)
-        return ""
+    result = convert_with_markitdown(file_path)
+    if result.error:
+        print(f"[RAG] MarkItDown 변환 실패 ({file_path}): {result.error}", file=sys.stderr)
+    return result.text
+
+
+def convert_rag_document(file_path):
+    return convert_document(
+        file_path,
+        preferred=DOCUMENT_CONVERTER,
+        fallback_to_markitdown=DOCLING_FALLBACK_TO_MARKITDOWN,
+        max_file_size=DOCUMENT_CONVERT_MAX_FILE_SIZE,
+    )
+
+
+def persist_shadow_conversion(split_base_dir, file_path):
+    if not DOCLING_SHADOW_COMPARE:
+        return
+    shadow = (
+        convert_with_markitdown(file_path)
+        if DOCUMENT_CONVERTER == "docling"
+        else convert_with_docling(file_path, max_file_size=DOCUMENT_CONVERT_MAX_FILE_SIZE)
+    )
+    if shadow.text:
+        shadow_path = os.path.join(split_base_dir, f"shadow_converted_{shadow.converter}.md")
+        with open(shadow_path, "w", encoding="utf-8") as f:
+            f.write(shadow.text)
+    write_json_file(
+        os.path.join(split_base_dir, f"shadow_{shadow.converter}_report.json"),
+        shadow.report(source_path=file_path, file_hash=calc_file_hash(file_path)),
+    )
 
 
 def document_kind_from_ext(ext):
@@ -1725,7 +1794,7 @@ def document_kind_from_ext(ext):
     return "markitdown"
 
 
-def ingest_markitdown_document(
+def ingest_convertible_document(
     records,
     *,
     post_id,
@@ -1740,30 +1809,42 @@ def ingest_markitdown_document(
 ):
     if not file_path or not os.path.isfile(file_path):
         if file_path:
-            print(f"[RAG] MarkItDown 파일 없음: {file_path}", file=sys.stderr)
+            print(f"[RAG] 변환 대상 파일 없음: {file_path}", file=sys.stderr)
         return 0
 
     source_name = file_name or os.path.basename(file_path)
     ext = os.path.splitext(source_name)[1].replace(".", "").lower()
     document_kind = document_kind_from_ext(ext)
-    print(f"[RAG] MarkItDown 학습 시작: {os.path.basename(file_path)} ({document_kind})", flush=True)
+    print(
+        f"[RAG] {DOCUMENT_CONVERTER} 학습 시작: {os.path.basename(file_path)} ({document_kind})",
+        flush=True,
+    )
 
     started_at = time.time()
-    text = load_markitdown_text(file_path)
+    conversion = convert_rag_document(file_path)
+    text = conversion.text
     split_base_dir = build_file_training_dir(post_id, comment_id, attachment_id, source_name)
     os.makedirs(split_base_dir, exist_ok=True)
-    converted_path = os.path.join(split_base_dir, "converted_markitdown.md")
+    file_hash = calc_file_hash(file_path)
     try:
-        with open(converted_path, "w", encoding="utf-8") as f:
-            f.write(text or "")
+        write_conversion_outputs(
+            split_base_dir,
+            conversion,
+            source_path=file_path,
+            file_hash=file_hash,
+        )
+        persist_shadow_conversion(split_base_dir, file_path)
     except Exception as e:
-        print(f"[RAG] MarkItDown 변환 결과 저장 실패 ({converted_path}): {e}", file=sys.stderr)
+        print(f"[RAG] 문서 변환 결과 저장 실패 ({split_base_dir}): {e}", file=sys.stderr)
 
     if not text:
-        print(f"[RAG] MarkItDown 학습 건너뜀(변환 결과 없음): {os.path.basename(file_path)}", flush=True)
+        print(
+            f"[RAG] 문서 학습 건너뜀(변환 결과 없음): {os.path.basename(file_path)} "
+            f"({conversion.error or 'unknown error'})",
+            flush=True,
+        )
         return 0
 
-    file_hash = calc_file_hash(file_path)
     split_records = {
         "text": [{
             "post_id": str(post_id or ""),
@@ -1774,9 +1855,12 @@ def ingest_markitdown_document(
             "type": doc_type,
             "document_kind": document_kind,
             "source_ext": ext,
-            "converted_by": "markitdown",
+            "converted_by": conversion.converter,
             "converted_format": "markdown",
-            "parser_version": markitdown_version(),
+            "parser_version": conversion.version,
+            "conversion_status": conversion.status,
+            "fallback_used": conversion.fallback_used,
+            "fallback_pipeline": conversion.fallback_pipeline,
             "archive_id": archive_id,
             "archive_file_path": archive_file_path,
             "search_content": text,
@@ -1805,17 +1889,28 @@ def ingest_markitdown_document(
     if RAG_SCHEMA_VERSION >= 2:
         meta["document_kind"] = document_kind
         meta["source_ext"] = ext
-        meta["converted_by"] = "markitdown"
+        meta["converted_by"] = conversion.converter
         meta["converted_format"] = "markdown"
-        meta["parser_version"] = markitdown_version()
+        meta["parser_version"] = conversion.version
+        meta["fallback_used"] = bool(conversion.fallback_used)
+        meta["fallback_pipeline"] = str(conversion.fallback_pipeline or "")
         meta["archive_id"] = str(archive_id or "")
         meta["archive_file_path"] = str(archive_file_path or "")
         meta["inner_source_ext"] = ext if archive_id else ""
 
     count = append_text_chunks(records, text, meta, chunk_prefix=meta["element_id"])
     elapsed = time.time() - started_at
-    print(f"[RAG] MarkItDown 학습 완료: {os.path.basename(file_path)} ({count}청크, {elapsed:.1f}s)", flush=True)
+    print(
+        f"[RAG] 문서 학습 완료: {os.path.basename(file_path)} "
+        f"({conversion.converter}, {count}청크, {elapsed:.1f}s)",
+        flush=True,
+    )
     return count
+
+
+def ingest_markitdown_document(records, **kwargs):
+    """Backward-compatible payload adapter; conversion is selected by configuration."""
+    return ingest_convertible_document(records, **kwargs)
 
 
 def safe_zip_member_name(name):

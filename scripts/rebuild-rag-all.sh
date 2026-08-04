@@ -48,6 +48,10 @@ Environment:
     rag_train.py 배치 학습 시간 제한을 두지 않습니다. 기본값은 1입니다.
     제한 시간을 두려면 EASYDOC_REBUILD_NO_TIMEOUT=0 과
     EASYDOC_REBUILD_TRAINER_TIMEOUT_SEC=7200 처럼 지정합니다.
+
+  EASYDOC_REBUILD_VERSIONED=1
+    전체 LanceDB/FileTrainingData 삭제를 건너뛰고 EASYDOC_RAG_REBUILD_TABLE로
+    지정한 새 테이블만 초기화하여 재학습합니다.
 EOF
 }
 
@@ -152,8 +156,16 @@ run_foreground() {
     log "EASYDOC_REBUILD_KEEP_APP=1: 실행 중인 EasyDocStation은 유지합니다."
   fi
 
-  log "RAG 저장소 초기화"
-  bash "$ROOT_DIR/scripts/reset-rag-storage.sh" --yes
+  if [[ "${EASYDOC_REBUILD_VERSIONED:-0}" == "1" ]]; then
+    if [[ -z "${EASYDOC_RAG_REBUILD_TABLE:-}" ]]; then
+      log "오류: 버전드 재학습에는 EASYDOC_RAG_REBUILD_TABLE이 필요합니다."
+      return 2
+    fi
+    log "버전드 재학습: 전체 저장소 삭제 생략, 대상 테이블만 초기화 (${EASYDOC_RAG_REBUILD_TABLE})"
+  else
+    log "RAG 저장소 초기화"
+    bash "$ROOT_DIR/scripts/reset-rag-storage.sh" --yes
+  fi
 
   log "모든 팀/채널 게시글, 댓글, 첨부 문서, 이미지 재학습"
   node "$ROOT_DIR/server/scripts/rebuild-rag-all.js"

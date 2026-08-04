@@ -3,6 +3,7 @@ import { Plugin, PluginKey } from '@tiptap/pm/state'
 import { Decoration, DecorationSet } from '@tiptap/pm/view'
 import mermaid from 'mermaid'
 import * as echarts from 'echarts'
+import { isLikelyEchartsOption, parseEchartsOption } from '../../../../lib/echartsOption'
 
 const MERMAID_RENDER_CLASS = 'md-mermaid-render'
 const MERMAID_PLUGIN_KEY = new PluginKey('md-mermaid-preview')
@@ -62,52 +63,57 @@ function sanitizeFilenamePart(text = '') {
 }
 
 async function downloadSvgAsPng(svgMarkup, filenameBase = 'mermaid-diagram', minWidth = 2000) {
-  // An SVG loaded from a blob URL can make the destination canvas non-origin-clean
-  // when the SVG contains foreignObject or an external reference.  Use a data URL
-  // after sanitising the SVG instead. This also behaves consistently in Safari.
+  // A percent-encoded data URL grows dramatically for large Mermaid diagrams and
+  // some browsers reject it before image decoding. The SVG is already stripped of
+  // foreignObject/external resources, so an object URL is both origin-clean and
+  // suitable for large exports.
   const safeSvg = sanitizeSvgForCanvas(svgMarkup)
-  const svgUrl = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(safeSvg)}`
-  const img = new Image()
-  img.crossOrigin = 'anonymous'
-  await new Promise((resolve, reject) => {
-    img.onload = resolve
-    img.onerror = () => reject(new Error('PNG 변환용 SVG 이미지를 불러오지 못했습니다.'))
-    img.src = svgUrl
-  })
+  const svgBlob = new Blob([safeSvg], { type: 'image/svg+xml;charset=utf-8' })
+  const svgUrl = URL.createObjectURL(svgBlob)
+  try {
+    const img = new Image()
+    await new Promise((resolve, reject) => {
+      img.onload = resolve
+      img.onerror = () => reject(new Error('PNG 변환용 SVG 이미지를 불러오지 못했습니다.'))
+      img.src = svgUrl
+    })
 
-  const intrinsicWidth = Math.max(1, Math.ceil(img.naturalWidth || img.width || 1200))
-  const intrinsicHeight = Math.max(1, Math.ceil(img.naturalHeight || img.height || 800))
-  const targetWidth = Math.max(Number(minWidth) || 2000, intrinsicWidth)
-  const targetHeight = Math.max(1, Math.round((intrinsicHeight * targetWidth) / intrinsicWidth))
+    const intrinsicWidth = Math.max(1, Math.ceil(img.naturalWidth || img.width || 1200))
+    const intrinsicHeight = Math.max(1, Math.ceil(img.naturalHeight || img.height || 800))
+    const targetWidth = Math.max(Number(minWidth) || 2000, intrinsicWidth)
+    const targetHeight = Math.max(1, Math.round((intrinsicHeight * targetWidth) / intrinsicWidth))
 
-  const width = targetWidth
-  const height = targetHeight
-  const canvas = document.createElement('canvas')
-  canvas.width = width
-  canvas.height = height
-  const ctx = canvas.getContext('2d')
-  if (!ctx) throw new Error('canvas context를 생성할 수 없습니다.')
+    const width = targetWidth
+    const height = targetHeight
+    const canvas = document.createElement('canvas')
+    canvas.width = width
+    canvas.height = height
+    const ctx = canvas.getContext('2d')
+    if (!ctx) throw new Error('canvas context를 생성할 수 없습니다.')
 
-  ctx.fillStyle = '#ffffff'
-  ctx.fillRect(0, 0, width, height)
-  ctx.drawImage(img, 0, 0, width, height)
+    ctx.fillStyle = '#ffffff'
+    ctx.fillRect(0, 0, width, height)
+    ctx.drawImage(img, 0, 0, width, height)
 
-  const pngBlob = await new Promise((resolve, reject) => {
-    try {
-      canvas.toBlob(resolve, 'image/png')
-    } catch (error) {
-      reject(error)
-    }
-  })
-  if (!pngBlob) throw new Error('PNG 변환에 실패했습니다.')
-  const pngUrl = URL.createObjectURL(pngBlob)
-  const a = document.createElement('a')
-  a.href = pngUrl
-  a.download = `${filenameBase}.png`
-  document.body.appendChild(a)
-  a.click()
-  a.remove()
-  URL.revokeObjectURL(pngUrl)
+    const pngBlob = await new Promise((resolve, reject) => {
+      try {
+        canvas.toBlob(resolve, 'image/png')
+      } catch (error) {
+        reject(error)
+      }
+    })
+    if (!pngBlob) throw new Error('PNG 변환에 실패했습니다.')
+    const pngUrl = URL.createObjectURL(pngBlob)
+    const a = document.createElement('a')
+    a.href = pngUrl
+    a.download = `${filenameBase}.png`
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+    URL.revokeObjectURL(pngUrl)
+  } finally {
+    URL.revokeObjectURL(svgUrl)
+  }
 }
 
 function buildExportSafeMermaidSource(source = '') {
@@ -157,11 +163,19 @@ function convertForeignObjectsToSvgText(svgMarkup = '') {
   }
 
   const parser = new DOMParser()
-  const documentNode = parser.parseFromString(String(svgMarkup || ''), 'image/svg+xml')
-  if (documentNode.querySelector('parsererror')) return String(svgMarkup || '')
+  let documentNode = parser.parseFromString(String(svgMarkup || ''), 'image/svg+xml')
+  let svgRoot = documentNode.documentElement
+  if (documentNode.querySelector('parsererror')) {
+    // Mermaid HTML labels may contain HTML-style void tags such as <br>. They are
+    // valid in the page DOM but invalid XML, so parse them as HTML first. The
+    // XMLSerializer below then emits a well-formed standalone SVG.
+    documentNode = parser.parseFromString(String(svgMarkup || ''), 'text/html')
+    svgRoot = documentNode.querySelector('svg')
+    if (!svgRoot) return String(svgMarkup || '')
+  }
 
   const svgNamespace = 'http://www.w3.org/2000/svg'
-  documentNode.querySelectorAll('foreignObject').forEach((foreignObject) => {
+  svgRoot.querySelectorAll('foreignObject').forEach((foreignObject) => {
     const width = parseSvgLength(foreignObject.getAttribute('width'))
     const height = parseSvgLength(foreignObject.getAttribute('height'))
     const x = parseSvgLength(foreignObject.getAttribute('x'))
@@ -191,7 +205,7 @@ function convertForeignObjectsToSvgText(svgMarkup = '') {
     foreignObject.replaceWith(text)
   })
 
-  return new XMLSerializer().serializeToString(documentNode.documentElement)
+  return new XMLSerializer().serializeToString(svgRoot)
 }
 
 async function renderMermaidSvgForExport(source = '') {
@@ -200,20 +214,6 @@ async function renderMermaidSvgForExport(source = '') {
   const renderId = `md-mermaid-export-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
   const { svg } = await mermaid.render(renderId, exportSource)
   return sanitizeSvgForCanvas(svg)
-}
-
-function parseEchartsOption(source = '') {
-  const text = String(source || '').trim()
-  if (!text) return {}
-  try {
-    return JSON.parse(text)
-  } catch {
-    try {
-      return Function(`"use strict"; return (${text});`)()
-    } catch (err) {
-      throw new Error(`ECharts 옵션 파싱 실패: ${err instanceof Error ? err.message : String(err)}`)
-    }
-  }
 }
 
 function getCodeBlockLanguage(node) {
@@ -228,17 +228,6 @@ function getCodeBlockLanguage(node) {
   if (!raw) return ''
   const first = raw.split(/\s+/)[0] || ''
   return first.replace(/^language-/, '')
-}
-
-function isLikelyEchartsOption(source = '') {
-  try {
-    const option = parseEchartsOption(source)
-    if (!option || typeof option !== 'object' || Array.isArray(option)) return false
-    const keys = ['series', 'xAxis', 'yAxis', 'dataset', 'title', 'legend', 'tooltip', 'grid', 'radar', 'geo']
-    return keys.some((k) => Object.prototype.hasOwnProperty.call(option, k))
-  } catch {
-    return false
-  }
 }
 
 function buildEchartsExportBaseName(source = '') {

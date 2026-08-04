@@ -12,7 +12,18 @@ export function extractEasyPagePostLinks(content = '', baseOrigin = 'http://easy
   const links = []
   const seen = new Set()
   const text = String(content || '').replace(/&amp;/g, '&')
-  const candidates = text.match(/\/?\?[^)\s"'<>]+/g) || []
+  // Markdown 제목에 '?'가 있어도 URL 시작으로 오인하지 않도록 href를 우선
+  // 추출하고, 일반 URL 후보에서는 Markdown label 경계인 []를 제외한다.
+  const markdownCandidates = Array.from(
+    text.matchAll(/\]\(\s*(\/?\?[^)\s"'<>]+)\s*\)/g),
+    match => match[1],
+  )
+  const htmlCandidates = Array.from(
+    text.matchAll(/\bhref\s*=\s*["'](\/?\?[^"']+)["']/gi),
+    match => match[1],
+  )
+  const plainCandidates = text.match(/\/?\?[^)\s"'<>[\]]+/g) || []
+  const candidates = [...markdownCandidates, ...htmlCandidates, ...plainCandidates]
   for (const candidate of candidates) {
     try {
       const url = new URL(candidate, baseOrigin)

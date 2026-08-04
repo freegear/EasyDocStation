@@ -61,6 +61,10 @@ function buildTrainerConfig(cfg, ragCfg) {
     trainer_timeout_sec: ragCfg.trainer_timeout_sec ?? 1800,
     pdf_parse_strategy: ragCfg.pdf_parse_strategy ?? 'auto',
     pdf_parse_timeout_sec: ragCfg.pdf_parse_timeout_sec ?? 180,
+    document_converter: ragCfg.document_converter ?? 'docling',
+    docling_shadow_compare: ragCfg.docling_shadow_compare ?? false,
+    docling_fallback_to_markitdown: ragCfg.docling_fallback_to_markitdown ?? true,
+    document_convert_max_file_size: ragCfg.document_convert_max_file_size ?? 500 * 1024 * 1024,
   }
 }
 

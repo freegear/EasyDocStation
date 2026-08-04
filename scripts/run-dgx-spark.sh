@@ -26,6 +26,8 @@ ACTION="start"
 CONSTRUCT_SAFE_KANBAN_TEMPLATE="${VITE_CONSTRUCT_SAFE_KANBAN_TEMPLATE:-0}"
 EASY_CODE_GENERATION_TEMPLATE="${VITE_EASY_CODE_GENERATION_TEMPLATE:-0}"
 SHOW_WELCOME_BOARD="${VITE_SHOW_WELCOME_BOARD:-0}"
+CASSANDRA_REQUIRED="${CASSANDRA_REQUIRED:-1}"
+CASSANDRA_START_TIMEOUT="${CASSANDRA_START_TIMEOUT:-120}"
 
 log() {
   echo "[$(date '+%Y%m%d-%H:%M:%S')][DGX-SPARK] $*"
@@ -60,8 +62,123 @@ kill_tree() {
   fi
 
   kill -TERM "$pid" >/dev/null 2>&1 || true
-  sleep 0.2
+  local wait_count
+  for wait_count in 1 2 3 4 5 6 7 8 9 10; do
+    kill -0 "$pid" >/dev/null 2>&1 || return 0
+    sleep 0.2
+  done
   kill -KILL "$pid" >/dev/null 2>&1 || true
+}
+
+resolve_cassandra_target() {
+  node -e '
+    const fs = require("fs")
+    let host = "127.0.0.1"
+    let port = "9042"
+    try {
+      const cfg = JSON.parse(fs.readFileSync("config.json", "utf8"))
+      const cass = cfg.Cassandra || cfg.cassandra || {}
+      const point = Array.isArray(cass.contactPoints) ? cass.contactPoints[0] : cass.contactPoints
+      if (typeof point === "string" && point.trim()) {
+        const raw = point.trim()
+        const index = raw.lastIndexOf(":")
+        if (index > 0 && /^\d+$/.test(raw.slice(index + 1))) {
+          host = raw.slice(0, index)
+          port = raw.slice(index + 1)
+        } else {
+          host = raw
+        }
+      }
+    } catch (_) {}
+    process.stdout.write(`${host} ${port}`)
+  ' 2>/dev/null || echo "127.0.0.1 9042"
+}
+
+is_tcp_ready() {
+  local host="$1"
+  local port="$2"
+  if command -v nc >/dev/null 2>&1; then
+    nc -z -w 2 "$host" "$port" >/dev/null 2>&1
+  else
+    timeout 2 bash -c "cat < /dev/null > /dev/tcp/${host}/${port}" >/dev/null 2>&1
+  fi
+}
+
+run_systemctl() {
+  if [[ "$(id -u)" -eq 0 ]]; then
+    systemctl "$@"
+    return
+  fi
+  if command -v sudo >/dev/null 2>&1 && sudo -n true >/dev/null 2>&1; then
+    sudo -n systemctl "$@"
+    return
+  fi
+  if command -v sudo >/dev/null 2>&1 && [[ -t 0 ]]; then
+    log "Cassandra ${1:-제어}를 위해 sudo 인증을 요청합니다."
+    sudo systemctl "$@"
+    return
+  fi
+  log "Cassandra 제어에 관리자 권한이 필요합니다."
+  log "먼저 실행: sudo systemctl $*"
+  return 1
+}
+
+print_cassandra_diagnostics() {
+  command -v systemctl >/dev/null 2>&1 || return 0
+  local active result
+  active="$(systemctl is-active cassandra 2>/dev/null || true)"
+  result="$(systemctl show cassandra -p Result --value 2>/dev/null || true)"
+  log "Cassandra 상태: ${active:-unknown}${result:+ (result: $result)}"
+  if [[ "$result" == "oom-kill" ]]; then
+    log "Cassandra가 메모리 부족(OOM)으로 종료되었습니다."
+    command -v free >/dev/null 2>&1 && free -h | sed "s/^/[$(date '+%Y%m%d-%H:%M:%S')][DGX-SPARK]   /" || true
+  fi
+}
+
+ensure_cassandra_ready() {
+  [[ "$CASSANDRA_REQUIRED" == "1" ]] || return 0
+  local host port operation elapsed
+  read -r host port <<< "$(resolve_cassandra_target)"
+  host="${host:-127.0.0.1}"
+  port="${port:-9042}"
+
+  if is_tcp_ready "$host" "$port"; then
+    if [[ "$ACTION" != "restart" ]]; then
+      log "Cassandra 준비 완료: ${host}:${port}"
+      return 0
+    fi
+  fi
+
+  print_cassandra_diagnostics
+  if [[ "$host" != "127.0.0.1" && "$host" != "localhost" && "$host" != "::1" ]]; then
+    log "원격 Cassandra ${host}:${port}는 이 스크립트에서 시작할 수 없습니다."
+    return 1
+  fi
+  if ! command -v systemctl >/dev/null 2>&1 || ! systemctl cat cassandra >/dev/null 2>&1; then
+    log "cassandra.service를 찾을 수 없습니다. Cassandra 설치/컨테이너 상태를 확인하세요."
+    return 1
+  fi
+
+  operation="start"
+  [[ "$ACTION" == "restart" ]] && operation="restart"
+  log "Cassandra ${operation} 실행"
+  if ! run_systemctl "$operation" cassandra; then
+    log "Cassandra ${operation} 실패"
+    print_cassandra_diagnostics
+    return 1
+  fi
+
+  for ((elapsed=0; elapsed<CASSANDRA_START_TIMEOUT; elapsed+=2)); do
+    if is_tcp_ready "$host" "$port"; then
+      log "Cassandra 준비 완료: ${host}:${port} (${elapsed}초)"
+      return 0
+    fi
+    sleep 2
+  done
+  log "Cassandra 준비 시간 초과: ${host}:${port} (${CASSANDRA_START_TIMEOUT}초)"
+  print_cassandra_diagnostics
+  log "상세 확인: sudo journalctl -u cassandra -n 100 --no-pager"
+  return 1
 }
 
 kill_by_port() {
@@ -157,13 +274,16 @@ print_port_holders() {
 }
 
 stop_all_tasks() {
-  if [[ -f "$PID_FILE" ]]; then
-    pid="$(cat "$PID_FILE" 2>/dev/null || true)"
+  local task_pid_file pid
+  # PID로 추적되는 런처/FE/BE/Ollama wrapper/backend-loop와 그 자식부터 정상 종료한다.
+  for task_pid_file in "$PID_FILE" "$FE_PID_FILE" "$BE_PID_FILE" "$OLLAMA_PID_FILE" "$BE_LOOP_PID_FILE"; do
+    [[ -f "$task_pid_file" ]] || continue
+    pid="$(cat "$task_pid_file" 2>/dev/null || true)"
     if [[ -n "${pid:-}" ]] && kill -0 "$pid" 2>/dev/null; then
       kill_tree "$pid"
     fi
-    rm -f "$PID_FILE"
-  fi
+    rm -f "$task_pid_file"
+  done
 
   rm -f "$BE_LOOP_PID_FILE" "$BE_LOOP_LOCK_FILE"
   rm -f "$FE_PID_FILE" "$BE_PID_FILE" "$OLLAMA_PID_FILE"
@@ -182,6 +302,23 @@ stop_all_tasks() {
       break
     fi
   done
+}
+
+verify_app_tasks_stopped() {
+  local failed=0
+  local port
+  for port in 3001 5173 5001; do
+    if ! wait_port_free "$port" 20 0.25; then
+      failed=1
+      log "포트 ${port} 정리가 완료되지 않았습니다."
+      print_port_holders "$port"
+    fi
+  done
+  if has_dgx_processes; then
+    failed=1
+    log "EasyDocStation 관련 프로세스가 남아 있습니다."
+  fi
+  [[ "$failed" -eq 0 ]]
 }
 
 while [[ $# -gt 0 ]]; do
@@ -228,7 +365,7 @@ Description:
 Options:
   --status                          실행 상태 확인
   --stop                            실행 중인 프로세스 중지
-  --restart                         전체 태스크 정리 후 재실행
+  --restart                         전체 앱 태스크 정리 및 Cassandra 재시작 후 재실행
   --Construct_safe_kanban_template  Teams 위 Service 섹션에 Construct_Safe_kanban.html 표시
   --EasyCodeGeneration              Teams 위 Service 섹션에 EasyCodeGeneration.html 표시
   --showWelcomeBoard                Service 섹션 최상단에 Welcome 보드(WelcomeBoard_blueThema.html) 표시
@@ -251,18 +388,10 @@ fi
 
 if [[ "$ACTION" == "stop" ]]; then
   stop_all_tasks
-
-  if ! wait_port_free 3001 30 0.5; then
-    log "경고: 포트 3001 점유가 남아 있습니다."
-    print_port_holders 3001
-  fi
-  if has_dgx_processes; then
-    log "경고: 일부 DGX 실행 프로세스가 남아 있습니다."
-    pgrep -af "$ROOT_DIR/node_modules/.bin/concurrently" || true
-    pgrep -af "scripts/backend-loop-dgx.sh" || true
-    pgrep -af "npm run start --prefix server" || true
-    pgrep -af "node .*server/index\\.js" || true
-  fi
+  verify_app_tasks_stopped || {
+    log "일부 태스크를 정리하지 못했습니다."
+    exit 1
+  }
   log "중지 완료"
   exit 0
 fi
@@ -289,11 +418,16 @@ fi
 
 # start는 항상 전체 태스크를 먼저 정리해서 깨끗한 단일 세션으로 시작한다.
 stop_all_tasks
-
-if ! wait_port_free 3001 20 0.5; then
-  log "포트 3001 정리가 완료되지 않았습니다. 시작을 중단합니다."
-  print_port_holders 3001
+if ! verify_app_tasks_stopped; then
+  log "기존 태스크 정리가 완료되지 않아 시작을 중단합니다."
   log "수동 정리 후 재시도: bash scripts/run-dgx-spark.sh --stop"
+  exit 1
+fi
+
+# Cassandra 필수 모드에서는 앱을 띄우기 전에 서비스 상태를 복구하고 CQL 포트를 확인한다.
+# --restart는 Cassandra도 명시적으로 재시작해 OOM/failed 상태와 남은 연결을 정리한다.
+if ! ensure_cassandra_ready; then
+  log "Cassandra가 준비되지 않아 EasyDocStation 시작을 중단합니다."
   exit 1
 fi
 
@@ -354,13 +488,24 @@ disown "$be_pid" >/dev/null 2>&1 || true
 echo "$be_pid" > "$BE_PID_FILE"
 echo "$be_pid" > "$PID_FILE"
 
-sleep 1
-if kill -0 "$be_pid" 2>/dev/null; then
+ready=0
+for _ in {1..30}; do
+  if ! kill -0 "$be_pid" 2>/dev/null; then
+    break
+  fi
+  if is_tcp_ready 127.0.0.1 3001 && is_tcp_ready 127.0.0.1 5173; then
+    ready=1
+    break
+  fi
+  sleep 1
+done
+if [[ "$ready" -eq 1 ]]; then
   log "실행 성공 (프로덕션 FE: 5173, API: 3001, PID: $be_pid)"
   log "종료 명령: bash scripts/run-dgx-spark.sh --stop"
   exit 0
 fi
 
 log "실행 실패. 로그를 확인하세요: $LOG_FILE"
+stop_all_tasks
 rm -f "$PID_FILE"
 exit 1

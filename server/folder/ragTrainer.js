@@ -39,6 +39,10 @@ function ragConfig() {
     vector_size: rag.vectorSize ?? 1024,
     chunk_size: rag.chunk_size ?? 800,
     chunk_overlap: rag.chunk_overlap ?? 100,
+    document_converter: rag.document_converter ?? 'docling',
+    docling_shadow_compare: rag.docling_shadow_compare ?? false,
+    docling_fallback_to_markitdown: rag.docling_fallback_to_markitdown ?? true,
+    document_convert_max_file_size: rag.document_convert_max_file_size ?? 500 * 1024 * 1024,
   }
 }
 

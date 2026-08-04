@@ -1,26 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { TextSelection } from '@tiptap/pm/state'
 import { getMdPageTitle, isMdPage } from '../../../../templates/formTemplates'
-
-function extractInternalPostLinks(content = '') {
-  const links = []
-  const text = String(content || '').replace(/&amp;/g, '&')
-  const candidates = text.match(/\/?\?[^)\s"'<>]+/g) || []
-
-  for (const candidate of candidates) {
-    try {
-      const url = new URL(candidate, window.location.origin)
-      if (url.origin !== window.location.origin) continue
-      const channelId = url.searchParams.get('channelId') || url.searchParams.get('channelid')
-      const postId = url.searchParams.get('postId') || url.searchParams.get('postid')
-      if (channelId && postId) links.push({ channelId: String(channelId), postId: String(postId) })
-    } catch {
-      // Ignore malformed link-like text while scanning page content.
-    }
-  }
-
-  return links
-}
+import { extractEasyPagePostLinks } from '../navigation/easyPageTree'
 
 function buildEasyPageItems({ channelId, currentPost, channelPosts }) {
   const currentPostId = String(currentPost?.id || '')
@@ -38,7 +19,7 @@ function buildEasyPageItems({ channelId, currentPost, channelPosts }) {
   const graph = new Map(pages.map(item => [item.postId, new Set()]))
 
   for (const item of pages) {
-    const links = extractInternalPostLinks(item.post.content)
+    const links = extractEasyPagePostLinks(item.post.content, window.location.origin)
     for (const link of links) {
       if (String(link.channelId) !== String(item.channelId)) continue
       if (!pageById.has(String(link.postId))) continue

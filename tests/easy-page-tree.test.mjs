@@ -14,6 +14,13 @@ test('extracts internal EasyPage links in document order without duplicates', ()
   ])
 })
 
+test('does not confuse a question mark in the link title with the link URL', () => {
+  const content = '## [8. AI를 처음부터 재학습해야 하는가?](/?channelId=ch-1&postId=page-8)'
+  assert.deepEqual(extractEasyPagePostLinks(content), [
+    { channelId: 'ch-1', postId: 'page-8' },
+  ])
+})
+
 test('builds the current page hierarchy and preserves child link order', () => {
   const tree = buildEasyPageTree({
     channelId: 'c1',

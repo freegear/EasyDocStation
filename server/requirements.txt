@@ -14,6 +14,7 @@ langchain-community
 langchain-text-splitters
 pyarrow
 docx2txt
+docling==2.118.0
 markitdown[all]
 unstructured[pdf]
 pytesseract
