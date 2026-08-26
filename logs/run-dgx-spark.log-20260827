@@ -1,0 +1,673 @@
+[20260826-00:11:29][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260826-00:20:10][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260826-00:30:30][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260826-00:40:59][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260826-00:50:09][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260826-01:01:25][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260826-01:10:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260826-01:20:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260826-01:30:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260826-01:40:00][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260826-01:50:00][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260826-01:59:57][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260826-02:10:55][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260826-02:19:58][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260826-02:30:01][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260826-02:39:57][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260826-02:50:21][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260826-03:00:01][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260826-03:09:57][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260826-03:20:01][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260826-03:30:17][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260826-03:40:10][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260826-03:50:42][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260826-03:57:18][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260826-03:57:21][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260826-03:57:21][BE] [link-preview-image] local render failed, try remote fallback: page.goto: Download is starting
+[20260826-03:57:21][BE] Call log:
+[20260826-03:57:21][BE] [2m  - navigating to "https://www.rnd.or.kr/download?a=GVPA9AOv240H0%2FfCK%2FKEBztnrlkWZd%2BCF2Nx%2BT%2BP4c9bjr1fc427AwqVspbO9X4SWOMOI0So3wta7m62svRZh%2BxvVgUqrJCyfc1JiAWdN48YptpNEWBRYJyzFbbX0gi2&m=v&p=t5R%2BkqIXOIr%2BkhHlmKI8tklH2ZJ%2FuCoHvK1xDaQuio8%3D", waiting until "domcontentloaded"[22m
+[20260826-03:57:21][BE] 
+[20260826-03:59:58][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260826-04:03:55][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260826-04:03:56][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260826-04:04:10][BE] [link-preview-image] meta image failed, fallback screenshot: meta page fetch failed (403)
+[20260826-04:04:13][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260826-04:04:14][BE] [link-preview-image] meta image failed, fallback screenshot: meta page fetch failed (404)
+[20260826-04:04:16][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260826-04:04:22][BE] [link-preview-image] 내부망 주소는 미리보기를 지원하지 않습니다.
+[20260826-04:04:29][BE] [ATTACH-REF] sync ownerType=post ownerId=eb215b44-dde1-4b71-adbd-c1b624d6f318 actorUserId=1 prev=0 next=10 add=10 remove=0
+[20260826-04:04:29][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
+[20260826-04:04:29][BE] /home/freegear/EasyDocStation/server/rag_train.py:152: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260826-04:04:29][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260826-04:04:32][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v3' already exists
+[20260826-04:04:32][BE] [RAG] post=eb215b44-dde1-4b71-adbd-c1b624d6f318 text → 1청크
+[20260826-04:04:32][BE] [RAG] PDF 학습 시작: 1.건강검진의 정의.pdf
+[20260826-04:04:33][BE] [RAG] PDF 파싱 시작 (Unstructured fast): 1.건강검진의 정의.pdf
+[20260826-04:04:35][BE] [RAG] Tesseract OCR fallback 시작: lang=kor+eng, pages=28
+[20260826-04:04:35][BE] [RAG] Tesseract OCR 진행: 1/28
+[20260826-04:04:37][BE] [ATTACH-REF] sync ownerType=post ownerId=a3f54096-a800-4657-a7a1-8602d22334df actorUserId=1 prev=0 next=3 add=3 remove=0
+[20260826-04:04:37][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
+[20260826-04:04:37][BE] /home/freegear/EasyDocStation/server/rag_train.py:152: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260826-04:04:37][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260826-04:04:40][BE] [RAG] Tesseract OCR 진행: 5/28
+[20260826-04:04:40][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v3' already exists
+[20260826-04:04:40][BE] [RAG] post=a3f54096-a800-4657-a7a1-8602d22334df text → 1청크
+[20260826-04:04:40][BE] [RAG] 학습 진행률: 20% (게시글 본문)
+[20260826-04:04:40][BE] [RAG] PDF 학습 시작: 4.영상의학검사-3.pdf
+[20260826-04:04:41][BE] [RAG] PDF 파싱 시작 (Unstructured fast): 4.영상의학검사-3.pdf
+[20260826-04:04:41][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260826-04:04:42][BE] [RAG] Tesseract OCR fallback 시작: lang=kor+eng, pages=20
+[20260826-04:04:42][BE] [RAG] Tesseract OCR 진행: 1/20
+[20260826-04:04:44][BE] [RAG] Tesseract OCR 진행: 10/28
+[20260826-04:04:48][BE] [RAG] Tesseract OCR 진행: 15/28
+[20260826-04:04:48][BE] [RAG] Tesseract OCR 진행: 5/20
+[20260826-04:04:54][BE] [RAG] Tesseract OCR 진행: 20/28
+[20260826-04:04:54][BE] [RAG] Tesseract OCR 진행: 10/20
+[20260826-04:05:00][BE] [RAG] Tesseract OCR 진행: 15/20
+[20260826-04:05:00][BE] [RAG] Tesseract OCR 진행: 25/28
+[20260826-04:05:04][BE] [RAG] Tesseract OCR 진행: 28/28
+[20260826-04:05:04][BE] [RAG] Tesseract OCR fallback 완료: 추출 페이지 27/28
+[20260826-04:05:05][BE] [RAG] Tesseract OCR 진행: 20/20
+[20260826-04:05:06][BE] [RAG] PDF 학습 완료: 1.건강검진의 정의.pdf (40청크)
+[20260826-04:05:06][BE] [RAG] 분리 저장 완료: /home/freegear/EasyDocStation/Database/ObjectFile/FileTrainingData/eb215b44-dde1-4b71-adbd-c1b624d6f318/no_comment/b4090668-2a4d-419d-950f-0a386a555e10/1.건강검진의_정의.pdf
+[20260826-04:05:06][BE] [RAG] 학습 진행률: 10% (게시글 PDF)
+[20260826-04:05:06][BE] [RAG] PDF 학습 시작: 4.영상의학검사-1.pdf
+[20260826-04:05:06][BE] [RAG] PDF 파싱 시작 (Unstructured fast): 4.영상의학검사-1.pdf
+[20260826-04:05:06][BE] [RAG] Tesseract OCR fallback 완료: 추출 페이지 20/20
+[20260826-04:05:07][BE] [RAG] Tesseract OCR fallback 시작: lang=kor+eng, pages=24
+[20260826-04:05:07][BE] [RAG] Tesseract OCR 진행: 1/24
+[20260826-04:05:07][BE] [RAG] PDF 학습 완료: 4.영상의학검사-3.pdf (30청크)
+[20260826-04:05:07][BE] [RAG] 분리 저장 완료: /home/freegear/EasyDocStation/Database/ObjectFile/FileTrainingData/a3f54096-a800-4657-a7a1-8602d22334df/no_comment/cf0bdb84-a185-43ef-af56-0643dadbeaf2/4.영상의학검사-3.pdf
+[20260826-04:05:07][BE] [RAG] 학습 진행률: 40% (게시글 PDF)
+[20260826-04:05:07][BE] [RAG] PDF 학습 시작: 5.핵의학검사.pdf
+[20260826-04:05:07][BE] [RAG] PDF 파싱 시작 (Unstructured fast): 5.핵의학검사.pdf
+[20260826-04:05:08][BE] [RAG] Tesseract OCR fallback 시작: lang=kor+eng, pages=8
+[20260826-04:05:08][BE] [RAG] Tesseract OCR 진행: 1/8
+[20260826-04:05:09][BE] [RAG] Tesseract OCR 진행: 5/24
+[20260826-04:05:11][BE] [RAG] Tesseract OCR 진행: 5/8
+[20260826-04:05:15][BE] [RAG] Tesseract OCR 진행: 8/8
+[20260826-04:05:16][BE] [RAG] Tesseract OCR fallback 완료: 추출 페이지 8/8
+[20260826-04:05:16][BE] [RAG] PDF 학습 완료: 5.핵의학검사.pdf (12청크)
+[20260826-04:05:16][BE] [RAG] 분리 저장 완료: /home/freegear/EasyDocStation/Database/ObjectFile/FileTrainingData/a3f54096-a800-4657-a7a1-8602d22334df/no_comment/41516c29-f792-42cd-a163-29a4db2d76f6/5.핵의학검사.pdf
+[20260826-04:05:16][BE] [RAG] 학습 진행률: 60% (게시글 PDF)
+[20260826-04:05:16][BE] [RAG] PDF 학습 시작: 6.내시경검사.pdf
+[20260826-04:05:16][BE] [RAG] PDF 파싱 시작 (Unstructured fast): 6.내시경검사.pdf
+[20260826-04:05:17][BE] [RAG] Tesseract OCR 진행: 10/24
+[20260826-04:05:20][BE] [RAG] Tesseract OCR fallback 시작: lang=kor+eng, pages=30
+[20260826-04:05:20][BE] [RAG] Tesseract OCR 진행: 1/30
+[20260826-04:05:21][BE] [RAG] Tesseract OCR 진행: 15/24
+[20260826-04:05:23][BE] [RAG] Tesseract OCR 진행: 5/30
+[20260826-04:05:27][BE] [RAG] Tesseract OCR 진행: 20/24
+[20260826-04:05:29][BE] [RAG] Tesseract OCR 진행: 10/30
+[20260826-04:05:31][BE] [RAG] Tesseract OCR 진행: 24/24
+[20260826-04:05:32][BE] [RAG] Tesseract OCR fallback 완료: 추출 페이지 23/24
+[20260826-04:05:33][BE] [RAG] PDF 학습 완료: 4.영상의학검사-1.pdf (31청크)
+[20260826-04:05:33][BE] [RAG] 분리 저장 완료: /home/freegear/EasyDocStation/Database/ObjectFile/FileTrainingData/eb215b44-dde1-4b71-adbd-c1b624d6f318/no_comment/56559165-d680-4168-8eae-f73689c0a498/4.영상의학검사-1.pdf
+[20260826-04:05:33][BE] [RAG] 학습 진행률: 20% (게시글 PDF)
+[20260826-04:05:33][BE] [RAG] PDF 학습 시작: 4.영상의학검사-2.pdf
+[20260826-04:05:33][BE] [RAG] PDF 파싱 시작 (Unstructured fast): 4.영상의학검사-2.pdf
+[20260826-04:05:34][BE] [RAG] Tesseract OCR 진행: 15/30
+[20260826-04:05:36][BE] [RAG] Tesseract OCR fallback 시작: lang=kor+eng, pages=30
+[20260826-04:05:36][BE] [RAG] Tesseract OCR 진행: 1/30
+[20260826-04:05:40][BE] [RAG] Tesseract OCR 진행: 20/30
+[20260826-04:05:40][BE] [RAG] Tesseract OCR 진행: 5/30
+[20260826-04:05:45][BE] [RAG] Tesseract OCR 진행: 25/30
+[20260826-04:05:47][BE] [RAG] Tesseract OCR 진행: 10/30
+[20260826-04:05:51][BE] [RAG] Tesseract OCR 진행: 30/30
+[20260826-04:05:52][BE] [RAG] Tesseract OCR fallback 완료: 추출 페이지 30/30
+[20260826-04:05:53][BE] [RAG] Tesseract OCR 진행: 15/30
+[20260826-04:05:54][BE] [RAG] PDF 학습 완료: 6.내시경검사.pdf (47청크)
+[20260826-04:05:54][BE] [RAG] 분리 저장 완료: /home/freegear/EasyDocStation/Database/ObjectFile/FileTrainingData/a3f54096-a800-4657-a7a1-8602d22334df/no_comment/be16102c-5e3b-41c1-8c10-dcf2e1d1faba/6.내시경검사.pdf
+[20260826-04:05:54][BE] [RAG] 학습 진행률: 80% (게시글 PDF)
+[20260826-04:05:54][BE] [RAG] 저장 완료 — 90청크 / 1개 게시글 / 0개 댓글 / 0개 폴더문서
+[20260826-04:05:54][BE] [RAG] 학습 진행률: 100% (저장)
+[20260826-04:05:55][BE] [RAG] 학습 완료
+[20260826-04:05:58][BE] [RAG] Tesseract OCR 진행: 20/30
+[20260826-04:06:04][BE] [RAG] Tesseract OCR 진행: 25/30
+[20260826-04:06:09][BE] [RAG] Tesseract OCR 진행: 30/30
+[20260826-04:06:10][BE] [RAG] Tesseract OCR fallback 완료: 추출 페이지 30/30
+[20260826-04:06:12][BE] [RAG] PDF 학습 완료: 4.영상의학검사-2.pdf (43청크)
+[20260826-04:06:12][BE] [RAG] 분리 저장 완료: /home/freegear/EasyDocStation/Database/ObjectFile/FileTrainingData/eb215b44-dde1-4b71-adbd-c1b624d6f318/no_comment/0208d45d-e811-4e57-9273-754816715c42/4.영상의학검사-2.pdf
+[20260826-04:06:12][BE] [RAG] 학습 진행률: 30% (게시글 PDF)
+[20260826-04:06:12][BE] [RAG] PDF 학습 시작: 2.기본검사-1.pdf
+[20260826-04:06:12][BE] [RAG] PDF 파싱 시작 (Unstructured fast): 2.기본검사-1.pdf
+[20260826-04:06:15][BE] [RAG] Tesseract OCR fallback 시작: lang=kor+eng, pages=30
+[20260826-04:06:15][BE] [RAG] Tesseract OCR 진행: 1/30
+[20260826-04:06:18][BE] [RAG] Tesseract OCR 진행: 5/30
+[20260826-04:06:24][BE] [RAG] Tesseract OCR 진행: 10/30
+[20260826-04:06:31][BE] [RAG] Tesseract OCR 진행: 15/30
+[20260826-04:06:38][BE] [RAG] Tesseract OCR 진행: 20/30
+[20260826-04:06:43][BE] [RAG] Tesseract OCR 진행: 25/30
+[20260826-04:06:49][BE] [RAG] Tesseract OCR 진행: 30/30
+[20260826-04:06:49][BE] [RAG] Tesseract OCR fallback 완료: 추출 페이지 29/30
+[20260826-04:06:51][BE] [RAG] PDF 학습 완료: 2.기본검사-1.pdf (43청크)
+[20260826-04:06:51][BE] [RAG] 분리 저장 완료: /home/freegear/EasyDocStation/Database/ObjectFile/FileTrainingData/eb215b44-dde1-4b71-adbd-c1b624d6f318/no_comment/626975e7-3af3-4d77-96af-615bec7f6609/2.기본검사-1.pdf
+[20260826-04:06:51][BE] [RAG] 학습 진행률: 40% (게시글 PDF)
+[20260826-04:06:51][BE] [RAG] PDF 학습 시작: 3.진단의학검사-1.pdf
+[20260826-04:06:51][BE] [RAG] PDF 파싱 시작 (Unstructured fast): 3.진단의학검사-1.pdf
+[20260826-04:06:53][BE] [RAG] Tesseract OCR fallback 시작: lang=kor+eng, pages=24
+[20260826-04:06:53][BE] [RAG] Tesseract OCR 진행: 1/24
+[20260826-04:06:55][BE] [RAG] Tesseract OCR 진행: 5/24
+[20260826-04:07:01][BE] [RAG] Tesseract OCR 진행: 10/24
+[20260826-04:07:03][BE] [ATTACH-REF] sync ownerType=post ownerId=e1eaa878-ee45-4f1a-9b6d-0fd7b4a990e7 actorUserId=1 prev=0 next=5 add=5 remove=0
+[20260826-04:07:03][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
+[20260826-04:07:03][BE] /home/freegear/EasyDocStation/server/rag_train.py:152: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260826-04:07:03][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260826-04:07:06][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v3' already exists
+[20260826-04:07:06][BE] [RAG] post=e1eaa878-ee45-4f1a-9b6d-0fd7b4a990e7 text → 1청크
+[20260826-04:07:06][BE] [RAG] 학습 진행률: 10% (게시글 본문)
+[20260826-04:07:06][BE] [RAG] TXT 학습 시작: api key.txt
+[20260826-04:07:06][BE] [RAG] TXT 학습 완료: api key.txt (1청크)
+[20260826-04:07:06][BE] [RAG] 학습 진행률: 20% (게시글 TXT)
+[20260826-04:07:06][BE] [RAG] 이미지 학습 시작: 가격_DeepSeek.png
+[20260826-04:07:07][BE] [RAG] Tesseract OCR 진행: 15/24
+[20260826-04:07:12][BE] [RAG] Tesseract OCR 진행: 20/24
+[20260826-04:07:16][BE] [RAG] Tesseract OCR 진행: 24/24
+[20260826-04:07:17][BE] [RAG] Tesseract OCR fallback 완료: 추출 페이지 24/24
+[20260826-04:07:18][BE] [RAG] PDF 학습 완료: 3.진단의학검사-1.pdf (35청크)
+[20260826-04:07:18][BE] [RAG] 분리 저장 완료: /home/freegear/EasyDocStation/Database/ObjectFile/FileTrainingData/eb215b44-dde1-4b71-adbd-c1b624d6f318/no_comment/40bfc987-4bc9-49b7-93fe-97952ee8056b/3.진단의학검사-1.pdf
+[20260826-04:07:18][BE] [RAG] 학습 진행률: 50% (게시글 PDF)
+[20260826-04:07:18][BE] [RAG] PDF 학습 시작: 2.기본검사-2.pdf
+[20260826-04:07:18][BE] [RAG] PDF 파싱 시작 (Unstructured fast): 2.기본검사-2.pdf
+[20260826-04:07:23][BE] [RAG] Tesseract OCR fallback 시작: lang=kor+eng, pages=30
+[20260826-04:07:23][BE] [RAG] Tesseract OCR 진행: 1/30
+[20260826-04:07:29][BE] [RAG] Tesseract OCR 진행: 5/30
+[20260826-04:07:37][BE] [RAG] Tesseract OCR 진행: 10/30
+[20260826-04:07:43][BE] [RAG] Tesseract OCR 진행: 15/30
+[20260826-04:07:51][BE] [RAG] Tesseract OCR 진행: 20/30
+[20260826-04:07:56][BE] [RAG] Tesseract OCR 진행: 25/30
+[20260826-04:08:02][BE] [RAG] Tesseract OCR 진행: 30/30
+[20260826-04:08:03][BE] [RAG] Tesseract OCR fallback 완료: 추출 페이지 30/30
+[20260826-04:08:06][BE] [RAG] PDF 학습 완료: 2.기본검사-2.pdf (47청크)
+[20260826-04:08:06][BE] [RAG] 분리 저장 완료: /home/freegear/EasyDocStation/Database/ObjectFile/FileTrainingData/eb215b44-dde1-4b71-adbd-c1b624d6f318/no_comment/18811533-8bca-4f99-88f6-4625b21bcbd1/2.기본검사-2.pdf
+[20260826-04:08:06][BE] [RAG] PDF 학습 시작: 3.진단의학검사-2.pdf
+[20260826-04:08:06][BE] [RAG] PDF 파싱 시작 (Unstructured fast): 3.진단의학검사-2.pdf
+[20260826-04:08:08][BE] [RAG] Gemma 이미지 설명 완료 (page=1, 61.5s): 3986자
+[20260826-04:08:08][BE] [RAG] 이미지 학습 완료: 가격_DeepSeek.png (7청크)
+[20260826-04:08:08][BE] [RAG] 학습 진행률: 40% (게시글 이미지)
+[20260826-04:08:08][BE] [RAG] 이미지 학습 시작: 가격_Grok.png
+[20260826-04:08:13][BE] [RAG] Tesseract OCR fallback 시작: lang=kor+eng, pages=30
+[20260826-04:08:13][BE] [RAG] Tesseract OCR 진행: 1/30
+[20260826-04:08:18][BE] [RAG] Tesseract OCR 진행: 5/30
+[20260826-04:08:25][BE] [RAG] Tesseract OCR 진행: 10/30
+[20260826-04:08:33][BE] [RAG] Tesseract OCR 진행: 15/30
+[20260826-04:08:33][BE] [SearchIndex] 이미지 Vision 분석 실패, OCR만 사용: This operation was aborted
+[20260826-04:08:33][BE] [SearchIndex] 이미지 첨부 인덱싱 완료: c5e1a6ad-aa96-4c77-bc7d-af801edafc44 가격_DeepSeek.png
+[20260826-04:08:42][BE] [RAG] Tesseract OCR 진행: 20/30
+[20260826-04:08:48][BE] [RAG] Tesseract OCR 진행: 25/30
+[20260826-04:08:56][BE] [RAG] Tesseract OCR 진행: 30/30
+[20260826-04:08:58][BE] [RAG] Tesseract OCR fallback 완료: 추출 페이지 30/30
+[20260826-04:09:01][BE] [RAG] PDF 학습 완료: 3.진단의학검사-2.pdf (51청크)
+[20260826-04:09:01][BE] [RAG] 분리 저장 완료: /home/freegear/EasyDocStation/Database/ObjectFile/FileTrainingData/eb215b44-dde1-4b71-adbd-c1b624d6f318/no_comment/683274dd-3432-4f1e-9b2d-211afc125710/3.진단의학검사-2.pdf
+[20260826-04:09:01][BE] [RAG] 학습 진행률: 60% (게시글 PDF)
+[20260826-04:09:01][BE] [RAG] PDF 학습 시작: 3.진단의학검사-3.pdf
+[20260826-04:09:01][BE] [RAG] PDF 파싱 시작 (Unstructured fast): 3.진단의학검사-3.pdf
+[20260826-04:09:05][BE] [RAG] Tesseract OCR fallback 시작: lang=kor+eng, pages=30
+[20260826-04:09:05][BE] [RAG] Tesseract OCR 진행: 1/30
+[20260826-04:09:10][BE] [RAG] Tesseract OCR 진행: 5/30
+[20260826-04:09:11][BE] [RAG] Gemma 이미지 설명 완료 (page=1, 62.5s): 2212자
+[20260826-04:09:11][BE] [RAG] 이미지 학습 완료: 가격_Grok.png (4청크)
+[20260826-04:09:11][BE] [RAG] 학습 진행률: 50% (게시글 이미지)
+[20260826-04:09:11][BE] [RAG] 이미지 학습 시작: 가격_META.png
+[20260826-04:09:19][BE] [RAG] Tesseract OCR 진행: 10/30
+[20260826-04:09:29][BE] [RAG] Tesseract OCR 진행: 15/30
+[20260826-04:09:32][BE] [SearchIndex] 이미지 첨부 인덱싱 완료: 0527a6bc-2b52-4b73-949a-d6a24a17171e 가격_Grok.png
+[20260826-04:09:37][BE] [RAG] Tesseract OCR 진행: 20/30
+[20260826-04:09:44][BE] [RAG] Tesseract OCR 진행: 25/30
+[20260826-04:09:51][BE] [RAG] Tesseract OCR 진행: 30/30
+[20260826-04:09:53][BE] [RAG] Tesseract OCR fallback 완료: 추출 페이지 30/30
+[20260826-04:09:56][BE] [RAG] PDF 학습 완료: 3.진단의학검사-3.pdf (52청크)
+[20260826-04:09:56][BE] [RAG] 분리 저장 완료: /home/freegear/EasyDocStation/Database/ObjectFile/FileTrainingData/eb215b44-dde1-4b71-adbd-c1b624d6f318/no_comment/ace8fe74-cd05-44e5-b69f-84646f23d77c/3.진단의학검사-3.pdf
+[20260826-04:09:56][BE] [RAG] 학습 진행률: 70% (게시글 PDF)
+[20260826-04:09:56][BE] [RAG] PDF 학습 시작: 3.진단의학검사-4.pdf
+[20260826-04:09:56][BE] [RAG] PDF 파싱 시작 (Unstructured fast): 3.진단의학검사-4.pdf
+[20260826-04:09:58][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260826-04:10:02][BE] [RAG] Tesseract OCR fallback 시작: lang=kor+eng, pages=30
+[20260826-04:10:02][BE] [RAG] Tesseract OCR 진행: 1/30
+[20260826-04:10:07][BE] [RAG] Tesseract OCR 진행: 5/30
+[20260826-04:10:11][BE] [RAG] Gemma 이미지 설명 완료 (page=1, 60.1s): 2892자
+[20260826-04:10:11][BE] [RAG] 이미지 학습 완료: 가격_META.png (6청크)
+[20260826-04:10:11][BE] [RAG] 학습 진행률: 70% (게시글 이미지)
+[20260826-04:10:11][BE] [RAG] 이미지 학습 시작: API KEY 스크린샷.png
+[20260826-04:10:16][BE] [RAG] Tesseract OCR 진행: 10/30
+[20260826-04:10:25][BE] [RAG] Tesseract OCR 진행: 15/30
+[20260826-04:10:31][BE] [SearchIndex] 이미지 첨부 인덱싱 완료: 990678e6-5e6f-4b5f-9bbb-26b9cbdfe9da 가격_META.png
+[20260826-04:10:32][BE] [RAG] Tesseract OCR 진행: 20/30
+[20260826-04:10:39][BE] [RAG] Tesseract OCR 진행: 25/30
+[20260826-04:10:45][BE] [RAG] Tesseract OCR 진행: 30/30
+[20260826-04:10:47][BE] [RAG] Tesseract OCR fallback 완료: 추출 페이지 30/30
+[20260826-04:10:50][BE] [RAG] PDF 학습 완료: 3.진단의학검사-4.pdf (51청크)
+[20260826-04:10:50][BE] [RAG] 분리 저장 완료: /home/freegear/EasyDocStation/Database/ObjectFile/FileTrainingData/eb215b44-dde1-4b71-adbd-c1b624d6f318/no_comment/37c4d558-95c8-4e2a-99cd-213c6f7f4daf/3.진단의학검사-4.pdf
+[20260826-04:10:50][BE] [RAG] 학습 진행률: 80% (게시글 PDF)
+[20260826-04:10:50][BE] [RAG] PDF 학습 시작: 3.진단의학검사-5.pdf
+[20260826-04:10:50][BE] [RAG] PDF 파싱 시작 (Unstructured fast): 3.진단의학검사-5.pdf
+[20260826-04:10:55][BE] [RAG] Tesseract OCR fallback 시작: lang=kor+eng, pages=30
+[20260826-04:10:55][BE] [RAG] Tesseract OCR 진행: 1/30
+[20260826-04:11:02][BE] [RAG] Tesseract OCR 진행: 5/30
+[20260826-04:11:03][BE] [RAG] Gemma 이미지 설명 완료 (page=1, 51.9s): 2094자
+[20260826-04:11:03][BE] [RAG] 이미지 학습 완료: API KEY 스크린샷.png (3청크)
+[20260826-04:11:03][BE] [RAG] 학습 진행률: 80% (게시글 이미지)
+[20260826-04:11:03][BE] [RAG] 저장 완료 — 22청크 / 1개 게시글 / 0개 댓글 / 0개 폴더문서
+[20260826-04:11:03][BE] [RAG] 학습 진행률: 100% (저장)
+[20260826-04:11:06][BE] [RAG] 학습 완료
+[20260826-04:11:08][BE] [RAG] Tesseract OCR 진행: 10/30
+[20260826-04:11:15][BE] [RAG] Tesseract OCR 진행: 15/30
+[20260826-04:11:22][BE] [SearchIndex] 이미지 첨부 인덱싱 완료: 668c930a-2266-4615-8a6d-bbb9ab941ebb API KEY 스크린샷.png
+[20260826-04:11:24][BE] [RAG] Tesseract OCR 진행: 20/30
+[20260826-04:11:31][BE] [RAG] Tesseract OCR 진행: 25/30
+[20260826-04:11:38][BE] [RAG] Tesseract OCR 진행: 30/30
+[20260826-04:11:39][BE] [RAG] Tesseract OCR fallback 완료: 추출 페이지 30/30
+[20260826-04:11:41][BE] [RAG] PDF 학습 완료: 3.진단의학검사-5.pdf (53청크)
+[20260826-04:11:41][BE] [RAG] 분리 저장 완료: /home/freegear/EasyDocStation/Database/ObjectFile/FileTrainingData/eb215b44-dde1-4b71-adbd-c1b624d6f318/no_comment/97e5926d-b7cb-4067-9485-0cbe57ca38f6/3.진단의학검사-5.pdf
+[20260826-04:11:41][BE] [RAG] 학습 진행률: 90% (게시글 PDF)
+[20260826-04:11:41][BE] [RAG] 저장 완료 — 447청크 / 1개 게시글 / 0개 댓글 / 0개 폴더문서
+[20260826-04:11:41][BE] [RAG] 학습 진행률: 100% (저장)
+[20260826-04:11:42][BE] [RAG] 학습 완료
+[20260826-04:20:16][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260826-04:29:59][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260826-04:32:31][BE] [ATTACH-REF] sync ownerType=post ownerId=3a4b6414-1e5e-47f8-8955-752d7f1a6bac actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260826-04:32:31][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
+[20260826-04:32:31][BE] /home/freegear/EasyDocStation/server/rag_train.py:152: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260826-04:32:31][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260826-04:32:34][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v3' already exists
+[20260826-04:32:35][BE] [RAG] post=3a4b6414-1e5e-47f8-8955-752d7f1a6bac text → 1청크
+[20260826-04:32:35][BE] [RAG] 학습 진행률: 50% (게시글 본문)
+[20260826-04:32:35][BE] [RAG] 저장 완료 — 1청크 / 1개 게시글 / 0개 댓글 / 0개 폴더문서
+[20260826-04:32:35][BE] [RAG] 학습 진행률: 100% (저장)
+[20260826-04:32:35][BE] [RAG] 학습 완료
+[20260826-04:32:46][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260826-04:32:47][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260826-04:32:47][BE] [link-preview-image] local render failed, try remote fallback: page.goto: Download is starting
+[20260826-04:32:47][BE] Call log:
+[20260826-04:32:47][BE] [2m  - navigating to "https://www.rnd.or.kr/download?a=GVPA9AOv240H0%2FfCK%2FKEBztnrlkWZd%2BCF2Nx%2BT%2BP4c9bjr1fc427AwqVspbO9X4SWOMOI0So3wta7m62svRZh%2BxvVgUqrJCyfc1JiAWdN48YptpNEWBRYJyzFbbX0gi2&m=v&p=t5R%2BkqIXOIr%2BkhHlmKI8tklH2ZJ%2FuCoHvK1xDaQuio8%3D", waiting until "domcontentloaded"[22m
+[20260826-04:32:47][BE] 
+[20260826-04:40:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260826-04:42:03][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260826-04:42:03][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260826-04:42:04][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260826-04:42:04][BE] [link-preview-image] meta image failed, fallback screenshot: meta page fetch failed (404)
+[20260826-04:48:16][BE] [ATTACH-REF] sync ownerType=post ownerId=0214cdd0-e115-4d1c-97b1-93ccf51c9315 actorUserId=1 prev=0 next=8 add=8 remove=0
+[20260826-04:48:16][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
+[20260826-04:48:16][BE] /home/freegear/EasyDocStation/server/rag_train.py:152: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260826-04:48:16][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260826-04:48:19][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v3' already exists
+[20260826-04:48:19][BE] [RAG] post=0214cdd0-e115-4d1c-97b1-93ccf51c9315 text → 1청크
+[20260826-04:48:19][BE] [RAG] 학습 진행률: 10% (게시글 본문)
+[20260826-04:48:19][BE] [RAG] 이미지 학습 시작: [차이점-2] 지원 카메라 채널 수 (PC Lite) 6개 .png
+[20260826-04:48:37][BE] [SearchIndex] 이미지 첨부 인덱싱 완료: fd5b3169-ef5e-44ca-8cf9-23e900f6ef1c [차이점-1] sw version 표시 (PC Lite) iNBS-770L-1.0.0.png
+[20260826-04:48:37][BE] [ATTACH-REF] sync ownerType=post ownerId=177ad2d6-5606-481d-8824-ee2dbde9f341 actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260826-04:48:37][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
+[20260826-04:48:38][BE] [link-preview-image] 내부망 주소는 미리보기를 지원하지 않습니다.
+[20260826-04:48:38][BE] /home/freegear/EasyDocStation/server/rag_train.py:152: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260826-04:48:38][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260826-04:48:40][BE] [link-preview-image] 내부망 주소는 미리보기를 지원하지 않습니다.
+[20260826-04:48:43][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v3' already exists
+[20260826-04:48:43][BE] [RAG] post=177ad2d6-5606-481d-8824-ee2dbde9f341 text → 1청크
+[20260826-04:48:43][BE] [RAG] 학습 진행률: 50% (게시글 본문)
+[20260826-04:48:43][BE] [RAG] 저장 완료 — 1청크 / 1개 게시글 / 0개 댓글 / 0개 폴더문서
+[20260826-04:48:43][BE] [RAG] 학습 진행률: 100% (저장)
+[20260826-04:48:45][BE] [RAG] 학습 완료
+[20260826-04:49:14][BE] [RAG] Gemma 이미지 설명 완료 (page=1, 55.5s): 2564자
+[20260826-04:49:15][BE] [RAG] 이미지 학습 완료: [차이점-2] 지원 카메라 채널 수 (PC Lite) 6개 .png (4청크)
+[20260826-04:49:15][BE] [RAG] 학습 진행률: 20% (게시글 이미지)
+[20260826-04:49:15][BE] [RAG] 이미지 학습 시작: [차이점-4] Network Config 화면 (PC Lite) Manual IP 선택하면 Automatic DNS 비활성화 처리.png
+[20260826-04:49:26][BE] [SearchIndex] 이미지 첨부 인덱싱 완료: d65a2cfb-de38-4840-9960-95077378cbfd [차이점-1] sw version 표시 (PC) iNBS-770-1.3.9.png
+[20260826-04:49:52][BE] [ATTACH-REF] sync ownerType=post ownerId=56b08d8a-864a-44fe-a026-499d47081b95 actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260826-04:49:52][BE] [RAG] 학습 제외 (게시글): 56b08d8a-864a-44fe-a026-499d47081b95 — 첨부파일 없음, 91자
+[20260826-04:49:52][BE] [RAG] 학습 제외 후 학습할 게시글이 없습니다.
+[20260826-04:49:52][BE] [link-preview-image] 내부망 주소는 미리보기를 지원하지 않습니다.
+[20260826-04:50:00][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=2
+[20260826-04:50:02][BE] [RAG] Gemma 이미지 설명 완료 (page=1, 47.1s): 2728자
+[20260826-04:50:02][BE] [RAG] 이미지 학습 완료: [차이점-4] Network Config 화면 (PC Lite) Manual IP 선택하면 Automatic DNS 비활성화 처리.png (4청크)
+[20260826-04:50:02][BE] [RAG] 학습 진행률: 30% (게시글 이미지)
+[20260826-04:50:02][BE] [RAG] 이미지 학습 시작: [차이점-4] Network Config 화면 (PC) Manual IP 선택도 Automatic DNS 선택 가능.png
+[20260826-04:50:17][BE] [ATTACH-REF] sync ownerType=comment ownerId=c-b63ef18c-c18c-4299-9d90-960fe0b7b295 actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260826-04:50:18][BE] [RAG] 댓글 학습 시작 — 1개 댓글 (제외: 0개)
+[20260826-04:50:18][BE] /home/freegear/EasyDocStation/server/rag_train.py:152: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260826-04:50:18][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260826-04:50:22][BE] [SearchIndex] 이미지 첨부 인덱싱 완료: 7fa604c2-d517-4a48-9415-ca3b3cd9dbe7 [차이점-2] 지원 카메라 채널 수 (PC Lite) 6개 .png
+[20260826-04:50:23][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v3' already exists
+[20260826-04:50:23][BE] [RAG] comment=c-b63ef18c-c18c-4299-9d90-960fe0b7b295 post=0214cdd0-e115-4d1c-97b1-93ccf51c9315 text → 1청크
+[20260826-04:50:23][BE] [RAG] 학습 진행률: 50% (댓글 본문)
+[20260826-04:50:23][BE] [RAG] 저장 완료 — 1청크 / 0개 게시글 / 1개 댓글 / 0개 폴더문서
+[20260826-04:50:23][BE] [RAG] 학습 진행률: 100% (저장)
+[20260826-04:50:25][BE] [RAG] 댓글 학습 완료 — 1개 댓글 (7.5s)
+[20260826-04:50:57][BE] [RAG] Gemma 이미지 설명 완료 (page=1, 55.2s): 2298자
+[20260826-04:50:57][BE] [RAG] 이미지 학습 완료: [차이점-4] Network Config 화면 (PC) Manual IP 선택도 Automatic DNS 선택 가능.png (4청크)
+[20260826-04:50:57][BE] [RAG] 학습 진행률: 40% (게시글 이미지)
+[20260826-04:50:57][BE] [RAG] 이미지 학습 시작: [차이점-1] sw version 표시 (PC Lite) iNBS-770L-1.0.0.png
+[20260826-04:51:23][BE] [SearchIndex] 이미지 첨부 인덱싱 완료: a7b5dd87-bc01-4349-9684-5b0ce9278f3a [차이점-2] 지원 카메라 채널 수 (PC) 10개 .png
+[20260826-04:51:44][BE] [RAG] Gemma 이미지 설명 완료 (page=1, 46.8s): 1332자
+[20260826-04:51:44][BE] [RAG] 이미지 학습 완료: [차이점-1] sw version 표시 (PC Lite) iNBS-770L-1.0.0.png (3청크)
+[20260826-04:51:44][BE] [RAG] 학습 진행률: 50% (게시글 이미지)
+[20260826-04:51:44][BE] [RAG] 이미지 학습 시작: [차이점-1] sw version 표시 (PC) iNBS-770-1.3.9.png
+[20260826-04:52:01][BE] [SearchIndex] 이미지 첨부 인덱싱 완료: e5ad15b6-ea82-473b-8131-ce7b522e3c73 [차이점-3] System Config 화면 (PC Lite) FACTORY INITALIZE 버튼 없음.png
+[20260826-04:52:22][BE] [RAG] Gemma 이미지 설명 완료 (page=1, 38.1s): 1467자
+[20260826-04:52:22][BE] [RAG] 이미지 학습 완료: [차이점-1] sw version 표시 (PC) iNBS-770-1.3.9.png (3청크)
+[20260826-04:52:22][BE] [RAG] 학습 진행률: 60% (게시글 이미지)
+[20260826-04:52:22][BE] [RAG] 이미지 학습 시작: [차이점-2] 지원 카메라 채널 수 (PC) 10개 .png
+[20260826-04:52:40][BE] [SearchIndex] 이미지 첨부 인덱싱 완료: 4d00e096-8afd-445b-b067-75207cde9ebc [차이점-3] System Config 화면 (PC) FACTORY INITALIZE 버튼 있음.png
+[20260826-04:53:26][BE] [RAG] Gemma 이미지 설명 완료 (page=1, 63.4s): 2934자
+[20260826-04:53:26][BE] [RAG] 이미지 학습 완료: [차이점-2] 지원 카메라 채널 수 (PC) 10개 .png (5청크)
+[20260826-04:53:26][BE] [RAG] 학습 진행률: 70% (게시글 이미지)
+[20260826-04:53:26][BE] [RAG] 이미지 학습 시작: [차이점-3] System Config 화면 (PC Lite) FACTORY INITALIZE 버튼 없음.png
+[20260826-04:53:47][BE] [SearchIndex] 이미지 첨부 인덱싱 완료: 994fa970-6cbd-43ab-8172-1e927dadcb6c [차이점-4] Network Config 화면 (PC Lite) Manual IP 선택하면 Automatic DNS 비활성화 처리.png
+[20260826-04:54:22][BE] [RAG] Gemma 이미지 설명 완료 (page=1, 56.0s): 2681자
+[20260826-04:54:22][BE] [RAG] 이미지 학습 완료: [차이점-3] System Config 화면 (PC Lite) FACTORY INITALIZE 버튼 없음.png (4청크)
+[20260826-04:54:22][BE] [RAG] 학습 진행률: 80% (게시글 이미지)
+[20260826-04:54:22][BE] [RAG] 이미지 학습 시작: [차이점-3] System Config 화면 (PC) FACTORY INITALIZE 버튼 있음.png
+[20260826-04:54:43][BE] [SearchIndex] 이미지 첨부 인덱싱 완료: 4a7e7b16-070e-4b54-b591-01cd018644f1 [차이점-4] Network Config 화면 (PC) Manual IP 선택도 Automatic DNS 선택 가능.png
+[20260826-04:55:18][BE] [RAG] Gemma 이미지 설명 완료 (page=1, 56.3s): 2765자
+[20260826-04:55:19][BE] [RAG] 이미지 학습 완료: [차이점-3] System Config 화면 (PC) FACTORY INITALIZE 버튼 있음.png (5청크)
+[20260826-04:55:19][BE] [RAG] 학습 진행률: 90% (게시글 이미지)
+[20260826-04:55:19][BE] [RAG] 저장 완료 — 33청크 / 1개 게시글 / 0개 댓글 / 0개 폴더문서
+[20260826-04:55:19][BE] [RAG] 학습 진행률: 100% (저장)
+[20260826-04:55:19][BE] [RAG] 학습 완료
+[20260826-04:59:58][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260826-05:09:59][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=2
+[20260826-05:20:11][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260826-05:30:07][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260826-05:39:57][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260826-05:50:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260826-06:00:00][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260826-06:10:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260826-06:22:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260826-06:29:59][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260826-06:40:12][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260826-06:51:08][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260826-07:00:07][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260826-07:10:29][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=2
+[20260826-07:20:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260826-07:29:58][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260826-07:39:57][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=2
+[20260826-07:50:00][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260826-08:00:13][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260826-08:10:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=2
+[20260826-08:19:59][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260826-08:30:01][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260826-08:40:10][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=2
+[20260826-08:50:01][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=2
+[20260826-09:00:00][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=2
+[20260826-09:09:59][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260826-09:19:58][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=2
+[20260826-09:30:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=2
+[20260826-09:40:16][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=2
+[20260826-09:49:58][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=5
+[20260826-10:00:05][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260826-10:09:57][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=4
+[20260826-10:19:59][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=2
+[20260826-10:29:58][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260826-10:40:11][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260826-10:50:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=4
+[20260826-11:00:00][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=2
+[20260826-11:09:58][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=2
+[20260826-11:19:59][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=3
+[20260826-11:29:59][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260826-11:40:01][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260826-11:49:59][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260826-12:00:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260826-12:09:58][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260826-12:20:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260826-12:30:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260826-12:37:39][BE] [RAG] 캘린더 이벤트 일괄 학습 시작 — 1건
+[20260826-12:37:40][BE] /home/freegear/EasyDocStation/server/rag_train.py:152: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260826-12:37:40][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260826-12:37:43][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v3' already exists
+[20260826-12:37:43][BE] [RAG] post=42106e69-b0ae-4e50-8b8f-d2edf11e3a47 text → 1청크
+[20260826-12:37:43][BE] [RAG] 학습 진행률: 50% (게시글 본문)
+[20260826-12:37:43][BE] [RAG] 저장 완료 — 1청크 / 1개 게시글 / 0개 댓글 / 0개 폴더문서
+[20260826-12:37:43][BE] [RAG] 학습 진행률: 100% (저장)
+[20260826-12:37:43][BE] [RAG] 캘린더 이벤트 일괄 학습 완료 — 1건
+[20260826-12:37:50][BE] [RAG] 캘린더 이벤트 일괄 학습 시작 — 1건
+[20260826-12:37:50][BE] /home/freegear/EasyDocStation/server/rag_train.py:152: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260826-12:37:50][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260826-12:37:53][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v3' already exists
+[20260826-12:37:53][BE] [RAG] post=18f27051-99a1-4893-8a0e-c97005b9de75 text → 1청크
+[20260826-12:37:53][BE] [RAG] 학습 진행률: 50% (게시글 본문)
+[20260826-12:37:53][BE] [RAG] 저장 완료 — 1청크 / 1개 게시글 / 0개 댓글 / 0개 폴더문서
+[20260826-12:37:53][BE] [RAG] 학습 진행률: 100% (저장)
+[20260826-12:37:54][BE] [RAG] 캘린더 이벤트 일괄 학습 완료 — 1건
+[20260826-12:38:38][BE] [RAG] 캘린더 이벤트 일괄 학습 시작 — 1건
+[20260826-12:38:38][BE] /home/freegear/EasyDocStation/server/rag_train.py:152: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260826-12:38:38][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260826-12:38:41][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v3' already exists
+[20260826-12:38:41][BE] [RAG] post=3cecc6a1-53cc-420c-ba61-4e5b2932309e text → 1청크
+[20260826-12:38:41][BE] [RAG] 학습 진행률: 50% (게시글 본문)
+[20260826-12:38:41][BE] [RAG] 저장 완료 — 1청크 / 1개 게시글 / 0개 댓글 / 0개 폴더문서
+[20260826-12:38:41][BE] [RAG] 학습 진행률: 100% (저장)
+[20260826-12:38:41][BE] [RAG] 캘린더 이벤트 일괄 학습 시작 — 1건
+[20260826-12:38:42][BE] /home/freegear/EasyDocStation/server/rag_train.py:152: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260826-12:38:42][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260826-12:38:42][BE] [RAG] 캘린더 이벤트 일괄 학습 완료 — 1건
+[20260826-12:38:45][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v3' already exists
+[20260826-12:38:45][BE] [RAG] post=140afe49-b93d-4f86-9ab3-671ede689f43 text → 1청크
+[20260826-12:38:45][BE] [RAG] 학습 진행률: 50% (게시글 본문)
+[20260826-12:38:45][BE] [RAG] 저장 완료 — 1청크 / 1개 게시글 / 0개 댓글 / 0개 폴더문서
+[20260826-12:38:45][BE] [RAG] 학습 진행률: 100% (저장)
+[20260826-12:38:45][BE] [RAG] 캘린더 이벤트 일괄 학습 완료 — 1건
+[20260826-12:39:58][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260826-12:50:00][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260826-12:50:58][BE] [RAG] 캘린더 이벤트 일괄 학습 시작 — 1건
+[20260826-12:50:59][BE] /home/freegear/EasyDocStation/server/rag_train.py:152: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260826-12:50:59][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260826-12:51:02][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v3' already exists
+[20260826-12:51:02][BE] [RAG] post=f0359203-4a54-40b6-8084-94dc2bbc6520 text → 1청크
+[20260826-12:51:02][BE] [RAG] 학습 진행률: 50% (게시글 본문)
+[20260826-12:51:02][BE] [RAG] 저장 완료 — 1청크 / 1개 게시글 / 0개 댓글 / 0개 폴더문서
+[20260826-12:51:02][BE] [RAG] 학습 진행률: 100% (저장)
+[20260826-12:51:02][BE] [RAG] 캘린더 이벤트 일괄 학습 완료 — 1건
+[20260826-12:58:50][BE] [ATTACH-REF] sync ownerType=post ownerId=b7a3720d-8920-4c0f-a757-a9bf009e082e actorUserId=1 prev=0 next=5 add=5 remove=0
+[20260826-12:58:50][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
+[20260826-12:58:50][BE] /home/freegear/EasyDocStation/server/rag_train.py:152: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260826-12:58:50][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260826-12:58:53][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v3' already exists
+[20260826-12:58:53][BE] [RAG] post=b7a3720d-8920-4c0f-a757-a9bf009e082e text → 1청크
+[20260826-12:58:53][BE] [RAG] 학습 진행률: 10% (게시글 본문)
+[20260826-12:58:53][BE] [RAG] TXT 학습 시작: api key.txt
+[20260826-12:58:53][BE] [RAG] TXT 학습 완료: api key.txt (1청크)
+[20260826-12:58:53][BE] [RAG] 학습 진행률: 20% (게시글 TXT)
+[20260826-12:58:53][BE] [RAG] 이미지 학습 시작: 가격_DeepSeek.png
+[20260826-12:59:53][BE] [RAG] Gemma 이미지 설명 완료 (page=1, 60.0s): 3986자
+[20260826-12:59:54][BE] [RAG] 이미지 학습 완료: 가격_DeepSeek.png (7청크)
+[20260826-12:59:54][BE] [RAG] 학습 진행률: 40% (게시글 이미지)
+[20260826-12:59:54][BE] [RAG] 이미지 학습 시작: API KEY 스크린샷.png
+[20260826-13:00:00][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260826-13:00:21][BE] [SearchIndex] 이미지 Vision 분석 실패, OCR만 사용: This operation was aborted
+[20260826-13:00:21][BE] [SearchIndex] 이미지 첨부 인덱싱 완료: 2a8c4171-22c5-487e-ac80-1e650f4b1a25 가격_DeepSeek.png
+[20260826-13:00:51][BE] [RAG] Gemma 이미지 설명 완료 (page=1, 57.1s): 2094자
+[20260826-13:00:51][BE] [RAG] 이미지 학습 완료: API KEY 스크린샷.png (3청크)
+[20260826-13:00:51][BE] [RAG] 학습 진행률: 50% (게시글 이미지)
+[20260826-13:00:51][BE] [RAG] 이미지 학습 시작: 가격_Grok.png
+[20260826-13:01:12][BE] [SearchIndex] 이미지 첨부 인덱싱 완료: 2a411734-2007-44b1-b873-35fe15cd5305 가격_Grok.png
+[20260826-13:01:47][BE] [RAG] Gemma 이미지 설명 완료 (page=1, 56.2s): 2212자
+[20260826-13:01:47][BE] [RAG] 이미지 학습 완료: 가격_Grok.png (4청크)
+[20260826-13:01:47][BE] [RAG] 학습 진행률: 70% (게시글 이미지)
+[20260826-13:01:47][BE] [RAG] 이미지 학습 시작: 가격_META.png
+[20260826-13:02:07][BE] [SearchIndex] 이미지 첨부 인덱싱 완료: ec480bf8-0341-4cf9-9928-f33ab560fe09 가격_META.png
+[20260826-13:02:43][BE] [RAG] Gemma 이미지 설명 완료 (page=1, 56.3s): 2892자
+[20260826-13:02:44][BE] [RAG] 이미지 학습 완료: 가격_META.png (6청크)
+[20260826-13:02:44][BE] [RAG] 학습 진행률: 80% (게시글 이미지)
+[20260826-13:02:44][BE] [RAG] 저장 완료 — 22청크 / 1개 게시글 / 0개 댓글 / 0개 폴더문서
+[20260826-13:02:44][BE] [RAG] 학습 진행률: 100% (저장)
+[20260826-13:02:46][BE] [RAG] 학습 완료
+[20260826-13:03:02][BE] [SearchIndex] 이미지 첨부 인덱싱 완료: 24ebcb91-527f-4d37-84ac-207bad49f9a7 API KEY 스크린샷.png
+[20260826-13:05:15][BE] process exited with code 0. restarting in 2s...
+[20260826-13:05:17][BE] 
+[20260826-13:05:17][BE] > easydocstation-server@1.0.0 start
+[20260826-13:05:17][BE] > node index.js
+[20260826-13:05:17][BE] 
+[20260826-13:05:17][BE] [RAG] 초기화 — 학습 방식: immediate
+[20260826-13:05:17][BE] [RAG] 초기화 — PDF 파싱 모드: FAST
+[20260826-13:05:17][BE] [Mail sync] 자동 동기화 스케줄러 시작: interval=600s, startupDelay=300s
+[20260826-13:05:17][BE] [Frontend] 프로덕션 빌드 서비스: /home/freegear/EasyDocStation/dist
+[20260826-13:05:17][BE] ✅ EasyDocStation server running on http://localhost:3001
+[20260826-13:05:17][BE] ✅ [CONFIG] HF_TOKEN 확인됨 (hf_u****butv, 길이 37)
+[20260826-13:05:17][BE] ✅ EasyDocStation production frontend running on http://localhost:5173
+[20260826-13:05:17][BE] ✅ Cassandra connected
+[20260826-13:05:17][BE] ✅ Cassandra schema initialized
+[20260826-13:05:17][BE] ✅ Database migration complete.
+[20260826-13:08:18][BE] Meta Test Error: Error: META HTTP 401: {"error":{"message":"Authentication Error","type":"authentication_error","param":null,"code":"invalid_api_key"}}
+[20260826-13:08:18][BE]     at IncomingMessage.<anonymous> (/home/freegear/EasyDocStation/server/llmClient.js:211:74)
+[20260826-13:08:18][BE]     at IncomingMessage.emit (node:events:531:35)
+[20260826-13:08:18][BE]     at endReadableNT (node:internal/streams/readable:1698:12)
+[20260826-13:08:18][BE]     at process.processTicksAndRejections (node:internal/process/task_queues:89:21)
+[20260826-13:10:36][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=2
+[20260826-13:12:35][BE] Meta Test Error: Error: META HTTP 401: {"error":{"message":"Authentication Error","type":"authentication_error","param":null,"code":"invalid_api_key"}}
+[20260826-13:12:35][BE]     at IncomingMessage.<anonymous> (/home/freegear/EasyDocStation/server/llmClient.js:211:74)
+[20260826-13:12:35][BE]     at IncomingMessage.emit (node:events:531:35)
+[20260826-13:12:35][BE]     at endReadableNT (node:internal/streams/readable:1698:12)
+[20260826-13:12:35][BE]     at process.processTicksAndRejections (node:internal/process/task_queues:89:21)
+[20260826-13:15:36][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260826-13:15:44][BE] process exited with code 0. restarting in 2s...
+[20260826-13:15:46][BE] 
+[20260826-13:15:46][BE] > easydocstation-server@1.0.0 start
+[20260826-13:15:46][BE] > node index.js
+[20260826-13:15:46][BE] 
+[20260826-13:15:46][BE] [RAG] 초기화 — 학습 방식: immediate
+[20260826-13:15:46][BE] [RAG] 초기화 — PDF 파싱 모드: FAST
+[20260826-13:15:46][BE] [Mail sync] 자동 동기화 스케줄러 시작: interval=600s, startupDelay=300s
+[20260826-13:15:46][BE] [Frontend] 프로덕션 빌드 서비스: /home/freegear/EasyDocStation/dist
+[20260826-13:15:46][BE] ✅ EasyDocStation server running on http://localhost:3001
+[20260826-13:15:46][BE] ✅ [CONFIG] HF_TOKEN 확인됨 (hf_u****butv, 길이 37)
+[20260826-13:15:46][BE] ✅ EasyDocStation production frontend running on http://localhost:5173
+[20260826-13:15:46][BE] ✅ Cassandra connected
+[20260826-13:15:46][BE] ✅ Cassandra schema initialized
+[20260826-13:15:46][BE] ✅ Database migration complete.
+[20260826-13:17:05][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260826-13:17:05][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260826-13:17:05][BE] [link-preview-image] meta image failed, fallback screenshot: meta page fetch failed (404)
+[20260826-13:17:09][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260826-13:17:26][BE] Meta Test Error: Error: META HTTP 401: {"error":{"message":"Authentication Error","type":"authentication_error","param":null,"code":"invalid_api_key"}}
+[20260826-13:17:26][BE]     at IncomingMessage.<anonymous> (/home/freegear/EasyDocStation/server/llmClient.js:211:74)
+[20260826-13:17:26][BE]     at IncomingMessage.emit (node:events:531:35)
+[20260826-13:17:26][BE]     at endReadableNT (node:internal/streams/readable:1698:12)
+[20260826-13:17:26][BE]     at process.processTicksAndRejections (node:internal/process/task_queues:89:21)
+[20260826-13:17:56][BE] Meta Test Error: Error: META HTTP 401: {"error":{"message":"Authentication Error","type":"authentication_error","param":null,"code":"invalid_api_key"}}
+[20260826-13:17:56][BE]     at IncomingMessage.<anonymous> (/home/freegear/EasyDocStation/server/llmClient.js:211:74)
+[20260826-13:17:56][BE]     at IncomingMessage.emit (node:events:531:35)
+[20260826-13:17:56][BE]     at endReadableNT (node:internal/streams/readable:1698:12)
+[20260826-13:17:56][BE]     at process.processTicksAndRejections (node:internal/process/task_queues:89:21)
+[20260826-13:17:58][BE] Meta Test Error: Error: META HTTP 401: {"error":{"message":"Authentication Error","type":"authentication_error","param":null,"code":"invalid_api_key"}}
+[20260826-13:17:58][BE]     at IncomingMessage.<anonymous> (/home/freegear/EasyDocStation/server/llmClient.js:211:74)
+[20260826-13:17:58][BE]     at IncomingMessage.emit (node:events:531:35)
+[20260826-13:17:58][BE]     at endReadableNT (node:internal/streams/readable:1698:12)
+[20260826-13:17:58][BE]     at process.processTicksAndRejections (node:internal/process/task_queues:89:21)
+[20260826-13:21:06][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260826-13:25:13][BE] [ATTACH-REF] sync ownerType=post ownerId=6b1b4c54-fc7a-4942-a7fb-d636c8618512 actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260826-13:25:13][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
+[20260826-13:25:13][BE] /home/freegear/EasyDocStation/server/rag_train.py:152: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260826-13:25:13][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260826-13:25:16][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v3' already exists
+[20260826-13:25:16][BE] [RAG] post=6b1b4c54-fc7a-4942-a7fb-d636c8618512 text → 3청크
+[20260826-13:25:16][BE] [RAG] 학습 진행률: 50% (게시글 본문)
+[20260826-13:25:16][BE] [RAG] 저장 완료 — 3청크 / 1개 게시글 / 0개 댓글 / 0개 폴더문서
+[20260826-13:25:16][BE] [RAG] 학습 진행률: 100% (저장)
+[20260826-13:25:17][BE] [RAG] 학습 완료
+[20260826-13:26:05][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260826-13:27:41][BE] process exited with code 0. restarting in 2s...
+[20260826-13:27:43][BE] 
+[20260826-13:27:43][BE] > easydocstation-server@1.0.0 start
+[20260826-13:27:43][BE] > node index.js
+[20260826-13:27:43][BE] 
+[20260826-13:27:43][BE] [RAG] 초기화 — 학습 방식: immediate
+[20260826-13:27:43][BE] [RAG] 초기화 — PDF 파싱 모드: FAST
+[20260826-13:27:43][BE] [Mail sync] 자동 동기화 스케줄러 시작: interval=600s, startupDelay=300s
+[20260826-13:27:43][BE] [Frontend] 프로덕션 빌드 서비스: /home/freegear/EasyDocStation/dist
+[20260826-13:27:43][BE] ✅ EasyDocStation server running on http://localhost:3001
+[20260826-13:27:43][BE] ✅ [CONFIG] HF_TOKEN 확인됨 (hf_u****butv, 길이 37)
+[20260826-13:27:43][BE] ✅ EasyDocStation production frontend running on http://localhost:5173
+[20260826-13:27:43][BE] ✅ Cassandra connected
+[20260826-13:27:43][BE] ✅ Cassandra schema initialized
+[20260826-13:27:43][BE] ✅ Database migration complete.
+[20260826-13:30:54][BE] [ATTACH-REF] sync ownerType=comment ownerId=c-2adb83f5-6926-47b0-9bda-8b1070021e36 actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260826-13:30:54][BE] [RAG] 댓글 학습 시작 — 1개 댓글 (제외: 0개)
+[20260826-13:30:54][BE] /home/freegear/EasyDocStation/server/rag_train.py:152: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260826-13:30:54][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260826-13:30:58][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v3' already exists
+[20260826-13:30:58][BE] [RAG] comment=c-2adb83f5-6926-47b0-9bda-8b1070021e36 post=6b1b4c54-fc7a-4942-a7fb-d636c8618512 text → 2청크
+[20260826-13:30:58][BE] [RAG] 학습 진행률: 50% (댓글 본문)
+[20260826-13:30:58][BE] [RAG] 저장 완료 — 2청크 / 0개 게시글 / 1개 댓글 / 0개 폴더문서
+[20260826-13:30:58][BE] [RAG] 학습 진행률: 100% (저장)
+[20260826-13:30:58][BE] [RAG] 댓글 학습 완료 — 1개 댓글 (4.0s)
+[20260826-13:33:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260826-13:38:01][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260826-13:48:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=2
+[20260826-13:58:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260826-13:58:17][BE] [ATTACH-REF] sync ownerType=post ownerId=023cbb5c-71f8-416c-a36b-06e2ddab9acd actorUserId=1 prev=0 next=1 add=1 remove=0
+[20260826-13:58:17][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
+[20260826-13:58:17][BE] /home/freegear/EasyDocStation/server/rag_train.py:152: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260826-13:58:17][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260826-13:58:20][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v3' already exists
+[20260826-13:58:20][BE] [RAG] post=023cbb5c-71f8-416c-a36b-06e2ddab9acd text → 1청크
+[20260826-13:58:20][BE] [RAG] 학습 진행률: 30% (게시글 본문)
+[20260826-13:58:20][BE] [RAG] PDF 학습 시작: SC_주주명부-20260702.pdf
+[20260826-13:58:21][BE] [RAG] PDF 파싱 시작 (Unstructured fast): SC_주주명부-20260702.pdf
+[20260826-13:58:21][BE] [RAG] Tesseract OCR fallback 시작: lang=kor+eng, pages=1
+[20260826-13:58:21][BE] [RAG] Tesseract OCR 진행: 1/1
+[20260826-13:58:22][BE] [RAG] Tesseract OCR fallback 완료: 추출 페이지 1/1
+[20260826-13:58:22][BE] [RAG] PDF 학습 완료: SC_주주명부-20260702.pdf (1청크)
+[20260826-13:58:22][BE] [RAG] 분리 저장 완료: /home/freegear/EasyDocStation/Database/ObjectFile/FileTrainingData/023cbb5c-71f8-416c-a36b-06e2ddab9acd/no_comment/0c52693e-bce6-47a0-9e6d-b1738b380924/SC_주주명부-20260702.pdf
+[20260826-13:58:22][BE] [RAG] 학습 진행률: 60% (게시글 PDF)
+[20260826-13:58:22][BE] [RAG] 저장 완료 — 2청크 / 1개 게시글 / 0개 댓글 / 0개 폴더문서
+[20260826-13:58:22][BE] [RAG] 학습 진행률: 100% (저장)
+[20260826-13:58:23][BE] [RAG] 학습 완료
+[20260826-14:08:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260826-14:18:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260826-14:28:05][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260826-14:38:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260826-14:48:07][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=3
+[20260826-14:58:05][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260826-15:08:00][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260826-15:18:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260826-15:28:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260826-15:38:00][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260826-15:48:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260826-15:58:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=3
+[20260826-16:08:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=3
+[20260826-16:18:01][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260826-16:28:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260826-16:38:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=2
+[20260826-16:48:08][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260826-16:58:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260826-17:08:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260826-17:18:00][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260826-17:28:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260826-17:38:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260826-17:48:01][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260826-17:58:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260826-18:08:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260826-18:19:56][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260826-18:28:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260826-18:38:00][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=2
+[20260826-18:48:01][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260826-18:58:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260826-19:08:10][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=3
+[20260826-19:18:00][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260826-19:28:01][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=2
+[20260826-19:38:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260826-19:48:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260826-19:58:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260826-20:08:00][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260826-20:18:01][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260826-20:28:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260826-20:38:01][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260826-20:48:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260826-20:58:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260826-21:08:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=3
+[20260826-21:18:01][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260826-21:28:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260826-21:38:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260826-21:48:00][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260826-21:58:01][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260826-22:08:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260826-22:18:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260826-22:28:04][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260826-22:38:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260826-22:47:59][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260826-22:58:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260826-23:08:01][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260826-23:18:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260826-23:28:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260826-23:38:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260826-23:48:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260826-23:58:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0

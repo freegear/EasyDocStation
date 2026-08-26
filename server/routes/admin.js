@@ -17,7 +17,7 @@ const { getAiOptimizationConfig, saveAiOptimizationConfig } = require('../aiOpti
 const { pingRedis } = require('../redisClient')
 const aiMetrics = require('../aiMetrics')
 const { runQueueHealthcheck } = require('../aiQueue')
-const { requestGroq } = require('../llmClient')
+const { requestGroq, requestDeepSeek, requestMeta } = require('../llmClient')
 
 // ... (existing code helpers)
 
@@ -388,11 +388,28 @@ function normalizeSnsConfig(sns = {}) {
 function normalizeAgenticAiConfig(ai = {}) {
   const language = ['ko', 'ja', 'en', 'zh'].includes(ai?.language) ? ai.language : 'ko'
   const groq = ai?.groq && typeof ai.groq === 'object' ? ai.groq : {}
+  const deepseek = ai?.deepseek && typeof ai.deepseek === 'object' ? ai.deepseek : {}
+  const meta = ai?.meta && typeof ai.meta === 'object' ? ai.meta : {}
   return {
     num_predict: Number.isFinite(Number(ai?.num_predict)) ? Number(ai.num_predict) : 4096,
     num_ctx: Number.isFinite(Number(ai?.num_ctx)) ? Number(ai.num_ctx) : 8192,
     history: Number.isFinite(Number(ai?.history)) ? Number(ai.history) : 6,
     language,
+    provider: ['ollama', 'deepseek', 'meta', 'groq'].includes(String(ai?.provider || '').toLowerCase()) ? String(ai.provider).toLowerCase() : 'ollama',
+    fallback_to_ollama: ai?.fallback_to_ollama !== false,
+    deepseek: {
+      enabled: Boolean(deepseek.enabled),
+      api_key: typeof deepseek.api_key === 'string' ? deepseek.api_key : '',
+      model: typeof deepseek.model === 'string' && deepseek.model.trim() ? deepseek.model.trim() : 'deepseek-v4-flash',
+      base_url: typeof deepseek.base_url === 'string' && deepseek.base_url.trim() ? deepseek.base_url.trim() : 'https://api.deepseek.com',
+      use_for_mail_summary: Boolean(deepseek.use_for_mail_summary),
+    },
+    meta: {
+      enabled: Boolean(meta.enabled),
+      api_key: typeof meta.api_key === 'string' ? meta.api_key : '',
+      model: typeof meta.model === 'string' && meta.model.trim() ? meta.model.trim() : 'muse-spark-1.2',
+      base_url: typeof meta.base_url === 'string' && meta.base_url.trim() ? meta.base_url.trim() : 'https://api.meta.ai/v1',
+    },
     groq: {
       enabled: Boolean(groq.enabled),
       prefer_when_available: Boolean(groq.prefer_when_available),
@@ -688,6 +705,48 @@ router.post('/groq/test', requireSiteAdmin, async (req, res) => {
       error: 'GROQ 연결 테스트에 실패했습니다.',
       detail: err.message || 'GROQ_TEST_FAILED',
     })
+  }
+})
+
+// POST /api/admin/deepseek/test — verify DeepSeek Chat Completions connectivity
+router.post('/deepseek/test', requireSiteAdmin, async (req, res) => {
+  try {
+    const deepseek = req.body?.deepseek && typeof req.body.deepseek === 'object' ? req.body.deepseek : req.body || {}
+    if (!String(deepseek.api_key || '').trim()) return res.status(400).json({ error: 'DeepSeek API Key를 입력해 주세요.' })
+    const startedAt = Date.now()
+    const result = await requestDeepSeek({ messages: [{ role: 'user', content: 'Reply with exactly: DEEPSEEK_OK' }], options: { temperature: 0, num_predict: 16 } }, {
+      api_key: deepseek.api_key,
+      model: deepseek.model || 'deepseek-v4-flash',
+      base_url: deepseek.base_url || 'https://api.deepseek.com',
+    }, 30000)
+    res.json({ ok: true, provider: result.provider, model: result.model, latencyMs: Date.now() - startedAt, sample: String(result.content || '').slice(0, 120) })
+  } catch (err) {
+    console.error('DeepSeek Test Error:', err)
+    res.status(502).json({ ok: false, error: 'DeepSeek 연결 테스트에 실패했습니다.', detail: err.message || 'DEEPSEEK_TEST_FAILED' })
+  }
+})
+
+// POST /api/admin/meta/test — verify Meta Muse Responses API connectivity
+router.post('/meta/test', requireSiteAdmin, async (req, res) => {
+  try {
+    const submittedMeta = req.body?.meta && typeof req.body.meta === 'object' ? req.body.meta : req.body || {}
+    if (!String(submittedMeta.api_key || '').trim()) return res.status(400).json({ error: 'Meta Model API Key (MODEL_API_KEY)를 입력해 주세요.' })
+    const configPath = path.resolve(__dirname, '../../config.json')
+    const currentConfig = JSON.parse(fs.readFileSync(configPath, 'utf8'))
+    currentConfig.agenticai = normalizeAgenticAiConfig({
+      ...(currentConfig.agenticai || {}),
+      meta: submittedMeta,
+    })
+    fs.writeFileSync(configPath, JSON.stringify(currentConfig, null, 2), 'utf8')
+    const savedConfig = JSON.parse(fs.readFileSync(configPath, 'utf8'))
+    const meta = savedConfig.agenticai.meta
+    if (!String(meta.api_key || '').trim()) return res.status(400).json({ error: 'Meta Model API Key (MODEL_API_KEY)를 입력해 주세요.' })
+    const startedAt = Date.now()
+    const result = await requestMeta({ messages: [{ role: 'user', content: 'Reply with exactly: META_OK' }], options: { temperature: 0, num_predict: 16 } }, meta, 30000)
+    res.json({ ok: true, provider: result.provider, model: result.model, latencyMs: Date.now() - startedAt, sample: String(result.content || '').slice(0, 120) })
+  } catch (err) {
+    console.error('Meta Test Error:', err)
+    res.status(502).json({ ok: false, error: 'Meta Muse 연결 테스트에 실패했습니다.', detail: err.message || 'META_TEST_FAILED' })
   }
 })
 

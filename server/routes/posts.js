@@ -1,6 +1,6 @@
 const express = require('express')
 const router = express.Router()
-const { randomUUID } = require('crypto')
+const { createHash, randomUUID } = require('crypto')
 const fs = require('fs')
 const path = require('path')
 const os = require('os')
@@ -16,8 +16,9 @@ const { isEasySheet, extractEasySheetText } = require('../lib/easySheet')
 const {
   markTrainingStarted,
   markTrainingCompleted,
-  clearTrainingStatus,
+  markTrainingFailed,
   getTrainingStatus,
+  getTrainingStatuses,
 } = require('../trainingStatus')
 const { ACCESS_DENIED_MESSAGE, canAccessChannel, getAccessibleChannelIds } = require('../lib/channelAccess')
 const { cancelSttJobsForPost } = require('./stt')
@@ -1229,6 +1230,7 @@ async function fetchComments(postId, userContext = null, opts = {}) {
 
       const visibleRows = (result.rows || []).filter(row => !deletedCommentIds.has(String(row.id)))
       const commentLikeMap = await getCommentLikeMap(visibleRows.map(row => row.id), userId)
+      const trainingStatuses = await getTrainingStatuses('comment', visibleRows.map(row => row.id))
       await ensurePermissionCtx(visibleRows)
       return Promise.all(visibleRows.map(async row => {
         const author = (await userCache.get(row.author_id))
@@ -1255,7 +1257,7 @@ async function fetchComments(postId, userContext = null, opts = {}) {
           likeCount: likeInfo.likeCount || 0,
           likedByMe: Boolean(likeInfo.likedByMe),
           can_edit: currentUser ? canMutateWithContext(permissionCtx, author) : false,
-          ...getTrainingStatus('comment', row.id),
+          ...(trainingStatuses.get(String(row.id)) || {}),
         }
       }))
     } catch (err) {
@@ -1276,6 +1278,7 @@ async function fetchComments(postId, userContext = null, opts = {}) {
 
   const visibleRows = (result.rows || []).filter(row => !deletedCommentIds.has(String(row.id)))
   const commentLikeMap = await getCommentLikeMap(visibleRows.map(row => row.id), userId)
+  const trainingStatuses = await getTrainingStatuses('comment', visibleRows.map(row => row.id))
   await ensurePermissionCtx(visibleRows)
   return Promise.all(visibleRows.map(async row => {
     const avatarLetters = row.author_name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
@@ -1304,7 +1307,7 @@ async function fetchComments(postId, userContext = null, opts = {}) {
       likeCount: likeInfo.likeCount || 0,
       likedByMe: Boolean(likeInfo.likedByMe),
       can_edit: currentUser ? canMutateWithContext(permissionCtx, authorRecord) : false,
-      ...getTrainingStatus('comment', row.id),
+      ...(trainingStatuses.get(String(row.id)) || {}),
     }
   }))
 }
@@ -1642,7 +1645,7 @@ router.get('/:id', requireAuth, async (req, res, next) => {
         comment_count: meta.count,
         last_comment_at: meta.lastCommentAt,
         last_comment_author_id: meta.lastCommentAuthorId,
-        ...getTrainingStatus('post', row.id.toString()),
+        ...(await getTrainingStatus('post', row.id.toString())),
         likeCount: likeInfo.likeCount || 0,
         likedByMe: Boolean(likeInfo.likedByMe),
         security_level: row.security_level || 0,
@@ -1737,7 +1740,7 @@ router.get('/:id', requireAuth, async (req, res, next) => {
       comment_count: meta.count,
       last_comment_at: meta.lastCommentAt,
       last_comment_author_id: meta.lastCommentAuthorId,
-      ...getTrainingStatus('post', row.id),
+      ...(await getTrainingStatus('post', row.id)),
       likeCount: likeInfo.likeCount || 0,
       likedByMe: Boolean(likeInfo.likedByMe),
       security_level: row.security_level || 0,
@@ -2142,6 +2145,7 @@ router.get('/', requireAuth, async (req, res, next) => {
       const allIds = rows.map(r => r.id.toString())
       const postLikeMap = await getPostLikeMap(rows.map(r => r.id), req.user.id)
       const commentMeta = await getCommentMetaMap(channelId, allIds, { userId: req.user.id, lastReadAt })
+      const trainingStatuses = await getTrainingStatuses('post', allIds)
       const userCache = makeUserCache()
       const permissionCtx = await buildChannelPermissionContext(req.user, channelId)
 
@@ -2191,7 +2195,7 @@ router.get('/', requireAuth, async (req, res, next) => {
           comment_count: meta.count,
           last_comment_at: meta.lastCommentAt,
           last_comment_author_id: meta.lastCommentAuthorId,
-          ...getTrainingStatus('post', row.id.toString()),
+          ...(trainingStatuses.get(String(row.id)) || {}),
           likeCount: likeInfo.likeCount || 0,
           likedByMe: Boolean(likeInfo.likedByMe),
           security_level: row.security_level || 0,
@@ -2252,6 +2256,7 @@ router.get('/', requireAuth, async (req, res, next) => {
 
     const postLikeMap = await getPostLikeMap(rowsPg.map(row => row.id), req.user.id)
     const commentMetaPg = await getCommentMetaMap(channelId, rowsPg.map(r => String(r.id)), { userId: req.user.id, lastReadAt })
+    const trainingStatuses = await getTrainingStatuses('post', rowsPg.map(row => row.id))
     const userCachePg = makeUserCache()
     const permissionCtxPg = await buildChannelPermissionContext(req.user, channelId)
 
@@ -2324,7 +2329,7 @@ router.get('/', requireAuth, async (req, res, next) => {
         comment_count: meta.count,
         last_comment_at: meta.lastCommentAt,
         last_comment_author_id: meta.lastCommentAuthorId,
-        ...getTrainingStatus('post', row.id),
+        ...(trainingStatuses.get(String(row.id)) || {}),
         likeCount: likeInfo.likeCount || 0,
         likedByMe: Boolean(likeInfo.likedByMe),
         security_level: row.security_level || 0,
@@ -2541,12 +2546,16 @@ router.post('/', requireAuth, async (req, res, next) => {
     })
 
     // 업로드 즉시 LanceDB 임베딩 (비동기, 응답에 영향 없음)
-    markTrainingStarted('post', postId)
+    await markTrainingStarted('post', postId)
     ;(async () => {
-      const success = await trainPostImmediate({ id: postId, channel_id: channelId, content, created_at: authoredAt })
-      if (success) markTrainingCompleted('post', postId)
-      else clearTrainingStatus('post', postId)
-    })()
+      try {
+        const success = await trainPostImmediate({ id: postId, channel_id: channelId, content, created_at: authoredAt })
+        if (success) await markTrainingCompleted('post', postId)
+        else await markTrainingFailed('post', postId, '게시글 RAG 학습에 실패했습니다.')
+      } catch (error) {
+        await markTrainingFailed('post', postId, error)
+      }
+    })().catch(error => console.error('[RAG] 게시글 학습 상태 처리 실패:', error.message))
 
     notifyMentionedUsers(content, {
       channelId,
@@ -2895,9 +2904,26 @@ router.post('/:id/restore', requireAuth, async (req, res, next) => {
 
 // ─── PUT /api/posts/:id ───────────────────────────────────────
 router.put('/:id', requireAuth, async (req, res, next) => {
+  const requestId = String(req.get('x-request-id') || randomUUID())
+  const requestSource = String(req.get('x-easydoc-action') || 'unknown').slice(0, 120)
+  const requestStartedAt = Date.now()
   try {
     const { id } = req.params
     const { content, ragContent, security_level, attachments = [], waitForTraining = false } = req.body
+    const contentText = String(content || '')
+    const contentHash = createHash('sha256').update(contentText).digest('hex').slice(0, 16)
+    console.log('[POST-UPDATE-TRACE] received', {
+      requestId,
+      requestSource,
+      postId: id,
+      actorUserId: req.user?.id ?? null,
+      ip: req.ip || req.socket?.remoteAddress || '',
+      userAgent: String(req.get('user-agent') || '').slice(0, 240),
+      referer: String(req.get('referer') || '').slice(0, 300),
+      contentBytes: Buffer.byteLength(contentText, 'utf8'),
+      contentHash,
+      waitForTraining: Boolean(waitForTraining),
+    })
     if (!isConnected()) return res.status(503).json({ error: 'Cassandra 연결이 필요합니다.' })
     const row = await findPostLocator(id)
     if (!row) return res.status(404).json({ error: '게시글을 찾을 수 없습니다.' })
@@ -2969,13 +2995,35 @@ router.put('/:id', requireAuth, async (req, res, next) => {
     })
 
     // 수정 즉시: 기존 벡터 삭제 후 재학습
-    markTrainingStarted('post', id)
+    await markTrainingStarted('post', id)
     const trainingContent = String(ragContent || '').trim() || content
     const trainUpdatedPost = async () => {
-      const success = await retrainPostImmediate({ id, channel_id: row.channel_id, content: trainingContent })
-      if (success) markTrainingCompleted('post', id)
-      else clearTrainingStatus('post', id)
-      return success
+      const trainingStartedAt = Date.now()
+      console.log('[POST-RAG-TRACE] started', { requestId, requestSource, postId: id, contentHash })
+      try {
+        const success = await retrainPostImmediate({ id, channel_id: row.channel_id, content: trainingContent })
+        if (success) await markTrainingCompleted('post', id)
+        else await markTrainingFailed('post', id, '게시글 RAG 재학습에 실패했습니다.')
+        console.log('[POST-RAG-TRACE] finished', {
+          requestId,
+          requestSource,
+          postId: id,
+          contentHash,
+          success,
+          elapsedMs: Date.now() - trainingStartedAt,
+        })
+        return success
+      } catch (error) {
+        console.error('[POST-RAG-TRACE] failed', {
+          requestId,
+          requestSource,
+          postId: id,
+          contentHash,
+          elapsedMs: Date.now() - trainingStartedAt,
+          error: error?.message || String(error),
+        })
+        throw error
+      }
     }
 
     if (waitForTraining) {
@@ -2984,10 +3032,24 @@ router.put('/:id', requireAuth, async (req, res, next) => {
       return res.json({ success: true, training_status: 'completed' })
     }
 
-    trainUpdatedPost()
+    trainUpdatedPost().catch(error => markTrainingFailed('post', id, error))
 
-    res.json({ success: true })
+    console.log('[POST-UPDATE-TRACE] accepted', {
+      requestId,
+      requestSource,
+      postId: id,
+      contentHash,
+      elapsedMs: Date.now() - requestStartedAt,
+    })
+    res.json({ success: true, requestId })
   } catch (err) {
+    console.error('[POST-UPDATE-TRACE] failed', {
+      requestId,
+      requestSource,
+      postId: req.params.id,
+      elapsedMs: Date.now() - requestStartedAt,
+      error: err?.message || String(err),
+    })
     next(err)
   }
 })
@@ -3474,23 +3536,29 @@ router.post('/:id/comments', requireAuth, async (req, res, next) => {
       [commentId, postId, createdAt, req.user.id], { prepare: true }
     )
 
+    // 댓글 생성 직후 학습 상태를 먼저 기록해 응답에도 즉시 반영되도록 한다.
+    await markTrainingStarted('comment', commentId)
+
     // 방금 등록한 댓글을 전체 정보와 함께 반환
     const comments = await fetchComments(postId, req.user)
     const newComment = comments.find(c => c.id === commentId)
 
     // 업로드 즉시 LanceDB 임베딩 (비동기, 응답에 영향 없음)
-    markTrainingStarted('comment', commentId)
     ;(async () => {
-      const success = await trainCommentImmediate({
-        id: commentId,
-        post_id: postId,
-        channel_id: channelId || '',
-        content: safeContent,
-        attachmentIds: safeAttachmentIds,
-      })
-      if (success) markTrainingCompleted('comment', commentId)
-      else clearTrainingStatus('comment', commentId)
-    })()
+      try {
+        const success = await trainCommentImmediate({
+          id: commentId,
+          post_id: postId,
+          channel_id: channelId || '',
+          content: safeContent,
+          attachmentIds: safeAttachmentIds,
+        })
+        if (success) await markTrainingCompleted('comment', commentId)
+        else await markTrainingFailed('comment', commentId, '댓글 RAG 학습에 실패했습니다.')
+      } catch (error) {
+        await markTrainingFailed('comment', commentId, error)
+      }
+    })().catch(error => console.error('[RAG] 댓글 학습 상태 처리 실패:', error.message))
 
     notifyMentionedUsers(safeContent, {
       channelId: channelId || (await findPostLocator(postId))?.channel_id || '',
@@ -3585,17 +3653,21 @@ router.put('/:postId/comments/:commentId', requireAuth, async (req, res, next) =
     await linkAttachments(postId, attachmentIds)
 
     // 수정 즉시: 기존 벡터 삭제 후 재학습 (비동기, 응답 비차단)
-    markTrainingStarted('comment', commentId)
+    await markTrainingStarted('comment', commentId)
     ;(async () => {
-      const success = await retrainCommentImmediate({
-        id: commentId,
-        post_id: postId,
-        content,
-        attachmentIds,
-      })
-      if (success) markTrainingCompleted('comment', commentId)
-      else clearTrainingStatus('comment', commentId)
-    })()
+      try {
+        const success = await retrainCommentImmediate({
+          id: commentId,
+          post_id: postId,
+          content,
+          attachmentIds,
+        })
+        if (success) await markTrainingCompleted('comment', commentId)
+        else await markTrainingFailed('comment', commentId, '댓글 RAG 재학습에 실패했습니다.')
+      } catch (error) {
+        await markTrainingFailed('comment', commentId, error)
+      }
+    })().catch(error => console.error('[RAG] 댓글 재학습 상태 처리 실패:', error.message))
 
     res.json({ success: true })
   } catch (err) {

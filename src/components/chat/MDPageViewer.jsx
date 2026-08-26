@@ -37,6 +37,7 @@ import EasyPageSlashLinkMenu from './md-page/toolbar/EasyPageSlashLinkMenu'
 import EasyPageNavigationPanel from './md-page/navigation/EasyPageNavigationPanel'
 import EasyPageDeleteDialog from './md-page/navigation/EasyPageDeleteDialog'
 import { appendEasyPageLinks, buildEasyPageTree, collectEasyPageSubtreeIds, extractEasyPagePostLinks, removeEasyPageLink } from './md-page/navigation/easyPageTree'
+import { extractHeadingOutline } from './md-page/navigation/headingOutline'
 import { MermaidPreviewExtension, EchartsPreviewExtension } from './md-page/extensions/diagramPreviewExtensions'
 import { EasyDocClipboardExtension, getDomSelectedTextInsideElement, stopClipboardEvent, writeEasyDocClipboardData, pasteEasyDocClipboardData } from './md-page/extensions/clipboardExtension'
 import { TocNode } from './md-page/extensions/tocNode'
@@ -187,6 +188,7 @@ export default function MDPageViewer({ post, channelId, onClose, onOpenPostLink 
     postId: post.id,
   })
   const [previewConfig, setPreviewConfig] = useState(DEFAULT_PREVIEW_CONFIG)
+  const [headingOutline, setHeadingOutline] = useState([])
   const contentFontStyle = getContentFontStyle(previewConfig.contentFontScale)
   const sourceColorInputRef = useRef(null)
   const sourceColorRangeRef = useRef(null)
@@ -338,6 +340,9 @@ export default function MDPageViewer({ post, channelId, onClose, onOpenPostLink 
     ],
     content: initialEditorDoc || initialMdRaw,
     editable: canEdit && mode === 'preview',
+    onCreate({ editor }) {
+      setHeadingOutline(extractHeadingOutline(editor.state.doc))
+    },
     editorProps: {
       handleClick(view, _pos, event) {
         const target = event.target
@@ -392,6 +397,7 @@ export default function MDPageViewer({ post, channelId, onClose, onOpenPostLink 
       },
     },
     onUpdate({ editor }) {
+      setHeadingOutline(extractHeadingOutline(editor.state.doc))
       const md = stripAllMdMeta(editor.storage.markdown.getMarkdown())
       const hasCodeFence = /```/.test(md)
       const hasCodeBlockNode = (() => {
@@ -686,6 +692,19 @@ export default function MDPageViewer({ post, channelId, onClose, onOpenPostLink 
     setMode('source')
   }
 
+  function handleOpenHeading(headingIndex) {
+    if (!editor) return
+    if (mode === 'source') switchToPreview()
+
+    requestAnimationFrame(() => {
+      const target = extractHeadingOutline(editor.state.doc)[headingIndex]
+      if (!target) return
+      const node = editor.view.nodeDOM(target.pos)
+      const element = node instanceof Element ? node : node?.parentElement
+      element?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    })
+  }
+
   function handleSourceColorPickTrigger(e) {
     if (!canEdit || mode !== 'source') return
     const ta = e.currentTarget
@@ -735,11 +754,11 @@ export default function MDPageViewer({ post, channelId, onClose, onOpenPostLink 
     }
   }, [editor, getCurrentMarkdown, imageMeta, mode])
 
-  const saveCurrentMdPage = useCallback(async () => {
+  const saveCurrentMdPage = useCallback(async (requestSource = 'easy-page:unknown-save') => {
     const next = buildCurrentMdPageContent()
     setSaving(true)
     try {
-      await updatePost(channelId, post.id, { content: next.content })
+      await updatePost(channelId, post.id, { content: next.content, requestSource })
       setSavedContent(next.md)
       setSavedImageMeta(next.normalizedImageMeta)
       if (mode === 'preview' && editor) {
@@ -757,9 +776,9 @@ export default function MDPageViewer({ post, channelId, onClose, onOpenPostLink 
     }
   }, [buildCurrentMdPageContent, channelId, editor, mode, post.id, updatePost])
 
-  const handleSave = useCallback(async () => {
+  const handleSave = useCallback(async (requestSource = 'easy-page:save-button') => {
     try {
-      await saveCurrentMdPage()
+      await saveCurrentMdPage(requestSource)
     } catch {
       // Save errors are surfaced inside saveCurrentMdPage.
     }
@@ -776,7 +795,7 @@ export default function MDPageViewer({ post, channelId, onClose, onOpenPostLink 
       event.preventDefault()
       event.stopPropagation()
       if (event.repeat || saving || !isChanged) return
-      void handleSave()
+      void handleSave('easy-page:keyboard-shortcut')
     }
 
     window.addEventListener('keydown', handleSaveShortcut, true)
@@ -810,7 +829,7 @@ export default function MDPageViewer({ post, channelId, onClose, onOpenPostLink 
       if (to > docSize) throw new Error('선택 영역이 변경되어 링크를 적용할 수 없습니다.')
       editor.chain().focus().setTextSelection({ from, to }).setLink({ href }).run()
       try {
-        await saveCurrentMdPage()
+        await saveCurrentMdPage('easy-page:create-child-link')
       } catch (saveErr) {
         console.error('하위 EasyPage 링크 저장 실패:', saveErr)
         setIsChanged(true)
@@ -906,12 +925,15 @@ export default function MDPageViewer({ post, channelId, onClose, onOpenPostLink 
       const updatedIds = []
       try {
         for (const [pageId, content] of nextContents) {
-          await updatePost(channelId, pageId, { content })
+          await updatePost(channelId, pageId, { content, requestSource: 'easy-page:structured-delete-reparent' })
           updatedIds.push(pageId)
         }
         await deletePost(channelId, post.id)
       } catch (error) {
-        await Promise.allSettled(updatedIds.map(pageId => updatePost(channelId, pageId, { content: originalContents.get(pageId) })))
+        await Promise.allSettled(updatedIds.map(pageId => updatePost(channelId, pageId, {
+          content: originalContents.get(pageId),
+          requestSource: 'easy-page:structured-delete-rollback',
+        })))
         throw error
       }
 
@@ -1190,7 +1212,7 @@ export default function MDPageViewer({ post, channelId, onClose, onOpenPostLink 
 
         {canEdit && isChanged && (
           <button
-            onClick={handleSave}
+            onClick={() => handleSave('easy-page:save-button')}
             disabled={saving}
             className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-60 text-white text-xs font-medium rounded-lg transition-colors flex-shrink-0"
           >
@@ -1240,6 +1262,8 @@ export default function MDPageViewer({ post, channelId, onClose, onOpenPostLink 
           channelId={channelId}
           currentPostId={post.id}
           channelPosts={channelPosts}
+          headings={headingOutline}
+          onOpenHeading={handleOpenHeading}
           onOpen={(targetChannelId, targetPostId) => onOpenPostLink?.(targetChannelId, targetPostId)}
         />
         {/* ── Content area ── */}
@@ -1500,7 +1524,7 @@ export default function MDPageViewer({ post, channelId, onClose, onOpenPostLink 
           titleTone="blue"
           loading={saving}
           onConfirm={async () => {
-            await handleSave()
+            await handleSave('easy-page:close-dialog-save')
             setShowSaveDialog(false)
             onClose()
           }}

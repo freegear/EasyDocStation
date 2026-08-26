@@ -77,11 +77,28 @@ const FRONTEND_PORT = Number(process.env.SERVE_FRONTEND_PORT || 0)
 function normalizeAgenticAiConfig(ai = {}) {
   const language = ['ko', 'ja', 'en', 'zh'].includes(ai?.language) ? ai.language : 'ko'
   const groq = ai?.groq && typeof ai.groq === 'object' ? ai.groq : {}
+  const deepseek = ai?.deepseek && typeof ai.deepseek === 'object' ? ai.deepseek : {}
+  const meta = ai?.meta && typeof ai.meta === 'object' ? ai.meta : {}
   return {
     num_predict: Number.isFinite(Number(ai?.num_predict)) ? Number(ai.num_predict) : 4096,
     num_ctx: Number.isFinite(Number(ai?.num_ctx)) ? Number(ai.num_ctx) : 8192,
     history: Number.isFinite(Number(ai?.history)) ? Number(ai.history) : 6,
     language,
+    provider: ['ollama', 'deepseek', 'meta', 'groq'].includes(String(ai?.provider || '').toLowerCase()) ? String(ai.provider).toLowerCase() : 'ollama',
+    fallback_to_ollama: ai?.fallback_to_ollama !== false,
+    deepseek: {
+      enabled: Boolean(deepseek.enabled),
+      api_key: typeof deepseek.api_key === 'string' ? deepseek.api_key : '',
+      model: typeof deepseek.model === 'string' && deepseek.model.trim() ? deepseek.model.trim() : 'deepseek-v4-flash',
+      base_url: typeof deepseek.base_url === 'string' && deepseek.base_url.trim() ? deepseek.base_url.trim() : 'https://api.deepseek.com',
+      use_for_mail_summary: Boolean(deepseek.use_for_mail_summary),
+    },
+    meta: {
+      enabled: Boolean(meta.enabled),
+      api_key: typeof meta.api_key === 'string' ? meta.api_key : '',
+      model: typeof meta.model === 'string' && meta.model.trim() ? meta.model.trim() : 'muse-spark-1.2',
+      base_url: typeof meta.base_url === 'string' && meta.base_url.trim() ? meta.base_url.trim() : 'https://api.meta.ai/v1',
+    },
     groq: {
       enabled: Boolean(groq.enabled),
       prefer_when_available: Boolean(groq.prefer_when_available),
@@ -207,6 +224,8 @@ app.get('/api/config/agenticai', (req, res) => {
     const config = JSON.parse(fs.readFileSync(configPath, 'utf8'))
     const ai = normalizeAgenticAiConfig(config.agenticai || {})
     if (ai.groq) ai.groq.api_key = ''
+    if (ai.deepseek) ai.deepseek.api_key = ''
+    if (ai.meta) ai.meta.api_key = ''
     res.json({
       ...ai,
       operation_mode: normalizeAgenticAiOperationMode(config.agenticai_operation_mode),
@@ -299,6 +318,18 @@ if (process.env.NODE_ENV === 'production' || String(process.env.SERVE_FRONTEND_D
 
 app.use((err, req, res, next) => {
   console.error(err)
+  const errorName = String(err?.name || '')
+  const errorMessage = String(err?.message || '')
+  if (
+    errorName === 'NoHostAvailableError'
+    || /NoHostAvailableError|All host\(s\) tried for query failed/i.test(errorMessage)
+  ) {
+    return res.status(503).json({
+      error: 'Cassandra 연결이 필요합니다.',
+      code: 'CASSANDRA_UNAVAILABLE',
+      detail: 'NoHostAvailableError: All host(s) tried for query failed',
+    })
+  }
   res.status(500).json({ error: '서버 오류가 발생했습니다.' })
 })
 

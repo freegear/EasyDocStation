@@ -2520,7 +2520,7 @@ router.post('/search', requireAuth, async (req, res) => {
 })
 
 // ─── GET /api/rag/image ──────────────────────────────────────
-// Gemma 이미지 설명에 사용된 원본 이미지 파일 서빙 (참조 패널 썸네일용)
+// 선택 LLM 이미지 설명에 사용된 원본 이미지 파일 서빙 (참조 패널 썸네일용)
 router.get('/image', requireAuth, (req, res) => {
   const imgPath = String(req.query.path || '').trim()
   if (!imgPath) return res.status(400).json({ error: 'path 파라미터가 필요합니다.' })

@@ -1,5 +1,6 @@
 const http = require('http')
 const config = require('../../config.json')
+const { requestChatCompletion } = require('../llmClient')
 
 function getOllamaChatOptions() {
   return {
@@ -135,8 +136,8 @@ class SummaryService {
     }
 
     try {
-      const summary = await requestOllama(payload)
-      return { summary, model, fallback: false }
+      const result = await requestChatCompletion(payload, { task: 'mail_summary', config })
+      return { summary: result.content, model: result.model || model, provider: result.provider, fallback: Boolean(result.fallback) }
     } catch (err) {
       return {
         summary: buildFallbackSummary(posts),

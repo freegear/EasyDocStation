@@ -778,10 +778,11 @@ function UserFormModal({ user, onClose, onSave, teams = [] }) {
   )
 }
 
-function PasswordVisibilityButton({ visible, onToggle, labels }) {
+function PasswordVisibilityButton({ visible, onToggle, labels, reflectVisibility = false }) {
   const label = visible
     ? (labels.hidePassword || '비밀번호 숨기기')
     : (labels.showPassword || '비밀번호 보기')
+  const showHiddenIcon = reflectVisibility ? !visible : visible
 
   return (
     <button
@@ -792,7 +793,7 @@ function PasswordVisibilityButton({ visible, onToggle, labels }) {
       title={label}
       aria-pressed={visible}
     >
-      {visible ? (
+      {showHiddenIcon ? (
         <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M3 3l18 18M10.6 10.7a2 2 0 002.7 2.7M9.9 4.2A10.7 10.7 0 0112 4c5.5 0 9 5 9 5a16.8 16.8 0 01-2.1 2.5M6.2 6.2C4.2 7.5 3 9 3 9s3.5 5 9 5c1 0 2-.2 2.8-.5" />
         </svg>
@@ -880,6 +881,17 @@ export default function SiteAdminPage({ onClose, initialTab = 'users' }) {
     history: 6,
     language: 'ko',
     operation_mode: 'server',
+    provider: 'ollama',
+    fallback_to_ollama: true,
+    deepseek_enabled: false,
+    deepseek_use_for_mail_summary: false,
+    deepseek_api_key: '',
+    deepseek_model: 'deepseek-v4-flash',
+    deepseek_base_url: 'https://api.deepseek.com',
+    meta_enabled: false,
+    meta_api_key: '',
+    meta_model: 'muse-spark-1.2',
+    meta_base_url: 'https://api.meta.ai/v1',
     groq_enabled: false,
     groq_prefer_when_available: false,
     groq_use_for_mail_summary: false,
@@ -926,6 +938,11 @@ export default function SiteAdminPage({ onClose, initialTab = 'users' }) {
   const [savingConfig, setSavingConfig] = useState(false)
   const [saveConfigDialogMessage, setSaveConfigDialogMessage] = useState('')
   const [saveConfigNeedsRestart, setSaveConfigNeedsRestart] = useState(false)
+  const [deepseekTestStatus, setDeepseekTestStatus] = useState(null)
+  const [deepseekTestMessage, setDeepseekTestMessage] = useState('')
+  const [metaTestStatus, setMetaTestStatus] = useState(null)
+  const [metaTestMessage, setMetaTestMessage] = useState('')
+  const [metaApiKeyVisible, setMetaApiKeyVisible] = useState(false)
   const [groqTestStatus, setGroqTestStatus] = useState(null) // null | 'testing' | 'ok' | 'error'
   const [groqTestMessage, setGroqTestMessage] = useState('')
   const [restartingService, setRestartingService] = useState(false)
@@ -1241,12 +1258,25 @@ export default function SiteAdminPage({ onClose, initialTab = 'users' }) {
       }
       if (data.agenticai) {
         const groq = data.agenticai.groq || {}
+        const deepseek = data.agenticai.deepseek || {}
+        const meta = data.agenticai.meta || {}
         setAgenticaiForm({
           num_predict: data.agenticai.num_predict || 4096,
           num_ctx: data.agenticai.num_ctx || 8192,
           history: data.agenticai.history ?? 6,
           language: ['ko', 'ja', 'en', 'zh'].includes(data.agenticai.language) ? data.agenticai.language : 'ko',
           operation_mode: data.agenticai_operation_mode === 'local' ? 'local' : 'server',
+          provider: ['ollama', 'deepseek', 'meta'].includes(data.agenticai.provider) ? data.agenticai.provider : 'ollama',
+          fallback_to_ollama: data.agenticai.fallback_to_ollama !== false,
+          deepseek_enabled: !!deepseek.enabled,
+          deepseek_use_for_mail_summary: !!deepseek.use_for_mail_summary,
+          deepseek_api_key: deepseek.api_key || '',
+          deepseek_model: deepseek.model || 'deepseek-v4-flash',
+          deepseek_base_url: deepseek.base_url || 'https://api.deepseek.com',
+          meta_enabled: !!meta.enabled,
+          meta_api_key: meta.api_key || '',
+          meta_model: meta.model || 'muse-spark-1.2',
+          meta_base_url: meta.base_url || 'https://api.meta.ai/v1',
           groq_enabled: !!groq.enabled,
           groq_prefer_when_available: !!groq.prefer_when_available,
           groq_use_for_mail_summary: !!groq.use_for_mail_summary,
@@ -1664,6 +1694,21 @@ export default function SiteAdminPage({ onClose, initialTab = 'users' }) {
           num_ctx: parseInt(agenticaiForm.num_ctx),
           history: parseInt(agenticaiForm.history),
           language: agenticaiForm.language || 'ko',
+          provider: agenticaiForm.provider || 'ollama',
+          fallback_to_ollama: !!agenticaiForm.fallback_to_ollama,
+          deepseek: {
+            enabled: agenticaiForm.provider === 'deepseek',
+            use_for_mail_summary: !!agenticaiForm.deepseek_use_for_mail_summary,
+            api_key: agenticaiForm.deepseek_api_key || '',
+            model: agenticaiForm.deepseek_model || 'deepseek-v4-flash',
+            base_url: agenticaiForm.deepseek_base_url || 'https://api.deepseek.com',
+          },
+          meta: {
+            enabled: agenticaiForm.provider === 'meta',
+            api_key: agenticaiForm.meta_api_key || '',
+            model: agenticaiForm.meta_model || 'muse-spark-1.2',
+            base_url: agenticaiForm.meta_base_url || 'https://api.meta.ai/v1',
+          },
           groq: {
             enabled: !!agenticaiForm.groq_enabled,
             prefer_when_available: !!agenticaiForm.groq_prefer_when_available,
@@ -1779,6 +1824,32 @@ export default function SiteAdminPage({ onClose, initialTab = 'users' }) {
     } catch (err) {
       setGroqTestStatus('error')
       setGroqTestMessage(err.detail ? `${err.message}: ${err.detail}` : err.message)
+    }
+  }
+
+  async function handleTestDeepseekConnection() {
+    setDeepseekTestStatus('testing')
+    setDeepseekTestMessage('')
+    try {
+      const result = await apiFetch('/admin/deepseek/test', { method: 'POST', body: JSON.stringify({ deepseek: { api_key: agenticaiForm.deepseek_api_key, model: agenticaiForm.deepseek_model, base_url: agenticaiForm.deepseek_base_url } }) })
+      setDeepseekTestStatus('ok')
+      setDeepseekTestMessage(`연결 성공 (${result.model || 'DeepSeek'}, ${result.latencyMs || 0}ms)`)
+    } catch (err) {
+      setDeepseekTestStatus('error')
+      setDeepseekTestMessage(err.detail ? `${err.message}: ${err.detail}` : err.message)
+    }
+  }
+
+  async function handleTestMetaConnection() {
+    setMetaTestStatus('testing')
+    setMetaTestMessage('')
+    try {
+      const result = await apiFetch('/admin/meta/test', { method: 'POST', body: JSON.stringify({ meta: { api_key: agenticaiForm.meta_api_key, model: agenticaiForm.meta_model, base_url: agenticaiForm.meta_base_url } }) })
+      setMetaTestStatus('ok')
+      setMetaTestMessage(`연결 성공 (${result.model || 'Meta AI'}, ${result.latencyMs || 0}ms)`)
+    } catch (err) {
+      setMetaTestStatus('error')
+      setMetaTestMessage(err.detail ? `${err.message}: ${err.detail}` : err.message)
     }
   }
 
@@ -1957,6 +2028,16 @@ export default function SiteAdminPage({ onClose, initialTab = 'users' }) {
             {t.admin.navDisplay}
           </button>
           <button
+            onClick={() => setActiveTab('agenticai')}
+            className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${activeTab === 'agenticai' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-200'}`}
+          >
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+            AI/LLM 설정
+          </button>
+          <button
             onClick={() => setActiveTab('rag')}
             className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${activeTab === 'rag' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-200'}`}
           >
@@ -1973,16 +2054,6 @@ export default function SiteAdminPage({ onClose, initialTab = 'users' }) {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
             </svg>
             GPU 최적화
-          </button>
-          <button
-            onClick={() => setActiveTab('agenticai')}
-            className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${activeTab === 'agenticai' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-200'}`}
-          >
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-            </svg>
-            {t.admin.navAgenticAI}
           </button>
           <button
             onClick={() => setActiveTab('company')}
@@ -3556,7 +3627,7 @@ export default function SiteAdminPage({ onClose, initialTab = 'users' }) {
                 <svg className="w-5 h-5 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                 </svg>
-                {t.admin.agenticaiTabTitle}
+                AI/LLM 설정
               </h2>
               <button
                 onClick={handleSaveConfig}
@@ -3730,6 +3801,65 @@ export default function SiteAdminPage({ onClose, initialTab = 'users' }) {
                 </div>
                 <div className="mt-4 p-4 rounded-xl border border-gray-200 bg-gray-50 text-[11px] text-gray-600 whitespace-pre-line">
                   {'#31.1 운영 모드 1\n[Local@AgenticAI] -- [ Server ] -- [ WebPage ]\n\n#31.2 운영 모드 2\n[ Server ] -- [ WebPage ] / [Local@AgenticAI]\nLocal@AgenticAI가 Server의 RAG DB를 참조하고, LLM은 Local에서 실행'}
+                </div>
+              </div>
+
+              <div className="bg-gray-100 border border-gray-200 rounded-2xl p-8 shadow-xl">
+                <div className="mb-6">
+                  <h3 className="text-gray-900 font-bold text-base">AI/LLM 공급자 설정</h3>
+                  <p className="text-gray-400 text-xs mt-0.5">먼저 Gemma(Local), DeepSeek API, Meta AI 중 기본 AI/LLM을 선택합니다.</p>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6">
+                  {[['ollama', 'Gemma AI (Local Install)'], ['deepseek', 'DeepSeek API'], ['meta', 'Meta AI']].map(([value, label]) => (<button key={value} type="button" onClick={() => setAgenticaiForm(p => ({ ...p, provider: value }))} className={`rounded-xl border px-4 py-3 text-sm font-bold ${agenticaiForm.provider === value ? 'border-indigo-400 bg-indigo-50 text-indigo-700' : 'border-gray-200 bg-white text-gray-500'}`}>{label}</button>))}
+                </div>
+              </div>
+
+              <div className="bg-gray-100 border border-gray-200 rounded-2xl p-8 shadow-xl">
+                <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                  <div><h3 className="text-gray-900 font-bold text-base">DeepSeek 설정</h3><p className="text-gray-400 text-xs mt-0.5">DeepSeek API 연결과 사용 옵션을 설정합니다.</p></div>
+                  <button type="button" onClick={handleTestDeepseekConnection} disabled={deepseekTestStatus === 'testing' || !agenticaiForm.deepseek_api_key} className="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-bold text-white disabled:opacity-50">{deepseekTestStatus === 'testing' ? '테스트 중' : 'DeepSeek 연결 테스트'}</button>
+                </div>
+                {deepseekTestMessage && <p className={`mb-4 text-xs font-bold ${deepseekTestStatus === 'ok' ? 'text-emerald-600' : 'text-red-600'}`}>{deepseekTestMessage}</p>}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-5">
+                  <label className="flex items-center justify-between rounded-xl border border-gray-200 bg-white p-4 text-sm font-bold text-gray-700">DeepSeek 사용 허용<input type="checkbox" checked={!!agenticaiForm.deepseek_enabled} onChange={e => setAgenticaiForm(p => ({ ...p, deepseek_enabled: e.target.checked }))} /></label>
+                  <label className="flex items-center justify-between rounded-xl border border-gray-200 bg-white p-4 text-sm font-bold text-gray-700">실패 시 내부 Gemma 사용<input type="checkbox" checked={!!agenticaiForm.fallback_to_ollama} onChange={e => setAgenticaiForm(p => ({ ...p, fallback_to_ollama: e.target.checked }))} /></label>
+                  <label className="flex items-center justify-between rounded-xl border border-gray-200 bg-white p-4 text-sm font-bold text-gray-700">메일 요약에 DeepSeek 사용<input type="checkbox" checked={!!agenticaiForm.deepseek_use_for_mail_summary} onChange={e => setAgenticaiForm(p => ({ ...p, deepseek_use_for_mail_summary: e.target.checked }))} /></label>
+                </div>
+                <div className="grid grid-cols-1 gap-4">
+                  <label><span className="mb-1 block text-xs font-bold text-gray-600">DeepSeek API Key</span><input type="password" value={agenticaiForm.deepseek_api_key} onChange={e => setAgenticaiForm(p => ({ ...p, deepseek_api_key: e.target.value }))} placeholder="sk-..." className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm" /></label>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4"><label><span className="mb-1 block text-xs font-bold text-gray-600">Model</span><input value={agenticaiForm.deepseek_model} onChange={e => setAgenticaiForm(p => ({ ...p, deepseek_model: e.target.value }))} className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm" /></label><label><span className="mb-1 block text-xs font-bold text-gray-600">Base URL</span><input type="url" value={agenticaiForm.deepseek_base_url} onChange={e => setAgenticaiForm(p => ({ ...p, deepseek_base_url: e.target.value }))} className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm" /></label></div>
+                </div>
+              </div>
+
+              <div className="bg-gray-100 border border-gray-200 rounded-2xl p-8 shadow-xl">
+                <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                  <div><h3 className="text-gray-900 font-bold text-base">Meta Muse Code 설정</h3><p className="text-gray-400 text-xs mt-0.5">Meta Model API의 Responses 엔드포인트를 사용합니다.</p></div>
+                  <button type="button" onClick={handleTestMetaConnection} disabled={metaTestStatus === 'testing' || !agenticaiForm.meta_api_key} className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-bold text-white disabled:opacity-50">{metaTestStatus === 'testing' ? '테스트 중' : 'Meta Muse 연결 테스트'}</button>
+                </div>
+                {metaTestMessage && <p className={`mb-4 text-xs font-bold ${metaTestStatus === 'ok' ? 'text-emerald-600' : 'text-red-600'}`}>{metaTestMessage}</p>}
+                <div className="grid grid-cols-1 gap-4">
+                  <label>
+                    <span className="mb-1 block text-xs font-bold text-gray-600">Meta Model API Key (MODEL_API_KEY)</span>
+                    <div className="relative">
+                      <input type={metaApiKeyVisible ? 'text' : 'password'} autoComplete="new-password" value={agenticaiForm.meta_api_key} onChange={e => setAgenticaiForm(p => ({ ...p, meta_api_key: e.target.value }))} placeholder="Meta API Key" className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 pr-12 text-sm" />
+                      <PasswordVisibilityButton
+                        visible={metaApiKeyVisible}
+                        onToggle={() => setMetaApiKeyVisible(visible => !visible)}
+                        labels={{ showPassword: 'Meta API Key 보기', hidePassword: 'Meta API Key 숨기기' }}
+                        reflectVisibility
+                      />
+                    </div>
+                  </label>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <label>
+                      <span className="mb-1 block text-xs font-bold text-gray-600">Model</span>
+                      <select value={agenticaiForm.meta_model} onChange={e => setAgenticaiForm(p => ({ ...p, meta_model: e.target.value }))} className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm">
+                        <option value="muse-spark-1.2">Muse Spark 1.2</option>
+                        <option value="muse-spark-1.2-contributor">Muse Spark 1.2 Contributor</option>
+                      </select>
+                    </label>
+                    <label><span className="mb-1 block text-xs font-bold text-gray-600">Base URL</span><input type="url" value={agenticaiForm.meta_base_url} onChange={e => setAgenticaiForm(p => ({ ...p, meta_base_url: e.target.value }))} className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm" /></label>
+                  </div>
                 </div>
               </div>
 

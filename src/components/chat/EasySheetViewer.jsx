@@ -161,7 +161,7 @@ export default function EasySheetViewer({ post, channelId, onClose }) {
     setSaving(true)
     try {
       const content = `${EASY_SHEET_MARKER}\n${JSON.stringify(snapshot)}`
-      await updatePost(channelId, post.id, { content })
+      await updatePost(channelId, post.id, { content, requestSource: 'easy-sheet:save-button' })
       setIsChanged(false)
     } catch (err) {
       console.error('[EasySheet] 저장 실패:', err)

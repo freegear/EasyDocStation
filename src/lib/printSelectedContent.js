@@ -138,7 +138,7 @@ function waitForStylesheets(doc, timeoutMs = 3000) {
   ])
 }
 
-export async function printSelectedContent({ type = 'post', title = '', channelName = '', author = '', username = '', createdAt = '', contentNode = null, popupBlockedMessage = '', failedMessage = '' } = {}) {
+export async function printSelectedContent({ type = 'post', title = '', channelName = '', author = '', username = '', createdAt = '', contentNode = null, includeComments = false, popupBlockedMessage = '', failedMessage = '' } = {}) {
   if (!contentNode) throw new Error('인쇄할 콘텐츠를 찾을 수 없습니다.')
 
   const printWindow = window.open('', '_blank')
@@ -157,6 +157,9 @@ export async function printSelectedContent({ type = 'post', title = '', channelN
     printWindow.document.head.appendChild(style)
 
     const clone = contentNode.cloneNode(true)
+    if (includeComments) {
+      clone.querySelectorAll('[data-print-comments="true"]').forEach(node => node.removeAttribute('data-print-exclude'))
+    }
     clone.querySelectorAll('[data-print-exclude="true"], button, input, textarea, select, audio, video, [role="menu"], [role="dialog"]').forEach(node => node.remove())
     ;[clone, ...clone.querySelectorAll('*')].forEach(node => {
       if (!(node instanceof HTMLElement)) return

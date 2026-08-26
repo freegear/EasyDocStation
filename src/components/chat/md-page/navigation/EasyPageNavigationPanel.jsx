@@ -47,7 +47,31 @@ function TreeItem({ node, currentPostId, expandedIds, onToggle, onOpen }) {
   )
 }
 
-export default function EasyPageNavigationPanel({ channelId, currentPostId, channelPosts, onOpen }) {
+function HeadingOutline({ headings, onOpenHeading }) {
+  if (headings.length === 0) {
+    return <p className="px-2 py-3 text-xs text-gray-400">제목 1~3이 없습니다.</p>
+  }
+
+  return (
+    <ol aria-label="제목 목차" className="space-y-0.5">
+      {headings.map(heading => (
+        <li key={heading.id}>
+          <button
+            type="button"
+            title={heading.title}
+            onClick={() => onOpenHeading(heading.index)}
+            className="block w-full truncate rounded-md py-1.5 pr-2 text-left text-sm text-gray-700 hover:bg-gray-100 hover:text-indigo-700"
+            style={{ paddingLeft: `${8 + (heading.level - 1) * 14}px` }}
+          >
+            {heading.title}
+          </button>
+        </li>
+      ))}
+    </ol>
+  )
+}
+
+export default function EasyPageNavigationPanel({ channelId, currentPostId, channelPosts, headings = [], onOpen, onOpenHeading }) {
   const [collapsed, setCollapsed] = useState(() => localStorage.getItem('easy-page-nav-collapsed') === 'true')
   const [mobileOpen, setMobileOpen] = useState(false)
   const [expandedIds, setExpandedIds] = useState(() => new Set())
@@ -93,6 +117,25 @@ export default function EasyPageNavigationPanel({ channelId, currentPostId, chan
     </ul>
   ) : <p className="px-2 py-4 text-xs text-gray-400">표시할 EasyPage가 없습니다.</p>
 
+  const navigationContent = (
+    <>
+      <section className="border-b border-gray-200 pb-2">
+        <h2 className="px-2 pb-1 pt-2 text-xs font-bold uppercase tracking-wide text-gray-500">제목 목차</h2>
+        <HeadingOutline
+          headings={headings}
+          onOpenHeading={(headingIndex) => {
+            setMobileOpen(false)
+            onOpenHeading?.(headingIndex)
+          }}
+        />
+      </section>
+      <section className="pt-2">
+        <h2 className="px-2 pb-1 text-xs font-bold uppercase tracking-wide text-gray-500">페이지 목차</h2>
+        {treeContent}
+      </section>
+    </>
+  )
+
   if (collapsed) {
     return (
       <>
@@ -103,8 +146,8 @@ export default function EasyPageNavigationPanel({ channelId, currentPostId, chan
         {mobileOpen && (
           <div className="fixed inset-0 z-[80] bg-black/40 md:hidden" onClick={() => setMobileOpen(false)}>
             <nav aria-label="EasyPage 목차" className="h-full w-[82vw] max-w-xs bg-white shadow-xl" onClick={event => event.stopPropagation()}>
-              <div className="flex items-center justify-between border-b px-4 py-3"><strong>페이지 목차</strong><button type="button" onClick={() => setMobileOpen(false)}>✕</button></div>
-              <div className="overflow-y-auto p-2">{treeContent}</div>
+              <div className="flex items-center justify-between border-b px-4 py-3"><strong>목차</strong><button type="button" onClick={() => setMobileOpen(false)}>✕</button></div>
+              <div className="overflow-y-auto p-2">{navigationContent}</div>
             </nav>
           </div>
         )}
@@ -116,17 +159,17 @@ export default function EasyPageNavigationPanel({ channelId, currentPostId, chan
     <>
       <nav aria-label="EasyPage 목차" className="hidden w-64 flex-shrink-0 flex-col border-r border-gray-200 bg-gray-50 md:flex">
         <div className="flex items-center justify-between border-b border-gray-200 px-3 py-3">
-          <span className="text-xs font-bold uppercase tracking-wide text-gray-500">페이지 목차</span>
+          <span className="text-xs font-bold uppercase tracking-wide text-gray-500">목차</span>
           <button type="button" onClick={toggleCollapsed} title="목차 접기" aria-label="EasyPage 목차 접기" className="rounded p-1 text-gray-400 hover:bg-gray-200">◀</button>
         </div>
-        <div className="min-h-0 flex-1 overflow-y-auto px-2 py-2">{treeContent}</div>
+        <div className="min-h-0 flex-1 overflow-y-auto px-2 py-2">{navigationContent}</div>
       </nav>
       <button type="button" onClick={() => setMobileOpen(true)} className="fixed bottom-5 left-4 z-40 rounded-full bg-indigo-600 px-4 py-3 text-sm font-bold text-white shadow-lg md:hidden">목차</button>
       {mobileOpen && (
         <div className="fixed inset-0 z-[80] bg-black/40 md:hidden" onClick={() => setMobileOpen(false)}>
           <nav aria-label="EasyPage 목차" className="h-full w-[82vw] max-w-xs bg-white shadow-xl" onClick={event => event.stopPropagation()}>
-            <div className="flex items-center justify-between border-b px-4 py-3"><strong>페이지 목차</strong><button type="button" onClick={() => setMobileOpen(false)}>✕</button></div>
-            <div className="overflow-y-auto p-2">{treeContent}</div>
+            <div className="flex items-center justify-between border-b px-4 py-3"><strong>목차</strong><button type="button" onClick={() => setMobileOpen(false)}>✕</button></div>
+            <div className="overflow-y-auto p-2">{navigationContent}</div>
           </nav>
         </div>
       )}

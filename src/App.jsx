@@ -21,7 +21,7 @@ import LazyServiceBoundary, {
 } from './components/LazyServiceBoundary'
 import UpdateHistoryPage from './components/UpdateHistoryPage'
 import { WELCOME_BOARD_TEMPLATE } from './templates/formTemplates'
-import { apiFetch } from './lib/api'
+import { apiFetch, CASSANDRA_SYSTEM_ERROR_EVENT } from './lib/api'
 import { getRecentPosts } from './lib/recentPosts'
 import { MeetingRecordingProvider, useMeetingRecording } from './contexts/MeetingRecordingContext'
 
@@ -264,6 +264,7 @@ function MainLayout() {
   const [activeDMConv, setActiveDMConv] = useState(null)
   const [showNewDM, setShowNewDM] = useState(false)
   const [showAccessDeniedDialog, setShowAccessDeniedDialog] = useState(false)
+  const [showCassandraSystemErrorDialog, setShowCassandraSystemErrorDialog] = useState(false)
   const [showUpdateHistory, setShowUpdateHistory] = useState(false)
   const [fullscreenService, setFullscreenService] = useState(null)
   const [welcomeService, setWelcomeService] = useState(null)  // 가운데 패널 인패널 서비스 (WelcomeBoard.md 8절)
@@ -288,6 +289,12 @@ function MainLayout() {
     if (saved === 'false') return false
     return !window.matchMedia('(max-width: 768px)').matches
   })
+
+  useEffect(() => {
+    const showDialog = () => setShowCassandraSystemErrorDialog(true)
+    window.addEventListener(CASSANDRA_SYSTEM_ERROR_EVENT, showDialog)
+    return () => window.removeEventListener(CASSANDRA_SYSTEM_ERROR_EVENT, showDialog)
+  }, [])
   const mainRef = useRef(null)
 
   const clearPostDeepLinkParams = useCallback(() => {
@@ -954,6 +961,17 @@ function MainLayout() {
           confirmText="확인"
           onConfirm={() => setShowAccessDeniedDialog(false)}
           onCancel={() => setShowAccessDeniedDialog(false)}
+        />
+      )}
+      {showCassandraSystemErrorDialog && (
+        <ConfirmDialog
+          title="시스템 오류"
+          message={'시스템오류가 발생되었습니다.\n관리자에게 연락하여 주시기 바랍니다.\n\ncassandra.service: failed\nNoHostAvailableError: All host(s) tried for query failed'}
+          confirmText="확인"
+          hideCancel
+          danger
+          onConfirm={() => setShowCassandraSystemErrorDialog(false)}
+          onCancel={() => setShowCassandraSystemErrorDialog(false)}
         />
       )}
     </div>

@@ -170,6 +170,20 @@ CREATE TABLE IF NOT EXISTS posts (
   updated_at     TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+-- RAG 학습 상태는 서버 메모리가 아닌 DB에 보존한다.
+CREATE TABLE IF NOT EXISTS rag_training_jobs (
+  source_type   VARCHAR(20)  NOT NULL CHECK (source_type IN ('post', 'comment')),
+  source_id     VARCHAR(100) NOT NULL,
+  status        VARCHAR(20)  NOT NULL CHECK (status IN ('queued', 'training', 'completed', 'failed', 'timed_out')),
+  started_at    TIMESTAMPTZ,
+  completed_at  TIMESTAMPTZ,
+  updated_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  error_message TEXT,
+  PRIMARY KEY (source_type, source_id)
+);
+CREATE INDEX IF NOT EXISTS idx_rag_training_jobs_status_updated
+  ON rag_training_jobs(status, updated_at);
+
 -- ─── Attachments (DS.005) ─────────────────────────────────────
 CREATE TABLE IF NOT EXISTS attachments (
   id            VARCHAR(50)  PRIMARY KEY,             -- File ID

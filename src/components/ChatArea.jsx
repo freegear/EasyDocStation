@@ -359,17 +359,29 @@ function PinIcon() {
   )
 }
 
-function TrainingStatusBadge({ status }) {
+function TrainingStatusBadge({ status, error = null }) {
   if (!status) return null
-  const isTraining = status === 'training'
+  const isTraining = status === 'training' || status === 'queued'
+  const isFailed = status === 'failed' || status === 'timed_out'
+  const label = status === 'queued'
+    ? '학습대기'
+    : status === 'training'
+      ? '학습중'
+      : status === 'failed'
+        ? '학습실패'
+        : status === 'timed_out'
+          ? '시간초과'
+          : '학습완료'
   return (
-    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold border ${
-      isTraining
+    <span title={error || label} className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold border ${
+      isFailed
+        ? 'text-red-700 border-red-200 bg-red-50'
+        : isTraining
         ? 'text-amber-700 border-amber-200 bg-amber-50'
         : 'text-emerald-700 border-emerald-200 bg-emerald-50'
     }`}>
-      <span className={`w-1.5 h-1.5 rounded-full ${isTraining ? 'bg-amber-500' : 'bg-emerald-500'}`} />
-      {isTraining ? '학습중' : '학습완료'}
+      <span className={`w-1.5 h-1.5 rounded-full ${isFailed ? 'bg-red-500' : isTraining ? 'bg-amber-500' : 'bg-emerald-500'}`} />
+      {label}
     </span>
   )
 }
@@ -4329,7 +4341,7 @@ function PostCard({ post, onSelect, onOpenActionMenu, pinned, isSelected, conten
             {trainingStatus && (
               <>
                 <span>·</span>
-                <TrainingStatusBadge status={trainingStatus} />
+                <TrainingStatusBadge status={trainingStatus} error={post.training_error} />
               </>
             )}
             {commentCount > 0 && (

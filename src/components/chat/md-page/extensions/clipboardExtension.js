@@ -4,15 +4,21 @@ import { Slice } from '@tiptap/pm/model'
 
 const EASYDOC_CLIPBOARD_MIME = 'application/x-easydocstation-md-slice'
 const EASYDOC_CLIPBOARD_VERSION = 1
+const EASYDOC_CLIPBOARD_CACHE_MAX_AGE_MS = 5 * 60 * 1000
+
+let lastEasyDocClipboardData = null
 
 function getSlicePlainText(view, slice) {
   const serialized = view.serializeForClipboard?.(slice)
-  const text = serialized?.text || slice.content.textBetween(0, slice.content.size, '\n\n', '\n')
+  // `serialized.text` is not guaranteed to be plain text. In particular, the
+  // table clipboard serializer returns an HTML table string there. Prefer the
+  // rendered DOM's textContent and fall back to ProseMirror's text extraction.
+  const text = serialized?.dom?.textContent
+    || slice.content.textBetween(0, slice.content.size, '\n\n', '\n')
   return String(text || '').replace(/\u00a0/g, ' ')
 }
 
-function readEasyDocClipboardSlice(view, event) {
-  const raw = event.clipboardData?.getData(EASYDOC_CLIPBOARD_MIME)
+function parseEasyDocClipboardSlice(view, raw) {
   if (!raw) return null
 
   try {
@@ -23,6 +29,23 @@ function readEasyDocClipboardSlice(view, event) {
     console.warn('EasyDocStation clipboard payload ignored:', err)
     return null
   }
+}
+
+function readEasyDocClipboardSlice(view, event) {
+  const raw = event.clipboardData?.getData(EASYDOC_CLIPBOARD_MIME)
+  const mimeSlice = parseEasyDocClipboardSlice(view, raw)
+  if (mimeSlice) return mimeSlice
+
+  // Some browsers discard custom MIME types when data passes through the OS
+  // clipboard. Keep a short-lived in-app copy so pasting back into EasyDoc still
+  // restores the complete ProseMirror slice while other apps only see text/plain.
+  const cached = lastEasyDocClipboardData
+  if (!cached || Date.now() - cached.createdAt > EASYDOC_CLIPBOARD_CACHE_MAX_AGE_MS) return null
+
+  const clipboardText = String(event.clipboardData?.getData('text/plain') || '')
+    .replace(/\u00a0/g, ' ')
+  if (clipboardText !== cached.plainText) return null
+  return parseEasyDocClipboardSlice(view, cached.payload)
 }
 
 function getDomSelectedTextInsideElement(container) {
@@ -71,7 +94,15 @@ function writeEasyDocClipboardData(view, event, { cut = false } = {}) {
       version: EASYDOC_CLIPBOARD_VERSION,
       slice: slice.toJSON(),
     }
-    data.setData(EASYDOC_CLIPBOARD_MIME, JSON.stringify(payload))
+    const serializedPayload = JSON.stringify(payload)
+    data.setData(EASYDOC_CLIPBOARD_MIME, serializedPayload)
+    lastEasyDocClipboardData = {
+      createdAt: Date.now(),
+      plainText,
+      payload: serializedPayload,
+    }
+  } else {
+    lastEasyDocClipboardData = null
   }
 
   if (cut) {

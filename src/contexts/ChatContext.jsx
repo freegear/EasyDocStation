@@ -627,18 +627,23 @@ export function ChatProvider({ children }) {
       })
       // 부분 갱신: 해당 게시글의 댓글 목록에만 새 댓글을 덧붙인다(전체 재조회 X)
       if (newComment?.id) {
+        const hydratedComment = {
+          ...newComment,
+          training_status: newComment.training_status || 'training',
+          training_error: newComment.training_error || null,
+        }
         updatePostInChannel(channelId, postId, p => ({
           ...p,
           comment_count: Number(p.comment_count || 0) + 1,
-          last_comment_at: newComment.createdAt || newComment.created_at || new Date().toISOString(),
+          last_comment_at: hydratedComment.createdAt || hydratedComment.created_at || new Date().toISOString(),
         }))
         updatePostDetail(channelId, postId, detail => ({
           ...detail,
           comment_count: Number(detail.comment_count || 0) + 1,
-          last_comment_at: newComment.createdAt || newComment.created_at || new Date().toISOString(),
+          last_comment_at: hydratedComment.createdAt || hydratedComment.created_at || new Date().toISOString(),
           comments: sortByCreatedAt([
-            ...(detail.comments || []).filter(c => String(c.id) !== String(newComment.id)),
-            newComment,
+            ...(detail.comments || []).filter(c => String(c.id) !== String(hydratedComment.id)),
+            hydratedComment,
           ]),
           commentsLoaded: true,
         }))
@@ -782,7 +787,7 @@ export function ChatProvider({ children }) {
     return apiFetch(`/posts/deleted?channelId=${channelId}`)
   }
 
-  async function updatePost(channelId, postId, { content, ragContent, attachments, security_level, waitForTraining = false }) {
+  async function updatePost(channelId, postId, { content, ragContent, attachments, security_level, waitForTraining = false, requestSource = 'unknown' }) {
     try {
       if (!findTeamChannelById(channelId)) {
         await handleSaveAccessDenied()
@@ -793,6 +798,7 @@ export function ChatProvider({ children }) {
       }
       await apiFetch(`/posts/${postId}`, {
         method: 'PUT',
+        headers: { 'X-EasyDoc-Action': requestSource },
         body: JSON.stringify({ content, ragContent, security_level, attachments, waitForTraining }),
       })
       setPosts(prev => ({

@@ -126,6 +126,27 @@ AUTO_COMPLEX_TEXT_THRESHOLD = int(
 OLLAMA_HOST   = os.getenv("OLLAMA_HOST", "127.0.0.1")
 OLLAMA_PORT   = int(os.getenv("OLLAMA_PORT", "11434"))
 OLLAMA_CHAT_URL = f"http://{OLLAMA_HOST}:{OLLAMA_PORT}/api/chat"
+
+def _load_app_agenticai_config():
+    try:
+        config_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../config.json"))
+        with open(config_path, "r", encoding="utf-8") as config_file:
+            app_config = json.load(config_file)
+        value = app_config.get("agenticai")
+        return value if isinstance(value, dict) else {}
+    except Exception as e:
+        print(f"[RAG] agenticai config load failed: {e}", file=sys.stderr)
+        value = cfg.get("agenticai")
+        return value if isinstance(value, dict) else {}
+
+
+AI_CONFIG = _load_app_agenticai_config()
+AI_PROVIDER = str(AI_CONFIG.get("provider") or "ollama").strip().lower()
+if AI_PROVIDER not in ("ollama", "deepseek", "meta"):
+    AI_PROVIDER = "ollama"
+AI_FALLBACK_TO_OLLAMA = AI_CONFIG.get("fallback_to_ollama", True) is not False
+DEEPSEEK_CONFIG = AI_CONFIG.get("deepseek") if isinstance(AI_CONFIG.get("deepseek"), dict) else {}
+META_CONFIG = AI_CONFIG.get("meta") if isinstance(AI_CONFIG.get("meta"), dict) else {}
 RAG_SERVER_HOST = os.getenv("RAG_SERVER_HOST", "127.0.0.1")
 RAG_SERVER_PORT = int(os.getenv("RAG_SERVER_PORT", "5001"))
 RAG_SERVER_EMBED_URL = f"http://{RAG_SERVER_HOST}:{RAG_SERVER_PORT}/embed"
@@ -597,50 +618,125 @@ def table_source_for_storage(html, text):
     return (text or "").strip(), "text"
 
 
-def describe_image_with_gemma(image_path, source_name="", page_number=0):
-    """Gemma 비전 모델로 이미지를 분석해 의미 있는 설명 텍스트를 반환한다."""
+def _image_data_url(image_b64, image_path=""):
+    ext = os.path.splitext(image_path or "")[1].lower()
+    mime = "image/png" if ext == ".png" else "image/webp" if ext == ".webp" else "image/jpeg"
+    return f"data:{mime};base64,{image_b64}"
+
+
+def _extract_meta_output_text(data):
+    direct = data.get("output_text")
+    if isinstance(direct, str) and direct.strip():
+        return direct.strip()
+    parts = []
+    for item in data.get("output") or []:
+        for content in item.get("content") or []:
+            text = content.get("text")
+            if isinstance(text, str) and text.strip():
+                parts.append(text.strip())
+    return "\n".join(parts).strip()
+
+
+def _call_gemma_vision(image_b64, prompt, system_prompt):
+    payload = {
+        "model": OCR_MODEL, "stream": False,
+        "messages": [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": prompt, "images": [image_b64]},
+        ],
+        "options": {"temperature": 0},
+    }
+    res = requests.post(OLLAMA_CHAT_URL, json=payload, timeout=300)
+    res.raise_for_status()
+    data = res.json() if res.content else {}
+    return ((data.get("message") or {}).get("content") or "").strip()
+
+
+def _call_deepseek_vision(image_b64, image_path, prompt, system_prompt):
+    api_key = str(DEEPSEEK_CONFIG.get("api_key") or os.getenv("DEEPSEEK_API_KEY", "")).strip()
+    if not api_key:
+        raise RuntimeError("DEEPSEEK_API_KEY_MISSING")
+    base_url = str(DEEPSEEK_CONFIG.get("base_url") or os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com")).rstrip("/")
+    model = str(DEEPSEEK_CONFIG.get("model") or os.getenv("DEEPSEEK_MODEL", "deepseek-v4-flash")).strip()
+    payload = {
+        "model": model, "stream": False,
+        "messages": [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": [
+                {"type": "text", "text": prompt},
+                {"type": "image_url", "image_url": {"url": _image_data_url(image_b64, image_path)}},
+            ]},
+        ],
+    }
+    res = requests.post(base_url + "/chat/completions", headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}, json=payload, timeout=300)
+    if res.status_code < 200 or res.status_code >= 300:
+        raise RuntimeError(f"DEEPSEEK HTTP {res.status_code}: {res.text[:300]}")
+    data = res.json() if res.content else {}
+    return ((((data.get("choices") or [{}])[0].get("message") or {}).get("content")) or "").strip()
+
+
+def _call_meta_vision(image_b64, image_path, prompt, system_prompt):
+    api_key = str(META_CONFIG.get("api_key") or os.getenv("MODEL_API_KEY", "") or os.getenv("META_API_KEY", "")).strip()
+    if not api_key:
+        raise RuntimeError("META_API_KEY_MISSING")
+    base_url = str(META_CONFIG.get("base_url") or os.getenv("META_BASE_URL", "https://api.meta.ai/v1")).rstrip("/")
+    endpoint = base_url if base_url.endswith("/responses") else base_url + "/responses"
+    model = str(META_CONFIG.get("model") or os.getenv("META_MODEL", "muse-spark-1.2")).strip()
+    payload = {
+        "model": model,
+        "input": [
+            {"role": "system", "content": [{"type": "input_text", "text": system_prompt}]},
+            {"role": "user", "content": [
+                {"type": "input_text", "text": prompt},
+                {"type": "input_image", "image_url": _image_data_url(image_b64, image_path)},
+            ]},
+        ],
+        "stream": False,
+    }
+    res = requests.post(endpoint, headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}, json=payload, timeout=300)
+    if res.status_code < 200 or res.status_code >= 300:
+        raise RuntimeError(f"META HTTP {res.status_code}: {res.text[:300]}")
+    return _extract_meta_output_text(res.json() if res.content else {})
+
+
+def call_selected_vision_llm(image_b64, image_path, prompt, system_prompt):
+    try:
+        if AI_PROVIDER == "meta":
+            return _call_meta_vision(image_b64, image_path, prompt, system_prompt)
+        if AI_PROVIDER == "deepseek":
+            return _call_deepseek_vision(image_b64, image_path, prompt, system_prompt)
+        return _call_gemma_vision(image_b64, prompt, system_prompt)
+    except Exception as e:
+        print(f"[RAG] {AI_PROVIDER} vision call failed: {e}", file=sys.stderr)
+        if AI_PROVIDER != "ollama" and AI_FALLBACK_TO_OLLAMA:
+            try:
+                print(f"[RAG] {AI_PROVIDER} -> ollama vision fallback", flush=True)
+                return _call_gemma_vision(image_b64, prompt, system_prompt)
+            except Exception as fallback_error:
+                print(f"[RAG] ollama vision fallback failed: {fallback_error}", file=sys.stderr)
+        return ""
+
+
+def describe_image_with_llm(image_path, source_name="", page_number=0):
     started_at = time.time()
-    fallback = f"{source_name or '문서'}의 {page_number}페이지 이미지"
+    fallback = f"{source_name or 'document'} page {page_number} image"
     if not image_path or not os.path.isfile(image_path):
         return fallback
     try:
         with open(image_path, "rb") as f:
             img_b64 = base64.b64encode(f.read()).decode("utf-8")
-        payload = {
-            "model": OCR_MODEL,
-            "stream": False,
-            "messages": [
-                {
-                    "role": "system",
-                    "content": (
-                        "당신은 문서 이미지 분석 전문가입니다. "
-                        "이미지에 포함된 모든 정보(텍스트, 차트, 다이어그램, 표, 아이콘, 수치 등)를 "
-                        "빠짐없이 한국어로 상세히 설명하세요. "
-                        "검색에 활용될 수 있도록 핵심 키워드와 수치를 반드시 포함하세요."
-                    ),
-                },
-                {
-                    "role": "user",
-                    "content": "이 이미지의 내용을 상세히 설명해주세요.",
-                    "images": [img_b64],
-                },
-            ],
-            "options": {"temperature": 0},
-        }
-        res = requests.post(OLLAMA_CHAT_URL, json=payload, timeout=300)
-        if res.status_code == 200:
-            data = res.json() if res.content else {}
-            description = ((data.get("message") or {}).get("content") or "").strip()
-            if description:
-                elapsed = time.time() - started_at
-                print(
-                    f"[RAG] Gemma 이미지 설명 완료 (page={page_number}, {elapsed:.1f}s): {len(description)}자",
-                    flush=True,
-                )
-                return description
+        description = call_selected_vision_llm(
+            img_b64, image_path,
+            "Describe this document image in detail in Korean. Include all visible text, charts, diagrams, tables, icons, numbers, and searchable keywords.",
+            "You are a document image analysis expert. Return a faithful, detailed Korean description for RAG indexing.",
+        )
+        if description:
+            elapsed = time.time() - started_at
+            print(f"[RAG] {AI_PROVIDER} image description complete (page={page_number}, {elapsed:.1f}s): {len(description)} chars", flush=True)
+            return description
     except Exception as e:
         elapsed = time.time() - started_at
-        print(f"[RAG] Gemma 이미지 설명 실패 (page={page_number}, {elapsed:.1f}s): {e}", file=sys.stderr)
+        print(f"[RAG] {AI_PROVIDER} image description failed (page={page_number}, {elapsed:.1f}s): {e}", file=sys.stderr)
     return fallback
 
 
@@ -971,17 +1067,16 @@ def load_pdf_fallback_text(file_path):
         return []
 
 
-def ocr_pdf_with_gemma(file_path):
+def ocr_pdf_with_llm(file_path):
     try:
         from pdf2image import convert_from_path
     except Exception as e:
-        print(f"[RAG] pdf2image 로드 실패 (Gemma OCR fallback 불가): {e}", file=sys.stderr)
+        print(f"[RAG] pdf2image unavailable (LLM OCR fallback disabled): {e}", file=sys.stderr)
         return []
-
     try:
         images = convert_from_path(file_path, dpi=170)
     except Exception as e:
-        print(f"[RAG] PDF 이미지 변환 실패 (Gemma OCR): {e}", file=sys.stderr)
+        print(f"[RAG] PDF image conversion failed (LLM OCR): {e}", file=sys.stderr)
         return []
 
     pages = images[:max(1, OCR_MAX_PAGES)]
@@ -989,47 +1084,25 @@ def ocr_pdf_with_gemma(file_path):
     if not pages:
         return extracted_pages
 
-    print(f"[RAG] Gemma OCR fallback 시작: model={OCR_MODEL}, pages={len(pages)}", flush=True)
+    print(f"[RAG] {AI_PROVIDER} OCR fallback start: pages={len(pages)}", flush=True)
     for i, image in enumerate(pages, 1):
         if i == 1 or i % 5 == 0 or i == len(pages):
-            print(f"[RAG] Gemma OCR 진행: {i}/{len(pages)}", flush=True)
+            print(f"[RAG] {AI_PROVIDER} OCR progress: {i}/{len(pages)}", flush=True)
         try:
             buf = io.BytesIO()
             image.save(buf, format="JPEG", quality=85)
             img_b64 = base64.b64encode(buf.getvalue()).decode("utf-8")
-            payload = {
-                "model": OCR_MODEL,
-                "stream": False,
-                "messages": [
-                    {
-                        "role": "system",
-                        "content": (
-                            "You are an OCR engine. Extract all visible text as faithfully as possible. "
-                            "Return only extracted text without explanations."
-                        ),
-                    },
-                    {
-                        "role": "user",
-                        "content": "Extract all text from this page. Keep line breaks when possible.",
-                        "images": [img_b64],
-                    },
-                ],
-                "options": {
-                    "temperature": 0,
-                },
-            }
-            res = requests.post(OLLAMA_CHAT_URL, json=payload, timeout=240)
-            if res.status_code != 200:
-                print(f"[RAG] Gemma OCR 호출 실패 (page={i}): HTTP {res.status_code}", file=sys.stderr)
-                continue
-            data = res.json() if res.content else {}
-            text = ((data.get("message") or {}).get("content") or "").strip()
+            text = call_selected_vision_llm(
+                img_b64, "",
+                "Extract all visible text from this page. Preserve line breaks and return only the extracted text.",
+                "You are an OCR engine. Extract text faithfully without explanations.",
+            )
             if text:
                 extracted_pages.append({"page_number": i, "text": text})
         except Exception as e:
-            print(f"[RAG] Gemma OCR 처리 실패 (page={i}): {e}", file=sys.stderr)
+            print(f"[RAG] {AI_PROVIDER} OCR failed (page={i}): {e}", file=sys.stderr)
 
-    print(f"[RAG] Gemma OCR fallback 완료: 추출 페이지 {len(extracted_pages)}/{len(pages)}", flush=True)
+    print(f"[RAG] {AI_PROVIDER} OCR fallback complete: {len(extracted_pages)}/{len(pages)} pages", flush=True)
     return extracted_pages
 
 
@@ -1338,8 +1411,8 @@ def load_pdf_elements(file_path):
         # 스캔본 등으로 pypdf 텍스트 추출이 실패하면, Tesseract OCR을 우선 시도
         fallback_pages = ocr_pdf_with_tesseract(file_path)
     if not fallback_pages:
-        # Tesseract도 실패하면 Gemma 비전 OCR으로 마지막 fallback
-        fallback_pages = ocr_pdf_with_gemma(file_path)
+        # Tesseract도 실패하면 selected LLM vision OCR으로 마지막 fallback
+        fallback_pages = ocr_pdf_with_llm(file_path)
     return [{
         "category": "Text",
         "page_number": p["page_number"],
@@ -1423,7 +1496,7 @@ def ingest_pdf(records, *, post_id, channel_id, attachment_id, comment_id, pdf_p
 
         if "image" in category:
             if image_path and os.path.isfile(image_path):
-                caption = describe_image_with_gemma(image_path, source_name, page_number)
+                caption = describe_image_with_llm(image_path, source_name, page_number)
             else:
                 caption = build_image_caption(source_name, page_number, image_path)
             split_records["image"].append({
@@ -2030,7 +2103,7 @@ def ingest_image(records, *, post_id, channel_id, attachment_id, comment_id, ima
     source_name = file_name or os.path.basename(image_path)
     print(f"[RAG] 이미지 학습 시작: {os.path.basename(image_path)}", flush=True)
     file_hash = calc_file_hash(image_path)
-    caption = describe_image_with_gemma(image_path, source_name, page_number=1)
+    caption = describe_image_with_llm(image_path, source_name, page_number=1)
     if not caption:
         caption = build_image_caption(source_name, page_number=1, image_path=image_path)
 

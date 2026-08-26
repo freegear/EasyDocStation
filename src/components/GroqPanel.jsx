@@ -1263,6 +1263,18 @@ export default function GroqPanel({ width }) {
       let accumulated = ''
       let buf = ''
 
+      const consumeNdjsonLine = (line) => {
+        if (!line.trim()) return
+        const obj = JSON.parse(line)
+        if (!obj.message?.content) return
+        accumulated += obj.message.content
+        const visibleContent = sanitizeAssistantContent(accumulated)
+        setMessages(prev => prev.map(m =>
+          m.id === msgId ? { ...m, content: visibleContent } : m
+        ))
+        bottomRef.current?.scrollIntoView({ behavior: 'instant' })
+      }
+
       while (true) {
         const { done, value } = await reader.read()
         if (done) break
@@ -1272,20 +1284,17 @@ export default function GroqPanel({ width }) {
         buf = lines.pop()  // 마지막 불완전 줄은 다음 청크로
 
         for (const line of lines) {
-          if (!line.trim()) continue
           try {
-            const obj = JSON.parse(line)
-            if (obj.message?.content) {
-              accumulated += obj.message.content
-              const visibleContent = sanitizeAssistantContent(accumulated)
-              setMessages(prev => prev.map(m =>
-                m.id === msgId ? { ...m, content: visibleContent } : m
-              ))
-              bottomRef.current?.scrollIntoView({ behavior: 'instant' })
-            }
-          } catch (_) {}
+            consumeNdjsonLine(line)
+          } catch {
+            // 손상되거나 아직 완성되지 않은 NDJSON 레코드는 건너뛴다.
+          }
         }
       }
+
+      // 서버가 마지막 줄바꿈 없이 종료해도 decoder와 버퍼에 남은 JSON을 처리한다.
+      buf += decoder.decode()
+      if (buf.trim()) consumeNdjsonLine(buf)
 
       // 스트리밍 완료 — streaming 플래그 제거
       setMessages(prev => prev.map(m =>
@@ -1396,7 +1405,11 @@ export default function GroqPanel({ width }) {
   useEffect(() => {
     if (!noticeDialog) return
     function onKey(e) {
-      if (e.key === 'Escape') setNoticeDialog(null)
+      if (e.key === 'Escape') {
+        e.preventDefault()
+        e.stopImmediatePropagation()
+        setNoticeDialog(null)
+      }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
@@ -1619,11 +1632,11 @@ export default function GroqPanel({ width }) {
                       const text = String(children ?? '')
                       const isBlock = /language-/.test(String(className || '')) || text.includes('\n')
                       if (!isBlock) {
-                        return <code className="bg-gray-200 px-1 py-0.5 rounded text-green-300 font-mono">{children}</code>
+                        return <code className="bg-blue-50 px-1 py-0.5 rounded text-blue-700 font-mono">{children}</code>
                       }
                       return (
                         <pre className="bg-black/40 rounded-lg p-2 mt-1 mb-1.5 overflow-x-auto">
-                          <code className={`text-green-300 font-mono text-[10px] ${className || ''}`.trim()}>{children}</code>
+                          <code className={`text-blue-300 font-mono text-[10px] ${className || ''}`.trim()}>{children}</code>
                         </pre>
                       )
                     },
@@ -1869,8 +1882,8 @@ export default function GroqPanel({ width }) {
       </PanelGroup>
 
       {noticeDialog && (
-        <div className="fixed inset-0 z-[95] bg-black/40 flex items-center justify-center px-4">
-          <div className="w-full max-w-sm bg-white border border-gray-200 rounded-2xl shadow-2xl p-5">
+        <div data-agentic-notice-dialog className="fixed inset-0 z-[95] bg-black/40 flex items-center justify-center px-4">
+          <div role="dialog" aria-modal="true" className="w-full max-w-sm bg-white border border-gray-200 rounded-2xl shadow-2xl p-5">
             <h3 className="text-gray-900 font-bold text-base">{noticeDialog.title}</h3>
             <p className="text-gray-700 text-sm mt-2 leading-relaxed whitespace-pre-wrap">{noticeDialog.message}</p>
             <div className="flex justify-end mt-5">

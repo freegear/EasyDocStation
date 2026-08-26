@@ -22,6 +22,68 @@ function buildFallbackQuery(keywords = []) {
   return [...new Set((keywords || []).map(normalizeText).filter(Boolean))].join(' ')
 }
 
+const DOCUMENT_KINDS = [
+  { kind: 'business_registration', pattern: /사업자\s*등록증|사업자등록번호|법인\s*사업자/i },
+  { kind: 'bankbook_copy', pattern: /통장\s*사본/i },
+  { kind: 'shareholder_registry', pattern: /주주\s*명부/i },
+  { kind: 'articles_of_incorporation', pattern: /(?:^|\s)정관(?:\s|$)/i },
+  { kind: 'quotation', pattern: /견적서/i },
+  { kind: 'tax_invoice', pattern: /세금\s*계산서/i },
+]
+
+function compactSearchText(value = '') {
+  return normalizeText(value)
+    .toLocaleLowerCase('ko-KR')
+    .replace(/\.[a-z0-9]{1,8}$/i, '')
+    .replace(/[^\p{L}\p{N}]+/gu, '')
+}
+
+function detectDocumentKind(query = '') {
+  return DOCUMENT_KINDS.find(item => item.pattern.test(normalizeText(query)))?.kind || ''
+}
+
+function lexicalMatchCount(fileName = '', keywords = []) {
+  const compactName = compactSearchText(fileName)
+  if (!compactName) return 0
+  return [...new Set((keywords || []).map(compactSearchText).filter(word => word.length >= 2))]
+    .filter(word => compactName.includes(word))
+    .length
+}
+
+function rankLocateReferences(refs = [], { keywords = [], channelId = '' } = {}) {
+  const requestedKind = detectDocumentKind(buildFallbackQuery(keywords))
+  return refs
+    .map((ref, index) => ({
+      ref,
+      index,
+      fileMatches: lexicalMatchCount(ref.file_name || ref.fileName || '', keywords),
+      kindMatch: Boolean(requestedKind && ref.document_kind === requestedKind),
+      currentChannel: Boolean(channelId && String(ref.channel_id || '') === String(channelId)),
+    }))
+    .sort((a, b) => (
+      Number(b.fileMatches > 0) - Number(a.fileMatches > 0)
+      || Number(b.kindMatch) - Number(a.kindMatch)
+      || Number(b.currentChannel) - Number(a.currentChannel)
+      || b.fileMatches - a.fileMatches
+      || Number(a.ref.score ?? Number.POSITIVE_INFINITY) - Number(b.ref.score ?? Number.POSITIVE_INFINITY)
+      || a.index - b.index
+    ))
+    .map(item => item.ref)
+}
+
+function deduplicateLocateReferences(refs = []) {
+  const seen = new Set()
+  return refs.filter(ref => {
+    const fileHash = String(ref.file_hash || '').trim()
+    const key = fileHash
+      ? `file:${fileHash}`
+      : `ref:${ref.post_id || ''}:${ref.comment_id || ''}:${ref.attachment_id || ''}:${ref.type || ''}`
+    if (seen.has(key)) return false
+    seen.add(key)
+    return true
+  })
+}
+
 function isWithinVectorDistance(item = {}) {
   const distance = Number(item?.score)
   return Number.isFinite(distance) && distance < MAX_VECTOR_DISTANCE
@@ -103,6 +165,10 @@ async function hydrateReferences(results = [], { allowedChannelIds = [], limit =
       attachment_id: String(meta.attachment_id || ''),
       fileName: String(meta.file_name || meta.source || ''),
       file_name: String(meta.file_name || meta.source || ''),
+      fileHash: String(meta.file_hash || ''),
+      file_hash: String(meta.file_hash || ''),
+      documentKind: String(meta.document_kind || ''),
+      document_kind: String(meta.document_kind || ''),
       pageNumber: Number(meta.page_number || 0),
       page_number: Number(meta.page_number || 0),
       score: Number(item?.score || 0),
@@ -118,34 +184,35 @@ async function hydrateReferences(results = [], { allowedChannelIds = [], limit =
 
   if (!rawRefs.length) return []
 
-  const refsNeedChannel = rawRefs.filter(ref => !ref.channel_id)
-  if (refsNeedChannel.length > 0) {
-    const postIds = [...new Set(refsNeedChannel.map(ref => ref.post_id).filter(Boolean))]
-    if (postIds.length > 0) {
-      const placeholders = postIds.map((_, i) => `$${i + 1}`).join(', ')
-      const [postRes, attRes] = await Promise.all([
-        db.query(`SELECT id, channel_id FROM posts WHERE id IN (${placeholders})`, postIds).catch(() => ({ rows: [] })),
-        db.query(`SELECT post_id, channel_id FROM attachments WHERE post_id IN (${placeholders})`, postIds).catch(() => ({ rows: [] })),
-      ])
-      const channelByPost = new Map()
-      for (const row of postRes.rows || []) {
-        if (row.id && row.channel_id) channelByPost.set(String(row.id), String(row.channel_id))
-      }
-      for (const row of attRes.rows || []) {
-        if (row.post_id && row.channel_id && !channelByPost.has(String(row.post_id))) {
-          channelByPost.set(String(row.post_id), String(row.channel_id))
-        }
-      }
-      for (const ref of refsNeedChannel) {
-        ref.channelId = channelByPost.get(String(ref.post_id)) || ''
-        ref.channel_id = ref.channelId
-      }
+  // LanceDB에 삭제 전 벡터가 남아 있어도 실제 게시글이 존재하는 참조만 반환한다.
+  const postIds = [...new Set(rawRefs.map(ref => ref.post_id).filter(Boolean))]
+  const placeholders = postIds.map((_, i) => `$${i + 1}`).join(', ')
+  const [postRes, attRes] = await Promise.all([
+    db.query(`SELECT id, channel_id FROM posts WHERE id IN (${placeholders})`, postIds).catch(() => ({ rows: [] })),
+    db.query(`SELECT post_id, channel_id FROM attachments WHERE post_id IN (${placeholders})`, postIds).catch(() => ({ rows: [] })),
+  ])
+  const existingPostIds = new Set()
+  const channelByPost = new Map()
+  for (const row of postRes.rows || []) {
+    if (row.id) existingPostIds.add(String(row.id))
+    if (row.id && row.channel_id) channelByPost.set(String(row.id), String(row.channel_id))
+  }
+  for (const row of attRes.rows || []) {
+    if (row.post_id && row.channel_id && !channelByPost.has(String(row.post_id))) {
+      channelByPost.set(String(row.post_id), String(row.channel_id))
+    }
+  }
+  for (const ref of rawRefs) {
+    const resolvedChannelId = channelByPost.get(String(ref.post_id)) || ''
+    if (resolvedChannelId) {
+      ref.channelId = resolvedChannelId
+      ref.channel_id = resolvedChannelId
     }
   }
 
   return rawRefs
-    .filter(ref => ref.post_id && ref.channel_id && allowed.has(String(ref.channel_id)))
-    .slice(0, limit)
+    .filter(ref => existingPostIds.has(String(ref.post_id)) && ref.channel_id && allowed.has(String(ref.channel_id)))
+    .slice(0, limit * 2)
 }
 
 // 폴더 데이터셋 스코프 판정용: 사용자가 속한 팀 ID 목록 (rag.js getUserTeamIds 와 동일)
@@ -212,12 +279,11 @@ async function locateWithRagFallback({ keywords = [], channelId = '', limit = 10
   })
 
   const refs = await hydrateReferences(filtered, { allowedChannelIds, limit })
-  if (!channelId) return refs
-  const current = refs.filter(ref => String(ref.channel_id) === String(channelId))
-  const other = refs.filter(ref => String(ref.channel_id) !== String(channelId))
-  return [...current, ...other].slice(0, limit)
+  return deduplicateLocateReferences(rankLocateReferences(refs, { keywords, channelId })).slice(0, limit)
 }
 
 module.exports = {
   locateWithRagFallback,
+  rankLocateReferences,
+  deduplicateLocateReferences,
 }

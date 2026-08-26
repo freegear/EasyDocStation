@@ -28,6 +28,7 @@ function ActionMenu({ type, canEdit, canDelete, canPin, pinned, readOnly = false
     {item('copy', `⧉ ${labels.copy}`)}
     {item('copy-link', `🔗 ${labels.copyLink}`)}
     {item('print', `🖨 ${labels.print || '인쇄'}`)}
+    {type === 'post' && item('print-with-comments', `🖨 ${labels.printWithComments || '인쇄 - 댓글 포함'}`)}
     {!readOnly && type === 'post' && canPin && <><div className="my-1 border-t border-gray-100" />{item('pin', `📌 ${pinned ? '핀 해제' : '핀 고정'}`)}</>}
     {!readOnly && <div className="my-1 border-t border-gray-100" />}
     {!readOnly && item('transfer-copy', '⇥ 다른 채널로 복사', 'text-indigo-600')}
@@ -696,7 +697,7 @@ function PostDetailPane({
     setUploading(true)
     try {
       const attachments = [...postFiles]
-      await updatePost(channelId, post.id, { content: postContent, attachments, security_level: postSecurityLevel })
+      await updatePost(channelId, post.id, { content: postContent, attachments, security_level: postSecurityLevel, requestSource: 'post-detail:edit-save' })
       setIsEditingPost(false)
     } catch (err) {
       alert(t.chat.saveError(err.message))
@@ -750,8 +751,17 @@ function PostDetailPane({
     return (firstLine || '게시글').slice(0, 120)
   }
 
-  async function handlePrintSelected() {
+  async function handlePrintSelected({ includeComments = false } = {}) {
     const isComment = activeTargetType === 'comment' && selectedComment
+    if (includeComments && !commentsLoaded) {
+      try {
+        await loadPostComments(channelId, post.id)
+        await new Promise(resolve => window.requestAnimationFrame(() => window.requestAnimationFrame(resolve)))
+      } catch (error) {
+        setCommentErrorDialog(error?.message || '댓글을 불러오지 못했습니다.')
+        return
+      }
+    }
     const targetNode = isComment
       ? commentItemRefs.current.get(String(selectedComment.id))
       : postPrintRef.current
@@ -764,6 +774,7 @@ function PostDetailPane({
         username: isComment ? selectedComment.author?.username : freshPost.author?.username,
         createdAt: formatFull(isComment ? selectedComment.createdAt : freshPost.createdAt),
         contentNode: targetNode,
+        includeComments,
         popupBlockedMessage: t.chat.printPopupBlocked,
         failedMessage: t.chat.printFailed,
       })
@@ -990,7 +1001,7 @@ function PostDetailPane({
           pinned={Boolean(freshPost.pinned)}
           readOnly={Boolean(selectedChannel?.is_archived)}
           position={actionMenuPosition}
-          labels={{ edit: t.chat.edit, delete: t.chat.delete, copy: t.ai.copy || '복사', copyLink: t.chat.copyLink || '링크복사', print: t.chat.print || '인쇄', agentic: t.chat.sendToAgenticAI || 'AgenticAI로 보내기', dm: t.chat.sendToDM }}
+          labels={{ edit: t.chat.edit, delete: t.chat.delete, copy: t.ai.copy || '복사', copyLink: t.chat.copyLink || '링크복사', print: t.chat.print || '인쇄', printWithComments: t.chat.printWithComments || '인쇄 - 댓글 포함', agentic: t.chat.sendToAgenticAI || 'AgenticAI로 보내기', dm: t.chat.sendToDM }}
           onAction={(action) => {
             setActionMenuOpen(false)
             if (action === 'edit') handleSelectedEdit()
@@ -998,6 +1009,7 @@ function PostDetailPane({
             else if (action === 'copy') handleSelectedCopyContent()
             else if (action === 'copy-link') handleSelectedCopyLink()
             else if (action === 'print') handlePrintSelected()
+            else if (action === 'print-with-comments') handlePrintSelected({ includeComments: true })
             else if (action === 'pin') handleTogglePin()
             else if (action === 'transfer-copy') openTransferDialog('COPY')
             else if (action === 'transfer-move') openTransferDialog('MOVE')
@@ -1181,7 +1193,7 @@ function PostDetailPane({
               </p>
               {postTrainingStatus && (
                 <div className="mt-2">
-                  <TrainingStatusBadge status={postTrainingStatus} />
+                  <TrainingStatusBadge status={postTrainingStatus} error={freshPost.training_error} />
                 </div>
               )}
             </div>
@@ -1253,6 +1265,7 @@ function PostDetailPane({
                         attachments: freshPost.attachments || [],
                         security_level: freshPost.security_level ?? 0,
                         waitForTraining: true,
+                        requestSource: 'post-detail:meeting-minutes-template-save',
                       })
                     }
                     return apiFetch('/expense/save', {
@@ -1324,6 +1337,7 @@ function PostDetailPane({
                       content: updatedContent,
                       attachments: freshPost.attachments || [],
                       security_level: freshPost.security_level ?? 0,
+                      requestSource: `post-detail:template-field-change:${field}`,
                     }).catch((err) => {
                       alert(t.chat.saveError(err.message))
                     })
@@ -1361,7 +1375,7 @@ function PostDetailPane({
 
         {/* Comments list — 스크롤 영역 안 */}
         {!isEditingPost && (
-        <div data-print-exclude="true" className="border-t border-gray-200 pt-6 mt-6 pb-4">
+        <div data-print-exclude="true" data-print-comments="true" className="border-t border-gray-200 pt-6 mt-6 pb-4">
           <h3 className="text-gray-900 font-semibold text-sm mb-4">{t.chat.commentCount(detailCommentCount)}</h3>
           {commentsLoading ? (
             <p className="text-gray-400 text-sm">댓글을 불러오는 중...</p>
@@ -1414,7 +1428,7 @@ function PostDetailPane({
                     </div>
                     {c.training_status && (
                       <div className="mb-2">
-                        <TrainingStatusBadge status={c.training_status} />
+                        <TrainingStatusBadge status={c.training_status} error={c.training_error} />
                       </div>
                     )}
 
