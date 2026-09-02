@@ -46562,3 +46562,5 @@ dist/assets/EasySheetViewer-DZutdKNs.js               6,398.73 kB │ gzip: 1,81
 [20260902-17:04:26][BE] [RAG] 학습 진행률: 100% (저장)
 [20260902-17:04:27][BE] [RAG] 학습 완료
 [20260902-17:08:24][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260902-17:18:31][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=2
+[20260902-17:28:29][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0

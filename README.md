@@ -153,7 +153,13 @@ npm run dev:ubuntu
 npm run restart:ubuntu
 ```
 
-`restart:ubuntu`는 EasyDocStation 관련 실행 프로세스(프론트/백엔드/dev runner)를 먼저 종료한 뒤 `dev:ubuntu`로 다시 시작합니다.
+`restart:ubuntu`는 EasyDocStation 관련 실행 프로세스(프론트/백엔드/dev runner)를 먼저 종료한 뒤 백그라운드로 다시 시작합니다. 터미널이나 SSH 연결이 종료된 후에도 계속 실행되며, 로그와 상태는 다음 명령으로 확인할 수 있습니다.
+
+```bash
+tail -f logs/run-ubuntu.log
+bash scripts/run-ubuntu.sh --status
+bash scripts/run-ubuntu.sh --stop
+```
 
 DGX Spark 모드 재시작:
 
