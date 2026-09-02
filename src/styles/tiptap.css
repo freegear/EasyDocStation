@@ -79,7 +79,8 @@
 .tiptap-editor .ProseMirror li[data-type="taskItem"] > label {
   display: inline-flex;
   align-items: center;
-  margin-top: 0.12rem;
+  margin: 0;
+  height: calc(var(--content-font-size, 0.875rem) * 1.75);
   flex: 0 0 auto;
 }
 
@@ -102,7 +103,9 @@
 }
 
 .tiptap-editor .ProseMirror li:has(> input[type="checkbox"]) > input[type="checkbox"] {
-  margin: 0.12rem 0 0;
+  width: 1rem;
+  height: 1rem;
+  margin: calc((1.75em - 1rem) / 2) 0 0;
   flex-shrink: 0;
 }
 
@@ -144,7 +147,8 @@
 .tiptap-editor .ProseMirror li:has(> label > input[type="checkbox"]) > label {
   display: inline-flex;
   align-items: center;
-  margin: 0.12rem 0 0;
+  margin: 0;
+  height: calc(var(--content-font-size, 0.875rem) * 1.75);
   flex: 0 0 auto;
 }
 
@@ -160,6 +164,8 @@
 /* Browser-compat fallback without :has */
 .tiptap-editor .ProseMirror li > label > input[type="checkbox"] {
   margin: 0;
+  width: 1rem;
+  height: 1rem;
   flex-shrink: 0;
 }
 

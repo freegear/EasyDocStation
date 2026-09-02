@@ -52,10 +52,13 @@ export default function ChannelManageModal({ mode = 'manage', channel = null, on
   const openedAtRef = useRef(Date.now())
 
   const isSiteAdmin = currentUser?.role === 'site_admin'
-  const isTeamAdmin = isSiteAdmin || selectedTeam?.admin_ids?.includes(currentUser?.id)
+  const isPersonalSpace = selectedTeam?.visibility === 'personal'
+  const isTeamAdmin = isSiteAdmin
+    ? (!isPersonalSpace || !!selectedTeam?.emergency_access?.id)
+    : (selectedTeam?.admin_ids || []).some(id => String(id) === String(currentUser?.id))
   
   // 권한 설정: 팀 관리자면 모든 관리 가능, 아니면 채널 관리자만 가능
-  const canManage = isTeamAdmin || admins.some(a => a.id === currentUser?.id)
+  const canManage = isTeamAdmin || (!isPersonalSpace && admins.some(a => String(a.id) === String(currentUser?.id)))
 
   function handleBackdropClick() {
     const justOpenedMs = Date.now() - openedAtRef.current
@@ -94,14 +97,14 @@ export default function ChannelManageModal({ mode = 'manage', channel = null, on
       setType('public')
       setIsArchived(false)
       setDescription('')
-      setAdmins([])
-      setMembers([])
+      setAdmins(isPersonalSpace && currentUser ? [currentUser] : [])
+      setMembers(isPersonalSpace && currentUser ? [currentUser] : [])
       setSearchQuery('')
       setSearchTarget(null)
       setSearchResults([])
       setError('')
     }
-  }, [isEdit, targetChannel?.id])
+  }, [isEdit, targetChannel?.id, isPersonalSpace, currentUser?.id])
 
   async function loadChannelData() {
     setLoading(true)
@@ -177,7 +180,7 @@ export default function ChannelManageModal({ mode = 'manage', channel = null, on
   const handleSave = async () => {
     setError('')
     if (!name.trim()) { setError(t.channel.nameRequired); return }
-    if (admins.length === 0) { setError(t.channel.minOneAdmin); return }
+    if (!isPersonalSpace && admins.length === 0) { setError(t.channel.minOneAdmin); return }
 
     setLoading(true)
     try {
@@ -310,6 +313,12 @@ export default function ChannelManageModal({ mode = 'manage', channel = null, on
             </div>
           </div>
 
+          {isPersonalSpace && (
+            <div className="rounded-xl border border-indigo-100 bg-indigo-50 px-4 py-3 text-xs leading-relaxed text-indigo-700">
+              🔒 개인 스페이스의 모든 채널은 스페이스 소유자만 보고 수정하거나 검색할 수 있습니다.
+            </div>
+          )}
+          {!isPersonalSpace && <>
           {/* Admins (TeamManageModal 스타일) */}
           <div>
             <div className="flex items-center justify-between mb-2">
@@ -403,6 +412,8 @@ export default function ChannelManageModal({ mode = 'manage', channel = null, on
               </div>
             )}
           </div>
+
+          </>}
 
           {/* Channel Description (MD 편집) */}
           <div>

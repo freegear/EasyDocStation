@@ -147,11 +147,16 @@ async function findImapUidByMessageId(client, internetMessageId) {
   return found[found.length - 1]
 }
 
-async function findImapMessageAcrossMailboxes(client, mailboxes, internetMessageId) {
+async function findImapMessageAcrossMailboxes(client, mailboxes, internetMessageId, { includeTrash = false, preferredMailbox = '' } = {}) {
   const id = String(internetMessageId || '').trim()
   if (!id) return null
-  for (const box of mailboxes) {
-    if (!box?.path || mailboxHasSpecialUse(box, '\\trash')) continue
+  const orderedMailboxes = [...mailboxes].sort((a, b) => {
+    const aPreferred = String(a?.path || '') === String(preferredMailbox || '') ? 1 : 0
+    const bPreferred = String(b?.path || '') === String(preferredMailbox || '') ? 1 : 0
+    return bPreferred - aPreferred
+  })
+  for (const box of orderedMailboxes) {
+    if (!box?.path || (!includeTrash && mailboxHasSpecialUse(box, '\\trash'))) continue
     if (box.flags?.has?.('\\Noselect') || box.attributes?.has?.('\\Noselect')) continue
     let lock
     try {
@@ -170,7 +175,7 @@ async function findImapMessageAcrossMailboxes(client, mailboxes, internetMessage
 async function moveImapMessageOnProvider({ account, message, targetFolder }) {
   if (targetFolder.is_local) return { provider: 'imap', skipped: true, reason: 'local_folder' }
   const password = decryptSecret(account.password_encrypted)
-  if (!password) throw new Error('메일 계정 암호가 저장되어 있지 않습니다.')
+  if (!password) throw mailMoveError('MAIL_REAUTH_REQUIRED', '메일 계정 암호가 저장되어 있지 않습니다. 계정을 다시 연결해주세요.')
 
   // provider_message_id가 imap:<folder>:<uid> 형식이면 그대로 쓰고,
   // 아니면(형식 깨짐/UID 없음) 메시지의 folder 정보 + Message-ID 검색으로 폴백한다.
@@ -188,7 +193,10 @@ async function moveImapMessageOnProvider({ account, message, targetFolder }) {
 
     let recoveredUid = null
     if (!sourceMailbox) {
-      const recovered = await findImapMessageAcrossMailboxes(client, mailboxes, message.internet_message_id)
+      const recovered = await findImapMessageAcrossMailboxes(client, mailboxes, message.internet_message_id, {
+        includeTrash: true,
+        preferredMailbox: targetMailbox,
+      })
       if (!recovered) {
         if (message.internet_message_id) throw mailMoveError('IMAP_MESSAGE_NOT_FOUND', '원격 IMAP 서버에서 메일을 찾지 못했습니다.')
         throw mailMoveError('LOCAL_ORPHAN_CANDIDATE', '원본 메일함과 Message-ID가 없어 원격 메일을 확인할 수 없습니다.')
@@ -197,21 +205,78 @@ async function moveImapMessageOnProvider({ account, message, targetFolder }) {
       recoveredUid = recovered.uid
     }
 
-    const lock = await client.getMailboxLock(sourceMailbox)
-    try {
-      let uid = recoveredUid || parsed?.uid || null
-      if (!uid) uid = await findImapUidByMessageId(client, message.internet_message_id)
-      if (!uid) throw mailMoveError('IMAP_MESSAGE_NOT_FOUND', '원격 IMAP 서버에서 메일을 찾지 못했습니다.')
-      const result = await client.messageMove(String(uid), targetMailbox, { uid: true })
-      const movedUid = result?.uidMap?.get(uid) || uid
+    if (!recoveredUid && !parsed?.uid && !String(message.internet_message_id || '').trim()) {
+      throw mailMoveError('LOCAL_ORPHAN_CANDIDATE', '원격 UID와 Message-ID가 없어 원격 메일을 확인할 수 없습니다.')
+    }
+
+    // 폴더 경로가 존재해도 UID는 재동기화나 서버 측 이동 후 오래된 값일 수 있다.
+    // Message-ID로 현재 UID를 검증하고 현재 폴더에 없으면 전체 메일함에서 위치를 복구한다.
+    if (!recoveredUid && message.internet_message_id) {
+      const sourceLock = await client.getMailboxLock(sourceMailbox)
+      try {
+        recoveredUid = await findImapUidByMessageId(client, message.internet_message_id)
+      } finally {
+        sourceLock.release()
+      }
+      if (!recoveredUid) {
+        const recovered = await findImapMessageAcrossMailboxes(client, mailboxes, message.internet_message_id, {
+          includeTrash: true,
+          preferredMailbox: targetMailbox,
+        })
+        if (!recovered) throw mailMoveError('IMAP_MESSAGE_NOT_FOUND', '원격 IMAP 서버에서 메일을 찾지 못했습니다.')
+        sourceMailbox = recovered.mailbox
+        recoveredUid = recovered.uid
+      }
+    }
+
+    // 이전 요청에서 원격 MOVE만 성공하고 로컬 반영이 실패했을 수 있다.
+    // 실제 위치가 이미 목적지라면 다시 MOVE하지 않고 현재 UID로 로컬 상태만 복구한다.
+    if (sourceMailbox === targetMailbox && recoveredUid) {
       return {
         provider: 'imap',
         source: sourceMailbox,
         target: targetMailbox,
-        providerMessageId: `imap:${targetFolder.provider_folder_id}:${movedUid}`,
+        alreadyMoved: true,
+        providerMessageId: `imap:${targetFolder.provider_folder_id}:${recoveredUid}`,
       }
+    }
+
+    let sourceUid = null
+    let movedUid = null
+    const lock = await client.getMailboxLock(sourceMailbox)
+    try {
+      sourceUid = recoveredUid || parsed?.uid || null
+      if (!sourceUid) sourceUid = await findImapUidByMessageId(client, message.internet_message_id)
+      if (!sourceUid) throw mailMoveError('IMAP_MESSAGE_NOT_FOUND', '원격 IMAP 서버에서 메일을 찾지 못했습니다.')
+      const result = await client.messageMove(String(sourceUid), targetMailbox, { uid: true })
+      movedUid = result?.uidMap?.get(Number(sourceUid))
+        || result?.uidMap?.get(String(sourceUid))
+        || null
     } finally {
       lock.release()
+    }
+
+    // UIDPLUS uidMap이 없는 서버(Gmail IMAP 포함 가능)에서는 source UID를 destination
+    // UID로 재사용하면 안 된다. 목적지 메일함에서 Message-ID로 실제 UID를 확인한다.
+    if (!movedUid && message.internet_message_id) {
+      const targetLock = await client.getMailboxLock(targetMailbox)
+      try {
+        movedUid = await findImapUidByMessageId(client, message.internet_message_id)
+      } finally {
+        targetLock.release()
+      }
+    }
+    if (!movedUid) {
+      const err = mailMoveError('IMAP_MOVE_SUCCEEDED_UID_PENDING', 'IMAP 휴지통 이동은 성공했지만 목적지 UID를 확인하지 못했습니다.')
+      err.remoteMoveSucceeded = true
+      err.providerMessageId = `imap:${targetFolder.provider_folder_id}:pending-${message.id}`
+      throw err
+    }
+    return {
+      provider: 'imap',
+      source: sourceMailbox,
+      target: targetMailbox,
+      providerMessageId: `imap:${targetFolder.provider_folder_id}:${movedUid}`,
     }
   })
 }
@@ -401,6 +466,7 @@ async function moveMessagesToTrashOnProvider({ tenantId, account, messages, tras
 
 module.exports = {
   resolveMailboxPath,
+  findImapMessageAcrossMailboxes,
   moveMessageOnProvider,
   moveMessagesToTrashOnProvider,
 }

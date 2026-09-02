@@ -56,9 +56,6 @@ def build_acl_clause(meta_subfields, allowed_channel_ids, scope_ctx):
         sec = int(scope_ctx.get("security_level", 0) or 0)
         is_admin = bool(scope_ctx.get("is_site_admin"))
 
-        if is_admin:
-            parts.append("metadata.access_scope <> ''")
-            return " OR ".join(parts) if parts else None
 
         scope_or = ["metadata.access_scope = 'all'"]
         if uid:
@@ -69,7 +66,9 @@ def build_acl_clause(meta_subfields, allowed_channel_ids, scope_ctx):
         if allowed:
             scope_or.append("(metadata.access_scope = 'channel' AND metadata.scope_channel_id IN (" +
                             ", ".join(sql_quote(v) for v in allowed) + "))")
-        folder_clause = "((" + " OR ".join(scope_or) + ") AND metadata.effective_security_level <= " + str(sec) + ")"
+        folder_clause = "(" + " OR ".join(scope_or) + ")"
+        if not is_admin:
+            folder_clause = "(" + folder_clause + " AND metadata.effective_security_level <= " + str(sec) + ")"
         parts.append(folder_clause)
 
     if not parts:

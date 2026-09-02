@@ -195,9 +195,9 @@ kill_by_port() {
 }
 
 kill_known_processes() {
-  # 관련 태스크(프론트/백엔드/루프/런처)를 전부 정리
-  pkill -f "scripts/restart-dgx-spark.sh" >/dev/null 2>&1 || true
-  pkill -f "scripts/rerun-dgx-spark.sh" >/dev/null 2>&1 || true
+  # 관련 태스크(프론트/백엔드/루프)를 전부 정리한다.
+  # restart/rerun 래퍼를 여기서 pkill 하면 현재 재시작 명령도 자기 자신을
+  # 종료해 시작 단계에 도달하지 못하므로, 수명이 짧은 래퍼는 대상에서 제외한다.
   pkill -f "scripts/dev-dgx-spark.sh" >/dev/null 2>&1 || true
   pkill -f "scripts/backend-loop-dgx.sh" >/dev/null 2>&1 || true
   pkill -f "npm run dev:dgx-spark" >/dev/null 2>&1 || true

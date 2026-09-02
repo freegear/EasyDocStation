@@ -90,6 +90,21 @@ const PRINT_STYLE = `
     font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
   }
   a { color: inherit; text-decoration: underline; overflow-wrap: anywhere; }
+  .easy-print-content ul[data-type="taskList"] { list-style: none; padding-left: 0; }
+  .easy-print-content li[data-type="taskItem"] {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5em;
+    list-style: none;
+  }
+  .easy-print-content li[data-type="taskItem"] > label {
+    display: inline-flex;
+    align-items: center;
+    min-height: 1.65em;
+  }
+  .easy-print-content li[data-type="taskItem"] > div { flex: 1 1 auto; min-width: 0; }
+  .easy-print-content li[data-type="taskItem"] > div > p { margin-top: 0; }
+  .easy-print-checkbox { display: inline-block; width: 1em; line-height: 1; }
   [data-print-exclude="true"], button, input, textarea, select, audio, video,
   [role="menu"], [role="dialog"] { display: none !important; }
   @media print { body { min-height: 0; } }
@@ -138,7 +153,7 @@ function waitForStylesheets(doc, timeoutMs = 3000) {
   ])
 }
 
-export async function printSelectedContent({ type = 'post', title = '', channelName = '', author = '', username = '', createdAt = '', contentNode = null, includeComments = false, popupBlockedMessage = '', failedMessage = '' } = {}) {
+export async function printSelectedContent({ type = 'post', title = '', channelName = '', author = '', username = '', createdAt = '', contentNode = null, includeComments = false, includeHeader = true, preserveTaskCheckboxes = false, popupBlockedMessage = '', failedMessage = '' } = {}) {
   if (!contentNode) throw new Error('인쇄할 콘텐츠를 찾을 수 없습니다.')
 
   const printWindow = window.open('', '_blank')
@@ -157,6 +172,15 @@ export async function printSelectedContent({ type = 'post', title = '', channelN
     printWindow.document.head.appendChild(style)
 
     const clone = contentNode.cloneNode(true)
+    if (preserveTaskCheckboxes) {
+      clone.querySelectorAll('input[type="checkbox"]').forEach((input) => {
+        const marker = input.ownerDocument.createElement('span')
+        marker.className = 'easy-print-checkbox'
+        marker.textContent = input.checked ? '☑' : '☐'
+        marker.setAttribute('aria-hidden', 'true')
+        input.replaceWith(marker)
+      })
+    }
     if (includeComments) {
       clone.querySelectorAll('[data-print-comments="true"]').forEach(node => node.removeAttribute('data-print-exclude'))
     }
@@ -178,7 +202,9 @@ export async function printSelectedContent({ type = 'post', title = '', channelN
       .filter(Boolean)
       .map(escapeHtml)
       .join(' · ')
-    printWindow.document.body.innerHTML = `<header class="easy-print-header"><h1>${escapeHtml(safeTitle)}</h1><p>${meta}</p></header>`
+    printWindow.document.body.innerHTML = includeHeader
+      ? `<header class="easy-print-header"><h1>${escapeHtml(safeTitle)}</h1><p>${meta}</p></header>`
+      : ''
     printWindow.document.body.appendChild(clone)
 
     await waitForImages(printWindow.document)

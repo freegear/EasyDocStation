@@ -63,6 +63,7 @@ export default function Sidebar({
   const [channelsCollapsed, setChannelsCollapsed] = useState(false)
   const [showTeamModal, setShowTeamModal] = useState(false)
   const [editingTeam, setEditingTeam] = useState(null)
+  const [createPersonalSpace, setCreatePersonalSpace] = useState(false)
   const [showChannelModal, setShowChannelModal] = useState(false)
   const [channelModalMode, setChannelModalMode] = useState('add')
   const [editingChannel, setEditingChannel] = useState(null)
@@ -135,6 +136,10 @@ export default function Sidebar({
 
   const totalDmUnread = dmConversations.reduce((sum, conv) => sum + (Number(conv.unread_count) || 0), 0)
 
+  function isPersonalSpaceOwner(team = selectedTeam) {
+    return team?.visibility === 'personal' && String(team?.owner_id) === String(currentUser?.id)
+  }
+
   // 채널 관리 권한 체크
   // - site_admin: 모든 채널 관리 가능
   // - team_admin: 해당 팀의 모든 채널 관리 가능 (team admin_ids에 포함 여부 확인)
@@ -142,31 +147,24 @@ export default function Sidebar({
   // - user: 불가
   function canManageChannel(ch) {
     if (!currentUser) return false
-    const role = currentUser.role
-    if (role === 'site_admin') return true
-    if (role === 'team_admin') {
-      // 현재 팀의 관리자인지 확인
-      const teamAdminIds = selectedTeam?.admin_ids || []
-      return teamAdminIds.includes(currentUser.id)
+    if (currentUser.role === 'site_admin') {
+      return selectedTeam?.visibility !== 'personal' || isPersonalSpaceOwner(selectedTeam) || !!selectedTeam?.emergency_access?.id
     }
-    if (role === 'channel_admin' || role === 'user') {
-      // 해당 채널의 관리자 목록에 포함되어 있는지 확인
-      const channelAdminIds = ch.admin_ids || []
-      return channelAdminIds.includes(currentUser.id)
-    }
-    return false
+    const teamAdminIds = selectedTeam?.admin_ids || []
+    if (teamAdminIds.some(id => String(id) === String(currentUser.id))) return true
+    if (selectedTeam?.visibility === 'personal') return false
+    const channelAdminIds = ch.admin_ids || []
+    return channelAdminIds.some(id => String(id) === String(currentUser.id))
   }
 
   // 팀 관리 권한 체크
-  function canManageTeam() {
+  function canManageTeam(team = selectedTeam) {
     if (!currentUser) return false
-    const role = currentUser.role
-    if (role === 'site_admin') return true
-    if (role === 'team_admin') {
-      const teamAdminIds = selectedTeam?.admin_ids || []
-      return teamAdminIds.includes(currentUser.id)
+    if (currentUser.role === 'site_admin') {
+      return team?.visibility !== 'personal' || isPersonalSpaceOwner(team) || !!team?.emergency_access?.id
     }
-    return false
+    const teamAdminIds = team?.admin_ids || []
+    return teamAdminIds.some(id => String(id) === String(currentUser.id))
   }
 
   // 팀 추가 버튼: site_admin만
@@ -174,15 +172,13 @@ export default function Sidebar({
     return currentUser?.role === 'site_admin'
   }
 
-  // 채널 추가 버튼: site_admin 또는 현재 팀의 team_admin
   function canAddChannel() {
     if (!currentUser) return false
-    if (currentUser.role === 'site_admin') return true
-    if (currentUser.role === 'team_admin') {
-      const teamAdminIds = selectedTeam?.admin_ids || []
-      return teamAdminIds.includes(currentUser.id)
+    if (currentUser.role === 'site_admin') {
+      return selectedTeam?.visibility !== 'personal' || isPersonalSpaceOwner(selectedTeam) || !!selectedTeam?.emergency_access?.id
     }
-    return false
+    const teamAdminIds = selectedTeam?.admin_ids || []
+    return teamAdminIds.some(id => String(id) === String(currentUser.id))
   }
 
   const closeMobileIfNeeded = () => {
@@ -257,7 +253,7 @@ export default function Sidebar({
                   key={team.id}
                   onClick={() => { selectTeam(team); onCloseCalendar?.(); onCloseWelcome?.(); closeMobileIfNeeded() }}
                   onDoubleClick={() => {
-                    if (!canManageTeam()) return
+                    if (!canManageTeam(team)) return
                     setEditingTeam(team)
                     setShowTeamModal(true)
                   }}
@@ -268,6 +264,12 @@ export default function Sidebar({
                 >
                   <span className="text-base">{team.icon}</span>
                   <span className="flex-1 font-medium truncate">{team.name}</span>
+                  {team.visibility === 'personal' && (
+                    <span title="개인 스페이스" className="text-xs" aria-label="개인 스페이스">🔒</span>
+                  )}
+                  {team.emergency_access?.id && (
+                    <span className="rounded-full bg-red-100 px-1.5 py-0.5 text-[9px] font-bold text-red-600">긴급</span>
+                  )}
                   {teamUnread > 0 && (
                     <span className="bg-red-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center font-bold">
                       {teamUnread}
@@ -280,11 +282,21 @@ export default function Sidebar({
             {/* Add Team Button: site_admin만 표시 */}
             {canAddTeam() && (
               <button
-                onClick={() => { setEditingTeam(null); setShowTeamModal(true) }}
+                onClick={() => { setEditingTeam(null); setCreatePersonalSpace(false); setShowTeamModal(true) }}
                 className="flex items-center gap-2 w-full px-3 py-2 rounded-lg text-gray-400 hover:text-gray-500 hover:bg-gray-100 text-sm transition-all mt-1"
               >
                 <span className="text-lg leading-none">+</span>
                 <span>{t.sidebar.addTeam}</span>
+              </button>
+            )}
+            {currentUser && currentUser.role !== 'site_admin' && (
+              <button
+                type="button"
+                onClick={() => { setEditingTeam(null); setCreatePersonalSpace(true); setShowTeamModal(true) }}
+                className="mt-1 flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-indigo-500 transition-all hover:bg-indigo-50 hover:text-indigo-600"
+              >
+                <span aria-hidden="true">🔒</span>
+                <span>{t.sidebar.addPersonalSpace}</span>
               </button>
             )}
           </div>}
@@ -493,7 +505,8 @@ export default function Sidebar({
       {showTeamModal && (
         <TeamManageModal
           team={editingTeam}
-          onClose={() => setShowTeamModal(false)}
+          forcePersonal={createPersonalSpace}
+          onClose={() => { setShowTeamModal(false); setCreatePersonalSpace(false) }}
           onSave={(data, deletedId) => {
             refreshTeams()
             if (deletedId && selectedTeam.id === deletedId) {
@@ -502,6 +515,7 @@ export default function Sidebar({
           }}
         />
       )}
+
 
       {showChannelModal && (
         <ChannelManageModal

@@ -363,7 +363,7 @@ function MailComposeEditor({ onChange, initialHtml = '', focusEmptyTop = false }
   )
 }
 
-function RecipientAutocomplete({ label, recipients, onChange, excludedEmails, onError, cv }) {
+function RecipientAutocomplete({ label, recipients, onChange, onError, cv }) {
   const [query, setQuery] = useState('')
   const [suggestions, setSuggestions] = useState([])
   const [activeIndex, setActiveIndex] = useState(-1)
@@ -405,14 +405,6 @@ function RecipientAutocomplete({ label, recipients, onChange, excludedEmails, on
       onError?.(cv.invalidRecipient)
       return false
     }
-    const key = email.toLowerCase()
-    const existsHere = recipients.some(item => String(item.email || '').toLowerCase() === key)
-    if (existsHere || excludedEmails.has(key)) {
-      onError?.(cv.duplicateRecipient)
-      setQuery('')
-      setOpen(false)
-      return false
-    }
     onError?.('')
     onChange([...recipients, { name: String(candidate?.name || '').trim(), email }])
     setQuery('')
@@ -424,17 +416,8 @@ function RecipientAutocomplete({ label, recipients, onChange, excludedEmails, on
   function commitQuery() {
     const parsed = parseAddressInput(query)
     if (parsed.length) {
-      let next = recipients
-      const occupied = new Set([...excludedEmails, ...recipients.map(item => String(item.email || '').toLowerCase())])
-      let duplicate = false
-      for (const item of parsed) {
-        const key = item.email.toLowerCase()
-        if (occupied.has(key)) { duplicate = true; continue }
-        occupied.add(key)
-        next = [...next, item]
-      }
-      if (next !== recipients) onChange(next)
-      onError?.(duplicate ? cv.duplicateRecipient : '')
+      onChange([...recipients, ...parsed])
+      onError?.('')
       setQuery('')
       setOpen(false)
       return true
@@ -481,15 +464,8 @@ function RecipientAutocomplete({ label, recipients, onChange, excludedEmails, on
     const parsed = parseAddressInput(pasted)
     if (!parsed.length) return
     event.preventDefault()
-    const occupied = new Set([...excludedEmails, ...recipients.map(item => String(item.email || '').toLowerCase())])
-    const additions = parsed.filter(item => {
-      const key = item.email.toLowerCase()
-      if (occupied.has(key)) return false
-      occupied.add(key)
-      return true
-    })
-    onChange([...recipients, ...additions])
-    onError?.(additions.length < parsed.length ? cv.duplicateRecipient : '')
+    onChange([...recipients, ...parsed])
+    onError?.('')
   }
 
   return (
@@ -595,9 +571,6 @@ function MailComposeView({ accounts, defaultAccountId, initialDraft, onCancel, o
   const to = useMemo(() => serializeAddressInput(toRecipients), [toRecipients])
   const cc = useMemo(() => serializeAddressInput(ccRecipients), [ccRecipients])
   const bcc = useMemo(() => serializeAddressInput(bccRecipients), [bccRecipients])
-  const toExcluded = useMemo(() => new Set([...ccRecipients, ...bccRecipients].map(item => item.email.toLowerCase())), [ccRecipients, bccRecipients])
-  const ccExcluded = useMemo(() => new Set([...toRecipients, ...bccRecipients].map(item => item.email.toLowerCase())), [toRecipients, bccRecipients])
-  const bccExcluded = useMemo(() => new Set([...toRecipients, ...ccRecipients].map(item => item.email.toLowerCase())), [toRecipients, ccRecipients])
 
   useEffect(() => {
     let alive = true
@@ -778,11 +751,11 @@ function MailComposeView({ accounts, defaultAccountId, initialDraft, onCancel, o
             </select>
           </label>
 
-          <RecipientAutocomplete label={cv.to} recipients={toRecipients} onChange={setToRecipients} excludedEmails={toExcluded} onError={setError} cv={cv} />
+          <RecipientAutocomplete label={cv.to} recipients={toRecipients} onChange={setToRecipients} onError={setError} cv={cv} />
 
           <div className="grid gap-3 lg:grid-cols-2">
-            <RecipientAutocomplete label={cv.cc} recipients={ccRecipients} onChange={setCcRecipients} excludedEmails={ccExcluded} onError={setError} cv={cv} />
-            <RecipientAutocomplete label={cv.bcc} recipients={bccRecipients} onChange={setBccRecipients} excludedEmails={bccExcluded} onError={setError} cv={cv} />
+            <RecipientAutocomplete label={cv.cc} recipients={ccRecipients} onChange={setCcRecipients} onError={setError} cv={cv} />
+            <RecipientAutocomplete label={cv.bcc} recipients={bccRecipients} onChange={setBccRecipients} onError={setError} cv={cv} />
           </div>
 
           <label className="grid gap-2 text-sm font-bold text-gray-600 md:grid-cols-[96px_1fr] md:items-center">

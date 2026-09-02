@@ -1,0 +1,132 @@
+const fs = require('fs')
+const path = require('path')
+const { spawn } = require('child_process')
+const { getDatabasePath } = require('../databasePaths')
+const { getPythonExecutable } = require('../pythonRuntime')
+
+const CONFIG_PATH = path.resolve(__dirname, '../../config.json')
+
+function trainerConfig() {
+  const cfg = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'))
+  const rag = cfg.rag || {}
+  const activeTable = rag.active_table || rag.table_name || 'my_rag_table'
+  return {
+    lancedb_path: getDatabasePath(cfg, 'lancedb Database Path'),
+    file_training_path: path.resolve(__dirname, '../../Database/ObjectFile/FileTrainingData'),
+    table_name: activeTable,
+    rag_table_name: activeTable,
+    active_table: activeTable,
+    schema_version: Number(rag.schema_version || 1),
+    vector_size: Number(rag.vectorSize || 1024),
+    chunk_size: Number(rag.chunk_size || 800),
+    chunk_overlap: Number(rag.chunk_overlap || 100),
+    ocr_model: rag.ocr_model || process.env.EASYDOC_OCR_MODEL || 'gemma4:e4b',
+  }
+}
+
+function callTrainer(payload) {
+  return new Promise((resolve, reject) => {
+    const proc = spawn(getPythonExecutable(), [path.resolve(__dirname, '../rag_train.py')], {
+      timeout: 30 * 60 * 1000,
+    })
+    let stderr = ''
+    proc.stdin.on('error', () => {})
+    proc.stdin.write(JSON.stringify(payload))
+    proc.stdin.end()
+    proc.stdout.on('data', data => process.stdout.write(data))
+    proc.stderr.on('data', data => {
+      stderr += data.toString()
+      process.stderr.write(data)
+    })
+    proc.on('close', code => {
+      if (code === 0) resolve()
+      else reject(new Error(stderr || `rag_train.py exit ${code}`))
+    })
+    proc.on('error', reject)
+  })
+}
+
+function canonicalImagePayload(image) {
+  return {
+    id: image.attachment_id,
+    path: image.path,
+    file_name: image.file_name || '',
+    file_hash: image.file_hash || '',
+    description_id: image.id || image.description_id || '',
+    prompt_version: image.prompt_version || '',
+    search_content: image.search_content || '',
+    analysis_json: image.analysis_json || {},
+  }
+}
+
+async function upsertImageDescriptionInRag(image) {
+  const attachmentId = String(image?.attachment_id || '').trim()
+  if (!attachmentId || !String(image?.search_content || '').trim()) {
+    throw new Error('Image2RAG 인제션에 필요한 첨부 ID 또는 설명이 없습니다.')
+  }
+  const config = trainerConfig()
+  const imagePayload = canonicalImagePayload(image)
+  const scope = image.scope_metadata || {}
+  const payload = {
+    config,
+    delete_attachment_ids: [attachmentId],
+    posts: [],
+    comments: [],
+    folder_documents: [],
+  }
+
+  if (scope.dataset_id) {
+    payload.folder_documents.push({
+      ...imagePayload,
+      id: scope.folder_document_id || `image:${attachmentId}`,
+      attachment_id: attachmentId,
+      dataset_id: scope.dataset_id,
+      file_path: image.path,
+      file_name: image.file_name || '',
+      extension: path.extname(image.file_name || '').replace('.', '').toLowerCase(),
+      access_scope: scope.access_scope || '',
+      scope_team_id: scope.scope_team_id || '',
+      scope_channel_id: scope.scope_channel_id || '',
+      owner_id: String(image.owner_id || ''),
+      effective_security_level: Number(image.security_level || 0),
+      relative_path: scope.relative_path || '',
+      folder_path: scope.folder_path || '',
+      parent_folder: scope.parent_folder || '',
+      folder_group_id: scope.folder_group_id || '',
+      folder_keywords: scope.folder_keywords_text || '',
+    })
+  } else if (image.comment_id) {
+    payload.comments.push({
+      id: image.comment_id,
+      post_id: image.post_id || '',
+      channel_id: image.channel_id || '',
+      content: '',
+      images: [imagePayload],
+    })
+  } else {
+    payload.posts.push({
+      id: image.post_id || `image:${attachmentId}`,
+      channel_id: image.channel_id || '',
+      content: '',
+      source: 'image_attachment',
+      images: [imagePayload],
+    })
+  }
+  await callTrainer(payload)
+  return { indexed: true, attachmentId }
+}
+
+async function deleteImageDescriptionFromRag(attachmentId) {
+  const id = String(attachmentId || '').trim()
+  if (!id) return { deleted: false, reason: 'EMPTY_ATTACHMENT_ID' }
+  await callTrainer({
+    config: trainerConfig(),
+    delete_attachment_ids: [id],
+    posts: [],
+    comments: [],
+    folder_documents: [],
+  })
+  return { deleted: true, attachmentId: id }
+}
+
+module.exports = { upsertImageDescriptionInRag, deleteImageDescriptionFromRag }

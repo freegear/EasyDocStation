@@ -253,7 +253,10 @@ async function getDocumentPathsForPost(postId) {
       const item = { id: r.id, path: path.join(storageBase, r.storage_path), file_name: r.filename || '' }
       if (r.content_type === 'application/pdf') pdfs.push(item)
       else if (isTxtAttachment(r)) txts.push(item)
-      else if (isImageAttachment(r)) images.push(item)
+      else if (isImageAttachment(r)) {
+        const imageItem = await resolveCanonicalImageItem(item, cfg)
+        if (imageItem) images.push(imageItem)
+      }
       else if (isExcelAttachment(r)) excels.push(item)
       else if (isMarkItDownAttachment(r)) {
         const ext = path.extname(item.file_name || '').replace('.', '').toLowerCase()
@@ -485,7 +488,10 @@ async function getDocumentPathsByIds(attachmentIds) {
       const item = { id: r.id, path: path.join(storageBase, r.storage_path), file_name: r.filename || '' }
       if (r.content_type === 'application/pdf') pdfs.push(item)
       else if (isTxtAttachment(r)) txts.push(item)
-      else if (isImageAttachment(r)) images.push(item)
+      else if (isImageAttachment(r)) {
+        const imageItem = await resolveCanonicalImageItem(item, cfg)
+        if (imageItem) images.push(imageItem)
+      }
       else if (isExcelAttachment(r)) excels.push(item)
       else if (isMarkItDownAttachment(r)) {
         const ext = path.extname(item.file_name || '').replace('.', '').toLowerCase()
@@ -630,6 +636,63 @@ async function deleteEventFromRAG(eventId) {
   } catch (e) {
     console.error('[RAG] 캘린더 이벤트 삭제 오류:', e.message)
   }
+}
+
+function mailNoteRagId(noteId) {
+  return `mail-note:${String(noteId || '').trim()}`
+}
+
+// 개인 메일 메모를 실제 LanceDB 파이프라인에 즉시 반영한다.
+// access_scope=personal + owner_id를 청크에 기록해 검색 단계에서 사용자별로 격리한다.
+async function upsertMailNoteInRag(note) {
+  const cfg = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'))
+  const ragCfg = cfg.rag || {}
+  const ragId = mailNoteRagId(note?.id)
+  if (!note?.id || !note?.user_id || !String(note?.content || '').trim()) {
+    throw new Error('RAG 학습에 필요한 메모 정보가 없습니다.')
+  }
+  const sender = [note.from_name, note.from_email].filter(Boolean).join(' <').replace(/<([^>]*)$/, '<$1>')
+  const content = [
+    `[메일 메모] ${note.subject || '(제목 없음)'}`,
+    sender ? `보낸 사람: ${sender}` : '',
+    `메모: ${String(note.content).trim()}`,
+  ].filter(Boolean).join('\n')
+  await callPythonTrainer({
+    config: buildTrainerConfig(cfg, ragCfg),
+    delete_post_ids: [ragId],
+    posts: [{
+      id: ragId,
+      channel_id: '',
+      content,
+      source: 'mail_note',
+      rag_metadata: {
+        type: 'mail_note',
+        source: 'mail_note',
+        access_scope: 'personal',
+        owner_id: String(note.user_id),
+        dataset_id: String(note.tenant_id || ''),
+        folder_document_id: String(note.id),
+        relative_path: String(note.message_id || ''),
+        file_name: note.subject || '메일 메모',
+      },
+      pdfs: [], words: [], txts: [], images: [], excels: [], presentations: [], markitdown_files: [], archives: [],
+    }],
+  })
+  state.lastTrained = new Date()
+  return { ok: true, ragId }
+}
+
+async function deleteMailNoteFromRag(noteId) {
+  const cleanId = String(noteId || '').trim()
+  if (!cleanId) return { ok: true, skipped: true }
+  const cfg = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'))
+  const ragCfg = cfg.rag || {}
+  await callPythonTrainer({
+    config: buildTrainerConfig(cfg, ragCfg),
+    delete_post_ids: [mailNoteRagId(cleanId)],
+    posts: [],
+  })
+  return { ok: true }
 }
 
 // ─── 캘린더 이벤트 수정 시: 기존 삭제 후 재학습 ──────────────
@@ -979,8 +1042,41 @@ module.exports = {
   trainEventsImmediate,
   retrainEventImmediate,
   deleteEventFromRAG,
+  upsertMailNoteInRag,
+  deleteMailNoteFromRag,
   trainExpenseImmediate,
   retrainExpenseImmediate,
   runManualTraining,
   getState: () => ({ ...state, timer: undefined }),
+}
+
+async function resolveCanonicalImageItem(item, cfg = {}) {
+  const imageCfg = cfg?.rag?.image_description || {}
+  if (imageCfg.enabled === false || imageCfg.use_canonical_for_rag === false) return item
+  const legacyFallback = imageCfg.legacy_fallback_enabled !== false
+  try {
+    const result = await db.query(
+      `SELECT id, file_hash, search_content, analysis_json, prompt_version, analysis_status
+       FROM image_descriptions WHERE attachment_id=$1 LIMIT 1`,
+      [item.id],
+    )
+    const row = result.rows?.[0]
+    if (row?.analysis_status === 'completed' && row?.search_content) {
+      return {
+        ...item,
+        description_id: row.id,
+        file_hash: row.file_hash || '',
+        search_content: row.search_content,
+        analysis_json: row.analysis_json || {},
+        prompt_version: row.prompt_version || '',
+      }
+    }
+    if (row) return null
+  } catch (error) {
+    if (error?.code !== '42P01') {
+      console.warn(`[Image2RAG] canonical 이미지 설명 조회 실패: ${item.id} ${error.message}`)
+    }
+    return legacyFallback ? item : null
+  }
+  return legacyFallback ? item : null
 }

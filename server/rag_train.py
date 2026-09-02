@@ -445,7 +445,7 @@ for del_id in delete_attachment_targets:
         print(f"[RAG] 청크 삭제 실패 (attachment_id={del_id}): {e}", file=sys.stderr)
 
 _has_delete = bool(delete_post_targets or delete_comment_targets or delete_dataset_targets or delete_attachment_targets)
-if _has_delete and (not posts and not comments):
+if _has_delete and (not posts and not comments and not folder_documents):
         print("[RAG] 삭제 전용 처리 완료")
         sys.exit(0)
 
@@ -2094,7 +2094,7 @@ def ingest_zip(records, *, post_id, channel_id, attachment_id, comment_id, zip_p
     return local_chunks
 
 
-def ingest_image(records, *, post_id, channel_id, attachment_id, comment_id, image_path, file_name):
+def ingest_image(records, *, post_id, channel_id, attachment_id, comment_id, image_path, file_name, description_payload=None):
     if not image_path or not os.path.isfile(image_path):
         if image_path:
             print(f"[RAG] 이미지 파일 없음: {image_path}", file=sys.stderr)
@@ -2102,8 +2102,10 @@ def ingest_image(records, *, post_id, channel_id, attachment_id, comment_id, ima
 
     source_name = file_name or os.path.basename(image_path)
     print(f"[RAG] 이미지 학습 시작: {os.path.basename(image_path)}", flush=True)
-    file_hash = calc_file_hash(image_path)
-    caption = describe_image_with_llm(image_path, source_name, page_number=1)
+    payload_info = description_payload if isinstance(description_payload, dict) else {}
+    canonical_content = str(payload_info.get("search_content") or "").strip()
+    file_hash = str(payload_info.get("file_hash") or "") or calc_file_hash(image_path)
+    caption = canonical_content or describe_image_with_llm(image_path, source_name, page_number=1)
     if not caption:
         caption = build_image_caption(source_name, page_number=1, image_path=image_path)
 
@@ -2120,6 +2122,10 @@ def ingest_image(records, *, post_id, channel_id, attachment_id, comment_id, ima
     meta["page_number"] = 1
     meta["img_path"] = image_path
     meta["element_id"] = f"img-{attachment_id or post_id or comment_id}"
+    if RAG_SCHEMA_VERSION >= 2:
+        meta["document_kind"] = "image_description"
+        meta["converted_by"] = "image2rag"
+        meta["parser_version"] = str(payload_info.get("prompt_version") or "")
     apply_amount_meta(meta, caption)
 
     count = append_text_chunks(records, caption, meta, chunk_prefix=meta["element_id"])
@@ -2202,7 +2208,7 @@ class ProgressTracker:
 # 접근 범위/폴더 문맥 스코프 필드를 stamp 한다. (schema_version >= 3 필요)
 def ingest_folder_document(records, fdoc):
     ext = str(fdoc.get("extension") or "").lower().lstrip(".")
-    file_path = fdoc.get("path") or ""
+    file_path = fdoc.get("path") or fdoc.get("file_path") or ""
     file_name = fdoc.get("file_name") or ""
     attachment_id = fdoc.get("attachment_id") or ""
     if not file_path or not os.path.exists(file_path):
@@ -2219,7 +2225,7 @@ def ingest_folder_document(records, fdoc):
         elif ext in ("txt", "md", "log", "json"):
             ingest_txt(records, **common, txt_path=file_path, file_name=file_name)
         elif ext in ("png", "jpg", "jpeg", "gif", "webp", "bmp"):
-            ingest_image(records, **common, image_path=file_path, file_name=file_name)
+            ingest_image(records, **common, image_path=file_path, file_name=file_name, description_payload=fdoc)
         elif ext == "zip":
             ingest_zip(records, **common, zip_path=file_path, file_name=file_name)
         elif ext in ("xls", "xlsx"):
@@ -2235,6 +2241,7 @@ def ingest_folder_document(records, fdoc):
         del records[start:]
         return 0
 
+    keywords_text = keywords if isinstance(keywords, str) else " ".join(str(k) for k in keywords)
     # 생성된 청크에 스코프/폴더 메타데이터 stamp
     keywords = fdoc.get("folder_keywords") or []
     stamp = {
@@ -2243,14 +2250,14 @@ def ingest_folder_document(records, fdoc):
         "scope_channel_id": str(fdoc.get("scope_channel_id") or ""),
         "owner_id": str(fdoc.get("owner_id") or ""),
         "dataset_id": str(fdoc.get("dataset_id") or ""),
-        "folder_document_id": str(fdoc.get("folder_document_id") or ""),
+        "folder_document_id": str(fdoc.get("folder_document_id") or fdoc.get("id") or ""),
         "effective_security_level": int(fdoc.get("effective_security_level") or 0),
         "root_folder": str(fdoc.get("root_folder") or ""),
         "relative_path": str(fdoc.get("relative_path") or ""),
         "folder_path": str(fdoc.get("folder_path") or ""),
         "parent_folder": str(fdoc.get("parent_folder") or ""),
         "folder_group_id": str(fdoc.get("folder_group_id") or ""),
-        "folder_keywords_text": " ".join(str(k) for k in keywords),
+        "folder_keywords_text": keywords_text,
     }
     for r in records[start:]:
         r["metadata"].update(stamp)
@@ -2274,6 +2281,7 @@ for post in posts:
     channel_id = post.get("channel_id", "")
 
     # 게시글 본문
+    text_record_start = len(records)
     count = ingest_plain_text(
         records,
         post_id=post_id,
@@ -2282,6 +2290,19 @@ for post in posts:
         content=post.get("content") or "",
         source_type="manual_text",
     )
+    rag_metadata = post.get("rag_metadata") or {}
+    if isinstance(rag_metadata, dict) and count:
+        # schema v3의 기존 ACL/문맥 필드만 stamp한다. 알 수 없는 struct 필드를 넣으면
+        # 기존 LanceDB Arrow 스키마와 충돌하므로 허용 목록을 제한한다.
+        allowed_meta = {
+            "type", "source", "file_name", "access_scope", "scope_team_id",
+            "scope_channel_id", "owner_id", "dataset_id", "folder_document_id",
+            "effective_security_level", "relative_path", "folder_path",
+            "parent_folder", "folder_group_id", "folder_keywords_text",
+        }
+        stamp = {k: v for k, v in rag_metadata.items() if k in allowed_meta}
+        for record in records[text_record_start:]:
+            record["metadata"].update(stamp)
     total_chunks += count
     if count:
         print(f"[RAG] post={post_id} text → {count}청크", flush=True)
@@ -2336,6 +2357,7 @@ for post in posts:
             comment_id="",
             image_path=image_info.get("path") or "",
             file_name=image_info.get("file_name") or "",
+            description_payload=image_info,
         )
         progress.step(label="게시글 이미지")
 
@@ -2470,6 +2492,7 @@ for comment in comments:
             comment_id=comment_id,
             image_path=image_info.get("path") or "",
             file_name=image_info.get("file_name") or "",
+            description_payload=image_info,
         )
         progress.step(label="댓글 이미지")
 
@@ -2590,7 +2613,7 @@ def ingest_folder_document(fdoc):
         elif ext in ("xml", "html", "htm", "csv"):
             ingest_markitdown_document(frecords, file_path=file_path, file_name=file_name, doc_type=ext, **kw)
         elif ext in ("png", "jpg", "jpeg", "gif", "webp", "bmp"):
-            ingest_image(frecords, image_path=file_path, file_name=file_name, **kw)
+            ingest_image(frecords, image_path=file_path, file_name=file_name, description_payload=fdoc, **kw)
         else:
             print(f"[RAG] 폴더 문서 미지원 확장자 건너뜀: {file_name} ({ext})", flush=True)
             return []

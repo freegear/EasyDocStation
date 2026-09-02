@@ -11,6 +11,7 @@ const config = require('../../config.json')
 const { getDatabasePath } = require('../databasePaths')
 const requireAuth = require('../middleware/auth')
 const { trainPostImmediate, retrainPostImmediate, trainCommentImmediate, retrainCommentImmediate } = require('../rag')
+const { enqueueImageAttachments, deleteImageAttachmentIndexes } = require('../image-rag')
 const PostSearchService = require('../search/PostSearchService')
 const { isEasySheet, extractEasySheetText } = require('../lib/easySheet')
 const {
@@ -90,7 +91,7 @@ async function getChannelMembershipForUser(userId, channelId) {
 
 async function canMutatePostRow(user = {}, row = {}) {
   if (!user?.id || !row?.channel_id || !row?.author_id) return false
-  if (user.role === 'site_admin') return true
+  if (user.role === 'site_admin') return canAccessChannel(db, user, row.channel_id)
 
   const userLevel = securityLevelOf(user)
   const authorLevel = await getAuthorSecurityLevel(row.author_id)
@@ -152,7 +153,8 @@ async function buildChannelPermissionContext(user, channelId) {
   const membership = channelId
     ? await getChannelMembershipForUser(user?.id, channelId)
     : { isTeamMember: false, isChannelMember: false }
-  return { user: user || {}, userLevel: securityLevelOf(user || {}), membership }
+  const channelAllowed = channelId ? await canAccessChannel(db, user, channelId) : false
+  return { user: user || {}, userLevel: securityLevelOf(user || {}), membership, channelAllowed }
 }
 
 // canMutatePostRow 와 동일한 판정을 사전 계산된 컨텍스트로 수행한다.
@@ -160,7 +162,7 @@ async function buildChannelPermissionContext(user, channelId) {
 function canMutateWithContext(ctx, authorRecord) {
   const user = ctx?.user || {}
   if (!user?.id || !authorRecord?.id) return false
-  if (user.role === 'site_admin') return true
+  if (user.role === 'site_admin') return Boolean(ctx.channelAllowed)
   const authorLevel = securityLevelOf(authorRecord)
   if (ctx.userLevel < authorLevel) return false
   if (!ctx.membership.isTeamMember) return false
@@ -615,18 +617,9 @@ async function indexImageAttachmentForSearch({
 function indexImageAttachmentsForSearchAsync(items = []) {
   const jobs = (Array.isArray(items) ? items : []).filter(Boolean)
   if (jobs.length === 0) return
-  ;(async () => {
-    for (const item of jobs) {
-      try {
-        const result = await indexImageAttachmentForSearch(item)
-        if (result.indexed) {
-          console.log(`[SearchIndex] 이미지 첨부 인덱싱 완료: ${result.attachmentId} ${result.fileName}`)
-        }
-      } catch (e) {
-        console.warn(`[SearchIndex] 이미지 첨부 인덱싱 실패: ${item?.attachmentId || ''} ${e.message}`)
-      }
-    }
-  })()
+  enqueueImageAttachments(jobs).catch(error => {
+    console.warn(`[Image2RAG] 이미지 첨부 큐 등록 실패: ${error.message}`)
+  })
 }
 
 async function recalcAttachmentRefCount(attachmentIds = []) {
@@ -778,7 +771,7 @@ async function deleteAttachmentPhysicalAndRecords(attachmentId, { excludedPostId
   }
 
   const pgMeta = await db.query(
-    'SELECT id, storage_path, thumbnail_path FROM attachments WHERE id = $1 LIMIT 1',
+    'SELECT id, storage_path, thumbnail_path, content_type, filename FROM attachments WHERE id = $1 LIMIT 1',
     [id],
   )
   const meta = pgMeta.rows?.[0] || null
@@ -835,6 +828,9 @@ async function deleteAttachmentPhysicalAndRecords(attachmentId, { excludedPostId
   }
 
   await db.query('DELETE FROM attachment_refs WHERE attachment_id = $1', [id]).catch(() => {})
+  if (isImageAttachment(meta || {})) {
+    await deleteImageAttachmentIndexes(id).catch(error => console.warn('[Image2RAG] 첨부 인덱스 삭제 실패:', error.message))
+  }
   await db.query('DELETE FROM attachments WHERE id = $1', [id])
   if (isConnected()) {
     try { await client.execute('DELETE FROM attachments WHERE id = ?', [id], { prepare: true }) } catch (_) {}
@@ -2993,6 +2989,14 @@ router.put('/:id', requireAuth, async (req, res, next) => {
       nextAttachmentIds: attachmentIds,
       actorUserId: req.user?.id,
     })
+    indexImageAttachmentsForSearchAsync(attachmentIds.map(attachmentId => ({
+      attachmentId,
+      postId: id,
+      channelId: row.channel_id,
+      authorId: row.author_id,
+      securityLevel: safeLevel ?? Number(row.security_level || 0),
+      createdAt: row.created_at,
+    })))
 
     // 수정 즉시: 기존 벡터 삭제 후 재학습
     await markTrainingStarted('post', id)
@@ -3029,7 +3033,8 @@ router.put('/:id', requireAuth, async (req, res, next) => {
     if (waitForTraining) {
       const success = await trainUpdatedPost()
       if (!success) return res.status(500).json({ error: 'RAG 학습에 실패했습니다.' })
-      return res.json({ success: true, training_status: 'completed' })
+      const combinedTrainingStatus = await getTrainingStatus('post', id)
+      return res.json({ success: true, training_status: combinedTrainingStatus?.training_status || 'training' })
     }
 
     trainUpdatedPost().catch(error => markTrainingFailed('post', id, error))

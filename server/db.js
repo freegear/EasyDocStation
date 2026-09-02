@@ -7,6 +7,7 @@ const { ensureMailSchema } = require('./mail/schema')
 const { ensureChannelMappingIndexSchema } = require('./lib/channelMappingIndex')
 const { ensureFolderDatasetSchema } = require('./folder/schema')
 const { ensureContactBookSchema } = require('./contactbook/schema')
+const { ensureImageRagSchema } = require('./image-rag/schema')
 
 const pool = new Pool(getPostgresPoolOptions())
 
@@ -406,6 +407,7 @@ async function initDb() {
           ON recent_post_views(user_id, viewed_at DESC);
       `)
       await ensureSearchSchema(client)
+      await ensureImageRagSchema(client)
       await ensureChannelMappingIndexSchema(client)
       // dm_conversations 테이블 생성 (21. Direct Message)
       await runMigrationStep(client, 'create dm_conversations', `

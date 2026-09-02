@@ -18,12 +18,14 @@ const { decryptSecret } = require('../lib/secrets')
 const { enqueueMessageSynced } = require('../mail/agentic/worker')
 const { executeMailClawRuleForMessage, executeMailClawRuleForMessages, getMailClawSummaryStatus } = require('../mail/mailClaw')
 const { moveMessageOnProvider } = require('../mail/providerMove')
+const { runMailDeleteWithRetry } = require('../mail/deletePolicy')
 const { renameFolderOnProvider, deleteFolderOnProvider } = require('../mail/providerRename')
 const { summarizeMail, normalizeLanguage } = require('../mail/mailSummary')
 const { formatActionTime, upsertMailSummaryActionCalendarEvent } = require('../mail/calendarAction')
 const { isAttachmentPreviewCandidate, resolveAttachmentPreview } = require('../mail/attachmentPreview')
 const { analyzeMailImages, formatImageAnalysisForSummary } = require('../mail/imageOcr')
 const { extractRemoteImageCandidates, fetchRemoteImage } = require('../mail/remoteImages')
+const { upsertMailNoteInRag, deleteMailNoteFromRag } = require('../rag')
 const contentDisposition = require('content-disposition')
 
 // 첨부 파일명을 Content-Disposition 헤더로 안전 변환한다.
@@ -901,6 +903,75 @@ router.get('/messages', async (req, res, next) => {
   }
 })
 
+router.get('/notes/search', async (req, res, next) => {
+  try {
+    const tenantId = String(req.query.tenantId || '').trim()
+    const query = String(req.query.q || '').trim()
+    if (!tenantId || !query) return res.status(400).json({ error: 'tenantId와 검색어가 필요합니다.' })
+    if (!(await repo.canAccessTenant({ userId: req.user.id, tenantId, isSiteAdmin: isSiteAdmin(req) }))) {
+      return res.status(403).json({ error: '메일 tenant 접근 권한이 없습니다.' })
+    }
+    const notes = await repo.searchMessageNotes({ tenantId, userId: req.user.id, query, limit: req.query.limit })
+    res.json({ notes })
+  } catch (err) {
+    next(err)
+  }
+})
+
+router.get('/messages/:id/note', async (req, res, next) => {
+  try {
+    const tenantId = String(req.query.tenantId || '').trim()
+    const messageId = String(req.params.id || '').trim()
+    if (!tenantId || !messageId) return res.status(400).json({ error: 'tenantId와 messageId가 필요합니다.' })
+    const note = await repo.getMessageNote({ tenantId, userId: req.user.id, messageId })
+    res.json({ note })
+  } catch (err) {
+    next(err)
+  }
+})
+
+router.put('/messages/:id/note', async (req, res, next) => {
+  try {
+    const tenantId = String(req.query.tenantId || req.body?.tenantId || '').trim()
+    const messageId = String(req.params.id || '').trim()
+    const content = String(req.body?.content || '').trim()
+    if (!tenantId || !messageId || !content) return res.status(400).json({ error: 'tenantId, messageId와 메모 내용이 필요합니다.' })
+    if (content.length > 20000) return res.status(400).json({ error: '메모는 20,000자까지 작성할 수 있습니다.' })
+    const saved = await repo.upsertMessageNote({ tenantId, userId: req.user.id, messageId, content })
+    if (!saved) return res.status(404).json({ error: '메일을 찾을 수 없습니다.' })
+    const note = await repo.getMessageNote({ tenantId, userId: req.user.id, messageId })
+    try {
+      await upsertMailNoteInRag(note)
+      await repo.updateMessageNoteRagStatus({ tenantId, userId: req.user.id, noteId: note.id, status: 'completed' })
+      note.rag_status = 'completed'
+      note.rag_error = null
+    } catch (ragErr) {
+      await repo.updateMessageNoteRagStatus({ tenantId, userId: req.user.id, noteId: note.id, status: 'failed', error: ragErr.message })
+      note.rag_status = 'failed'
+      note.rag_error = ragErr.message
+      console.warn('[mail note] RAG indexing failed', { tenantId, userId: req.user.id, messageId, noteId: note.id, error: ragErr.message })
+    }
+    res.json({ note, ragIndexed: note.rag_status === 'completed' })
+  } catch (err) {
+    next(err)
+  }
+})
+
+router.delete('/messages/:id/note', async (req, res, next) => {
+  try {
+    const tenantId = String(req.query.tenantId || req.body?.tenantId || '').trim()
+    const messageId = String(req.params.id || '').trim()
+    const note = await repo.getMessageNote({ tenantId, userId: req.user.id, messageId })
+    if (!note) return res.json({ ok: true, deleted: false })
+    // 벡터를 먼저 제거해 DB 메모가 사라졌는데 RAG 결과만 남는 상태를 방지한다.
+    await deleteMailNoteFromRag(note.id)
+    await repo.deleteMessageNote({ tenantId, userId: req.user.id, messageId })
+    res.json({ ok: true, deleted: true })
+  } catch (err) {
+    next(err)
+  }
+})
+
 router.get('/messages/:id', async (req, res, next) => {
   try {
     const messageId = String(req.params.id || '').trim()
@@ -1538,8 +1609,46 @@ async function performMessageDelete({ tenantId, messageId, userId }) {
   // 프로바이더에서 실제 휴지통 이동(서버 원본 제거). skip되면(로컬 전용 등) 로컬 처리로 폴백.
   let providerMove
   try {
-    providerMove = await moveMessageOnProvider({ tenantId, account, message, targetFolder: trashFolder })
+    providerMove = await runMailDeleteWithRetry(
+      () => moveMessageOnProvider({ tenantId, account, message, targetFolder: trashFolder }),
+      {
+        onRetry: ({ err, attempt, delayMs }) => console.warn('[mail delete] retrying provider operation', {
+          tenantId,
+          userId,
+          messageId,
+          attempt,
+          delayMs,
+          code: err?.code || 'provider_error',
+          error: err?.message || '알 수 없는 삭제 오류',
+        }),
+      },
+    )
   } catch (err) {
+    if (err?.code === 'IMAP_MOVE_SUCCEEDED_UID_PENDING' && err?.remoteMoveSucceeded) {
+      console.warn('[mail delete] remote move succeeded with pending destination UID', {
+        tenantId,
+        userId,
+        messageId,
+      })
+      const pendingMove = await repo.moveMessageToFolder({
+        tenantId,
+        messageId,
+        targetFolderId: trashFolder.id,
+        userId,
+        providerMessageId: err.providerMessageId,
+      })
+      if (!pendingMove) return null
+      return {
+        id: pendingMove.id,
+        account_id: pendingMove.account_id,
+        previous_folder_id: message.folder_id,
+        folder_id: pendingMove.folder_id,
+        is_read: pendingMove.is_read,
+        trash_folder_id: trashFolder.id,
+        soft_deleted: false,
+        provider_uid_pending: true,
+      }
+    }
     if (err?.code === 'LOCAL_ORPHAN_CANDIDATE') {
       const removed = await repo.softDeleteLocalOrphanMessage({ tenantId, messageId, userId })
       if (removed) {
@@ -1693,6 +1802,8 @@ router.patch('/messages/bulk', async (req, res, next) => {
             messageId,
             code: err?.code || 'delete_failed',
             error: err?.message || '알 수 없는 삭제 오류',
+            retryable: err?.retryable === true,
+            attempts: err?.attempts || 1,
           })
         }
         results.push({
@@ -1701,6 +1812,9 @@ router.patch('/messages/bulk', async (req, res, next) => {
           error: err?.message || '알 수 없는 삭제 오류',
           code: err?.code || 'delete_failed',
           canDeleteLocally: err?.code === 'LOCAL_ORPHAN_CANDIDATE',
+          preserved: true,
+          retryable: err?.retryable === true,
+          attempts: err?.attempts || 1,
         })
       }
     }

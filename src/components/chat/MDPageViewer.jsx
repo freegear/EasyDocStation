@@ -14,6 +14,7 @@ import Color from '@tiptap/extension-color'
 import { TextStyle } from '@tiptap/extension-text-style'
 import TaskList from '@tiptap/extension-task-list'
 import TaskItem from '@tiptap/extension-task-item'
+import { liftListItem as liftProseMirrorListItem } from '@tiptap/pm/schema-list'
 import { TableOfContents } from '@tiptap/extension-table-of-contents'
 import { Table, TableRow, TableCell, TableHeader } from '@tiptap/extension-table'
 import ImageResize from 'tiptap-extension-resize-image'
@@ -59,6 +60,7 @@ import useMDPageComments from './md-page/hooks/useMDPageComments'
 import '../../styles/tiptap.css'
 
 const ResizableImage = ImageResize.extend({ name: 'image' })
+
 function getEditorDocSignature(editor) {
   if (!editor) return ''
   try {
@@ -344,6 +346,30 @@ export default function MDPageViewer({ post, channelId, onClose, onOpenPostLink 
       setHeadingOutline(extractHeadingOutline(editor.state.doc))
     },
     editorProps: {
+      handleKeyDown(view, event) {
+        if (
+          event.key !== 'Enter'
+          || event.shiftKey
+          || event.altKey
+          || event.ctrlKey
+          || event.metaKey
+          || event.isComposing
+        ) {
+          return false
+        }
+
+        const { selection, schema } = view.state
+        const { $from } = selection
+        const isEmptyTextBlock = selection.empty
+          && $from.parent.isTextblock
+          && $from.parent.content.size === 0
+        const isInsideTaskItem = Array.from({ length: $from.depth }, (_, index) => index + 1)
+          .some(depth => $from.node(depth).type === schema.nodes.taskItem)
+
+        if (!isEmptyTextBlock || !isInsideTaskItem) return false
+
+        return liftProseMirrorListItem(schema.nodes.taskItem)(view.state, view.dispatch)
+      },
       handleClick(view, _pos, event) {
         const target = event.target
         if (!(target instanceof Element)) return false

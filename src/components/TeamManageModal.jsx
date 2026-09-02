@@ -22,13 +22,14 @@ function SimpleMDPreview({ text }) {
   )
 }
 
-export default function TeamManageModal({ team = null, onClose, onSave }) {
+export default function TeamManageModal({ team = null, forcePersonal = false, onClose, onSave }) {
   const { currentUser } = useAuth()
   const t = useT()
   const isEdit = !!team
 
   const [name, setName] = useState(team?.name || '')
   const [description, setDescription] = useState(team?.description || '')
+  const [isPersonal, setIsPersonal] = useState(team?.visibility === 'personal' || forcePersonal)
   const [descTab, setDescTab] = useState('preview')
 
   const [searchQuery, setSearchQuery] = useState('')
@@ -49,6 +50,7 @@ export default function TeamManageModal({ team = null, onClose, onSave }) {
   const isSiteAdmin = currentUser?.role === 'site_admin'
   const isTeamAdmin = isSiteAdmin || selectedAdmins.some(a => a.id === currentUser?.id)
   const canManage = !isEdit || isTeamAdmin
+  const privacyToggleLocked = isEdit || forcePersonal
 
   // ESC 키로 창 닫기
   useEffect(() => {
@@ -161,7 +163,7 @@ export default function TeamManageModal({ team = null, onClose, onSave }) {
   const handleSubmit = async () => {
     setError('')
     if (!name.trim()) { setError(t.team.nameRequired); return }
-    if (selectedAdmins.length === 0) { setError(t.team.minOneAdmin); return }
+    if (!isPersonal && selectedAdmins.length === 0) { setError(t.team.minOneAdmin); return }
 
     setLoading(true)
     try {
@@ -170,6 +172,7 @@ export default function TeamManageModal({ team = null, onClose, onSave }) {
         description: description.trim(),
         adminIds: selectedAdmins.map(a => a.id),
         memberIds: selectedMembers.map(m => m.id),
+        visibility: isPersonal ? 'personal' : 'shared',
       }
       const result = isEdit
         ? await apiFetch(`/teams/${team.id}`, { method: 'PUT', body: JSON.stringify(payload) })
@@ -240,6 +243,35 @@ export default function TeamManageModal({ team = null, onClose, onSave }) {
             />
           </div>
 
+          <div className="rounded-2xl border border-gray-200 bg-white px-4 py-3">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <p className="text-sm font-bold text-gray-800">{t.team.personalSpace}</p>
+                <p className="mt-1 text-xs leading-relaxed text-gray-500">
+                  {isEdit ? t.team.personalSpaceImmutable : t.team.personalSpaceHelp}
+                </p>
+              </div>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={isPersonal}
+                aria-label={t.team.personalSpace}
+                disabled={privacyToggleLocked}
+                onClick={() => setIsPersonal(value => !value)}
+                className={`relative h-7 w-12 flex-shrink-0 rounded-full transition-colors ${isPersonal ? 'bg-indigo-600' : 'bg-gray-300'} disabled:cursor-not-allowed disabled:opacity-60`}
+              >
+                <span className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow transition-transform ${isPersonal ? 'translate-x-6' : 'translate-x-1'}`} />
+              </button>
+            </div>
+            {isPersonal && (
+              <div className="mt-3 rounded-xl border border-indigo-100 bg-indigo-50 px-3 py-2 text-xs leading-relaxed text-indigo-700">
+                <p className="font-semibold">🔒 {t.team.personalSpaceNotice}</p>
+                {isEdit && team?.id && <p className="mt-1 break-all text-indigo-500">{t.team.recoverySpaceId}: {team.id}</p>}
+              </div>
+            )}
+          </div>
+
+          {!isPersonal && <>
           {/* 관리자 */}
           <div>
             <div className="flex items-center justify-between mb-2">
@@ -381,6 +413,8 @@ export default function TeamManageModal({ team = null, onClose, onSave }) {
               </div>
             )}
           </div>
+
+          </>}
 
           {/* 팀 설명 (MD 편집) */}
           <div>

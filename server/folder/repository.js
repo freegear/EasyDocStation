@@ -173,19 +173,18 @@ async function countAttachmentReferences(attachmentId, { excludeDatasetId = null
 
 // ── 접근 범위 기반 목록 (23.1) ──
 // accessibleChannelIds / teamIds 는 라우트에서 계산해 전달한다.
-async function listAccessibleDatasets({ userId, isSiteAdmin = false, accessibleChannelIds = [], teamIds = [] }) {
+async function listAccessibleDatasets({ userId, accessibleChannelIds = [], teamIds = [] }) {
   const { rows } = await db.query(
     `SELECT * FROM folder_datasets d
       WHERE d.status <> ALL($4::text[])
         AND (
-          $5::boolean = true
-          OR d.access_scope = 'all'
+          d.access_scope = 'all'
           OR (d.access_scope = 'personal' AND d.owner_id = $1)
           OR (d.access_scope = 'team'    AND d.scope_team_id = ANY($2))
           OR (d.access_scope = 'channel' AND d.scope_channel_id = ANY($3))
         )
       ORDER BY d.created_at DESC`,
-    [userId, teamIds, accessibleChannelIds, REMOVED_STATUSES, isSiteAdmin],
+    [userId, teamIds, accessibleChannelIds, REMOVED_STATUSES],
   )
   return rows
 }

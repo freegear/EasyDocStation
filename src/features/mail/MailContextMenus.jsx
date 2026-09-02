@@ -4,7 +4,7 @@ import { MenuIcon } from './mailIcons'
 import { useAnchoredMenuPosition, useAnchoredSubmenuPosition } from './useAnchoredMenuPosition'
 import { FOLDER_COLOR_OPTIONS, getFolderColorLabel, getMailFolderLabel, isSystemMailFolder } from './mailFolderUtils'
 
-function MailMessageContextMenu({ menu, folders, onClose, onDelete, onMarkUnread, onToggleStar, onMove, onRegisterMailClaw, onRegisterMailClawTrash, onRegisterAsPost, mt = MAIL_TEXT.ko }) {
+function MailMessageContextMenu({ menu, folders, onClose, onDelete, onMarkUnread, onToggleStar, onMove, onRegisterMailClaw, onRegisterMailClawTrash, onRegisterAsPost, onNote, mt = MAIL_TEXT.ko }) {
   const { ref, style } = useAnchoredMenuPosition(menu?.x ?? 0, menu?.y ?? 0)
   const [moveSubmenuAnchor, setMoveSubmenuAnchor] = useState(null)
   const [moveSubmenuOpen, setMoveSubmenuOpen] = useState(false)
@@ -109,6 +109,20 @@ function MailMessageContextMenu({ menu, folders, onClose, onDelete, onMarkUnread
       >
         <MenuIcon type="board" />
         <span>{mt.context.registerAsPost}</span>
+      </button>
+      <button
+        type="button"
+        disabled={count > 1}
+        title={count > 1 ? mt.note.multiDisabled : undefined}
+        onClick={() => {
+          if (count > 1) return
+          onNote?.(menu.message)
+          onClose()
+        }}
+        className="flex w-full items-center gap-2 px-3 py-2 text-left text-indigo-700 hover:bg-indigo-50 disabled:cursor-not-allowed disabled:text-gray-300 disabled:hover:bg-white"
+      >
+        <MenuIcon type="note" />
+        <span>{menu.message.has_note ? mt.context.viewNote : mt.context.addNote}</span>
       </button>
       <div
         className="relative"

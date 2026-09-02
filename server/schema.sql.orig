@@ -1,0 +1,428 @@
+-- EasyDocStation Database Schema
+-- Run: psql -U postgres -d easydocstation -f schema.sql
+
+-- Create database (run as superuser if needed):
+-- CREATE DATABASE easydocstation;
+
+-- Enable extensions
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+
+-- ─── Channels ────────────────────────────────────────────────
+-- ─── Teams ───────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS teams (
+  id          VARCHAR(50) PRIMARY KEY,
+  name        VARCHAR(100) NOT NULL,
+  icon        VARCHAR(10)  NOT NULL DEFAULT '🏢',
+  description TEXT,
+  visibility  VARCHAR(20) NOT NULL DEFAULT 'shared' CHECK (visibility IN ('shared', 'personal')),
+  owner_id    INTEGER,
+  created_at  TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+  updated_at  TIMESTAMPTZ  NOT NULL DEFAULT NOW()
+);
+
+-- ─── Channels ────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS channels (
+  id            VARCHAR(50) PRIMARY KEY,
+  team_id       VARCHAR(50) NOT NULL REFERENCES teams(id) ON DELETE CASCADE,
+  name          VARCHAR(100) NOT NULL,
+  type          VARCHAR(20)  NOT NULL DEFAULT 'public' CHECK (type IN ('public', 'private')),
+  is_archived   BOOLEAN      NOT NULL DEFAULT false,
+  description   TEXT,
+  root_post_id  VARCHAR(50),
+  tail_post_id  VARCHAR(50),
+  created_at    TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+  updated_at    TIMESTAMPTZ  NOT NULL DEFAULT NOW()
+);
+
+-- Migration: add columns if they don't exist (safe to re-run)
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='channels' AND column_name='description')
+  THEN ALTER TABLE channels ADD COLUMN description TEXT; END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='channels' AND column_name='root_post_id')
+  THEN ALTER TABLE channels ADD COLUMN root_post_id VARCHAR(50); END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='channels' AND column_name='tail_post_id')
+  THEN ALTER TABLE channels ADD COLUMN tail_post_id VARCHAR(50); END IF;
+END $$;
+
+-- ─── Users ───────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS users (
+  id            SERIAL PRIMARY KEY,
+  username      VARCHAR(50)  UNIQUE NOT NULL,
+  password_hash VARCHAR(255) NOT NULL,
+  name          VARCHAR(100) NOT NULL,
+  email         VARCHAR(255) UNIQUE NOT NULL,
+  phone         VARCHAR(30),
+  telegram_id   VARCHAR(100),
+  kakaotalk_api_key TEXT,
+  line_channel_access_token TEXT,
+  use_sns_channel VARCHAR(20) CHECK (use_sns_channel IN ('telegram', 'kakaotalk', 'line')),
+  supabase_user_id UUID UNIQUE,
+  role          VARCHAR(20)  NOT NULL DEFAULT 'user'
+                  CHECK (role IN ('site_admin', 'team_admin', 'channel_admin', 'user')),
+  display_name  VARCHAR(100),
+  preferred_language VARCHAR(10) NOT NULL DEFAULT 'ko'
+                  CHECK (preferred_language IN ('ko', 'en', 'ja')),
+  image_url     TEXT,
+  is_active     BOOLEAN      NOT NULL DEFAULT true,
+  can_edit_search_results BOOLEAN NOT NULL DEFAULT false,
+  department_id VARCHAR(50),
+  security_level INTEGER     NOT NULL DEFAULT 0,
+  created_at    TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+  updated_at    TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+  last_login_at TIMESTAMPTZ
+);
+
+-- Migration: 컬럼 추가 (안전하게 재실행 가능)
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='failed_login_attempts')
+  THEN ALTER TABLE users ADD COLUMN failed_login_attempts INTEGER NOT NULL DEFAULT 0; END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='telegram_id')
+  THEN ALTER TABLE users ADD COLUMN telegram_id VARCHAR(100); END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='kakaotalk_api_key')
+  THEN ALTER TABLE users ADD COLUMN kakaotalk_api_key TEXT; END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='line_channel_access_token')
+  THEN ALTER TABLE users ADD COLUMN line_channel_access_token TEXT; END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='use_sns_channel')
+  THEN ALTER TABLE users ADD COLUMN use_sns_channel VARCHAR(20); END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='active_session_id')
+  THEN ALTER TABLE users ADD COLUMN active_session_id TEXT; END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='supabase_user_id')
+  THEN ALTER TABLE users ADD COLUMN supabase_user_id UUID; END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='preferred_language')
+  THEN ALTER TABLE users ADD COLUMN preferred_language VARCHAR(10) NOT NULL DEFAULT 'ko'; END IF;
+END $$;
+
+-- ─── Personal space privacy / audited emergency access ──────
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='teams' AND column_name='visibility') THEN ALTER TABLE teams ADD COLUMN visibility VARCHAR(20) NOT NULL DEFAULT 'shared'; END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='teams' AND column_name='owner_id') THEN ALTER TABLE teams ADD COLUMN owner_id INTEGER; END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname='teams_visibility_check') THEN ALTER TABLE teams ADD CONSTRAINT teams_visibility_check CHECK (visibility IN ('shared', 'personal')); END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname='teams_owner_id_fkey') THEN ALTER TABLE teams ADD CONSTRAINT teams_owner_id_fkey FOREIGN KEY (owner_id) REFERENCES users(id) ON DELETE RESTRICT; END IF;
+END $$;
+CREATE TABLE IF NOT EXISTS personal_space_emergency_access (id BIGSERIAL PRIMARY KEY, team_id VARCHAR(50) NOT NULL REFERENCES teams(id) ON DELETE CASCADE, site_admin_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, reason TEXT NOT NULL CHECK (length(trim(reason)) >= 10), granted_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), expires_at TIMESTAMPTZ NOT NULL, revoked_at TIMESTAMPTZ, CHECK (expires_at > granted_at));
+CREATE INDEX IF NOT EXISTS idx_personal_space_emergency_active ON personal_space_emergency_access(team_id, site_admin_id, expires_at) WHERE revoked_at IS NULL;
+CREATE TABLE IF NOT EXISTS personal_space_audit_log (id BIGSERIAL PRIMARY KEY, team_id VARCHAR(50) NOT NULL REFERENCES teams(id) ON DELETE CASCADE, actor_id INTEGER NOT NULL REFERENCES users(id) ON DELETE RESTRICT, action TEXT NOT NULL, reason TEXT, details JSONB NOT NULL DEFAULT '{}'::jsonb, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW());
+CREATE INDEX IF NOT EXISTS idx_personal_space_audit_team_time ON personal_space_audit_log(team_id, created_at DESC);
+
+-- ─── Login history ───────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS login_history (
+  id           SERIAL PRIMARY KEY,
+  user_id      INTEGER     NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  logged_in_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  ip_address   INET,
+  user_agent   TEXT
+);
+
+-- ─── Team admin assignments ───────────────────────────────────
+CREATE TABLE IF NOT EXISTS team_admins (
+  id          SERIAL PRIMARY KEY,
+  team_id     VARCHAR(50) NOT NULL REFERENCES teams(id) ON DELETE CASCADE,
+  user_id     INTEGER     NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  assigned_by INTEGER     REFERENCES users(id) ON DELETE SET NULL,
+  assigned_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE (team_id, user_id)
+);
+
+-- ─── Team members ─────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS team_members (
+  id          SERIAL PRIMARY KEY,
+  team_id     VARCHAR(50) NOT NULL REFERENCES teams(id) ON DELETE CASCADE,
+  user_id     INTEGER     NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  added_by    INTEGER     REFERENCES users(id) ON DELETE SET NULL,
+  added_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE (team_id, user_id)
+);
+
+-- ─── Channel admin assignments ────────────────────────────────
+CREATE TABLE IF NOT EXISTS channel_admins (
+  id          SERIAL PRIMARY KEY,
+  channel_id  VARCHAR(50) NOT NULL REFERENCES channels(id) ON DELETE CASCADE,
+  user_id     INTEGER     NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  assigned_by INTEGER     REFERENCES users(id) ON DELETE SET NULL,
+  assigned_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE (channel_id, user_id)
+);
+
+-- ─── Channel members ─────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS channel_members (
+  id         SERIAL PRIMARY KEY,
+  channel_id VARCHAR(50) NOT NULL REFERENCES channels(id) ON DELETE CASCADE,
+  user_id    INTEGER     NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  added_by   INTEGER     REFERENCES users(id) ON DELETE SET NULL,
+  added_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE (channel_id, user_id)
+);
+
+-- ─── Posts (Messages) ────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS posts (
+  id          VARCHAR(50) PRIMARY KEY,
+  channel_id  VARCHAR(50) NOT NULL REFERENCES channels(id) ON DELETE CASCADE,
+  author_id   INTEGER     NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  title       TEXT,
+  content        TEXT        NOT NULL,
+  pinned         BOOLEAN     DEFAULT false,
+  views          INTEGER     DEFAULT 0,
+  security_level INTEGER     NOT NULL DEFAULT 0,
+  is_edited      BOOLEAN     DEFAULT false,
+  prev_post_id   VARCHAR(50),
+  next_post_id   VARCHAR(50),
+  child_post_id  VARCHAR(50),
+  parent_id      VARCHAR(50),
+  attachments_1  VARCHAR(50),
+  attachments_2  VARCHAR(50),
+  attachments_3  VARCHAR(50),
+  attachments_4  VARCHAR(50),
+  attachments_5  VARCHAR(50),
+  attachments_6  VARCHAR(50),
+  attachments_7  VARCHAR(50),
+  attachments_8  VARCHAR(50),
+  attachments_9  VARCHAR(50),
+  attachments_10 VARCHAR(50),
+  created_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at     TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- RAG 학습 상태는 서버 메모리가 아닌 DB에 보존한다.
+CREATE TABLE IF NOT EXISTS rag_training_jobs (
+  source_type   VARCHAR(20)  NOT NULL CHECK (source_type IN ('post', 'comment')),
+  source_id     VARCHAR(100) NOT NULL,
+  status        VARCHAR(20)  NOT NULL CHECK (status IN ('queued', 'training', 'completed', 'failed', 'timed_out')),
+  started_at    TIMESTAMPTZ,
+  completed_at  TIMESTAMPTZ,
+  updated_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  error_message TEXT,
+  PRIMARY KEY (source_type, source_id)
+);
+CREATE INDEX IF NOT EXISTS idx_rag_training_jobs_status_updated
+  ON rag_training_jobs(status, updated_at);
+
+-- ─── Attachments (DS.005) ─────────────────────────────────────
+CREATE TABLE IF NOT EXISTS attachments (
+  id            VARCHAR(50)  PRIMARY KEY,             -- File ID
+  post_id       VARCHAR(50),                          -- Post ID (FK)
+  channel_id    VARCHAR(50)  REFERENCES channels(id) ON DELETE CASCADE,
+  uploader_id   INTEGER      REFERENCES users(id) ON DELETE SET NULL, -- Uploader ID
+  filename      VARCHAR(255) NOT NULL,                -- File Name (원본 파일명)
+  storage_path  TEXT         NOT NULL,               -- Stored Path (UUID 기반 저장 경로)
+  content_type  VARCHAR(100),                        -- File Type
+  size          BIGINT       DEFAULT 0,              -- File Size (bytes)
+  status        VARCHAR(20)  DEFAULT 'PENDING',
+
+-- ─── Canonical image descriptions for DB search and RAG ─────
+CREATE TABLE IF NOT EXISTS image_descriptions (
+  id TEXT PRIMARY KEY,
+  attachment_id VARCHAR(50) NOT NULL REFERENCES attachments(id) ON DELETE CASCADE,
+  post_id VARCHAR(50), comment_id VARCHAR(50), channel_id VARCHAR(50) NOT NULL DEFAULT '',
+  owner_id INTEGER, security_level INTEGER NOT NULL DEFAULT 0,
+  scope_metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
+  file_hash TEXT NOT NULL DEFAULT '', mime_type TEXT, width INTEGER, height INTEGER,
+  schema_version INTEGER NOT NULL DEFAULT 1, prompt_version TEXT NOT NULL,
+  model_provider TEXT, model_name TEXT, model_version TEXT,
+  summary TEXT, description TEXT, caption TEXT, ocr_text TEXT,
+  analysis_json JSONB NOT NULL DEFAULT '{}'::jsonb, search_content TEXT,
+  analysis_status TEXT NOT NULL DEFAULT 'pending'
+    CHECK (analysis_status IN ('pending','processing','completed','failed','deleted')),
+  db_index_status TEXT NOT NULL DEFAULT 'pending'
+    CHECK (db_index_status IN ('pending','indexed','failed','deleted')),
+  rag_index_status TEXT NOT NULL DEFAULT 'pending'
+    CHECK (rag_index_status IN ('pending','indexed','failed','deleted')),
+  attempt_count INTEGER NOT NULL DEFAULT 0, next_retry_at TIMESTAMPTZ,
+  last_error_code TEXT, last_error_message TEXT, worker_id TEXT,
+  processing_started_at TIMESTAMPTZ, completed_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE (attachment_id)
+);
+CREATE TABLE IF NOT EXISTS image_analysis_attempts (
+  id BIGSERIAL PRIMARY KEY,
+  image_description_id TEXT NOT NULL REFERENCES image_descriptions(id) ON DELETE CASCADE,
+  attempt_no INTEGER NOT NULL, worker_id TEXT, provider TEXT, model_name TEXT,
+  status TEXT NOT NULL, error_code TEXT, error_message TEXT, duration_ms INTEGER,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), finished_at TIMESTAMPTZ
+);
+CREATE INDEX IF NOT EXISTS idx_image_descriptions_attachment ON image_descriptions(attachment_id);
+CREATE INDEX IF NOT EXISTS idx_image_descriptions_retry ON image_descriptions(analysis_status, next_retry_at);
+CREATE INDEX IF NOT EXISTS idx_image_descriptions_index_retry ON image_descriptions(db_index_status, rag_index_status, updated_at);
+CREATE INDEX IF NOT EXISTS idx_image_descriptions_channel ON image_descriptions(channel_id);
+CREATE INDEX IF NOT EXISTS idx_image_descriptions_hash ON image_descriptions(file_hash);
+CREATE INDEX IF NOT EXISTS idx_image_analysis_attempts_description ON image_analysis_attempts(image_description_id, attempt_no DESC);
+  thumbnail_path TEXT,
+  created_at    TIMESTAMPTZ  DEFAULT NOW()           -- Created At
+);
+
+-- Migration: DS.005 컬럼 추가 (안전하게 재실행 가능)
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='attachments' AND column_name='uploader_id')
+  THEN ALTER TABLE attachments ADD COLUMN uploader_id INTEGER REFERENCES users(id) ON DELETE SET NULL; END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='attachments' AND column_name='thumbnail_path')
+  THEN ALTER TABLE attachments ADD COLUMN thumbnail_path TEXT; END IF;
+END $$;
+
+-- ─── Channel last-read tracking ──────────────────────────────
+CREATE TABLE IF NOT EXISTS channel_last_read (
+  user_id      INTEGER     NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  channel_id   VARCHAR(50) NOT NULL REFERENCES channels(id) ON DELETE CASCADE,
+  last_read_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  PRIMARY KEY (user_id, channel_id)
+);
+
+-- ─── Indexes ─────────────────────────────────────────────────
+CREATE INDEX IF NOT EXISTS idx_channel_last_read_user ON channel_last_read(user_id);
+CREATE INDEX IF NOT EXISTS idx_users_email          ON users(email);
+CREATE INDEX IF NOT EXISTS idx_users_role           ON users(role);
+CREATE INDEX IF NOT EXISTS idx_login_history_user   ON login_history(user_id);
+CREATE INDEX IF NOT EXISTS idx_team_admins_team     ON team_admins(team_id);
+CREATE INDEX IF NOT EXISTS idx_team_members_team    ON team_members(team_id);
+CREATE INDEX IF NOT EXISTS idx_channel_admins_ch    ON channel_admins(channel_id);
+CREATE INDEX IF NOT EXISTS idx_channel_members_ch   ON channel_members(channel_id);
+CREATE INDEX IF NOT EXISTS idx_posts_channel        ON posts(channel_id);
+CREATE INDEX IF NOT EXISTS idx_attachments_post     ON attachments(post_id);
+
+-- 웹 회의 녹음 세션과 20초 단위 조각. 실제 음성 파일은 ObjectFile/meeting-recordings 아래 저장한다.
+CREATE TABLE IF NOT EXISTS meeting_recordings (
+  id                    UUID PRIMARY KEY,
+  post_id               TEXT NOT NULL,
+  channel_id            TEXT NOT NULL,
+  owner_id              INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  status                TEXT NOT NULL DEFAULT 'created',
+  content_type          TEXT NOT NULL DEFAULT 'audio/webm',
+  chunk_duration_ms     INTEGER NOT NULL DEFAULT 20000,
+  context_overlap_ms    INTEGER NOT NULL DEFAULT 3000,
+  last_sequence         INTEGER,
+  total_duration_ms     BIGINT,
+  attachment_id         TEXT,
+  stt_job_id            UUID,
+  download_file_name    TEXT,
+  download_content_type TEXT,
+  download_storage_path TEXT,
+  download_size         BIGINT,
+  download_sha256       TEXT,
+  error_code            TEXT,
+  error_message         TEXT,
+  created_at            TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  started_at            TIMESTAMPTZ,
+  finished_at           TIMESTAMPTZ,
+  updated_at            TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_meeting_recordings_post ON meeting_recordings(post_id);
+
+CREATE TABLE IF NOT EXISTS meeting_audio_chunks (
+  meeting_id      UUID NOT NULL REFERENCES meeting_recordings(id) ON DELETE CASCADE,
+  sequence        INTEGER NOT NULL,
+  started_at_ms   BIGINT NOT NULL,
+  duration_ms     INTEGER NOT NULL,
+  core_start_ms   BIGINT NOT NULL,
+  core_end_ms     BIGINT NOT NULL,
+  context_start_ms BIGINT NOT NULL,
+  context_end_ms  BIGINT NOT NULL,
+  content_type    TEXT NOT NULL,
+  size            BIGINT NOT NULL,
+  sha256          TEXT NOT NULL,
+  storage_path    TEXT NOT NULL,
+  status          TEXT NOT NULL DEFAULT 'verified',
+  created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  PRIMARY KEY (meeting_id, sequence)
+);
+
+CREATE TABLE IF NOT EXISTS meeting_download_audit (
+  id         BIGSERIAL PRIMARY KEY,
+  meeting_id UUID,
+  post_id    TEXT,
+  user_id    INTEGER,
+  action     TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- ─── Welcome board recent post views ─────────────────────────
+CREATE TABLE IF NOT EXISTS recent_post_views (
+  user_id       INTEGER     NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  post_id       TEXT        NOT NULL,
+  channel_id    VARCHAR(50) NOT NULL REFERENCES channels(id) ON DELETE CASCADE,
+  team_id       VARCHAR(50) REFERENCES teams(id) ON DELETE SET NULL,
+  kind          TEXT        NOT NULL DEFAULT 'post',
+  icon          TEXT        NOT NULL DEFAULT '📄',
+  title         TEXT        NOT NULL DEFAULT '',
+  tag           TEXT        NOT NULL DEFAULT '',
+  summary       TEXT        NOT NULL DEFAULT '',
+  created_at    TIMESTAMPTZ,
+  updated_at    TIMESTAMPTZ,
+  author_id     INTEGER     REFERENCES users(id) ON DELETE SET NULL,
+  author_name   TEXT        NOT NULL DEFAULT '',
+  author_image_url TEXT      NOT NULL DEFAULT '',
+  comment_count INTEGER     NOT NULL DEFAULT 0,
+  attachments   JSONB       NOT NULL DEFAULT '[]',
+  viewed_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  PRIMARY KEY (user_id, post_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_recent_post_views_user_viewed
+  ON recent_post_views(user_id, viewed_at DESC);
+
+-- ─── Auto-generated channel mapping index ───────────────────
+-- 질문에 포함된 채널명/별칭/프로젝트명 후보를 권한 내 RAG 검색 범위로 연결한다.
+-- 새 사이트 설치 시에는 이 테이블이 빈 상태로 생성되고, 설치 스크립트의 초기화 명령이
+-- 현재 데이터 기준으로 다시 빌드한다.
+CREATE TABLE IF NOT EXISTS channel_mapping_index (
+  id          BIGSERIAL PRIMARY KEY,
+  channel_id  VARCHAR(50) NOT NULL REFERENCES channels(id) ON DELETE CASCADE,
+  term        TEXT        NOT NULL,
+  term_norm   TEXT        NOT NULL,
+  source      TEXT        NOT NULL DEFAULT 'auto',
+  confidence  NUMERIC(5,4) NOT NULL DEFAULT 0.5,
+  hit_count   INTEGER     NOT NULL DEFAULT 1,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE (channel_id, term_norm, source)
+);
+
+CREATE INDEX IF NOT EXISTS idx_channel_mapping_norm ON channel_mapping_index(term_norm);
+CREATE INDEX IF NOT EXISTS idx_channel_mapping_channel ON channel_mapping_index(channel_id);
+
+-- ─── Likes ───────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS post_likes (
+  post_id    TEXT        NOT NULL,
+  user_id    INTEGER     NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  PRIMARY KEY (post_id, user_id)
+);
+
+CREATE TABLE IF NOT EXISTS comment_likes (
+  comment_id TEXT        NOT NULL,
+  user_id    INTEGER     NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  PRIMARY KEY (comment_id, user_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_post_likes_post_id ON post_likes(post_id);
+CREATE INDEX IF NOT EXISTS idx_comment_likes_comment_id ON comment_likes(comment_id);
+
+-- ─── Auto-update updated_at trigger ──────────────────────────
+CREATE OR REPLACE FUNCTION update_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = NOW();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trg_users_updated_at ON users;
+CREATE TRIGGER trg_users_updated_at
+  BEFORE UPDATE ON users
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+
+DROP TRIGGER IF EXISTS trg_teams_updated_at ON teams;
+CREATE TRIGGER trg_teams_updated_at
+  BEFORE UPDATE ON teams
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+
+DROP TRIGGER IF EXISTS trg_channels_updated_at ON channels;
+CREATE TRIGGER trg_channels_updated_at
+  BEFORE UPDATE ON channels
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+
+DROP TRIGGER IF EXISTS trg_posts_updated_at ON posts;
+CREATE TRIGGER trg_posts_updated_at
+  BEFORE UPDATE ON posts
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at();

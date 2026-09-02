@@ -17,8 +17,10 @@ const db = require('../db')
 const requireAuth = require('../middleware/auth')
 const { getDatabasePath } = require('../databasePaths')
 const { getAccessibleChannelIds, canAccessChannel } = require('../lib/channelAccess')
+const { getSearchAccessibleSpaceIds } = require('../lib/spaceAccess')
 const repo = require('../folder/repository')
 const ragTrainer = require('../folder/ragTrainer')
+const { deleteImageAttachmentIndexes } = require('../image-rag')
 
 const router = express.Router()
 
@@ -65,15 +67,6 @@ function safeSegment(seg = '') {
   return cleaned || `file-${Date.now()}`
 }
 
-async function getUserTeamIds(userId) {
-  const { rows } = await db.query(
-    `SELECT team_id FROM team_members WHERE user_id=$1
-       UNION SELECT team_id FROM team_admins WHERE user_id=$1`,
-    [userId],
-  )
-  return rows.map(r => r.team_id)
-}
-
 function cleanupTemp(files) {
   for (const f of files || []) {
     try { if (f?.path && fs.existsSync(f.path)) fs.unlinkSync(f.path) } catch (_) {}
@@ -109,9 +102,12 @@ router.post('/', requireAuth, folderUpload.array('files', MAX_FILES), async (req
     const scopeChannelId = accessScope === 'channel' ? String(req.body?.scopeChannelId || '').trim() : null
     if (accessScope === 'team') {
       if (!scopeTeamId) { cleanupTemp(files); return res.status(400).json({ error: 'team 범위에는 scopeTeamId가 필요합니다.' }) }
-      const teamIds = await getUserTeamIds(req.user.id)
-      if (!teamIds.includes(scopeTeamId) && req.user.role !== 'site_admin') {
-        cleanupTemp(files); return res.status(403).json({ error: '해당 팀에 대한 권한이 없습니다.' })
+      const teamIds = await getSearchAccessibleSpaceIds(db, req.user, {
+        auditAction: 'folder_dataset_scope_check',
+        details: { operation: 'upload' },
+      })
+      if (!teamIds.includes(scopeTeamId)) {
+        cleanupTemp(files); return res.status(403).json({ error: '해당 스페이스에 대한 권한이 없습니다.' })
       }
     }
     if (accessScope === 'channel') {
@@ -252,7 +248,10 @@ router.get('/', requireAuth, async (req, res) => {
   try {
     const [accessibleChannelIds, teamIds] = await Promise.all([
       getAccessibleChannelIds(db, req.user),
-      getUserTeamIds(req.user.id),
+      getSearchAccessibleSpaceIds(db, req.user, {
+        auditAction: 'folder_dataset_list',
+        details: { route: '/api/folder-datasets' },
+      }),
     ])
     const rows = await repo.listAccessibleDatasets({
       userId: req.user.id,
@@ -273,7 +272,7 @@ router.get('/:id', requireAuth, async (req, res) => {
     if (!dataset || repo.REMOVED_STATUSES.includes(dataset.status)) {
       return res.status(404).json({ error: '데이터셋을 찾을 수 없습니다.' })
     }
-    const allowed = await canAccessDataset(req.user, dataset)
+    const allowed = await canAccessDataset(req.user, dataset, 'folder_dataset_read')
     if (!allowed) return res.status(403).json({ error: '접근 권한이 없습니다.' })
     const documents = await repo.getDatasetDocuments(dataset.id)
     res.json({ dataset, documents })
@@ -289,7 +288,10 @@ router.delete('/:id', requireAuth, async (req, res) => {
     if (!dataset || repo.REMOVED_STATUSES.includes(dataset.status)) {
       return res.status(404).json({ error: '데이터셋을 찾을 수 없습니다.' })
     }
-    // 삭제 권한: 소유자 또는 site_admin
+    const allowed = await canAccessDataset(req.user, dataset, 'folder_dataset_delete')
+    if (!allowed) return res.status(403).json({ error: '접근 권한이 없습니다.' })
+
+    // 삭제 권한: 소유자 또는 접근 범위 안의 site_admin
     if (dataset.owner_id !== req.user.id && req.user.role !== 'site_admin') {
       return res.status(403).json({ error: '삭제 권한이 없습니다.' })
     }
@@ -312,6 +314,10 @@ router.delete('/:id', requireAuth, async (req, res) => {
           if (fs.existsSync(dir) && fs.readdirSync(dir).length === 0) fs.rmdirSync(dir)
         }
       } catch (_) {}
+      if (/^(png|jpe?g|gif|webp|bmp)$/i.test(String(doc.extension || ''))) {
+        await deleteImageAttachmentIndexes(doc.attachment_id)
+      }
+      await db.query(`DELETE FROM search_documents WHERE attachment_id=$1`, [doc.attachment_id]).catch(() => {})
       await db.query(`DELETE FROM attachments WHERE id=$1`, [doc.attachment_id])
       deletedOriginals += 1
     }
@@ -347,12 +353,14 @@ router.delete('/:id', requireAuth, async (req, res) => {
 })
 
 // 데이터셋 접근 판정 (23.1)
-async function canAccessDataset(user, dataset) {
-  if (user.role === 'site_admin') return true
+async function canAccessDataset(user, dataset, auditAction = '') {
   if (dataset.access_scope === 'all') return true
   if (dataset.access_scope === 'personal') return dataset.owner_id === user.id
   if (dataset.access_scope === 'team') {
-    const teamIds = await getUserTeamIds(user.id)
+    const teamIds = await getSearchAccessibleSpaceIds(db, user, {
+      auditAction,
+      details: { datasetId: String(dataset.id || '') },
+    })
     return teamIds.includes(dataset.scope_team_id)
   }
   if (dataset.access_scope === 'channel') {

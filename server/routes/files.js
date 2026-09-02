@@ -8,6 +8,7 @@ const { exec, execFile } = require('child_process')
 const { client, isConnected } = require('../cassandra')
 const db = require('../db')
 const requireAuth = require('../middleware/auth')
+const { canAccessChannel, ACCESS_DENIED_MESSAGE } = require('../lib/channelAccess')
 const { getDatabasePath } = require('../databasePaths')
 
 // Load config for storage path
@@ -302,6 +303,12 @@ async function findAttachmentById(id) {
   return file
 }
 
+async function canAccessFile(user, file) {
+  if (!file) return false
+  if (file.channel_id) return canAccessChannel(db, user, String(file.channel_id))
+  return Number(file.uploader_id) === Number(user?.id)
+}
+
 async function getPdfPreviewSource(id) {
   const file = await findAttachmentById(id)
   if (!file) return null
@@ -482,6 +489,7 @@ router.get('/pdf-preview/:id/manifest', requireAuth, async (req, res, next) => {
   try {
     const source = await getPdfPreviewSource(req.params.id)
     if (!source) return res.status(404).json({ error: 'PDF 파일을 찾을 수 없습니다.' })
+    if (!await canAccessFile(req.user, source.file)) return res.status(403).json({ error: ACCESS_DENIED_MESSAGE })
 
     const pageCount = await readPdfPageCount(source.fullPath)
     res.setHeader('Cache-Control', 'private, max-age=300')
@@ -496,6 +504,7 @@ router.get('/pdf-preview/:id/pages/:page', requireAuth, async (req, res, next) =
   try {
     const source = await getPdfPreviewSource(req.params.id)
     if (!source) return res.status(404).send('PDF 파일을 찾을 수 없습니다.')
+    if (!await canAccessFile(req.user, source.file)) return res.status(403).send(ACCESS_DENIED_MESSAGE)
 
     const page = Number(req.params.page)
     if (!Number.isInteger(page) || page < 1) return res.status(400).send('잘못된 페이지입니다.')
@@ -603,6 +612,7 @@ router.get('/view/:id', requireAuth, async (req, res, next) => {
     }
 
     if (!file) return res.status(404).send('파일을 찾을 수 없습니다.')
+    if (!await canAccessFile(req.user, file)) return res.status(403).send(ACCESS_DENIED_MESSAGE)
 
     let fullPath = path.join(STORAGE_BASE, file.storage_path)
     let contentType = file.content_type || 'application/octet-stream'
@@ -744,6 +754,7 @@ router.get('/:id/get-download-url', requireAuth, async (req, res, next) => {
     }
 
     if (!file) return res.status(404).json({ error: '파일을 찾을 수 없습니다.' })
+    if (!await canAccessFile(req.user, file)) return res.status(403).json({ error: ACCESS_DENIED_MESSAGE })
     
     const token = jwt.sign({
       file_uuid: id,
@@ -896,6 +907,7 @@ router.post('/:id/open', requireAuth, async (req, res, next) => {
     if (result.rowCount === 0) return res.status(404).json({ error: '파일을 찾을 수 없습니다.' })
 
     const file = result.rows[0]
+    if (!await canAccessFile(req.user, file)) return res.status(403).json({ error: ACCESS_DENIED_MESSAGE })
     const fullPath = path.join(STORAGE_BASE, file.storage_path)
 
     if (!fs.existsSync(fullPath)) return res.status(404).json({ error: '파일이 디스크에 없습니다.' })

@@ -13,6 +13,7 @@ import MailViewer from './MailViewer'
 import MailAccountManageModal from './MailAccountManageModal'
 import MailInputDialog from './MailInputDialog'
 import MailToPostDialog from './MailToPostDialog'
+import MailNoteDialog from './MailNoteDialog'
 import { FolderContextMenu, MailMessageContextMenu, SmartFolderContextMenu, UnifiedFolderContextMenu } from './MailContextMenus'
 import { ProviderLogo } from './MailProviderLogo'
 import { getAccountLabel } from './mailAccountUtils'
@@ -109,6 +110,8 @@ export default function MailPage({ onBackToMain, initialMailLink = null, initial
     }
   })
   const [mailSearchQuery, setMailSearchQuery] = useState('')
+  const [noteSearchMessageIds, setNoteSearchMessageIds] = useState(() => new Set())
+  const [noteSearchResolvedQuery, setNoteSearchResolvedQuery] = useState('')
   // 통합 스마트 폴더(태그 기반 — MailService.md 13). [{ id, name, color_key, message_count, unread_count }]
   const [smartFolders, setSmartFolders] = useState([])
   // 스마트 폴더 구역 접기/펴기(헤더 클릭 토글). 브라우저에 유지.
@@ -134,6 +137,7 @@ export default function MailPage({ onBackToMain, initialMailLink = null, initial
   const [messageMenu, setMessageMenu] = useState(null)
   // 게시글로 등록 다이얼로그 대상 { message, summary } (MailService.md 23)
   const [postDialog, setPostDialog] = useState(null)
+  const [noteDialogMessage, setNoteDialogMessage] = useState(null)
   const [folderMenu, setFolderMenu] = useState(null)
   const [unifiedFolderMenu, setUnifiedFolderMenu] = useState(null)
   const [smartFolderMenu, setSmartFolderMenu] = useState(null)
@@ -189,13 +193,36 @@ export default function MailPage({ onBackToMain, initialMailLink = null, initial
         addressListToSearchText(message.cc_json),
       ].filter(Boolean).join(' ').toLowerCase()
       return haystack.includes(query)
+        || (noteSearchResolvedQuery === query && noteSearchMessageIds.has(String(message.id)))
     })
-  }, [mailSearchQuery, messages])
+  }, [mailSearchQuery, messages, noteSearchMessageIds, noteSearchResolvedQuery])
 
   const currentTenantId = accounts.find(account => account.tenant_id)?.tenant_id
     || tenants.find(item => item.type === 'personal')?.id
     || tenants[0]?.id
     || ''
+  useEffect(() => {
+    const query = mailSearchQuery.trim()
+    if (!query || !currentTenantId) return undefined
+    let cancelled = false
+    const timer = window.setTimeout(() => {
+      const params = new URLSearchParams({ tenantId: currentTenantId, q: query, limit: '100' })
+      apiFetch(`/mail/notes/search?${params.toString()}`)
+        .then(data => {
+          if (!cancelled) {
+            setNoteSearchMessageIds(new Set((data?.notes || []).map(item => String(item.message_id))))
+            setNoteSearchResolvedQuery(query.toLowerCase())
+          }
+        })
+        .catch(() => {
+          if (!cancelled) {
+            setNoteSearchMessageIds(new Set())
+            setNoteSearchResolvedQuery(query.toLowerCase())
+          }
+        })
+    }, 250)
+    return () => { cancelled = true; window.clearTimeout(timer) }
+  }, [mailSearchQuery, currentTenantId])
   const activeKeyRef = useRef(activeKey)
   const currentTenantIdRef = useRef(currentTenantId)
   const messagesLengthRef = useRef(messages.length)
@@ -691,6 +718,14 @@ export default function MailPage({ onBackToMain, initialMailLink = null, initial
       return
     }
     openRegisterAsPost(message, message.summary || null)
+  }
+
+  function updateMessageNoteState(messageId, hasNote) {
+    setMessages(prev => prev.map(item => (String(item.id) === String(messageId) ? { ...item, has_note: hasNote } : item)))
+    setSelectedMessage(prev => (prev && String(prev.id) === String(messageId) ? { ...prev, has_note: hasNote } : prev))
+    setMessageMenu(prev => (prev?.message && String(prev.message.id) === String(messageId)
+      ? { ...prev, message: { ...prev.message, has_note: hasNote } }
+      : prev))
   }
 
   // 새 게시글 또는 선택 게시글의 댓글로 등록 (MailService.md 23.5)
@@ -2151,6 +2186,7 @@ export default function MailPage({ onBackToMain, initialMailLink = null, initial
           }}
           onCalendarEventOpen={onOpenCalendarEvent}
           onRegisterAsPost={(msg, sum) => openRegisterAsPost(msg || selectedMessage, sum)}
+          onNote={message => setNoteDialogMessage(message)}
           targetLanguage={language || 'ko'}
           mt={mt}
         />
@@ -2412,6 +2448,7 @@ export default function MailPage({ onBackToMain, initialMailLink = null, initial
         onRegisterMailClaw={registerMailClawFromMessage}
         onRegisterMailClawTrash={registerMailClawTrashFromMessage}
         onRegisterAsPost={registerAsPostFromMessage}
+        onNote={message => setNoteDialogMessage(message)}
         mt={mt}
       />
       {postDialog && (
@@ -2425,6 +2462,22 @@ export default function MailPage({ onBackToMain, initialMailLink = null, initial
           onSubmit={submitRegisterAsPost}
           targetLanguage={language || 'ko'}
           mt={mt}
+        />
+      )}
+      {noteDialogMessage && (
+        <MailNoteDialog
+          message={noteDialogMessage}
+          mt={mt}
+          onClose={() => setNoteDialogMessage(null)}
+          onSaved={(_note, result) => {
+            updateMessageNoteState(noteDialogMessage.id, !result?.deleted)
+            showToast({
+              message: result?.deleted
+                ? mt.note.delete
+                : result?.ragIndexed ? mt.note.save : mt.note.ragFailed,
+              tone: result?.ragIndexed === false ? 'warning' : 'success',
+            })
+          }}
         />
       )}
       <FolderContextMenu

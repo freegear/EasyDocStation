@@ -1,0 +1,62 @@
+const fs = require('fs')
+const path = require('path')
+
+const CONFIG_PATH = path.resolve(__dirname, '../../config.json')
+
+function asBoolean(value, fallback) {
+  if (value == null) return fallback
+  if (typeof value === 'boolean') return value
+  return !['0', 'false', 'no', 'off'].includes(String(value).trim().toLowerCase())
+}
+
+function boundedNumber(value, fallback, min, max) {
+  const parsed = Number(value)
+  if (!Number.isFinite(parsed)) return fallback
+  return Math.max(min, Math.min(max, Math.floor(parsed)))
+}
+
+function readAppConfig() {
+  try {
+    return JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'))
+  } catch (_) {
+    return {}
+  }
+}
+
+function normalizeImageRagConfig(appConfig = readAppConfig(), env = process.env) {
+  const rag = appConfig?.rag || {}
+  const raw = rag.image_description || {}
+  return {
+    enabled: asBoolean(env.EASYDOC_IMAGE_RAG_ENABLED, raw.enabled !== false),
+    useCanonicalForDb: asBoolean(env.EASYDOC_IMAGE_RAG_CANONICAL_DB, raw.use_canonical_for_db !== false),
+    useCanonicalForRag: asBoolean(env.EASYDOC_IMAGE_RAG_CANONICAL_RAG, raw.use_canonical_for_rag !== false),
+    legacyFallbackEnabled: asBoolean(env.EASYDOC_IMAGE_RAG_LEGACY_FALLBACK, raw.legacy_fallback_enabled !== false),
+    provider: String(env.EASYDOC_IMAGE_RAG_PROVIDER || raw.provider || 'ollama').trim().toLowerCase(),
+    model: String(env.EASYDOC_IMAGE_RAG_MODEL || raw.model || env.EASYDOC_OCR_MODEL || rag.ocr_model || 'gemma4:e4b').trim(),
+    ocrEnabled: asBoolean(env.EASYDOC_IMAGE_RAG_OCR, raw.ocr_enabled !== false),
+    ocrLanguages: String(env.EASYDOC_IMAGE_RAG_OCR_LANG || raw.ocr_languages || 'eng+kor').trim(),
+    promptVersion: String(env.EASYDOC_IMAGE_RAG_PROMPT_VERSION || raw.prompt_version || 'image-description-ko-v1').trim(),
+    schemaVersion: boundedNumber(raw.schema_version, 1, 1, 100),
+    maxImageBytes: boundedNumber(raw.max_image_bytes, 20 * 1024 * 1024, 1024, 500 * 1024 * 1024),
+    maxPixels: boundedNumber(raw.max_pixels, 40_000_000, 1_000_000, 200_000_000),
+    visionMaxSide: boundedNumber(raw.vision_max_side, 1400, 320, 4096),
+    ocrMaxSide: boundedNumber(raw.ocr_max_side, 2200, 320, 6000),
+    visionTimeoutMs: boundedNumber(raw.vision_timeout_ms, 90_000, 5_000, 600_000),
+    ocrTimeoutMs: boundedNumber(raw.ocr_timeout_ms, 30_000, 5_000, 300_000),
+    workerConcurrency: boundedNumber(env.EASYDOC_IMAGE_RAG_WORKER_CONCURRENCY ?? raw.worker_concurrency, 1, 1, 4),
+    workerIntervalMs: boundedNumber(raw.worker_interval_ms, 5_000, 500, 60_000),
+    leaseTimeoutMs: boundedNumber(raw.lease_timeout_ms, 10 * 60_000, 60_000, 60 * 60_000),
+    staleRecoveryIntervalMs: boundedNumber(
+      env.EASYDOC_IMAGE_RAG_STALE_RECOVERY_INTERVAL_MS ?? raw.stale_recovery_interval_ms,
+      60_000,
+      10_000,
+      10 * 60_000,
+    ),
+    backfillBatchSize: boundedNumber(raw.backfill_batch_size, 200, 0, 5000),
+    uploadPriority: boundedNumber(raw.upload_priority, 100, 1, 1000),
+    backfillPriority: boundedNumber(raw.backfill_priority, 0, 0, 999),
+    storeRawModelResponse: asBoolean(raw.store_raw_model_response, false),
+  }
+}
+
+module.exports = { CONFIG_PATH, asBoolean, boundedNumber, readAppConfig, normalizeImageRagConfig }

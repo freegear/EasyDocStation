@@ -1,0 +1,879 @@
+# Image2RAG 구현 명세
+
+## 1. 목적
+
+게시글, 댓글, 폴더 데이터셋 등에 이미지가 첨부되면 OCR과 비전 모델을 이용해
+이미지를 설명하는 검색용 문서를 생성한다. 생성한 문서는 PostgreSQL 일반 검색과
+LanceDB RAG 검색에 함께 반영하고, 검색 결과는 항상 원본 이미지 첨부로 이동할 수
+있어야 한다.
+
+이 기능의 핵심 목표는 다음과 같다.
+
+- 이미지에 글자가 없어도 장소, 사물, 사람, 행동, 설비, 색상과 상황으로 검색한다.
+- 표지판, 모델명, 제품명, 숫자 등 보이는 문자를 OCR로 최대한 정확히 보존한다.
+- 하나의 표준 이미지 설명을 DB 검색과 RAG가 함께 사용한다.
+- 이미지의 생성·수정·이동·삭제와 검색 인덱스를 일관되게 동기화한다.
+- 채널, 보안등급, 스페이스 및 개인 스페이스 권한을 원본과 동일하게 적용한다.
+- 실패한 분석은 원본을 보존한 상태에서 자동으로 재시도한다.
+
+이미지 파일 자체를 일반 텍스트 벡터로 저장하는 것이 아니라, 이미지에서 생성한
+설명과 OCR 텍스트를 임베딩하고 `attachment_id`를 기준으로 원본과 연결하는 방식을
+기본으로 한다. 향후 멀티모달 임베딩을 추가할 수 있지만 1차 구현의 필수 범위는
+아니다.
+
+## 2. 적용 범위
+
+### 2.1 포함 범위
+
+- 게시글 이미지 첨부
+- 댓글 이미지 첨부
+- 폴더 데이터셋에 포함된 이미지
+- 지원 형식: `png`, `jpg`, `jpeg`, `webp`, `gif`, `bmp`
+- OCR 텍스트 추출
+- 비전 모델 기반 한국어 설명 생성
+- PostgreSQL `search_documents` 반영
+- LanceDB `image_attachment` 청크 반영
+- 검색 결과에서 원본 게시글·댓글·이미지로 이동
+- 생성, 교체, 이동, 삭제, 재처리 동기화
+- 권한 필터, 처리 상태, 실패 재시도와 운영 감사 로그
+
+### 2.2 1차 구현 제외 범위
+
+- 얼굴 인식 및 인물 신원 추정
+- 사람의 민감한 속성 추정
+- 이미지 원본을 외부 공개 비전 API로 무조건 전송하는 기능
+- 동영상 전체 장면 분석
+- 이미지 유사도 전용 멀티모달 벡터 검색
+- 사용자 확인 없이 AI 설명을 게시글 본문으로 노출하는 기능
+
+## 3. 현재 구현 상태
+
+현재 코드에는 Image2RAG의 기본 기능이 두 경로로 존재한다.
+
+### 3.1 PostgreSQL 검색 인덱스 경로
+
+`server/routes/posts.js`의 현재 흐름은 다음과 같다.
+
+1. `ocrImageForSearch()`가 Tesseract `eng+kor`로 OCR을 수행한다.
+2. `describeImageForSearch()`가 OCR 결과와 비전 모델 설명을 결합한다.
+3. `indexImageAttachmentForSearch()`가 `search_documents`에
+   `source_type=image_attachment`로 upsert한다.
+4. `attachment_id`, `post_id`, `comment_id`, `channel_id`, `author_id`,
+   `security_level`을 함께 저장한다.
+5. 게시글 또는 댓글 저장 이후 `indexImageAttachmentsForSearchAsync()`가 비동기로
+   분석을 실행한다.
+
+환경변수 `EASYDOC_IMAGE_VISION_ENRICH=1`이면 Ollama 비전 분석을 사용하고,
+`EASYDOC_OCR_MODEL` 또는 `config.json`의 `rag.ocr_model`에서 모델을 선택한다.
+
+### 3.2 LanceDB RAG 경로
+
+`server/rag_train.py`의 현재 흐름은 다음과 같다.
+
+1. `describe_image_with_llm()`이 선택된 비전 제공자로 설명을 생성한다.
+2. 실패 시 설정에 따라 Ollama로 fallback한다.
+3. `ingest_image()`가 설명을 청크로 만들고 임베딩한다.
+4. 메타데이터에 `type=image_attachment`, `attachment_id`, `post_id`,
+   `comment_id`, `channel_id`, `file_hash`, `element_id`를 기록한다.
+
+`server/routes/rag.js`의 검색 범위 검증과 참고문헌 보강도
+`image_attachment` 및 `attachment_id`를 인식한다.
+
+### 3.3 현재 구조의 문제점
+
+- Node 검색 인덱스와 Python RAG가 이미지를 각각 분석해 GPU/API를 중복 사용한다.
+- 두 분석 프롬프트와 모델 결과가 달라 DB 검색과 RAG 검색의 설명이 달라질 수 있다.
+- Node 분석 작업이 메모리 기반 fire-and-forget 방식이므로 서버가 종료되면 작업을
+  잃을 수 있다.
+- 분석 결과를 대표하는 기준 테이블, 분석 버전, 처리 상태와 오류 이력이 없다.
+- 비전 분석 실패 시 파일명 수준의 짧은 fallback만 RAG에 들어갈 수 있다.
+- LanceDB 메타데이터의 로컬 절대 `img_path`는 서버 이전 시 오래된 값이 될 수 있다.
+- 재처리, 이미지 교체, 권한 이동과 삭제의 성공 여부를 한곳에서 확인하기 어렵다.
+
+따라서 기존 기능을 제거하는 방식이 아니라, **단일 기준 이미지 설명을 생성한 뒤
+DB 검색과 RAG에 전달하는 구조로 통합**해야 한다.
+
+## 4. 목표 구조
+
+```text
+이미지 첨부 저장 완료
+        │
+        ▼
+파일 검증 및 SHA-256 계산
+        │
+        ▼
+image_descriptions: pending 생성/upsert
+        │
+        ▼
+영속 작업 큐가 작업 획득(processing)
+        │
+        ├─ 이미지 안전 전처리
+        ├─ Tesseract OCR
+        ├─ 비전 모델 구조화 설명
+        └─ 결과 검증 및 정규화
+        │
+        ▼
+image_descriptions: completed
+        │
+        ├─ PostgreSQL search_documents upsert
+        └─ LanceDB image_attachment upsert
+        │
+        ▼
+두 인덱스 반영 상태 확인(indexed)
+```
+
+기준 데이터는 `image_descriptions`이며 `search_documents`와 LanceDB는 파생
+인덱스다. DB와 RAG가 비전 모델을 별도로 호출하지 않고 기준 데이터를 받아서
+인덱싱해야 한다.
+
+## 5. 이미지 설명 데이터 형식
+
+비전 모델 응답은 자유 형식 Markdown이 아니라 다음 구조를 기본으로 한다.
+
+```json
+{
+  "schema_version": 1,
+  "language": "ko",
+  "summary": "서울역 지하철 승강장과 플랫폼 스크린도어를 촬영한 이미지",
+  "description": "밝고 현대적인 실내 승강장이 길게 이어져 있으며 ...",
+  "scene_type": "지하철역 승강장",
+  "objects": ["플랫폼 스크린도어", "디지털 광고 화면", "점자블록"],
+  "actions": [],
+  "visible_text": ["서울역", "6-3"],
+  "entities": ["서울역"],
+  "keywords": ["서울역", "지하철", "승강장", "스크린도어", "점자블록"],
+  "safety_context": ["스크린도어", "승강장 안전 경고"],
+  "uncertainties": [],
+  "caption": "서울역의 현대적인 지하철 승강장 내부"
+}
+```
+
+필드 정책은 다음과 같다.
+
+- `summary`: 한두 문장의 핵심 요약
+- `description`: 검색에 필요한 사실 중심의 상세 한국어 설명
+- `scene_type`: 사무실, 공장, 지하철역, 영수증, 회로도 등 장소나 문서 유형
+- `objects`: 실제로 관찰되는 주요 사물과 설비
+- `actions`: 관찰 가능한 행동만 기록
+- `visible_text`: OCR과 비전 모델에서 확인된 문자. 원문 표기를 보존
+- `entities`: 장소, 기관, 제품, 모델명 등 식별 가능한 명칭
+- `keywords`: 설명에 근거한 검색 확장어. 보이지 않은 브랜드나 장소를 추가하지 않음
+- `safety_context`: 안전 표지나 위험 상황이 실제로 보일 때만 기록
+- `uncertainties`: 흐리거나 가려져 확신할 수 없는 내용을 명시
+- `caption`: 검색 결과와 관리 화면에서 사용할 짧은 설명
+
+모델이 JSON 형식을 지키지 못하면 응답 전체를 그대로 저장하지 않는다. JSON 추출과
+스키마 검증을 수행하고, 실패하면 한 번의 형식 교정 요청 후 OCR 전용 결과로
+fallback한다.
+
+## 6. 검색용 표준 텍스트 구성
+
+DB 전문검색과 임베딩에는 동일한 표준 텍스트를 사용한다.
+
+```text
+[IMAGE_SUMMARY]
+서울역 지하철 승강장과 플랫폼 스크린도어를 촬영한 이미지
+
+[VISUAL_DESCRIPTION_KO]
+밝고 현대적인 실내 승강장이 길게 이어져 있다. 오른쪽에는 ...
+
+[EXACT_VISIBLE_TEXT]
+서울역
+6-3
+
+[OBJECTS]
+플랫폼 스크린도어, 디지털 광고 화면, 점자블록
+
+[SEARCH_KEYWORDS]
+서울역, 지하철, 승강장, 플랫폼, 스크린도어, 안전시설, 점자블록
+
+[UNCERTAINTIES]
+없음
+```
+
+설명이 지나치게 길면 검색 핵심이 희석되므로 기본 상한을 둔다.
+
+- 요약: 300자 이하
+- 상세 설명: 기본 3,000자 이하
+- OCR 원문: 기본 10,000자 이하
+- 키워드: 최대 50개
+- RAG 청크: 500~900자, 10~15% overlap
+- 일반 사진은 1~3개 청크, OCR 문자가 많은 문서는 필요에 따라 추가 청크
+
+각 청크에는 최소한 `attachment_id`, `post_id`, `comment_id`, `channel_id`,
+`file_hash`, `analysis_version`을 반복해서 저장한다.
+
+## 7. 데이터베이스 설계
+
+### 7.1 `image_descriptions`
+
+이미지 한 건의 최신 기준 설명과 처리 상태를 저장한다.
+
+```sql
+CREATE TABLE IF NOT EXISTS image_descriptions (
+  id                    TEXT PRIMARY KEY,
+  attachment_id         VARCHAR(50) NOT NULL,
+  post_id               VARCHAR(50),
+  comment_id            VARCHAR(50),
+  channel_id            VARCHAR(50) NOT NULL,
+  owner_id              INTEGER,
+  security_level        INTEGER NOT NULL DEFAULT 0,
+
+  file_hash             TEXT NOT NULL,
+  mime_type             TEXT,
+  width                  INTEGER,
+  height                 INTEGER,
+
+  schema_version        INTEGER NOT NULL DEFAULT 1,
+  prompt_version        TEXT NOT NULL,
+  model_provider        TEXT,
+  model_name            TEXT,
+  model_version         TEXT,
+
+  summary               TEXT,
+  description           TEXT,
+  caption               TEXT,
+  ocr_text              TEXT,
+  analysis_json         JSONB NOT NULL DEFAULT '{}'::jsonb,
+  search_content        TEXT,
+
+  analysis_status       TEXT NOT NULL DEFAULT 'pending',
+  db_index_status       TEXT NOT NULL DEFAULT 'pending',
+  rag_index_status      TEXT NOT NULL DEFAULT 'pending',
+  attempt_count         INTEGER NOT NULL DEFAULT 0,
+  next_retry_at         TIMESTAMPTZ,
+  last_error_code       TEXT,
+  last_error_message    TEXT,
+  processing_started_at TIMESTAMPTZ,
+  completed_at          TIMESTAMPTZ,
+  created_at            TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at            TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+  UNIQUE (attachment_id, file_hash, prompt_version),
+  CHECK (analysis_status IN ('pending', 'processing', 'completed', 'failed', 'deleted')),
+  CHECK (db_index_status IN ('pending', 'indexed', 'failed', 'deleted')),
+  CHECK (rag_index_status IN ('pending', 'indexed', 'failed', 'deleted'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_image_descriptions_attachment
+  ON image_descriptions(attachment_id);
+CREATE INDEX IF NOT EXISTS idx_image_descriptions_retry
+  ON image_descriptions(analysis_status, next_retry_at);
+CREATE INDEX IF NOT EXISTS idx_image_descriptions_channel
+  ON image_descriptions(channel_id);
+CREATE INDEX IF NOT EXISTS idx_image_descriptions_hash
+  ON image_descriptions(file_hash);
+```
+
+`id`는 `image_description:<attachment_id>:<prompt_version>` 같은 안정적인 값으로
+생성한다. 같은 파일 해시가 여러 위치에 첨부되더라도 설명 결과는 캐시할 수 있지만,
+각 첨부의 접근권한과 원본 연결 정보는 별도로 유지한다.
+
+### 7.2 작업 이력
+
+운영 추적이 필요하면 별도 `image_analysis_attempts`를 둔다.
+
+```sql
+CREATE TABLE IF NOT EXISTS image_analysis_attempts (
+  id                   BIGSERIAL PRIMARY KEY,
+  image_description_id TEXT NOT NULL REFERENCES image_descriptions(id) ON DELETE CASCADE,
+  attempt_no           INTEGER NOT NULL,
+  worker_id            TEXT,
+  provider             TEXT,
+  model_name           TEXT,
+  status               TEXT NOT NULL,
+  error_code           TEXT,
+  error_message        TEXT,
+  duration_ms          INTEGER,
+  created_at           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  finished_at          TIMESTAMPTZ
+);
+```
+
+프롬프트에 이미지의 실제 내용이 포함될 수 있으므로 요청/응답 전체를 일반 로그에
+남기지 않는다. 분석 결과 본문은 `image_descriptions`에만 보존하고 운영 로그에는
+식별자, 모델, 처리 시간, 결과 크기와 오류 코드만 기록한다.
+
+## 8. 메타데이터 및 원본 연결
+
+PostgreSQL `search_documents`와 LanceDB 모두 다음 메타데이터를 사용한다.
+
+```json
+{
+  "type": "image_attachment",
+  "source_type": "image_attachment",
+  "attachment_id": "file_xxxx",
+  "post_id": "post_xxxx",
+  "comment_id": "",
+  "channel_id": "channel_xxxx",
+  "space_id": "space_xxxx",
+  "owner_id": 10,
+  "security_level": 2,
+  "file_name": "station.jpg",
+  "file_hash": "sha256:...",
+  "description_id": "image_description:file_xxxx:v1",
+  "analysis_version": "image-rag-v1",
+  "prompt_version": "image-description-ko-v1",
+  "schema_version": 1
+}
+```
+
+원본 조회는 `attachment_id`를 기준으로 DB에서 현재 `storage_path`, 게시글, 댓글과
+권한을 다시 확인한다. LanceDB의 절대 `img_path`는 원본 식별자로 사용하지 않는다.
+호환 기간에는 `img_path`를 남길 수 있지만 신규 UI 링크와 접근 제어는 의존하지
+않아야 한다.
+
+검색 결과의 권장 링크 형식은 다음 식별자를 전달한다.
+
+```text
+channelId + postId + commentId(optional) + attachmentId
+```
+
+UI는 게시글을 연 뒤 해당 첨부 이미지로 스크롤하거나 이미지 뷰어를 열어야 한다.
+첨부가 삭제됐거나 권한이 없으면 원본 경로나 존재 여부를 노출하지 않고 접근 거부
+또는 삭제된 자료 안내만 표시한다.
+
+## 9. 분석 파이프라인
+
+### 9.1 업로드 완료 처리
+
+1. 임시 업로드 파일의 실제 형식과 크기를 검증한다.
+2. 디코딩 가능한 이미지인지 확인하고 픽셀 수 제한을 적용한다.
+3. EXIF 방향을 반영한 검색용 사본을 만든다.
+4. 원본 저장과 `attachments` 커밋을 완료한다.
+5. SHA-256을 계산해 `image_descriptions`를 idempotent upsert한다.
+6. 요청 응답은 이미지 분석을 기다리지 않고 정상 완료한다.
+7. 커밋 이후 영속 작업을 `pending`으로 등록한다.
+
+DB 트랜잭션이 rollback되면 분석 작업도 생성하지 않는다. 작업자가 원본 파일을
+읽지 못해도 첨부 레코드나 원본을 임의로 삭제하지 않는다.
+
+### 9.2 작업 획득
+
+여러 worker가 같은 작업을 처리하지 않도록 PostgreSQL의
+`FOR UPDATE SKIP LOCKED` 또는 기존 영속 RAG 작업 큐를 사용한다.
+
+```sql
+SELECT id
+FROM image_descriptions
+WHERE analysis_status IN ('pending', 'failed')
+  AND (next_retry_at IS NULL OR next_retry_at <= NOW())
+ORDER BY created_at
+FOR UPDATE SKIP LOCKED
+LIMIT 1;
+```
+
+획득 즉시 `processing`, `processing_started_at`, `worker_id`를 기록한다. 일정 시간
+이상 `processing`인 작업은 worker 장애로 간주해 lease 만료 후 다시 처리한다.
+
+### 9.3 안전한 이미지 전처리
+
+- 업로드 확장자만 믿지 않고 실제 MIME과 디코딩 결과를 검사한다.
+- 최대 파일 크기와 최대 픽셀 수를 별도로 제한해 decompression bomb를 방지한다.
+- 비전 입력은 긴 변 기준 약 1,400px의 JPEG/PNG 사본을 사용한다.
+- OCR 입력은 긴 변 기준 약 2,200px까지 허용한다.
+- 애니메이션 GIF는 기본적으로 첫 프레임만 분석하고 이를 메타데이터에 표시한다.
+- EXIF GPS와 불필요한 메타데이터는 비전 요청 사본에서 제거한다.
+- 임시 파일은 작업 성공·실패와 관계없이 정리한다.
+- 원본 이미지는 변경하거나 재압축하지 않는다.
+
+### 9.4 OCR
+
+현재와 같이 Tesseract `eng+kor`를 기본으로 사용하되 다음 정보를 함께 남긴다.
+
+- OCR 원문
+- OCR 엔진과 버전
+- 언어 설정
+- 처리 시간
+- 가능한 경우 평균 confidence
+
+문자가 거의 없는 일반 사진에서 OCR 결과가 무의미한 기호만 포함하면 정규화 단계에서
+검색용 텍스트에서는 제외하되 원본 OCR 결과는 보존할 수 있다.
+
+### 9.5 비전 설명 생성
+
+권장 시스템 프롬프트 원칙은 다음과 같다.
+
+```text
+당신은 RAG 검색용 이미지 분석기다. 이미지에서 직접 관찰할 수 있는 사실만
+한국어로 기술한다. 인물의 신원을 추정하거나 민감한 속성을 추정하지 않는다.
+보이는 문자, 숫자, 제품명, 모델명, 표지판은 원문 표기를 보존한다.
+흐리거나 가려져 확실하지 않은 내용은 uncertainties에 기록한다.
+보이지 않는 장소명, 브랜드, 사건이나 의도를 만들어내지 않는다.
+지정된 JSON 스키마 이외의 문장을 출력하지 않는다.
+```
+
+사용자 프롬프트에는 파일명, OCR 원문과 요구 JSON 스키마를 넣는다. OCR 텍스트는
+신뢰할 수 없는 데이터로 취급하며, 이미지 속 문구에 포함된 명령을 시스템 지시로
+실행하지 않도록 명시한다. 이는 이미지 기반 prompt injection을 막기 위한 조치다.
+
+### 9.6 결과 검증
+
+- JSON 파싱 및 필수 필드 타입 검사
+- 설명과 OCR 최대 길이 제한
+- 제어 문자와 비정상 반복 제거
+- `visible_text`와 OCR 원문의 차이는 보존하고 임의로 하나를 정답 처리하지 않음
+- 키워드 중 설명이나 OCR에 근거가 없는 항목 제거 또는 불확실성 표시
+- 빈 결과이면 OCR 전용 `partial_success` 성격으로 완료하고 인덱싱 가능
+- OCR과 설명이 모두 비어 있으면 `failed`로 두고 재시도
+
+## 10. DB 검색 및 RAG 반영
+
+### 10.1 PostgreSQL
+
+`search_documents`에는 다음 규칙으로 upsert한다.
+
+- `id`: `image_attachment:<attachment_id>`
+- `source_type`: `image_attachment`
+- `source_id`: `attachment_id`
+- `content`: `image_descriptions.search_content`
+- 원본 연결 및 권한 필드는 기준 설명 레코드와 동일하게 복사
+
+upsert 성공 후에만 `db_index_status=indexed`로 변경한다. 실패하면 설명 자체는
+`completed`로 보존하고 DB 인덱싱만 재시도한다.
+
+현재 `server/db.js`의 오래된 `search_documents.source_type` CHECK가 `post`,
+`comment`만 허용하는 환경이 있을 수 있으므로 정식 마이그레이션에서
+`image_attachment`를 반드시 포함하도록 제약조건을 통일해야 한다. 라우트별
+`CREATE TABLE IF NOT EXISTS`에 의존하지 않는다.
+
+### 10.2 LanceDB
+
+`server/rag_train.py`의 `ingest_image()`가 비전 모델을 직접 호출하지 않게 하고,
+Node 또는 DB에서 전달받은 다음 값을 인제스트하도록 변경한다.
+
+```json
+{
+  "description_id": "image_description:file_xxxx:v1",
+  "search_content": "[IMAGE_SUMMARY]...",
+  "analysis_json": {},
+  "attachment_id": "file_xxxx",
+  "post_id": "post_xxxx",
+  "comment_id": "",
+  "channel_id": "channel_xxxx",
+  "file_hash": "sha256:...",
+  "analysis_version": "image-rag-v1"
+}
+```
+
+기존 `describe_image_with_llm()`은 다음 용도로만 남긴다.
+
+- 통합 worker가 Python으로 구현될 경우 worker 내부 분석 adapter
+- 구버전 payload의 한시적 fallback
+- 운영자가 명시적으로 실행한 복구 재분석
+
+LanceDB upsert는 먼저 기존 `attachment_id`의 `image_attachment` 청크를 제거한 뒤
+같은 분석 버전의 신규 청크를 삽입한다. 새 청크 삽입이 실패하면 이전 인덱스를
+가능한 한 유지하거나 재시도 가능 상태로 남겨 검색 공백을 최소화한다.
+
+## 11. 권한과 개인 스페이스
+
+이미지 설명은 원본 이미지보다 넓은 범위에서 검색되면 안 된다. 설명 자체에도 원본
+이미지의 민감한 정보가 포함될 수 있으므로 DB 검색, 벡터 후보 검색, RAG 컨텍스트
+조립, 참고문헌 조회와 원본 열기 모든 단계에 동일한 권한을 적용한다.
+
+권한의 기준은 인덱스에 복사된 값이 아니라 요청 시점의 현재 DB 상태다.
+
+1. 사용자가 원본 게시글 또는 댓글의 채널에 접근 가능한지 확인한다.
+2. 사용자의 보안등급이 원본의 `security_level` 이상인지 확인한다.
+3. 스페이스가 개인 스페이스이면 현재 스페이스 관리자 본인인지 확인한다.
+4. `site_admin` 역할만으로 개인 스페이스를 검색하거나 열 수 없게 한다.
+5. 긴급 접근 기능을 별도로 제공하는 경우 명시적 승인과 감사 기록이 있는 요청에만
+   제한적으로 허용한다.
+
+채널 또는 스페이스 이동 시 설명을 다시 생성할 필요는 없지만 PostgreSQL과
+LanceDB의 범위 메타데이터를 갱신해야 한다. 갱신이 끝나기 전에는 이전 범위가 아닌
+더 엄격한 범위를 우선 적용하거나 해당 인덱스 결과를 일시 제외한다.
+
+파일 해시 기반 설명 캐시는 텍스트 생성 결과만 공유할 수 있다. 서로 다른 사용자의
+첨부 레코드, 권한 메타데이터, 검색 결과와 원본 링크를 합치면 안 된다.
+
+## 12. 생성·수정·이동·삭제 동기화
+
+| 이벤트 | 기준 데이터 | DB 검색 | LanceDB | 원본 |
+| --- | --- | --- | --- | --- |
+| 신규 업로드 | `pending` 생성 | 분석 후 upsert | 분석 후 upsert | 보존 |
+| 동일 첨부 재요청 | idempotency 확인 | 누락 시 복구 | 누락 시 복구 | 변경 없음 |
+| 파일 교체 | 새 hash/version 생성 | 최신 설명으로 교체 | 구 청크 삭제 후 재인제스트 | 새 파일 사용 |
+| 게시글/댓글 내용 수정 | 연결 ID 유지 | 메타데이터 갱신 | 필요 범위만 재인덱스 | 변경 없음 |
+| 채널/스페이스 이동 | ACL 스냅샷 갱신 | 즉시 갱신 | 즉시 갱신 또는 검색 제외 | 변경 없음 |
+| 첨부 연결 해제 | 참조 수 확인 | 불필요 참조 삭제 | 불필요 청크 삭제 | 참조가 있으면 보존 |
+| 최종 첨부 삭제 | soft delete | 문서 삭제 | 청크 삭제 | 보존정책 후 삭제 |
+| 프롬프트/모델 버전 상승 | 신규 버전 대기 | 성공 후 교체 | 성공 후 교체 | 변경 없음 |
+
+삭제 순서는 다음과 같이 처리한다.
+
+1. 원본 접근을 먼저 차단하거나 soft delete한다.
+2. `search_documents`의 `image_attachment:<attachment_id>`를 삭제한다.
+3. LanceDB의 해당 `attachment_id` 청크를 삭제한다.
+4. `image_descriptions`를 `deleted`로 표시하거나 보존정책에 따라 삭제한다.
+5. 모든 참조가 없고 보존기간이 끝난 경우에만 실제 이미지 파일을 삭제한다.
+
+인덱스 삭제가 실패해도 검색 권한 검사에서 삭제된 원본의 결과를 반드시 제외해야
+한다. 이후 정리 worker가 재시도한다.
+
+## 13. 오류 처리와 재시도
+
+오류는 다음처럼 분류한다.
+
+| 오류 | 처리 |
+| --- | --- |
+| 이미지 디코딩 불가 | 재시도하지 않고 실패, 원본 보존 |
+| 파일 일시 접근 실패 | 지수 backoff 재시도 |
+| OCR timeout | 비전 분석을 계속하거나 재시도 |
+| 비전 서버 연결/5xx | 지수 backoff 재시도 |
+| 비전 인증/설정 오류 | 보존 후 운영 알림, 설정 수정 뒤 재시도 |
+| JSON 형식 오류 | 1회 형식 교정 후 OCR fallback |
+| DB 인덱스 실패 | 설명 보존, DB 단계만 재시도 |
+| RAG 인덱스 실패 | 설명과 DB 인덱스 보존, RAG 단계만 재시도 |
+| 원본 삭제 확인 | 인덱스 정리 후 종료 |
+
+권장 재시도 간격은 1분, 5분, 30분, 2시간, 12시간이며 최대 횟수를 넘으면
+`failed`로 유지한다. 운영자가 원인을 해결한 뒤 수동 재시도할 수 있어야 한다.
+
+서버 재시작 시 다음 작업을 자동 복구한다.
+
+- lease가 만료된 `processing` 작업을 `pending`으로 되돌림
+- `completed`이지만 DB 또는 RAG 상태가 `indexed`가 아닌 작업 재개
+- 원본이 삭제된 작업의 잔여 인덱스 정리
+
+## 14. 설정
+
+권장 `config.json` 구조는 다음과 같다.
+
+```json
+{
+  "rag": {
+    "image_description": {
+      "enabled": true,
+      "provider": "ollama",
+      "model": "gemma4:e4b",
+      "fallback_to_ollama": true,
+      "ocr_enabled": true,
+      "ocr_languages": "eng+kor",
+      "prompt_version": "image-description-ko-v1",
+      "schema_version": 1,
+      "max_image_bytes": 20971520,
+      "max_pixels": 40000000,
+      "vision_max_side": 1400,
+      "ocr_max_side": 2200,
+      "vision_timeout_ms": 90000,
+      "ocr_timeout_ms": 30000,
+      "worker_concurrency": 1,
+      "lease_timeout_ms": 600000,
+      "stale_recovery_interval_ms": 60000,
+      "max_attempts": 5,
+      "backfill_batch_size": 200,
+      "upload_priority": 100,
+      "backfill_priority": 0,
+      "store_raw_model_response": false
+    }
+  }
+}
+```
+
+기존 `EASYDOC_IMAGE_VISION_ENRICH`, `EASYDOC_OCR_MODEL`은 전환 기간에 호환하되
+설정 우선순위를 한 모듈에서 결정한다. 권장 우선순위는 환경변수, `config.json`,
+안전한 기본값 순이다.
+
+신규 업로드와 명시적 재시도는 기본 우선순위 100, 과거 이미지 backfill은 0으로
+등록한다. 같은 우선순위 안에서는 오래 기다린 작업부터 처리한다.
+`worker_concurrency`는 실제 동시 실행 상한이며 1~4 범위로 제한된다. GPU 메모리를
+확인한 뒤 단계적으로 높이고, `stale_recovery_interval_ms`마다 lease 제한을 넘긴
+`processing` 작업을 `pending`으로 되돌린다.
+
+GPU를 사용하는 비전 분석은 기존 GPU 스케줄링 정책과 같은 큐 또는 세마포어를
+사용한다. 여러 업로드가 동시에 발생해도 모델 인스턴스를 무제한 호출하지 않는다.
+
+## 15. 코드 변경 대상
+
+### 15.1 신규 모듈 권장안
+
+- `server/image-rag/schema.js`
+  - `image_descriptions`, `image_analysis_attempts` 정식 마이그레이션
+- `server/image-rag/ImageAnalysisService.js`
+  - 이미지 검증, 전처리, OCR, 비전 호출, 결과 검증
+- `server/image-rag/ImageAnalysisRepository.js`
+  - 기준 설명과 처리 상태의 원자적 변경
+- `server/image-rag/ImageAnalysisWorker.js`
+  - 작업 획득, lease, 재시도, DB/RAG 단계별 동기화
+- `server/image-rag/imagePrompt.js`
+  - 버전이 있는 프롬프트와 JSON schema
+- `server/image-rag/imageDescriptionFormatter.js`
+  - 구조화 결과를 공통 `search_content`로 변환
+
+### 15.2 기존 파일 변경
+
+- `server/routes/posts.js`
+  - 직접 OCR/비전 호출 대신 첨부 커밋 후 영속 분석 작업 enqueue
+  - 기존 `indexImageAttachmentsForSearchAsync()`는 전환 기간 fallback으로 유지
+- `server/rag.js`
+  - 게시글/댓글 payload에 이미 생성된 `description_id`, `search_content` 전달
+  - 첨부 단위 RAG 삭제·upsert 함수 추가
+- `server/rag_train.py`
+  - `ingest_image()`가 기준 설명을 우선 사용
+  - 신규 payload에서는 비전 모델 재호출 금지
+  - `attachment_id` 기준 idempotent 청크 생성
+- `server/routes/rag.js`
+  - 이미지 참고문헌의 원본 연결과 현재 ACL 재검증 유지
+  - 절대 경로 대신 `attachment_id` 사용
+- `server/search/PostSearchService.js`
+  - `image_attachment` 검색과 권한 조건 유지
+  - 정식 스키마 마이그레이션을 기준으로 사용
+- `server/query/repository/PostRepository.js`
+  - 이미지 의도 질의의 `image_attachment` 후보 유지
+- `src/components/SearchResultsArea.jsx`
+  - 이미지 결과 표시, 캡션, 원본 이미지 이동과 삭제 상태 처리
+- `server/db.js` 또는 정식 스키마 모듈
+  - `search_documents` CHECK 제약과 이미지 설명 테이블을 일관되게 마이그레이션
+
+## 16. 내부 API 및 관리 기능
+
+일반 사용자는 업로드만 하면 자동으로 처리되므로 별도 API를 직접 호출하지 않는다.
+운영 및 UI에는 다음 기능을 둘 수 있다.
+
+```text
+GET    /api/attachments/:attachmentId/image-description
+POST   /api/attachments/:attachmentId/image-description/retry
+POST   /api/attachments/:attachmentId/image-description/reindex
+PUT    /api/attachments/:attachmentId/image-description
+DELETE /api/attachments/:attachmentId/image-description
+```
+
+- `GET`: 원본 이미지 열람 권한이 있는 사용자만 조회
+- `retry`: 실패 작업 재시도. 소유자 또는 관리 권한 필요
+- `reindex`: 설명을 다시 생성하지 않고 DB/RAG 인덱스만 복구
+- `PUT`: 사용자 보정 설명을 지원할 경우 적용. 편집자와 시각을 감사 기록
+- `DELETE`: 원본 첨부 삭제 흐름 내부에서 사용하며 인덱스만 고아로 남기지 않음
+
+사용자가 AI 설명을 편집할 수 있게 한다면 `ai_analysis_json`과
+`effective_search_content`를 분리한다. 모델 재분석이 사용자가 보정한 내용을
+자동으로 덮어쓰면 안 된다.
+
+관리 화면에는 최소 다음 지표를 제공한다.
+
+- 대기, 처리 중, 완료, 실패 작업 수
+- DB 인덱스와 RAG 인덱스 불일치 수
+- 평균 및 p95 분석 시간
+- 모델별 성공률과 fallback 비율
+- OCR/비전 timeout 수
+- 재시도 횟수와 마지막 오류
+- 프롬프트 및 분석 버전별 문서 수
+
+## 17. 검색 동작 예시
+
+예시 이미지가 서울역 지하철 승강장이라면 다음 질문에서 원본 이미지가 검색되어야
+한다.
+
+- `서울역 승강장 사진 찾아줘`
+- `스크린도어가 길게 설치된 지하철 사진`
+- `6-3 표시가 있는 이미지`
+- `노란 점자블록과 디지털 광고 화면이 있는 장소`
+- `지하철 안전시설 이미지 보여줘`
+
+검색 결과는 다음과 같이 표시한다.
+
+```text
+[이미지] station.jpg
+서울역 지하철 승강장과 플랫폼 스크린도어를 촬영한 이미지
+게시글: ... / 채널: ...
+```
+
+사용자가 결과를 선택하면 `attachment_id`가 속한 게시글 또는 댓글을 열고 해당
+이미지를 강조한다.
+
+## 18. 테스트 계획
+
+### 18.1 단위 테스트
+
+- 이미지 MIME/확장자 및 픽셀 제한 검증
+- 구조화 JSON 파싱과 잘못된 응답 fallback
+- OCR 정규화와 최대 길이 처리
+- 표준 `search_content` 생성
+- idempotency 키 생성
+- 재시도 시간 계산
+- 삭제 및 권한 메타데이터 생성
+- 사용자 보정 설명 우선순위
+
+### 18.2 통합 테스트
+
+1. 게시글 이미지 업로드 후 `image_descriptions=completed` 확인
+2. `search_documents`에 `image_attachment:<id>` 생성 확인
+3. LanceDB에 같은 `description_id`와 `attachment_id` 청크 확인
+4. OCR 문자, 사물과 장소를 각각 검색해 같은 이미지가 반환되는지 확인
+5. 결과 선택 시 원본 게시글·댓글의 해당 이미지로 이동하는지 확인
+6. 이미지 교체 후 이전 설명이 검색되지 않는지 확인
+7. 첨부 삭제 후 DB와 RAG에서 결과가 사라지는지 확인
+8. 서버 재시작 후 중단된 작업이 재개되는지 확인
+9. 비전 서버 중단 후 재시도하고 복구 뒤 완료되는지 확인
+10. 같은 이미지를 여러 위치에 올렸을 때 설명 캐시는 재사용하되 권한이 섞이지 않는지
+    확인
+
+### 18.3 권한 테스트
+
+- 채널 비회원에게 설명, 검색 결과와 원본이 모두 노출되지 않아야 한다.
+- 낮은 보안등급 사용자는 높은 보안등급 이미지 설명을 검색할 수 없어야 한다.
+- 개인 스페이스 이미지는 스페이스 관리자 본인만 검색·조회할 수 있어야 한다.
+- `site_admin`도 일반 역할만으로 다른 사람의 개인 스페이스 이미지를 볼 수 없어야
+  한다.
+- 긴급 접근이 있다면 승인 범위, 만료 시각과 감사 로그가 남아야 한다.
+- 채널 이동 중 이전 권한 사용자가 캐시를 통해 설명을 계속 볼 수 없어야 한다.
+
+### 18.4 품질 평가
+
+대표 이미지 세트를 별도로 만든다.
+
+- 일반 사진: 실내, 실외, 사람, 장비, 차량
+- 문자가 많은 이미지: 간판, 명함, 제품 라벨, 화면 캡처
+- 업무 문서 이미지: 표, 도면, 영수증, 계약서 스캔
+- 저품질 이미지: 흐림, 회전, 저조도, 일부 가림
+- 안전 검증: 개인정보, prompt injection 문구, 매우 큰 이미지, 손상 파일
+
+각 이미지에 정답 검색어를 5~10개 지정하고 top-3/top-5 hit rate를 측정한다.
+기존 방식과 통합 방식의 검색률, 처리 시간, GPU 사용량과 실패율을 비교한다.
+
+## 19. 기존 데이터 마이그레이션
+
+기존 `search_documents.source_type=image_attachment`와 LanceDB 이미지 청크를 즉시
+삭제하지 않는다.
+
+1. 정식 스키마를 배포한다.
+2. 신규 업로드부터 통합 파이프라인을 shadow 또는 활성 모드로 처리한다.
+3. 기존 `search_documents`에서 `attachment_id` 목록을 읽어 backfill 작업을 만든다.
+4. 원본 파일 존재, 첨부 상태와 현재 권한을 확인한다.
+5. 기존 설명이 충분하고 파일 해시를 확인할 수 있으면 기준 데이터로 가져온다.
+6. 설명이 없거나 구버전이면 낮은 우선순위로 재분석한다.
+7. 신규 DB/RAG 인덱스 성공 후 기존 청크를 교체한다.
+8. 고아 인덱스는 원본 부재가 확인된 경우에만 정리한다.
+
+대량 재분석은 운영 시간에 한꺼번에 실행하지 않는다. GPU 큐 길이, API 비용,
+디스크 사용량과 검색 응답 시간을 감시하며 배치 크기와 동시성을 제한한다.
+
+## 20. 단계별 구현 순서
+
+### 1단계: 스키마와 기준 데이터
+
+- `image_descriptions`, 선택적으로 `image_analysis_attempts` 추가
+- `search_documents` 제약조건 정식 통일
+- 첨부 ID, hash, 분석 버전 idempotency 구현
+- 기존 기능 플래그는 유지
+
+### 2단계: 공통 분석 서비스
+
+- 이미지 안전 검증 및 전처리 분리
+- OCR, 비전 provider adapter, 구조화 응답 검증 구현
+- 표준 검색 텍스트 formatter 구현
+- 영속 worker, lease, 재시도와 상태 전이 구현
+
+### 3단계: DB 검색 통합
+
+- `posts.js`의 fire-and-forget 분석을 enqueue 방식으로 교체
+- 기준 설명에서 `search_documents`를 upsert
+- 삭제, 이미지 교체, 채널 이동 동기화
+
+### 4단계: LanceDB 통합
+
+- `rag_train.py`가 기준 설명을 받도록 payload 확장
+- 신규 payload에서 중복 비전 호출 제거
+- 첨부 단위 삭제 및 idempotent upsert
+- DB/RAG 단계별 복구 구현
+
+### 5단계: 검색 UI와 운영 기능
+
+- 이미지 검색 결과에 캡션 및 원본 링크 표시
+- 처리 상태, 수동 재시도, 인덱스 복구 기능
+- 필요 시 사용자 설명 보정 기능과 감사 로그
+
+### 6단계: 기존 데이터 전환
+
+- shadow 품질 비교
+- 기존 이미지 backfill
+- 검색 회귀 및 ACL 침투 테스트
+- 중복 구 경로 비활성화
+
+## 21. 배포와 롤백
+
+기능 플래그를 다음처럼 분리한다.
+
+- `image_description.enabled`: 신규 분석 생성
+- `image_description.use_canonical_for_db`: DB가 기준 설명 사용
+- `image_description.use_canonical_for_rag`: RAG가 기준 설명 사용
+- `image_description.legacy_fallback_enabled`: 구 분석 경로 fallback
+
+배포는 `스키마 → shadow 생성 → DB 전환 → RAG 전환 → 기존 데이터 backfill → 구
+경로 중지` 순서로 진행한다.
+
+롤백 시에도 `image_descriptions`와 원본 이미지를 삭제하지 않는다. 소비 경로만 기존
+방식으로 되돌린다. 스키마는 하위 호환되게 유지하고, 문제를 해결한 뒤 누락된 DB와
+RAG 인덱스를 재생성한다.
+
+## 22. 완료 기준
+
+다음 조건을 모두 만족하면 Image2RAG 구현이 완료된 것으로 본다.
+
+- 이미지 한 건당 비전 설명이 원칙적으로 한 번만 생성된다.
+- DB 검색과 RAG가 동일한 `description_id` 및 표준 설명을 사용한다.
+- 이미지의 문자, 사물, 장소와 상황으로 검색할 수 있다.
+- 검색 결과가 유효한 `attachment_id`를 통해 원본으로 연결된다.
+- 서버 재시작과 일시적인 OCR·비전·DB·RAG 장애 후 자동 복구된다.
+- 교체·이동·삭제 시 DB와 RAG의 인덱스가 동기화된다.
+- 고아 인덱스가 존재해도 삭제되거나 권한 없는 원본은 검색 결과에서 제외된다.
+- 개인 스페이스를 포함한 모든 기존 ACL과 보안등급 정책을 통과한다.
+- 중복 이미지가 서로 다른 사용자의 권한이나 원본 링크를 공유하지 않는다.
+- 운영자가 처리 상태, 실패 원인과 재시도 결과를 확인할 수 있다.
+
+
+## 23. 구현 결과 (2026-09-02)
+
+이 명세를 기준으로 1차 구현을 완료했다.
+
+- `server/image-rag/`: 설정, 구조화 formatter, 안전 전처리, OCR·비전 분석, 영속 작업 큐, 재시도, DB/RAG 동기화 모듈
+- `server/routes/imageRag.js`: 원본 ACL을 재사용하는 상태 조회, 재분석, 재인덱싱 API
+- `server/routes/posts.js`: 게시글·댓글 생성/수정 시 큐 등록, 실제 이미지 삭제 시 인덱스 정리
+- `server/folder/ragTrainer.js`, `server/routes/folderDatasets.js`: 폴더 이미지 큐 등록 및 삭제 동기화
+- `server/rag_train.py`: canonical `search_content` 우선 사용, `attachment_id` 연결, 분석 prompt 버전 기록
+- `server/schema.sql`, `server/db.js`: 기준 설명과 시도 이력 스키마 자동 적용
+- `config.json`: 모델, OCR, 크기 제한, timeout, lease, 재시도, backfill 기능 플래그
+
+삭제 작업은 예외적으로 `image_descriptions.attachment_id`에 물리 FK를 두지 않는다.
+첨부 행이 먼저 삭제되더라도 tombstone을 남겨 LanceDB 삭제가 성공할 때까지 재시도하기
+위한 설계다. 일반 조회는 반드시 원본 attachment ACL을 먼저 확인하므로 tombstone 자체가
+사용자 검색 결과에 노출되지는 않는다.
+
+LanceDB schema v3에서는 `attachment_id`가 원본과 기준 설명의 안정적인 연결 키다.
+`description_id`는 `image-description:{attachment_id}`로 결정적으로 계산하며,
+`prompt_version`은 기존 Arrow struct와 호환되는 `metadata.parser_version`에 기록한다.
+
+검증 항목:
+
+- JavaScript 전체 관련 파일 `node --check`
+- Python trainer `py_compile`
+- 표준 JSON/검색 텍스트/backoff/config 단위 테스트
+- canonical RAG·삭제 tombstone·API ACL 정적 회귀 테스트
+- 개인 스페이스 및 긴급 접근 ACL 회귀 테스트
+
+
+## 24. 게시글·댓글 통합 학습 완료 상태 (2026-09-02)
+
+화면의 `학습완료`는 게시글 또는 댓글 본문만 LanceDB에 등록되었다는 뜻으로 사용하지 않는다. 이미지가 첨부된 원본의 전체 학습 상태는 다음 조건을 모두 만족할 때만 `completed`가 된다.
+
+```text
+게시글 또는 댓글 본문 RAG 완료
+AND 모든 현재 첨부 이미지의 analysis_status = completed
+AND 모든 현재 첨부 이미지의 db_index_status = indexed
+AND 모든 현재 첨부 이미지의 rag_index_status = indexed
+→ 학습완료
+```
+
+구현 방식은 다음과 같다.
+
+- `rag_training_jobs.body_status`에 본문 RAG 상태를 별도로 보존한다.
+- `rag_training_jobs.status`는 본문과 현재 첨부 이미지 전체를 합산한 사용자 표시 상태다.
+- 게시글은 `posts.attachments_1`~`attachments_10`, 댓글은 `comments.attachments`를 기준으로 현재 연결된 이미지만 집계한다. 제거되었거나 댓글에만 속한 이미지는 게시글 집계에 섞지 않는다.
+- `image_descriptions` 행이 아직 만들어지지 않은 첨부 이미지도 미완료로 계산하므로 큐 등록 시점의 경쟁 조건으로 완료가 먼저 표시되지 않는다.
+- Image2RAG worker는 분석, DB 인덱싱, RAG 인덱싱 성공 또는 실패 뒤 원본 게시글·댓글의 통합 상태를 즉시 다시 계산한다. 서버 재시작이나 이벤트 누락에 대비해 게시글·댓글 조회 때도 같은 집계를 재검증한다.
+- 재시도 가능한 이미지 실패는 `training`으로 유지한다. 최대 재시도 횟수를 소진한 이미지가 있으면 `failed`, 제한 시간을 넘으면 `timed_out`으로 표시한다. 이후 복구되어 모든 완료 조건을 만족하면 `completed`로 전환한다.
+- 이미지가 없는 게시글·댓글은 본문 RAG가 완료되면 기존과 동일하게 `completed`가 된다.
+- `waitForTraining` 응답도 고정된 `completed`를 반환하지 않고 같은 통합 상태를 반환한다.
+
+회귀 테스트는 이미지 없음, 일부 이미지 미완료, 모든 이미지 완료, 본문 미완료, 재시도 소진 실패, 시간초과 후 복구와 worker 상태 갱신을 포함한다.

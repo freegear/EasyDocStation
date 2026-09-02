@@ -96,10 +96,6 @@ def build_acl_clause(meta_subfields, allowed_channel_ids, scope_ctx):
         sec = int(scope_ctx.get("security_level", 0) or 0)
         is_admin = bool(scope_ctx.get("is_site_admin"))
 
-        if is_admin:
-            # site_admin 은 모든 폴더 청크에 접근한다(보안등급 무시).
-            parts.append("metadata.access_scope <> ''")
-            return " OR ".join(parts) if parts else None
 
         scope_or = ["metadata.access_scope = 'all'"]
         if uid:

@@ -10,6 +10,7 @@ const requireAuth = require('../middleware/auth')
 const { getDatabasePath } = require('../databasePaths')
 const { getPythonExecutable } = require('../pythonRuntime')
 const { getAccessibleChannelIds } = require('../lib/channelAccess')
+const { getSearchAccessibleSpaceIds } = require('../lib/spaceAccess')
 const { resolveQueryChannelScope } = require('../lib/channelMappingIndex')
 const { getCachedJson, setCachedJson, hashPayload } = require('../aiCache')
 const aiMetrics = require('../aiMetrics')
@@ -94,21 +95,6 @@ function writeConfig(config) {
 function buildPgInClause(values = [], startIndex = 1) {
   const placeholders = values.map((_, i) => `$${startIndex + i}`).join(', ')
   return `(${placeholders})`
-}
-
-// 폴더 데이터셋 팀 범위 판정용: 사용자가 속한 팀 ID 목록
-async function getUserTeamIds(userId) {
-  if (!userId) return []
-  try {
-    const { rows } = await db.query(
-      `SELECT team_id FROM team_members WHERE user_id=$1
-         UNION SELECT team_id FROM team_admins WHERE user_id=$1`,
-      [userId],
-    )
-    return rows.map(r => r.team_id)
-  } catch (_) {
-    return []
-  }
 }
 
 function makeDatasetId() {
@@ -1360,13 +1346,14 @@ function normalizeIdSet(values = []) {
   )
 }
 
-function normalizePriorityContext(raw = {}, allowedChannelIds = []) {
+function normalizePriorityContext(raw = {}, allowedChannelIds = [], allowedTeamIds = []) {
   const allowedSet = normalizeIdSet(allowedChannelIds)
+  const allowedTeamSet = normalizeIdSet(allowedTeamIds)
   const currentChannelId = String(raw.current_channel_id || raw.currentChannelId || '').trim()
   const currentTeamId = String(raw.current_team_id || raw.currentTeamId || '').trim()
   return {
     currentChannelId: currentChannelId && allowedSet.has(currentChannelId) ? currentChannelId : '',
-    currentTeamId,
+    currentTeamId: currentTeamId && allowedTeamSet.has(currentTeamId) ? currentTeamId : '',
   }
 }
 
@@ -1376,9 +1363,8 @@ function userCanAccessFolderChunk(meta = {}, scopeCtx = null) {
   const scope = String(meta.access_scope || '').trim()
   if (!scope || !scopeCtx) return false
   const ctx = scopeCtx || {}
-  if (ctx.is_site_admin) return true
   const sec = Number(meta.effective_security_level || 0)
-  if (sec > Number(ctx.security_level || 0)) return false
+  if (!ctx.is_site_admin && sec > Number(ctx.security_level || 0)) return false
   if (scope === 'all') return true
   if (scope === 'personal') {
     return String(meta.owner_id || '') === String(ctx.user_id || '') && !!ctx.user_id
@@ -1894,6 +1880,7 @@ function buildTemporalFallbackContextFromReferences(references = []) {
 async function enrichReferences(results) {
   function classifyRefType(rawType = '') {
     const t = String(rawType || '').toLowerCase()
+    if (t === 'mail_note') return 'mail_note'
     if (t.includes('comment')) return 'comment'
     if (t === 'amount_summary') return 'amount'
     if (t === 'table') return 'table'
@@ -1915,12 +1902,13 @@ async function enrichReferences(results) {
       source,
       file_name,
       page_number,
+      relative_path,
     } = r.metadata
     if (!post_id || post_id === '') continue
     const key = `${post_id}:${type}:${attachment_id || ''}:${comment_id || ''}:${page_number || 0}`
     if (seen.has(key)) continue
     seen.add(key)
-    unique.push({ r, post_id, type, metaChannelId, attachment_id, comment_id, source, file_name, page_number })
+    unique.push({ r, post_id, type, metaChannelId, attachment_id, comment_id, source, file_name, page_number, relative_path })
   }
 
   if (unique.length === 0) return []
@@ -2001,7 +1989,7 @@ async function enrichReferences(results) {
     }
   }
 
-  const refs = unique.map(({ r, post_id, type, metaChannelId, attachment_id, comment_id, source, file_name, page_number }) => {
+  const refs = unique.map(({ r, post_id, type, metaChannelId, attachment_id, comment_id, source, file_name, page_number, relative_path }) => {
     const postId = String(post_id || '')
     const attachmentInfo = attachment_id ? attachmentMap.get(String(attachment_id)) : null
     const channelId = (
@@ -2027,6 +2015,16 @@ async function enrichReferences(results) {
       source: source || file_name || '',
       file_name: file_name || source || '',
       score: asNum(r.score),
+    }
+
+    if (mappedType === 'mail_note') {
+      const preview = (r.text || '').slice(0, 80).replace(/\n/g, ' ')
+      return {
+        ...baseRef,
+        type: 'mail_note',
+        message_id: relative_path || '',
+        label: `${fileLabel || '메일 메모'} · ${preview}${(r.text?.length ?? 0) > 80 ? '…' : ''}`,
+      }
     }
 
     if (mappedType === 'comment') {
@@ -2112,11 +2110,16 @@ router.post('/search', requireAuth, async (req, res) => {
     // 대화형(검색) 진행 중임을 GPU 게이트에 알린다 → 폴더 학습이 양보한다.
     // fire-and-forget: 실패해도 검색 진행에 영향 없음(GpuScheduling.md 1단계).
     gpuGate.markInteractiveBusy()
-    const allowedChannelIds = await getAccessibleChannelIds(db, req.user)
-    if (allowedChannelIds.length === 0) {
-      return res.json({ context: '', references: [] })
-    }
-    const priorityContext = await resolvePriorityContext(normalizePriorityContext(req.body, allowedChannelIds))
+    const [allowedChannelIds, allowedTeamIds] = await Promise.all([
+      getAccessibleChannelIds(db, req.user),
+      getSearchAccessibleSpaceIds(db, req.user, {
+        auditAction: 'rag_search',
+        details: { route: '/api/rag/search' },
+      }),
+    ])
+    const priorityContext = await resolvePriorityContext(
+      normalizePriorityContext(req.body, allowedChannelIds, allowedTeamIds),
+    )
     const amountQuery = isAmountQuery(query)
     const commandQuery = isCommandQuery(query)
     const temporalQuery = isTemporalQuery(query)
@@ -2164,9 +2167,6 @@ router.post('/search', requireAuth, async (req, res) => {
     const searchChannelIds = filteredChannelId
       ? channelScope.channelIds
       : (channelScope.channelIds.length > 0 ? channelScope.channelIds : allowedChannelIds)
-    if (searchChannelIds.length === 0) {
-      return res.json({ context: '', references: [] })
-    }
     const requestedLimit = Math.max(clientLimit, retrievalOptions.k)
     const effectiveRequestedLimit = commandQuery
       ? Math.max(requestedLimit, 8)
@@ -2206,7 +2206,7 @@ router.post('/search', requireAuth, async (req, res) => {
       // 활성 테이블에 스코프 필드가 없으면(rag_server) 무시되어 기존 동작을 보존한다.
       scope_context: {
         user_id: String(req.user?.id || ''),
-        team_ids: await getUserTeamIds(req.user?.id),
+        team_ids: allowedTeamIds,
         accessible_channel_ids: allowedChannelIds,
         security_level: Number(req.user?.security_level || 0),
         is_site_admin: req.user?.role === 'site_admin',
@@ -2344,9 +2344,9 @@ router.post('/search', requireAuth, async (req, res) => {
     // init 레코드 제외
     let validResults = mergeUniqueResults(results.filter(r => r.text !== '__init__'))
     validResults = applyScopedDistanceCeiling(validResults, ragScope, retrievalOptions.filter)
-    validResults = applyChannelAccessFilter(validResults, searchChannelIds)
+    validResults = applyChannelAccessFilter(validResults, searchChannelIds, payload.scope_context)
     validResults = applyMetadataFilter(validResults, retrievalOptions.filter)
-    validResults = applyChannelAccessFilter(validResults, searchChannelIds)
+    validResults = applyChannelAccessFilter(validResults, searchChannelIds, payload.scope_context)
     validResults = applySimilarityScoreThreshold(validResults, retrievalOptions.searchType === 'similarity_score_threshold' ? retrievalOptions.scoreThreshold : 0)
     if (validResults.length === 0) {
       if (isEvidenceGatedScope(ragScope)) {

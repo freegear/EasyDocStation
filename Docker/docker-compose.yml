@@ -1,0 +1,67 @@
+name: easydocstation
+services:
+  app:
+    image: easydocstation:${EASYSTATION_TAG:-latest}
+    build: {context: .., dockerfile: Docker/Dockerfile}
+    restart: unless-stopped
+    env_file: [./.env.container]
+    environment:
+      NODE_ENV: production
+      PORT: "3001"
+      SERVE_FRONTEND_DIST: "1"
+      CLIENT_ORIGIN: ${CLIENT_ORIGIN}
+      PGHOST: postgres
+      PGPORT: "5432"
+      PGDATABASE: ${POSTGRES_DB}
+      PGUSER: ${POSTGRES_USER}
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      CASSANDRA_CONTACT_POINTS: cassandra
+      CASSANDRA_LOCAL_DC: datacenter1
+      CASSANDRA_KEYSPACE: ${CASSANDRA_KEYSPACE:-easydocstation}
+      CASSANDRA_REQUIRED: "1"
+      REDIS_URL: redis://redis:6379
+      OLLAMA_HOST: ollama
+      OLLAMA_PORT: "11434"
+      EASYDOC_STATION_FOLDER: /opt/easydocstation
+      EASYDOC_DB_BASE: /data
+      EASYDOC_LANCEDB_PATH: /data/Database/LanceDB
+      EASYDOC_FILE_TRAINING_PATH: /data/Database/ObjectFile/FileTrainingData
+      PYTHON_BIN: /opt/easydocstation/venv/bin/python3
+    ports: ["${APP_BIND_IP:-0.0.0.0}:${APP_PORT:-3001}:3001"]
+    volumes:
+      - {type: bind, source: "${EASYSTATION_DATA_DIR}", target: /data}
+      - {type: bind, source: "${EASYSTATION_CONFIG_FILE}", target: /opt/easydocstation/config.json}
+    depends_on:
+      postgres: {condition: service_healthy}
+      cassandra: {condition: service_healthy}
+      redis: {condition: service_healthy}
+  postgres:
+    image: postgres:16-bookworm
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: "${POSTGRES_USER}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
+      POSTGRES_DB: "${POSTGRES_DB}"
+    volumes: ["${EASYSTATION_STORAGE_DIR}/postgres:/var/lib/postgresql/data"]
+    healthcheck: {test: ["CMD-SHELL","pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"], interval: 10s, timeout: 5s, retries: 20}
+  cassandra:
+    image: cassandra:5.0
+    restart: unless-stopped
+    environment:
+      CASSANDRA_CLUSTER_NAME: EasyDocStation
+      CASSANDRA_DC: datacenter1
+      CASSANDRA_ENDPOINT_SNITCH: GossipingPropertyFileSnitch
+      MAX_HEAP_SIZE: "${CASSANDRA_MAX_HEAP:-2G}"
+      HEAP_NEWSIZE: "${CASSANDRA_HEAP_NEWSIZE:-400M}"
+    volumes: ["${EASYSTATION_STORAGE_DIR}/cassandra:/var/lib/cassandra"]
+    healthcheck: {test: ["CMD-SHELL","cqlsh 127.0.0.1 9042 -e 'DESCRIBE CLUSTER'"], interval: 15s, timeout: 10s, retries: 30, start_period: 90s}
+  redis:
+    image: redis:7-bookworm
+    restart: unless-stopped
+    command: ["redis-server","--appendonly","yes","--maxmemory","${REDIS_MAXMEMORY:-4gb}","--maxmemory-policy","${REDIS_MAXMEMORY_POLICY:-allkeys-lru}"]
+    volumes: ["${EASYSTATION_STORAGE_DIR}/redis:/data"]
+    healthcheck: {test: ["CMD","redis-cli","ping"], interval: 10s, timeout: 5s, retries: 15}
+  ollama:
+    image: ollama/ollama:0.11.6
+    restart: unless-stopped
+    volumes: ["${EASYSTATION_STORAGE_DIR}/ollama:/root/.ollama"]

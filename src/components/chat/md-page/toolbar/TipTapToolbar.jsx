@@ -1,4 +1,13 @@
 import TextColorControl from './TextColorControl'
+import { toggleHeadingForSelectedLines } from './headingSelection'
+
+function insertCheckboxAtCursor(editor) {
+  if (!editor) return false
+  const chain = editor.chain().focus()
+  return editor.isActive('taskItem')
+    ? chain.splitListItem('taskItem').run()
+    : chain.toggleTaskList().run()
+}
 
 export default function TipTapToolbar({ editor, t, onInsertImage, onInsertToc, isUploadingImage = false }) {
   if (!editor) return null
@@ -28,13 +37,13 @@ export default function TipTapToolbar({ editor, t, onInsertImage, onInsertToc, i
       {btn(editor.isActive('strike'), () => editor.chain().focus().toggleStrike().run(), 'S̶', mdT.toolbarStrike || 'Strikethrough')}
       {btn(editor.isActive('code'), () => editor.chain().focus().toggleCode().run(), '<>', mdT.toolbarInlineCode || 'Inline code')}
       {sep('s1')}
-      {btn(editor.isActive('heading', { level: 1 }), () => editor.chain().focus().toggleHeading({ level: 1 }).run(), 'H1', mdT.toolbarHeading1 || 'Heading 1')}
-      {btn(editor.isActive('heading', { level: 2 }), () => editor.chain().focus().toggleHeading({ level: 2 }).run(), 'H2', mdT.toolbarHeading2 || 'Heading 2')}
-      {btn(editor.isActive('heading', { level: 3 }), () => editor.chain().focus().toggleHeading({ level: 3 }).run(), 'H3', mdT.toolbarHeading3 || 'Heading 3')}
+      {btn(editor.isActive('heading', { level: 1 }), () => toggleHeadingForSelectedLines(editor, 1), 'H1', mdT.toolbarHeading1 || 'Heading 1')}
+      {btn(editor.isActive('heading', { level: 2 }), () => toggleHeadingForSelectedLines(editor, 2), 'H2', mdT.toolbarHeading2 || 'Heading 2')}
+      {btn(editor.isActive('heading', { level: 3 }), () => toggleHeadingForSelectedLines(editor, 3), 'H3', mdT.toolbarHeading3 || 'Heading 3')}
       {sep('s2')}
       {btn(editor.isActive('bulletList'), () => editor.chain().focus().toggleBulletList().run(), mdT.toolbarBulletList || '• List', mdT.toolbarBulletListTitle || 'Bulleted list')}
       {btn(editor.isActive('orderedList'), () => editor.chain().focus().toggleOrderedList().run(), mdT.toolbarOrderedList || '1. List', mdT.toolbarOrderedListTitle || 'Numbered list')}
-      {btn(editor.isActive('taskList'), () => editor.chain().focus().toggleTaskList().run(), mdT.toolbarTaskList || '[ ] List', mdT.toolbarTaskListTitle || 'Checklist')}
+      {btn(false, () => insertCheckboxAtCursor(editor), mdT.toolbarCheckbox || '☐ Checkbox', mdT.toolbarCheckboxTitle || 'Insert checkbox at cursor')}
       {sep('s3')}
       {btn(false, onInsertToc, mdT.toolbarInsertToc || 'Insert TOC', mdT.toolbarInsertTocTitle || 'Insert table of contents')}
       {btn(editor.isActive('blockquote'), () => editor.chain().focus().toggleBlockquote().run(), mdT.toolbarQuote || '" Quote', mdT.toolbarQuoteTitle || 'Quote')}

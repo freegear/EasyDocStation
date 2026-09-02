@@ -1,0 +1,70 @@
+const test = require('node:test')
+const assert = require('node:assert/strict')
+const fs = require('fs')
+const path = require('path')
+const { isRetryableAnalysisError } = require('./ImageAnalysisWorker')
+
+const root = path.resolve(__dirname, '..')
+const read = relative => fs.readFileSync(path.join(root, relative), 'utf8')
+
+test('게시글과 댓글 이미지가 영속 Image2RAG 큐로 등록된다', () => {
+  const source = read('routes/posts.js')
+  assert.match(source, /enqueueImageAttachments\(jobs\)/)
+  assert.match(source, /indexImageAttachmentsForSearchAsync\(attachmentIds\.map/)
+  assert.match(source, /indexImageAttachmentsForSearchAsync\(safeAttachmentIds\.map/)
+})
+
+test('Python RAG는 canonical search_content를 우선하고 폴더 file_path를 허용한다', () => {
+  const source = read('rag_train.py')
+  assert.match(source, /canonical_content\s*=\s*str\(payload_info\.get\("search_content"\)/)
+  assert.match(source, /caption\s*=\s*canonical_content\s+or\s+describe_image_with_llm/)
+  assert.match(source, /fdoc\.get\("path"\)\s+or\s+fdoc\.get\("file_path"\)/)
+  assert.match(source, /meta\["parser_version"\].*prompt_version/)
+})
+
+test('삭제 tombstone은 attachment 행 삭제 뒤에도 RAG 재시도를 위해 보존된다', () => {
+  const schema = read('image-rag/schema.js')
+  const repository = read('image-rag/ImageAnalysisRepository.js')
+  assert.doesNotMatch(schema, /attachment_id\s+VARCHAR\(50\).*ON DELETE CASCADE/)
+  assert.match(schema, /DROP CONSTRAINT IF EXISTS image_descriptions_attachment_id_fkey/)
+  assert.match(repository, /analysis_status='deleted' AND rag_index_status IN \('pending','failed'\)/)
+  assert.match(repository, /markRagDeleteFailure/)
+})
+
+test('이미지 설명 API는 원본 첨부 ACL 확인 뒤 결과를 반환한다', () => {
+  const source = read('routes/imageRag.js')
+  const accessCheck = source.indexOf('canAccessAttachment(req.user, attachment)')
+  const resultRead = source.indexOf('getImageDescription(attachment.id)')
+  assert.ok(accessCheck >= 0)
+  assert.ok(resultRead > accessCheck)
+  assert.match(source, /folder\.access_scope === 'personal'.*folder\.owner_id/s)
+})
+
+test('신규 업로드는 backfill보다 높은 우선순위로 선점된다', () => {
+  const schema = read('image-rag/schema.js')
+  const repository = read('image-rag/ImageAnalysisRepository.js')
+  assert.match(schema, /queue_priority\s+INTEGER NOT NULL DEFAULT 0/)
+  assert.match(repository, /\$4, 'backfill'/)
+  assert.match(repository, /queue_priority DESC/)
+})
+
+test('일시 실패는 2시간마다 무제한 재시도하고 영구 오류는 중단한다', () => {
+  const repository = read('image-rag/ImageAnalysisRepository.js')
+  const worker = read('image-rag/ImageAnalysisWorker.js')
+  const formatter = read('image-rag/imageDescriptionFormatter.js')
+  assert.match(repository, /analysis_status='failed' AND retryable=TRUE/)
+  assert.doesNotMatch(repository, /attempt_count < /)
+  assert.match(worker, /PERMANENT_ANALYSIS_ERRORS/)
+  assert.match(formatter, /return 2 \* 60 \* 60_000/)
+  assert.equal(isRetryableAnalysisError({ code: 'IMAGE_VISION_TEMPORARY' }), true)
+  assert.equal(isRetryableAnalysisError({ code: 'ABORT_ERR' }), true)
+  assert.equal(isRetryableAnalysisError({ code: 'IMAGE_FILE_NOT_FOUND' }), false)
+  assert.equal(isRetryableAnalysisError({ code: 'IMAGE_DECODE_FAILED' }), false)
+})
+
+test('워커는 제한 병렬 처리와 주기적 stale 복구를 수행한다', () => {
+  const worker = read('image-rag/ImageAnalysisWorker.js')
+  assert.match(worker, /workerConcurrency - this\.active/)
+  assert.match(worker, /Promise\.allSettled\(tasks\)/)
+  assert.match(worker, /staleRecoveryIntervalMs/)
+})

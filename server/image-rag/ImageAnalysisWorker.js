@@ -1,0 +1,227 @@
+const fs = require('fs')
+const path = require('path')
+const os = require('os')
+const { randomUUID } = require('crypto')
+const { getDatabasePath } = require('../databasePaths')
+const { readAppConfig } = require('./config')
+
+const PERMANENT_ANALYSIS_ERRORS = new Set([
+  'IMAGE_FILE_NOT_FOUND',
+  'IMAGE_NOT_FILE',
+  'IMAGE_SIZE_LIMIT_EXCEEDED',
+  'IMAGE_PIXEL_LIMIT_EXCEEDED',
+  'IMAGE_DECODE_FAILED',
+  'IMAGE_PROVIDER_UNSUPPORTED',
+  'IMAGE_VISION_REQUEST_FAILED',
+])
+
+function isRetryableAnalysisError(error) {
+  const code = String(error && error.code || '').toUpperCase()
+  return !PERMANENT_ANALYSIS_ERRORS.has(code)
+}
+
+class ImageAnalysisWorker {
+  constructor({ repository, analysisService, config, logger = console } = {}) {
+    this.repository = repository
+    this.analysisService = analysisService
+    this.config = config
+    this.logger = logger
+    this.workerId = `${os.hostname()}:${process.pid}:${randomUUID().slice(0, 8)}`
+    this.running = false
+    this.stopping = false
+    this.timer = null
+    this.active = 0
+    this.storageBase = path.resolve(getDatabasePath(readAppConfig(), 'ObjectFile Path'))
+    this.lastBackfillAt = 0
+    this.lastRecoveryAt = 0
+  }
+
+  resolveStoragePath(storagePath) {
+    const raw = String(storagePath || '').trim()
+    if (!raw) return null
+    const resolved = path.resolve(this.storageBase, raw)
+    if (resolved !== this.storageBase && !resolved.startsWith(`${this.storageBase}${path.sep}`)) return null
+    return resolved
+  }
+
+  start() {
+    if (this.running || !this.config.enabled) return
+    this.running = true
+    this.stopping = false
+    this.schedule(250)
+  }
+
+  stop() {
+    this.stopping = true
+    this.running = false
+    if (this.timer) clearTimeout(this.timer)
+    this.timer = null
+  }
+
+  poke() {
+    if (!this.running || this.active > 0) return
+    if (this.timer) clearTimeout(this.timer)
+    this.schedule(0)
+  }
+
+  schedule(delay = this.config.workerIntervalMs) {
+    if (!this.running || this.stopping) return
+    this.timer = setTimeout(() => this.tick().catch(error => {
+      this.logger.error('[Image2RAG] worker tick 실패:', error.message)
+      this.schedule()
+    }), delay)
+    this.timer.unref?.()
+  }
+
+  async initialize() {
+    await this.repository.ensureSchema()
+    const recovered = await this.repository.recoverStale(this.config.leaseTimeoutMs)
+    this.lastRecoveryAt = Date.now()
+    const queued = await this.repository.enqueueBackfill(this.config, this.config.backfillBatchSize)
+    if (recovered || queued) this.logger.log(`[Image2RAG] 시작 복구: stale=${recovered}, backfill=${queued}`)
+  }
+
+  async tick() {
+    if (!this.running || this.stopping) return
+    if (!this.initialized) {
+      await this.initialize()
+      this.initialized = true
+    }
+    if (Date.now() - this.lastRecoveryAt >= this.config.staleRecoveryIntervalMs) {
+      this.lastRecoveryAt = Date.now()
+      const recovered = await this.repository.recoverStale(this.config.leaseTimeoutMs)
+      if (recovered) this.logger.log(`[Image2RAG] stale 작업 복구: ${recovered}`)
+    }
+
+    const tasks = []
+    const available = Math.max(0, this.config.workerConcurrency - this.active)
+    while (!this.stopping && tasks.length < available) {
+      let job = await this.repository.claimNext(this.workerId)
+      if (!job && Date.now() - this.lastBackfillAt > 60_000) {
+        this.lastBackfillAt = Date.now()
+        const queued = await this.repository.enqueueBackfill(this.config, this.config.backfillBatchSize)
+        if (queued > 0) job = await this.repository.claimNext(this.workerId)
+      }
+      if (!job) break
+      tasks.push(this.runJob(job))
+    }
+    await Promise.allSettled(tasks)
+    this.schedule(tasks.length > 0 ? 50 : this.config.workerIntervalMs)
+  }
+
+  async runJob(job) {
+    this.active += 1
+    try {
+      await this.process(job)
+    } finally {
+      this.active -= 1
+    }
+  }
+
+  async process(job) {
+    const startedAt = Date.now()
+    let stage = 'analysis'
+    let source = null
+    try {
+      source = await this.repository.getSource(job.attachment_id)
+      if (job.analysis_status === 'deleted' || !source || String(source.delete_status || 'active').toLowerCase() !== 'active') {
+        const deleted = await this.deleteAttachment(job.attachment_id)
+        await this.repository.finishAttempt(job, { status: deleted ? 'deleted' : 'delete_failed', startedAt })
+        return
+      }
+      const imagePath = this.resolveStoragePath(source.storage_path)
+      if (!imagePath || !fs.existsSync(imagePath)) {
+        const error = new Error('이미지 원본 파일을 찾을 수 없습니다.')
+        error.code = 'IMAGE_FILE_NOT_FOUND'
+        throw error
+      }
+      const scopeMetadata = await this.repository.updateSourceMetadata(job.id, source)
+
+      if (job.analysis_status !== 'completed' || !String(job.search_content || '').trim()) {
+        const result = await this.analysisService.analyze({ imagePath, fileName: source.filename || '' })
+        await this.repository.markAnalysisCompleted(job.id, result, this.config)
+        Object.assign(job, {
+          analysis_status: 'completed',
+          search_content: result.searchContent,
+          file_hash: result.fileHash,
+          summary: result.analysis.summary,
+          description: result.analysis.description,
+          caption: result.analysis.caption,
+          analysis_json: result.analysis,
+          model_provider: result.modelProvider,
+          model_name: result.modelName,
+        })
+      }
+
+      if (this.config.useCanonicalForDb && job.db_index_status !== 'indexed') {
+        stage = 'db'
+        await this.repository.upsertSearchDocument(job, source)
+        job.db_index_status = 'indexed'
+      } else if (!this.config.useCanonicalForDb) {
+        await this.repository.setIndexStatus(job.id, 'db', 'indexed')
+      }
+
+      if (this.config.useCanonicalForRag && job.rag_index_status !== 'indexed') {
+        stage = 'rag'
+        const { upsertImageDescriptionInRag } = require('./RagSync')
+        await upsertImageDescriptionInRag({
+          ...job,
+          path: imagePath,
+          file_name: source.filename || '',
+          post_id: source.post_id || job.post_id || '',
+          comment_id: source.comment_id || job.comment_id || '',
+          channel_id: source.channel_id || source.folder?.scope_channel_id || job.channel_id || '',
+          owner_id: source.folder?.owner_id ?? source.uploader_id ?? job.owner_id ?? '',
+          security_level: source.folder?.effective_security_level ?? source.source_security_level ?? job.security_level ?? 0,
+          scope_metadata: scopeMetadata,
+        })
+        await this.repository.setFolderTrainingStatus(source, 'completed')
+        await this.repository.setIndexStatus(job.id, 'rag', 'indexed')
+      } else if (!this.config.useCanonicalForRag) {
+        await this.repository.setIndexStatus(job.id, 'rag', 'indexed')
+      }
+
+      await this.repository.finishAttempt(job, {
+        status: 'completed', startedAt, provider: job.model_provider, modelName: job.model_name,
+      })
+      this.logger.log(`[Image2RAG] 완료: ${job.attachment_id} (${Date.now() - startedAt}ms)`)
+    } catch (error) {
+      if (stage === 'analysis') await this.repository.markFailure(job, error, isRetryableAnalysisError(error))
+      else await this.repository.setIndexStatus(job.id, stage, 'failed', error)
+      if (stage === 'rag') await this.repository.setFolderTrainingStatus(source, 'failed', error)
+      await this.repository.finishAttempt(job, {
+        status: `${stage}_failed`, startedAt, error, provider: job.model_provider, modelName: job.model_name,
+      })
+      this.logger.warn(`[Image2RAG] ${stage} 실패: ${job.attachment_id} ${error.message}`)
+    } finally {
+      await this.refreshOwnerTrainingStatus(job, source).catch(error => {
+        this.logger.warn(`[Image2RAG] 통합 학습 상태 갱신 실패: ${job.attachment_id} ${error.message}`)
+      })
+    }
+  }
+
+  async refreshOwnerTrainingStatus(job, source = null) {
+    const commentId = String(source?.comment_id || job?.comment_id || '').trim()
+    const postId = String(source?.post_id || job?.post_id || '').trim()
+    if (!commentId && !postId) return
+    const { refreshTrainingStatus } = require('../trainingStatus')
+    if (commentId) await refreshTrainingStatus('comment', commentId, { touch: true })
+    else await refreshTrainingStatus('post', postId, { touch: true })
+  }
+
+  async deleteAttachment(attachmentId) {
+    await this.repository.markDeleted(attachmentId)
+    try {
+      const { deleteImageDescriptionFromRag } = require('./RagSync')
+      await deleteImageDescriptionFromRag(attachmentId)
+      await this.repository.markRagDeleted(attachmentId)
+      return true
+    } catch (error) {
+      await this.repository.markRagDeleteFailure(attachmentId, error)
+      this.logger.warn(`[Image2RAG] RAG 삭제 재시도 필요: ${attachmentId} ${error.message}`)
+      return false
+    }
+  }
+}
+
+module.exports = { ImageAnalysisWorker, isRetryableAnalysisError }

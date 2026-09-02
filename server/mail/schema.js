@@ -272,6 +272,28 @@ async function ensureMailDataSchema(client, { standalone = false } = {}) {
       ADD COLUMN IF NOT EXISTS disposition TEXT;
   `)
 
+  // 메일별 개인 메모. 메일 원문과 분리해 저장하며 메일 삭제 시 함께 정리한다.
+  // rag_status는 DB 저장과 LanceDB 반영 상태를 추적해 실패한 인덱싱을 식별한다.
+  await run(client, 'create mail message notes', `
+    CREATE TABLE IF NOT EXISTS mail_message_notes (
+      id          TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      tenant_id   TEXT NOT NULL ${tenantFk},
+      user_id     INTEGER NOT NULL ${userFk},
+      message_id  TEXT NOT NULL REFERENCES mail_messages(id) ON DELETE CASCADE,
+      content     TEXT NOT NULL DEFAULT '',
+      rag_status  TEXT NOT NULL DEFAULT 'pending',
+      rag_error   TEXT,
+      created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      UNIQUE (tenant_id, user_id, message_id)
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_mail_message_notes_owner
+      ON mail_message_notes(tenant_id, user_id, updated_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_mail_message_notes_search
+      ON mail_message_notes USING GIN (to_tsvector('simple', content));
+  `)
+
   // 메일 요약 결과 캐시(메일 상세 재진입 시 즉시 표시). 원본 메일과 분리된 AI 메타데이터다.
   await run(client, 'create mail message summaries', `
     CREATE TABLE IF NOT EXISTS mail_message_summaries (

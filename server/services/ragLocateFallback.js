@@ -4,6 +4,7 @@ const path = require('path')
 const db = require('../db')
 const { getDatabasePath } = require('../databasePaths')
 const { getAccessibleChannelIds, getUserSecurityLevel } = require('../lib/channelAccess')
+const { getSearchAccessibleSpaceIds } = require('../lib/spaceAccess')
 
 const CONFIG_PATH = path.resolve(__dirname, '../../config.json')
 const RAG_SERVER_PORT = 5001
@@ -215,21 +216,6 @@ async function hydrateReferences(results = [], { allowedChannelIds = [], limit =
     .slice(0, limit * 2)
 }
 
-// 폴더 데이터셋 스코프 판정용: 사용자가 속한 팀 ID 목록 (rag.js getUserTeamIds 와 동일)
-async function getUserTeamIds(userId) {
-  if (!userId) return []
-  try {
-    const { rows } = await db.query(
-      `SELECT team_id FROM team_members WHERE user_id=$1
-         UNION SELECT team_id FROM team_admins WHERE user_id=$1`,
-      [userId],
-    )
-    return rows.map(r => r.team_id)
-  } catch (_) {
-    return []
-  }
-}
-
 async function locateWithRagFallback({ keywords = [], channelId = '', limit = 10 } = {}, user = {}) {
   const query = buildFallbackQuery(keywords)
   if (!query) return []
@@ -256,7 +242,10 @@ async function locateWithRagFallback({ keywords = [], channelId = '', limit = 10
     // 활성 테이블에 스코프 필드가 없으면 무시되어 기존 동작을 보존한다.
     scope_context: {
       user_id: String(user?.id || ''),
-      team_ids: await getUserTeamIds(user?.id),
+      team_ids: await getSearchAccessibleSpaceIds(db, user, {
+        auditAction: 'rag_locate_search',
+        details: { operation: 'question_locate_fallback' },
+      }),
       accessible_channel_ids: allowedChannelIds,
       security_level: userSecurityLevel,
       is_site_admin: user?.role === 'site_admin',

@@ -29,6 +29,7 @@ export function MenuIcon({ type, filled }) {
     chevronDown: 'M6 9l6 6 6-6',
     tag: 'M3 7l0 5.17a2 2 0 00.59 1.42l6.83 6.83a2 2 0 002.82 0l4.17-4.17a2 2 0 000-2.82L10.58 6.6A2 2 0 009.17 6L4 6a1 1 0 00-1 1zM7 10h.01',
     board: 'M4 5h16v10H4V5zm4 14h8M8 9h8M8 12h5',
+    note: 'M5 4h14v16H5V4zm3 4h8M8 12h8M8 16h5',
   }
 
   const fillFolder = filled && type === 'folder'

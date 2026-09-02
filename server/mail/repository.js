@@ -1197,7 +1197,8 @@ async function listMessages({ tenantId, accountId, folderId, userId, limit = 50,
             mm.size_bytes,
             mm.created_at,
             mm.updated_at,
-            ${MESSAGE_TAGS_AGG} AS tags
+            ${MESSAGE_TAGS_AGG} AS tags,
+            EXISTS (SELECT 1 FROM mail_message_notes mn WHERE mn.message_id = mm.id AND mn.tenant_id = mm.tenant_id AND mn.user_id = mm.user_id) AS has_note
      FROM mail_messages mm
      JOIN mail_accounts ma ON ma.id = mm.account_id
      WHERE mm.tenant_id = $1
@@ -1282,7 +1283,8 @@ async function listUnifiedMessages({ tenantId, userId, key, folderType, folderNa
             mm.size_bytes,
             mm.created_at,
             mm.updated_at,
-            ${MESSAGE_TAGS_AGG} AS tags
+            ${MESSAGE_TAGS_AGG} AS tags,
+            EXISTS (SELECT 1 FROM mail_message_notes mn WHERE mn.message_id = mm.id AND mn.tenant_id = mm.tenant_id AND mn.user_id = mm.user_id) AS has_note
      FROM mail_messages mm
      JOIN mail_accounts ma ON ma.id = mm.account_id
      LEFT JOIN mail_folders mf ON mf.id = mm.folder_id
@@ -1482,7 +1484,8 @@ async function listSmartFolderMessages({ tenantId, userId, smartFolderId, limit 
             mm.size_bytes,
             mm.created_at,
             mm.updated_at,
-            ${MESSAGE_TAGS_AGG} AS tags
+            ${MESSAGE_TAGS_AGG} AS tags,
+            EXISTS (SELECT 1 FROM mail_message_notes mn WHERE mn.message_id = mm.id AND mn.tenant_id = mm.tenant_id AND mn.user_id = mm.user_id) AS has_note
      FROM mail_message_tags mt
      JOIN mail_smart_folders sf ON sf.id = mt.smart_folder_id
      JOIN mail_messages mm ON mm.id = mt.message_id
@@ -1691,7 +1694,8 @@ async function getMessage({ tenantId, messageId, userId }) {
             mm.body_text_object_key,
             mm.body_html_object_key,
             mm.created_at,
-            mm.updated_at
+            mm.updated_at,
+            EXISTS (SELECT 1 FROM mail_message_notes mn WHERE mn.message_id = mm.id AND mn.tenant_id = mm.tenant_id AND mn.user_id = mm.user_id) AS has_note
      FROM mail_messages mm
      WHERE mm.tenant_id = $1
        AND mm.id = $2
@@ -1986,27 +1990,79 @@ async function setMessagesStarred({ tenantId, userId, messageIds, starred }) {
 }
 
 async function moveMessageToFolder({ tenantId, messageId, targetFolderId, userId, providerMessageId }) {
-  const { rows } = await tenantQuery(
-    tenantId,
-    `WITH target AS (
-       SELECT id, account_id
-       FROM mail_folders
-       WHERE id = $3 AND user_id = $4
-       LIMIT 1
-     )
-     UPDATE mail_messages mm
-     SET folder_id = target.id,
-         provider_message_id = COALESCE($5, mm.provider_message_id),
-         updated_at = NOW()
-     FROM target
-     WHERE mm.tenant_id = $1
-       AND mm.id = $2
-       AND mm.account_id = target.account_id
-       AND mm.user_id = $4
-     RETURNING mm.id, mm.account_id, mm.folder_id, mm.is_read`,
-    [tenantId, messageId, targetFolderId, userId, String(providerMessageId || '').trim() || null],
-  )
-  return rows[0] || null
+  const desiredProviderId = String(providerMessageId || '').trim() || null
+  const quarantineSuffix = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
+  const result = await withTenantTx(tenantId, async (client) => {
+    const { rows: targetRows } = await client.query(
+      `SELECT id, account_id FROM mail_folders
+        WHERE tenant_id = $1 AND id = $2 AND user_id = $3
+        LIMIT 1`,
+      [tenantId, targetFolderId, userId],
+    )
+    const target = targetRows[0]
+    if (!target) return null
+
+    const { rows: sourceRows } = await client.query(
+      `SELECT id, account_id, provider_message_id, internet_message_id, is_read
+         FROM mail_messages
+        WHERE tenant_id = $1 AND id = $2 AND user_id = $3
+          AND account_id = $4
+        FOR UPDATE`,
+      [tenantId, messageId, userId, target.account_id],
+    )
+    const source = sourceRows[0]
+    if (!source) return null
+
+    let conflict = null
+    if (desiredProviderId && desiredProviderId !== source.provider_message_id) {
+      const { rows: conflictRows } = await client.query(
+        `SELECT id, internet_message_id
+           FROM mail_messages
+          WHERE tenant_id = $1 AND user_id = $2 AND account_id = $3
+            AND provider_message_id = $4 AND id <> $5
+          FOR UPDATE`,
+        [tenantId, userId, source.account_id, desiredProviderId, source.id],
+      )
+      conflict = conflictRows[0] || null
+      if (conflict) {
+        const sameInternetMessage = !!source.internet_message_id
+          && String(source.internet_message_id).trim().toLowerCase()
+            === String(conflict.internet_message_id || '').trim().toLowerCase()
+        const quarantinedProviderId = `local:provider-conflict:${conflict.id}:${quarantineSuffix}`
+        await client.query(
+          `UPDATE mail_messages
+              SET provider_message_id = $4,
+                  deleted_at = CASE WHEN $5 THEN COALESCE(deleted_at, NOW()) ELSE deleted_at END,
+                  updated_at = NOW()
+            WHERE tenant_id = $1 AND user_id = $2 AND id = $3`,
+          [tenantId, userId, conflict.id, quarantinedProviderId, sameInternetMessage],
+        )
+        conflict = { ...conflict, sameInternetMessage, quarantinedProviderId }
+      }
+    }
+
+    const { rows } = await client.query(
+      `UPDATE mail_messages
+          SET folder_id = $4,
+              provider_message_id = COALESCE($5, provider_message_id),
+              deleted_at = NULL,
+              updated_at = NOW()
+        WHERE tenant_id = $1 AND id = $2 AND user_id = $3
+        RETURNING id, account_id, folder_id, is_read`,
+      [tenantId, messageId, userId, target.id, desiredProviderId],
+    )
+    return rows[0] ? { ...rows[0], provider_id_conflict: conflict } : null
+  })
+  if (result?.provider_id_conflict) {
+    console.warn('[mail move] provider id conflict quarantined', {
+      tenantId,
+      userId,
+      messageId,
+      conflictMessageId: result.provider_id_conflict.id,
+      sameInternetMessage: result.provider_id_conflict.sameInternetMessage,
+    })
+  }
+  return result
 }
 
 async function moveMessageToAccountFolder({ tenantId, messageId, targetAccountId, targetFolderId, userId, providerMessageId }) {
@@ -2198,6 +2254,28 @@ async function purgeTrashFolder({ tenantId, accountId, folderId, userId }) {
 // 파싱된 메시지 1건 + 첨부를 트랜잭션으로 저장한다. (object_key는 이미 스토리지에 기록된 상태)
 async function saveSyncedMessage({ tenantId, account, parsed, folderId, objectKeys, attachments }) {
   return withTenantTx(tenantId, async (client) => {
+    // UIDPLUS가 없어 임시 provider ID로 휴지통 이동을 기록한 메일은 다음 동기화에서
+    // Message-ID와 폴더가 일치할 때 실제 UID로 치환한다. 행 자체를 유지해 메모/태그/FK를 보존한다.
+    if (parsed.internetMessageId && parsed.providerMessageId && folderId) {
+      await client.query(
+        `UPDATE mail_messages pending
+            SET provider_message_id = $5,
+                updated_at = NOW()
+          WHERE pending.tenant_id = $1
+            AND pending.user_id = $2
+            AND pending.account_id = $3
+            AND pending.folder_id = $4
+            AND pending.internet_message_id = $6
+            AND pending.provider_message_id LIKE 'imap:%:pending-%'
+            AND NOT EXISTS (
+              SELECT 1 FROM mail_messages actual
+               WHERE actual.account_id = pending.account_id
+                 AND actual.provider_message_id = $5
+                 AND actual.id <> pending.id
+            )`,
+        [tenantId, account.user_id, account.id, folderId, parsed.providerMessageId, parsed.internetMessageId],
+      )
+    }
     const msgResult = await client.query(
       `INSERT INTO mail_messages (
          tenant_id, user_id, account_id, provider_message_id, internet_message_id, provider_thread_id, folder_id,
@@ -3041,6 +3119,84 @@ async function listMailClawExecutionLogs({ tenantId, ruleId, userId, isSiteAdmin
   return rows
 }
 
+async function getMessageNote({ tenantId, userId, messageId }) {
+  const { rows } = await tenantQuery(
+    tenantId,
+    `SELECT mn.id, mn.tenant_id, mn.user_id, mn.message_id, mn.content,
+            mn.rag_status, mn.rag_error, mn.created_at, mn.updated_at,
+            mm.subject, mm.from_email, mm.from_name
+       FROM mail_message_notes mn
+       JOIN mail_messages mm ON mm.id = mn.message_id
+      WHERE mn.tenant_id = $1 AND mn.user_id = $2 AND mn.message_id = $3
+        AND mm.tenant_id = mn.tenant_id AND mm.user_id = mn.user_id`,
+    [tenantId, userId, messageId],
+  )
+  return rows[0] || null
+}
+
+async function upsertMessageNote({ tenantId, userId, messageId, content }) {
+  const cleanContent = String(content || '').trim()
+  if (!cleanContent) throw new Error('메모 내용이 필요합니다.')
+  const { rows } = await tenantQuery(
+    tenantId,
+    `INSERT INTO mail_message_notes (tenant_id, user_id, message_id, content, rag_status, rag_error)
+     SELECT $1, $2, mm.id, $4, 'pending', NULL
+       FROM mail_messages mm
+      WHERE mm.tenant_id = $1 AND mm.user_id = $2 AND mm.id = $3 AND mm.deleted_at IS NULL
+     ON CONFLICT (tenant_id, user_id, message_id)
+     DO UPDATE SET content = EXCLUDED.content, rag_status = 'pending', rag_error = NULL, updated_at = NOW()
+     RETURNING *`,
+    [tenantId, userId, messageId, cleanContent],
+  )
+  return rows[0] || null
+}
+
+async function updateMessageNoteRagStatus({ tenantId, userId, noteId, status, error = null }) {
+  const { rows } = await tenantQuery(
+    tenantId,
+    `UPDATE mail_message_notes
+        SET rag_status = $4, rag_error = $5, updated_at = NOW()
+      WHERE tenant_id = $1 AND user_id = $2 AND id = $3
+      RETURNING *`,
+    [tenantId, userId, noteId, status, error ? String(error).slice(0, 2000) : null],
+  )
+  return rows[0] || null
+}
+
+async function deleteMessageNote({ tenantId, userId, messageId }) {
+  const { rows } = await tenantQuery(
+    tenantId,
+    `DELETE FROM mail_message_notes
+      WHERE tenant_id = $1 AND user_id = $2 AND message_id = $3
+      RETURNING *`,
+    [tenantId, userId, messageId],
+  )
+  return rows[0] || null
+}
+
+async function searchMessageNotes({ tenantId, userId, query, limit = 50 }) {
+  const cleanQuery = String(query || '').trim()
+  if (!cleanQuery) return []
+  const safeLimit = Math.min(100, Math.max(1, Number(limit) || 50))
+  const { rows } = await tenantQuery(
+    tenantId,
+    `SELECT mn.id, mn.message_id, mn.content, mn.rag_status, mn.updated_at,
+            mm.subject, mm.from_email, mm.from_name, mm.account_id, mm.folder_id,
+            mm.received_at, mm.sent_at
+       FROM mail_message_notes mn
+       JOIN mail_messages mm ON mm.id = mn.message_id
+      WHERE mn.tenant_id = $1 AND mn.user_id = $2
+        AND mm.tenant_id = mn.tenant_id AND mm.user_id = mn.user_id
+        AND mm.deleted_at IS NULL
+        AND (to_tsvector('simple', mn.content) @@ plainto_tsquery('simple', $3) OR mn.content ILIKE '%' || $3 || '%')
+      ORDER BY ts_rank(to_tsvector('simple', mn.content), plainto_tsquery('simple', $3)) DESC,
+               mn.updated_at DESC
+      LIMIT ${safeLimit}`,
+    [tenantId, userId, cleanQuery],
+  )
+  return rows
+}
+
 module.exports = {
   // tenants
   ensurePersonalTenant,
@@ -3127,6 +3283,11 @@ module.exports = {
   getDomainFavicon,
   upsertDomainFavicon,
   listMessageAttachments,
+  getMessageNote,
+  upsertMessageNote,
+  updateMessageNoteRagStatus,
+  deleteMessageNote,
+  searchMessageNotes,
   saveRemoteImageAttachment,
   getMessageAttachment,
   // MailClaw

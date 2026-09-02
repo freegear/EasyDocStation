@@ -14,6 +14,8 @@ CREATE TABLE IF NOT EXISTS teams (
   name        VARCHAR(100) NOT NULL,
   icon        VARCHAR(10)  NOT NULL DEFAULT '🏢',
   description TEXT,
+  visibility  VARCHAR(20) NOT NULL DEFAULT 'shared' CHECK (visibility IN ('shared', 'personal')),
+  owner_id    INTEGER,
   created_at  TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
   updated_at  TIMESTAMPTZ  NOT NULL DEFAULT NOW()
 );
@@ -91,6 +93,18 @@ DO $$ BEGIN
   IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='preferred_language')
   THEN ALTER TABLE users ADD COLUMN preferred_language VARCHAR(10) NOT NULL DEFAULT 'ko'; END IF;
 END $$;
+
+-- ─── Personal space privacy / audited emergency access ──────
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='teams' AND column_name='visibility') THEN ALTER TABLE teams ADD COLUMN visibility VARCHAR(20) NOT NULL DEFAULT 'shared'; END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='teams' AND column_name='owner_id') THEN ALTER TABLE teams ADD COLUMN owner_id INTEGER; END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname='teams_visibility_check') THEN ALTER TABLE teams ADD CONSTRAINT teams_visibility_check CHECK (visibility IN ('shared', 'personal')); END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname='teams_owner_id_fkey') THEN ALTER TABLE teams ADD CONSTRAINT teams_owner_id_fkey FOREIGN KEY (owner_id) REFERENCES users(id) ON DELETE RESTRICT; END IF;
+END $$;
+CREATE TABLE IF NOT EXISTS personal_space_emergency_access (id BIGSERIAL PRIMARY KEY, team_id VARCHAR(50) NOT NULL REFERENCES teams(id) ON DELETE CASCADE, site_admin_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, reason TEXT NOT NULL CHECK (length(trim(reason)) >= 10), granted_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), expires_at TIMESTAMPTZ NOT NULL, revoked_at TIMESTAMPTZ, CHECK (expires_at > granted_at));
+CREATE INDEX IF NOT EXISTS idx_personal_space_emergency_active ON personal_space_emergency_access(team_id, site_admin_id, expires_at) WHERE revoked_at IS NULL;
+CREATE TABLE IF NOT EXISTS personal_space_audit_log (id BIGSERIAL PRIMARY KEY, team_id VARCHAR(50) NOT NULL REFERENCES teams(id) ON DELETE CASCADE, actor_id INTEGER NOT NULL REFERENCES users(id) ON DELETE RESTRICT, action TEXT NOT NULL, reason TEXT, details JSONB NOT NULL DEFAULT '{}'::jsonb, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW());
+CREATE INDEX IF NOT EXISTS idx_personal_space_audit_team_time ON personal_space_audit_log(team_id, created_at DESC);
 
 -- ─── Login history ───────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS login_history (
@@ -175,12 +189,18 @@ CREATE TABLE IF NOT EXISTS rag_training_jobs (
   source_type   VARCHAR(20)  NOT NULL CHECK (source_type IN ('post', 'comment')),
   source_id     VARCHAR(100) NOT NULL,
   status        VARCHAR(20)  NOT NULL CHECK (status IN ('queued', 'training', 'completed', 'failed', 'timed_out')),
+  body_status   VARCHAR(20)  NOT NULL DEFAULT 'queued'
+                  CHECK (body_status IN ('queued', 'training', 'completed', 'failed', 'timed_out')),
   started_at    TIMESTAMPTZ,
   completed_at  TIMESTAMPTZ,
   updated_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   error_message TEXT,
   PRIMARY KEY (source_type, source_id)
 );
+ALTER TABLE rag_training_jobs ADD COLUMN IF NOT EXISTS body_status VARCHAR(20);
+UPDATE rag_training_jobs SET body_status=status WHERE body_status IS NULL;
+ALTER TABLE rag_training_jobs ALTER COLUMN body_status SET DEFAULT 'queued';
+ALTER TABLE rag_training_jobs ALTER COLUMN body_status SET NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_rag_training_jobs_status_updated
   ON rag_training_jobs(status, updated_at);
 
@@ -198,6 +218,44 @@ CREATE TABLE IF NOT EXISTS attachments (
   thumbnail_path TEXT,
   created_at    TIMESTAMPTZ  DEFAULT NOW()           -- Created At
 );
+
+-- ─── Canonical image descriptions for DB search and RAG ─────
+CREATE TABLE IF NOT EXISTS image_descriptions (
+  id TEXT PRIMARY KEY,
+  attachment_id VARCHAR(50) NOT NULL,
+  post_id VARCHAR(50), comment_id VARCHAR(50), channel_id VARCHAR(50) NOT NULL DEFAULT '',
+  owner_id INTEGER, security_level INTEGER NOT NULL DEFAULT 0,
+  scope_metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
+  file_hash TEXT NOT NULL DEFAULT '', mime_type TEXT, width INTEGER, height INTEGER,
+  schema_version INTEGER NOT NULL DEFAULT 1, prompt_version TEXT NOT NULL,
+  model_provider TEXT, model_name TEXT, model_version TEXT,
+  summary TEXT, description TEXT, caption TEXT, ocr_text TEXT,
+  analysis_json JSONB NOT NULL DEFAULT '{}'::jsonb, search_content TEXT,
+  analysis_status TEXT NOT NULL DEFAULT 'pending'
+    CHECK (analysis_status IN ('pending','processing','completed','failed','deleted')),
+  db_index_status TEXT NOT NULL DEFAULT 'pending'
+    CHECK (db_index_status IN ('pending','indexed','failed','deleted')),
+  rag_index_status TEXT NOT NULL DEFAULT 'pending'
+    CHECK (rag_index_status IN ('pending','indexed','failed','deleted')),
+  attempt_count INTEGER NOT NULL DEFAULT 0, next_retry_at TIMESTAMPTZ,
+  last_error_code TEXT, last_error_message TEXT, worker_id TEXT,
+  processing_started_at TIMESTAMPTZ, completed_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE (attachment_id)
+);
+CREATE TABLE IF NOT EXISTS image_analysis_attempts (
+  id BIGSERIAL PRIMARY KEY,
+  image_description_id TEXT NOT NULL REFERENCES image_descriptions(id) ON DELETE CASCADE,
+  attempt_no INTEGER NOT NULL, worker_id TEXT, provider TEXT, model_name TEXT,
+  status TEXT NOT NULL, error_code TEXT, error_message TEXT, duration_ms INTEGER,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), finished_at TIMESTAMPTZ
+);
+CREATE INDEX IF NOT EXISTS idx_image_descriptions_attachment ON image_descriptions(attachment_id);
+CREATE INDEX IF NOT EXISTS idx_image_descriptions_retry ON image_descriptions(analysis_status, next_retry_at);
+CREATE INDEX IF NOT EXISTS idx_image_descriptions_index_retry ON image_descriptions(db_index_status, rag_index_status, updated_at);
+CREATE INDEX IF NOT EXISTS idx_image_descriptions_channel ON image_descriptions(channel_id);
+CREATE INDEX IF NOT EXISTS idx_image_descriptions_hash ON image_descriptions(file_hash);
+CREATE INDEX IF NOT EXISTS idx_image_analysis_attempts_description ON image_analysis_attempts(image_description_id, attempt_no DESC);
 
 -- Migration: DS.005 컬럼 추가 (안전하게 재실행 가능)
 DO $$ BEGIN

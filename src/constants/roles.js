@@ -7,7 +7,7 @@ export const ROLES = {
 
 export const ROLE_LABELS = {
   site_admin:    '사이트 관리자',
-  team_admin:    '팀 관리자',
+  team_admin:    '스페이스 관리자',
   channel_admin: '채널 관리자',
   user:          '사용자',
 }
@@ -21,7 +21,7 @@ export const ROLE_BADGE = {
 
 export const ROLE_OPTIONS = [
   { value: 'site_admin',    label: '사이트 관리자' },
-  { value: 'team_admin',    label: '팀 관리자' },
+  { value: 'team_admin',    label: '스페이스 관리자' },
   { value: 'channel_admin', label: '채널 관리자' },
   { value: 'user',          label: '사용자' },
 ]

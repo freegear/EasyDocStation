@@ -155,7 +155,7 @@ export default function FolderUploadModal({ open, onClose }) {
             <div className="mb-3">
               <div className="text-sm text-gray-700 mb-1">접근 범위</div>
               <div className="flex flex-wrap gap-3 text-sm">
-                {[['personal', '개인'], ['all', '모두'], ['team', '팀'], ['channel', '채널']].map(([v, label]) => (
+                {[['personal', '개인'], ['all', '모두'], ['team', '스페이스'], ['channel', '채널']].map(([v, label]) => (
                   <label key={v} className="flex items-center gap-1">
                     <input type="radio" name="scope" checked={accessScope === v} onChange={() => setAccessScope(v)} disabled={v === 'channel'} />
                     <span className={v === 'channel' ? 'text-gray-300' : ''}>{label}</span>
@@ -165,7 +165,7 @@ export default function FolderUploadModal({ open, onClose }) {
               {accessScope === 'team' && (
                 <select value={scopeTeamId} onChange={e => setScopeTeamId(e.target.value)}
                   className="mt-2 border border-gray-300 rounded-lg px-3 py-1.5 text-sm">
-                  <option value="">팀 선택</option>
+                  <option value="">스페이스 선택</option>
                   {teams.map(tm => <option key={tm.id} value={tm.id}>{tm.name || tm.id}</option>)}
                 </select>
               )}

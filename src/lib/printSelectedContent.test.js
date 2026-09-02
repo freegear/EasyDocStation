@@ -58,3 +58,9 @@ test('print CSS preserves explicit line breaks in normal paragraphs', () => {
 test('print CSS excludes elements marked as print-only UI decorations', () => {
   assert.match(PRINT_STYLE, /\[data-print-exclude="true"\][\s\S]*display:\s*none\s*!important/)
 })
+
+test('print CSS preserves Easy Page task-list alignment', () => {
+  assert.match(PRINT_STYLE, /ul\[data-type="taskList"\]/)
+  assert.match(PRINT_STYLE, /li\[data-type="taskItem"\][\s\S]*display:\s*flex/)
+  assert.match(PRINT_STYLE, /\.easy-print-checkbox/)
+})

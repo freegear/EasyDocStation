@@ -244,7 +244,7 @@ function MeetingRecordingBar() {
 
 function MainLayout() {
   const SIDEBAR_STORAGE_KEY = 'ui.sidebar.visible'
-  const accessDeniedMessage = '당신은 권한이 없습니다. 필요하시면 채널관리자/팀 관리자/채널관리자 에게 연락하여 주시기바랍니다.'
+  const accessDeniedMessage = '당신은 권한이 없습니다. 필요하시면 스페이스 관리자 또는 채널 관리자에게 연락하여 주시기 바랍니다.'
   const [showProfile, setShowProfile] = useState(false)
   const [showProfileSavedDialog, setShowProfileSavedDialog] = useState(false)
   const [showSiteAdmin, setShowSiteAdmin] = useState(false)

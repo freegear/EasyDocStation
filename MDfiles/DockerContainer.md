@@ -8,13 +8,27 @@
 
 | 서비스 | 역할 | 영속 데이터 |
 |---|---|---|
-| `app` | Vite로 빌드한 프런트엔드, Node API, Python RAG/STT | ObjectFile, LanceDB, RAGTrainingData, 설정 |
-| `postgres` | 관계형 데이터와 사용자·채널·메일 메타데이터 | Docker volume |
-| `cassandra` | 게시물·댓글 등 Cassandra 데이터 | Docker volume |
-| `redis` | AI 캐시와 선택적 큐 | Docker volume 또는 비영속 캐시 |
-| `ollama` | 로컬 LLM/OCR, 선택 서비스 | 모델 volume |
+| `app` | Vite로 빌드한 프런트엔드, Node API, Python RAG/STT | 호스트의 `${EASYSTATION_DATA_DIR}`, `${EASYSTATION_CONFIG_FILE}` |
+| `postgres` | 관계형 데이터와 사용자·채널·메일 메타데이터 | 호스트의 `${EASYSTATION_STORAGE_DIR}/postgres` |
+| `cassandra` | 게시물·댓글 등 Cassandra 데이터 | 호스트의 `${EASYSTATION_STORAGE_DIR}/cassandra` |
+| `redis` | AI 캐시와 선택적 큐 | 호스트의 `${EASYSTATION_STORAGE_DIR}/redis` |
+| `ollama` | 로컬 LLM/OCR, 선택 서비스 | 호스트의 `${EASYSTATION_STORAGE_DIR}/ollama` |
 
 프런트엔드는 별도의 Nginx 컨테이너로 나누지 않고, 현재 `server/index.js`의 정적 파일 제공 기능을 사용해 `app:3001` 한 포트로 서비스하는 것이 가장 단순하다. 운영 시에는 이 앞에 기존 리버스 프록시나 TLS 프록시를 둘 수 있다.
+
+이 문서의 Compose 예시는 사용자가 지정한 장소에서 파일을 직접 확인·백업할 수 있도록 Docker named volume이 아닌 **bind mount**를 사용한다. `storage`와 `config.json`은 서로 분리한다.
+
+```text
+${EASYSTATION_STORAGE_DIR}/
+  app/Database/             # 첨부, 메일 원문, LanceDB 등 앱 파일 데이터
+  postgres/                 # PostgreSQL 물리 데이터(직접 편집 금지)
+  cassandra/                # Cassandra 물리 데이터(직접 편집 금지)
+  redis/                    # Redis AOF
+  ollama/                   # 선택: Ollama 모델
+${EASYSTATION_CONFIG_FILE}  # 단일 외부 config.json 파일
+```
+
+`EASYSTATION_STORAGE_DIR`와 `EASYSTATION_CONFIG_FILE`은 반드시 절대 경로로 지정한다. 상대 경로는 Compose 파일 위치에 따라 해석되어 운영자가 의도한 곳과 달라질 수 있다.
 
 ## 2. 현재 코드에서 확인한 사항
 
@@ -27,6 +41,8 @@
 - Redis 접속은 `REDIS_URL`로 변경할 수 있다.
 - Ollama 접속은 `OLLAMA_HOST`, `OLLAMA_PORT`로 변경할 수 있다.
 - ObjectFile과 LanceDB 경로는 `EASYDOC_DB_BASE`, `EASYDOC_LANCEDB_PATH`, `EASYDOC_STATION_FOLDER`로 컨테이너 경로를 지정할 수 있다.
+- 현재 코드의 `EASYDOC_DB_BASE=/data`는 `/data/Database/ObjectFile`, `/data/Database/LanceDB`처럼 `Database` 하위 경로를 만든다. 따라서 volume은 `/data` 전체에 하나만 마운트하는 것이 경로 누락을 피하기 쉽다.
+- 여러 모듈이 프로젝트 루트의 `config.json`을 직접 읽고 SNS 설정 등 일부 API는 이 파일을 수정한다. 외부 파일은 컨테이너의 `/opt/easystation/config.json`에 **읽기/쓰기**로 직접 마운트해야 한다. `:ro`로 마운트하면 해당 설정 저장 기능이 실패한다.
 - Node 백엔드가 Python 프로세스를 직접 실행하므로 앱 이미지에는 Node와 Python 런타임이 모두 필요하다.
 - RAG 서버는 현재 `127.0.0.1:5001`에 바인딩되고 일부 Node 코드도 포트 `5001`을 고정 사용한다. 따라서 첫 컨테이너화 단계에서는 Node와 Python RAG를 같은 `app` 컨테이너에 둬야 한다.
 - PostgreSQL 스키마와 Cassandra keyspace/table은 앱 시작 시 생성 또는 보정된다. 단, DB가 준비되기 전에 앱이 시작되지 않도록 health check와 `depends_on`이 필요하다.
@@ -118,22 +134,21 @@ GPU 서버에서는 Docker 외에 NVIDIA Container Toolkit 설치가 필요하�
 
 ## 5. entrypoint 초안
 
-`config.json`은 이미지에 실제 운영 비밀을 포함하지 않아야 한다. 최초 실행 시 템플릿을 복사하고, 이후에는 외부에서 마운트한 설정을 유지한다.
+`config.json`은 이미지에 실제 운영 비밀을 포함하지 않아야 한다. 외부 파일 bind mount는 대상 파일이 먼저 존재해야 안전하다. 존재하지 않는 파일 경로를 마운트하면 Docker가 디렉터리를 만들 수 있으므로, Compose 실행 전에 설치 스크립트에서 생성하고 JSON 유효성을 검사한다.
 
 ```bash
 #!/usr/bin/env bash
 set -euo pipefail
 
 APP_DIR=/opt/easystation
-CONFIG_DIR=/data/config
 
-mkdir -p "$CONFIG_DIR" /data/ObjectFile /data/LanceDB /data/RAGTrainingData
-
-if [[ ! -f "$CONFIG_DIR/config.json" ]]; then
-  cp "$APP_DIR/config.json.example" "$CONFIG_DIR/config.json"
-fi
-
-ln -sfn "$CONFIG_DIR/config.json" "$APP_DIR/config.json"
+test -f "$APP_DIR/config.json" || {
+  echo "[ERROR] /opt/easystation/config.json bind mount가 필요합니다." >&2
+  exit 1
+}
+node -e "JSON.parse(require('fs').readFileSync(process.argv[1], 'utf8'))" \
+  "$APP_DIR/config.json"
+mkdir -p /data/Database/ObjectFile /data/Database/LanceDB
 exec "$@"
 ```
 
@@ -141,7 +156,7 @@ exec "$@"
 
 ## 6. docker-compose.yml 초안
 
-아래 예시는 기본 CPU 배포안이다. 비밀번호와 공개 URL은 `.env`에서 주입한다.
+아래 예시는 기본 CPU 배포안이다. 비밀번호와 공개 URL은 `.env.container`에서 주입한다. 요구사항대로 모든 영속 데이터와 `config.json`은 운영자가 정한 호스트 절대 경로에 저장한다.
 
 ```yaml
 name: easystation
@@ -169,15 +184,17 @@ services:
       OLLAMA_PORT: 11434
       EASYDOC_STATION_FOLDER: /opt/easystation
       EASYDOC_DB_BASE: /data
-      EASYDOC_LANCEDB_PATH: /data/LanceDB
-      EASYDOC_FILE_TRAINING_PATH: /data/ObjectFile/FileTrainingData
+      EASYDOC_LANCEDB_PATH: /data/Database/LanceDB
+      EASYDOC_FILE_TRAINING_PATH: /data/Database/ObjectFile/FileTrainingData
     ports:
       - "${APP_BIND_IP:-0.0.0.0}:${APP_PORT:-3001}:3001"
     volumes:
-      - easystation_object:/data/ObjectFile
-      - easystation_lancedb:/data/LanceDB
-      - easystation_training:/data/RAGTrainingData
-      - easystation_config:/data/config
+      - type: bind
+        source: ${EASYSTATION_DATA_DIR}
+        target: /data
+      - type: bind
+        source: ${EASYSTATION_CONFIG_FILE}
+        target: /opt/easystation/config.json
     depends_on:
       postgres:
         condition: service_healthy
@@ -194,7 +211,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - ${EASYSTATION_STORAGE_DIR}/postgres:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
       interval: 10s
@@ -211,7 +228,7 @@ services:
       MAX_HEAP_SIZE: ${CASSANDRA_MAX_HEAP:-2G}
       HEAP_NEWSIZE: ${CASSANDRA_HEAP_NEWSIZE:-400M}
     volumes:
-      - cassandra_data:/var/lib/cassandra
+      - ${EASYSTATION_STORAGE_DIR}/cassandra:/var/lib/cassandra
     healthcheck:
       test: ["CMD-SHELL", "cqlsh -e 'DESCRIBE CLUSTER' 127.0.0.1 9042"]
       interval: 15s
@@ -224,7 +241,7 @@ services:
     restart: unless-stopped
     command: ["redis-server", "--appendonly", "yes", "--maxmemory", "4gb", "--maxmemory-policy", "allkeys-lru"]
     volumes:
-      - redis_data:/data
+      - ${EASYSTATION_STORAGE_DIR}/redis:/data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
@@ -236,17 +253,7 @@ services:
     profiles: ["ollama"]
     restart: unless-stopped
     volumes:
-      - ollama_data:/root/.ollama
-
-volumes:
-  postgres_data:
-  cassandra_data:
-  redis_data:
-  ollama_data:
-  easystation_object:
-  easystation_lancedb:
-  easystation_training:
-  easystation_config:
+      - ${EASYSTATION_STORAGE_DIR}/ollama:/root/.ollama
 ```
 
 `ollama`를 profile로 둘 경우 app이 Ollama를 필수 `depends_on` 대상으로 삼아서는 안 된다. 외부 Ollama를 사용하면 `OLLAMA_HOST`만 해당 서버 주소로 바꾼다. 운영 재현성을 위해 최종 구현에서는 모든 이미지의 patch 버전 또는 digest를 고정하는 것이 좋다.
@@ -261,6 +268,11 @@ APP_BIND_IP=0.0.0.0
 APP_PORT=3001
 CLIENT_ORIGIN=https://station.example.com
 
+# 반드시 Ubuntu 호스트의 절대 경로 사용. DATA_DIR는 STORAGE_DIR/app으로 둔다.
+EASYSTATION_STORAGE_DIR=/srv/easystation/storage
+EASYSTATION_DATA_DIR=/srv/easystation/storage/app
+EASYSTATION_CONFIG_FILE=/etc/easystation/config.json
+
 POSTGRES_USER=easystation
 POSTGRES_PASSWORD=change-this-long-random-password
 POSTGRES_DB=easydocstation
@@ -272,6 +284,22 @@ REDIS_AI_QUEUE_ENABLED=false
 REDIS_AI_VECTOR_CACHE_ENABLED=false
 HF_TOKEN=
 ```
+
+최초 기동 전에 호스트 경로를 준비한다. 아래 UID/GID는 최종 이미지에서 사용할 전용 사용자 값과 맞춰야 한다. 초안 Dockerfile처럼 root로 실행하는 동안에는 동작하지만, 운영 구현에서는 이미지 사용자와 호스트 디렉터리 소유권을 함께 고정해야 한다.
+
+```bash
+sudo install -d -m 0750 /srv/easystation/storage/app
+sudo install -d -m 0700 /srv/easystation/storage/postgres
+sudo install -d -m 0700 /srv/easystation/storage/cassandra
+sudo install -d -m 0700 /srv/easystation/storage/redis
+sudo install -d -m 0750 /srv/easystation/storage/ollama
+sudo install -d -m 0750 /etc/easystation
+sudo install -m 0600 ./config.json /etc/easystation/config.json
+docker compose --env-file .env.container config
+docker compose --env-file .env.container up -d
+```
+
+`config.json` 안의 기존 DGX 경로는 컨테이너에서 유효하지 않다. 파일 경로 관련 값은 `/data/Database/...`로 바꾸거나 비워 두고 `EASYDOC_DB_BASE=/data`가 우선하도록 한다. PostgreSQL, Cassandra, Redis의 접속 주소는 각각 Compose 서비스 이름인 `postgres`, `cassandra`, `redis`를 사용한다.
 
 현재 일부 애플리케이션 설정은 환경변수가 아니라 `config.json`에서만 읽는다. 메일, Telegram, Google OAuth, Groq 설정은 별도 secret 파일 또는 Docker secret으로 마운트하는 방향이 필요하다. 장기적으로는 모든 비밀 값을 환경변수로 override할 수 있게 코드에서 통일하는 것을 권장한다.
 
@@ -411,3 +439,55 @@ LanceDB는 DB 레코드와 색인 내용의 시점이 일치해야 한다. 이�
 - 롤백할 이전 이미지와 DB 백업 확보
 
 최종적으로는 먼저 CPU 기반 Compose 배포를 완성하고, 실제 데이터 이관을 별도 리허설한 뒤 GPU/Ollama profile을 추가하는 순서가 가장 위험이 낮다.
+
+## 13. Amazon ECR 업로드 및 ECS 자동 배포
+
+실제 구현 파일은 `scripts/build-container.sh`와 `Docker/update-ecs-task-definition.mjs`이다. 이미지는 ECS가 아니라 ECR에 저장되며, ECS에는 새 이미지 URI를 적용한 Task Definition revision을 등록한다.
+
+### 환경변수
+
+`Docker/.env.container`에서 다음 값을 설정한다.
+
+```dotenv
+AWS_REGION=ap-northeast-2
+# 비워 두면 aws sts get-caller-identity로 자동 확인한다.
+AWS_ACCOUNT_ID=
+ECR_REPOSITORY=easydocstation
+# 저장소가 없을 때 자동 생성하려면 true
+ECR_CREATE_REPOSITORY=false
+
+ECS_CLUSTER=easydocstation-cluster
+ECS_SERVICE=easydocstation-service
+ECS_CONTAINER_NAME=app
+ECS_WAIT_FOR_STABLE=true
+```
+
+AWS CLI 인증은 access key를 파일에 기록하는 대신 AWS CLI profile, EC2 instance profile 또는 IAM role을 사용한다. 실행 주체에는 최소한 다음 작업 권한이 필요하다.
+
+- ECR 인증·조회·업로드: `ecr:GetAuthorizationToken`, `ecr:DescribeRepositories`, `ecr:BatchCheckLayerAvailability`, `ecr:InitiateLayerUpload`, `ecr:UploadLayerPart`, `ecr:CompleteLayerUpload`, `ecr:PutImage`
+- 저장소 자동 생성 사용 시: `ecr:CreateRepository`
+- ECS 배포: `ecs:DescribeServices`, `ecs:DescribeTaskDefinition`, `ecs:RegisterTaskDefinition`, `ecs:UpdateService`
+- Task Definition의 execution/task role을 다시 전달할 수 있도록 해당 role에 대한 `iam:PassRole`
+
+### 실행 명령
+
+```bash
+# 로컬 빌드 후 ECR에 push
+./scripts/build-container.sh --push-ecr
+
+# ECR에 이미 존재하는 현재 태그를 ECS에 배포
+./scripts/build-container.sh --deploy-ecs
+
+# 빌드, ECR push, ECS 배포를 연속 실행
+./scripts/build-container.sh --push-ecr --deploy-ecs
+```
+
+`--deploy-ecs`는 현재 ECS 서비스가 사용하는 Task Definition을 조회한 후 `ECS_CONTAINER_NAME` 컨테이너의 `image`만 변경한다. 나머지 CPU, 메모리, IAM role, 환경변수, secret, volume, 로그 설정은 유지한다. 새 revision 등록 후 ECS 서비스를 갱신하며 `ECS_WAIT_FOR_STABLE=true`이면 서비스 안정화까지 기다린다.
+
+배포 전 다음 조건이 충족되어야 한다.
+
+1. AWS CLI가 설치되고 `aws sts get-caller-identity`가 성공해야 한다.
+2. ECS cluster, service와 최초 Task Definition은 미리 존재해야 한다.
+3. `ECS_CONTAINER_NAME`은 Task Definition 안의 실제 container name과 정확히 같아야 한다.
+4. ARM64에서 만든 이미지는 ARM64 Task Definition에 배포해야 한다. 다른 아키텍처에는 `buildx` 기반 교차 빌드가 별도로 필요하다.
+5. ECS/Fargate는 로컬 bind mount를 사용할 수 없다. 현재 외부 `config.json`과 파일 저장소는 ECS용 Task Definition에서 EFS 또는 다른 AWS 영속 저장소로 구성해야 한다.

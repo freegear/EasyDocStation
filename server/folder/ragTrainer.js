@@ -16,6 +16,7 @@ const { getDatabasePath } = require('../databasePaths')
 const gpuGate = require('../gpu/gpuGate')
 const aiMetrics = require('../aiMetrics')
 const { enqueueTask } = require('../aiQueue')
+const { enqueueImageAttachments } = require('../image-rag')
 const db = require('../db')
 
 const CONFIG_PATH = path.resolve(__dirname, '../../config.json')
@@ -117,7 +118,31 @@ async function trainBatchDirect(documents = []) {
   if (!folderVectorsEnabled() || documents.length === 0) {
     return { trained: false, reason: folderVectorsEnabled() ? 'no_documents' : 'schema_below_v3' }
   }
-  const ids = documents.map(d => d.id).filter(Boolean)
+  const imageDocuments = documents.filter(d => /^(png|jpe?g|gif|webp|bmp)$/i.test(String(d.extension || '')))
+  const otherDocuments = documents.filter(d => !imageDocuments.includes(d))
+  if (imageDocuments.length > 0) {
+    await enqueueImageAttachments(imageDocuments.map(d => ({
+      attachmentId: d.attachment_id,
+      ownerId: d.owner_id,
+      securityLevel: d.effective_security_level || 0,
+      scopeMetadata: {
+        access_scope: d.access_scope || '',
+        scope_team_id: d.scope_team_id || '',
+        scope_channel_id: d.scope_channel_id || '',
+        dataset_id: d.dataset_id || '',
+        folder_document_id: d.id || '',
+        relative_path: d.relative_path || '',
+        folder_path: d.folder_path || '',
+        parent_folder: d.parent_folder || '',
+        folder_group_id: d.folder_group_id || '',
+        folder_keywords_text: Array.isArray(d.folder_keywords) ? d.folder_keywords.join(' ') : String(d.folder_keywords || ''),
+      },
+    })))
+  }
+  if (otherDocuments.length === 0) {
+    return { trained: true, count: documents.length, queuedImages: imageDocuments.length }
+  }
+  const ids = otherDocuments.map(d => d.id).filter(Boolean)
   const slot = await gpuGate.waitForTrainingSlot({
     onWait: (waited) => {
       if (waited === 0) console.log('[GPU] 학습 양보: 대화형/GPU 사용 중, 대기...')
@@ -130,7 +155,7 @@ async function trainBatchDirect(documents = []) {
     console.warn(`[GPU] 기아 방지: 대기 상한 초과로 학습 강제 진행(waited=${slot.waitedMs}ms)`)
   }
   try {
-    await runTrainer({ config: ragConfig(), folder_documents: toTrainerDocs(documents) })
+    await runTrainer({ config: ragConfig(), folder_documents: toTrainerDocs(otherDocuments) })
   } catch (err) {
     await setTrainingStatus(ids, 'failed', err.message)
     throw err

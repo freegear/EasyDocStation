@@ -340,7 +340,7 @@ function AttachmentPreviewModal({ message, attachments, index, onIndexChange, on
   )
 }
 
-function MailViewer({ message, loading, error, onAddressSearch, onMailAction, onSummaryUpdated, onCalendarEventOpen, onRegisterAsPost, targetLanguage = 'ko', mt = MAIL_TEXT.ko }) {
+function MailViewer({ message, loading, error, onAddressSearch, onMailAction, onSummaryUpdated, onCalendarEventOpen, onRegisterAsPost, onNote, targetLanguage = 'ko', mt = MAIL_TEXT.ko }) {
   const [addressMenu, setAddressMenu] = useState(null)
   const [summary, setSummary] = useState(null)
   const [summaryLoading, setSummaryLoading] = useState(false)
@@ -718,6 +718,14 @@ function MailViewer({ message, loading, error, onAddressSearch, onMailAction, on
           >
             <MenuIcon type="board" />
             <span>{mt.registerAsPost}</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => onNote?.(message)}
+            className="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-bold text-gray-600 transition hover:bg-gray-50 hover:text-gray-900"
+          >
+            <MenuIcon type="note" />
+            <span>{message.has_note ? mt.note.view : mt.note.add}</span>
           </button>
         </div>
         {summaryCopyError && (

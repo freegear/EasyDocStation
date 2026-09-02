@@ -4,6 +4,7 @@ const db = require('../db')
 const requireAuth = require('../middleware/auth')
 const { client, isConnected } = require('../cassandra')
 const { ACCESS_DENIED_MESSAGE, canAccessChannel, getAccessibleChannelIds } = require('../lib/channelAccess')
+const { authorizeSpace } = require('../lib/spaceAccess')
 
 function normalizeUserIds(userIds) {
   if (!Array.isArray(userIds)) return []
@@ -47,7 +48,7 @@ async function rejectUsersOutsideTeam(res, teamId, userIds) {
   if (invalidUserIds.length === 0) return false
 
   res.status(400).json({
-    error: '팀에 등록된 사용자만 채널 관리자 또는 멤버로 지정할 수 있습니다.',
+    error: '스페이스에 등록된 사용자만 채널 관리자 또는 멤버로 지정할 수 있습니다.',
     invalidUserIds,
   })
   return true
@@ -185,7 +186,9 @@ router.get('/:id', requireAuth, async (req, res, next) => {
 router.put('/:id', requireAuth, async (req, res, next) => {
   try {
     const { id } = req.params
-    const { name, type, description, team_id, adminIds, memberIds, is_archived } = req.body
+    let { name, type, description, team_id, adminIds, memberIds, is_archived } = req.body
+    const existing = await db.query('SELECT team_id FROM channels WHERE id=$1', [id])
+    if (existing.rowCount && !await canAccessChannel(db, req.user, id)) return res.status(403).json({ error: ACCESS_DENIED_MESSAGE })
     
     // Ensure team exists or use a default existing team
     let finalTeamId = team_id
@@ -193,7 +196,14 @@ router.put('/:id', requireAuth, async (req, res, next) => {
     if (teamCheck.rowCount === 0) {
       const firstTeam = await db.query('SELECT id FROM teams LIMIT 1')
       if (firstTeam.rowCount > 0) finalTeamId = firstTeam.rows[0].id
-      else return res.status(400).json({ error: '유효한 팀이 존재하지 않습니다. 먼저 팀을 생성해주세요.' })
+      else return res.status(400).json({ error: '유효한 스페이스가 존재하지 않습니다. 먼저 스페이스를 생성해주세요.' })
+    }
+
+    const spaceAccess = await authorizeSpace(db, req.user, finalTeamId, { manage: true, auditAction: existing.rowCount ? 'update_channel' : 'create_channel', details: { channelId: id } })
+    if (!spaceAccess.allowed) return res.status(403).json({ error: ACCESS_DENIED_MESSAGE })
+    if (spaceAccess.space.visibility === 'personal') {
+      adminIds = [spaceAccess.space.owner_id]
+      memberIds = [spaceAccess.space.owner_id]
     }
 
     if (await rejectUsersOutsideTeam(res, finalTeamId, [
@@ -251,6 +261,10 @@ router.put('/:id', requireAuth, async (req, res, next) => {
 router.delete('/:id', requireAuth, async (req, res, next) => {
   try {
     const { id } = req.params
+    const target = await db.query('SELECT team_id FROM channels WHERE id=$1', [id])
+    if (!target.rowCount) return res.status(404).json({ error: '채널을 찾을 수 없습니다.' })
+    const access = await authorizeSpace(db, req.user, target.rows[0].team_id, { manage: true, auditAction: 'delete_channel', details: { channelId: id } })
+    if (!access.allowed) return res.status(403).json({ error: ACCESS_DENIED_MESSAGE })
     const result = await db.query('DELETE FROM channels WHERE id = $1 RETURNING *', [id])
     if (result.rowCount === 0) return res.status(404).json({ error: '채널을 찾을 수 없습니다.' })
     res.json({ success: true })
@@ -331,7 +345,7 @@ router.get('/:id/members', requireAuth, async (req, res, next) => {
 // 채널 멤버 수정 권한 확인 헬퍼
 // site_admin, 채널 소속 팀의 team_admin, 또는 channel_admin만 가능
 async function requireChannelMemberAdmin(req, res, channelId) {
-  if (req.user.role === 'site_admin') return true
+  if (req.user.role === 'site_admin') return canAccessChannel(db, req.user, channelId)
 
   const chRes = await db.query('SELECT team_id FROM channels WHERE id = $1', [channelId])
   if (chRes.rowCount === 0) { res.status(404).json({ error: '채널을 찾을 수 없습니다.' }); return false }
@@ -344,7 +358,7 @@ async function requireChannelMemberAdmin(req, res, channelId) {
 
   if (teamAdminCheck.rowCount > 0 || channelAdminCheck.rowCount > 0) return true
 
-  res.status(403).json({ error: '채널 멤버 관리 권한이 없습니다. 사이트 관리자, 팀 관리자, 또는 채널 관리자만 가능합니다.' })
+  res.status(403).json({ error: '채널 멤버 관리 권한이 없습니다. 사이트 관리자, 스페이스 관리자, 또는 채널 관리자만 가능합니다.' })
   return false
 }
 
