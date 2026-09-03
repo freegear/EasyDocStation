@@ -71,6 +71,7 @@ const { startImageRagWorker, stopImageRagWorker } = require('./image-rag')
 const { startMailSyncScheduler, stopMailSyncScheduler } = require('./mail/scheduler')
 const { startAgenticMailWorker } = require('./mail/agentic/worker')
 const { loadUpdateHistory } = require('./updateHistory')
+const { loadViteAllowedHostsFromFile, isAllowedFrontendHost } = require('./viteAllowedHosts')
 
 const app = express()
 const PORT = process.env.PORT || 3001
@@ -302,6 +303,13 @@ if (process.env.NODE_ENV === 'production' || String(process.env.SERVE_FRONTEND_D
   if (!fs.existsSync(indexPath)) {
     console.error(`[Frontend] 프로덕션 빌드를 찾을 수 없습니다: ${indexPath}`)
   } else {
+    const configPath = path.resolve(__dirname, '../config.json')
+    const frontendAllowedHosts = loadViteAllowedHostsFromFile(configPath)
+    app.use((req, res, next) => {
+      if (isAllowedFrontendHost(req.headers.host, frontendAllowedHosts)) return next()
+      console.warn(`[Frontend] 허용되지 않은 Host 차단: ${String(req.headers.host || '')}`)
+      return res.status(403).type('text/plain').send('Blocked request. This host is not allowed.')
+    })
     app.use(express.static(distDir, {
       index: false,
       setHeaders(res, filePath) {

@@ -18,6 +18,7 @@ const { pingRedis } = require('../redisClient')
 const aiMetrics = require('../aiMetrics')
 const { runQueueHealthcheck } = require('../aiQueue')
 const { requestGroq, requestDeepSeek, requestMeta } = require('../llmClient')
+const { resolveViteAllowedHosts, validateViteAllowedHosts } = require('../viteAllowedHosts')
 
 // ... (existing code helpers)
 
@@ -118,14 +119,18 @@ function writeSupabaseEnvFromPayload(payload = {}, { backup = false } = {}) {
     return source + (source.endsWith('\n') || source.length === 0 ? '' : '\n') + line + '\n'
   }
 
+  const current = parseEnvTextToMap(envText)
+  const valueFor = (key, fallback = '') => Object.prototype.hasOwnProperty.call(payload, key)
+    ? payload[key]
+    : (current[key] ?? fallback)
   const normalized = {
-    SUPABASE_URL: String(payload.SUPABASE_URL || '').trim(),
-    SUPABASE_JWT_AUDIENCE: String(payload.SUPABASE_JWT_AUDIENCE || 'authenticated').trim() || 'authenticated',
-    JWT_SECRET: String(payload.JWT_SECRET || '').trim(),
-    CLIENT_ORIGIN: String(payload.CLIENT_ORIGIN || 'http://218.237.25.214:5173').trim(),
-    AUTH_COOKIE_SECURE: String(payload.AUTH_COOKIE_SECURE || 'false').trim().toLowerCase() === 'true' ? 'true' : 'false',
-    VITE_SUPABASE_URL: String(payload.VITE_SUPABASE_URL || '').trim(),
-    VITE_SUPABASE_ANON_KEY: String(payload.VITE_SUPABASE_ANON_KEY || '').trim(),
+    SUPABASE_URL: String(valueFor('SUPABASE_URL')).trim(),
+    SUPABASE_JWT_AUDIENCE: String(valueFor('SUPABASE_JWT_AUDIENCE', 'authenticated')).trim() || 'authenticated',
+    JWT_SECRET: String(valueFor('JWT_SECRET')).trim(),
+    CLIENT_ORIGIN: String(valueFor('CLIENT_ORIGIN', 'http://218.237.25.214:5173')).trim(),
+    AUTH_COOKIE_SECURE: String(valueFor('AUTH_COOKIE_SECURE', 'false')).trim().toLowerCase() === 'true' ? 'true' : 'false',
+    VITE_SUPABASE_URL: String(valueFor('VITE_SUPABASE_URL')).trim(),
+    VITE_SUPABASE_ANON_KEY: String(valueFor('VITE_SUPABASE_ANON_KEY')).trim(),
   }
 
   let updated = envText
@@ -529,6 +534,7 @@ router.get('/stats', async (req, res) => {
       company: config.company || {},
       email_settings: config.email_settings || {},
       site_url: config.site_url || '',
+      vite_allowed_hosts: resolveViteAllowedHosts(config),
       site_backup_key: config['SiteBackUp Key'] || '',
       enable_data_backup: Boolean(config.enable_data_backup),
       ...readSupabaseEnvSnapshot(),
@@ -581,6 +587,7 @@ router.get('/stats', async (req, res) => {
         company: config.company || {},
         email_settings: config.email_settings || {},
         site_url: config.site_url || '',
+        vite_allowed_hosts: resolveViteAllowedHosts(config),
         site_backup_key: config['SiteBackUp Key'] || '',
         enable_data_backup: Boolean(config.enable_data_backup),
         ...readSupabaseEnvSnapshot(),
@@ -608,14 +615,50 @@ router.put('/config', requireSiteAdmin, async (req, res) => {
       'VITE_SUPABASE_ANON_KEY',
     ])
     const touchedSupabaseSettings = Object.keys(req.body || {}).some((k) => supabaseKeys.has(k))
+    const currentEnv = touchedSupabaseSettings ? readSupabaseEnvSnapshot() : null
+    const envSnapshotKeys = {
+      SUPABASE_URL: 'supabase_url',
+      SUPABASE_JWT_AUDIENCE: 'supabase_jwt_audience',
+      JWT_SECRET: 'jwt_secret',
+      CLIENT_ORIGIN: 'client_origin',
+      AUTH_COOKIE_SECURE: 'auth_cookie_secure',
+      VITE_SUPABASE_URL: 'vite_supabase_url',
+      VITE_SUPABASE_ANON_KEY: 'vite_supabase_anon_key',
+    }
+    const supabaseSettingsChanged = touchedSupabaseSettings && [...supabaseKeys].some((key) =>
+      Object.prototype.hasOwnProperty.call(req.body || {}, key)
+      && String(req.body[key] ?? '').trim() !== String(currentEnv[envSnapshotKeys[key]] ?? '').trim()
+    )
+    const touchedViteSettings = Object.prototype.hasOwnProperty.call(req.body || {}, 'vite')
+
+    let allowedHosts = null
+    if (touchedViteSettings) {
+      const vitePayload = req.body?.vite
+      if (!vitePayload || typeof vitePayload !== 'object' || Array.isArray(vitePayload)) {
+        return res.status(400).json({ error: 'vite 설정은 객체여야 합니다.' })
+      }
+      try {
+        allowedHosts = validateViteAllowedHosts(vitePayload.allowedHosts)
+      } catch (validationError) {
+        return res.status(400).json({ error: validationError.message })
+      }
+    }
+    const viteAllowedHostsChanged = touchedViteSettings
+      && JSON.stringify(allowedHosts) !== JSON.stringify(resolveViteAllowedHosts(currentConfig))
 
     // Merge new config (SUPABASE_* keys are excluded from config.json and handled by .env)
     const nonSupabaseBody = Object.fromEntries(
-      Object.entries(req.body || {}).filter(([k]) => !supabaseKeys.has(k)),
+      Object.entries(req.body || {}).filter(([k]) => !supabaseKeys.has(k) && k !== 'vite'),
     )
     const newConfig = {
       ...currentConfig,
       ...nonSupabaseBody
+    }
+    if (touchedViteSettings) {
+      newConfig.vite = {
+        ...(currentConfig.vite && typeof currentConfig.vite === 'object' ? currentConfig.vite : {}),
+        allowedHosts,
+      }
     }
     if (Object.prototype.hasOwnProperty.call(newConfig, 'agenticai')) {
       newConfig.agenticai = normalizeAgenticAiConfig(newConfig.agenticai || {})
@@ -629,7 +672,7 @@ router.put('/config', requireSiteAdmin, async (req, res) => {
     fs.writeFileSync(configPath, JSON.stringify(newConfig, null, 2), 'utf8')
 
     let envSync = null
-    if (touchedSupabaseSettings) {
+    if (supabaseSettingsChanged) {
       envSync = writeSupabaseEnvFromPayload(req.body || {}, { backup: true })
     }
 
@@ -637,7 +680,7 @@ router.put('/config', requireSiteAdmin, async (req, res) => {
       success: true,
       config: newConfig,
       envSync,
-      restartRequired: touchedSupabaseSettings,
+      restartRequired: supabaseSettingsChanged || viteAllowedHostsChanged,
     })
   } catch (err) {
     console.error('Save Config Error:', err)

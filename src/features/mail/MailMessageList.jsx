@@ -207,6 +207,11 @@ export default function MailMessageList({
                   {message.received_at ? new Date(message.received_at).toLocaleDateString() : ''}
                 </span>
               </div>
+              {message.is_search_result && (
+                <div className="mt-0.5 truncate text-[10px] font-medium text-indigo-500">
+                  {[message.account_email, message.folder_name].filter(Boolean).join(' · ')}
+                </div>
+              )}
               <div className={`mt-1 truncate text-sm ${unread ? 'font-bold text-gray-900' : 'font-normal text-gray-500'}`}>
                 {message.subject || mt.noSubject}
               </div>

@@ -176,11 +176,15 @@ function AiBottomSheet({ onClose }) {
   )
 }
 
-export default function MobileLayout({ onOpenServicePage, onOpenUpdateHistory }) {
+export default function MobileLayout({ onOpenServicePage, onOpenUpdateHistory, onActiveModeChange }) {
   const { teams, selectedTeam, selectedChannel, pendingOpenPostId } = useChat()
 
   // 'channels' | 'dm' | 'calendar'
   const [tab, setTab] = useState('channels')
+  useEffect(() => {
+    onActiveModeChange?.(tab)
+  }, [tab, onActiveModeChange])
+
   // channels 탭 내부 드릴다운: 'list'(채널 목록) | 'channel'(글 목록/상세)
   const [channelView, setChannelView] = useState('list')
   const [activeDMConv, setActiveDMConv] = useState(null)

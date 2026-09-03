@@ -278,6 +278,7 @@ function MainLayout() {
   const [groqWidth, setGroqWidth] = useState(320)
   const [resizingGroq, setResizingGroq] = useState(false)
   const [showAgenticPanel, setShowAgenticPanel] = useState(false)
+  const [mobileActiveMode, setMobileActiveMode] = useState('channels')
   const [isMobileLayout, setIsMobileLayout] = useState(() => {
     if (typeof window === 'undefined') return false
     return window.matchMedia('(max-width: 768px)').matches
@@ -757,7 +758,7 @@ function MainLayout() {
         onOpenWelcomeBoard={openWelcomeBoard}
         onOpenBoard={openBoardPage}
         showBoard={!showMail && !showCalendar && !showContactBook && !showDM && !welcomeService}
-        showMail={showMail}
+        showMail={isMobileLayout ? mobileActiveMode === 'mail' : showMail}
         showCalendar={showCalendar}
         showContactBook={showContactBook}
         onOpenContactBook={() => { setShowContactBook(true); setShowMail(false); setShowCalendar(false); setShowDM(false); setWelcomeService(null) }}
@@ -769,7 +770,7 @@ function MainLayout() {
       />
       <div ref={mainRef} className="flex flex-1 min-h-0 min-w-0">
         {isMobileLayout ? (
-          <MobileLayout onOpenServicePage={setFullscreenService} onOpenUpdateHistory={() => setShowUpdateHistory(true)} />
+          <MobileLayout onOpenServicePage={setFullscreenService} onOpenUpdateHistory={() => setShowUpdateHistory(true)} onActiveModeChange={setMobileActiveMode} />
         ) : (
           <>
             {showContactBook ? (

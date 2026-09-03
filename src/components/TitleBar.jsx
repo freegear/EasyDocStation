@@ -4,6 +4,7 @@ import { useChat } from '../contexts/ChatContext'
 import { ROLE_BADGE } from '../constants/roles'
 import { useT } from '../i18n/useT'
 import { useOutsideMouseDown } from '../hooks/useOutsideMouseDown'
+import MailSearchBar from '../features/mail/MailSearchBar'
 
 function AgenticAICharacter({ active = true }) {
   return (
@@ -500,7 +501,7 @@ export default function TitleBar({
           </>
         )}
 
-        {!isMobileLayout && <SearchBar onSelectResult={onSelectSearchResult} />}
+        {!isMobileLayout && (showMail ? <MailSearchBar /> : <SearchBar onSelectResult={onSelectSearchResult} />)}
         {!isMobileLayout && showBoard && <BoardActionButtons isAdmin={isSiteAdmin || ['team_admin', 'channel_admin'].includes(currentUser?.role)} />}
         {isMobileLayout && (
           <button
@@ -526,7 +527,7 @@ export default function TitleBar({
       </div>
       {isMobileLayout && mobileSearchOpen && (
         <div className="absolute left-0 right-0 top-full px-3 py-2 bg-gray-100 border-b border-gray-200 z-20 md:hidden">
-          <SearchBar onSelectResult={onSelectSearchResult} />
+          {showMail ? <MailSearchBar /> : <SearchBar onSelectResult={onSelectSearchResult} />}
         </div>
       )}
     </header>

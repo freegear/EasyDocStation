@@ -1,0 +1,2074 @@
+[20260903-00:02:01][BE] [ATTACH-REF] sync ownerType=comment ownerId=c-1e929998-113e-4311-a0a2-549b69be0729 actorUserId=1 prev=0 next=4 add=4 remove=0
+[20260903-00:02:01][BE] [RAG] 댓글 학습 시작 — 1개 댓글 (제외: 0개)
+[20260903-00:02:01][BE] [Image2RAG] analysis 실패: 5d6dd247-8e90-4634-a4f9-3361b6d493dd Command failed: /home/freegear/EasyDocStation/.venv/bin/python3 -c from PIL import Image, ImageOps
+[20260903-00:02:01][BE] import json, sys
+[20260903-00:02:01][BE] src, dst, max_side, quality, max_pixels = sys.argv[1], sys.argv[2], int(sys.argv[3]), int(sys.argv[4]), int(sys.argv[5])
+[20260903-00:02:01][BE] im = Image.open(src)
+[20260903-00:02:01][BE] im = ImageOps.exif_transpose(im)
+[20260903-00:02:01][BE] width, height = im.size
+[20260903-00:02:01][BE] if width * height > max_pixels: raise ValueError("IMAGE_PIXEL_LIMIT_EXCEEDED")
+[20260903-00:02:01][BE] im.seek(0)
+[20260903-00:02:01][BE] im.thumbnail((max_side, max_side))
+[20260903-00:02:01][BE] if im.mode not in ("RGB", "L"): im = im.convert("RGB")
+[20260903-00:02:01][BE] im.save(dst, "JPEG", quality=quality, optimize=True)
+[20260903-00:02:01][BE] print(json.dumps({"width": width, "height": height})) /home/freegear/EasyDocStation/Database/ObjectFile/ch-1777501471654/5d6dd247-8e90-4634-a4f9-3361b6d493dd/250616_NWC_STB_4台.xlsx /tmp/eds-image-rag-kASPDw/prepared.jpg 2200 86 40000000
+[20260903-00:02:01][BE] Traceback (most recent call last):
+[20260903-00:02:01][BE]   File "<string>", line 4, in <module>
+[20260903-00:02:01][BE]   File "/home/freegear/EasyDocStation/.venv/lib/python3.12/site-packages/PIL/Image.py", line 3711, in open
+[20260903-00:02:01][BE]     raise UnidentifiedImageError(msg)
+[20260903-00:02:01][BE] PIL.UnidentifiedImageError: cannot identify image file '/home/freegear/EasyDocStation/Database/ObjectFile/ch-1777501471654/5d6dd247-8e90-4634-a4f9-3361b6d493dd/250616_NWC_STB_4台.xlsx'
+[20260903-00:02:01][BE] 
+[20260903-00:02:01][BE] /home/freegear/EasyDocStation/server/rag_train.py:173: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260903-00:02:01][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260903-00:02:01][BE] [Image2RAG] analysis 실패: c2631d28-251f-4a6a-ae0b-095a1e3c923f Command failed: /home/freegear/EasyDocStation/.venv/bin/python3 -c from PIL import Image, ImageOps
+[20260903-00:02:01][BE] import json, sys
+[20260903-00:02:01][BE] src, dst, max_side, quality, max_pixels = sys.argv[1], sys.argv[2], int(sys.argv[3]), int(sys.argv[4]), int(sys.argv[5])
+[20260903-00:02:01][BE] im = Image.open(src)
+[20260903-00:02:01][BE] im = ImageOps.exif_transpose(im)
+[20260903-00:02:01][BE] width, height = im.size
+[20260903-00:02:01][BE] if width * height > max_pixels: raise ValueError("IMAGE_PIXEL_LIMIT_EXCEEDED")
+[20260903-00:02:01][BE] im.seek(0)
+[20260903-00:02:01][BE] im.thumbnail((max_side, max_side))
+[20260903-00:02:01][BE] if im.mode not in ("RGB", "L"): im = im.convert("RGB")
+[20260903-00:02:01][BE] im.save(dst, "JPEG", quality=quality, optimize=True)
+[20260903-00:02:01][BE] print(json.dumps({"width": width, "height": height})) /home/freegear/EasyDocStation/Database/ObjectFile/ch-1777501471654/c2631d28-251f-4a6a-ae0b-095a1e3c923f/250616_NWC_STB_50台.xlsx.pdf /tmp/eds-image-rag-3wn970/prepared.jpg 2200 86 40000000
+[20260903-00:02:01][BE] Traceback (most recent call last):
+[20260903-00:02:01][BE]   File "<string>", line 4, in <module>
+[20260903-00:02:01][BE]   File "/home/freegear/EasyDocStation/.venv/lib/python3.12/site-packages/PIL/Image.py", line 3711, in open
+[20260903-00:02:01][BE]     raise UnidentifiedImageError(msg)
+[20260903-00:02:01][BE] PIL.UnidentifiedImageError: cannot identify image file '/home/freegear/EasyDocStation/Database/ObjectFile/ch-1777501471654/c2631d28-251f-4a6a-ae0b-095a1e3c923f/250616_NWC_STB_50台.xlsx.pdf'
+[20260903-00:02:01][BE] 
+[20260903-00:02:01][BE] [Image2RAG] analysis 실패: 2525f9db-5443-46df-8789-e916d47ae703 Command failed: /home/freegear/EasyDocStation/.venv/bin/python3 -c from PIL import Image, ImageOps
+[20260903-00:02:01][BE] import json, sys
+[20260903-00:02:01][BE] src, dst, max_side, quality, max_pixels = sys.argv[1], sys.argv[2], int(sys.argv[3]), int(sys.argv[4]), int(sys.argv[5])
+[20260903-00:02:01][BE] im = Image.open(src)
+[20260903-00:02:01][BE] im = ImageOps.exif_transpose(im)
+[20260903-00:02:01][BE] width, height = im.size
+[20260903-00:02:01][BE] if width * height > max_pixels: raise ValueError("IMAGE_PIXEL_LIMIT_EXCEEDED")
+[20260903-00:02:01][BE] im.seek(0)
+[20260903-00:02:01][BE] im.thumbnail((max_side, max_side))
+[20260903-00:02:01][BE] if im.mode not in ("RGB", "L"): im = im.convert("RGB")
+[20260903-00:02:01][BE] im.save(dst, "JPEG", quality=quality, optimize=True)
+[20260903-00:02:01][BE] print(json.dumps({"width": width, "height": height})) /home/freegear/EasyDocStation/Database/ObjectFile/ch-1777501471654/2525f9db-5443-46df-8789-e916d47ae703/250616_NWC_STB_200台.pdf /tmp/eds-image-rag-5p4DuH/prepared.jpg 2200 86 40000000
+[20260903-00:02:01][BE] Traceback (most recent call last):
+[20260903-00:02:01][BE]   File "<string>", line 4, in <module>
+[20260903-00:02:01][BE]   File "/home/freegear/EasyDocStation/.venv/lib/python3.12/site-packages/PIL/Image.py", line 3711, in open
+[20260903-00:02:01][BE]     raise UnidentifiedImageError(msg)
+[20260903-00:02:01][BE] PIL.UnidentifiedImageError: cannot identify image file '/home/freegear/EasyDocStation/Database/ObjectFile/ch-1777501471654/2525f9db-5443-46df-8789-e916d47ae703/250616_NWC_STB_200台.pdf'
+[20260903-00:02:01][BE] 
+[20260903-00:02:01][BE] [Image2RAG] analysis 실패: 0d04ca99-7aa2-49d7-bde5-691784fad8e4 Command failed: /home/freegear/EasyDocStation/.venv/bin/python3 -c from PIL import Image, ImageOps
+[20260903-00:02:01][BE] import json, sys
+[20260903-00:02:01][BE] src, dst, max_side, quality, max_pixels = sys.argv[1], sys.argv[2], int(sys.argv[3]), int(sys.argv[4]), int(sys.argv[5])
+[20260903-00:02:01][BE] im = Image.open(src)
+[20260903-00:02:01][BE] im = ImageOps.exif_transpose(im)
+[20260903-00:02:01][BE] width, height = im.size
+[20260903-00:02:01][BE] if width * height > max_pixels: raise ValueError("IMAGE_PIXEL_LIMIT_EXCEEDED")
+[20260903-00:02:01][BE] im.seek(0)
+[20260903-00:02:01][BE] im.thumbnail((max_side, max_side))
+[20260903-00:02:01][BE] if im.mode not in ("RGB", "L"): im = im.convert("RGB")
+[20260903-00:02:01][BE] im.save(dst, "JPEG", quality=quality, optimize=True)
+[20260903-00:02:01][BE] print(json.dumps({"width": width, "height": height})) /home/freegear/EasyDocStation/Database/ObjectFile/ch-1777501471654/0d04ca99-7aa2-49d7-bde5-691784fad8e4/260601_見積書_NWC_People Count_LITE_STB_4台.pdf /tmp/eds-image-rag-mGKWks/prepared.jpg 2200 86 40000000
+[20260903-00:02:01][BE] Traceback (most recent call last):
+[20260903-00:02:01][BE]   File "<string>", line 4, in <module>
+[20260903-00:02:01][BE]   File "/home/freegear/EasyDocStation/.venv/lib/python3.12/site-packages/PIL/Image.py", line 3711, in open
+[20260903-00:02:01][BE]     raise UnidentifiedImageError(msg)
+[20260903-00:02:01][BE] PIL.UnidentifiedImageError: cannot identify image file '/home/freegear/EasyDocStation/Database/ObjectFile/ch-1777501471654/0d04ca99-7aa2-49d7-bde5-691784fad8e4/260601_見積書_NWC_People Count_LITE_STB_4台.pdf'
+[20260903-00:02:01][BE] 
+[20260903-00:02:04][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v3' already exists
+[20260903-00:02:04][BE] [RAG] comment=c-1e929998-113e-4311-a0a2-549b69be0729 post=b2b4bd3a-4424-4879-b261-97580f483d0e text → 1청크
+[20260903-00:02:04][BE] [RAG] 학습 진행률: 10% (댓글 본문)
+[20260903-00:02:04][BE] [RAG] PDF 학습 시작: 250616_NWC_STB_50台.xlsx.pdf
+[20260903-00:02:05][BE] [RAG] PDF 파싱 시작 (Unstructured fast): 250616_NWC_STB_50台.xlsx.pdf
+[20260903-00:02:05][BE] [RAG] PDF 파싱 완료 (Unstructured fast): 250616_NWC_STB_50台.xlsx.pdf / elements=54 / 0.5s
+[20260903-00:02:05][BE] [RAG] PDF 학습 완료: 250616_NWC_STB_50台.xlsx.pdf (2청크)
+[20260903-00:02:05][BE] [RAG] 분리 저장 완료: /home/freegear/EasyDocStation/Database/ObjectFile/FileTrainingData/b2b4bd3a-4424-4879-b261-97580f483d0e/c-1e929998-113e-4311-a0a2-549b69be0729/c2631d28-251f-4a6a-ae0b-095a1e3c923f/250616_NWC_STB_50台.xlsx.pdf
+[20260903-00:02:05][BE] [RAG] 학습 진행률: 30% (댓글 PDF)
+[20260903-00:02:05][BE] [RAG] PDF 학습 시작: 250616_NWC_STB_200台.pdf
+[20260903-00:02:05][BE] [RAG] PDF 파싱 시작 (Unstructured fast): 250616_NWC_STB_200台.pdf
+[20260903-00:02:05][BE] [RAG] PDF 파싱 완료 (Unstructured fast): 250616_NWC_STB_200台.pdf / elements=54 / 0.0s
+[20260903-00:02:05][BE] [RAG] PDF 학습 완료: 250616_NWC_STB_200台.pdf (2청크)
+[20260903-00:02:05][BE] [RAG] 분리 저장 완료: /home/freegear/EasyDocStation/Database/ObjectFile/FileTrainingData/b2b4bd3a-4424-4879-b261-97580f483d0e/c-1e929998-113e-4311-a0a2-549b69be0729/2525f9db-5443-46df-8789-e916d47ae703/250616_NWC_STB_200台.pdf
+[20260903-00:02:05][BE] [RAG] 학습 진행률: 50% (댓글 PDF)
+[20260903-00:02:05][BE] [RAG] PDF 학습 시작: 260601_見積書_NWC_People Count_LITE_STB_4台.pdf
+[20260903-00:02:05][BE] [RAG] PDF 파싱 시작 (Unstructured fast): 260601_見積書_NWC_People Count_LITE_STB_4台.pdf
+[20260903-00:02:05][BE] [RAG] PDF 파싱 완료 (Unstructured fast): 260601_見積書_NWC_People Count_LITE_STB_4台.pdf / elements=52 / 0.1s
+[20260903-00:02:05][BE] [RAG] PDF 학습 완료: 260601_見積書_NWC_People Count_LITE_STB_4台.pdf (2청크)
+[20260903-00:02:05][BE] [RAG] 분리 저장 완료: /home/freegear/EasyDocStation/Database/ObjectFile/FileTrainingData/b2b4bd3a-4424-4879-b261-97580f483d0e/c-1e929998-113e-4311-a0a2-549b69be0729/0d04ca99-7aa2-49d7-bde5-691784fad8e4/260601_見積書_NWC_People_Count_LITE_STB_4台.pdf
+[20260903-00:02:05][BE] [RAG] 학습 진행률: 60% (댓글 PDF)
+[20260903-00:02:05][BE] [RAG] docling 학습 시작: 250616_NWC_STB_4台.xlsx (excel)
+[20260903-00:02:06][BE] [RAG] 문서 학습 완료: 250616_NWC_STB_4台.xlsx (docling, 20청크, 0.9s)
+[20260903-00:02:06][BE] [RAG] 학습 진행률: 80% (댓글 Excel)
+[20260903-00:02:06][BE] [RAG] 저장 완료 — 27청크 / 0개 게시글 / 1개 댓글 / 0개 폴더문서
+[20260903-00:02:06][BE] [RAG] 학습 진행률: 100% (저장)
+[20260903-00:02:07][BE] [RAG] 댓글 학습 완료 — 1개 댓글 (6.5s)
+[20260903-00:08:29][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260903-00:18:32][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260903-00:28:57][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260903-00:38:31][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260903-00:48:32][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260903-00:58:33][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260903-01:08:31][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260903-01:18:32][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260903-01:28:32][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260903-01:38:31][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260903-01:48:28][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260903-01:58:28][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260903-02:08:30][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260903-02:18:30][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260903-02:28:26][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260903-02:38:31][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260903-02:48:28][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260903-02:58:28][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260903-03:08:27][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260903-03:18:27][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260903-03:28:31][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260903-03:38:30][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260903-03:48:43][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260903-03:58:28][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260903-04:08:26][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260903-04:18:30][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260903-04:28:29][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260903-04:38:33][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260903-04:48:28][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260903-04:58:28][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260903-05:00:37][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260903-05:00:40][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260903-05:00:40][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260903-05:00:40][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260903-05:00:42][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260903-05:00:48][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260903-05:00:48][BE] [link-preview-image] meta image failed, fallback screenshot: meta page fetch failed (404)
+[20260903-05:08:27][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260903-05:18:30][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260903-05:28:31][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=2
+[20260903-05:38:31][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260903-05:48:31][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260903-05:58:28][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260903-06:08:30][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260903-06:09:40][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260903-06:09:41][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260903-06:09:41][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260903-06:09:41][BE] [link-preview-image] meta image failed, fallback screenshot: meta page fetch failed (404)
+[20260903-06:09:41][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260903-06:09:41][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260903-06:09:44][BE] [link-preview-image] 내부망 주소는 미리보기를 지원하지 않습니다.
+[20260903-06:09:44][BE] [link-preview-image] 내부망 주소는 미리보기를 지원하지 않습니다.
+[20260903-06:18:30][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260903-06:28:26][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260903-06:38:30][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260903-06:48:30][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260903-06:58:28][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260903-07:08:29][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260903-07:18:30][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260903-07:28:27][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260903-07:38:32][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260903-07:48:28][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=2
+[20260903-07:58:29][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=2
+[20260903-08:08:27][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260903-08:18:30][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260903-08:28:27][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260903-08:38:29][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=3
+[20260903-08:48:29][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260903-08:58:28][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=2
+[20260903-09:08:27][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=7
+[20260903-09:18:34][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=2
+[20260903-09:28:29][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260903-09:38:29][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=6
+[20260903-09:48:29][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=2
+[20260903-09:58:27][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=2
+[20260903-10:08:31][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260903-10:18:30][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260903-10:28:29][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260903-10:38:28][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=2
+[20260903-10:48:32][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=3
+[20260903-10:58:31][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260903-11:08:29][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=2
+[20260903-11:18:28][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260903-11:28:29][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260903-11:38:31][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=2
+[20260903-11:48:36][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260903-11:58:28][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=2
+[20260903-12:09:12][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260903-12:18:38][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260903-12:28:29][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260903-12:38:34][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260903-12:48:29][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260903-12:58:28][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260903-13:08:28][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260903-13:18:28][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260903-13:28:30][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=3
+[20260903-13:30:40][BE] [ATTACH-REF] sync ownerType=post ownerId=2762fcb6-f937-40c5-94fa-6617655ff6d4 actorUserId=1 prev=0 next=1 add=1 remove=0
+[20260903-13:30:40][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
+[20260903-13:30:40][BE] [Image2RAG] analysis 실패: 24ddf7b3-da67-4e03-b52e-33c380471d94 Command failed: /home/freegear/EasyDocStation/.venv/bin/python3 -c from PIL import Image, ImageOps
+[20260903-13:30:40][BE] import json, sys
+[20260903-13:30:40][BE] src, dst, max_side, quality, max_pixels = sys.argv[1], sys.argv[2], int(sys.argv[3]), int(sys.argv[4]), int(sys.argv[5])
+[20260903-13:30:40][BE] im = Image.open(src)
+[20260903-13:30:40][BE] im = ImageOps.exif_transpose(im)
+[20260903-13:30:40][BE] width, height = im.size
+[20260903-13:30:40][BE] if width * height > max_pixels: raise ValueError("IMAGE_PIXEL_LIMIT_EXCEEDED")
+[20260903-13:30:40][BE] im.seek(0)
+[20260903-13:30:40][BE] im.thumbnail((max_side, max_side))
+[20260903-13:30:40][BE] if im.mode not in ("RGB", "L"): im = im.convert("RGB")
+[20260903-13:30:40][BE] im.save(dst, "JPEG", quality=quality, optimize=True)
+[20260903-13:30:40][BE] print(json.dumps({"width": width, "height": height})) /home/freegear/EasyDocStation/Database/ObjectFile/ch-1776440801214/24ddf7b3-da67-4e03-b52e-33c380471d94/ELUNA_expert_product_spec.docx /tmp/eds-image-rag-cjLXJE/prepared.jpg 2200 86 40000000
+[20260903-13:30:40][BE] Traceback (most recent call last):
+[20260903-13:30:40][BE]   File "<string>", line 4, in <module>
+[20260903-13:30:40][BE]   File "/home/freegear/EasyDocStation/.venv/lib/python3.12/site-packages/PIL/Image.py", line 3711, in open
+[20260903-13:30:40][BE]     raise UnidentifiedImageError(msg)
+[20260903-13:30:40][BE] PIL.UnidentifiedImageError: cannot identify image file '/home/freegear/EasyDocStation/Database/ObjectFile/ch-1776440801214/24ddf7b3-da67-4e03-b52e-33c380471d94/ELUNA_expert_product_spec.docx'
+[20260903-13:30:40][BE] 
+[20260903-13:30:40][BE] /home/freegear/EasyDocStation/server/rag_train.py:173: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260903-13:30:40][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260903-13:30:43][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v3' already exists
+[20260903-13:30:43][BE] [RAG] post=2762fcb6-f937-40c5-94fa-6617655ff6d4 text → 1청크
+[20260903-13:30:43][BE] [RAG] 학습 진행률: 30% (게시글 본문)
+[20260903-13:30:43][BE] [RAG] Word docling 학습 시작: ELUNA_expert_product_spec.docx
+[20260903-13:30:44][BE] [RAG] Word 학습 완료: ELUNA_expert_product_spec.docx (docling, 19청크)
+[20260903-13:30:44][BE] [RAG] 학습 진행률: 60% (게시글 Word)
+[20260903-13:30:44][BE] [RAG] 저장 완료 — 20청크 / 1개 게시글 / 0개 댓글 / 0개 폴더문서
+[20260903-13:30:44][BE] [RAG] 학습 진행률: 100% (저장)
+[20260903-13:30:45][BE] [RAG] 학습 완료
+[20260903-13:31:11][BE] [mail delete] remote move succeeded with pending destination UID {
+[20260903-13:31:11][BE]   tenantId: 'personal-1',
+[20260903-13:31:11][BE]   userId: 1,
+[20260903-13:31:11][BE]   messageId: '36b22491-64e4-4566-ac16-f9954d0d8dfa'
+[20260903-13:31:11][BE] }
+[20260903-13:31:12][BE] [mail delete] remote move succeeded with pending destination UID {
+[20260903-13:31:12][BE]   tenantId: 'personal-1',
+[20260903-13:31:12][BE]   userId: 1,
+[20260903-13:31:12][BE]   messageId: '2f75cb32-031d-44af-b094-f3921e6c8b5d'
+[20260903-13:31:12][BE] }
+[20260903-13:31:13][BE] [mail delete] remote move succeeded with pending destination UID {
+[20260903-13:31:13][BE]   tenantId: 'personal-1',
+[20260903-13:31:13][BE]   userId: 1,
+[20260903-13:31:13][BE]   messageId: '8df5f17a-f17a-4290-bdaf-0d21514bff36'
+[20260903-13:31:13][BE] }
+[20260903-13:31:13][BE] [mail delete] remote move succeeded with pending destination UID {
+[20260903-13:31:13][BE]   tenantId: 'personal-1',
+[20260903-13:31:13][BE]   userId: 1,
+[20260903-13:31:13][BE]   messageId: 'fa7cf793-f402-454d-a5ce-6332c5fc4ffd'
+[20260903-13:31:13][BE] }
+[20260903-13:31:14][BE] [mail delete] remote move succeeded with pending destination UID {
+[20260903-13:31:14][BE]   tenantId: 'personal-1',
+[20260903-13:31:14][BE]   userId: 1,
+[20260903-13:31:14][BE]   messageId: 'bb0a01a4-926a-42ce-80ed-57560f728928'
+[20260903-13:31:14][BE] }
+[20260903-13:31:15][BE] [mail delete] remote move succeeded with pending destination UID {
+[20260903-13:31:15][BE]   tenantId: 'personal-1',
+[20260903-13:31:15][BE]   userId: 1,
+[20260903-13:31:15][BE]   messageId: '6b36e10f-53df-408f-b247-49fddaa37aef'
+[20260903-13:31:15][BE] }
+[20260903-13:31:15][BE] [mail delete] remote move succeeded with pending destination UID {
+[20260903-13:31:15][BE]   tenantId: 'personal-1',
+[20260903-13:31:15][BE]   userId: 1,
+[20260903-13:31:15][BE]   messageId: 'cc133ef3-a9a8-45f7-8916-c82e4bfb103b'
+[20260903-13:31:15][BE] }
+[20260903-13:31:16][BE] [mail delete] remote move succeeded with pending destination UID {
+[20260903-13:31:16][BE]   tenantId: 'personal-1',
+[20260903-13:31:16][BE]   userId: 1,
+[20260903-13:31:16][BE]   messageId: '6dfc3af8-1ab9-4f28-b3fd-b0c4c63521c2'
+[20260903-13:31:16][BE] }
+[20260903-13:31:20][BE] [mail delete] remote move succeeded with pending destination UID {
+[20260903-13:31:20][BE]   tenantId: 'personal-1',
+[20260903-13:31:20][BE]   userId: 1,
+[20260903-13:31:20][BE]   messageId: '86bca474-1045-46c7-a2d7-25d01dbcce0d'
+[20260903-13:31:20][BE] }
+[20260903-13:31:20][BE] [mail delete] remote move succeeded with pending destination UID {
+[20260903-13:31:20][BE]   tenantId: 'personal-1',
+[20260903-13:31:20][BE]   userId: 1,
+[20260903-13:31:20][BE]   messageId: 'e4d3c8c0-3663-48ce-a03b-2771950404cb'
+[20260903-13:31:20][BE] }
+[20260903-13:31:21][BE] [mail delete] remote move succeeded with pending destination UID {
+[20260903-13:31:21][BE]   tenantId: 'personal-1',
+[20260903-13:31:21][BE]   userId: 1,
+[20260903-13:31:21][BE]   messageId: 'e92a2319-6732-43ce-b37f-556d17ab3c5e'
+[20260903-13:31:21][BE] }
+[20260903-13:31:21][BE] [mail delete] remote move succeeded with pending destination UID {
+[20260903-13:31:21][BE]   tenantId: 'personal-1',
+[20260903-13:31:21][BE]   userId: 1,
+[20260903-13:31:21][BE]   messageId: '47e7df9c-8cee-4205-ab6e-fa856321bf83'
+[20260903-13:31:21][BE] }
+[20260903-13:31:22][BE] [mail delete] remote move succeeded with pending destination UID {
+[20260903-13:31:22][BE]   tenantId: 'personal-1',
+[20260903-13:31:22][BE]   userId: 1,
+[20260903-13:31:22][BE]   messageId: '70f7ba2e-d924-4819-bec0-eb7d438e8018'
+[20260903-13:31:22][BE] }
+[20260903-13:31:38][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260903-13:31:40][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260903-13:31:40][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260903-13:31:45][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260903-13:38:32][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=2
+[20260903-13:40:06][BE] [ATTACH-REF] sync ownerType=post ownerId=59fe6d2d-fb63-4584-83a5-49306fd2e801 actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260903-13:40:06][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
+[20260903-13:40:06][BE] /home/freegear/EasyDocStation/server/rag_train.py:173: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260903-13:40:06][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260903-13:40:09][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v3' already exists
+[20260903-13:40:09][BE] [RAG] post=59fe6d2d-fb63-4584-83a5-49306fd2e801 text → 1청크
+[20260903-13:40:09][BE] [RAG] 학습 진행률: 50% (게시글 본문)
+[20260903-13:40:09][BE] [RAG] 저장 완료 — 1청크 / 1개 게시글 / 0개 댓글 / 0개 폴더문서
+[20260903-13:40:09][BE] [RAG] 학습 진행률: 100% (저장)
+[20260903-13:40:10][BE] [RAG] 학습 완료
+[20260903-13:40:17][BE] [ATTACH-REF] sync ownerType=comment ownerId=c-2131bd16-3aea-45bb-8b7f-8d04d6481121 actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260903-13:40:17][BE] [RAG] 댓글 학습 시작 — 1개 댓글 (제외: 0개)
+[20260903-13:40:17][BE] /home/freegear/EasyDocStation/server/rag_train.py:173: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260903-13:40:17][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260903-13:40:20][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v3' already exists
+[20260903-13:40:20][BE] [RAG] comment=c-2131bd16-3aea-45bb-8b7f-8d04d6481121 post=59fe6d2d-fb63-4584-83a5-49306fd2e801 text → 1청크
+[20260903-13:40:20][BE] [RAG] 학습 진행률: 50% (댓글 본문)
+[20260903-13:40:20][BE] [RAG] 저장 완료 — 1청크 / 0개 게시글 / 1개 댓글 / 0개 폴더문서
+[20260903-13:40:20][BE] [RAG] 학습 진행률: 100% (저장)
+[20260903-13:40:21][BE] [RAG] 댓글 학습 완료 — 1개 댓글 (3.9s)
+[20260903-13:40:58][BE] [ATTACH-REF] sync ownerType=comment ownerId=c-aa549b30-fb64-414f-a83f-10ff78acbf21 actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260903-13:40:58][BE] [RAG] 댓글 학습 시작 — 1개 댓글 (제외: 0개)
+[20260903-13:40:58][BE] /home/freegear/EasyDocStation/server/rag_train.py:173: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260903-13:40:58][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260903-13:41:01][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v3' already exists
+[20260903-13:41:01][BE] [RAG] comment=c-aa549b30-fb64-414f-a83f-10ff78acbf21 post=59fe6d2d-fb63-4584-83a5-49306fd2e801 text → 2청크
+[20260903-13:41:01][BE] [RAG] 학습 진행률: 50% (댓글 본문)
+[20260903-13:41:01][BE] [RAG] 저장 완료 — 2청크 / 0개 게시글 / 1개 댓글 / 0개 폴더문서
+[20260903-13:41:01][BE] [RAG] 학습 진행률: 100% (저장)
+[20260903-13:41:02][BE] [RAG] 댓글 학습 완료 — 1개 댓글 (4.0s)
+[20260903-13:42:07][BE] [ATTACH-REF] sync ownerType=comment ownerId=c-fc6288ea-f499-4138-a31c-15898b1fbf90 actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260903-13:42:07][BE] [RAG] 댓글 학습 시작 — 1개 댓글 (제외: 0개)
+[20260903-13:42:07][BE] /home/freegear/EasyDocStation/server/rag_train.py:173: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260903-13:42:07][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260903-13:42:10][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v3' already exists
+[20260903-13:42:10][BE] [RAG] comment=c-fc6288ea-f499-4138-a31c-15898b1fbf90 post=59fe6d2d-fb63-4584-83a5-49306fd2e801 text → 1청크
+[20260903-13:42:10][BE] [RAG] 학습 진행률: 50% (댓글 본문)
+[20260903-13:42:10][BE] [RAG] 저장 완료 — 1청크 / 0개 게시글 / 1개 댓글 / 0개 폴더문서
+[20260903-13:42:10][BE] [RAG] 학습 진행률: 100% (저장)
+[20260903-13:42:11][BE] [RAG] 댓글 학습 완료 — 1개 댓글 (3.9s)
+[20260903-13:48:30][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260903-13:49:44][BE] [Mail send] 시작 account=freegear@siliconcube.co.kr to=2 첨부=2개 본문=8.0KB 첨부합계=470.8KB 예상전송크기≈656.0KB
+[20260903-13:49:49][BE] [Mail send] 완료 account=freegear@siliconcube.co.kr 4462ms messageId=<499ded43-5ff7-415e-6ea7-6f468774575a@siliconcube.co.kr> accepted=5 rejected=0
+[20260903-13:50:02][BE] [mail delete] remote move succeeded with pending destination UID {
+[20260903-13:50:02][BE]   tenantId: 'personal-1',
+[20260903-13:50:02][BE]   userId: 1,
+[20260903-13:50:02][BE]   messageId: 'bbb68c64-46cb-4aab-8f51-a7ffe56ca9f3'
+[20260903-13:50:02][BE] }
+[20260903-13:50:07][BE] [mail delete] remote move succeeded with pending destination UID {
+[20260903-13:50:07][BE]   tenantId: 'personal-1',
+[20260903-13:50:07][BE]   userId: 1,
+[20260903-13:50:07][BE]   messageId: '75654b84-dff9-4856-9ce5-cbea9db841f1'
+[20260903-13:50:07][BE] }
+[20260903-13:50:08][BE] [mail delete] remote move succeeded with pending destination UID {
+[20260903-13:50:08][BE]   tenantId: 'personal-1',
+[20260903-13:50:08][BE]   userId: 1,
+[20260903-13:50:08][BE]   messageId: '61ab8dfd-b0ab-4581-a04b-0d40302ec11d'
+[20260903-13:50:08][BE] }
+[20260903-13:50:09][BE] [mail delete] remote move succeeded with pending destination UID {
+[20260903-13:50:09][BE]   tenantId: 'personal-1',
+[20260903-13:50:09][BE]   userId: 1,
+[20260903-13:50:09][BE]   messageId: '3b280d12-d40f-45d4-9eca-79f76319a36f'
+[20260903-13:50:09][BE] }
+[20260903-13:50:09][BE] [mail delete] remote move succeeded with pending destination UID {
+[20260903-13:50:09][BE]   tenantId: 'personal-1',
+[20260903-13:50:09][BE]   userId: 1,
+[20260903-13:50:09][BE]   messageId: '189dbba8-b53e-4ea8-93dd-8a7fec2dfd0d'
+[20260903-13:50:09][BE] }
+[20260903-13:50:18][BE] [mail delete] remote move succeeded with pending destination UID {
+[20260903-13:50:18][BE]   tenantId: 'personal-1',
+[20260903-13:50:18][BE]   userId: 1,
+[20260903-13:50:18][BE]   messageId: '87a5960f-f34e-45d5-90ef-91def5aa8e54'
+[20260903-13:50:18][BE] }
+[20260903-13:50:19][BE] [mail delete] remote move succeeded with pending destination UID {
+[20260903-13:50:19][BE]   tenantId: 'personal-1',
+[20260903-13:50:19][BE]   userId: 1,
+[20260903-13:50:19][BE]   messageId: 'cc2f3561-aea2-4b5e-8c08-dbe0de02ca4c'
+[20260903-13:50:19][BE] }
+[20260903-13:50:20][BE] [mail delete] remote move succeeded with pending destination UID {
+[20260903-13:50:20][BE]   tenantId: 'personal-1',
+[20260903-13:50:20][BE]   userId: 1,
+[20260903-13:50:20][BE]   messageId: '1d033ff8-18e4-4e19-966d-2cb314ecbc24'
+[20260903-13:50:20][BE] }
+[20260903-13:50:23][BE] [mail delete] remote move succeeded with pending destination UID {
+[20260903-13:50:23][BE]   tenantId: 'personal-1',
+[20260903-13:50:23][BE]   userId: 1,
+[20260903-13:50:23][BE]   messageId: '38a96605-1e40-4961-a90e-425cd8deb398'
+[20260903-13:50:23][BE] }
+[20260903-13:51:22][BE] [mail delete] remote move succeeded with pending destination UID {
+[20260903-13:51:22][BE]   tenantId: 'personal-1',
+[20260903-13:51:22][BE]   userId: 1,
+[20260903-13:51:22][BE]   messageId: '0e654585-04c0-40af-847d-f46e17586b3b'
+[20260903-13:51:22][BE] }
+[20260903-13:51:28][BE] [mail delete] remote move succeeded with pending destination UID {
+[20260903-13:51:28][BE]   tenantId: 'personal-1',
+[20260903-13:51:28][BE]   userId: 1,
+[20260903-13:51:28][BE]   messageId: '326017b9-27c6-4577-8301-bb292ec598e2'
+[20260903-13:51:28][BE] }
+[20260903-13:51:28][BE] [mail delete] remote move succeeded with pending destination UID {
+[20260903-13:51:28][BE]   tenantId: 'personal-1',
+[20260903-13:51:28][BE]   userId: 1,
+[20260903-13:51:28][BE]   messageId: 'f3d60734-7b6d-41dd-aa5d-99514e01947c'
+[20260903-13:51:28][BE] }
+[20260903-13:51:29][BE] [mail delete] remote move succeeded with pending destination UID {
+[20260903-13:51:29][BE]   tenantId: 'personal-1',
+[20260903-13:51:29][BE]   userId: 1,
+[20260903-13:51:29][BE]   messageId: '674f2452-72bf-494e-a485-ebc38a79c137'
+[20260903-13:51:29][BE] }
+[20260903-13:51:30][BE] [mail delete] remote move succeeded with pending destination UID {
+[20260903-13:51:30][BE]   tenantId: 'personal-1',
+[20260903-13:51:30][BE]   userId: 1,
+[20260903-13:51:30][BE]   messageId: '1ece0cec-3e46-42f5-a76f-2f3519c37855'
+[20260903-13:51:30][BE] }
+[20260903-13:51:30][BE] [mail delete] remote move succeeded with pending destination UID {
+[20260903-13:51:30][BE]   tenantId: 'personal-1',
+[20260903-13:51:30][BE]   userId: 1,
+[20260903-13:51:30][BE]   messageId: '71425ba4-78e0-4d1d-b0e7-05337f7a1eaf'
+[20260903-13:51:30][BE] }
+[20260903-13:58:29][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260903-14:04:51][BE] [mail delete] remote move succeeded with pending destination UID {
+[20260903-14:04:51][BE]   tenantId: 'personal-1',
+[20260903-14:04:51][BE]   userId: 1,
+[20260903-14:04:51][BE]   messageId: '9f51b612-32f4-492d-ae58-d35967d0101a'
+[20260903-14:04:51][BE] }
+[20260903-14:04:52][BE] [mail delete] remote move succeeded with pending destination UID {
+[20260903-14:04:52][BE]   tenantId: 'personal-1',
+[20260903-14:04:52][BE]   userId: 1,
+[20260903-14:04:52][BE]   messageId: '092b7497-fb12-48d2-88f2-9dfdc65805d9'
+[20260903-14:04:52][BE] }
+[20260903-14:04:54][BE] [mail delete] remote move succeeded with pending destination UID {
+[20260903-14:04:54][BE]   tenantId: 'personal-1',
+[20260903-14:04:54][BE]   userId: 1,
+[20260903-14:04:54][BE]   messageId: 'ada5addb-ce00-4588-ba19-df583c09ea9b'
+[20260903-14:04:54][BE] }
+[20260903-14:04:55][BE] [mail delete] remote move succeeded with pending destination UID {
+[20260903-14:04:55][BE]   tenantId: 'personal-1',
+[20260903-14:04:55][BE]   userId: 1,
+[20260903-14:04:55][BE]   messageId: '6dae31ea-89f0-4c19-82b7-a1450b59e459'
+[20260903-14:04:55][BE] }
+[20260903-14:08:33][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260903-14:09:30][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260903-14:09:30][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260903-14:09:30][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260903-14:09:30][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260903-14:09:30][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260903-14:18:31][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=2
+[20260903-14:28:30][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260903-14:38:29][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260903-14:48:29][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=2
+[20260903-14:58:29][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260903-15:08:30][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260903-15:18:29][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260903-15:28:29][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260903-15:38:31][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260903-15:48:29][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=3
+[20260903-15:58:11][BE] [Mail send] 시작 account=freegear@siliconcube.co.kr to=2 첨부=1개 본문=1.5KB 첨부합계=4.4MB 예상전송크기≈6.1MB
+[20260903-15:58:13][BE] [Mail send] 완료 account=freegear@siliconcube.co.kr 1869ms messageId=<037ce8a1-ac1f-aafb-6eb2-369ee015781e@siliconcube.co.kr> accepted=5 rejected=0
+[20260903-15:58:42][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=3
+[20260903-16:08:29][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260903-16:18:30][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=2
+[20260903-16:28:27][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260903-16:38:29][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260903-16:48:28][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260903-16:58:26][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260903-17:08:28][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260903-17:18:56][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260903-17:28:27][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260903-17:38:33][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260903-17:48:30][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260903-17:58:29][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260903-18:08:28][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260903-18:18:29][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260903-18:28:29][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260903-18:38:29][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260903-18:48:32][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260903-18:58:29][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260903-19:08:30][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=2
+[20260903-19:18:27][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260903-19:28:27][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260903-19:38:29][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260903-19:48:31][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260903-19:58:28][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260903-20:08:27][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=2
+[20260903-20:18:27][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260903-20:28:30][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260903-20:38:32][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260903-20:48:29][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260903-20:58:30][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260903-21:08:28][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=4
+[20260903-21:18:28][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260903-21:28:27][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260903-21:38:31][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260903-21:42:50][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260903-21:42:50][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260903-21:42:50][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260903-21:42:50][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260903-21:48:29][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260903-21:58:28][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260903-22:08:29][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=2
+[20260903-22:10:47][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260903-22:10:53][BE] [link-preview-image] 내부망 주소는 미리보기를 지원하지 않습니다.
+[20260903-22:10:53][BE] [link-preview-image] 내부망 주소는 미리보기를 지원하지 않습니다.
+[20260903-22:11:47][BE] [ATTACH-REF] sync ownerType=post ownerId=3e856eb0-9518-4177-9d33-15989ccd1b0d actorUserId=1 prev=0 next=4 add=4 remove=0
+[20260903-22:11:47][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
+[20260903-22:11:48][BE] /home/freegear/EasyDocStation/server/rag_train.py:173: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260903-22:11:48][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260903-22:11:48][BE] [Image2RAG] analysis 실패: c474f21c-85e4-4df4-b753-5913a08a0ab1 Command failed: /home/freegear/EasyDocStation/.venv/bin/python3 -c from PIL import Image, ImageOps
+[20260903-22:11:48][BE] import json, sys
+[20260903-22:11:48][BE] src, dst, max_side, quality, max_pixels = sys.argv[1], sys.argv[2], int(sys.argv[3]), int(sys.argv[4]), int(sys.argv[5])
+[20260903-22:11:48][BE] im = Image.open(src)
+[20260903-22:11:48][BE] im = ImageOps.exif_transpose(im)
+[20260903-22:11:48][BE] width, height = im.size
+[20260903-22:11:48][BE] if width * height > max_pixels: raise ValueError("IMAGE_PIXEL_LIMIT_EXCEEDED")
+[20260903-22:11:48][BE] im.seek(0)
+[20260903-22:11:48][BE] im.thumbnail((max_side, max_side))
+[20260903-22:11:48][BE] if im.mode not in ("RGB", "L"): im = im.convert("RGB")
+[20260903-22:11:48][BE] im.save(dst, "JPEG", quality=quality, optimize=True)
+[20260903-22:11:48][BE] print(json.dumps({"width": width, "height": height})) /home/freegear/EasyDocStation/Database/ObjectFile/ch-1777501471654/c474f21c-85e4-4df4-b753-5913a08a0ab1/People_Counter_Lite_ROI外認識_調査報告書_日本語版 (1).pdf /tmp/eds-image-rag-ted0vb/prepared.jpg 2200 86 40000000
+[20260903-22:11:48][BE] Traceback (most recent call last):
+[20260903-22:11:48][BE]   File "<string>", line 4, in <module>
+[20260903-22:11:48][BE]   File "/home/freegear/EasyDocStation/.venv/lib/python3.12/site-packages/PIL/Image.py", line 3711, in open
+[20260903-22:11:48][BE]     raise UnidentifiedImageError(msg)
+[20260903-22:11:48][BE] PIL.UnidentifiedImageError: cannot identify image file '/home/freegear/EasyDocStation/Database/ObjectFile/ch-1777501471654/c474f21c-85e4-4df4-b753-5913a08a0ab1/People_Counter_Lite_ROI外認識_調査報告書_日本語版 (1).pdf'
+[20260903-22:11:48][BE] 
+[20260903-22:11:48][BE] [Image2RAG] analysis 실패: c82d8766-cc74-4d9b-8442-afaeaf7f79ae Command failed: /home/freegear/EasyDocStation/.venv/bin/python3 -c from PIL import Image, ImageOps
+[20260903-22:11:48][BE] import json, sys
+[20260903-22:11:48][BE] src, dst, max_side, quality, max_pixels = sys.argv[1], sys.argv[2], int(sys.argv[3]), int(sys.argv[4]), int(sys.argv[5])
+[20260903-22:11:48][BE] im = Image.open(src)
+[20260903-22:11:48][BE] im = ImageOps.exif_transpose(im)
+[20260903-22:11:48][BE] width, height = im.size
+[20260903-22:11:48][BE] if width * height > max_pixels: raise ValueError("IMAGE_PIXEL_LIMIT_EXCEEDED")
+[20260903-22:11:48][BE] im.seek(0)
+[20260903-22:11:48][BE] im.thumbnail((max_side, max_side))
+[20260903-22:11:48][BE] if im.mode not in ("RGB", "L"): im = im.convert("RGB")
+[20260903-22:11:48][BE] im.save(dst, "JPEG", quality=quality, optimize=True)
+[20260903-22:11:48][BE] print(json.dumps({"width": width, "height": height})) /home/freegear/EasyDocStation/Database/ObjectFile/ch-1777501471654/c82d8766-cc74-4d9b-8442-afaeaf7f79ae/People_Counter_Lite_ROI外認識_調査報告書_日本語版.pdf /tmp/eds-image-rag-mUkXV3/prepared.jpg 2200 86 40000000
+[20260903-22:11:48][BE] Traceback (most recent call last):
+[20260903-22:11:48][BE]   File "<string>", line 4, in <module>
+[20260903-22:11:48][BE]   File "/home/freegear/EasyDocStation/.venv/lib/python3.12/site-packages/PIL/Image.py", line 3711, in open
+[20260903-22:11:48][BE]     raise UnidentifiedImageError(msg)
+[20260903-22:11:48][BE] PIL.UnidentifiedImageError: cannot identify image file '/home/freegear/EasyDocStation/Database/ObjectFile/ch-1777501471654/c82d8766-cc74-4d9b-8442-afaeaf7f79ae/People_Counter_Lite_ROI外認識_調査報告書_日本語版.pdf'
+[20260903-22:11:48][BE] 
+[20260903-22:11:48][BE] [Image2RAG] analysis 실패: 50e9a4e6-eced-40f0-9b12-02c2e73e180a Command failed: /home/freegear/EasyDocStation/.venv/bin/python3 -c from PIL import Image, ImageOps
+[20260903-22:11:48][BE] import json, sys
+[20260903-22:11:48][BE] src, dst, max_side, quality, max_pixels = sys.argv[1], sys.argv[2], int(sys.argv[3]), int(sys.argv[4]), int(sys.argv[5])
+[20260903-22:11:48][BE] im = Image.open(src)
+[20260903-22:11:48][BE] im = ImageOps.exif_transpose(im)
+[20260903-22:11:48][BE] width, height = im.size
+[20260903-22:11:48][BE] if width * height > max_pixels: raise ValueError("IMAGE_PIXEL_LIMIT_EXCEEDED")
+[20260903-22:11:48][BE] im.seek(0)
+[20260903-22:11:48][BE] im.thumbnail((max_side, max_side))
+[20260903-22:11:48][BE] if im.mode not in ("RGB", "L"): im = im.convert("RGB")
+[20260903-22:11:48][BE] im.save(dst, "JPEG", quality=quality, optimize=True)
+[20260903-22:11:48][BE] print(json.dumps({"width": width, "height": height})) /home/freegear/EasyDocStation/Database/ObjectFile/ch-1777501471654/50e9a4e6-eced-40f0-9b12-02c2e73e180a/People_Counter_Lite_ROI外認識_調査報告書_日本語版.docx /tmp/eds-image-rag-prnmdP/prepared.jpg 2200 86 40000000
+[20260903-22:11:48][BE] Traceback (most recent call last):
+[20260903-22:11:48][BE]   File "<string>", line 4, in <module>
+[20260903-22:11:48][BE]   File "/home/freegear/EasyDocStation/.venv/lib/python3.12/site-packages/PIL/Image.py", line 3711, in open
+[20260903-22:11:48][BE]     raise UnidentifiedImageError(msg)
+[20260903-22:11:48][BE] PIL.UnidentifiedImageError: cannot identify image file '/home/freegear/EasyDocStation/Database/ObjectFile/ch-1777501471654/50e9a4e6-eced-40f0-9b12-02c2e73e180a/People_Counter_Lite_ROI外認識_調査報告書_日本語版.docx'
+[20260903-22:11:48][BE] 
+[20260903-22:11:48][BE] [Image2RAG] analysis 실패: 37eb2b4a-5008-4e4a-8521-be884928e397 Command failed: /home/freegear/EasyDocStation/.venv/bin/python3 -c from PIL import Image, ImageOps
+[20260903-22:11:48][BE] import json, sys
+[20260903-22:11:48][BE] src, dst, max_side, quality, max_pixels = sys.argv[1], sys.argv[2], int(sys.argv[3]), int(sys.argv[4]), int(sys.argv[5])
+[20260903-22:11:48][BE] im = Image.open(src)
+[20260903-22:11:48][BE] im = ImageOps.exif_transpose(im)
+[20260903-22:11:48][BE] width, height = im.size
+[20260903-22:11:48][BE] if width * height > max_pixels: raise ValueError("IMAGE_PIXEL_LIMIT_EXCEEDED")
+[20260903-22:11:48][BE] im.seek(0)
+[20260903-22:11:48][BE] im.thumbnail((max_side, max_side))
+[20260903-22:11:48][BE] if im.mode not in ("RGB", "L"): im = im.convert("RGB")
+[20260903-22:11:48][BE] im.save(dst, "JPEG", quality=quality, optimize=True)
+[20260903-22:11:48][BE] print(json.dumps({"width": width, "height": height})) /home/freegear/EasyDocStation/Database/ObjectFile/ch-1777501471654/37eb2b4a-5008-4e4a-8521-be884928e397/People Counter Lite 버전에서.docx /tmp/eds-image-rag-wMwKPx/prepared.jpg 2200 86 40000000
+[20260903-22:11:48][BE] Traceback (most recent call last):
+[20260903-22:11:48][BE]   File "<string>", line 4, in <module>
+[20260903-22:11:48][BE]   File "/home/freegear/EasyDocStation/.venv/lib/python3.12/site-packages/PIL/Image.py", line 3711, in open
+[20260903-22:11:48][BE]     raise UnidentifiedImageError(msg)
+[20260903-22:11:48][BE] PIL.UnidentifiedImageError: cannot identify image file '/home/freegear/EasyDocStation/Database/ObjectFile/ch-1777501471654/37eb2b4a-5008-4e4a-8521-be884928e397/People Counter Lite 버전에서.docx'
+[20260903-22:11:48][BE] 
+[20260903-22:11:51][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v3' already exists
+[20260903-22:11:51][BE] [RAG] post=3e856eb0-9518-4177-9d33-15989ccd1b0d text → 1청크
+[20260903-22:11:51][BE] [RAG] 학습 진행률: 10% (게시글 본문)
+[20260903-22:11:51][BE] [RAG] PDF 학습 시작: People_Counter_Lite_ROI外認識_調査報告書_日本語版 (1).pdf
+[20260903-22:11:51][BE] [RAG] PDF 파싱 시작 (Unstructured fast): People_Counter_Lite_ROI外認識_調査報告書_日本語版 (1).pdf
+[20260903-22:11:51][BE] Ignoring wrong pointing object 6 0 (offset 0)
+[20260903-22:11:51][BE] Ignoring wrong pointing object 8 0 (offset 0)
+[20260903-22:11:51][BE] Ignoring wrong pointing object 10 0 (offset 0)
+[20260903-22:11:51][BE] Ignoring wrong pointing object 13 0 (offset 0)
+[20260903-22:11:51][BE] Ignoring wrong pointing object 15 0 (offset 0)
+[20260903-22:11:51][BE] Ignoring wrong pointing object 17 0 (offset 0)
+[20260903-22:11:51][BE] Ignoring wrong pointing object 19 0 (offset 0)
+[20260903-22:11:51][BE] Ignoring wrong pointing object 21 0 (offset 0)
+[20260903-22:11:51][BE] Ignoring wrong pointing object 23 0 (offset 0)
+[20260903-22:11:51][BE] Ignoring wrong pointing object 25 0 (offset 0)
+[20260903-22:11:51][BE] Ignoring wrong pointing object 28 0 (offset 0)
+[20260903-22:11:51][BE] Ignoring wrong pointing object 30 0 (offset 0)
+[20260903-22:11:52][BE] [RAG] PDF 파싱 완료 (Unstructured fast): People_Counter_Lite_ROI外認識_調査報告書_日本語版 (1).pdf / elements=20 / 0.5s
+[20260903-22:11:52][BE] [RAG] PDF 학습 완료: People_Counter_Lite_ROI外認識_調査報告書_日本語版 (1).pdf (2청크)
+[20260903-22:11:52][BE] [RAG] 분리 저장 완료: /home/freegear/EasyDocStation/Database/ObjectFile/FileTrainingData/3e856eb0-9518-4177-9d33-15989ccd1b0d/no_comment/c474f21c-85e4-4df4-b753-5913a08a0ab1/People_Counter_Lite_ROI外認識_調査報告書_日本語版_1_.pdf
+[20260903-22:11:52][BE] [RAG] 학습 진행률: 30% (게시글 PDF)
+[20260903-22:11:52][BE] [RAG] PDF 학습 시작: People_Counter_Lite_ROI外認識_調査報告書_日本語版.pdf
+[20260903-22:11:52][BE] [RAG] PDF 파싱 시작 (Unstructured fast): People_Counter_Lite_ROI外認識_調査報告書_日本語版.pdf
+[20260903-22:11:52][BE] Ignoring wrong pointing object 6 0 (offset 0)
+[20260903-22:11:52][BE] Ignoring wrong pointing object 8 0 (offset 0)
+[20260903-22:11:52][BE] Ignoring wrong pointing object 10 0 (offset 0)
+[20260903-22:11:52][BE] Ignoring wrong pointing object 13 0 (offset 0)
+[20260903-22:11:52][BE] Ignoring wrong pointing object 15 0 (offset 0)
+[20260903-22:11:52][BE] Ignoring wrong pointing object 17 0 (offset 0)
+[20260903-22:11:52][BE] Ignoring wrong pointing object 19 0 (offset 0)
+[20260903-22:11:52][BE] Ignoring wrong pointing object 21 0 (offset 0)
+[20260903-22:11:52][BE] Ignoring wrong pointing object 23 0 (offset 0)
+[20260903-22:11:52][BE] Ignoring wrong pointing object 25 0 (offset 0)
+[20260903-22:11:52][BE] Ignoring wrong pointing object 28 0 (offset 0)
+[20260903-22:11:52][BE] Ignoring wrong pointing object 30 0 (offset 0)
+[20260903-22:11:52][BE] [RAG] PDF 파싱 완료 (Unstructured fast): People_Counter_Lite_ROI外認識_調査報告書_日本語版.pdf / elements=20 / 0.0s
+[20260903-22:11:52][BE] [RAG] PDF 학습 완료: People_Counter_Lite_ROI外認識_調査報告書_日本語版.pdf (2청크)
+[20260903-22:11:52][BE] [RAG] 분리 저장 완료: /home/freegear/EasyDocStation/Database/ObjectFile/FileTrainingData/3e856eb0-9518-4177-9d33-15989ccd1b0d/no_comment/c82d8766-cc74-4d9b-8442-afaeaf7f79ae/People_Counter_Lite_ROI外認識_調査報告書_日本語版.pdf
+[20260903-22:11:52][BE] [RAG] 학습 진행률: 50% (게시글 PDF)
+[20260903-22:11:52][BE] [RAG] Word docling 학습 시작: People_Counter_Lite_ROI外認識_調査報告書_日本語版.docx
+[20260903-22:11:53][BE] [RAG] Word 학습 완료: People_Counter_Lite_ROI外認識_調査報告書_日本語版.docx (docling, 2청크)
+[20260903-22:11:53][BE] [RAG] 학습 진행률: 60% (게시글 Word)
+[20260903-22:11:53][BE] [RAG] Word docling 학습 시작: People Counter Lite 버전에서.docx
+[20260903-22:11:54][BE] [RAG] Word 학습 완료: People Counter Lite 버전에서.docx (docling, 1청크)
+[20260903-22:11:54][BE] [RAG] 학습 진행률: 80% (게시글 Word)
+[20260903-22:11:54][BE] [RAG] 저장 완료 — 8청크 / 1개 게시글 / 0개 댓글 / 0개 폴더문서
+[20260903-22:11:54][BE] [RAG] 학습 진행률: 100% (저장)
+[20260903-22:11:55][BE] [RAG] 학습 완료
+[20260903-22:18:29][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260903-22:28:29][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260903-22:38:10][BE] [RAG Server] 프로세스 종료 (code=null), 5초 후 재시작...
+[20260903-22:38:10][BE] process exited with code 0. restarting in 2s...
+[20260903-22:38:13][BE] 
+[20260903-22:38:13][BE] > easydocstation-server@1.0.0 start
+[20260903-22:38:13][BE] > node index.js
+[20260903-22:38:13][BE] 
+[20260903-22:38:13][BE] [RAG] 초기화 — 학습 방식: immediate
+[20260903-22:38:13][BE] [RAG] 초기화 — PDF 파싱 모드: FAST
+[20260903-22:38:13][BE] [Mail sync] 자동 동기화 스케줄러 시작: interval=600s, startupDelay=300s
+[20260903-22:38:13][BE] [Frontend] 프로덕션 빌드 서비스: /home/freegear/EasyDocStation/dist
+[20260903-22:38:13][BE] ✅ EasyDocStation server running on http://localhost:3001
+[20260903-22:38:13][BE] ✅ [CONFIG] HF_TOKEN 확인됨 (hf_u****butv, 길이 37)
+[20260903-22:38:13][BE] ✅ EasyDocStation production frontend running on http://localhost:5173
+[20260903-22:38:13][BE] ✅ Cassandra connected
+[20260903-22:38:13][BE] ✅ Cassandra schema initialized
+
+> easydocstation@1.0.0 build
+> vite build
+
+vite v5.4.21 building for production...
+transforming...
+node_modules/@lexical/react/dist/LexicalErrorBoundary.prod.mjs (9:386): A comment
+
+"/*#__PURE__*/"
+
+in "node_modules/@lexical/react/dist/LexicalErrorBoundary.prod.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+node_modules/@lexical/react/dist/LexicalContentEditable.prod.mjs (9:1694): A comment
+
+"/*#__PURE__*/"
+
+in "node_modules/@lexical/react/dist/LexicalContentEditable.prod.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+✓ 5068 modules transformed.
+rendering chunks...
+[plugin:vite:reporter] [plugin vite:reporter] 
+(!) /home/freegear/EasyDocStation/node_modules/mermaid/dist/mermaid.core.mjs is dynamically imported by /home/freegear/EasyDocStation/src/components/markdown/MermaidBlock.jsx but also statically imported by /home/freegear/EasyDocStation/src/components/chat/md-page/extensions/diagramPreviewExtensions.js, dynamic import will not move module into another chunk.
+
+computing gzip size...
+dist/index.html                                           0.84 kB │ gzip:     0.40 kB
+dist/assets/KaTeX_Size3-Regular-CTq5MqoE.woff             4.42 kB
+dist/assets/KaTeX_Size4-Regular-Dl5lxZxV.woff2            4.93 kB
+dist/assets/KaTeX_Size2-Regular-Dy4dx90m.woff2            5.21 kB
+dist/assets/KaTeX_Size1-Regular-mCD8mA8B.woff2            5.47 kB
+dist/assets/KaTeX_Size4-Regular-BF-4gkZK.woff             5.98 kB
+dist/assets/KaTeX_Size2-Regular-oD1tc_U0.woff             6.19 kB
+dist/assets/KaTeX_Size1-Regular-C195tn64.woff             6.50 kB
+dist/assets/KaTeX_Caligraphic-Regular-Di6jR-x-.woff2      6.91 kB
+dist/assets/KaTeX_Caligraphic-Bold-Dq_IR9rO.woff2         6.91 kB
+dist/assets/KaTeX_Size3-Regular-DgpXs0kz.ttf              7.59 kB
+dist/assets/KaTeX_Caligraphic-Regular-CTRA-rTL.woff       7.66 kB
+dist/assets/KaTeX_Caligraphic-Bold-BEiXGLvX.woff          7.72 kB
+dist/assets/KaTeX_Script-Regular-D3wIWfF6.woff2           9.64 kB
+dist/assets/KaTeX_SansSerif-Regular-DDBCnlJ7.woff2       10.34 kB
+dist/assets/KaTeX_Size4-Regular-DWFBv043.ttf             10.36 kB
+dist/assets/KaTeX_Script-Regular-D5yQViql.woff           10.59 kB
+dist/assets/KaTeX_Fraktur-Regular-CTYiF6lA.woff2         11.32 kB
+dist/assets/KaTeX_Fraktur-Bold-CL6g_b3V.woff2            11.35 kB
+dist/assets/KaTeX_Size2-Regular-B7gKUWhC.ttf             11.51 kB
+dist/assets/KaTeX_SansSerif-Italic-C3H0VqGB.woff2        12.03 kB
+dist/assets/KaTeX_SansSerif-Bold-D1sUS0GD.woff2          12.22 kB
+dist/assets/KaTeX_Size1-Regular-Dbsnue_I.ttf             12.23 kB
+dist/assets/KaTeX_SansSerif-Regular-CS6fqUqJ.woff        12.32 kB
+dist/assets/KaTeX_Caligraphic-Regular-wX97UBjC.ttf       12.34 kB
+dist/assets/KaTeX_Caligraphic-Bold-ATXxdsX0.ttf          12.37 kB
+dist/assets/KaTeX_Fraktur-Regular-Dxdc4cR9.woff          13.21 kB
+dist/assets/KaTeX_Fraktur-Bold-BsDP51OF.woff             13.30 kB
+dist/assets/KaTeX_Typewriter-Regular-CO6r4hn1.woff2      13.57 kB
+dist/assets/KaTeX_SansSerif-Italic-DN2j7dab.woff         14.11 kB
+dist/assets/KaTeX_SansSerif-Bold-DbIhKOiC.woff           14.41 kB
+dist/assets/KaTeX_Typewriter-Regular-C0xS9mPB.woff       16.03 kB
+dist/assets/KaTeX_Math-BoldItalic-CZnvNsCZ.woff2         16.40 kB
+dist/assets/KaTeX_Math-Italic-t53AETM-.woff2             16.44 kB
+dist/assets/KaTeX_Script-Regular-C5JkGWo-.ttf            16.65 kB
+dist/assets/KaTeX_Main-BoldItalic-DxDJ3AOS.woff2         16.78 kB
+dist/assets/KaTeX_Main-Italic-NWA7e6Wa.woff2             16.99 kB
+dist/assets/KaTeX_Math-BoldItalic-iY-2wyZ7.woff          18.67 kB
+dist/assets/KaTeX_Math-Italic-DA0__PXp.woff              18.75 kB
+dist/assets/KaTeX_Main-BoldItalic-SpSLRI95.woff          19.41 kB
+dist/assets/KaTeX_SansSerif-Regular-BNo7hRIc.ttf         19.44 kB
+dist/assets/KaTeX_Fraktur-Regular-CB_wures.ttf           19.57 kB
+dist/assets/KaTeX_Fraktur-Bold-BdnERNNW.ttf              19.58 kB
+dist/assets/KaTeX_Main-Italic-BMLOBm91.woff              19.68 kB
+dist/assets/KaTeX_SansSerif-Italic-YYjJ1zSn.ttf          22.36 kB
+dist/assets/KaTeX_SansSerif-Bold-CFMepnvq.ttf            24.50 kB
+dist/assets/KaTeX_Main-Bold-Cx986IdX.woff2               25.32 kB
+dist/assets/KaTeX_Main-Regular-B22Nviop.woff2            26.27 kB
+dist/assets/KaTeX_Typewriter-Regular-D3Ib7_Hf.ttf        27.56 kB
+dist/assets/KaTeX_AMS-Regular-BQhdFMY1.woff2             28.08 kB
+dist/assets/KaTeX_Main-Bold-Jm3AIy58.woff                29.91 kB
+dist/assets/KaTeX_Main-Regular-Dr94JaBh.woff             30.77 kB
+dist/assets/KaTeX_Math-BoldItalic-B3XSjfu4.ttf           31.20 kB
+dist/assets/KaTeX_Math-Italic-flOr_0UB.ttf               31.31 kB
+dist/assets/KaTeX_Main-BoldItalic-DzxPMmG6.ttf           32.97 kB
+dist/assets/KaTeX_AMS-Regular-DMm9YOAa.woff              33.52 kB
+dist/assets/KaTeX_Main-Italic-3WenGoN9.ttf               33.58 kB
+dist/assets/KaTeX_Main-Bold-waoOVXN0.ttf                 51.34 kB
+dist/assets/KaTeX_Main-Regular-ypZvNtVU.ttf              53.58 kB
+dist/assets/KaTeX_AMS-Regular-DRggAlZN.ttf               63.63 kB
+dist/assets/pdf.worker.min-iDqQPrd3.mjs               1,232.30 kB
+dist/assets/EasySheetViewer-Duz_WvKn.css                 84.51 kB │ gzip:    12.96 kB
+dist/assets/index-8JQSpcbj.css                          125.31 kB │ gzip:    24.33 kB
+dist/assets/clone-CW8kXCA4.js                             0.09 kB │ gzip:     0.11 kB
+dist/assets/channel-CWcJX2tt.js                           0.11 kB │ gzip:     0.12 kB
+dist/assets/init-Gi6I4Gst.js                              0.15 kB │ gzip:     0.13 kB
+dist/assets/chunk-QZHKN3VN-B_X2mXTQ.js                    0.19 kB │ gzip:     0.16 kB
+dist/assets/chunk-55IACEB6-Dn6hvtob.js                    0.22 kB │ gzip:     0.20 kB
+dist/assets/chunk-4BX2VUAB-BgB3hN0s.js                    0.29 kB │ gzip:     0.20 kB
+dist/assets/stateDiagram-v2-QKLJ7IA2-Bc2uA9Ip.js          0.36 kB │ gzip:     0.27 kB
+dist/assets/chunk-FMBD7UC4-C-NpdBj3.js                    0.36 kB │ gzip:     0.27 kB
+dist/assets/pa-C54UG8eN-EW_8hrTF.js                       0.41 kB │ gzip:     0.23 kB
+dist/assets/classDiagram-6PBFFD2Q-B2qgRdf5.js             0.43 kB │ gzip:     0.30 kB
+dist/assets/classDiagram-v2-HSJHXN6E-B2qgRdf5.js          0.43 kB │ gzip:     0.30 kB
+dist/assets/or-50rxpoq4-B_XNinj_.js                       0.44 kB │ gzip:     0.24 kB
+dist/assets/gu-Bjl0l-cf-Bb_OSiMJ.js                       0.45 kB │ gzip:     0.24 kB
+dist/assets/hi-DsAaTPCC-lc1bUHMk.js                       0.47 kB │ gzip:     0.25 kB
+dist/assets/mr-CjWJPVmH-BKMRnoAc.js                       0.47 kB │ gzip:     0.25 kB
+dist/assets/as-BPtSu6VN-CYxxmKqh.js                       0.48 kB │ gzip:     0.26 kB
+dist/assets/bn-NCLZcWHi-CsgykzQM.js                       0.48 kB │ gzip:     0.26 kB
+dist/assets/te-B5Spl2Jk-DYnT8Dmf.js                       0.48 kB │ gzip:     0.25 kB
+dist/assets/kn-C6Lov-DP-D7dHjlY1.js                       0.49 kB │ gzip:     0.26 kB
+dist/assets/chunk-EDXVE4YY-DfoT3t4j.js                    0.53 kB │ gzip:     0.37 kB
+dist/assets/ta-BcghgTbD-D3SGVeDl.js                       0.57 kB │ gzip:     0.25 kB
+dist/assets/min-DcTwP6dC.js                               0.62 kB │ gzip:     0.38 kB
+dist/assets/infoDiagram-42DDH7IO-BB9eToUI.js              0.63 kB │ gzip:     0.43 kB
+dist/assets/ml-2xLVYkVY-CBhOFsDv.js                       0.63 kB │ gzip:     0.30 kB
+dist/assets/pi-B9cgjyG1-v-IB86gp.js                       0.83 kB │ gzip:     0.35 kB
+dist/assets/_baseSet-D_3PpNe7.js                          0.88 kB │ gzip:     0.55 kB
+dist/assets/ordinal-Cboi1Yqb.js                           1.19 kB │ gzip:     0.57 kB
+dist/assets/zh-latn-pinyin-BdYb-Ey_-BpSBSv6m.js           1.28 kB │ gzip:     0.22 kB
+dist/assets/get-BcgYya4i.js                               1.43 kB │ gzip:     0.78 kB
+dist/assets/eu-Ctv_kq9Z-DMhU9kwg.js                       1.51 kB │ gzip:     0.22 kB
+dist/assets/chunk-YZCP3GAM-CwDyS58B.js                    1.85 kB │ gzip:     0.82 kB
+dist/assets/pt-Cum2_NUC-D8aZaPM_.js                       2.13 kB │ gzip:     0.31 kB
+dist/assets/id-DifDyWg9-1QUBE4o0.js                       2.52 kB │ gzip:     0.64 kB
+dist/assets/oc-P_i3-xLA-Cg0Gj-PC.js                       2.55 kB │ gzip:     0.68 kB
+dist/assets/kmr-Cfwhwuff-DNWs8Gbk.js                      2.70 kB │ gzip:     0.80 kB
+dist/assets/mul-ethi-D_CMSMEq-2TGBnG-Z.js                 2.78 kB │ gzip:     0.92 kB
+dist/assets/diagram-5BDNPKRD-CaiuZyL3.js                  2.81 kB │ gzip:     1.39 kB
+dist/assets/fi-RW5VB8Yp-C_52fTOR.js                       3.14 kB │ gzip:     0.78 kB
+dist/assets/la-DuvHjUWw-BcBNkSEh.js                       3.19 kB │ gzip:     0.63 kB
+dist/assets/pms-BRGfm5gS-DtZRgBhp.js                      3.38 kB │ gzip:     0.91 kB
+dist/assets/arc-COoZxwx_.js                               3.43 kB │ gzip:     1.48 kB
+dist/assets/it-Bt_Meacx-BwawXXgW.js                       3.63 kB │ gzip:     0.88 kB
+dist/assets/rm-C0MIK9N4-DeBfDBrx.js                       3.67 kB │ gzip:     0.95 kB
+dist/assets/tr-CIHIuzqc-ZkOY1dVp.js                       3.83 kB │ gzip:     0.34 kB
+dist/assets/fur-AC12wySk-Ulg0Fy5V.js                      3.90 kB │ gzip:     1.02 kB
+dist/assets/mn-cyrl-x-lmc-3aetruI8-mEBV16An.js            4.20 kB │ gzip:     1.21 kB
+dist/assets/el-monoton-D3aKqTz2-DpMW17GV.js               4.27 kB │ gzip:     0.89 kB
+dist/assets/diagram-TYMM5635-CevgQr6f.js                  4.29 kB │ gzip:     1.88 kB
+dist/assets/defaultLocale-DX6XiGOO.js                     4.69 kB │ gzip:     2.18 kB
+dist/assets/pieDiagram-DEJITSTG-CNXzH-Ve.js               5.37 kB │ gzip:     2.38 kB
+dist/assets/linear-BtpRe3y7.js                            5.65 kB │ gzip:     2.31 kB
+dist/assets/cop-C3sk0IUo-Cj8cOj0I.js                      5.84 kB │ gzip:     0.71 kB
+dist/assets/diagram-MMDJMWI5-DsVKcws_.js                  6.02 kB │ gzip:     2.54 kB
+dist/assets/ia-Cr4TJH0c-BcFKNbxH.js                       6.49 kB │ gzip:     1.83 kB
+dist/assets/ro-0fmdH0HA-1lLksn9e.js                       7.15 kB │ gzip:     2.14 kB
+dist/assets/_baseUniq-DfLgCmVo.js                         7.17 kB │ gzip:     3.00 kB
+dist/assets/ca-SUf6Y2Om-Dp4lcbPL.js                       7.42 kB │ gzip:     1.13 kB
+dist/assets/sa-CKY9c_Vq-DzgpFnfw.js                       8.28 kB │ gzip:     1.66 kB
+dist/assets/la-x-classic-yTyAOQEt-DuDJBVty.js             8.93 kB │ gzip:     2.31 kB
+dist/assets/graph-Cvr7s3Dl.js                             9.40 kB │ gzip:     3.21 kB
+dist/assets/hy-e995ysyO-Cf-NYmW5.js                      10.30 kB │ gzip:     0.31 kB
+dist/assets/stateDiagram-FHFEXIEX-C-qfA2Tm.js            10.44 kB │ gzip:     3.65 kB
+dist/assets/mn-cyrl-lHM4n0oC-QhYuXAWB.js                 10.62 kB │ gzip:     2.15 kB
+dist/assets/hr-DT1SBBes-CkK3TemH.js                      11.18 kB │ gzip:     0.95 kB
+dist/assets/dagre-KV5264BT-qYJUVW3d.js                   11.28 kB │ gzip:     4.21 kB
+dist/assets/sl-DpiklF-D-_46w5B9b.js                      12.49 kB │ gzip:     3.40 kB
+dist/assets/da-CCDXfXtG-C3O8h2wc.js                      12.65 kB │ gzip:     3.45 kB
+dist/assets/hsb-DC_ITc1e-C4pa9vvS.js                     13.89 kB │ gzip:     1.94 kB
+dist/assets/lt-BBe8DlDF-CObMPDIF.js                      14.49 kB │ gzip:     3.60 kB
+dist/assets/el-polyton-ogVWcTzh-BOWLBXgh.js              15.26 kB │ gzip:     2.87 kB
+dist/assets/diagram-G4DWMVQ6-CC06yjw1.js                 15.97 kB │ gzip:     5.72 kB
+dist/assets/tk-BMbKB10q-cqtw6prh.js                      16.30 kB │ gzip:     0.99 kB
+dist/assets/ishikawaDiagram-UXIWVN3A-BVtQk1qh.js         17.53 kB │ gzip:     6.65 kB
+dist/assets/ka-jyoLzyDE-CZftRBZr.js                      20.46 kB │ gzip:     4.51 kB
+dist/assets/kanban-definition-6JOO6SKY-BViWqbQD.js       20.66 kB │ gzip:     7.27 kB
+dist/assets/sankeyDiagram-XADWPNL6-Km9ieOHC.js           22.20 kB │ gzip:     8.13 kB
+dist/assets/la-x-liturgic-CXeQb4FY-DNU_Uk5t.js           22.54 kB │ gzip:     5.72 kB
+dist/assets/ContactBookPage-BqOWwpgP.js                  22.92 kB │ gzip:     7.36 kB
+dist/assets/journeyDiagram-VCZTEJTY-nqWtUEDz.js          23.55 kB │ gzip:     8.34 kB
+dist/assets/mindmap-definition-QFDTVHPH-D2Fnu4dw.js      23.60 kB │ gzip:     7.98 kB
+dist/assets/fr-BC2onEz9-BGmqATrI.js                      23.93 kB │ gzip:     4.29 kB
+dist/assets/wardleyDiagram-NUSXRM2D-B6Zt_43p.js          24.86 kB │ gzip:     6.73 kB
+dist/assets/be-CrQ0smca-B2EeXxUh.js                      25.32 kB │ gzip:     2.23 kB
+dist/assets/erDiagram-SMLLAGMA-B2RIMfTV.js               26.93 kB │ gzip:     9.35 kB
+dist/assets/sr-cyrl-Dpzrbd0W-DKfS_grW.js                 27.37 kB │ gzip:     5.56 kB
+dist/assets/sh-cyrl-BpCRFOmq-Cv4-R-p6.js                 28.20 kB │ gzip:     5.45 kB
+dist/assets/layout-BKwXK66h.js                           28.56 kB │ gzip:    10.20 kB
+dist/assets/sh-latn-sRy4Tuaj-DcyoDtEt.js                 29.28 kB │ gzip:     5.29 kB
+dist/assets/gitGraphDiagram-UUTBAWPF-MaYn2tpI.js         29.98 kB │ gzip:     8.90 kB
+dist/assets/sk-_iOeDNrQ-BXQc18Za.js                      31.09 kB │ gzip:     6.79 kB
+dist/assets/requirementDiagram-MS252O5E-CcvfDwCH.js      31.17 kB │ gzip:     9.79 kB
+dist/assets/timeline-definition-GMOUNBTQ-cPRuhSAG.js     31.32 kB │ gzip:    10.41 kB
+dist/assets/gl-DZGc-K_G-DLl5jmsP.js                      32.95 kB │ gzip:     4.26 kB
+dist/assets/quadrantDiagram-34T5L4WZ-6FQplN9o.js         34.28 kB │ gzip:    10.08 kB
+dist/assets/chunk-OYMX7WX6-BJMfA_Pd.js                   37.41 kB │ gzip:    12.16 kB
+dist/assets/cs-CmAteokq-TjIVgNl6.js                      38.89 kB │ gzip:     9.95 kB
+dist/assets/xychartDiagram-5P7HB3ND-Czxr0nJz.js          40.35 kB │ gzip:    11.54 kB
+dist/assets/vennDiagram-DHZGUBPP-DFpp3d_W.js             41.80 kB │ gzip:    15.55 kB
+dist/assets/es-DcaaHPU_-sYKznHcq.js                      43.41 kB │ gzip:     6.27 kB
+dist/assets/pl-9fg-ESVt-DpPW5ISU.js                      45.33 kB │ gzip:     7.70 kB
+dist/assets/et-B_spaleu-BaO20FM2.js                      46.94 kB │ gzip:    11.42 kB
+dist/assets/chunk-4TB4RGXK-BWevFryh.js                   47.32 kB │ gzip:    15.15 kB
+dist/assets/is-BT8UVRze-BXloJ18M.js                      47.51 kB │ gzip:    12.72 kB
+dist/assets/bg-CrQqGwni-Pt9yPLke.js                      50.17 kB │ gzip:     4.83 kB
+dist/assets/th-DWX5iPSo-BI_G36o8.js                      54.41 kB │ gzip:    13.26 kB
+dist/assets/CalendarView-N7b4rxTh.js                     56.29 kB │ gzip:    15.34 kB
+dist/assets/sv-CFm5y56M-I8ncZ9Nb.js                      56.39 kB │ gzip:    14.42 kB
+dist/assets/uk-Dir3oxLs-BVEQM3Jf.js                      58.19 kB │ gzip:     8.64 kB
+dist/assets/flowDiagram-DWJPFMVM-dgI3ODAE.js             61.14 kB │ gzip:    19.49 kB
+dist/assets/grc-DOlGgO8T-C7K_Bcib.js                     63.10 kB │ gzip:     8.92 kB
+dist/assets/ganttDiagram-T4ZO3ILL-BWcTpQzt.js            69.14 kB │ gzip:    23.27 kB
+dist/assets/c4Diagram-AHTNJAMY-CmowWN4t.js               69.92 kB │ gzip:    19.62 kB
+dist/assets/blockDiagram-DXYQGD6D-DY7YYhaV.js            72.28 kB │ gzip:    20.59 kB
+dist/assets/ru-v4l-ayaq-BZkHNr9F.js                      75.71 kB │ gzip:    16.94 kB
+dist/assets/cy-BBPa6z2x-BONU7bVJ.js                      80.17 kB │ gzip:    19.05 kB
+dist/assets/ga-Cn6LkudM-WsF4_z3Y.js                      80.62 kB │ gzip:    20.04 kB
+dist/assets/cose-bilkent-S5V4N54A-CQxepGSA.js            81.51 kB │ gzip:    22.42 kB
+dist/assets/en-gb-B7Al27b_-BFFr9zKP.js                  105.38 kB │ gzip:    26.11 kB
+dist/assets/lv-Q2BBHnzp-DRPSUjhQ.js                     108.90 kB │ gzip:    16.09 kB
+dist/assets/sequenceDiagram-FGHM5R23-CjTbV6p5.js        117.02 kB │ gzip:    31.07 kB
+dist/assets/nl-BHQJ6Gvn-BMWl-SdQ.js                     138.42 kB │ gzip:    36.10 kB
+dist/assets/cu-CBUlrW6Y-BrxB2kb-.js                     149.27 kB │ gzip:    26.17 kB
+dist/assets/architectureDiagram-Q4EWVU46-ZkamEbNL.js    149.44 kB │ gzip:    42.24 kB
+dist/assets/SiteAdminPage-fx_0gRwx.js                   176.26 kB │ gzip:    36.24 kB
+dist/assets/af-DK_CjRn6-C81U6qP1.js                     179.76 kB │ gzip:    38.97 kB
+dist/assets/katex-C5jXJg4s.js                           258.49 kB │ gzip:    77.57 kB
+dist/assets/de-ch-1901-hVThVHVb-CC5Yf8hX.js             263.25 kB │ gzip:    70.50 kB
+dist/assets/de-1996-BL6awyxG-BSuIomZy.js                265.88 kB │ gzip:    71.07 kB
+dist/assets/de-1901-CWoAOigE-yOXirf_M.js                268.94 kB │ gzip:    71.86 kB
+dist/assets/no-B8ItS0F3-BlrHaK3Z.js                     340.51 kB │ gzip:    87.84 kB
+dist/assets/nb-DI8u59ch-S2a9vUN_.js                     340.53 kB │ gzip:    87.85 kB
+dist/assets/nn-ntZvarUK-cMBifkqM.js                     340.53 kB │ gzip:    87.85 kB
+dist/assets/cytoscape.esm-BQk4lpUV.js                   442.57 kB │ gzip:   141.98 kB
+dist/assets/pdf-DeWlx49F.js                             458.39 kB │ gzip:   135.97 kB
+dist/assets/MailPage-CjBP39n9.js                        462.53 kB │ gzip:   142.55 kB
+dist/assets/wardley-RL74JXVD-Dzbn_ViP.js                492.93 kB │ gzip:   110.28 kB
+dist/assets/hu-DVk7Y_ka-CCTZJfqn.js                     748.41 kB │ gzip:   172.84 kB
+dist/assets/index-CH0IZbCB.js                         3,918.80 kB │ gzip: 1,193.22 kB
+dist/assets/EasySheetViewer-CI9sgZTf.js               6,398.73 kB │ gzip: 1,812.12 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 16.82s
+
+> easydocstation@1.0.0 ollama:serve
+> node scripts/ollama-serve-safe.mjs
+
+[Ollama] already running on 127.0.0.1:11434, skipping duplicate serve.
+[20260903-22:38:33][BE] 
+[20260903-22:38:33][BE] > easydocstation-server@1.0.0 start
+[20260903-22:38:33][BE] > node index.js
+[20260903-22:38:33][BE] 
+[20260903-22:38:34][BE] [RAG] 초기화 — 학습 방식: immediate
+[20260903-22:38:34][BE] [RAG] 초기화 — PDF 파싱 모드: FAST
+[20260903-22:38:34][BE] [Mail sync] 자동 동기화 스케줄러 시작: interval=600s, startupDelay=300s
+[20260903-22:38:34][BE] [Frontend] 프로덕션 빌드 서비스: /home/freegear/EasyDocStation/dist
+[20260903-22:38:34][BE] ✅ EasyDocStation server running on http://localhost:3001
+[20260903-22:38:34][BE] ✅ [CONFIG] HF_TOKEN 확인됨 (hf_u****butv, 길이 37)
+[20260903-22:38:34][BE] ✅ EasyDocStation production frontend running on http://localhost:5173
+[20260903-22:38:34][BE] ✅ Cassandra connected
+[20260903-22:38:34][BE] ✅ Cassandra schema initialized
+[20260903-22:38:34][BE] ✅ Database migration complete.
+[20260903-22:38:37][BE] [RAG Server] [RAG Server] 임베딩 모델 로드 중 (device=cuda)...
+[20260903-22:38:50][BE] [RAG Server] [RAG Server] 임베딩 모델 로드 완료
+[20260903-22:38:50][BE] [RAG Server] 포트 5001 에서 시작됨
+[20260903-22:39:11][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260903-22:39:11][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260903-22:39:16][BE] [link-preview-image] meta image failed, fallback screenshot: This operation was aborted
+[20260903-22:39:16][BE] [link-preview-image] meta image failed, fallback screenshot: This operation was aborted
+[20260903-22:39:17][BE] [link-preview-image] meta image failed, fallback screenshot: This operation was aborted
+[20260903-22:39:17][BE] [link-preview-image] meta image failed, fallback screenshot: This operation was aborted
+[20260903-22:43:47][BE] [mail delete] remote move succeeded with pending destination UID {
+[20260903-22:43:47][BE]   tenantId: 'personal-1',
+[20260903-22:43:47][BE]   userId: 1,
+[20260903-22:43:47][BE]   messageId: '7cb88bc8-8784-4118-af29-dc9638c6acb1'
+[20260903-22:43:47][BE] }
+[20260903-22:43:48][BE] [mail delete] remote move succeeded with pending destination UID {
+[20260903-22:43:48][BE]   tenantId: 'personal-1',
+[20260903-22:43:48][BE]   userId: 1,
+[20260903-22:43:48][BE]   messageId: 'df9f494d-4564-4a1b-9a47-63271b7e9f35'
+[20260903-22:43:48][BE] }
+[20260903-22:43:52][BE] [mail delete] remote move succeeded with pending destination UID {
+[20260903-22:43:52][BE]   tenantId: 'personal-1',
+[20260903-22:43:52][BE]   userId: 1,
+[20260903-22:43:52][BE]   messageId: 'a5a1e45b-0bf7-4f76-8bd3-efc5414a7b61'
+[20260903-22:43:52][BE] }
+[20260903-22:43:52][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260903-22:43:56][BE] [mail delete] remote move succeeded with pending destination UID {
+[20260903-22:43:56][BE]   tenantId: 'personal-1',
+[20260903-22:43:56][BE]   userId: 1,
+[20260903-22:43:56][BE]   messageId: '1361c7fb-c54c-4cb5-bdb7-481fa62b5d96'
+[20260903-22:43:56][BE] }
+[20260903-22:43:57][BE] [mail delete] remote move succeeded with pending destination UID {
+[20260903-22:43:57][BE]   tenantId: 'personal-1',
+[20260903-22:43:57][BE]   userId: 1,
+[20260903-22:43:57][BE]   messageId: 'fb7cccbc-ef43-4b76-9c2e-4c4da7ff0e4a'
+[20260903-22:43:57][BE] }
+[20260903-22:45:09][BE] [mail delete] remote move succeeded with pending destination UID {
+[20260903-22:45:09][BE]   tenantId: 'personal-1',
+[20260903-22:45:09][BE]   userId: 1,
+[20260903-22:45:09][BE]   messageId: '4ef625f8-fcf7-4550-b968-6a0258787108'
+[20260903-22:45:09][BE] }
+[20260903-22:45:10][BE] [mail delete] remote move succeeded with pending destination UID {
+[20260903-22:45:10][BE]   tenantId: 'personal-1',
+[20260903-22:45:10][BE]   userId: 1,
+[20260903-22:45:10][BE]   messageId: 'c17fae6e-6306-493d-a981-8e5d886aafbb'
+[20260903-22:45:10][BE] }
+[20260903-22:45:12][BE] [mail delete] remote move succeeded with pending destination UID {
+[20260903-22:45:12][BE]   tenantId: 'personal-1',
+[20260903-22:45:12][BE]   userId: 1,
+[20260903-22:45:12][BE]   messageId: 'c02fe74c-1cd7-4c2a-b9ac-2dcf91099d26'
+[20260903-22:45:12][BE] }
+[20260903-22:45:13][BE] [mail delete] remote move succeeded with pending destination UID {
+[20260903-22:45:13][BE]   tenantId: 'personal-1',
+[20260903-22:45:13][BE]   userId: 1,
+[20260903-22:45:13][BE]   messageId: 'd1be2489-e336-4287-83d8-673954eba570'
+[20260903-22:45:13][BE] }
+[20260903-22:45:45][BE] [Mail send] 시작 account=freegear@siliconcube.co.kr to=1 첨부=0개 본문=5.2KB 첨부합계=0B 예상전송크기≈7.1KB
+[20260903-22:45:46][BE] [Mail send] 완료 account=freegear@siliconcube.co.kr 1046ms messageId=<e70e32d4-4516-8948-af5f-80d78b889ca9@siliconcube.co.kr> accepted=1 rejected=0
+[20260903-22:45:53][BE] [mail delete] remote move succeeded with pending destination UID {
+[20260903-22:45:53][BE]   tenantId: 'personal-1',
+[20260903-22:45:53][BE]   userId: 1,
+[20260903-22:45:53][BE]   messageId: '4ef3c05a-3638-463c-8321-29afbbb78e3b'
+[20260903-22:45:53][BE] }
+[20260903-22:48:53][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260903-22:51:50][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260903-22:51:53][BE] [ATTACH-REF] sync ownerType=post ownerId=06b01507-efc9-4ea9-955b-6a8c8d1eeb63 actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260903-22:51:53][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
+[20260903-22:51:53][BE] /home/freegear/EasyDocStation/server/rag_train.py:173: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260903-22:51:53][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260903-22:51:56][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v3' already exists
+[20260903-22:51:56][BE] [RAG] post=06b01507-efc9-4ea9-955b-6a8c8d1eeb63 text → 3청크
+[20260903-22:51:56][BE] [RAG] 학습 진행률: 50% (게시글 본문)
+[20260903-22:51:56][BE] [RAG] 저장 완료 — 3청크 / 1개 게시글 / 0개 댓글 / 0개 폴더문서
+[20260903-22:51:56][BE] [RAG] 학습 진행률: 100% (저장)
+[20260903-22:51:57][BE] [RAG] 학습 완료
+[20260903-22:55:34][BE] [STT] speaker mapping list requested | actorUserId=1 channelId=ch-1776440801214
+[20260903-22:55:34][BE] [STT] speaker mapping list completed | actorUserId=1 channelId=ch-1776440801214 count=0
+[20260903-22:58:52][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260903-23:04:12][BE] [RAG Server] 프로세스 종료 (code=null), 5초 후 재시작...
+[20260903-23:04:12][BE] process exited with code 0. restarting in 2s...
+[20260903-23:04:14][BE] 
+[20260903-23:04:14][BE] > easydocstation-server@1.0.0 start
+[20260903-23:04:14][BE] > node index.js
+[20260903-23:04:14][BE] 
+[20260903-23:04:14][BE] [RAG] 초기화 — 학습 방식: immediate
+[20260903-23:04:14][BE] [RAG] 초기화 — PDF 파싱 모드: FAST
+[20260903-23:04:14][BE] [Mail sync] 자동 동기화 스케줄러 시작: interval=600s, startupDelay=300s
+[20260903-23:04:14][BE] [Frontend] 프로덕션 빌드 서비스: /home/freegear/EasyDocStation/dist
+[20260903-23:04:14][BE] ✅ EasyDocStation server running on http://localhost:3001
+[20260903-23:04:14][BE] ✅ [CONFIG] HF_TOKEN 확인됨 (hf_u****butv, 길이 37)
+[20260903-23:04:14][BE] ✅ EasyDocStation production frontend running on http://localhost:5173
+[20260903-23:04:14][BE] ✅ Cassandra connected
+[20260903-23:04:14][BE] ✅ Cassandra schema initialized
+[20260903-23:04:14][BE] ✅ Database migration complete.
+
+> easydocstation@1.0.0 build
+> vite build
+
+vite v5.4.21 building for production...
+transforming...
+node_modules/@lexical/react/dist/LexicalContentEditable.prod.mjs (9:1694): A comment
+
+"/*#__PURE__*/"
+
+in "node_modules/@lexical/react/dist/LexicalContentEditable.prod.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+node_modules/@lexical/react/dist/LexicalErrorBoundary.prod.mjs (9:386): A comment
+
+"/*#__PURE__*/"
+
+in "node_modules/@lexical/react/dist/LexicalErrorBoundary.prod.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+✓ 5068 modules transformed.
+rendering chunks...
+[plugin:vite:reporter] [plugin vite:reporter] 
+(!) /home/freegear/EasyDocStation/node_modules/mermaid/dist/mermaid.core.mjs is dynamically imported by /home/freegear/EasyDocStation/src/components/markdown/MermaidBlock.jsx but also statically imported by /home/freegear/EasyDocStation/src/components/chat/md-page/extensions/diagramPreviewExtensions.js, dynamic import will not move module into another chunk.
+
+computing gzip size...
+dist/index.html                                           0.84 kB │ gzip:     0.40 kB
+dist/assets/KaTeX_Size3-Regular-CTq5MqoE.woff             4.42 kB
+dist/assets/KaTeX_Size4-Regular-Dl5lxZxV.woff2            4.93 kB
+dist/assets/KaTeX_Size2-Regular-Dy4dx90m.woff2            5.21 kB
+dist/assets/KaTeX_Size1-Regular-mCD8mA8B.woff2            5.47 kB
+dist/assets/KaTeX_Size4-Regular-BF-4gkZK.woff             5.98 kB
+dist/assets/KaTeX_Size2-Regular-oD1tc_U0.woff             6.19 kB
+dist/assets/KaTeX_Size1-Regular-C195tn64.woff             6.50 kB
+dist/assets/KaTeX_Caligraphic-Regular-Di6jR-x-.woff2      6.91 kB
+dist/assets/KaTeX_Caligraphic-Bold-Dq_IR9rO.woff2         6.91 kB
+dist/assets/KaTeX_Size3-Regular-DgpXs0kz.ttf              7.59 kB
+dist/assets/KaTeX_Caligraphic-Regular-CTRA-rTL.woff       7.66 kB
+dist/assets/KaTeX_Caligraphic-Bold-BEiXGLvX.woff          7.72 kB
+dist/assets/KaTeX_Script-Regular-D3wIWfF6.woff2           9.64 kB
+dist/assets/KaTeX_SansSerif-Regular-DDBCnlJ7.woff2       10.34 kB
+dist/assets/KaTeX_Size4-Regular-DWFBv043.ttf             10.36 kB
+dist/assets/KaTeX_Script-Regular-D5yQViql.woff           10.59 kB
+dist/assets/KaTeX_Fraktur-Regular-CTYiF6lA.woff2         11.32 kB
+dist/assets/KaTeX_Fraktur-Bold-CL6g_b3V.woff2            11.35 kB
+dist/assets/KaTeX_Size2-Regular-B7gKUWhC.ttf             11.51 kB
+dist/assets/KaTeX_SansSerif-Italic-C3H0VqGB.woff2        12.03 kB
+dist/assets/KaTeX_SansSerif-Bold-D1sUS0GD.woff2          12.22 kB
+dist/assets/KaTeX_Size1-Regular-Dbsnue_I.ttf             12.23 kB
+dist/assets/KaTeX_SansSerif-Regular-CS6fqUqJ.woff        12.32 kB
+dist/assets/KaTeX_Caligraphic-Regular-wX97UBjC.ttf       12.34 kB
+dist/assets/KaTeX_Caligraphic-Bold-ATXxdsX0.ttf          12.37 kB
+dist/assets/KaTeX_Fraktur-Regular-Dxdc4cR9.woff          13.21 kB
+dist/assets/KaTeX_Fraktur-Bold-BsDP51OF.woff             13.30 kB
+dist/assets/KaTeX_Typewriter-Regular-CO6r4hn1.woff2      13.57 kB
+dist/assets/KaTeX_SansSerif-Italic-DN2j7dab.woff         14.11 kB
+dist/assets/KaTeX_SansSerif-Bold-DbIhKOiC.woff           14.41 kB
+dist/assets/KaTeX_Typewriter-Regular-C0xS9mPB.woff       16.03 kB
+dist/assets/KaTeX_Math-BoldItalic-CZnvNsCZ.woff2         16.40 kB
+dist/assets/KaTeX_Math-Italic-t53AETM-.woff2             16.44 kB
+dist/assets/KaTeX_Script-Regular-C5JkGWo-.ttf            16.65 kB
+dist/assets/KaTeX_Main-BoldItalic-DxDJ3AOS.woff2         16.78 kB
+dist/assets/KaTeX_Main-Italic-NWA7e6Wa.woff2             16.99 kB
+dist/assets/KaTeX_Math-BoldItalic-iY-2wyZ7.woff          18.67 kB
+dist/assets/KaTeX_Math-Italic-DA0__PXp.woff              18.75 kB
+dist/assets/KaTeX_Main-BoldItalic-SpSLRI95.woff          19.41 kB
+dist/assets/KaTeX_SansSerif-Regular-BNo7hRIc.ttf         19.44 kB
+dist/assets/KaTeX_Fraktur-Regular-CB_wures.ttf           19.57 kB
+dist/assets/KaTeX_Fraktur-Bold-BdnERNNW.ttf              19.58 kB
+dist/assets/KaTeX_Main-Italic-BMLOBm91.woff              19.68 kB
+dist/assets/KaTeX_SansSerif-Italic-YYjJ1zSn.ttf          22.36 kB
+dist/assets/KaTeX_SansSerif-Bold-CFMepnvq.ttf            24.50 kB
+dist/assets/KaTeX_Main-Bold-Cx986IdX.woff2               25.32 kB
+dist/assets/KaTeX_Main-Regular-B22Nviop.woff2            26.27 kB
+dist/assets/KaTeX_Typewriter-Regular-D3Ib7_Hf.ttf        27.56 kB
+dist/assets/KaTeX_AMS-Regular-BQhdFMY1.woff2             28.08 kB
+dist/assets/KaTeX_Main-Bold-Jm3AIy58.woff                29.91 kB
+dist/assets/KaTeX_Main-Regular-Dr94JaBh.woff             30.77 kB
+dist/assets/KaTeX_Math-BoldItalic-B3XSjfu4.ttf           31.20 kB
+dist/assets/KaTeX_Math-Italic-flOr_0UB.ttf               31.31 kB
+dist/assets/KaTeX_Main-BoldItalic-DzxPMmG6.ttf           32.97 kB
+dist/assets/KaTeX_AMS-Regular-DMm9YOAa.woff              33.52 kB
+dist/assets/KaTeX_Main-Italic-3WenGoN9.ttf               33.58 kB
+dist/assets/KaTeX_Main-Bold-waoOVXN0.ttf                 51.34 kB
+dist/assets/KaTeX_Main-Regular-ypZvNtVU.ttf              53.58 kB
+dist/assets/KaTeX_AMS-Regular-DRggAlZN.ttf               63.63 kB
+dist/assets/pdf.worker.min-iDqQPrd3.mjs               1,232.30 kB
+dist/assets/EasySheetViewer-Duz_WvKn.css                 84.51 kB │ gzip:    12.96 kB
+dist/assets/index-8JQSpcbj.css                          125.31 kB │ gzip:    24.33 kB
+dist/assets/clone-BHSJpbUT.js                             0.09 kB │ gzip:     0.11 kB
+dist/assets/channel-DPZoigEx.js                           0.11 kB │ gzip:     0.12 kB
+dist/assets/init-Gi6I4Gst.js                              0.15 kB │ gzip:     0.13 kB
+dist/assets/chunk-QZHKN3VN-C9YF_MFE.js                    0.19 kB │ gzip:     0.16 kB
+dist/assets/chunk-55IACEB6-U04vtV_a.js                    0.22 kB │ gzip:     0.20 kB
+dist/assets/chunk-4BX2VUAB-CtKAO-IG.js                    0.29 kB │ gzip:     0.20 kB
+dist/assets/stateDiagram-v2-QKLJ7IA2-D8aoAE-F.js          0.36 kB │ gzip:     0.27 kB
+dist/assets/chunk-FMBD7UC4-B4lk7Gqu.js                    0.36 kB │ gzip:     0.27 kB
+dist/assets/pa-C54UG8eN-EW_8hrTF.js                       0.41 kB │ gzip:     0.23 kB
+dist/assets/classDiagram-6PBFFD2Q-D6J09kT9.js             0.43 kB │ gzip:     0.30 kB
+dist/assets/classDiagram-v2-HSJHXN6E-D6J09kT9.js          0.43 kB │ gzip:     0.30 kB
+dist/assets/or-50rxpoq4-B_XNinj_.js                       0.44 kB │ gzip:     0.24 kB
+dist/assets/gu-Bjl0l-cf-Bb_OSiMJ.js                       0.45 kB │ gzip:     0.24 kB
+dist/assets/hi-DsAaTPCC-lc1bUHMk.js                       0.47 kB │ gzip:     0.25 kB
+dist/assets/mr-CjWJPVmH-BKMRnoAc.js                       0.47 kB │ gzip:     0.25 kB
+dist/assets/as-BPtSu6VN-CYxxmKqh.js                       0.48 kB │ gzip:     0.26 kB
+dist/assets/bn-NCLZcWHi-CsgykzQM.js                       0.48 kB │ gzip:     0.26 kB
+dist/assets/te-B5Spl2Jk-DYnT8Dmf.js                       0.48 kB │ gzip:     0.25 kB
+dist/assets/kn-C6Lov-DP-D7dHjlY1.js                       0.49 kB │ gzip:     0.26 kB
+dist/assets/chunk-EDXVE4YY-4eF0UO_i.js                    0.53 kB │ gzip:     0.37 kB
+dist/assets/ta-BcghgTbD-D3SGVeDl.js                       0.57 kB │ gzip:     0.25 kB
+dist/assets/min-BVAXstRw.js                               0.62 kB │ gzip:     0.38 kB
+dist/assets/infoDiagram-42DDH7IO-Wm3n5z7h.js              0.63 kB │ gzip:     0.43 kB
+dist/assets/ml-2xLVYkVY-CBhOFsDv.js                       0.63 kB │ gzip:     0.30 kB
+dist/assets/pi-B9cgjyG1-v-IB86gp.js                       0.83 kB │ gzip:     0.35 kB
+dist/assets/_baseSet-B_9fyBis.js                          0.88 kB │ gzip:     0.55 kB
+dist/assets/ordinal-Cboi1Yqb.js                           1.19 kB │ gzip:     0.57 kB
+dist/assets/zh-latn-pinyin-BdYb-Ey_-BpSBSv6m.js           1.28 kB │ gzip:     0.22 kB
+dist/assets/get-DiFrlpjy.js                               1.43 kB │ gzip:     0.78 kB
+dist/assets/eu-Ctv_kq9Z-DMhU9kwg.js                       1.51 kB │ gzip:     0.22 kB
+dist/assets/chunk-YZCP3GAM-CiRLOzVA.js                    1.85 kB │ gzip:     0.82 kB
+dist/assets/pt-Cum2_NUC-D8aZaPM_.js                       2.13 kB │ gzip:     0.31 kB
+dist/assets/id-DifDyWg9-1QUBE4o0.js                       2.52 kB │ gzip:     0.64 kB
+dist/assets/oc-P_i3-xLA-Cg0Gj-PC.js                       2.55 kB │ gzip:     0.68 kB
+dist/assets/kmr-Cfwhwuff-DNWs8Gbk.js                      2.70 kB │ gzip:     0.80 kB
+dist/assets/mul-ethi-D_CMSMEq-2TGBnG-Z.js                 2.78 kB │ gzip:     0.92 kB
+dist/assets/diagram-5BDNPKRD-CrvroRZJ.js                  2.81 kB │ gzip:     1.39 kB
+dist/assets/fi-RW5VB8Yp-C_52fTOR.js                       3.14 kB │ gzip:     0.78 kB
+dist/assets/la-DuvHjUWw-BcBNkSEh.js                       3.19 kB │ gzip:     0.63 kB
+dist/assets/pms-BRGfm5gS-DtZRgBhp.js                      3.38 kB │ gzip:     0.91 kB
+dist/assets/arc-DJjnZy74.js                               3.43 kB │ gzip:     1.48 kB
+dist/assets/it-Bt_Meacx-BwawXXgW.js                       3.63 kB │ gzip:     0.88 kB
+dist/assets/rm-C0MIK9N4-DeBfDBrx.js                       3.67 kB │ gzip:     0.95 kB
+dist/assets/tr-CIHIuzqc-ZkOY1dVp.js                       3.83 kB │ gzip:     0.34 kB
+dist/assets/fur-AC12wySk-Ulg0Fy5V.js                      3.90 kB │ gzip:     1.02 kB
+dist/assets/mn-cyrl-x-lmc-3aetruI8-mEBV16An.js            4.20 kB │ gzip:     1.21 kB
+dist/assets/el-monoton-D3aKqTz2-DpMW17GV.js               4.27 kB │ gzip:     0.89 kB
+dist/assets/diagram-TYMM5635-wtjtk7lV.js                  4.29 kB │ gzip:     1.88 kB
+dist/assets/defaultLocale-DX6XiGOO.js                     4.69 kB │ gzip:     2.18 kB
+dist/assets/pieDiagram-DEJITSTG-C-oLU9qg.js               5.37 kB │ gzip:     2.38 kB
+dist/assets/linear-C66lD4sn.js                            5.65 kB │ gzip:     2.31 kB
+dist/assets/cop-C3sk0IUo-Cj8cOj0I.js                      5.84 kB │ gzip:     0.71 kB
+dist/assets/diagram-MMDJMWI5-ba2oN0nv.js                  6.02 kB │ gzip:     2.54 kB
+dist/assets/ia-Cr4TJH0c-BcFKNbxH.js                       6.49 kB │ gzip:     1.83 kB
+dist/assets/ro-0fmdH0HA-1lLksn9e.js                       7.15 kB │ gzip:     2.14 kB
+dist/assets/_baseUniq-dKRbc1pn.js                         7.17 kB │ gzip:     3.00 kB
+dist/assets/ca-SUf6Y2Om-Dp4lcbPL.js                       7.42 kB │ gzip:     1.13 kB
+dist/assets/sa-CKY9c_Vq-DzgpFnfw.js                       8.28 kB │ gzip:     1.66 kB
+dist/assets/la-x-classic-yTyAOQEt-DuDJBVty.js             8.93 kB │ gzip:     2.31 kB
+dist/assets/graph-B1ee5061.js                             9.40 kB │ gzip:     3.21 kB
+dist/assets/hy-e995ysyO-Cf-NYmW5.js                      10.30 kB │ gzip:     0.31 kB
+dist/assets/stateDiagram-FHFEXIEX-dau3Rm4i.js            10.44 kB │ gzip:     3.65 kB
+dist/assets/mn-cyrl-lHM4n0oC-QhYuXAWB.js                 10.62 kB │ gzip:     2.15 kB
+dist/assets/hr-DT1SBBes-CkK3TemH.js                      11.18 kB │ gzip:     0.95 kB
+dist/assets/dagre-KV5264BT-S8jW2TUd.js                   11.28 kB │ gzip:     4.20 kB
+dist/assets/sl-DpiklF-D-_46w5B9b.js                      12.49 kB │ gzip:     3.40 kB
+dist/assets/da-CCDXfXtG-C3O8h2wc.js                      12.65 kB │ gzip:     3.45 kB
+dist/assets/hsb-DC_ITc1e-C4pa9vvS.js                     13.89 kB │ gzip:     1.94 kB
+dist/assets/lt-BBe8DlDF-CObMPDIF.js                      14.49 kB │ gzip:     3.60 kB
+dist/assets/el-polyton-ogVWcTzh-BOWLBXgh.js              15.26 kB │ gzip:     2.87 kB
+dist/assets/diagram-G4DWMVQ6-Cmw_WBQI.js                 15.97 kB │ gzip:     5.72 kB
+dist/assets/tk-BMbKB10q-cqtw6prh.js                      16.30 kB │ gzip:     0.99 kB
+dist/assets/ishikawaDiagram-UXIWVN3A-C4zMAzQj.js         17.53 kB │ gzip:     6.65 kB
+dist/assets/ka-jyoLzyDE-CZftRBZr.js                      20.46 kB │ gzip:     4.51 kB
+dist/assets/kanban-definition-6JOO6SKY-rA_Us_nd.js       20.66 kB │ gzip:     7.27 kB
+dist/assets/sankeyDiagram-XADWPNL6-DGVIEGp3.js           22.20 kB │ gzip:     8.13 kB
+dist/assets/la-x-liturgic-CXeQb4FY-DNU_Uk5t.js           22.54 kB │ gzip:     5.72 kB
+dist/assets/ContactBookPage-COBgtOeK.js                  22.92 kB │ gzip:     7.36 kB
+dist/assets/journeyDiagram-VCZTEJTY-CutKckOP.js          23.55 kB │ gzip:     8.34 kB
+dist/assets/mindmap-definition-QFDTVHPH-BOVgpDl6.js      23.60 kB │ gzip:     7.97 kB
+dist/assets/fr-BC2onEz9-BGmqATrI.js                      23.93 kB │ gzip:     4.29 kB
+dist/assets/wardleyDiagram-NUSXRM2D-CWuLUbYj.js          24.86 kB │ gzip:     6.73 kB
+dist/assets/be-CrQ0smca-B2EeXxUh.js                      25.32 kB │ gzip:     2.23 kB
+dist/assets/erDiagram-SMLLAGMA-BjRMo5_n.js               26.93 kB │ gzip:     9.35 kB
+dist/assets/sr-cyrl-Dpzrbd0W-DKfS_grW.js                 27.37 kB │ gzip:     5.56 kB
+dist/assets/sh-cyrl-BpCRFOmq-Cv4-R-p6.js                 28.20 kB │ gzip:     5.45 kB
+dist/assets/layout-CMZhlgRV.js                           28.56 kB │ gzip:    10.19 kB
+dist/assets/sh-latn-sRy4Tuaj-DcyoDtEt.js                 29.28 kB │ gzip:     5.29 kB
+dist/assets/gitGraphDiagram-UUTBAWPF-Btn_Kz27.js         29.98 kB │ gzip:     8.91 kB
+dist/assets/sk-_iOeDNrQ-BXQc18Za.js                      31.09 kB │ gzip:     6.79 kB
+dist/assets/requirementDiagram-MS252O5E-DgngBMKL.js      31.17 kB │ gzip:     9.79 kB
+dist/assets/timeline-definition-GMOUNBTQ-BnFBJpAn.js     31.32 kB │ gzip:    10.41 kB
+dist/assets/gl-DZGc-K_G-DLl5jmsP.js                      32.95 kB │ gzip:     4.26 kB
+dist/assets/quadrantDiagram-34T5L4WZ-DGA5sIbX.js         34.28 kB │ gzip:    10.08 kB
+dist/assets/chunk-OYMX7WX6-BLOHeYaO.js                   37.41 kB │ gzip:    12.16 kB
+dist/assets/cs-CmAteokq-TjIVgNl6.js                      38.89 kB │ gzip:     9.95 kB
+dist/assets/xychartDiagram-5P7HB3ND-RL6-4CRY.js          40.35 kB │ gzip:    11.54 kB
+dist/assets/vennDiagram-DHZGUBPP--6WiajTA.js             41.80 kB │ gzip:    15.55 kB
+dist/assets/es-DcaaHPU_-sYKznHcq.js                      43.41 kB │ gzip:     6.27 kB
+dist/assets/pl-9fg-ESVt-DpPW5ISU.js                      45.33 kB │ gzip:     7.70 kB
+dist/assets/et-B_spaleu-BaO20FM2.js                      46.94 kB │ gzip:    11.42 kB
+dist/assets/chunk-4TB4RGXK-B9oR_uk3.js                   47.32 kB │ gzip:    15.15 kB
+dist/assets/is-BT8UVRze-BXloJ18M.js                      47.51 kB │ gzip:    12.72 kB
+dist/assets/bg-CrQqGwni-Pt9yPLke.js                      50.17 kB │ gzip:     4.83 kB
+dist/assets/th-DWX5iPSo-BI_G36o8.js                      54.41 kB │ gzip:    13.26 kB
+dist/assets/CalendarView-Bj3dPch8.js                     56.29 kB │ gzip:    15.34 kB
+dist/assets/sv-CFm5y56M-I8ncZ9Nb.js                      56.39 kB │ gzip:    14.42 kB
+dist/assets/uk-Dir3oxLs-BVEQM3Jf.js                      58.19 kB │ gzip:     8.64 kB
+dist/assets/flowDiagram-DWJPFMVM-BJxZaPM7.js             61.14 kB │ gzip:    19.49 kB
+dist/assets/grc-DOlGgO8T-C7K_Bcib.js                     63.10 kB │ gzip:     8.92 kB
+dist/assets/ganttDiagram-T4ZO3ILL-V3hFgabK.js            69.14 kB │ gzip:    23.27 kB
+dist/assets/c4Diagram-AHTNJAMY-BFjrlZkf.js               69.92 kB │ gzip:    19.62 kB
+dist/assets/blockDiagram-DXYQGD6D-DjeQOM09.js            72.28 kB │ gzip:    20.59 kB
+dist/assets/ru-v4l-ayaq-BZkHNr9F.js                      75.71 kB │ gzip:    16.94 kB
+dist/assets/cy-BBPa6z2x-BONU7bVJ.js                      80.17 kB │ gzip:    19.05 kB
+dist/assets/ga-Cn6LkudM-WsF4_z3Y.js                      80.62 kB │ gzip:    20.04 kB
+dist/assets/cose-bilkent-S5V4N54A-DkNLRgky.js            81.51 kB │ gzip:    22.42 kB
+dist/assets/en-gb-B7Al27b_-BFFr9zKP.js                  105.38 kB │ gzip:    26.11 kB
+dist/assets/lv-Q2BBHnzp-DRPSUjhQ.js                     108.90 kB │ gzip:    16.09 kB
+dist/assets/sequenceDiagram-FGHM5R23-DXWVmad5.js        117.02 kB │ gzip:    31.07 kB
+dist/assets/nl-BHQJ6Gvn-BMWl-SdQ.js                     138.42 kB │ gzip:    36.10 kB
+dist/assets/cu-CBUlrW6Y-BrxB2kb-.js                     149.27 kB │ gzip:    26.17 kB
+dist/assets/architectureDiagram-Q4EWVU46-D7nseGYd.js    149.44 kB │ gzip:    42.24 kB
+dist/assets/SiteAdminPage-ChHlZRuu.js                   178.31 kB │ gzip:    37.04 kB
+dist/assets/af-DK_CjRn6-C81U6qP1.js                     179.76 kB │ gzip:    38.97 kB
+dist/assets/katex-C5jXJg4s.js                           258.49 kB │ gzip:    77.57 kB
+dist/assets/de-ch-1901-hVThVHVb-CC5Yf8hX.js             263.25 kB │ gzip:    70.50 kB
+dist/assets/de-1996-BL6awyxG-BSuIomZy.js                265.88 kB │ gzip:    71.07 kB
+dist/assets/de-1901-CWoAOigE-yOXirf_M.js                268.94 kB │ gzip:    71.86 kB
+dist/assets/no-B8ItS0F3-BlrHaK3Z.js                     340.51 kB │ gzip:    87.84 kB
+dist/assets/nb-DI8u59ch-S2a9vUN_.js                     340.53 kB │ gzip:    87.85 kB
+dist/assets/nn-ntZvarUK-cMBifkqM.js                     340.53 kB │ gzip:    87.85 kB
+dist/assets/cytoscape.esm-BQk4lpUV.js                   442.57 kB │ gzip:   141.98 kB
+dist/assets/pdf-DeWlx49F.js                             458.39 kB │ gzip:   135.97 kB
+dist/assets/MailPage-CVmiVBdU.js                        462.53 kB │ gzip:   142.55 kB
+dist/assets/wardley-RL74JXVD-CY8JX4g8.js                492.93 kB │ gzip:   110.28 kB
+dist/assets/hu-DVk7Y_ka-CCTZJfqn.js                     748.41 kB │ gzip:   172.84 kB
+dist/assets/index-CxTRxCfq.js                         3,918.80 kB │ gzip: 1,193.22 kB
+dist/assets/EasySheetViewer-BlQcIU19.js               6,398.73 kB │ gzip: 1,812.12 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 16.67s
+
+> easydocstation@1.0.0 ollama:serve
+> node scripts/ollama-serve-safe.mjs
+
+[Ollama] already running on 127.0.0.1:11434, skipping duplicate serve.
+[20260903-23:04:35][BE] 
+[20260903-23:04:35][BE] > easydocstation-server@1.0.0 start
+[20260903-23:04:35][BE] > node index.js
+[20260903-23:04:35][BE] 
+[20260903-23:04:35][BE] [RAG] 초기화 — 학습 방식: immediate
+[20260903-23:04:35][BE] [RAG] 초기화 — PDF 파싱 모드: FAST
+[20260903-23:04:35][BE] [Mail sync] 자동 동기화 스케줄러 시작: interval=600s, startupDelay=300s
+[20260903-23:04:35][BE] [Frontend] 프로덕션 빌드 서비스: /home/freegear/EasyDocStation/dist
+[20260903-23:04:35][BE] ✅ EasyDocStation server running on http://localhost:3001
+[20260903-23:04:35][BE] ✅ [CONFIG] HF_TOKEN 확인됨 (hf_u****butv, 길이 37)
+[20260903-23:04:35][BE] ✅ EasyDocStation production frontend running on http://localhost:5173
+[20260903-23:04:35][BE] ✅ Cassandra connected
+[20260903-23:04:35][BE] ✅ Cassandra schema initialized
+[20260903-23:04:35][BE] ✅ Database migration complete.
+[20260903-23:04:38][BE] [RAG Server] [RAG Server] 임베딩 모델 로드 중 (device=cuda)...
+[20260903-23:04:52][BE] [RAG Server] [RAG Server] 임베딩 모델 로드 완료
+[20260903-23:04:52][BE] [RAG Server] [RAG Server] 포트 5001 에서 시작됨
+[20260903-23:07:50][BE] [RAG Server] 프로세스 종료 (code=null), 5초 후 재시작...
+[20260903-23:07:50][BE] process exited with code 0. restarting in 2s...
+[20260903-23:07:52][BE] 
+[20260903-23:07:52][BE] > easydocstation-server@1.0.0 start
+[20260903-23:07:52][BE] > node index.js
+[20260903-23:07:52][BE] 
+[20260903-23:07:52][BE] [RAG] 초기화 — 학습 방식: immediate
+[20260903-23:07:52][BE] [RAG] 초기화 — PDF 파싱 모드: FAST
+[20260903-23:07:52][BE] [Mail sync] 자동 동기화 스케줄러 시작: interval=600s, startupDelay=300s
+[20260903-23:07:52][BE] [Frontend] 프로덕션 빌드 서비스: /home/freegear/EasyDocStation/dist
+[20260903-23:07:52][BE] ✅ EasyDocStation server running on http://localhost:3001
+[20260903-23:07:52][BE] ✅ [CONFIG] HF_TOKEN 확인됨 (hf_u****butv, 길이 37)
+[20260903-23:07:52][BE] ✅ EasyDocStation production frontend running on http://localhost:5173
+[20260903-23:07:52][BE] ✅ Cassandra connected
+[20260903-23:07:52][BE] ✅ Cassandra schema initialized
+[20260903-23:07:52][BE] ✅ Database migration complete.
+
+> easydocstation@1.0.0 build
+> vite build
+
+vite v5.4.21 building for production...
+transforming...
+node_modules/@lexical/react/dist/LexicalContentEditable.prod.mjs (9:1694): A comment
+
+"/*#__PURE__*/"
+
+in "node_modules/@lexical/react/dist/LexicalContentEditable.prod.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+node_modules/@lexical/react/dist/LexicalErrorBoundary.prod.mjs (9:386): A comment
+
+"/*#__PURE__*/"
+
+in "node_modules/@lexical/react/dist/LexicalErrorBoundary.prod.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+✓ 5058 modules transformed.
+rendering chunks...
+[plugin:vite:reporter] [plugin vite:reporter] 
+(!) /home/freegear/EasyDocStation/node_modules/mermaid/dist/mermaid.core.mjs is dynamically imported by /home/freegear/EasyDocStation/src/components/markdown/MermaidBlock.jsx but also statically imported by /home/freegear/EasyDocStation/src/components/chat/md-page/extensions/diagramPreviewExtensions.js, dynamic import will not move module into another chunk.
+
+computing gzip size...
+dist/index.html                                           0.84 kB │ gzip:     0.40 kB
+dist/assets/KaTeX_Size3-Regular-CTq5MqoE.woff             4.42 kB
+dist/assets/KaTeX_Size4-Regular-Dl5lxZxV.woff2            4.93 kB
+dist/assets/KaTeX_Size2-Regular-Dy4dx90m.woff2            5.21 kB
+dist/assets/KaTeX_Size1-Regular-mCD8mA8B.woff2            5.47 kB
+dist/assets/KaTeX_Size4-Regular-BF-4gkZK.woff             5.98 kB
+dist/assets/KaTeX_Size2-Regular-oD1tc_U0.woff             6.19 kB
+dist/assets/KaTeX_Size1-Regular-C195tn64.woff             6.50 kB
+dist/assets/KaTeX_Caligraphic-Regular-Di6jR-x-.woff2      6.91 kB
+dist/assets/KaTeX_Caligraphic-Bold-Dq_IR9rO.woff2         6.91 kB
+dist/assets/KaTeX_Size3-Regular-DgpXs0kz.ttf              7.59 kB
+dist/assets/KaTeX_Caligraphic-Regular-CTRA-rTL.woff       7.66 kB
+dist/assets/KaTeX_Caligraphic-Bold-BEiXGLvX.woff          7.72 kB
+dist/assets/KaTeX_Script-Regular-D3wIWfF6.woff2           9.64 kB
+dist/assets/KaTeX_SansSerif-Regular-DDBCnlJ7.woff2       10.34 kB
+dist/assets/KaTeX_Size4-Regular-DWFBv043.ttf             10.36 kB
+dist/assets/KaTeX_Script-Regular-D5yQViql.woff           10.59 kB
+dist/assets/KaTeX_Fraktur-Regular-CTYiF6lA.woff2         11.32 kB
+dist/assets/KaTeX_Fraktur-Bold-CL6g_b3V.woff2            11.35 kB
+dist/assets/KaTeX_Size2-Regular-B7gKUWhC.ttf             11.51 kB
+dist/assets/KaTeX_SansSerif-Italic-C3H0VqGB.woff2        12.03 kB
+dist/assets/KaTeX_SansSerif-Bold-D1sUS0GD.woff2          12.22 kB
+dist/assets/KaTeX_Size1-Regular-Dbsnue_I.ttf             12.23 kB
+dist/assets/KaTeX_SansSerif-Regular-CS6fqUqJ.woff        12.32 kB
+dist/assets/KaTeX_Caligraphic-Regular-wX97UBjC.ttf       12.34 kB
+dist/assets/KaTeX_Caligraphic-Bold-ATXxdsX0.ttf          12.37 kB
+dist/assets/KaTeX_Fraktur-Regular-Dxdc4cR9.woff          13.21 kB
+dist/assets/KaTeX_Fraktur-Bold-BsDP51OF.woff             13.30 kB
+dist/assets/KaTeX_Typewriter-Regular-CO6r4hn1.woff2      13.57 kB
+dist/assets/KaTeX_SansSerif-Italic-DN2j7dab.woff         14.11 kB
+dist/assets/KaTeX_SansSerif-Bold-DbIhKOiC.woff           14.41 kB
+dist/assets/KaTeX_Typewriter-Regular-C0xS9mPB.woff       16.03 kB
+dist/assets/KaTeX_Math-BoldItalic-CZnvNsCZ.woff2         16.40 kB
+dist/assets/KaTeX_Math-Italic-t53AETM-.woff2             16.44 kB
+dist/assets/KaTeX_Script-Regular-C5JkGWo-.ttf            16.65 kB
+dist/assets/KaTeX_Main-BoldItalic-DxDJ3AOS.woff2         16.78 kB
+dist/assets/KaTeX_Main-Italic-NWA7e6Wa.woff2             16.99 kB
+dist/assets/KaTeX_Math-BoldItalic-iY-2wyZ7.woff          18.67 kB
+dist/assets/KaTeX_Math-Italic-DA0__PXp.woff              18.75 kB
+dist/assets/KaTeX_Main-BoldItalic-SpSLRI95.woff          19.41 kB
+dist/assets/KaTeX_SansSerif-Regular-BNo7hRIc.ttf         19.44 kB
+dist/assets/KaTeX_Fraktur-Regular-CB_wures.ttf           19.57 kB
+dist/assets/KaTeX_Fraktur-Bold-BdnERNNW.ttf              19.58 kB
+dist/assets/KaTeX_Main-Italic-BMLOBm91.woff              19.68 kB
+dist/assets/KaTeX_SansSerif-Italic-YYjJ1zSn.ttf          22.36 kB
+dist/assets/KaTeX_SansSerif-Bold-CFMepnvq.ttf            24.50 kB
+dist/assets/KaTeX_Main-Bold-Cx986IdX.woff2               25.32 kB
+dist/assets/KaTeX_Main-Regular-B22Nviop.woff2            26.27 kB
+dist/assets/KaTeX_Typewriter-Regular-D3Ib7_Hf.ttf        27.56 kB
+dist/assets/KaTeX_AMS-Regular-BQhdFMY1.woff2             28.08 kB
+dist/assets/KaTeX_Main-Bold-Jm3AIy58.woff                29.91 kB
+dist/assets/KaTeX_Main-Regular-Dr94JaBh.woff             30.77 kB
+dist/assets/KaTeX_Math-BoldItalic-B3XSjfu4.ttf           31.20 kB
+dist/assets/KaTeX_Math-Italic-flOr_0UB.ttf               31.31 kB
+dist/assets/KaTeX_Main-BoldItalic-DzxPMmG6.ttf           32.97 kB
+dist/assets/KaTeX_AMS-Regular-DMm9YOAa.woff              33.52 kB
+dist/assets/KaTeX_Main-Italic-3WenGoN9.ttf               33.58 kB
+dist/assets/KaTeX_Main-Bold-waoOVXN0.ttf                 51.34 kB
+dist/assets/KaTeX_Main-Regular-ypZvNtVU.ttf              53.58 kB
+dist/assets/KaTeX_AMS-Regular-DRggAlZN.ttf               63.63 kB
+dist/assets/pdf.worker.min-iDqQPrd3.mjs               1,232.30 kB
+dist/assets/EasySheetViewer-Duz_WvKn.css                 84.51 kB │ gzip:    12.96 kB
+dist/assets/index-8JQSpcbj.css                          125.31 kB │ gzip:    24.33 kB
+dist/assets/clone-BEs1jmjH.js                             0.09 kB │ gzip:     0.11 kB
+dist/assets/channel-Bw2ZcYAN.js                           0.11 kB │ gzip:     0.12 kB
+dist/assets/init-Gi6I4Gst.js                              0.15 kB │ gzip:     0.13 kB
+dist/assets/chunk-QZHKN3VN-B7zy-f-b.js                    0.19 kB │ gzip:     0.16 kB
+dist/assets/chunk-55IACEB6-ChHLhfVT.js                    0.22 kB │ gzip:     0.20 kB
+dist/assets/chunk-4BX2VUAB-B7TYdx-Z.js                    0.29 kB │ gzip:     0.20 kB
+dist/assets/stateDiagram-v2-QKLJ7IA2-CcM0spZY.js          0.36 kB │ gzip:     0.27 kB
+dist/assets/chunk-FMBD7UC4-BELwFyu3.js                    0.36 kB │ gzip:     0.27 kB
+dist/assets/pa-C54UG8eN-EW_8hrTF.js                       0.41 kB │ gzip:     0.23 kB
+dist/assets/classDiagram-6PBFFD2Q-DzDvihf2.js             0.43 kB │ gzip:     0.30 kB
+dist/assets/classDiagram-v2-HSJHXN6E-DzDvihf2.js          0.43 kB │ gzip:     0.30 kB
+dist/assets/or-50rxpoq4-B_XNinj_.js                       0.44 kB │ gzip:     0.24 kB
+dist/assets/gu-Bjl0l-cf-Bb_OSiMJ.js                       0.45 kB │ gzip:     0.24 kB
+dist/assets/hi-DsAaTPCC-lc1bUHMk.js                       0.47 kB │ gzip:     0.25 kB
+dist/assets/mr-CjWJPVmH-BKMRnoAc.js                       0.47 kB │ gzip:     0.25 kB
+dist/assets/as-BPtSu6VN-CYxxmKqh.js                       0.48 kB │ gzip:     0.26 kB
+dist/assets/bn-NCLZcWHi-CsgykzQM.js                       0.48 kB │ gzip:     0.26 kB
+dist/assets/te-B5Spl2Jk-DYnT8Dmf.js                       0.48 kB │ gzip:     0.25 kB
+dist/assets/kn-C6Lov-DP-D7dHjlY1.js                       0.49 kB │ gzip:     0.26 kB
+dist/assets/chunk-EDXVE4YY-CJtCMEVt.js                    0.53 kB │ gzip:     0.37 kB
+dist/assets/ta-BcghgTbD-D3SGVeDl.js                       0.57 kB │ gzip:     0.25 kB
+dist/assets/min-BX4m_346.js                               0.62 kB │ gzip:     0.38 kB
+dist/assets/infoDiagram-42DDH7IO-BBtz1NIb.js              0.63 kB │ gzip:     0.43 kB
+dist/assets/ml-2xLVYkVY-CBhOFsDv.js                       0.63 kB │ gzip:     0.30 kB
+dist/assets/pi-B9cgjyG1-v-IB86gp.js                       0.83 kB │ gzip:     0.35 kB
+dist/assets/_baseSet-d8cMsqYD.js                          0.88 kB │ gzip:     0.55 kB
+dist/assets/ordinal-Cboi1Yqb.js                           1.19 kB │ gzip:     0.57 kB
+dist/assets/zh-latn-pinyin-BdYb-Ey_-BpSBSv6m.js           1.28 kB │ gzip:     0.22 kB
+dist/assets/get-BA4fmuJI.js                               1.43 kB │ gzip:     0.78 kB
+dist/assets/eu-Ctv_kq9Z-DMhU9kwg.js                       1.51 kB │ gzip:     0.22 kB
+dist/assets/chunk-YZCP3GAM-DPN5-Wq2.js                    1.85 kB │ gzip:     0.82 kB
+dist/assets/pt-Cum2_NUC-D8aZaPM_.js                       2.13 kB │ gzip:     0.31 kB
+dist/assets/id-DifDyWg9-1QUBE4o0.js                       2.52 kB │ gzip:     0.64 kB
+dist/assets/oc-P_i3-xLA-Cg0Gj-PC.js                       2.55 kB │ gzip:     0.68 kB
+dist/assets/kmr-Cfwhwuff-DNWs8Gbk.js                      2.70 kB │ gzip:     0.80 kB
+dist/assets/mul-ethi-D_CMSMEq-2TGBnG-Z.js                 2.78 kB │ gzip:     0.92 kB
+dist/assets/diagram-5BDNPKRD-CybhYq1M.js                  2.81 kB │ gzip:     1.39 kB
+dist/assets/fi-RW5VB8Yp-C_52fTOR.js                       3.14 kB │ gzip:     0.78 kB
+dist/assets/la-DuvHjUWw-BcBNkSEh.js                       3.19 kB │ gzip:     0.63 kB
+dist/assets/pms-BRGfm5gS-DtZRgBhp.js                      3.38 kB │ gzip:     0.91 kB
+dist/assets/arc-BdTX_TlL.js                               3.43 kB │ gzip:     1.48 kB
+dist/assets/it-Bt_Meacx-BwawXXgW.js                       3.63 kB │ gzip:     0.88 kB
+dist/assets/rm-C0MIK9N4-DeBfDBrx.js                       3.67 kB │ gzip:     0.95 kB
+dist/assets/tr-CIHIuzqc-ZkOY1dVp.js                       3.83 kB │ gzip:     0.34 kB
+dist/assets/fur-AC12wySk-Ulg0Fy5V.js                      3.90 kB │ gzip:     1.02 kB
+dist/assets/mn-cyrl-x-lmc-3aetruI8-mEBV16An.js            4.20 kB │ gzip:     1.21 kB
+dist/assets/el-monoton-D3aKqTz2-DpMW17GV.js               4.27 kB │ gzip:     0.89 kB
+dist/assets/diagram-TYMM5635--EW_n4ft.js                  4.29 kB │ gzip:     1.89 kB
+dist/assets/defaultLocale-DX6XiGOO.js                     4.69 kB │ gzip:     2.18 kB
+dist/assets/pieDiagram-DEJITSTG-D0X1Dx32.js               5.37 kB │ gzip:     2.38 kB
+dist/assets/linear-Ct1Lvf7W.js                            5.65 kB │ gzip:     2.31 kB
+dist/assets/cop-C3sk0IUo-Cj8cOj0I.js                      5.84 kB │ gzip:     0.71 kB
+dist/assets/diagram-MMDJMWI5-BAutwZj8.js                  6.02 kB │ gzip:     2.54 kB
+dist/assets/ia-Cr4TJH0c-BcFKNbxH.js                       6.49 kB │ gzip:     1.83 kB
+dist/assets/ro-0fmdH0HA-1lLksn9e.js                       7.15 kB │ gzip:     2.14 kB
+dist/assets/_baseUniq-CSDTp8Ub.js                         7.17 kB │ gzip:     2.99 kB
+dist/assets/ca-SUf6Y2Om-Dp4lcbPL.js                       7.42 kB │ gzip:     1.13 kB
+dist/assets/sa-CKY9c_Vq-DzgpFnfw.js                       8.28 kB │ gzip:     1.66 kB
+dist/assets/la-x-classic-yTyAOQEt-DuDJBVty.js             8.93 kB │ gzip:     2.31 kB
+dist/assets/graph-CRTokUCR.js                             9.40 kB │ gzip:     3.21 kB
+dist/assets/hy-e995ysyO-Cf-NYmW5.js                      10.30 kB │ gzip:     0.31 kB
+dist/assets/stateDiagram-FHFEXIEX-CfGjgMlR.js            10.44 kB │ gzip:     3.66 kB
+dist/assets/mn-cyrl-lHM4n0oC-QhYuXAWB.js                 10.62 kB │ gzip:     2.15 kB
+dist/assets/hr-DT1SBBes-CkK3TemH.js                      11.18 kB │ gzip:     0.95 kB
+dist/assets/dagre-KV5264BT-Di4pD4ls.js                   11.28 kB │ gzip:     4.21 kB
+dist/assets/sl-DpiklF-D-_46w5B9b.js                      12.49 kB │ gzip:     3.40 kB
+dist/assets/da-CCDXfXtG-C3O8h2wc.js                      12.65 kB │ gzip:     3.45 kB
+dist/assets/hsb-DC_ITc1e-C4pa9vvS.js                     13.89 kB │ gzip:     1.94 kB
+dist/assets/lt-BBe8DlDF-CObMPDIF.js                      14.49 kB │ gzip:     3.60 kB
+dist/assets/el-polyton-ogVWcTzh-BOWLBXgh.js              15.26 kB │ gzip:     2.87 kB
+dist/assets/diagram-G4DWMVQ6-W8skUcYL.js                 15.97 kB │ gzip:     5.72 kB
+dist/assets/tk-BMbKB10q-cqtw6prh.js                      16.30 kB │ gzip:     0.99 kB
+dist/assets/ishikawaDiagram-UXIWVN3A-BHX8uGC2.js         17.53 kB │ gzip:     6.65 kB
+dist/assets/ka-jyoLzyDE-CZftRBZr.js                      20.46 kB │ gzip:     4.51 kB
+dist/assets/kanban-definition-6JOO6SKY-wpUOvSFI.js       20.66 kB │ gzip:     7.27 kB
+dist/assets/sankeyDiagram-XADWPNL6-D-UJ_bLk.js           22.20 kB │ gzip:     8.13 kB
+dist/assets/la-x-liturgic-CXeQb4FY-DNU_Uk5t.js           22.54 kB │ gzip:     5.72 kB
+dist/assets/ContactBookPage-BPhlEaoq.js                  22.92 kB │ gzip:     7.36 kB
+dist/assets/journeyDiagram-VCZTEJTY-CVdJkQzQ.js          23.55 kB │ gzip:     8.34 kB
+dist/assets/mindmap-definition-QFDTVHPH-DD4VBw-x.js      23.60 kB │ gzip:     7.98 kB
+dist/assets/fr-BC2onEz9-BGmqATrI.js                      23.93 kB │ gzip:     4.29 kB
+dist/assets/wardleyDiagram-NUSXRM2D-D39QzEmo.js          24.86 kB │ gzip:     6.73 kB
+dist/assets/be-CrQ0smca-B2EeXxUh.js                      25.32 kB │ gzip:     2.23 kB
+dist/assets/erDiagram-SMLLAGMA-DVL9N6Hu.js               26.93 kB │ gzip:     9.35 kB
+dist/assets/sr-cyrl-Dpzrbd0W-DKfS_grW.js                 27.37 kB │ gzip:     5.56 kB
+dist/assets/sh-cyrl-BpCRFOmq-Cv4-R-p6.js                 28.20 kB │ gzip:     5.45 kB
+dist/assets/layout-BOVYz6Rn.js                           28.56 kB │ gzip:    10.20 kB
+dist/assets/sh-latn-sRy4Tuaj-DcyoDtEt.js                 29.28 kB │ gzip:     5.29 kB
+dist/assets/gitGraphDiagram-UUTBAWPF-phdQxWrZ.js         29.98 kB │ gzip:     8.91 kB
+dist/assets/sk-_iOeDNrQ-BXQc18Za.js                      31.09 kB │ gzip:     6.79 kB
+dist/assets/requirementDiagram-MS252O5E-DqIEKWhl.js      31.17 kB │ gzip:     9.79 kB
+dist/assets/timeline-definition-GMOUNBTQ-CjzL50LN.js     31.32 kB │ gzip:    10.41 kB
+dist/assets/gl-DZGc-K_G-DLl5jmsP.js                      32.95 kB │ gzip:     4.26 kB
+dist/assets/quadrantDiagram-34T5L4WZ-CtuO3elh.js         34.28 kB │ gzip:    10.08 kB
+dist/assets/chunk-OYMX7WX6-Bk29KJ5L.js                   37.41 kB │ gzip:    12.16 kB
+dist/assets/cs-CmAteokq-TjIVgNl6.js                      38.89 kB │ gzip:     9.95 kB
+dist/assets/xychartDiagram-5P7HB3ND-ZorA888m.js          40.35 kB │ gzip:    11.54 kB
+dist/assets/vennDiagram-DHZGUBPP-DqKxQsIr.js             41.80 kB │ gzip:    15.55 kB
+dist/assets/es-DcaaHPU_-sYKznHcq.js                      43.41 kB │ gzip:     6.27 kB
+dist/assets/pl-9fg-ESVt-DpPW5ISU.js                      45.33 kB │ gzip:     7.70 kB
+dist/assets/et-B_spaleu-BaO20FM2.js                      46.94 kB │ gzip:    11.42 kB
+dist/assets/chunk-4TB4RGXK-CNxmuK75.js                   47.32 kB │ gzip:    15.15 kB
+dist/assets/is-BT8UVRze-BXloJ18M.js                      47.51 kB │ gzip:    12.72 kB
+dist/assets/bg-CrQqGwni-Pt9yPLke.js                      50.17 kB │ gzip:     4.83 kB
+dist/assets/th-DWX5iPSo-BI_G36o8.js                      54.41 kB │ gzip:    13.26 kB
+dist/assets/CalendarView-mPjknG7y.js                     56.29 kB │ gzip:    15.34 kB
+dist/assets/sv-CFm5y56M-I8ncZ9Nb.js                      56.39 kB │ gzip:    14.42 kB
+dist/assets/uk-Dir3oxLs-BVEQM3Jf.js                      58.19 kB │ gzip:     8.64 kB
+dist/assets/flowDiagram-DWJPFMVM-BLIlGHsl.js             61.14 kB │ gzip:    19.49 kB
+dist/assets/grc-DOlGgO8T-C7K_Bcib.js                     63.10 kB │ gzip:     8.92 kB
+dist/assets/ganttDiagram-T4ZO3ILL-DDXqFr6C.js            69.14 kB │ gzip:    23.27 kB
+dist/assets/c4Diagram-AHTNJAMY-QY5vzXD-.js               69.92 kB │ gzip:    19.62 kB
+dist/assets/blockDiagram-DXYQGD6D-BtC-5LRx.js            72.28 kB │ gzip:    20.59 kB
+dist/assets/ru-v4l-ayaq-BZkHNr9F.js                      75.71 kB │ gzip:    16.94 kB
+dist/assets/cy-BBPa6z2x-BONU7bVJ.js                      80.17 kB │ gzip:    19.05 kB
+dist/assets/ga-Cn6LkudM-WsF4_z3Y.js                      80.62 kB │ gzip:    20.04 kB
+dist/assets/cose-bilkent-S5V4N54A-B69t-bUZ.js            81.51 kB │ gzip:    22.42 kB
+dist/assets/en-gb-B7Al27b_-BFFr9zKP.js                  105.38 kB │ gzip:    26.11 kB
+dist/assets/lv-Q2BBHnzp-DRPSUjhQ.js                     108.90 kB │ gzip:    16.09 kB
+dist/assets/sequenceDiagram-FGHM5R23-D1oliSb2.js        117.02 kB │ gzip:    31.06 kB
+dist/assets/nl-BHQJ6Gvn-BMWl-SdQ.js                     138.42 kB │ gzip:    36.10 kB
+dist/assets/cu-CBUlrW6Y-BrxB2kb-.js                     149.27 kB │ gzip:    26.17 kB
+dist/assets/architectureDiagram-Q4EWVU46-CE473py8.js    149.44 kB │ gzip:    42.25 kB
+dist/assets/SiteAdminPage-DdqCQkOs.js                   178.31 kB │ gzip:    37.04 kB
+dist/assets/af-DK_CjRn6-C81U6qP1.js                     179.76 kB │ gzip:    38.97 kB
+dist/assets/katex-C5jXJg4s.js                           258.49 kB │ gzip:    77.57 kB
+dist/assets/de-ch-1901-hVThVHVb-CC5Yf8hX.js             263.25 kB │ gzip:    70.50 kB
+dist/assets/de-1996-BL6awyxG-BSuIomZy.js                265.88 kB │ gzip:    71.07 kB
+dist/assets/de-1901-CWoAOigE-yOXirf_M.js                268.94 kB │ gzip:    71.86 kB
+dist/assets/no-B8ItS0F3-BlrHaK3Z.js                     340.51 kB │ gzip:    87.84 kB
+dist/assets/nb-DI8u59ch-S2a9vUN_.js                     340.53 kB │ gzip:    87.85 kB
+dist/assets/nn-ntZvarUK-cMBifkqM.js                     340.53 kB │ gzip:    87.85 kB
+dist/assets/cytoscape.esm-BQk4lpUV.js                   442.57 kB │ gzip:   141.98 kB
+dist/assets/pdf-DeWlx49F.js                             458.39 kB │ gzip:   135.97 kB
+dist/assets/MailPage-CuuZl4Gk.js                        462.53 kB │ gzip:   142.55 kB
+dist/assets/wardley-RL74JXVD-DSUd2eoK.js                493.21 kB │ gzip:   110.54 kB
+dist/assets/hu-DVk7Y_ka-CCTZJfqn.js                     748.41 kB │ gzip:   172.84 kB
+dist/assets/index-B2bFZthg.js                         3,918.80 kB │ gzip: 1,193.22 kB
+dist/assets/EasySheetViewer-BxtURvlJ.js               6,398.73 kB │ gzip: 1,812.12 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 17.63s
+
+> easydocstation@1.0.0 ollama:serve
+> node scripts/ollama-serve-safe.mjs
+
+[Ollama] already running on 127.0.0.1:11434, skipping duplicate serve.
+[20260903-23:08:14][BE] 
+[20260903-23:08:14][BE] > easydocstation-server@1.0.0 start
+[20260903-23:08:14][BE] > node index.js
+[20260903-23:08:14][BE] 
+[20260903-23:08:14][BE] [RAG] 초기화 — 학습 방식: immediate
+[20260903-23:08:14][BE] [RAG] 초기화 — PDF 파싱 모드: FAST
+[20260903-23:08:14][BE] [Mail sync] 자동 동기화 스케줄러 시작: interval=600s, startupDelay=300s
+[20260903-23:08:14][BE] [Frontend] 프로덕션 빌드 서비스: /home/freegear/EasyDocStation/dist
+[20260903-23:08:14][BE] ✅ EasyDocStation server running on http://localhost:3001
+[20260903-23:08:14][BE] ✅ [CONFIG] HF_TOKEN 확인됨 (hf_u****butv, 길이 37)
+[20260903-23:08:14][BE] ✅ EasyDocStation production frontend running on http://localhost:5173
+[20260903-23:08:14][BE] ✅ Cassandra connected
+[20260903-23:08:14][BE] ✅ Cassandra schema initialized
+[20260903-23:08:14][BE] ✅ Database migration complete.
+[20260903-23:08:17][BE] [RAG Server] [RAG Server] 임베딩 모델 로드 중 (device=cuda)...
+[20260903-23:08:25][BE] [Frontend] 허용되지 않은 Host 차단: unknown.invalid
+[20260903-23:08:31][BE] [RAG Server] [RAG Server] 임베딩 모델 로드 완료
+[20260903-23:08:31][BE] [RAG Server] [RAG Server] 포트 5001 에서 시작됨
+[20260903-23:09:06][BE] [RAG Server] 프로세스 종료 (code=null), 5초 후 재시작...
+[20260903-23:09:07][BE] process exited with code 0. restarting in 2s...
+[20260903-23:09:09][BE] 
+[20260903-23:09:09][BE] > easydocstation-server@1.0.0 start
+[20260903-23:09:09][BE] > node index.js
+[20260903-23:09:09][BE] 
+[20260903-23:09:09][BE] [RAG] 초기화 — 학습 방식: immediate
+[20260903-23:09:09][BE] [RAG] 초기화 — PDF 파싱 모드: FAST
+[20260903-23:09:09][BE] [Mail sync] 자동 동기화 스케줄러 시작: interval=600s, startupDelay=300s
+[20260903-23:09:09][BE] [Frontend] 프로덕션 빌드 서비스: /home/freegear/EasyDocStation/dist
+[20260903-23:09:09][BE] ✅ EasyDocStation server running on http://localhost:3001
+[20260903-23:09:09][BE] ✅ [CONFIG] HF_TOKEN 확인됨 (hf_u****butv, 길이 37)
+[20260903-23:09:09][BE] ✅ EasyDocStation production frontend running on http://localhost:5173
+[20260903-23:09:09][BE] ✅ Cassandra connected
+[20260903-23:09:09][BE] ✅ Cassandra schema initialized
+[20260903-23:09:09][BE] ✅ Database migration complete.
+
+> easydocstation@1.0.0 build
+> vite build
+
+vite v5.4.21 building for production...
+transforming...
+node_modules/@lexical/react/dist/LexicalContentEditable.prod.mjs (9:1694): A comment
+
+"/*#__PURE__*/"
+
+in "node_modules/@lexical/react/dist/LexicalContentEditable.prod.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+node_modules/@lexical/react/dist/LexicalErrorBoundary.prod.mjs (9:386): A comment
+
+"/*#__PURE__*/"
+
+in "node_modules/@lexical/react/dist/LexicalErrorBoundary.prod.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+✓ 5058 modules transformed.
+rendering chunks...
+[plugin:vite:reporter] [plugin vite:reporter] 
+(!) /home/freegear/EasyDocStation/node_modules/mermaid/dist/mermaid.core.mjs is dynamically imported by /home/freegear/EasyDocStation/src/components/markdown/MermaidBlock.jsx but also statically imported by /home/freegear/EasyDocStation/src/components/chat/md-page/extensions/diagramPreviewExtensions.js, dynamic import will not move module into another chunk.
+
+computing gzip size...
+dist/index.html                                           0.84 kB │ gzip:     0.40 kB
+dist/assets/KaTeX_Size3-Regular-CTq5MqoE.woff             4.42 kB
+dist/assets/KaTeX_Size4-Regular-Dl5lxZxV.woff2            4.93 kB
+dist/assets/KaTeX_Size2-Regular-Dy4dx90m.woff2            5.21 kB
+dist/assets/KaTeX_Size1-Regular-mCD8mA8B.woff2            5.47 kB
+dist/assets/KaTeX_Size4-Regular-BF-4gkZK.woff             5.98 kB
+dist/assets/KaTeX_Size2-Regular-oD1tc_U0.woff             6.19 kB
+dist/assets/KaTeX_Size1-Regular-C195tn64.woff             6.50 kB
+dist/assets/KaTeX_Caligraphic-Regular-Di6jR-x-.woff2      6.91 kB
+dist/assets/KaTeX_Caligraphic-Bold-Dq_IR9rO.woff2         6.91 kB
+dist/assets/KaTeX_Size3-Regular-DgpXs0kz.ttf              7.59 kB
+dist/assets/KaTeX_Caligraphic-Regular-CTRA-rTL.woff       7.66 kB
+dist/assets/KaTeX_Caligraphic-Bold-BEiXGLvX.woff          7.72 kB
+dist/assets/KaTeX_Script-Regular-D3wIWfF6.woff2           9.64 kB
+dist/assets/KaTeX_SansSerif-Regular-DDBCnlJ7.woff2       10.34 kB
+dist/assets/KaTeX_Size4-Regular-DWFBv043.ttf             10.36 kB
+dist/assets/KaTeX_Script-Regular-D5yQViql.woff           10.59 kB
+dist/assets/KaTeX_Fraktur-Regular-CTYiF6lA.woff2         11.32 kB
+dist/assets/KaTeX_Fraktur-Bold-CL6g_b3V.woff2            11.35 kB
+dist/assets/KaTeX_Size2-Regular-B7gKUWhC.ttf             11.51 kB
+dist/assets/KaTeX_SansSerif-Italic-C3H0VqGB.woff2        12.03 kB
+dist/assets/KaTeX_SansSerif-Bold-D1sUS0GD.woff2          12.22 kB
+dist/assets/KaTeX_Size1-Regular-Dbsnue_I.ttf             12.23 kB
+dist/assets/KaTeX_SansSerif-Regular-CS6fqUqJ.woff        12.32 kB
+dist/assets/KaTeX_Caligraphic-Regular-wX97UBjC.ttf       12.34 kB
+dist/assets/KaTeX_Caligraphic-Bold-ATXxdsX0.ttf          12.37 kB
+dist/assets/KaTeX_Fraktur-Regular-Dxdc4cR9.woff          13.21 kB
+dist/assets/KaTeX_Fraktur-Bold-BsDP51OF.woff             13.30 kB
+dist/assets/KaTeX_Typewriter-Regular-CO6r4hn1.woff2      13.57 kB
+dist/assets/KaTeX_SansSerif-Italic-DN2j7dab.woff         14.11 kB
+dist/assets/KaTeX_SansSerif-Bold-DbIhKOiC.woff           14.41 kB
+dist/assets/KaTeX_Typewriter-Regular-C0xS9mPB.woff       16.03 kB
+dist/assets/KaTeX_Math-BoldItalic-CZnvNsCZ.woff2         16.40 kB
+dist/assets/KaTeX_Math-Italic-t53AETM-.woff2             16.44 kB
+dist/assets/KaTeX_Script-Regular-C5JkGWo-.ttf            16.65 kB
+dist/assets/KaTeX_Main-BoldItalic-DxDJ3AOS.woff2         16.78 kB
+dist/assets/KaTeX_Main-Italic-NWA7e6Wa.woff2             16.99 kB
+dist/assets/KaTeX_Math-BoldItalic-iY-2wyZ7.woff          18.67 kB
+dist/assets/KaTeX_Math-Italic-DA0__PXp.woff              18.75 kB
+dist/assets/KaTeX_Main-BoldItalic-SpSLRI95.woff          19.41 kB
+dist/assets/KaTeX_SansSerif-Regular-BNo7hRIc.ttf         19.44 kB
+dist/assets/KaTeX_Fraktur-Regular-CB_wures.ttf           19.57 kB
+dist/assets/KaTeX_Fraktur-Bold-BdnERNNW.ttf              19.58 kB
+dist/assets/KaTeX_Main-Italic-BMLOBm91.woff              19.68 kB
+dist/assets/KaTeX_SansSerif-Italic-YYjJ1zSn.ttf          22.36 kB
+dist/assets/KaTeX_SansSerif-Bold-CFMepnvq.ttf            24.50 kB
+dist/assets/KaTeX_Main-Bold-Cx986IdX.woff2               25.32 kB
+dist/assets/KaTeX_Main-Regular-B22Nviop.woff2            26.27 kB
+dist/assets/KaTeX_Typewriter-Regular-D3Ib7_Hf.ttf        27.56 kB
+dist/assets/KaTeX_AMS-Regular-BQhdFMY1.woff2             28.08 kB
+dist/assets/KaTeX_Main-Bold-Jm3AIy58.woff                29.91 kB
+dist/assets/KaTeX_Main-Regular-Dr94JaBh.woff             30.77 kB
+dist/assets/KaTeX_Math-BoldItalic-B3XSjfu4.ttf           31.20 kB
+dist/assets/KaTeX_Math-Italic-flOr_0UB.ttf               31.31 kB
+dist/assets/KaTeX_Main-BoldItalic-DzxPMmG6.ttf           32.97 kB
+dist/assets/KaTeX_AMS-Regular-DMm9YOAa.woff              33.52 kB
+dist/assets/KaTeX_Main-Italic-3WenGoN9.ttf               33.58 kB
+dist/assets/KaTeX_Main-Bold-waoOVXN0.ttf                 51.34 kB
+dist/assets/KaTeX_Main-Regular-ypZvNtVU.ttf              53.58 kB
+dist/assets/KaTeX_AMS-Regular-DRggAlZN.ttf               63.63 kB
+dist/assets/pdf.worker.min-iDqQPrd3.mjs               1,232.30 kB
+dist/assets/EasySheetViewer-Duz_WvKn.css                 84.51 kB │ gzip:    12.96 kB
+dist/assets/index-8JQSpcbj.css                          125.31 kB │ gzip:    24.33 kB
+dist/assets/clone-BEs1jmjH.js                             0.09 kB │ gzip:     0.11 kB
+dist/assets/channel-Bw2ZcYAN.js                           0.11 kB │ gzip:     0.12 kB
+dist/assets/init-Gi6I4Gst.js                              0.15 kB │ gzip:     0.13 kB
+dist/assets/chunk-QZHKN3VN-B7zy-f-b.js                    0.19 kB │ gzip:     0.16 kB
+dist/assets/chunk-55IACEB6-ChHLhfVT.js                    0.22 kB │ gzip:     0.20 kB
+dist/assets/chunk-4BX2VUAB-B7TYdx-Z.js                    0.29 kB │ gzip:     0.20 kB
+dist/assets/stateDiagram-v2-QKLJ7IA2-CcM0spZY.js          0.36 kB │ gzip:     0.27 kB
+dist/assets/chunk-FMBD7UC4-BELwFyu3.js                    0.36 kB │ gzip:     0.27 kB
+dist/assets/pa-C54UG8eN-EW_8hrTF.js                       0.41 kB │ gzip:     0.23 kB
+dist/assets/classDiagram-6PBFFD2Q-DzDvihf2.js             0.43 kB │ gzip:     0.30 kB
+dist/assets/classDiagram-v2-HSJHXN6E-DzDvihf2.js          0.43 kB │ gzip:     0.30 kB
+dist/assets/or-50rxpoq4-B_XNinj_.js                       0.44 kB │ gzip:     0.24 kB
+dist/assets/gu-Bjl0l-cf-Bb_OSiMJ.js                       0.45 kB │ gzip:     0.24 kB
+dist/assets/hi-DsAaTPCC-lc1bUHMk.js                       0.47 kB │ gzip:     0.25 kB
+dist/assets/mr-CjWJPVmH-BKMRnoAc.js                       0.47 kB │ gzip:     0.25 kB
+dist/assets/as-BPtSu6VN-CYxxmKqh.js                       0.48 kB │ gzip:     0.26 kB
+dist/assets/bn-NCLZcWHi-CsgykzQM.js                       0.48 kB │ gzip:     0.26 kB
+dist/assets/te-B5Spl2Jk-DYnT8Dmf.js                       0.48 kB │ gzip:     0.25 kB
+dist/assets/kn-C6Lov-DP-D7dHjlY1.js                       0.49 kB │ gzip:     0.26 kB
+dist/assets/chunk-EDXVE4YY-CJtCMEVt.js                    0.53 kB │ gzip:     0.37 kB
+dist/assets/ta-BcghgTbD-D3SGVeDl.js                       0.57 kB │ gzip:     0.25 kB
+dist/assets/min-BX4m_346.js                               0.62 kB │ gzip:     0.38 kB
+dist/assets/infoDiagram-42DDH7IO-BBtz1NIb.js              0.63 kB │ gzip:     0.43 kB
+dist/assets/ml-2xLVYkVY-CBhOFsDv.js                       0.63 kB │ gzip:     0.30 kB
+dist/assets/pi-B9cgjyG1-v-IB86gp.js                       0.83 kB │ gzip:     0.35 kB
+dist/assets/_baseSet-d8cMsqYD.js                          0.88 kB │ gzip:     0.55 kB
+dist/assets/ordinal-Cboi1Yqb.js                           1.19 kB │ gzip:     0.57 kB
+dist/assets/zh-latn-pinyin-BdYb-Ey_-BpSBSv6m.js           1.28 kB │ gzip:     0.22 kB
+dist/assets/get-BA4fmuJI.js                               1.43 kB │ gzip:     0.78 kB
+dist/assets/eu-Ctv_kq9Z-DMhU9kwg.js                       1.51 kB │ gzip:     0.22 kB
+dist/assets/chunk-YZCP3GAM-DPN5-Wq2.js                    1.85 kB │ gzip:     0.82 kB
+dist/assets/pt-Cum2_NUC-D8aZaPM_.js                       2.13 kB │ gzip:     0.31 kB
+dist/assets/id-DifDyWg9-1QUBE4o0.js                       2.52 kB │ gzip:     0.64 kB
+dist/assets/oc-P_i3-xLA-Cg0Gj-PC.js                       2.55 kB │ gzip:     0.68 kB
+dist/assets/kmr-Cfwhwuff-DNWs8Gbk.js                      2.70 kB │ gzip:     0.80 kB
+dist/assets/mul-ethi-D_CMSMEq-2TGBnG-Z.js                 2.78 kB │ gzip:     0.92 kB
+dist/assets/diagram-5BDNPKRD-CybhYq1M.js                  2.81 kB │ gzip:     1.39 kB
+dist/assets/fi-RW5VB8Yp-C_52fTOR.js                       3.14 kB │ gzip:     0.78 kB
+dist/assets/la-DuvHjUWw-BcBNkSEh.js                       3.19 kB │ gzip:     0.63 kB
+dist/assets/pms-BRGfm5gS-DtZRgBhp.js                      3.38 kB │ gzip:     0.91 kB
+dist/assets/arc-BdTX_TlL.js                               3.43 kB │ gzip:     1.48 kB
+dist/assets/it-Bt_Meacx-BwawXXgW.js                       3.63 kB │ gzip:     0.88 kB
+dist/assets/rm-C0MIK9N4-DeBfDBrx.js                       3.67 kB │ gzip:     0.95 kB
+dist/assets/tr-CIHIuzqc-ZkOY1dVp.js                       3.83 kB │ gzip:     0.34 kB
+dist/assets/fur-AC12wySk-Ulg0Fy5V.js                      3.90 kB │ gzip:     1.02 kB
+dist/assets/mn-cyrl-x-lmc-3aetruI8-mEBV16An.js            4.20 kB │ gzip:     1.21 kB
+dist/assets/el-monoton-D3aKqTz2-DpMW17GV.js               4.27 kB │ gzip:     0.89 kB
+dist/assets/diagram-TYMM5635--EW_n4ft.js                  4.29 kB │ gzip:     1.89 kB
+dist/assets/defaultLocale-DX6XiGOO.js                     4.69 kB │ gzip:     2.18 kB
+dist/assets/pieDiagram-DEJITSTG-D0X1Dx32.js               5.37 kB │ gzip:     2.38 kB
+dist/assets/linear-Ct1Lvf7W.js                            5.65 kB │ gzip:     2.31 kB
+dist/assets/cop-C3sk0IUo-Cj8cOj0I.js                      5.84 kB │ gzip:     0.71 kB
+dist/assets/diagram-MMDJMWI5-BAutwZj8.js                  6.02 kB │ gzip:     2.54 kB
+dist/assets/ia-Cr4TJH0c-BcFKNbxH.js                       6.49 kB │ gzip:     1.83 kB
+dist/assets/ro-0fmdH0HA-1lLksn9e.js                       7.15 kB │ gzip:     2.14 kB
+dist/assets/_baseUniq-CSDTp8Ub.js                         7.17 kB │ gzip:     2.99 kB
+dist/assets/ca-SUf6Y2Om-Dp4lcbPL.js                       7.42 kB │ gzip:     1.13 kB
+dist/assets/sa-CKY9c_Vq-DzgpFnfw.js                       8.28 kB │ gzip:     1.66 kB
+dist/assets/la-x-classic-yTyAOQEt-DuDJBVty.js             8.93 kB │ gzip:     2.31 kB
+dist/assets/graph-CRTokUCR.js                             9.40 kB │ gzip:     3.21 kB
+dist/assets/hy-e995ysyO-Cf-NYmW5.js                      10.30 kB │ gzip:     0.31 kB
+dist/assets/stateDiagram-FHFEXIEX-CfGjgMlR.js            10.44 kB │ gzip:     3.66 kB
+dist/assets/mn-cyrl-lHM4n0oC-QhYuXAWB.js                 10.62 kB │ gzip:     2.15 kB
+dist/assets/hr-DT1SBBes-CkK3TemH.js                      11.18 kB │ gzip:     0.95 kB
+dist/assets/dagre-KV5264BT-Di4pD4ls.js                   11.28 kB │ gzip:     4.21 kB
+dist/assets/sl-DpiklF-D-_46w5B9b.js                      12.49 kB │ gzip:     3.40 kB
+dist/assets/da-CCDXfXtG-C3O8h2wc.js                      12.65 kB │ gzip:     3.45 kB
+dist/assets/hsb-DC_ITc1e-C4pa9vvS.js                     13.89 kB │ gzip:     1.94 kB
+dist/assets/lt-BBe8DlDF-CObMPDIF.js                      14.49 kB │ gzip:     3.60 kB
+dist/assets/el-polyton-ogVWcTzh-BOWLBXgh.js              15.26 kB │ gzip:     2.87 kB
+dist/assets/diagram-G4DWMVQ6-W8skUcYL.js                 15.97 kB │ gzip:     5.72 kB
+dist/assets/tk-BMbKB10q-cqtw6prh.js                      16.30 kB │ gzip:     0.99 kB
+dist/assets/ishikawaDiagram-UXIWVN3A-BHX8uGC2.js         17.53 kB │ gzip:     6.65 kB
+dist/assets/ka-jyoLzyDE-CZftRBZr.js                      20.46 kB │ gzip:     4.51 kB
+dist/assets/kanban-definition-6JOO6SKY-wpUOvSFI.js       20.66 kB │ gzip:     7.27 kB
+dist/assets/sankeyDiagram-XADWPNL6-D-UJ_bLk.js           22.20 kB │ gzip:     8.13 kB
+dist/assets/la-x-liturgic-CXeQb4FY-DNU_Uk5t.js           22.54 kB │ gzip:     5.72 kB
+dist/assets/ContactBookPage-BPhlEaoq.js                  22.92 kB │ gzip:     7.36 kB
+dist/assets/journeyDiagram-VCZTEJTY-CVdJkQzQ.js          23.55 kB │ gzip:     8.34 kB
+dist/assets/mindmap-definition-QFDTVHPH-DD4VBw-x.js      23.60 kB │ gzip:     7.98 kB
+dist/assets/fr-BC2onEz9-BGmqATrI.js                      23.93 kB │ gzip:     4.29 kB
+dist/assets/wardleyDiagram-NUSXRM2D-D39QzEmo.js          24.86 kB │ gzip:     6.73 kB
+dist/assets/be-CrQ0smca-B2EeXxUh.js                      25.32 kB │ gzip:     2.23 kB
+dist/assets/erDiagram-SMLLAGMA-DVL9N6Hu.js               26.93 kB │ gzip:     9.35 kB
+dist/assets/sr-cyrl-Dpzrbd0W-DKfS_grW.js                 27.37 kB │ gzip:     5.56 kB
+dist/assets/sh-cyrl-BpCRFOmq-Cv4-R-p6.js                 28.20 kB │ gzip:     5.45 kB
+dist/assets/layout-BOVYz6Rn.js                           28.56 kB │ gzip:    10.20 kB
+dist/assets/sh-latn-sRy4Tuaj-DcyoDtEt.js                 29.28 kB │ gzip:     5.29 kB
+dist/assets/gitGraphDiagram-UUTBAWPF-phdQxWrZ.js         29.98 kB │ gzip:     8.91 kB
+dist/assets/sk-_iOeDNrQ-BXQc18Za.js                      31.09 kB │ gzip:     6.79 kB
+dist/assets/requirementDiagram-MS252O5E-DqIEKWhl.js      31.17 kB │ gzip:     9.79 kB
+dist/assets/timeline-definition-GMOUNBTQ-CjzL50LN.js     31.32 kB │ gzip:    10.41 kB
+dist/assets/gl-DZGc-K_G-DLl5jmsP.js                      32.95 kB │ gzip:     4.26 kB
+dist/assets/quadrantDiagram-34T5L4WZ-CtuO3elh.js         34.28 kB │ gzip:    10.08 kB
+dist/assets/chunk-OYMX7WX6-Bk29KJ5L.js                   37.41 kB │ gzip:    12.16 kB
+dist/assets/cs-CmAteokq-TjIVgNl6.js                      38.89 kB │ gzip:     9.95 kB
+dist/assets/xychartDiagram-5P7HB3ND-ZorA888m.js          40.35 kB │ gzip:    11.54 kB
+dist/assets/vennDiagram-DHZGUBPP-DqKxQsIr.js             41.80 kB │ gzip:    15.55 kB
+dist/assets/es-DcaaHPU_-sYKznHcq.js                      43.41 kB │ gzip:     6.27 kB
+dist/assets/pl-9fg-ESVt-DpPW5ISU.js                      45.33 kB │ gzip:     7.70 kB
+dist/assets/et-B_spaleu-BaO20FM2.js                      46.94 kB │ gzip:    11.42 kB
+dist/assets/chunk-4TB4RGXK-CNxmuK75.js                   47.32 kB │ gzip:    15.15 kB
+dist/assets/is-BT8UVRze-BXloJ18M.js                      47.51 kB │ gzip:    12.72 kB
+dist/assets/bg-CrQqGwni-Pt9yPLke.js                      50.17 kB │ gzip:     4.83 kB
+dist/assets/th-DWX5iPSo-BI_G36o8.js                      54.41 kB │ gzip:    13.26 kB
+dist/assets/CalendarView-mPjknG7y.js                     56.29 kB │ gzip:    15.34 kB
+dist/assets/sv-CFm5y56M-I8ncZ9Nb.js                      56.39 kB │ gzip:    14.42 kB
+dist/assets/uk-Dir3oxLs-BVEQM3Jf.js                      58.19 kB │ gzip:     8.64 kB
+dist/assets/flowDiagram-DWJPFMVM-BLIlGHsl.js             61.14 kB │ gzip:    19.49 kB
+dist/assets/grc-DOlGgO8T-C7K_Bcib.js                     63.10 kB │ gzip:     8.92 kB
+dist/assets/ganttDiagram-T4ZO3ILL-DDXqFr6C.js            69.14 kB │ gzip:    23.27 kB
+dist/assets/c4Diagram-AHTNJAMY-QY5vzXD-.js               69.92 kB │ gzip:    19.62 kB
+dist/assets/blockDiagram-DXYQGD6D-BtC-5LRx.js            72.28 kB │ gzip:    20.59 kB
+dist/assets/ru-v4l-ayaq-BZkHNr9F.js                      75.71 kB │ gzip:    16.94 kB
+dist/assets/cy-BBPa6z2x-BONU7bVJ.js                      80.17 kB │ gzip:    19.05 kB
+dist/assets/ga-Cn6LkudM-WsF4_z3Y.js                      80.62 kB │ gzip:    20.04 kB
+dist/assets/cose-bilkent-S5V4N54A-B69t-bUZ.js            81.51 kB │ gzip:    22.42 kB
+dist/assets/en-gb-B7Al27b_-BFFr9zKP.js                  105.38 kB │ gzip:    26.11 kB
+dist/assets/lv-Q2BBHnzp-DRPSUjhQ.js                     108.90 kB │ gzip:    16.09 kB
+dist/assets/sequenceDiagram-FGHM5R23-D1oliSb2.js        117.02 kB │ gzip:    31.06 kB
+dist/assets/nl-BHQJ6Gvn-BMWl-SdQ.js                     138.42 kB │ gzip:    36.10 kB
+dist/assets/cu-CBUlrW6Y-BrxB2kb-.js                     149.27 kB │ gzip:    26.17 kB
+dist/assets/architectureDiagram-Q4EWVU46-CE473py8.js    149.44 kB │ gzip:    42.25 kB
+dist/assets/SiteAdminPage-DdqCQkOs.js                   178.31 kB │ gzip:    37.04 kB
+dist/assets/af-DK_CjRn6-C81U6qP1.js                     179.76 kB │ gzip:    38.97 kB
+dist/assets/katex-C5jXJg4s.js                           258.49 kB │ gzip:    77.57 kB
+dist/assets/de-ch-1901-hVThVHVb-CC5Yf8hX.js             263.25 kB │ gzip:    70.50 kB
+dist/assets/de-1996-BL6awyxG-BSuIomZy.js                265.88 kB │ gzip:    71.07 kB
+dist/assets/de-1901-CWoAOigE-yOXirf_M.js                268.94 kB │ gzip:    71.86 kB
+dist/assets/no-B8ItS0F3-BlrHaK3Z.js                     340.51 kB │ gzip:    87.84 kB
+dist/assets/nb-DI8u59ch-S2a9vUN_.js                     340.53 kB │ gzip:    87.85 kB
+dist/assets/nn-ntZvarUK-cMBifkqM.js                     340.53 kB │ gzip:    87.85 kB
+dist/assets/cytoscape.esm-BQk4lpUV.js                   442.57 kB │ gzip:   141.98 kB
+dist/assets/pdf-DeWlx49F.js                             458.39 kB │ gzip:   135.97 kB
+dist/assets/MailPage-CuuZl4Gk.js                        462.53 kB │ gzip:   142.55 kB
+dist/assets/wardley-RL74JXVD-DSUd2eoK.js                493.21 kB │ gzip:   110.54 kB
+dist/assets/hu-DVk7Y_ka-CCTZJfqn.js                     748.41 kB │ gzip:   172.84 kB
+dist/assets/index-B2bFZthg.js                         3,918.80 kB │ gzip: 1,193.22 kB
+dist/assets/EasySheetViewer-BxtURvlJ.js               6,398.73 kB │ gzip: 1,812.12 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 17.82s
+
+> easydocstation@1.0.0 ollama:serve
+> node scripts/ollama-serve-safe.mjs
+
+[Ollama] already running on 127.0.0.1:11434, skipping duplicate serve.
+[20260903-23:09:30][BE] 
+[20260903-23:09:30][BE] > easydocstation-server@1.0.0 start
+[20260903-23:09:30][BE] > node index.js
+[20260903-23:09:30][BE] 
+[20260903-23:09:30][BE] [RAG] 초기화 — 학습 방식: immediate
+[20260903-23:09:30][BE] [RAG] 초기화 — PDF 파싱 모드: FAST
+[20260903-23:09:30][BE] [Mail sync] 자동 동기화 스케줄러 시작: interval=600s, startupDelay=300s
+[20260903-23:09:30][BE] [Frontend] 프로덕션 빌드 서비스: /home/freegear/EasyDocStation/dist
+[20260903-23:09:30][BE] ✅ EasyDocStation server running on http://localhost:3001
+[20260903-23:09:30][BE] ✅ [CONFIG] HF_TOKEN 확인됨 (hf_u****butv, 길이 37)
+[20260903-23:09:30][BE] ✅ EasyDocStation production frontend running on http://localhost:5173
+[20260903-23:09:30][BE] ✅ Cassandra connected
+[20260903-23:09:30][BE] ✅ Cassandra schema initialized
+[20260903-23:09:31][BE] ✅ Database migration complete.
+[20260903-23:09:33][BE] [RAG Server] [RAG Server] 임베딩 모델 로드 중 (device=cuda)...
+[20260903-23:09:42][BE] [Frontend] 허용되지 않은 Host 차단: unknown.invalid
+[20260903-23:09:47][BE] [RAG Server] [RAG Server] 임베딩 모델 로드 완료
+[20260903-23:09:47][BE] [RAG Server] [RAG Server] 포트 5001 에서 시작됨
+[20260903-23:10:05][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260903-23:10:05][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260903-23:10:06][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260903-23:10:06][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260903-23:14:49][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260903-23:15:19][BE] [RAG Server] 프로세스 종료 (code=null), 5초 후 재시작...
+[20260903-23:15:19][BE] process exited with code 0. restarting in 2s...
+[20260903-23:15:21][BE] 
+[20260903-23:15:21][BE] > easydocstation-server@1.0.0 start
+[20260903-23:15:21][BE] > node index.js
+[20260903-23:15:21][BE] 
+[20260903-23:15:22][BE] [RAG] 초기화 — 학습 방식: immediate
+[20260903-23:15:22][BE] [RAG] 초기화 — PDF 파싱 모드: FAST
+[20260903-23:15:22][BE] [Mail sync] 자동 동기화 스케줄러 시작: interval=600s, startupDelay=300s
+[20260903-23:15:22][BE] [Frontend] 프로덕션 빌드 서비스: /home/freegear/EasyDocStation/dist
+[20260903-23:15:22][BE] ✅ EasyDocStation server running on http://localhost:3001
+[20260903-23:15:22][BE] ✅ [CONFIG] HF_TOKEN 확인됨 (hf_u****butv, 길이 37)
+[20260903-23:15:22][BE] ✅ EasyDocStation production frontend running on http://localhost:5173
+[20260903-23:15:22][BE] ✅ Cassandra connected
+[20260903-23:15:22][BE] ✅ Cassandra schema initialized
+[20260903-23:15:22][BE] ✅ Database migration complete.
+
+> easydocstation@1.0.0 build
+> vite build
+
+vite v5.4.21 building for production...
+transforming...
+node_modules/@lexical/react/dist/LexicalContentEditable.prod.mjs (9:1694): A comment
+
+"/*#__PURE__*/"
+
+in "node_modules/@lexical/react/dist/LexicalContentEditable.prod.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+node_modules/@lexical/react/dist/LexicalErrorBoundary.prod.mjs (9:386): A comment
+
+"/*#__PURE__*/"
+
+in "node_modules/@lexical/react/dist/LexicalErrorBoundary.prod.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+✓ 5068 modules transformed.
+rendering chunks...
+[plugin:vite:reporter] [plugin vite:reporter] 
+(!) /home/freegear/EasyDocStation/node_modules/mermaid/dist/mermaid.core.mjs is dynamically imported by /home/freegear/EasyDocStation/src/components/markdown/MermaidBlock.jsx but also statically imported by /home/freegear/EasyDocStation/src/components/chat/md-page/extensions/diagramPreviewExtensions.js, dynamic import will not move module into another chunk.
+
+computing gzip size...
+dist/index.html                                           0.84 kB │ gzip:     0.40 kB
+dist/assets/KaTeX_Size3-Regular-CTq5MqoE.woff             4.42 kB
+dist/assets/KaTeX_Size4-Regular-Dl5lxZxV.woff2            4.93 kB
+dist/assets/KaTeX_Size2-Regular-Dy4dx90m.woff2            5.21 kB
+dist/assets/KaTeX_Size1-Regular-mCD8mA8B.woff2            5.47 kB
+dist/assets/KaTeX_Size4-Regular-BF-4gkZK.woff             5.98 kB
+dist/assets/KaTeX_Size2-Regular-oD1tc_U0.woff             6.19 kB
+dist/assets/KaTeX_Size1-Regular-C195tn64.woff             6.50 kB
+dist/assets/KaTeX_Caligraphic-Regular-Di6jR-x-.woff2      6.91 kB
+dist/assets/KaTeX_Caligraphic-Bold-Dq_IR9rO.woff2         6.91 kB
+dist/assets/KaTeX_Size3-Regular-DgpXs0kz.ttf              7.59 kB
+dist/assets/KaTeX_Caligraphic-Regular-CTRA-rTL.woff       7.66 kB
+dist/assets/KaTeX_Caligraphic-Bold-BEiXGLvX.woff          7.72 kB
+dist/assets/KaTeX_Script-Regular-D3wIWfF6.woff2           9.64 kB
+dist/assets/KaTeX_SansSerif-Regular-DDBCnlJ7.woff2       10.34 kB
+dist/assets/KaTeX_Size4-Regular-DWFBv043.ttf             10.36 kB
+dist/assets/KaTeX_Script-Regular-D5yQViql.woff           10.59 kB
+dist/assets/KaTeX_Fraktur-Regular-CTYiF6lA.woff2         11.32 kB
+dist/assets/KaTeX_Fraktur-Bold-CL6g_b3V.woff2            11.35 kB
+dist/assets/KaTeX_Size2-Regular-B7gKUWhC.ttf             11.51 kB
+dist/assets/KaTeX_SansSerif-Italic-C3H0VqGB.woff2        12.03 kB
+dist/assets/KaTeX_SansSerif-Bold-D1sUS0GD.woff2          12.22 kB
+dist/assets/KaTeX_Size1-Regular-Dbsnue_I.ttf             12.23 kB
+dist/assets/KaTeX_SansSerif-Regular-CS6fqUqJ.woff        12.32 kB
+dist/assets/KaTeX_Caligraphic-Regular-wX97UBjC.ttf       12.34 kB
+dist/assets/KaTeX_Caligraphic-Bold-ATXxdsX0.ttf          12.37 kB
+dist/assets/KaTeX_Fraktur-Regular-Dxdc4cR9.woff          13.21 kB
+dist/assets/KaTeX_Fraktur-Bold-BsDP51OF.woff             13.30 kB
+dist/assets/KaTeX_Typewriter-Regular-CO6r4hn1.woff2      13.57 kB
+dist/assets/KaTeX_SansSerif-Italic-DN2j7dab.woff         14.11 kB
+dist/assets/KaTeX_SansSerif-Bold-DbIhKOiC.woff           14.41 kB
+dist/assets/KaTeX_Typewriter-Regular-C0xS9mPB.woff       16.03 kB
+dist/assets/KaTeX_Math-BoldItalic-CZnvNsCZ.woff2         16.40 kB
+dist/assets/KaTeX_Math-Italic-t53AETM-.woff2             16.44 kB
+dist/assets/KaTeX_Script-Regular-C5JkGWo-.ttf            16.65 kB
+dist/assets/KaTeX_Main-BoldItalic-DxDJ3AOS.woff2         16.78 kB
+dist/assets/KaTeX_Main-Italic-NWA7e6Wa.woff2             16.99 kB
+dist/assets/KaTeX_Math-BoldItalic-iY-2wyZ7.woff          18.67 kB
+dist/assets/KaTeX_Math-Italic-DA0__PXp.woff              18.75 kB
+dist/assets/KaTeX_Main-BoldItalic-SpSLRI95.woff          19.41 kB
+dist/assets/KaTeX_SansSerif-Regular-BNo7hRIc.ttf         19.44 kB
+dist/assets/KaTeX_Fraktur-Regular-CB_wures.ttf           19.57 kB
+dist/assets/KaTeX_Fraktur-Bold-BdnERNNW.ttf              19.58 kB
+dist/assets/KaTeX_Main-Italic-BMLOBm91.woff              19.68 kB
+dist/assets/KaTeX_SansSerif-Italic-YYjJ1zSn.ttf          22.36 kB
+dist/assets/KaTeX_SansSerif-Bold-CFMepnvq.ttf            24.50 kB
+dist/assets/KaTeX_Main-Bold-Cx986IdX.woff2               25.32 kB
+dist/assets/KaTeX_Main-Regular-B22Nviop.woff2            26.27 kB
+dist/assets/KaTeX_Typewriter-Regular-D3Ib7_Hf.ttf        27.56 kB
+dist/assets/KaTeX_AMS-Regular-BQhdFMY1.woff2             28.08 kB
+dist/assets/KaTeX_Main-Bold-Jm3AIy58.woff                29.91 kB
+dist/assets/KaTeX_Main-Regular-Dr94JaBh.woff             30.77 kB
+dist/assets/KaTeX_Math-BoldItalic-B3XSjfu4.ttf           31.20 kB
+dist/assets/KaTeX_Math-Italic-flOr_0UB.ttf               31.31 kB
+dist/assets/KaTeX_Main-BoldItalic-DzxPMmG6.ttf           32.97 kB
+dist/assets/KaTeX_AMS-Regular-DMm9YOAa.woff              33.52 kB
+dist/assets/KaTeX_Main-Italic-3WenGoN9.ttf               33.58 kB
+dist/assets/KaTeX_Main-Bold-waoOVXN0.ttf                 51.34 kB
+dist/assets/KaTeX_Main-Regular-ypZvNtVU.ttf              53.58 kB
+dist/assets/KaTeX_AMS-Regular-DRggAlZN.ttf               63.63 kB
+dist/assets/pdf.worker.min-iDqQPrd3.mjs               1,232.30 kB
+dist/assets/EasySheetViewer-Duz_WvKn.css                 84.51 kB │ gzip:    12.96 kB
+dist/assets/index-8JQSpcbj.css                          125.31 kB │ gzip:    24.33 kB
+dist/assets/clone-DtUDXyPJ.js                             0.09 kB │ gzip:     0.11 kB
+dist/assets/channel-YTj-q0Hp.js                           0.11 kB │ gzip:     0.12 kB
+dist/assets/init-Gi6I4Gst.js                              0.15 kB │ gzip:     0.13 kB
+dist/assets/chunk-QZHKN3VN-CpCpvV4V.js                    0.19 kB │ gzip:     0.16 kB
+dist/assets/chunk-55IACEB6-nouUyBqk.js                    0.22 kB │ gzip:     0.20 kB
+dist/assets/chunk-4BX2VUAB-BFzuHJd9.js                    0.29 kB │ gzip:     0.20 kB
+dist/assets/stateDiagram-v2-QKLJ7IA2-BQDUzGuA.js          0.36 kB │ gzip:     0.27 kB
+dist/assets/chunk-FMBD7UC4-Be2j18E0.js                    0.36 kB │ gzip:     0.27 kB
+dist/assets/pa-C54UG8eN-EW_8hrTF.js                       0.41 kB │ gzip:     0.23 kB
+dist/assets/classDiagram-6PBFFD2Q-DZAJw3Ay.js             0.43 kB │ gzip:     0.30 kB
+dist/assets/classDiagram-v2-HSJHXN6E-DZAJw3Ay.js          0.43 kB │ gzip:     0.30 kB
+dist/assets/or-50rxpoq4-B_XNinj_.js                       0.44 kB │ gzip:     0.24 kB
+dist/assets/gu-Bjl0l-cf-Bb_OSiMJ.js                       0.45 kB │ gzip:     0.24 kB
+dist/assets/hi-DsAaTPCC-lc1bUHMk.js                       0.47 kB │ gzip:     0.25 kB
+dist/assets/mr-CjWJPVmH-BKMRnoAc.js                       0.47 kB │ gzip:     0.25 kB
+dist/assets/as-BPtSu6VN-CYxxmKqh.js                       0.48 kB │ gzip:     0.26 kB
+dist/assets/bn-NCLZcWHi-CsgykzQM.js                       0.48 kB │ gzip:     0.26 kB
+dist/assets/te-B5Spl2Jk-DYnT8Dmf.js                       0.48 kB │ gzip:     0.25 kB
+dist/assets/kn-C6Lov-DP-D7dHjlY1.js                       0.49 kB │ gzip:     0.26 kB
+dist/assets/chunk-EDXVE4YY-Bw2nR9Zg.js                    0.53 kB │ gzip:     0.37 kB
+dist/assets/ta-BcghgTbD-D3SGVeDl.js                       0.57 kB │ gzip:     0.25 kB
+dist/assets/min-D3_FjjyA.js                               0.62 kB │ gzip:     0.38 kB
+dist/assets/infoDiagram-42DDH7IO-DUNgEtd0.js              0.63 kB │ gzip:     0.43 kB
+dist/assets/ml-2xLVYkVY-CBhOFsDv.js                       0.63 kB │ gzip:     0.30 kB
+dist/assets/pi-B9cgjyG1-v-IB86gp.js                       0.83 kB │ gzip:     0.35 kB
+dist/assets/_baseSet-B19VA_S9.js                          0.88 kB │ gzip:     0.55 kB
+dist/assets/ordinal-Cboi1Yqb.js                           1.19 kB │ gzip:     0.57 kB
+dist/assets/zh-latn-pinyin-BdYb-Ey_-BpSBSv6m.js           1.28 kB │ gzip:     0.22 kB
+dist/assets/get-c1w_w8oS.js                               1.43 kB │ gzip:     0.78 kB
+dist/assets/eu-Ctv_kq9Z-DMhU9kwg.js                       1.51 kB │ gzip:     0.22 kB
+dist/assets/chunk-YZCP3GAM-CgH0GIpK.js                    1.85 kB │ gzip:     0.82 kB
+dist/assets/pt-Cum2_NUC-D8aZaPM_.js                       2.13 kB │ gzip:     0.31 kB
+dist/assets/id-DifDyWg9-1QUBE4o0.js                       2.52 kB │ gzip:     0.64 kB
+dist/assets/oc-P_i3-xLA-Cg0Gj-PC.js                       2.55 kB │ gzip:     0.68 kB
+dist/assets/kmr-Cfwhwuff-DNWs8Gbk.js                      2.70 kB │ gzip:     0.80 kB
+dist/assets/mul-ethi-D_CMSMEq-2TGBnG-Z.js                 2.78 kB │ gzip:     0.92 kB
+dist/assets/diagram-5BDNPKRD-CwLcgr5X.js                  2.81 kB │ gzip:     1.39 kB
+dist/assets/fi-RW5VB8Yp-C_52fTOR.js                       3.14 kB │ gzip:     0.78 kB
+dist/assets/la-DuvHjUWw-BcBNkSEh.js                       3.19 kB │ gzip:     0.63 kB
+dist/assets/pms-BRGfm5gS-DtZRgBhp.js                      3.38 kB │ gzip:     0.91 kB
+dist/assets/arc-CZfUsidF.js                               3.43 kB │ gzip:     1.48 kB
+dist/assets/it-Bt_Meacx-BwawXXgW.js                       3.63 kB │ gzip:     0.88 kB
+dist/assets/rm-C0MIK9N4-DeBfDBrx.js                       3.67 kB │ gzip:     0.95 kB
+dist/assets/tr-CIHIuzqc-ZkOY1dVp.js                       3.83 kB │ gzip:     0.34 kB
+dist/assets/fur-AC12wySk-Ulg0Fy5V.js                      3.90 kB │ gzip:     1.02 kB
+dist/assets/mn-cyrl-x-lmc-3aetruI8-mEBV16An.js            4.20 kB │ gzip:     1.21 kB
+dist/assets/el-monoton-D3aKqTz2-DpMW17GV.js               4.27 kB │ gzip:     0.89 kB
+dist/assets/diagram-TYMM5635-DO6qzHpo.js                  4.29 kB │ gzip:     1.89 kB
+dist/assets/defaultLocale-DX6XiGOO.js                     4.69 kB │ gzip:     2.18 kB
+dist/assets/pieDiagram-DEJITSTG-DnpDouO4.js               5.37 kB │ gzip:     2.38 kB
+dist/assets/linear-BUd5aYTS.js                            5.65 kB │ gzip:     2.31 kB
+dist/assets/cop-C3sk0IUo-Cj8cOj0I.js                      5.84 kB │ gzip:     0.71 kB
+dist/assets/diagram-MMDJMWI5-CMCX2PpN.js                  6.02 kB │ gzip:     2.54 kB
+dist/assets/ia-Cr4TJH0c-BcFKNbxH.js                       6.49 kB │ gzip:     1.83 kB
+dist/assets/ro-0fmdH0HA-1lLksn9e.js                       7.15 kB │ gzip:     2.14 kB
+dist/assets/_baseUniq-D4lBBwRW.js                         7.17 kB │ gzip:     2.99 kB
+dist/assets/ca-SUf6Y2Om-Dp4lcbPL.js                       7.42 kB │ gzip:     1.13 kB
+dist/assets/sa-CKY9c_Vq-DzgpFnfw.js                       8.28 kB │ gzip:     1.66 kB
+dist/assets/la-x-classic-yTyAOQEt-DuDJBVty.js             8.93 kB │ gzip:     2.31 kB
+dist/assets/graph-EgId10YP.js                             9.40 kB │ gzip:     3.21 kB
+dist/assets/hy-e995ysyO-Cf-NYmW5.js                      10.30 kB │ gzip:     0.31 kB
+dist/assets/stateDiagram-FHFEXIEX-Ba_qAzng.js            10.44 kB │ gzip:     3.66 kB
+dist/assets/mn-cyrl-lHM4n0oC-QhYuXAWB.js                 10.62 kB │ gzip:     2.15 kB
+dist/assets/hr-DT1SBBes-CkK3TemH.js                      11.18 kB │ gzip:     0.95 kB
+dist/assets/dagre-KV5264BT-BZGdLiSW.js                   11.28 kB │ gzip:     4.21 kB
+dist/assets/sl-DpiklF-D-_46w5B9b.js                      12.49 kB │ gzip:     3.40 kB
+dist/assets/da-CCDXfXtG-C3O8h2wc.js                      12.65 kB │ gzip:     3.45 kB
+dist/assets/hsb-DC_ITc1e-C4pa9vvS.js                     13.89 kB │ gzip:     1.94 kB
+dist/assets/lt-BBe8DlDF-CObMPDIF.js                      14.49 kB │ gzip:     3.60 kB
+dist/assets/el-polyton-ogVWcTzh-BOWLBXgh.js              15.26 kB │ gzip:     2.87 kB
+dist/assets/diagram-G4DWMVQ6-DbwAUsrk.js                 15.97 kB │ gzip:     5.73 kB
+dist/assets/tk-BMbKB10q-cqtw6prh.js                      16.30 kB │ gzip:     0.99 kB
+dist/assets/ishikawaDiagram-UXIWVN3A-DPIcIvhp.js         17.53 kB │ gzip:     6.65 kB
+dist/assets/ka-jyoLzyDE-CZftRBZr.js                      20.46 kB │ gzip:     4.51 kB
+dist/assets/kanban-definition-6JOO6SKY-DFd5yp_o.js       20.66 kB │ gzip:     7.27 kB
+dist/assets/sankeyDiagram-XADWPNL6-DHnKlcgY.js           22.20 kB │ gzip:     8.13 kB
+dist/assets/la-x-liturgic-CXeQb4FY-DNU_Uk5t.js           22.54 kB │ gzip:     5.72 kB
+dist/assets/ContactBookPage-DxSjJq57.js                  22.92 kB │ gzip:     7.36 kB
+dist/assets/journeyDiagram-VCZTEJTY-CZ7MKO9m.js          23.55 kB │ gzip:     8.34 kB
+dist/assets/mindmap-definition-QFDTVHPH-L4C8IhrA.js      23.60 kB │ gzip:     7.98 kB
+dist/assets/fr-BC2onEz9-BGmqATrI.js                      23.93 kB │ gzip:     4.29 kB
+dist/assets/wardleyDiagram-NUSXRM2D-DmYN6KcI.js          24.86 kB │ gzip:     6.73 kB
+dist/assets/be-CrQ0smca-B2EeXxUh.js                      25.32 kB │ gzip:     2.23 kB
+dist/assets/erDiagram-SMLLAGMA-DNr-Bz-w.js               26.93 kB │ gzip:     9.35 kB
+dist/assets/sr-cyrl-Dpzrbd0W-DKfS_grW.js                 27.37 kB │ gzip:     5.56 kB
+dist/assets/sh-cyrl-BpCRFOmq-Cv4-R-p6.js                 28.20 kB │ gzip:     5.45 kB
+dist/assets/layout-DV12l-tq.js                           28.56 kB │ gzip:    10.20 kB
+dist/assets/sh-latn-sRy4Tuaj-DcyoDtEt.js                 29.28 kB │ gzip:     5.29 kB
+dist/assets/gitGraphDiagram-UUTBAWPF-BuxJgq0J.js         29.98 kB │ gzip:     8.91 kB
+dist/assets/sk-_iOeDNrQ-BXQc18Za.js                      31.09 kB │ gzip:     6.79 kB
+dist/assets/requirementDiagram-MS252O5E-gEKYafsc.js      31.17 kB │ gzip:     9.79 kB
+dist/assets/timeline-definition-GMOUNBTQ-BKEIi6bX.js     31.32 kB │ gzip:    10.41 kB
+dist/assets/gl-DZGc-K_G-DLl5jmsP.js                      32.95 kB │ gzip:     4.26 kB
+dist/assets/quadrantDiagram-34T5L4WZ-CbE2YR17.js         34.28 kB │ gzip:    10.08 kB
+dist/assets/chunk-OYMX7WX6-DpJ7gqIW.js                   37.41 kB │ gzip:    12.16 kB
+dist/assets/cs-CmAteokq-TjIVgNl6.js                      38.89 kB │ gzip:     9.95 kB
+dist/assets/xychartDiagram-5P7HB3ND-BkXgv2CZ.js          40.35 kB │ gzip:    11.54 kB
+dist/assets/vennDiagram-DHZGUBPP-BcMc8X9A.js             41.80 kB │ gzip:    15.55 kB
+dist/assets/es-DcaaHPU_-sYKznHcq.js                      43.41 kB │ gzip:     6.27 kB
+dist/assets/pl-9fg-ESVt-DpPW5ISU.js                      45.33 kB │ gzip:     7.70 kB
+dist/assets/et-B_spaleu-BaO20FM2.js                      46.94 kB │ gzip:    11.42 kB
+dist/assets/chunk-4TB4RGXK-ERezR54V.js                   47.32 kB │ gzip:    15.15 kB
+dist/assets/is-BT8UVRze-BXloJ18M.js                      47.51 kB │ gzip:    12.72 kB
+dist/assets/bg-CrQqGwni-Pt9yPLke.js                      50.17 kB │ gzip:     4.83 kB
+dist/assets/th-DWX5iPSo-BI_G36o8.js                      54.41 kB │ gzip:    13.26 kB
+dist/assets/CalendarView-Dis3x8f6.js                     56.29 kB │ gzip:    15.34 kB
+dist/assets/sv-CFm5y56M-I8ncZ9Nb.js                      56.39 kB │ gzip:    14.42 kB
+dist/assets/uk-Dir3oxLs-BVEQM3Jf.js                      58.19 kB │ gzip:     8.64 kB
+dist/assets/flowDiagram-DWJPFMVM-CkE88UHH.js             61.14 kB │ gzip:    19.49 kB
+dist/assets/grc-DOlGgO8T-C7K_Bcib.js                     63.10 kB │ gzip:     8.92 kB
+dist/assets/ganttDiagram-T4ZO3ILL-DF_9JMu7.js            69.14 kB │ gzip:    23.27 kB
+dist/assets/c4Diagram-AHTNJAMY-CWIfTnHB.js               69.92 kB │ gzip:    19.62 kB
+dist/assets/blockDiagram-DXYQGD6D-BchsoDjL.js            72.28 kB │ gzip:    20.59 kB
+dist/assets/ru-v4l-ayaq-BZkHNr9F.js                      75.71 kB │ gzip:    16.94 kB
+dist/assets/cy-BBPa6z2x-BONU7bVJ.js                      80.17 kB │ gzip:    19.05 kB
+dist/assets/ga-Cn6LkudM-WsF4_z3Y.js                      80.62 kB │ gzip:    20.04 kB
+dist/assets/cose-bilkent-S5V4N54A-CU9IYn_X.js            81.51 kB │ gzip:    22.42 kB
+dist/assets/en-gb-B7Al27b_-BFFr9zKP.js                  105.38 kB │ gzip:    26.11 kB
+dist/assets/lv-Q2BBHnzp-DRPSUjhQ.js                     108.90 kB │ gzip:    16.09 kB
+dist/assets/sequenceDiagram-FGHM5R23-Dsp4poWr.js        117.02 kB │ gzip:    31.07 kB
+dist/assets/nl-BHQJ6Gvn-BMWl-SdQ.js                     138.42 kB │ gzip:    36.10 kB
+dist/assets/cu-CBUlrW6Y-BrxB2kb-.js                     149.27 kB │ gzip:    26.17 kB
+dist/assets/architectureDiagram-Q4EWVU46-CPQdvoYg.js    149.44 kB │ gzip:    42.25 kB
+dist/assets/SiteAdminPage-D-RdVXQQ.js                   179.08 kB │ gzip:    37.15 kB
+dist/assets/af-DK_CjRn6-C81U6qP1.js                     179.76 kB │ gzip:    38.97 kB
+dist/assets/katex-C5jXJg4s.js                           258.49 kB │ gzip:    77.57 kB
+dist/assets/de-ch-1901-hVThVHVb-CC5Yf8hX.js             263.25 kB │ gzip:    70.50 kB
+dist/assets/de-1996-BL6awyxG-BSuIomZy.js                265.88 kB │ gzip:    71.07 kB
+dist/assets/de-1901-CWoAOigE-yOXirf_M.js                268.94 kB │ gzip:    71.86 kB
+dist/assets/no-B8ItS0F3-BlrHaK3Z.js                     340.51 kB │ gzip:    87.84 kB
+dist/assets/nb-DI8u59ch-S2a9vUN_.js                     340.53 kB │ gzip:    87.85 kB
+dist/assets/nn-ntZvarUK-cMBifkqM.js                     340.53 kB │ gzip:    87.85 kB
+dist/assets/cytoscape.esm-BQk4lpUV.js                   442.57 kB │ gzip:   141.98 kB
+dist/assets/pdf-DeWlx49F.js                             458.39 kB │ gzip:   135.97 kB
+dist/assets/MailPage-BlFCCoeQ.js                        462.53 kB │ gzip:   142.55 kB
+dist/assets/wardley-RL74JXVD-DKrk16K2.js                492.93 kB │ gzip:   110.28 kB
+dist/assets/hu-DVk7Y_ka-CCTZJfqn.js                     748.41 kB │ gzip:   172.84 kB
+dist/assets/index-C6GYna-U.js                         3,918.80 kB │ gzip: 1,193.23 kB
+dist/assets/EasySheetViewer-DtAFcUMy.js               6,398.73 kB │ gzip: 1,812.12 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 16.46s
+
+> easydocstation@1.0.0 ollama:serve
+> node scripts/ollama-serve-safe.mjs
+
+[Ollama] already running on 127.0.0.1:11434, skipping duplicate serve.
+[20260903-23:15:42][BE] 
+[20260903-23:15:42][BE] > easydocstation-server@1.0.0 start
+[20260903-23:15:42][BE] > node index.js
+[20260903-23:15:42][BE] 
+[20260903-23:15:42][BE] [RAG] 초기화 — 학습 방식: immediate
+[20260903-23:15:42][BE] [RAG] 초기화 — PDF 파싱 모드: FAST
+[20260903-23:15:42][BE] [Mail sync] 자동 동기화 스케줄러 시작: interval=600s, startupDelay=300s
+[20260903-23:15:42][BE] [Frontend] 프로덕션 빌드 서비스: /home/freegear/EasyDocStation/dist
+[20260903-23:15:42][BE] ✅ EasyDocStation server running on http://localhost:3001
+[20260903-23:15:42][BE] ✅ [CONFIG] HF_TOKEN 확인됨 (hf_u****butv, 길이 37)
+[20260903-23:15:42][BE] ✅ EasyDocStation production frontend running on http://localhost:5173
+[20260903-23:15:42][BE] ✅ Cassandra connected
+[20260903-23:15:42][BE] ✅ Cassandra schema initialized
+[20260903-23:15:42][BE] ✅ Database migration complete.
+[20260903-23:15:45][BE] [RAG Server] [RAG Server] 임베딩 모델 로드 중 (device=cuda)...
+[20260903-23:15:59][BE] [RAG Server] [RAG Server] 임베딩 모델 로드 완료
+[20260903-23:15:59][BE] [RAG Server] [RAG Server] 포트 5001 에서 시작됨
+[20260903-23:21:01][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260903-23:21:56][BE] [ATTACH-REF] sync ownerType=comment ownerId=c-deb36868-0fdd-41ee-ad18-049bc3c75a96 actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260903-23:21:56][BE] [RAG] 댓글 학습 시작 — 1개 댓글 (제외: 0개)
+[20260903-23:21:56][BE] /home/freegear/EasyDocStation/server/rag_train.py:173: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260903-23:21:56][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260903-23:21:56][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260903-23:21:59][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v3' already exists
+[20260903-23:21:59][BE] [RAG] comment=c-deb36868-0fdd-41ee-ad18-049bc3c75a96 post=06b01507-efc9-4ea9-955b-6a8c8d1eeb63 text → 1청크
+[20260903-23:21:59][BE] [RAG] 학습 진행률: 50% (댓글 본문)
+[20260903-23:21:59][BE] [RAG] 저장 완료 — 1청크 / 0개 게시글 / 1개 댓글 / 0개 폴더문서
+[20260903-23:21:59][BE] [RAG] 학습 진행률: 100% (저장)
+[20260903-23:22:00][BE] [RAG] 댓글 학습 완료 — 1개 댓글 (4.2s)
+[20260903-23:22:09][BE] [ATTACH-REF] sync ownerType=comment ownerId=c-c4036753-02a5-4de0-8374-d6ef3b3a69c8 actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260903-23:22:09][BE] [RAG] 댓글 학습 시작 — 1개 댓글 (제외: 0개)
+[20260903-23:22:09][BE] /home/freegear/EasyDocStation/server/rag_train.py:173: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260903-23:22:09][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260903-23:22:12][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v3' already exists
+[20260903-23:22:12][BE] [RAG] comment=c-c4036753-02a5-4de0-8374-d6ef3b3a69c8 post=06b01507-efc9-4ea9-955b-6a8c8d1eeb63 text → 2청크
+[20260903-23:22:12][BE] [RAG] 학습 진행률: 50% (댓글 본문)
+[20260903-23:22:12][BE] [RAG] 저장 완료 — 2청크 / 0개 게시글 / 1개 댓글 / 0개 폴더문서
+[20260903-23:22:12][BE] [RAG] 학습 진행률: 100% (저장)
+[20260903-23:22:13][BE] [RAG] 댓글 학습 완료 — 1개 댓글 (4.0s)
+[20260903-23:26:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260903-23:36:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260903-23:45:59][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260903-23:56:00][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0

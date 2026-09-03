@@ -18,7 +18,6 @@ import { FolderContextMenu, MailMessageContextMenu, SmartFolderContextMenu, Unif
 import { ProviderLogo } from './MailProviderLogo'
 import { getAccountLabel } from './mailAccountUtils'
 import {
-  addressListToSearchText,
   getDraftComposeData,
   getMailActionComposeData,
 } from './mailAddressUtils'
@@ -109,9 +108,7 @@ export default function MailPage({ onBackToMain, initialMailLink = null, initial
       return {}
     }
   })
-  const [mailSearchQuery, setMailSearchQuery] = useState('')
-  const [noteSearchMessageIds, setNoteSearchMessageIds] = useState(() => new Set())
-  const [noteSearchResolvedQuery, setNoteSearchResolvedQuery] = useState('')
+  const [mailSearch, setMailSearch] = useState({ active: false, field: 'all', query: '', total: 0, nextCursor: null })
   // 통합 스마트 폴더(태그 기반 — MailService.md 13). [{ id, name, color_key, message_count, unread_count }]
   const [smartFolders, setSmartFolders] = useState([])
   // 스마트 폴더 구역 접기/펴기(헤더 클릭 토글). 브라우저에 유지.
@@ -157,7 +154,89 @@ export default function MailPage({ onBackToMain, initialMailLink = null, initial
   const preserveSelectionOnNextLoadRef = useRef(null)
   const messageLoadSeqRef = useRef(0)
   const loadMoreSeqRef = useRef(0)
+  const mailSearchRef = useRef(mailSearch)
+  const mailSearchSeqRef = useRef(0)
   const shownSyncErrorsRef = useRef(new Set())
+
+  useEffect(() => {
+    mailSearchRef.current = mailSearch
+  }, [mailSearch])
+
+  async function runMailSearch(request, { append = false } = {}) {
+    const field = String(request?.field || 'all')
+    const query = String(request?.query || '').trim()
+    const current = mailSearchRef.current
+    const cursor = append ? current.nextCursor : null
+    if (!query || (append && !cursor)) return
+
+    const requestSeq = append ? mailSearchSeqRef.current : ++mailSearchSeqRef.current
+    if (!append) {
+      const pending = { active: true, field, query, total: 0, nextCursor: null }
+      mailSearchRef.current = pending
+      setMailSearch(pending)
+      activeKeyRef.current = `${UNIFIED_KEY_PREFIX}search`
+      setActiveKey(`${UNIFIED_KEY_PREFIX}search`)
+      setComposeMode(false)
+      setMessages([])
+      setSelectedMessage(null)
+      setSelectedMessageIds([])
+      setLastSelectedMessageId(null)
+      setMessagesLoading(true)
+      setMessagesError('')
+    } else {
+      setLoadingMore(true)
+    }
+
+    try {
+      const params = new URLSearchParams({ field, q: query, limit: String(MAIL_PAGE_SIZE) })
+      if (cursor) params.set('cursor', cursor)
+      const result = await apiFetch(`/mail/messages/search?${params.toString()}`)
+      if (requestSeq !== mailSearchSeqRef.current) return
+      const list = Array.isArray(result?.items) ? result.items : []
+      if (append) {
+        setMessages(previous => {
+          const ids = new Set(previous.map(item => `${item.tenant_id}:${item.id}`))
+          return [...previous, ...list.filter(item => !ids.has(`${item.tenant_id}:${item.id}`))]
+        })
+      } else {
+        setMessages(list)
+      }
+      const next = {
+        active: true,
+        field: result?.field || field,
+        query,
+        total: Number(result?.total || 0),
+        nextCursor: result?.nextCursor || null,
+      }
+      mailSearchRef.current = next
+      setMailSearch(next)
+      setHasMoreMessages(Boolean(result?.hasMore && result?.nextCursor))
+    } catch (err) {
+      if (requestSeq !== mailSearchSeqRef.current) return
+      setMessagesError(err.message || '메일을 검색하지 못했습니다.')
+      if (!append) setMessages([])
+    } finally {
+      if (requestSeq === mailSearchSeqRef.current) {
+        if (append) setLoadingMore(false)
+        else setMessagesLoading(false)
+      }
+    }
+  }
+
+  useEffect(() => {
+    const handleSearch = event => runMailSearch(event.detail)
+    window.addEventListener('easy-mail-search', handleSearch)
+    return () => window.removeEventListener('easy-mail-search', handleSearch)
+  }, [])
+
+  function clearMailSearch() {
+    mailSearchSeqRef.current += 1
+    const cleared = { active: false, field: 'all', query: '', total: 0, nextCursor: null }
+    mailSearchRef.current = cleared
+    setMailSearch(cleared)
+    setHasMoreMessages(false)
+    updateActiveKey(`${UNIFIED_KEY_PREFIX}all`)
+  }
 
   function showAccountSyncErrors(accountRows, { force = false } = {}) {
     const failures = (Array.isArray(accountRows) ? accountRows : [])
@@ -180,49 +259,12 @@ export default function MailPage({ onBackToMain, initialMailLink = null, initial
     showAccountSyncErrors(accounts)
   }, [accounts])
 
-  const displayedMessages = useMemo(() => {
-    const query = mailSearchQuery.trim().toLowerCase()
-    if (!query) return messages
-    return messages.filter(message => {
-      const haystack = [
-        message.subject,
-        message.snippet,
-        message.from_name,
-        message.from_email,
-        addressListToSearchText(message.to_json),
-        addressListToSearchText(message.cc_json),
-      ].filter(Boolean).join(' ').toLowerCase()
-      return haystack.includes(query)
-        || (noteSearchResolvedQuery === query && noteSearchMessageIds.has(String(message.id)))
-    })
-  }, [mailSearchQuery, messages, noteSearchMessageIds, noteSearchResolvedQuery])
+  const displayedMessages = messages
 
   const currentTenantId = accounts.find(account => account.tenant_id)?.tenant_id
     || tenants.find(item => item.type === 'personal')?.id
     || tenants[0]?.id
     || ''
-  useEffect(() => {
-    const query = mailSearchQuery.trim()
-    if (!query || !currentTenantId) return undefined
-    let cancelled = false
-    const timer = window.setTimeout(() => {
-      const params = new URLSearchParams({ tenantId: currentTenantId, q: query, limit: '100' })
-      apiFetch(`/mail/notes/search?${params.toString()}`)
-        .then(data => {
-          if (!cancelled) {
-            setNoteSearchMessageIds(new Set((data?.notes || []).map(item => String(item.message_id))))
-            setNoteSearchResolvedQuery(query.toLowerCase())
-          }
-        })
-        .catch(() => {
-          if (!cancelled) {
-            setNoteSearchMessageIds(new Set())
-            setNoteSearchResolvedQuery(query.toLowerCase())
-          }
-        })
-    }, 250)
-    return () => { cancelled = true; window.clearTimeout(timer) }
-  }, [mailSearchQuery, currentTenantId])
   const activeKeyRef = useRef(activeKey)
   const currentTenantIdRef = useRef(currentTenantId)
   const messagesLengthRef = useRef(messages.length)
@@ -453,6 +495,13 @@ export default function MailPage({ onBackToMain, initialMailLink = null, initial
   }
 
   function activateMailKey(key) {
+    if (key !== `${UNIFIED_KEY_PREFIX}search` && mailSearchRef.current.active) {
+      mailSearchSeqRef.current += 1
+      const cleared = { active: false, field: 'all', query: '', total: 0, nextCursor: null }
+      mailSearchRef.current = cleared
+      setMailSearch(cleared)
+      setHasMoreMessages(false)
+    }
     setComposeDraft(null)
     setComposeMode(false)
     updateActiveKey(key)
@@ -1654,6 +1703,11 @@ export default function MailPage({ onBackToMain, initialMailLink = null, initial
 
   // 무한 스크롤: 다음 페이지를 이어서 불러온다.
   async function loadMoreMessages() {
+    if (mailSearchRef.current.active) {
+      if (loadingMore || messagesLoading || !hasMoreMessages) return
+      await runMailSearch(mailSearchRef.current, { append: true })
+      return
+    }
     const active = resolveActiveFolder()
     const unified = resolveActiveUnified()
     const smartFolderId = activeKey.startsWith(SMART_KEY_PREFIX) ? activeKey.slice(SMART_KEY_PREFIX.length) : ''
@@ -1735,7 +1789,11 @@ export default function MailPage({ onBackToMain, initialMailLink = null, initial
       })
       showAccountSyncErrors(syncResult?.accounts, { force: true })
       const nextAccounts = await reloadMailAccounts()
-      await loadActiveMessages(nextAccounts, { silent: true, resetSelection: false })
+      if (mailSearchRef.current.active) {
+        await runMailSearch(mailSearchRef.current)
+      } else {
+        await loadActiveMessages(nextAccounts, { silent: true, resetSelection: false })
+      }
     } catch (err) {
       setMessagesError(err.message || '메일 새로고침에 실패했습니다.')
     } finally {
@@ -1901,6 +1959,7 @@ export default function MailPage({ onBackToMain, initialMailLink = null, initial
   }
 
   useEffect(() => {
+    if (mailSearchRef.current.active && activeKeyRef.current === `${UNIFIED_KEY_PREFIX}search`) return undefined
     let cancelled = false
     const openedKey = activeKey
     ;(async () => {
@@ -2082,21 +2141,16 @@ export default function MailPage({ onBackToMain, initialMailLink = null, initial
   const mailListContent = (
     <>
       <div className="flex-shrink-0 border-b border-gray-100 p-3">
-        <div className="relative">
-          <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
-            <MenuIcon type="search" />
-          </span>
-          <input
-            type="search"
-            value={mailSearchQuery}
-            onChange={event => {
-              setMailSearchQuery(event.target.value)
-              setLastSelectedMessageId(null)
-            }}
-            placeholder={mt.searchPlaceholder}
-            className="h-10 w-full rounded-lg border border-gray-200 bg-gray-50 pl-10 pr-3 text-sm text-gray-700 outline-none transition focus:border-indigo-400 focus:bg-white focus:ring-2 focus:ring-indigo-100"
-          />
-        </div>
+        {mailSearch.active && (
+          <div className="mb-3 flex items-center justify-between gap-2 rounded-lg border border-indigo-100 bg-indigo-50 px-3 py-2 text-xs">
+            <span className="min-w-0 truncate font-bold text-indigo-700">
+              {mailSearch.query} · {mt.count(mailSearch.total)}
+            </span>
+            <button type="button" onClick={clearMailSearch} className="flex-shrink-0 font-extrabold text-indigo-600 hover:text-indigo-800">
+              검색 해제
+            </button>
+          </div>
+        )}
         <div className="mt-3 flex items-center justify-between text-xs text-gray-400">
           <span className="font-bold">{mt.mailList}</span>
           {selectedMessageIds.length > 0 ? (
@@ -2110,7 +2164,7 @@ export default function MailPage({ onBackToMain, initialMailLink = null, initial
               <span aria-hidden="true">×</span>
             </button>
           ) : (
-            <span>{mt.count(displayedMessages.length)}</span>
+            <span>{mt.count(mailSearch.active ? mailSearch.total : displayedMessages.length)}</span>
           )}
         </div>
       </div>
@@ -2177,7 +2231,7 @@ export default function MailPage({ onBackToMain, initialMailLink = null, initial
           message={selectedMessage}
           loading={messageDetailLoading}
           error={messageDetailError}
-          onAddressSearch={setMailSearchQuery}
+          onAddressSearch={query => runMailSearch({ field: 'all', query })}
           onMailAction={startMailAction}
           onSummaryUpdated={(nextSummary) => {
             setSelectedMessage(prev => (

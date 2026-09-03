@@ -26,6 +26,7 @@ const { isAttachmentPreviewCandidate, resolveAttachmentPreview } = require('../m
 const { analyzeMailImages, formatImageAnalysisForSummary } = require('../mail/imageOcr')
 const { extractRemoteImageCandidates, fetchRemoteImage } = require('../mail/remoteImages')
 const { upsertMailNoteInRag, deleteMailNoteFromRag } = require('../rag')
+const { searchAllUserMail } = require('../mail/mailSearchService')
 const contentDisposition = require('content-disposition')
 
 // 첨부 파일명을 Content-Disposition 헤더로 안전 변환한다.
@@ -840,6 +841,25 @@ router.get('/messages/unclassified-count', async (req, res, next) => {
     }
     res.json(await repo.countUnclassifiedMessages({ tenantId, userId: req.user.id }))
   } catch (err) {
+    next(err)
+  }
+})
+
+// 현재 인증 사용자가 소유한 모든 tenant/계정/폴더의 메일을 검색한다.
+// tenantId를 입력받지 않아 호출자가 다른 사용자의 검색 범위를 지정할 수 없다.
+router.get('/messages/search', async (req, res, next) => {
+  try {
+    res.json(await searchAllUserMail({
+      userId: req.user.id,
+      field: req.query.field,
+      query: req.query.q,
+      cursor: req.query.cursor,
+      limit: req.query.limit,
+    }))
+  } catch (err) {
+    if (err.status) {
+      return res.status(err.status).json({ error: err.message, code: err.code || 'MAIL_SEARCH_FAILED' })
+    }
     next(err)
   }
 })

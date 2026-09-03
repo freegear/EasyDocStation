@@ -63,6 +63,35 @@ function clampContentFontScale(value) {
   return Math.min(MAX_CONTENT_FONT_SCALE, Math.max(MIN_CONTENT_FONT_SCALE, parsed))
 }
 
+function normalizeAllowedHost(value) {
+  let host = String(value || '').trim().toLowerCase()
+  if (!host || host.length > 254) return ''
+  if (host.includes('://') || /[\s/?#@:]/.test(host)) return ''
+
+  const includeSubdomains = host.startsWith('.')
+  if (includeSubdomains) host = host.slice(1)
+  host = host.replace(/\.$/, '')
+  if (!host || host.includes('..')) return ''
+
+  const labels = host.split('.')
+  if (!labels.every(label => /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(label))) return ''
+  return includeSubdomains ? `.${host}` : host
+}
+
+function parseAllowedHostsEditor(value) {
+  const entries = String(value || '')
+    .split(/\r?\n|,/)
+    .map(host => host.trim())
+    .filter(Boolean)
+
+  if (entries.length === 0) throw new Error('허용 호스트를 한 개 이상 입력해 주세요.')
+  if (entries.length > 100) throw new Error('allowedHosts는 최대 100개까지 저장할 수 있습니다.')
+
+  const invalid = entries.find(host => !normalizeAllowedHost(host))
+  if (invalid) throw new Error(`허용 호스트 형식이 올바르지 않습니다: ${invalid}`)
+  return [...new Set(entries.map(normalizeAllowedHost))]
+}
+
 function RoleBadge({ role, label }) {
   const cls = ROLE_BADGE[role] ?? ROLE_BADGE.user
   return (
@@ -901,6 +930,7 @@ export default function SiteAdminPage({ onClose, initialTab = 'users' }) {
   })
   const [companyForm, setCompanyForm] = useState({ name: '', address: '', phone: '', homepage: '', fax: '', seal: '', logo: '' })
   const [siteUrl, setSiteUrl] = useState('')
+  const [allowedHostsText, setAllowedHostsText] = useState('')
   const [enableDataBackup, setEnableDataBackup] = useState(false)
   const [siteBackUpKey, setSiteBackUpKey] = useState('')
   const [supabaseUrl, setSupabaseUrl] = useState('')
@@ -1304,6 +1334,9 @@ export default function SiteAdminPage({ onClose, initialTab = 'users' }) {
         })
       }
       setSiteUrl(String(data.site_url || ''))
+      setAllowedHostsText(
+        (Array.isArray(data.vite_allowed_hosts) ? data.vite_allowed_hosts : []).join('\n')
+      )
       setEnableDataBackup(Boolean(data.enable_data_backup))
       setSiteBackUpKey(String(data.site_backup_key || ''))
       setSupabaseUrl(String(data.supabase_url || ''))
@@ -1731,8 +1764,12 @@ export default function SiteAdminPage({ onClose, initialTab = 'users' }) {
         }
       } else if (activeTab === 'site') {
         configData.site_url = siteUrl.trim()
+        configData.CLIENT_ORIGIN = clientOrigin.trim() || 'http://218.237.25.214:5173'
         configData.enable_data_backup = Boolean(enableDataBackup)
         configData['SiteBackUp Key'] = siteBackUpKey.trim()
+        configData.vite = {
+          allowedHosts: parseAllowedHostsEditor(allowedHostsText),
+        }
       } else if (activeTab === 'supabase') {
         configData.SUPABASE_URL = supabaseUrl.trim()
         configData.SUPABASE_JWT_AUDIENCE = supabaseJwtAudience.trim() || 'authenticated'
@@ -1791,6 +1828,9 @@ export default function SiteAdminPage({ onClose, initialTab = 'users' }) {
           }
         } else if (activeTab === 'supabase') {
           setSaveConfigDialogMessage(`${t.admin.settingsSaved}\n프론트 재시작이 필요합니다. (.env 반영)`)
+          setSaveConfigNeedsRestart(true)
+        } else if (activeTab === 'site' && result.restartRequired) {
+          setSaveConfigDialogMessage(`${t.admin.settingsSaved}\n사이트 네트워크 설정 변경 사항을 적용하려면 서비스를 재시작해 주세요.`)
           setSaveConfigNeedsRestart(true)
         } else {
           setSaveConfigDialogMessage(t.admin.settingsSaved)
@@ -4175,6 +4215,52 @@ export default function SiteAdminPage({ onClose, initialTab = 'users' }) {
                   placeholder="https://example.com"
                   className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-gray-900 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-300 transition-all"
                 />
+              </div>
+
+              <div className="bg-gray-100 border border-gray-200 rounded-2xl p-5">
+                <label htmlFor="site-client-origin" className="block text-gray-700 text-sm font-semibold mb-2">
+                  CLIENT_ORIGIN
+                </label>
+                <input
+                  id="site-client-origin"
+                  type="text"
+                  value={clientOrigin}
+                  onChange={e => setClientOrigin(e.target.value)}
+                  placeholder="https://www.easystation.co.kr"
+                  spellCheck={false}
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 font-mono text-gray-900 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-300 transition-all"
+                />
+                <p className="text-gray-400 text-xs mt-2">
+                  server/.env의 CLIENT_ORIGIN 값입니다. 변경 사항은 서비스 재시작 후 적용됩니다.
+                </p>
+              </div>
+
+              <div className="bg-gray-100 border border-gray-200 rounded-2xl p-5">
+                <div className="flex items-start justify-between gap-4 mb-3">
+                  <div>
+                    <label htmlFor="vite-allowed-hosts" className="block text-gray-700 text-sm font-semibold">
+                      Vite Allowed Hosts
+                    </label>
+                    <p className="text-gray-400 text-xs mt-1">
+                      config.json의 vite.allowedHosts 목록입니다. 한 줄에 호스트 하나를 입력하세요.
+                    </p>
+                  </div>
+                  <span className="shrink-0 rounded-full bg-indigo-50 px-2.5 py-1 text-[10px] font-semibold text-indigo-600">
+                    {allowedHostsText.split(/\r?\n/).filter(host => host.trim()).length} hosts
+                  </span>
+                </div>
+                <textarea
+                  id="vite-allowed-hosts"
+                  value={allowedHostsText}
+                  onChange={e => setAllowedHostsText(e.target.value)}
+                  placeholder={'www.easystation.co.kr\neasystation.co.kr\n218.237.25.214'}
+                  rows={6}
+                  spellCheck={false}
+                  className="w-full resize-y rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 font-mono text-sm leading-6 text-gray-900 placeholder-gray-400 transition-all focus:border-indigo-300 focus:outline-none focus:ring-2 focus:ring-indigo-500/40"
+                />
+                <p className="mt-2 text-xs text-amber-600">
+                  프로토콜(https://), 포트, 경로는 입력하지 마세요. 저장 후 서비스를 재시작해야 적용됩니다.
+                </p>
               </div>
 
               <div className="bg-gray-100 border border-gray-200 rounded-2xl p-5">

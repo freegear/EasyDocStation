@@ -265,6 +265,44 @@ async function ensureMailDataSchema(client, { standalone = false } = {}) {
     CREATE INDEX IF NOT EXISTS idx_mail_attachments_message ON mail_attachments(message_id);
   `)
 
+  // 전체 메일 검색용 정규화 문서. 목록 페이지 크기와 무관하게 사용자 소유 메일 전체를 검색한다.
+  // BCC와 첨부파일명은 all_text에 넣지 않는다(첨부파일명은 mail_attachments에서 별도 검색).
+  await run(client, 'create mail search documents', `
+    CREATE TABLE IF NOT EXISTS mail_message_search_documents (
+      message_id   TEXT PRIMARY KEY REFERENCES mail_messages(id) ON DELETE CASCADE,
+      tenant_id    TEXT NOT NULL ${tenantFk},
+      user_id      INTEGER NOT NULL ${userFk},
+      from_email   TEXT NOT NULL DEFAULT '',
+      to_emails    TEXT[] NOT NULL DEFAULT '{}',
+      cc_emails    TEXT[] NOT NULL DEFAULT '{}',
+      subject_text TEXT NOT NULL DEFAULT '',
+      all_text     TEXT NOT NULL DEFAULT '',
+      indexed_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_mail_search_owner
+      ON mail_message_search_documents(tenant_id, user_id, message_id);
+    CREATE INDEX IF NOT EXISTS idx_mail_search_from
+      ON mail_message_search_documents(tenant_id, user_id, from_email);
+    CREATE INDEX IF NOT EXISTS idx_mail_search_to
+      ON mail_message_search_documents USING GIN(to_emails);
+    CREATE INDEX IF NOT EXISTS idx_mail_search_cc
+      ON mail_message_search_documents USING GIN(cc_emails);
+  `)
+
+  // pg_trgm 설치 권한이 없는 dedicated DB에서도 기능은 ILIKE fallback으로 동작한다.
+  try {
+    await client.query('CREATE EXTENSION IF NOT EXISTS pg_trgm')
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_mail_search_subject_trgm
+      ON mail_message_search_documents USING GIN(subject_text gin_trgm_ops)`)
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_mail_search_all_trgm
+      ON mail_message_search_documents USING GIN(all_text gin_trgm_ops)`)
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_mail_attachment_filename_trgm
+      ON mail_attachments USING GIN(LOWER(filename) gin_trgm_ops)`)
+  } catch (err) {
+    console.warn(`⚠️ [Mail schema] pg_trgm 검색 인덱스 건너뜀: ${err.message}`)
+  }
+
   await run(client, 'mail attachment image metadata columns', `
     ALTER TABLE mail_attachments
       ADD COLUMN IF NOT EXISTS content_id TEXT;

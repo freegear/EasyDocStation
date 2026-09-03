@@ -1,5 +1,8 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import { loadViteAllowedHosts } from './scripts/vite-allowed-hosts.mjs'
+
+const allowedHosts = loadViteAllowedHosts()
 
 export default defineConfig({
   envDir: 'server',
@@ -8,7 +11,7 @@ export default defineConfig({
     host: '0.0.0.0',
     port: 5173,
     strictPort: true,
-    allowedHosts: ['www.easystation.co.kr', 'easystation.co.kr', '218.237.25.214'],
+    allowedHosts,
     watch: {
       ignored: [
         '**/.git/**',
@@ -28,5 +31,8 @@ export default defineConfig({
         changeOrigin: true,
       },
     },
+  },
+  preview: {
+    allowedHosts,
   },
 })

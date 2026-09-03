@@ -1,4 +1,12 @@
 {
+  "vite": {
+    "allowedHosts": [
+      "www.easystation.co.kr",
+      "easystation.co.kr",
+      "app.optius.ai",
+      "218.237.25.214"
+    ]
+  },
   "imagePreview": {
     "width": 378,
     "height": 378
