@@ -1,5 +1,8 @@
 {
-  "EasyDocStation Version": "0.6.0",
+  "EasyDocStation Version": "0.6.1",
+  "0.6.1" : [
+    "개인스페이스 생성에서 권한에 따른 화면 표시 버그 수정."
+  ],
   "0.6.0": [
     "메일 서버 검색 기능을 추가 함.",
     "Allowed Host 설정을 UI로 옮김"

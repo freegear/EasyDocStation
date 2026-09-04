@@ -1,0 +1,1 @@
+/Database/LanceDB/ check-ignore -v Database/LanceDB/my_rag_table_v3.lance/_versions/latest_version_hint.json

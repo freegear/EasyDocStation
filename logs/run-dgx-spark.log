@@ -23,3 +23,63 @@
 [20260904-03:46:01][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
 [20260904-03:56:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
 [20260904-04:06:00][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260904-04:16:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260904-04:25:58][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260904-04:36:01][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260904-04:46:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260904-04:56:00][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260904-05:06:00][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260904-05:16:01][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260904-05:25:59][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260904-05:35:58][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260904-05:45:59][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260904-05:56:00][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260904-06:06:00][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260904-06:16:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260904-06:25:59][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260904-06:36:01][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260904-06:46:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260904-06:56:00][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260904-07:06:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=2
+[20260904-07:16:00][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260904-07:26:01][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260904-07:36:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260904-07:46:05][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260904-07:56:00][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=2
+[20260904-08:06:01][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260904-08:16:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260904-08:25:58][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260904-08:35:58][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=5
+[20260904-08:46:01][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260904-08:56:01][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260904-09:06:06][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=2
+[20260904-09:15:59][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260904-09:25:58][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260904-09:36:20][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=4
+[20260904-09:46:01][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260904-09:55:58][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=1
+[20260904-10:06:00][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=2
+[20260904-10:16:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260904-10:25:59][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=2
+[20260904-10:36:01][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0
+[20260904-10:46:03][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=2
+[20260904-10:50:03][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260904-10:50:03][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260904-10:50:03][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260904-10:50:05][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260904-10:50:17][BE] [link-preview-image] meta image failed, fallback screenshot: meta page fetch failed (404)
+[20260904-10:50:18][BE] [link-preview-image] meta image failed, fallback screenshot: meta image not found
+[20260904-10:56:01][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=2
+[20260904-11:06:01][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=3
+[20260904-11:16:00][BE] [ATTACH-REF] sync ownerType=post ownerId=6d7a7d6f-367b-4346-b882-2249f2b95772 actorUserId=1 prev=0 next=0 add=0 remove=0
+[20260904-11:16:00][BE] [RAG] 학습 시작 — 1개 게시글 (제외: 0개)
+[20260904-11:16:00][BE] /home/freegear/EasyDocStation/server/rag_train.py:173: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+[20260904-11:16:00][BE]   from langchain_community.document_loaders import Docx2txtLoader
+[20260904-11:16:02][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=4
+[20260904-11:16:03][BE] [RAG] 테이블 생성 경합 감지, 기존 테이블 사용: Table 'my_rag_table_v3' already exists
+[20260904-11:16:03][BE] [RAG] post=6d7a7d6f-367b-4346-b882-2249f2b95772 text → 5청크
+[20260904-11:16:03][BE] [RAG] 학습 진행률: 50% (게시글 본문)
+[20260904-11:16:03][BE] [RAG] 저장 완료 — 5청크 / 1개 게시글 / 0개 댓글 / 0개 폴더문서
+[20260904-11:16:03][BE] [RAG] 학습 진행률: 100% (저장)
+[20260904-11:16:04][BE] [RAG] 학습 완료
+[20260904-11:25:58][BE] [Mail sync] 자동 동기화 완료: accounts=6, saved=0

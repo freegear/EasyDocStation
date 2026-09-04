@@ -1,7 +1,9 @@
 import { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react'
 import { apiFetch } from '../lib/api'
+import { buildTeamList } from '../lib/teamList'
 import { useAuth } from './AuthContext'
 import { useToast } from './ToastContext'
+import { useT } from '../i18n/useT'
 
 const ChatContext = createContext(null)
 const EMPTY_SELECTED_TEAM = { id: null, channels: [], directMessages: [], admin_ids: [] }
@@ -29,6 +31,7 @@ function postPageFromResponse(value) {
 export function ChatProvider({ children }) {
   const { currentUser, loading: authLoading } = useAuth()
   const { showToast } = useToast()
+  const t = useT()
   const [teams, setTeams] = useState([])
   const [selectedTeam, setSelectedTeam] = useState(EMPTY_SELECTED_TEAM)
   const [selectedChannel, setSelectedChannel] = useState(null)
@@ -426,25 +429,7 @@ export function ChatProvider({ children }) {
         apiFetch('/channels/unread').catch(() => ({})),
       ])
       if (data.length > 0) {
-        const enriched = await Promise.all(data.map(async t => {
-          const members = await apiFetch(`/teams/${t.id}/members`)
-          return {
-            ...t,
-            channels: (t.channels || []).map(c => ({
-              ...c,
-              unread: unreadCounts[c.id] ?? 0,
-            })),
-            directMessages: members.map(m => ({
-              id: `dm-${m.id}`,
-              name: m.name,
-              avatar: m.name[0],
-              image_url: m.image_url,
-              online: Math.random() > 0.5,
-              userId: m.id
-            })),
-            icon: t.icon || '🏢'
-          }
-        }))
+        const enriched = buildTeamList(data, unreadCounts)
         setTeams(enriched)
 
         if (!forceDefault && selectedTeam?.id) {
@@ -474,6 +459,7 @@ export function ChatProvider({ children }) {
       }
     } catch (err) {
       console.error('Failed to fetch teams:', err)
+      showToast?.({ message: t.sidebar.loadFailed, tone: 'error' })
       return []
     }
   }

@@ -29,6 +29,7 @@ export const translations = {
     sidebar: {
       teams: 'SPACES', channels: 'Channels', directMessages: 'Direct Messages',
       addTeam: '스페이스 추가', addPersonalSpace: '개인 스페이스 추가', emergencySpaceAccess: '개인 스페이스 긴급 접근', addChannel: '채널 추가',
+      loadFailed: '스페이스 목록을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.',
       calendar: '캘린더',
       channelManageTitle: '더블클릭하면 채널 관리',
       formTemplates: '양식 모음',
@@ -562,6 +563,7 @@ export const translations = {
     sidebar: {
       teams: 'SPACES', channels: 'Channels', directMessages: 'Direct Messages',
       addTeam: 'Add Space', addPersonalSpace: 'Add Personal Space', emergencySpaceAccess: 'Emergency Personal Space Access', addChannel: 'Add Channel',
+      loadFailed: 'Could not load the space list. Please try again shortly.',
       calendar: 'Calendar',
       channelManageTitle: 'Double-click to manage channel',
       formTemplates: 'Service',
@@ -1111,6 +1113,7 @@ translations.ja = {
     addPersonalSpace: '個人スペース追加',
     emergencySpaceAccess: '個人スペース緊急アクセス',
     addChannel: 'チャンネル追加',
+    loadFailed: 'スペース一覧を読み込めませんでした。しばらくしてからもう一度お試しください。',
     calendar: 'カレンダー',
     channelManageTitle: 'ダブルクリックでチャンネル管理',
     formTemplates: 'サービス',
